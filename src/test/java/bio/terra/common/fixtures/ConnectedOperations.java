@@ -367,7 +367,7 @@ public class ConnectedOperations {
     public void deleteTestDataset(String id) throws Exception {
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        checkDeleteResponse(response);
+        checkDeleteDatasetResponse(response, id);
     }
 
     public void deleteTestProfile(String id) throws Exception {
@@ -845,9 +845,10 @@ public class ConnectedOperations {
                 }
             }
 
-            logger.info("{} datasets to be removed.", createdDatasetIds.size());
+            logger.info("Cleanup Tracking: {} datasets to be removed.", createdDatasetIds.size());
             for (String datasetId : createdDatasetIds) {
                 try {
+                    logger.info("Cleanup Tracking: Dataset to be deleted {}", datasetId);
                     deleteTestDataset(datasetId);
                 } catch (Exception ex) {
                     removeDatasetFromTracking(datasetId);

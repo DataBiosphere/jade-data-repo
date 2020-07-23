@@ -78,7 +78,7 @@ public class DatasetDao {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
 
-        logger.info("Adding exclusive lock for datasetId: {}, flightId: {}", datasetId, flightId);
+        logger.info("Lock Operation: Adding exclusive lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry and lock it by setting the flight id
         String sql = "UPDATE dataset SET flightid = :flightid " +
             "WHERE id = :datasetid AND (flightid IS NULL OR flightid = :flightid) AND CARDINALITY(sharedlock) = 0";
@@ -89,7 +89,7 @@ public class DatasetDao {
 
         performLockQuery(sql, params, LockType.LockExclusive, datasetId);
 
-        logger.info("Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
+        logger.info("Lock Operation: Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
     }
 
     /**
@@ -104,7 +104,7 @@ public class DatasetDao {
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean unlockExclusive(UUID datasetId, String flightId) {
-        logger.info("Unlocking exclusive lock for datasetId: {}, flightId: {}", datasetId, flightId);
+        logger.info("Lock Operation: Unlocking exclusive lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry to remove the flightid IF it is currently set to this flightid
         String sql = "UPDATE dataset SET flightid = NULL " +
             "WHERE id = :datasetid AND flightid = :flightid";
@@ -115,7 +115,7 @@ public class DatasetDao {
         int numRowsUpdated = performLockQuery(sql, params, LockType.UnlockExclusive, null);
 
         boolean unlockSucceeded = (numRowsUpdated == 1);
-        logger.info("Unlock exclusive successful? {}; for datasetId: {}, flightId: {}",
+        logger.info("Lock Operation: Unlock exclusive successful? {}; for datasetId: {}, flightId: {}",
             unlockSucceeded, datasetId, flightId);
         return unlockSucceeded;
     }
@@ -138,7 +138,7 @@ public class DatasetDao {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
-        logger.info("Adding shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
+        logger.info("Lock Operation: Adding shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry and lock it by adding the flight id to the shared lock array column
         String sql = "UPDATE dataset SET sharedlock = " +
             // the SQL below appends flightid to an existing array
@@ -161,8 +161,7 @@ public class DatasetDao {
 
         int numRowsUpdated = performLockQuery(sql, params, LockType.LockShared, datasetId);
 
-        // TODO before merge - demote this log to debug
-        logger.info("Shared lock acquired for dataset {}, flight {}, with {} rows updated",
+        logger.info("Lock Operation: Shared lock acquired for dataset {}, flight {}, with {} rows updated",
             datasetId, flightId, numRowsUpdated);
     }
 
@@ -178,6 +177,7 @@ public class DatasetDao {
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean unlockShared(UUID datasetId, String flightId) {
+        logger.info("Lock Operation: Unlocking shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry to remove the flightid from the sharedlock list IF it is currently included there
         String sql = "UPDATE dataset SET sharedlock = ARRAY_REMOVE(sharedlock, :flightid::text) " +
             "WHERE id = :datasetid AND :flightid = ANY(sharedlock)";
@@ -189,7 +189,7 @@ public class DatasetDao {
         int numRowsUpdated = performLockQuery(sql, params, LockType.UnlockShared, null);
 
         boolean unlockSucceeded = (numRowsUpdated == 1);
-        logger.info("Unlock shared successful? {}; for datasetId: {}, flightId: {}",
+        logger.info("Lock Operation: Lock Operation: Unlock shared successful? {}; for datasetId: {}, flightId: {}",
             unlockSucceeded, datasetId, flightId);
         return unlockSucceeded;
     }
@@ -206,7 +206,7 @@ public class DatasetDao {
         DataAccessException faultToInsert = getFaultToInsert(lockType);
         try {
             if (faultToInsert != null) {
-                logger.info("Inserting fault to lock/unlock operation.");
+                logger.info("Test: Inserting fault to lock/unlock operation.");
                 throw faultToInsert;
             }
 
@@ -300,7 +300,7 @@ public class DatasetDao {
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
-        logger.info("createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
+        logger.info("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
             "(name, default_profile_id, flightid, description, additional_profile_ids, sharedlock) " +
             "VALUES (:name, :default_profile_id, :flightid, :description, :additional_profile_ids, ARRAY[]::TEXT[]) ";

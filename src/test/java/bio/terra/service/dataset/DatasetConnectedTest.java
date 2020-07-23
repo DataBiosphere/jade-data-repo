@@ -144,7 +144,7 @@ public class DatasetConnectedTest {
             errorModel.getMessage(), containsString("Dataset name already exists"));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -270,7 +270,7 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -365,7 +365,7 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -452,7 +452,7 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -525,7 +525,7 @@ public class DatasetConnectedTest {
         assertTrue("Soft deleted row id is still in soft delete table", softDeleteRowIds2.contains(softDeleteRowId));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -630,7 +630,7 @@ public class DatasetConnectedTest {
         assertTrue("Soft deleted row id #2 is in soft delete table", softDeleteRowIds.contains(softDeleteRowId2));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -696,7 +696,7 @@ public class DatasetConnectedTest {
         assertFalse("Good row id is not in soft delete table", softDeleteRowIdsFromBQ.contains(softDeleteGoodRowId));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);

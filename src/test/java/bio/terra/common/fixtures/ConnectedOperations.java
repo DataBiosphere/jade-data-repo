@@ -51,11 +51,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -364,12 +360,15 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(responseBody, ErrorModel.class);
     }
 
-    public void deleteTestDataset(String id) throws Exception {
-        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
-        MockHttpServletResponse response = validateJobModelAndWait(result);
-        if (checkDeleteResponse(response)) {
+    public void deleteTestDatasetAndCleanup(String id) throws Exception {
+        if (deleteTestDataset(id)) {
             removeDatasetFromTracking(id);
         }
+    }
+    public boolean deleteTestDataset(String id) throws Exception {
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return checkDeleteResponse(response);
     }
 
     public void deleteTestProfile(String id) throws Exception {
@@ -378,26 +377,21 @@ public class ConnectedOperations {
         // databases for these tests it would make it easier to do these types of checks
     }
 
-    public void deleteTestSnapshot(String id) throws Exception {
+    public boolean deleteTestSnapshot(String id) throws Exception {
         MvcResult result = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-        if (checkDeleteResponse(response)) {
-            removeSnapshotFromTracking(id);
-        }
+        return checkDeleteResponse(response);
     }
 
-    public void deleteTestFile(String datasetId, String fileId) throws Exception {
+    public boolean deleteTestFile(String datasetId, String fileId) throws Exception {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
             .andReturn();
         logger.info("deleting test file -  datasetId:{} objectId:{}", datasetId, fileId);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-        boolean successfulDelete = checkDeleteResponse(response);
-        if (successfulDelete) {
-            removeFile(datasetId, fileId);
-        }
+        return checkDeleteResponse(response);
     }
 
     public void deleteTestBucket(String bucketName) {
@@ -770,13 +764,7 @@ public class ConnectedOperations {
     }
 
     public void addSnapshot(String id) {
-        logger.info("Cleanup Tracking: Adding Snapshot to list to be removed in cleanup. SnapshotId: {}", id);
         createdSnapshotIds.add(id);
-    }
-
-    public void removeSnapshotFromTracking(String id) {
-        logger.info("Cleanup Tracking: Removing Snapshot from tracking list. SnapshotId: {}", id);
-        createdSnapshotIds.remove(id);
     }
 
     public void addProfile(String id) {

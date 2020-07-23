@@ -189,7 +189,7 @@ public class DatasetDao {
         int numRowsUpdated = performLockQuery(sql, params, LockType.UnlockShared, null);
 
         boolean unlockSucceeded = (numRowsUpdated == 1);
-        logger.info("Lock Operation: Lock Operation: Unlock shared successful? {}; for datasetId: {}, flightId: {}",
+        logger.info("Lock Operation: Unlock shared successful? {}; for datasetId: {}, flightId: {}",
             unlockSucceeded, datasetId, flightId);
         return unlockSucceeded;
     }

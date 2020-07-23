@@ -2,9 +2,11 @@ package testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.*;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.BulkLoadUtils;
@@ -54,18 +56,40 @@ public class KillKubePods extends runner.TestScript {
         DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      logger.debug("Scaling pods down to 0");
+      logger.info("Scaling pods down to 0");
       KubernetesClientUtils.changeReplicaSetSizeAndWait(0);
 
-      // allow job to run on scaled down pods for interval
-      bulkLoadArrayJobResponse =
-          DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+      try {
+        bulkLoadArrayJobResponse =
+            DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+      } catch (ApiException ex) {
+        logger.info("Catching expected exception while pod size = 0");
+      }
+
+      logger.info("Scaling pods back up to 1.");
+      KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
+      // give the poll a few changes to get a non-failing results while the pods are scaled back up.
+      ApiException lastException = null;
+      for (int i = 0; i < 5; i++) {
+        try {
+          bulkLoadArrayJobResponse =
+              DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+          lastException = null;
+        } catch (ApiException ex) {
+          logger.info("Catching errors while we wait for pod to come back up. Retry # {}");
+          lastException = ex;
+          TimeUnit.SECONDS.sleep(15);
+        }
+      }
+      if (lastException != null) {
+        throw lastException;
+      }
 
       // if job still running, scale back up
-      if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
+      /*if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
         logger.debug("Scaling pods back up to 4");
         KubernetesClientUtils.changeReplicaSetSizeAndWait(4);
-      }
+      }*/
     }
     // =========================================================================
 

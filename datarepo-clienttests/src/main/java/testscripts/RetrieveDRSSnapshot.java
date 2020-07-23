@@ -69,7 +69,6 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
 
     // ingest a file
     URI sourceUri = new URI("gs://jade-testdata/fileloadprofiletest/1KBfile.txt");
-    // todo generate a 1 byte file to load
 
     String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
 
@@ -86,25 +85,10 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
     FileModel fileModel =
         DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, FileModel.class);
 
-    // generate a JSON file with the fileref
-    String jsonLine =
-        "{\"VCF_File_Name\":\"name1\", \"Description\":\"description1\", \"VCF_File_Ref\":\""
-            + fileModel.getFileId()
-            + "\"}\n";
-
-    // load a JSON file that contains the table rows to load into the test bucket
-    String jsonFileName = "this-better-pass.json";
-    String dirInCloud = "scratch/testRetrieveSnapshot/" + UUID.randomUUID().toString();
-    BlobInfo ingestTableBlob =
-        BlobInfo.newBuilder(testConfigGetIngestbucket, dirInCloud + "/" + jsonFileName).build();
-
-    storage.create(ingestTableBlob, jsonLine.getBytes(StandardCharsets.UTF_8));
-
-    // save a reference to the JSON file so we can delete it in cleanup()
-    createdScratchFiles.add(dirInCloud + "/" + jsonFileName);
-
     // ingest the tabular data from the JSON file we just generated
-    String gsPath = "gs://" + testConfigGetIngestbucket + "/" + dirInCloud + "/" + jsonFileName;
+    String gsPath = FileUtils.getFileRefs(fileModel.getFileId(), storage, testConfigGetIngestbucket);
+
+
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
@@ -194,14 +178,6 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
     System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
-
-    // delete scratch files -- This should be pulled into the test runner?
-    for (String path : createdScratchFiles) {
-      Blob scratchBlob = storage.get(BlobId.of(testConfigGetIngestbucket, path));
-      if (scratchBlob != null) {
-        scratchBlob.delete();
-      }
-    }
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());

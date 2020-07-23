@@ -4,14 +4,29 @@ import bio.terra.datarepo.api.DataRepositoryServiceApi;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.model.*;
-import com.google.cloud.bigquery.*;
-import com.google.cloud.storage.*;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
+import bio.terra.datarepo.model.BulkLoadFileModel;
+import bio.terra.datarepo.model.DatasetSummaryModel;
+import bio.terra.datarepo.model.DeleteResponseModel;
+import bio.terra.datarepo.model.DRSObject;
+import bio.terra.datarepo.model.FileModel;
+import bio.terra.datarepo.model.IngestResponseModel;
+import bio.terra.datarepo.model.IngestRequestModel;
+import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.SnapshotModel;
+import bio.terra.datarepo.model.SnapshotSummaryModel;
+import bio.terra.datarepo.model.TableModel;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
@@ -91,8 +106,8 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
         DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, FileModel.class);
 
     // ingest the tabular data from the JSON file we just generated
-    String gsPath = FileUtils.getFileRefs(fileModel.getFileId(), storage, testConfigGetIngestbucket);
-
+    String gsPath =
+        FileUtils.getFileRefs(fileModel.getFileId(), storage, testConfigGetIngestbucket);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -174,9 +189,9 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-      System.out.println("successfully deleted snapshot: " + snapshotSummaryModel.getName());
+    System.out.println("successfully deleted snapshot: " + snapshotSummaryModel.getName());
 
-      // make the delete request and wait for the job to finish
+    // make the delete request and wait for the job to finish
     JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
     deleteDatasetJobResponse =
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);

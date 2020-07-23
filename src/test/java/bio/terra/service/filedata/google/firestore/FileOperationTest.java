@@ -142,7 +142,7 @@ public class FileOperationTest {
             .addGroupItem(concurrentConfig)
             .addGroupItem(driverWaitConfig);
         configService.setConfig(configGroupModel);
-        logger.info("--------end of setup---------");
+        logger.info("--------begin test---------");
     }
 
     @After

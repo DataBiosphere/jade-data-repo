@@ -107,7 +107,7 @@ public class DatasetConnectedTest {
             .name(Names.randomizeName(datasetRequest.getName()))
             .defaultProfileId(billingProfile.getId());
         summaryModel = connectedOperations.createDataset(datasetRequest);
-        logger.info("--------end of setup---------");
+        logger.info("--------begin test---------");
     }
 
     @After

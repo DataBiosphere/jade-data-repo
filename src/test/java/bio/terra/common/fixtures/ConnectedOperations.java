@@ -810,29 +810,53 @@ public class ConnectedOperations {
             // Order is important: delete all the snapshots first so we eliminate dependencies
             // Then delete the files before the datasets
             for (String snapshotId : createdSnapshotIds) {
-                deleteTestSnapshot(snapshotId);
+                try {
+                    deleteTestSnapshot(snapshotId);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting snapshot. SnapshotId: {}", snapshotId);
+                }
             }
 
             for (String[] fileInfo : createdFileIds) {
-                deleteTestFile(fileInfo[0], fileInfo[1]);
+                try {
+                    deleteTestFile(fileInfo[0], fileInfo[1]);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting file. FileId: {}", fileInfo[0]);
+                }
             }
 
             logger.info("Cleanup Tracking: {} datasets to be removed.", createdDatasetIds.size());
             for (String datasetId : createdDatasetIds) {
                 logger.info("Cleanup Tracking: Dataset to be deleted {}", datasetId);
-                deleteTestDataset(datasetId);
+                try {
+                    deleteTestDataset(datasetId);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting dataset. DatasetId: {}", datasetId);
+                }
             }
 
             for (String profileId : createdProfileIds) {
-                deleteTestProfile(profileId);
+                try {
+                    deleteTestProfile(profileId);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting profile. ProfileId: {}", profileId);
+                }
             }
 
             for (String bucketName : createdBuckets) {
-                deleteTestBucket(bucketName);
+                try {
+                    deleteTestBucket(bucketName);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting bucket. BucketName: {}", bucketName);
+                }
             }
 
             for (String path : createdScratchFiles) {
-                deleteTestScratchFile(path);
+                try {
+                    deleteTestScratchFile(path);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting scratch file. Path: {}", path);
+                }
             }
         }
 

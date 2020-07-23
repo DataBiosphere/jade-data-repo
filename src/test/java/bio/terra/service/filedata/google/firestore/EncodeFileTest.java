@@ -108,7 +108,7 @@ public class EncodeFileTest {
         String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
         loadTag = "encodeLoadTag" + UUID.randomUUID();
-        logger.info("--------end of setup---------");
+        logger.info("--------begin test---------");
     }
 
     @After

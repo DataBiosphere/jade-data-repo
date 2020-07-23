@@ -940,7 +940,9 @@ public class DatasetConnectedTest {
         HttpStatus status = HttpStatus.valueOf(response.getStatus());
         assertTrue("Dataset delete should have successfully completed after acquiring exclusive lock",
             status.is2xxSuccessful());
-        connectedOperations.checkDeleteDatasetResponse(response, datasetId.toString());
+        if (connectedOperations.checkDeleteResponse(response)) {
+            connectedOperations.removeDatasetFromTracking(datasetId.toString());
+        }
         logger.info("Dataset successfully deleted after acquiring exclusive lock.");
     }
 
@@ -985,7 +987,9 @@ public class DatasetConnectedTest {
         HttpStatus status = HttpStatus.valueOf(response.getStatus());
         assertTrue("Dataset delete should have successfully completed after acquiring exclusive lock",
             status.is2xxSuccessful());
-        connectedOperations.checkDeleteDatasetResponse(response, datasetId.toString());
+        if (connectedOperations.checkDeleteResponse(response)) {
+            connectedOperations.removeDatasetFromTracking(datasetId.toString());
+        }
         logger.info("Dataset successfully deleted after acquiring exclusive lock.");
     }
 

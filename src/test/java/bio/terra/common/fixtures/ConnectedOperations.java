@@ -367,7 +367,9 @@ public class ConnectedOperations {
     public void deleteTestDataset(String id) throws Exception {
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        checkDeleteDatasetResponse(response, id);
+        if (checkDeleteResponse(response)) {
+            removeDatasetFromTracking(id);
+        }
     }
 
     public void deleteTestProfile(String id) throws Exception {
@@ -380,7 +382,9 @@ public class ConnectedOperations {
         MvcResult result = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-        checkDeleteResponse(response);
+        if (checkDeleteResponse(response)) {
+            removeSnapshotFromTracking(id);
+        }
     }
 
     public void deleteTestFile(String datasetId, String fileId) throws Exception {
@@ -390,7 +394,10 @@ public class ConnectedOperations {
         logger.info("deleting test file -  datasetId:{} objectId:{}", datasetId, fileId);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-        checkDeleteResponse(response);
+        boolean successfulDelete = checkDeleteResponse(response);
+        if (successfulDelete) {
+            removeFile(datasetId, fileId);
+        }
     }
 
     public void deleteTestBucket(String bucketName) {
@@ -404,7 +411,7 @@ public class ConnectedOperations {
         }
     }
 
-    public void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
+    public boolean checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         HttpStatus status = HttpStatus.valueOf(response.getStatus());
         if (status.is2xxSuccessful()) {
             DeleteResponseModel responseModel =
@@ -412,27 +419,11 @@ public class ConnectedOperations {
             assertTrue("Valid delete response object state enumeration",
                 (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
                     responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
-        } else {
-            ErrorModel errorModel = handleFailureCase(response, HttpStatus.NOT_FOUND);
-            assertNotNull("error model returned", errorModel);
+            return true;
         }
-    }
-
-    public void checkDeleteDatasetResponse(MockHttpServletResponse response, String datasetIdDeleted) throws Exception {
-        HttpStatus status = HttpStatus.valueOf(response.getStatus());
-        if (status.is2xxSuccessful()) {
-            DeleteResponseModel responseModel =
-                TestUtils.mapFromJson(response.getContentAsString(), DeleteResponseModel.class);
-            assertTrue("Valid delete response object state enumeration",
-                (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
-                    responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
-
-            // we already successfully removed the dataset, so we do not need to delete again.
-            removeDatasetFromTracking(datasetIdDeleted);
-        } else {
-            ErrorModel errorModel = handleFailureCase(response, HttpStatus.NOT_FOUND);
-            assertNotNull("error model returned", errorModel);
-        }
+        ErrorModel errorModel = handleFailureCase(response, HttpStatus.NOT_FOUND);
+        assertNotNull("error model returned", errorModel);
+        return false;
     }
 
     public MvcResult ingestTableRaw(String datasetId, IngestRequestModel ingestRequestModel) throws Exception {
@@ -779,7 +770,13 @@ public class ConnectedOperations {
     }
 
     public void addSnapshot(String id) {
+        logger.info("Cleanup Tracking: Adding Snapshot to list to be removed in cleanup. SnapshotId: {}", id);
         createdSnapshotIds.add(id);
+    }
+
+    public void removeSnapshotFromTracking(String id) {
+        logger.info("Cleanup Tracking: Removing Snapshot from tracking list. SnapshotId: {}", id);
+        createdSnapshotIds.remove(id);
     }
 
     public void addProfile(String id) {
@@ -821,66 +818,33 @@ public class ConnectedOperations {
         // call the reset configuration endpoint to disable all faults
         resetConfiguration();
 
-        // Adding try catch around each attempt because we don't want one failure to prevent us from
-        // cleaning up the rest of the items
-        // We also don't want items that couldn't be deleted to interfere with other tests
         if (deleteOnTeardown) {
             // Order is important: delete all the snapshots first so we eliminate dependencies
             // Then delete the files before the datasets
             for (String snapshotId : createdSnapshotIds) {
-                try {
-                    deleteTestSnapshot(snapshotId);
-                } catch (Exception ex) {
-                    createdSnapshotIds.remove(snapshotId);
-                    logger.info("CLEANUP ERROR! Unable to clean up snapshot {}", snapshotId);
-                }
+                deleteTestSnapshot(snapshotId);
             }
 
             for (String[] fileInfo : createdFileIds) {
-                try {
-                    deleteTestFile(fileInfo[0], fileInfo[1]);
-                } catch (Exception ex) {
-                    createdFileIds.remove(fileInfo);
-                    logger.info("CLEANUP ERROR! Unable to clean up File {}", fileInfo[0]);
-                }
+                deleteTestFile(fileInfo[0], fileInfo[1]);
             }
 
             logger.info("Cleanup Tracking: {} datasets to be removed.", createdDatasetIds.size());
             for (String datasetId : createdDatasetIds) {
-                try {
-                    logger.info("Cleanup Tracking: Dataset to be deleted {}", datasetId);
-                    deleteTestDataset(datasetId);
-                } catch (Exception ex) {
-                    removeDatasetFromTracking(datasetId);
-                    logger.info("CLEANUP ERROR! Unable to clean up dataset {}", datasetId);
-                }
+                logger.info("Cleanup Tracking: Dataset to be deleted {}", datasetId);
+                deleteTestDataset(datasetId);
             }
 
             for (String profileId : createdProfileIds) {
-                try {
-                    deleteTestProfile(profileId);
-                } catch (Exception ex) {
-                    createdProfileIds.remove(profileId);
-                    logger.info("CLEANUP ERROR! Unable to cleanup profile {}", profileId);
-                }
+                deleteTestProfile(profileId);
             }
 
             for (String bucketName : createdBuckets) {
-                try {
-                    deleteTestBucket(bucketName);
-                } catch (Exception ex) {
-                    createdBuckets.remove(bucketName);
-                    logger.info("CLEANUP ERROR! Unable to cleanup bucket {}", bucketName);
-                }
+                deleteTestBucket(bucketName);
             }
 
             for (String path : createdScratchFiles) {
-                try {
-                    deleteTestScratchFile(path);
-                } catch (Exception ex) {
-                    createdScratchFiles.remove(path);
-                    logger.info("CLEANUP ERROR! Unable to clean up scratch file {}", path);
-                }
+                deleteTestScratchFile(path);
             }
         }
 

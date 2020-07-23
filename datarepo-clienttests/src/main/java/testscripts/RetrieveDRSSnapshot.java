@@ -8,11 +8,10 @@ import bio.terra.datarepo.model.*;
 import com.google.cloud.bigquery.*;
 import com.google.cloud.storage.*;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
@@ -72,15 +71,21 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
 
     String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
 
-    FileLoadModel fileLoadModel =
-        new FileLoadModel()
+    BulkLoadFileModel fileLoadModel =
+        new BulkLoadFileModel()
             .sourcePath(sourceUri.toString())
             .description("IngestFile")
             .mimeType("text/plain")
-            .targetPath(targetPath)
-            .profileId(datasetSummaryModel.getDefaultProfileId());
+            .targetPath(targetPath);
+    List<BulkLoadFileModel> bulkLoadFileModelList = new ArrayList<>();
+    bulkLoadFileModelList.add(fileLoadModel);
+    BulkLoadArrayRequestModel fileLoadModelArray =
+        new BulkLoadArrayRequestModel()
+            .profileId(datasetSummaryModel.getDefaultProfileId())
+            .loadArray(bulkLoadFileModelList);
     JobModel ingestFileJobResponse =
-        repositoryApi.ingestFile(datasetSummaryModel.getId(), fileLoadModel);
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
+
     ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
     FileModel fileModel =
         DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, FileModel.class);

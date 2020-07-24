@@ -92,8 +92,10 @@ public class BulkLoadUtils {
 
   public void getAndDisplayResults(RepositoryApi repositoryApi, JobModel bulkLoadArrayJobResponse)
       throws Exception {
+    logger.info("waiting for job to finish.");
     bulkLoadArrayJobResponse =
         DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse);
+
     BulkLoadArrayResultModel result =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);

@@ -66,6 +66,7 @@ public final class DataRepoUtils {
       tryCount++;
       pollCtr--;
     }
+    logger.info("Status at end of polling: {}", job.getJobStatus());
 
     return job;
   }
@@ -101,12 +102,13 @@ public final class DataRepoUtils {
    */
   public static <T> T expectJobSuccess(
       RepositoryApi repositoryApi, JobModel jobResponse, Class<T> resultClass) throws Exception {
+    logger.info("Expect Job Success. {}", jobResponse.getJobStatus());
     if (jobResponse.getJobStatus().equals(JobModel.JobStatusEnum.FAILED)) {
       ErrorModel errorModel =
           DataRepoUtils.getJobResult(repositoryApi, jobResponse, ErrorModel.class);
       throw new RuntimeException("Job failed unexpectedly. " + errorModel);
     }
-
+    logger.info("getting job result.");
     return DataRepoUtils.getJobResult(repositoryApi, jobResponse, resultClass);
   }
 

@@ -70,18 +70,19 @@ public class KillKubePods extends runner.TestScript {
       KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
       // give the poll a few changes to get a non-failing results while the pods are scaled back up.
       ApiException lastException = null;
-      for (int i = 0; i < 5; i++) {
+      for (int i = 0; i < 10; i++) {
         try {
           bulkLoadArrayJobResponse =
               DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
           lastException = null;
         } catch (ApiException ex) {
-          logger.info("Catching errors while we wait for pod to come back up. Retry # {}");
+          logger.info("Catching errors while we wait for pod to come back up. Retry # {}", i + 1);
           lastException = ex;
-          TimeUnit.SECONDS.sleep(15);
+          TimeUnit.SECONDS.sleep(30);
         }
       }
       if (lastException != null) {
+        logger.info("last exception was not null.");
         throw lastException;
       }
 

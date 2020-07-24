@@ -208,10 +208,8 @@ class TestRunner {
       ThreadPoolExecutor threadPool = threadPools.get(ctr);
 
       threadPool.shutdown();
-
       long totalTerminationTime =
           testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
-
       boolean terminatedByItself =
           threadPool.awaitTermination(
               totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);
@@ -220,7 +218,6 @@ class TestRunner {
       if (!terminatedByItself) {
         threadPool.shutdownNow();
       }
-
       if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
         logger.error(
             "Test Scripts: Thread pool for test script failed to terminate: {}",

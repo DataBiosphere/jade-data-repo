@@ -17,6 +17,7 @@ public class BulkLoadUtils {
   private BillingProfileModel billingProfileModel;
   private DatasetSummaryModel datasetSummaryModel;
   private String loadTag;
+  private AssertUtils assertUtils;
 
   public String getDatasetId() {
     if (datasetSummaryModel == null) {
@@ -103,13 +104,15 @@ public class BulkLoadUtils {
     BulkLoadArrayResultModel result =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
-
-    // todo: add asserts here - total succeeded files should equal the number of files parameter
+    
     BulkLoadResultModel loadSummary = result.getLoadSummary();
-    logger.info("Total files    : {}", loadSummary.getTotalFiles());
-    logger.info("Succeeded files: {}", loadSummary.getSucceededFiles());
-    logger.info("Failed files   : {}", loadSummary.getFailedFiles());
-    logger.info("Not Tried files: {}", loadSummary.getNotTriedFiles());
+    assertUtils = new AssertUtils();
+    assertUtils.assertEquals("Number of successful files loaded should equal total files.",
+        loadSummary.getTotalFiles(), loadSummary.getSucceededFiles());
+    logger.debug("Total files    : {}", loadSummary.getTotalFiles());
+    logger.debug("Succeeded files: {}", loadSummary.getSucceededFiles());
+    logger.debug("Failed files   : {}", loadSummary.getFailedFiles());
+    logger.debug("Not Tried files: {}", loadSummary.getNotTriedFiles());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {

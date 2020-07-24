@@ -52,12 +52,6 @@ public class LockDatasetStep implements Step {
                 datasetDao.lockExclusive(datasetId, context.getFlightId());
             }
             return StepResult.getStepResultSuccess();
-        } catch (RetryQueryException retryQueryException) {
-            // fault inserted during lockShared
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
-        } catch (DatasetLockException ex) {
-            logger.debug("Issue locking this Dataset", ex);
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
         } catch (DatasetNotFoundException notFoundEx) {
             if (suppressNotFoundException) {
                 logger.debug("Suppressing DatasetNotFoundException");
@@ -65,6 +59,10 @@ public class LockDatasetStep implements Step {
             } else {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
             }
+        } catch (DatasetLockException ex) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+        }  catch (RetryQueryException retryQueryException) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
         }
     }
 
@@ -73,13 +71,13 @@ public class LockDatasetStep implements Step {
         // try to unlock the flight if something went wrong above
         // note the unlock will only clear the flightid if it's set to this flightid
         boolean rowUpdated;
+        String flightId = context.getFlightId();
         if (sharedLock) {
-            rowUpdated = datasetDao.unlockShared(datasetId, context.getFlightId());
+            rowUpdated = datasetDao.unlockShared(datasetId, flightId);
         } else {
-            rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
+            rowUpdated = datasetDao.unlockExclusive(datasetId, flightId);
         }
-        logger.debug("rowUpdated on unlock = " + rowUpdated);
-
+        logger.debug("rowUpdated on unlock = {}", rowUpdated);
         return StepResult.getStepResultSuccess();
     }
 }

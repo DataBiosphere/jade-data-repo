@@ -57,7 +57,8 @@ public class DatasetDataDeleteFlight extends Flight {
         addStep(new DataDeletionStep(bigQueryPdao, datasetService, configService));
 
         // unlock
-        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true));
+        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true),
+            lockDatasetRetry);
 
         // cleanup
         addStep(new DropExternalTablesStep(bigQueryPdao, datasetService));

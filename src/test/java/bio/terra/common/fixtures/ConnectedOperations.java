@@ -524,7 +524,6 @@ public class ConnectedOperations {
         }
 
         if (removeFault) {
-            // Remove insertion of shared lock fault
             configService.setFault(faultToInsert.name(), false);
         }
 

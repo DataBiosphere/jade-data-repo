@@ -66,7 +66,7 @@ public class FileDeleteFlight extends Flight {
         addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset), fileSystemRetry);
         addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao, locationService));
         addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset), fileSystemRetry);
-        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true));
+        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
     }
 
 }

@@ -589,7 +589,7 @@ public class SnapshotConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(datasetRefSummary.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(datasetRefSummary.getId());
 
         // remove the file from the connectedoperation bookkeeping list
         connectedOperations.removeFile(datasetRefSummary.getId(), fileModel.getFileId());

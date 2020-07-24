@@ -108,10 +108,12 @@ public class EncodeFileTest {
         String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
         loadTag = "encodeLoadTag" + UUID.randomUUID();
+        logger.info("--------begin test---------");
     }
 
     @After
     public void teardown() throws Exception {
+        logger.info("--------start of tear down---------");
         connectedOperations.teardown();
     }
 

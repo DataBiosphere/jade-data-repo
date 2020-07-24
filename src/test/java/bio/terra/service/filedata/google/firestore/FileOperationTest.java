@@ -24,6 +24,7 @@ import bio.terra.model.FileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamProviderInterface;
@@ -38,6 +39,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -113,6 +115,7 @@ public class FileOperationTest {
     private String coreBillingAccountId;
     private BillingProfileModel profileModel;
     private DatasetSummaryModel datasetSummary;
+    private DatasetDaoUtils datasetDaoUtils;
 
     @Before
     public void setup() throws Exception {
@@ -127,7 +130,6 @@ public class FileOperationTest {
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
 
         datasetSummary = connectedOperations.createDataset(profileModel, "snapshot-test-dataset.json");
-
         // Make sure we start from a known configuration
         configService.reset();
         // Set the configuration so it is constant for the load tests
@@ -140,10 +142,13 @@ public class FileOperationTest {
             .addGroupItem(concurrentConfig)
             .addGroupItem(driverWaitConfig);
         configService.setConfig(configGroupModel);
+        logger.info("--------begin test---------");
     }
 
     @After
     public void teardown() throws Exception {
+        logger.info("--------start of tear down---------");
+
         configService.reset();
         connectedOperations.teardown();
     }
@@ -255,21 +260,62 @@ public class FileOperationTest {
             containsString("gs path"));
     }
 
+    // ------ Retry shared lock/unlock tests ---------------
+
     @Test
     public void retryAndAcquireSharedLock() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            true,
+            ConnectedOperations.RetryType.lock, true, true,
+            ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
 
+    @Test
+    public void retryAndAcquireSharedUnlock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            ConnectedOperations.RetryType.unlock, true,  true,
+            ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT,
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+    }
+
+    // These tests can be used as one offs to see if fatal errors are working as expected
+    // But, as is, they shouldn't be run every time because it can leave tests in a bad state
+    // (leftover artifacts after tests)
+    @Ignore
+    @Test
+    public void retryAndEventuallyFailToAcquireSharedLock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            ConnectedOperations.RetryType.lock, false, false,
+            ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT,
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+        configService.setFault(ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT.toString(), false);
+    }
+
+    @Ignore
+    @Test
+    public void retryAndFailAcquireSharedUnlock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            ConnectedOperations.RetryType.unlock, false, true,
+            ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT,
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+    }
+
+    @Ignore
     @Test
     public void retryAndFailAcquireSharedLock() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            false,
+            ConnectedOperations.RetryType.lock, false, true,
+            ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
 

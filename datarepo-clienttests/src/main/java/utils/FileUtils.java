@@ -4,6 +4,8 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -12,19 +14,18 @@ import java.io.InputStream;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
-import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.UUID;
 
 public final class FileUtils {
   private static ArrayList<String> createdScratchFiles;
 
   private FileUtils() {}
 
-  private static SecureRandom randomGenerator = new SecureRandom();
+    private static Storage storage;
+    private static SecureRandom randomGenerator = new SecureRandom();
 
   /**
    * Append a random integer to the provided string.
@@ -106,41 +107,32 @@ public final class FileUtils {
   }
 
   /**
-   * Fetch the gsPath path.
+   * Create the gs path for scratch file.
    *
    * <p>// take the file name (e.g. testRetrieveDRSSnapshot.json) and byte array // build the
-   * blobinfo and create the storage object // save a reference to the blobid (or whatever you need
-   * to delete the storage object) in some static list in that class
+   * blobinfo and create the storage object // save a reference to the file to delete it later
    *
-   * @param fileId the if for the fileModel
-   * @param storage the storage
-   * @param testConfigGetIngestbucket the bucket
+   * @param fileRefBytes the substance of the scratch file
+   * @param fileRefName the name for the scratch file
+   * @param testConfigGetIngestbucket the gc bucket where the scratch files are
    * @return the gsPath
    */
-  public static String getFileRefs(
-      String fileId, Storage storage, String testConfigGetIngestbucket) {
+  public static String createGsPath(byte[] fileRefBytes, String fileRefName, String testConfigGetIngestbucket) {
     createdScratchFiles = new ArrayList<>();
-    // generate a JSON file with the fileref
-    String jsonLine =
-        "{\"VCF_File_Name\":\"name1\", \"Description\":\"description1\", \"VCF_File_Ref\":\""
-            + fileId
-            + "\"}\n";
-    // load a JSON file that contains the table rows to load into the test bucket
-    String jsonFileName = "this-better-pass.json";
-    String dirInCloud = "scratch/testRetrieveSnapshot/" + UUID.randomUUID().toString();
-    BlobInfo ingestTableBlob =
-        BlobInfo.newBuilder(testConfigGetIngestbucket, dirInCloud + "/" + jsonFileName).build();
+    storage = StorageOptions.getDefaultInstance().getService();
 
-    storage.create(ingestTableBlob, jsonLine.getBytes(StandardCharsets.UTF_8));
+      // load a JSON file that contains the table rows to load into the test bucket
+    BlobInfo ingestTableBlob = BlobInfo.newBuilder(testConfigGetIngestbucket, fileRefName).build();
+
+    storage.create(ingestTableBlob, fileRefBytes);
 
     // save a reference to the JSON file so we can delete it in cleanup()
-    createdScratchFiles.add(dirInCloud + "/" + jsonFileName);
-    String gsPath = "gs://" + testConfigGetIngestbucket + "/" + dirInCloud + "/" + jsonFileName;
-
-    return gsPath;
+    createdScratchFiles.add(fileRefName);
+    return "gs://" + testConfigGetIngestbucket + "/" + fileRefName;
   }
 
-  public static void cleanupScratchFiles(Storage storage, String testConfigGetIngestbucket) {
+  public static void cleanupScratchFiles(String testConfigGetIngestbucket) {
+    storage = StorageOptions.getDefaultInstance().getService();
     // do the delete loop you've already coded.
     // delete scratch files -- This should be pulled into the test runner?
     for (String path : createdScratchFiles) {

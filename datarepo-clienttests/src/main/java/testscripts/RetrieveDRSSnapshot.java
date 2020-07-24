@@ -17,10 +17,7 @@ import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import bio.terra.datarepo.model.TableModel;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.TableResult;
-import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.net.URI;
@@ -193,6 +190,9 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
     System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
+
+    // delete scratch files
+    FileUtils.cleanupScratchFiles(storage, testConfigGetIngestbucket);
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());

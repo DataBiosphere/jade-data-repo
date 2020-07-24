@@ -97,11 +97,11 @@ public class KillKubePods extends runner.TestScript {
     }
 
     // create a new bulk load, same load tag
-    BulkLoadArrayRequestModel arrayLoadTry2 = bulkLoadUtils.buildSecondArrayLoadTry();
+    /*BulkLoadArrayRequestModel arrayLoadTry2 = bulkLoadUtils.buildSecondArrayLoadTry();
     JobModel bulkLoadArrayJobResponseTry2 =
         repositoryApi.bulkFileLoadArray(bulkLoadUtils.getDatasetId(), arrayLoadTry2);
     bulkLoadArrayJobResponseTry2 =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponseTry2);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponseTry2);*/
 
     // if job still running, scale back up
     /*if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
@@ -111,7 +111,7 @@ public class KillKubePods extends runner.TestScript {
     // =========================================================================
 
     // wait for the job to complete and print out results
-    bulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponseTry2);
+    bulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {

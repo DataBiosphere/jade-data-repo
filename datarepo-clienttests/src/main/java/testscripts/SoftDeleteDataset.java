@@ -3,14 +3,21 @@ package testscripts;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
+
 import bio.terra.datarepo.model.*;
+import com.google.api.client.util.Charsets;
+import com.google.cloud.WriteChannel;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.BigQueryUtils;
 import utils.DataRepoUtils;
-import utils.FileUtils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -29,6 +36,9 @@ public class SoftDeleteDataset extends runner.TestScript {
   private String datasetCreator;
   private BillingProfileModel billingProfileModel;
   private DatasetSummaryModel datasetSummaryModel;
+
+  private Storage storage;
+  private String testConfigGetIngestbucket;
 
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() == 0) {
@@ -52,6 +62,9 @@ public class SoftDeleteDataset extends runner.TestScript {
     ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
     ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
+
+    storage = StorageOptions.getDefaultInstance().getService();
+    testConfigGetIngestbucket = "jade-testdata"; // this could be put in DRUtils
 
     // create a new profile
     billingProfileModel =
@@ -87,7 +100,7 @@ public class SoftDeleteDataset extends runner.TestScript {
         String participantSqlQuery = String.format("SELECT %s FROM %s LIMIT %s", "datarepo_row_id", participantTableRef, 3L);
 
         TableResult participantResult = BigQueryUtils.queryBigQuery(dataProject, participantSqlQuery);
-        assertThat("got right num of row ids back", sampleResult.getTotalRows(), equalTo(3L));
+        //assertThat("got right num of row ids back", sampleResult.getTotalRows(), equalTo(3L));
         List<String> participantRowIds = StreamSupport.stream(participantResult.getValues().spliterator(), false)
             .map(fieldValues -> fieldValues.get(0).getStringValue())
             .collect(Collectors.toList());
@@ -99,7 +112,7 @@ public class SoftDeleteDataset extends runner.TestScript {
         String sampleSqlQuery = String.format("SELECT %s FROM %s LIMIT %s", "datarepo_row_id", sampleTableRef, 2L);
 
         TableResult sampleResult = BigQueryUtils.queryBigQuery(dataProject, sampleSqlQuery);
-        assertThat("got right num of row ids back", sampleResult.getTotalRows(), equalTo(2L));
+        //assertThat("got right num of row ids back", sampleResult.getTotalRows(), equalTo(2L));
         List<String> sampleRowIds = StreamSupport.stream(sampleResult.getValues().spliterator(), false)
             .map(fieldValues -> fieldValues.get(0).getStringValue())
             .collect(Collectors.toList());
@@ -107,7 +120,7 @@ public class SoftDeleteDataset extends runner.TestScript {
         // write them to GCS
         Storage storage = StorageOptions.getDefaultInstance().getService();
         String targetPath = "scratch/softDel/" + UUID.randomUUID().toString() + ".csv";
-        BlobInfo participantBlob = BlobInfo.newBuilder(testConfiguration.getIngestbucket(), targetPath).build();
+        BlobInfo participantBlob = BlobInfo.newBuilder(testConfigGetIngestbucket, targetPath).build();
 
         try (WriteChannel writer = storage.writer(participantBlob)) {
             for (String line : participantRowIds) {
@@ -116,7 +129,7 @@ public class SoftDeleteDataset extends runner.TestScript {
         }
         String participantPath =  String.format("gs://%s/%s", participantBlob.getBucket(), targetPath);
 
-        BlobInfo sampleBlob = BlobInfo.newBuilder(testConfiguration.getIngestbucket(), targetPath).build();
+        BlobInfo sampleBlob = BlobInfo.newBuilder(testConfigGetIngestbucket, targetPath).build();
         try (WriteChannel writer = storage.writer(sampleBlob)) {
             for (String line : sampleRowIds) {
                 writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
@@ -125,8 +138,35 @@ public class SoftDeleteDataset extends runner.TestScript {
         String samplePath = String.format("gs://%s/%s", sampleBlob.getBucket(), targetPath);
 
 
+      // build the deletion request with pointers to the two files with row ids to soft delete
+      DataDeletionGcsFileModel deletionGcsParticipantFileModel = new DataDeletionGcsFileModel()
+          .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
+          .path(participantPath);
+      DataDeletionTableModel participantDeletionTableFile = new DataDeletionTableModel()
+          .tableName("participant")
+          .gcsFileSpec(deletionGcsParticipantFileModel);
 
+      DataDeletionGcsFileModel deletionGcsSampleFileModel = new DataDeletionGcsFileModel()
+          .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
+          .path(participantPath);
+      DataDeletionTableModel sampleDeletionTableFile = new DataDeletionTableModel()
+          .tableName("sample")
+          .gcsFileSpec(deletionGcsSampleFileModel);
 
+      List<DataDeletionTableModel> dataDeletionTableModels = Arrays.asList(
+          participantDeletionTableFile,
+          sampleDeletionTableFile);
+
+      DataDeletionRequest dataDeletionRequest = new DataDeletionRequest()
+          .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)
+          .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE)
+          .tables(dataDeletionTableModels);
+
+      // send off the soft delete request
+      JobModel softDeleteJobResponse = repositoryApi.applyDatasetDataDeletion(datasetId, dataDeletionRequest);
+      softDeleteJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, softDeleteJobResponse);
+      DeleteResponseModel deleteResponseModel = // TODO double check the response model
+          DataRepoUtils.expectJobSuccess(repositoryApi, softDeleteJobResponse, DeleteResponseModel.class);
 
       // get row ids
       //List<String> participantRowIds = getRowIds(bigQuery, dataset, "participant", 3L);
@@ -137,19 +177,20 @@ public class SoftDeleteDataset extends runner.TestScript {
       //String samplePath = writeListToScratch("softDel", sampleRowIds);
 
       // build the deletion request with pointers to the two files with row ids to soft delete
-      List<DataDeletionTableModel> dataDeletionTableModels = Arrays.asList(
-          deletionTableFile("participant", participantPath),
-          deletionTableFile("sample", samplePath));
-      DataDeletionRequest request = dataDeletionRequest()
-          .tables(dataDeletionTableModels);
+      //List<DataDeletionTableModel> dataDeletionTableModels = Arrays.asList(
+        //  deletionTableFile("participant", participantPath),
+        //  deletionTableFile("sample", samplePath));
+      //DataDeletionRequest request = dataDeletionRequest()
+        //  .tables(dataDeletionTableModels);
 
       // send off the soft delete request
-      dataRepoFixtures.deleteData(steward(), datasetId, request);
+      //dataRepoFixtures.deleteData(steward(), datasetId, request);
 
       // make sure the new counts make sense
-      assertTableCount(bigQuery, dataset, "participant", 2L);
-      assertTableCount(bigQuery, dataset, "sample", 5L);
+      //assertTableCount(bigQuery, dataset, "participant", 2L);
+      //assertTableCount(bigQuery, dataset, "sample", 5L);
 
+      logger.info("Successfully soft deleted rows from dataset: {}", datasetSummaryModel.getName());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {

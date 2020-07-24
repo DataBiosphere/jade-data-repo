@@ -236,6 +236,30 @@ public final class KubernetesClientUtils {
             null);
   }
 
+    /**
+     * Change the size of the replica set. Note that this just sends a request to change the size, it
+     * does not wait to make sure the size is actually updated.
+     *
+     * @param deployment the deployment object to modify
+     * @param numberOfReplicas the new size of the replica set to scale to
+     */
+    public static V1Deployment deletePod(V1Deployment deployment, int numberOfReplicas)
+        throws ApiException {
+        V1DeploymentSpec existingSpec = deployment.getSpec();
+        deployment.setSpec(existingSpec.replicas(numberOfReplicas));
+        // get number of api pods
+        // get random pod name out of this list
+        //getKubernetesClientCoreObject().deleteNamespacedPod()
+        return getKubernetesClientAppsObject()
+            .replaceNamespacedDeployment(
+                deployment.getMetadata().getName(),
+                deployment.getMetadata().getNamespace(),
+                deployment,
+                null,
+                null,
+                null);
+    }
+
   /**
    * Wait until the size of the replica set matches the specified number of pods. Times out after
    * {@link KubernetesClientUtils#maximumSecondsToWaitForReplicaSetSizeChange} seconds. Polls in

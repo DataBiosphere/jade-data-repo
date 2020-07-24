@@ -5,14 +5,14 @@ import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BillingProfileModel;
-import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
+import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
+import bio.terra.datarepo.model.DRSObject;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
-import bio.terra.datarepo.model.DRSObject;
-import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
+import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
@@ -21,25 +21,25 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import utils.BigQueryUtils;
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
-public class RetrieveDRSSnapshot extends runner.TestScript {
+public class DRSLookup extends runner.TestScript {
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public RetrieveDRSSnapshot() {
+  public DRSLookup() {
     super();
   }
 
   private String datasetCreator;
   private BillingProfileModel billingProfileModel;
   private DatasetSummaryModel datasetSummaryModel;
-  private SnapshotSummaryModel snapshotSummaryModel;
+  private SnapshotModel snapshotModel;
 
   private Storage storage;
   private String testConfigGetIngestbucket;
@@ -55,7 +55,6 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
     ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
-    storage = StorageOptions.getDefaultInstance().getService();
     testConfigGetIngestbucket = "jade-testdata"; // this could be put in DRUtils
 
     // create a new profile
@@ -99,12 +98,21 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
     ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
-        DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
+        DataRepoUtils.expectJobSuccess(
+            repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
     String fileId = bulkLoadArrayResultModel.getLoadFileResults().get(0).getFileId();
 
     // ingest the tabular data from the JSON file we just generated
-    String gsPath =
-        FileUtils.getFileRefs(fileId, storage, testConfigGetIngestbucket);
+    // generate a JSON file with the fileref
+    String jsonLine =
+        "{\"VCF_File_Name\":\"name1\", \"Description\":\"description1\", \"VCF_File_Ref\":\""
+            + fileId
+            + "\"}\n";
+    byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
+    String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
+    String dirInCloud = "scratch/testRetrieveSnapshot/";
+    String fileRefName = dirInCloud + "/" + jsonFileName;
+    String gsPath = FileUtils.createGsPath(fileRefBytes, fileRefName, testConfigGetIngestbucket);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -127,13 +135,13 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
             repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
 
     // save a reference to the snapshot summary model so we can delete it in cleanup()
-    snapshotSummaryModel =
+    SnapshotSummaryModel snapshotSummaryModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
     System.out.println("successfully created snapshot: " + snapshotSummaryModel.getName());
 
     // now go and retrieve the file Id that should be stored in the snapshot
-    SnapshotModel snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
+    snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
     TableModel tableModel = snapshotModel.getTables().get(0);
     String queryForFileRefs =
         "SELECT * FROM "
@@ -143,7 +151,8 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
             + "."
             + tableModel.getName();
 
-    TableResult result = BigQueryUtils.queryBigQuery(snapshotModel.getDataProject(), queryForFileRefs);
+    TableResult result =
+        BigQueryUtils.queryBigQuery(snapshotModel.getDataProject(), queryForFileRefs);
 
     ArrayList<String> fileRefs = new ArrayList<>();
     result.iterateAll().forEach(r -> fileRefs.add(r.get("VCF_File_Ref").getStringValue()));
@@ -154,10 +163,7 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
   }
 
   public void userJourney(ApiClient apiClient) throws Exception {
-    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
     DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
-
-    SnapshotModel snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
     DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
 
     System.out.println(
@@ -176,12 +182,12 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // make the delete request and wait for the job to finish
-    JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
+    JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(snapshotModel.getId());
     deleteSnapshotJobResponse =
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-    System.out.println("successfully deleted snapshot: " + snapshotSummaryModel.getName());
+    System.out.println("successfully deleted snapshot: " + snapshotModel.getName());
 
     // make the delete request and wait for the job to finish
     JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
@@ -192,7 +198,7 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
     System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
 
     // delete scratch files
-    FileUtils.cleanupScratchFiles(storage, testConfigGetIngestbucket);
+    FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());

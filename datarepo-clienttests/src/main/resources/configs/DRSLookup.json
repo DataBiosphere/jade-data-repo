@@ -1,5 +1,5 @@
 {
-  "name": "DRSLookupSnapshot",
+  "name": "DRSLookup",
   "description": "Run DRS lookups on the file refs in two different snapshots.",
   "serverSpecificationFile": "mmdev.json",
   "billingAccount": "00708C-45D19D-27AAFA",
@@ -9,15 +9,8 @@
   "application": {},
   "testScripts": [
     {
-      "name": "RetrieveDRSSnapshot",
+      "name": "DRSLookup",
       "totalNumberToRun": 1,
-      "numberToRunInParallel": 3,
-      "expectedTimeForEach": 20,
-      "expectedTimeForEachUnit": "SECONDS"
-    },
-    {
-      "name": "RetrieveDRSSnapshot",
-      "totalNumberToRun": 15,
       "numberToRunInParallel": 3,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"

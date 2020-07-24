@@ -17,13 +17,16 @@ public final class BigQueryUtils {
    * @return the result of the BQ query
    * @throws InterruptedException from the bigQuery.query() method
    */
-  public static TableResult queryBigQuery(String dataproject, String query)
-      throws InterruptedException {
-    // build the BQ object
-    BigQuery bigQuery = BigQueryOptions.newBuilder().setProjectId(dataproject).build().getService();
+  public static TableResult queryBigQuery(String dataproject, String query) throws InterruptedException {
+      // build the BQ object
+      BigQuery bigQuery =
+          BigQueryOptions.newBuilder()
+              .setProjectId(dataproject)
+              .build()
+              .getService();
 
-    // query the BQ object
-    QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
-    return bigQuery.query(queryConfig);
+      // query the BQ object
+      QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
+      return bigQuery.query(queryConfig);
   }
 }

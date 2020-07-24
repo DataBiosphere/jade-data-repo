@@ -149,12 +149,6 @@ public class FileOperationTest {
     public void teardown() throws Exception {
         logger.info("--------start of tear down---------");
 
-        // make sure all faults are set back to false
-        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT.toString(), false);
-        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT.toString(), false);
-        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT.toString(), false);
-        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT.toString(), false);
-
         configService.reset();
         connectedOperations.teardown();
     }
@@ -274,7 +268,7 @@ public class FileOperationTest {
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.lock, true, true,
-            ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT,
+            ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
 
@@ -284,7 +278,7 @@ public class FileOperationTest {
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.unlock, true,  true,
-            ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT,
+            ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
 
@@ -298,9 +292,9 @@ public class FileOperationTest {
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.lock, false, false,
-            ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT,
+            ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
-        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT.toString(), false);
+        configService.setFault(ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT.toString(), false);
     }
 
     @Ignore
@@ -310,7 +304,7 @@ public class FileOperationTest {
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.unlock, false, true,
-            ConfigEnum.FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT,
+            ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
 
@@ -321,7 +315,7 @@ public class FileOperationTest {
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.lock, false, true,
-            ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT,
+            ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
 

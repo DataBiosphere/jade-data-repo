@@ -114,14 +114,9 @@ public class DatasetConnectedTest {
     public void tearDown() throws Exception {
         logger.info("--------start of tear down---------");
 
-        // make sure all faults are set back to false
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_FATAL_FAULT.toString(), false);
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT.toString(), false);
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT.toString(), false);
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT.toString(), false);
-
-        connectedOperations.teardown();
         configService.reset();
+        connectedOperations.teardown();
+
     }
 
     @Test
@@ -922,7 +917,7 @@ public class DatasetConnectedTest {
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT.toString(), true);
+        configService.setFault(ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT.toString(), true);
 
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
         logger.info("Sleeping for 2 seconds during delete dataset flight. It should fail to acquire exclusive lock.");
@@ -930,7 +925,7 @@ public class DatasetConnectedTest {
         String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
         assertNull("Exclusive lock should be null while fault is set", exclusiveLock2);
 
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT.toString(), false);
+        configService.setFault(ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT.toString(), false);
         logger.info("Fault removed - delete dataset flight should now succeed.");
         MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
 
@@ -952,7 +947,7 @@ public class DatasetConnectedTest {
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_FATAL_FAULT.toString(), true);
+        configService.setFault(ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT.toString(), true);
 
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
         logger.info("Sleeping for 5 seconds while delete dataset attempts to delete. It should fail.");
@@ -971,13 +966,13 @@ public class DatasetConnectedTest {
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT.toString(), true);
+        configService.setFault(ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT.toString(), true);
 
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
         logger.info("Sleeping for 10 seconds during delete dataset flight. It should acquire exclusive lock.");
         TimeUnit.SECONDS.sleep(10);
 
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT.toString(), false);
+        configService.setFault(ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT.toString(), false);
         logger.info("Fault removed - delete dataset flight should now succeed.");
         MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
 
@@ -999,7 +994,7 @@ public class DatasetConnectedTest {
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT.toString(), true);
+        configService.setFault(ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT.toString(), true);
 
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
 
@@ -1017,7 +1012,7 @@ public class DatasetConnectedTest {
         // so it will error in teardown if we try to remove the dataset.
         // In case something went wrong, let's try to delete the dataset again
 
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT.toString(), false);
+        configService.setFault(ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT.toString(), false);
         MvcResult cleanupResult = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
         MockHttpServletResponse cleanupResponse = connectedOperations.validateJobModelAndWait(cleanupResult);
         HttpStatus status = HttpStatus.valueOf(cleanupResponse.getStatus());

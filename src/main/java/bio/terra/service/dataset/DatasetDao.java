@@ -245,35 +245,16 @@ public class DatasetDao {
     }
 
     private DataAccessException getFaultToInsert(LockType lockType) {
-        ConfigEnum RetryableFault = null;
-        ConfigEnum FatalFault = null;
+        // fault insert for tests DatasetConnectedTest & FileOperationTests
+        ConfigEnum RetryableFault;
+        ConfigEnum FatalFault;
 
-        switch (lockType) {
-            case LockExclusive:
-                // fault insert for tests DatasetConnectedTest > retryAndAcquireExclusiveLock
-                // & retryAndFailAcquireExclusiveLock
-                RetryableFault = ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT;
-                FatalFault = ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_FATAL_FAULT;
-                break;
-            case UnlockExclusive:
-                // fault insert for tests DatasetConnectedTest > retryAndAcquireExclusiveUnlock
-                // & retryAndFailAcquireExclusiveUnlock
-                RetryableFault = ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT;
-                FatalFault = ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT;
-                break;
-            case LockShared:
-                // fault insert for tests FileOperationTest > retryAndAcquireSharedLock & retryAndFailAcquireSharedLock
-                RetryableFault = ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT;
-                FatalFault = ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT;
-                break;
-            case UnlockShared:
-                // fault inserted for test FileOperationTest > retryAndAcquireSharedUnlock
-                // & retryAndFailAcquireSharedUnlock
-                RetryableFault = ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT;
-                FatalFault = ConfigEnum.FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT;
-                break;
-            default:
-                return null;
+        if (lockType.equals(LockType.LockExclusive) || lockType.equals(LockType.LockShared)) {
+            RetryableFault = ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT;
+            FatalFault = ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT;
+        } else {
+            RetryableFault = ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT;
+            FatalFault = ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT;
         }
 
 

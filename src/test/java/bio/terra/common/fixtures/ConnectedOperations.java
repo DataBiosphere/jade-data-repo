@@ -505,7 +505,6 @@ public class ConnectedOperations {
         //setting the fault
         configService.setFault(faultToInsert.name(), true);
 
-        logger.info("request to create dataset for datasetId: {}", datasetId);
         String jsonRequest = TestUtils.mapToJson(fileLoadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files";
         MvcResult result = mvc.perform(post(url)
@@ -520,7 +519,6 @@ public class ConnectedOperations {
             assertEquals("no shared locks after first call", 0, sharedLocks.length);
         } else {
             assertEquals("Acquire shared locks after first call", 1, sharedLocks.length);
-            logger.info("shared lock acquired: datasetId: {}", sharedLocks[0]);
         }
 
         if (removeFault) {

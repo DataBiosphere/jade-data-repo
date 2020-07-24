@@ -51,7 +51,7 @@ public class UnlockDatasetStep implements Step {
             } else {
                 rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
             }
-            logger.info("rowUpdated on unlock = " + rowUpdated);
+            logger.debug("rowUpdated on unlock = " + rowUpdated);
         } catch (RetryQueryException retryQueryException) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
         }

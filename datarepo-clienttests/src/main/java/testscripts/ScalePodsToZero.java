@@ -82,7 +82,8 @@ public class ScalePodsToZero extends runner.TestScript {
           lastException = null;
         } catch (ApiException ex) {
           logger.debug(
-              "Catching expected error while we wait for pods to scale back up. Retry # {}", retryCounter);
+              "Catching expected error while we wait for pods to scale back up. Retry # {}",
+              retryCounter);
           lastException = ex;
           TimeUnit.SECONDS.sleep(30);
         }

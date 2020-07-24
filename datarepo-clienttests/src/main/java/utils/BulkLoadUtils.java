@@ -104,11 +104,13 @@ public class BulkLoadUtils {
     BulkLoadArrayResultModel result =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
-    
+
     BulkLoadResultModel loadSummary = result.getLoadSummary();
     assertUtils = new AssertUtils();
-    assertUtils.assertEquals("Number of successful files loaded should equal total files.",
-        loadSummary.getTotalFiles(), loadSummary.getSucceededFiles());
+    assertUtils.assertEquals(
+        "Number of successful files loaded should equal total files.",
+        loadSummary.getTotalFiles(),
+        loadSummary.getSucceededFiles());
     logger.debug("Total files    : {}", loadSummary.getTotalFiles());
     logger.debug("Succeeded files: {}", loadSummary.getSucceededFiles());
     logger.debug("Failed files   : {}", loadSummary.getFailedFiles());

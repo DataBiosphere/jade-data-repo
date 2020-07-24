@@ -63,7 +63,9 @@ public class KillKubePods extends runner.TestScript {
         bulkLoadArrayJobResponse =
             DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
       } catch (ApiException ex) {
-        logger.info("Catching expected exception while pod size = 0");
+        logger.info(
+            "Catching expected exception while pod size = 0, Job Status: {}",
+            bulkLoadArrayJobResponse.getJobStatus());
       }
 
       logger.info("Scaling pods back up to 1.");
@@ -71,31 +73,45 @@ public class KillKubePods extends runner.TestScript {
       // give the poll a few changes to get a non-failing results while the pods are scaled back up.
       ApiException lastException = null;
       for (int i = 0; i < 10; i++) {
-        try {
-          bulkLoadArrayJobResponse =
-              DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+        if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
+          try {
+            bulkLoadArrayJobResponse =
+                DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+            lastException = null;
+          } catch (ApiException ex) {
+            logger.info("Catching errors while we wait for pod to come back up. Retry # {}", i + 1);
+            logger.info("error: {}; {}", ex.getStackTrace(), ex.getMessage());
+            lastException = ex;
+            TimeUnit.SECONDS.sleep(30);
+          }
+        } else {
+          logger.info("Job Status: {}", bulkLoadArrayJobResponse.getJobStatus());
           lastException = null;
-        } catch (ApiException ex) {
-          logger.info("Catching errors while we wait for pod to come back up. Retry # {}", i + 1);
-          lastException = ex;
-          TimeUnit.SECONDS.sleep(30);
+          break;
         }
       }
       if (lastException != null) {
         logger.info("last exception was not null.");
         throw lastException;
       }
-
-      // if job still running, scale back up
-      /*if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-        logger.debug("Scaling pods back up to 4");
-        KubernetesClientUtils.changeReplicaSetSizeAndWait(4);
-      }*/
     }
+
+    // create a new bulk load, same load tag
+    BulkLoadArrayRequestModel arrayLoadTry2 = bulkLoadUtils.buildSecondArrayLoadTry();
+    JobModel bulkLoadArrayJobResponseTry2 =
+        repositoryApi.bulkFileLoadArray(bulkLoadUtils.getDatasetId(), arrayLoadTry2);
+    bulkLoadArrayJobResponseTry2 =
+        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponseTry2);
+
+    // if job still running, scale back up
+    /*if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
+      logger.debug("Scaling pods back up to 4");
+      KubernetesClientUtils.changeReplicaSetSizeAndWait(4);
+    }*/
     // =========================================================================
 
     // wait for the job to complete and print out results
-    bulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
+    bulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponseTry2);
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {

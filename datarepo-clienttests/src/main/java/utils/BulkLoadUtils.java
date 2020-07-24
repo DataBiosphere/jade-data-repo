@@ -16,6 +16,7 @@ public class BulkLoadUtils {
   private String datasetCreator;
   private BillingProfileModel billingProfileModel;
   private DatasetSummaryModel datasetSummaryModel;
+  private String loadTag;
 
   public String getDatasetId() {
     if (datasetSummaryModel == null) {
@@ -59,7 +60,7 @@ public class BulkLoadUtils {
   // 2.5 files per minute, so two instances should do 5 files per minute. To run 5 minutes we should
   // run 25 files.
   public BulkLoadArrayRequestModel buildBulkLoadFileRequest(int filesToLoad) {
-    String loadTag = FileUtils.randomizeName("longtest");
+    loadTag = FileUtils.randomizeName("longtest");
 
     BulkLoadArrayRequestModel arrayLoad =
         new BulkLoadArrayRequestModel()
@@ -88,6 +89,10 @@ public class BulkLoadUtils {
     }
 
     return arrayLoad;
+  }
+
+  public BulkLoadArrayRequestModel buildSecondArrayLoadTry() {
+    return new BulkLoadArrayRequestModel().profileId(billingProfileModel.getId()).loadTag(loadTag);
   }
 
   public void getAndDisplayResults(RepositoryApi repositoryApi, JobModel bulkLoadArrayJobResponse)

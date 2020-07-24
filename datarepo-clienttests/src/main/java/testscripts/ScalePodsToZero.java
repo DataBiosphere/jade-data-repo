@@ -2,20 +2,22 @@ package testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.*;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.KubernetesClientUtils;
 
-public class ScaleKubePods extends runner.TestScript {
-  private static final Logger logger = LoggerFactory.getLogger(ScaleKubePods.class);
+public class ScalePodsToZero extends runner.TestScript {
+  private static final Logger logger = LoggerFactory.getLogger(ScalePodsToZero.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public ScaleKubePods() {
+  public ScalePodsToZero() {
     super();
   }
 
@@ -37,7 +39,7 @@ public class ScaleKubePods extends runner.TestScript {
   }
 
   // The purpose of this test is to have a long-running workload that completes successfully
-  // while we delete pods and have them recover.
+  // while we scale pods to zero and then scale them back up.
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
@@ -54,17 +56,39 @@ public class ScaleKubePods extends runner.TestScript {
         DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      logger.debug("Scaling pods down to 1");
-      KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
+      logger.debug("Scaling pods down to 0");
+      KubernetesClientUtils.changeReplicaSetSizeAndWait(0);
 
-      // allow job to run on scaled down pods for interval
-      bulkLoadArrayJobResponse =
-          DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+      try {
+        bulkLoadArrayJobResponse =
+            DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+      } catch (ApiException ex) {
+        logger.debug(
+            "Catching expected exception while pod size = 0, Job Status: {}",
+            bulkLoadArrayJobResponse.getJobStatus());
+      }
 
-      // if job still running, scale back up
-      if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-        logger.debug("Scaling pods back up to 4");
-        KubernetesClientUtils.changeReplicaSetSizeAndWait(4);
+      logger.debug("Scaling pods back up to 3.");
+      KubernetesClientUtils.changeReplicaSetSizeAndWait(3);
+      int retryCounter = 0;
+      // give the job a few chances to get a non-failing results while the pods are scaled back up.
+      ApiException lastException = null;
+      while (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)
+          && retryCounter < 10) {
+        retryCounter++;
+        try {
+          bulkLoadArrayJobResponse =
+              DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+          lastException = null;
+        } catch (ApiException ex) {
+          logger.debug(
+              "Catching expected error while we wait for pods to scale back up. Retry # {}", retryCounter);
+          lastException = ex;
+          TimeUnit.SECONDS.sleep(30);
+        }
+      }
+      if (lastException != null) {
+        throw lastException;
       }
     }
     // =========================================================================

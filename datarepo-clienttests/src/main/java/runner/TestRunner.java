@@ -207,31 +207,22 @@ class TestRunner {
       TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
       ThreadPoolExecutor threadPool = threadPools.get(ctr);
 
-      logger.info("calling threadpool shutdown");
       threadPool.shutdown();
 
-      logger.info("expectedTimeForEach: {}", testScriptSpecification.expectedTimeForEach);
-      logger.info("totalNumberToRun: {}", testScriptSpecification.totalNumberToRun);
       long totalTerminationTime =
           testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
-      logger.info("totalTerminationTime: {}", totalTerminationTime);
-      logger.info(
-          "testScriptSpecification.expectedTimeForEachUnitObj: {}",
-          testScriptSpecification.expectedTimeForEachUnitObj);
 
       boolean terminatedByItself =
           threadPool.awaitTermination(
               totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);
-      logger.info("terminated By Itself: {}", terminatedByItself);
 
       // if the threads didn't finish in the expected time, then send them interrupts
       if (!terminatedByItself) {
-        logger.info("showdownnow");
         threadPool.shutdownNow();
       }
-      logger.info("waiting for termination");
+
       if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
-        logger.info(
+        logger.error(
             "Test Scripts: Thread pool for test script failed to terminate: {}",
             testScriptSpecification.description);
       }

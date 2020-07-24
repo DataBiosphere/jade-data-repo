@@ -97,7 +97,6 @@ public class BulkLoadUtils {
 
   public void getAndDisplayResults(RepositoryApi repositoryApi, JobModel bulkLoadArrayJobResponse)
       throws Exception {
-    logger.info("waiting for job to finish.");
     bulkLoadArrayJobResponse =
         DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse);
 
@@ -105,11 +104,12 @@ public class BulkLoadUtils {
         DataRepoUtils.expectJobSuccess(
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
 
+    // todo: add asserts here - total succeeded files should equal the number of files parameter
     BulkLoadResultModel loadSummary = result.getLoadSummary();
-    logger.debug("Total files    : {}", loadSummary.getTotalFiles());
-    logger.debug("Succeeded files: {}", loadSummary.getSucceededFiles());
-    logger.debug("Failed files   : {}", loadSummary.getFailedFiles());
-    logger.debug("Not Tried files: {}", loadSummary.getNotTriedFiles());
+    logger.info("Total files    : {}", loadSummary.getTotalFiles());
+    logger.info("Succeeded files: {}", loadSummary.getSucceededFiles());
+    logger.info("Failed files   : {}", loadSummary.getFailedFiles());
+    logger.info("Not Tried files: {}", loadSummary.getNotTriedFiles());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {

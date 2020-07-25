@@ -168,7 +168,7 @@ public class RetrieveSnapshot extends runner.TestScript {
     System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
 
     // delete scratch files
-    FileUtils.cleanupScratchFiles(storage, testConfigGetIngestbucket);
+    FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());

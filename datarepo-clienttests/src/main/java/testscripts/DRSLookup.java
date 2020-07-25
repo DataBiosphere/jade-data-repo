@@ -19,7 +19,6 @@ import bio.terra.datarepo.model.SnapshotSummaryModel;
 import bio.terra.datarepo.model.TableModel;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;

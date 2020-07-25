@@ -5,7 +5,6 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -24,8 +23,8 @@ public final class FileUtils {
 
   private FileUtils() {}
 
-    private static Storage storage;
-    private static SecureRandom randomGenerator = new SecureRandom();
+  private static Storage storage;
+  private static SecureRandom randomGenerator = new SecureRandom();
 
   /**
    * Append a random integer to the provided string.
@@ -117,11 +116,12 @@ public final class FileUtils {
    * @param testConfigGetIngestbucket the gc bucket where the scratch files are
    * @return the gsPath
    */
-  public static String createGsPath(byte[] fileRefBytes, String fileRefName, String testConfigGetIngestbucket) {
+  public static String createGsPath(
+      byte[] fileRefBytes, String fileRefName, String testConfigGetIngestbucket) {
     createdScratchFiles = new ArrayList<>();
     storage = StorageOptions.getDefaultInstance().getService();
 
-      // load a JSON file that contains the table rows to load into the test bucket
+    // load a JSON file that contains the table rows to load into the test bucket
     BlobInfo ingestTableBlob = BlobInfo.newBuilder(testConfigGetIngestbucket, fileRefName).build();
 
     storage.create(ingestTableBlob, fileRefBytes);

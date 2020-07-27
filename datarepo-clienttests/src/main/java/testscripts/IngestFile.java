@@ -3,7 +3,14 @@ package testscripts;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.model.*;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
+import bio.terra.datarepo.model.BulkLoadArrayResultModel;
+import bio.terra.datarepo.model.BulkLoadFileModel;
+import bio.terra.datarepo.model.BulkLoadFileResultModel;
+import bio.terra.datarepo.model.DatasetSummaryModel;
+import bio.terra.datarepo.model.DeleteResponseModel;
+import bio.terra.datarepo.model.JobModel;
 
 import java.net.URI;
 import java.net.URISyntaxException;

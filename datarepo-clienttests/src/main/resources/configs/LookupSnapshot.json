@@ -10,6 +10,13 @@
   "testScripts": [
     {
       "name": "RetrieveSnapshot",
+      "totalNumberToRun": 1,
+      "numberToRunInParallel": 3,
+      "expectedTimeForEach": 20,
+      "expectedTimeForEachUnit": "SECONDS"
+    },
+    {
+      "name": "RetrieveSnapshot",
       "totalNumberToRun": 15,
       "numberToRunInParallel": 3,
       "expectedTimeForEach": 20,

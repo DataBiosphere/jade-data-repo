@@ -87,12 +87,14 @@ public class DRSLookup extends runner.TestScript {
             .description("IngestFile")
             .mimeType("text/plain")
             .targetPath(targetPath);
-    List<BulkLoadFileModel> bulkLoadFileModelList = new ArrayList<>();
-    bulkLoadFileModelList.add(fileLoadModel);
+    String loadTag = FileUtils.randomizeName("lookupTest");
     BulkLoadArrayRequestModel fileLoadModelArray =
         new BulkLoadArrayRequestModel()
             .profileId(datasetSummaryModel.getDefaultProfileId())
-            .loadArray(bulkLoadFileModelList);
+            .loadTag(loadTag)
+            .maxFailedFileLoads(0);
+    fileLoadModelArray.addLoadArrayItem(fileLoadModel);
+
     JobModel ingestFileJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
     ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
@@ -108,9 +110,9 @@ public class DRSLookup extends runner.TestScript {
             + fileId
             + "\"}\n";
     byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
+    // load a JSON file that contains the table rows to load into the test bucket
     String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
-    String dirInCloud = "scratch/testRetrieveSnapshot/";
-    String fileRefName = dirInCloud + "/" + jsonFileName;
+    String fileRefName = "scratch/testRetrieveSnapshot/" + jsonFileName;
     String gsPath = FileUtils.createGsPath(fileRefBytes, fileRefName, testConfigGetIngestbucket);
 
     IngestRequestModel ingestRequest =
@@ -141,7 +143,9 @@ public class DRSLookup extends runner.TestScript {
 
     // now go and retrieve the file Id that should be stored in the snapshot
     snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
-    TableModel tableModel = snapshotModel.getTables().get(0);
+
+    TableModel tableModel = snapshotModel.getTables().get(0); // There is only 1 table, so just grab the first
+
     String queryForFileRefs =
         "SELECT * FROM "
             + snapshotModel.getDataProject()
@@ -152,10 +156,10 @@ public class DRSLookup extends runner.TestScript {
 
     TableResult result =
         BigQueryUtils.queryBigQuery(snapshotModel.getDataProject(), queryForFileRefs);
-
     ArrayList<String> fileRefs = new ArrayList<>();
     result.iterateAll().forEach(r -> fileRefs.add(r.get("VCF_File_Ref").getStringValue()));
     // fileRefs should only be 1 in size
+    System.out.println(fileRefs);
     String fileModelFileId = fileRefs.get(0);
     String freshFileId = fileModelFileId.split("_")[2];
     dirObjectId = "v1_" + snapshotSummaryModel.getId() + "_" + freshFileId;

@@ -102,7 +102,6 @@ public final class DataRepoUtils {
    */
   public static <T> T expectJobSuccess(
       RepositoryApi repositoryApi, JobModel jobResponse, Class<T> resultClass) throws Exception {
-
     if (jobResponse.getJobStatus().equals(JobModel.JobStatusEnum.FAILED)) {
       ErrorModel errorModel =
           DataRepoUtils.getJobResult(repositoryApi, jobResponse, ErrorModel.class);

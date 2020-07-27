@@ -7,11 +7,7 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.V1Deployment;
-import io.kubernetes.client.openapi.models.V1DeploymentList;
-import io.kubernetes.client.openapi.models.V1DeploymentSpec;
-import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1PodList;
+import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
 import java.io.FileInputStream;
@@ -20,10 +16,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -236,29 +231,46 @@ public final class KubernetesClientUtils {
             null);
   }
 
-    /**
-     * Change the size of the replica set. Note that this just sends a request to change the size, it
-     * does not wait to make sure the size is actually updated.
-     *
-     * @param deployment the deployment object to modify
-     * @param numberOfReplicas the new size of the replica set to scale to
-     */
-    public static V1Deployment deletePod(V1Deployment deployment, int numberOfReplicas)
-        throws ApiException {
-        V1DeploymentSpec existingSpec = deployment.getSpec();
-        deployment.setSpec(existingSpec.replicas(numberOfReplicas));
-        // get number of api pods
-        // get random pod name out of this list
-        //getKubernetesClientCoreObject().deleteNamespacedPod()
-        return getKubernetesClientAppsObject()
-            .replaceNamespacedDeployment(
-                deployment.getMetadata().getName(),
-                deployment.getMetadata().getNamespace(),
-                deployment,
-                null,
-                null,
-                null);
+  /**
+   * Select any pod from api pods and delete pod.
+   *
+   * @param deployment the deployment object to modify
+   */
+  public static V1Status deleteRandomPod(V1Deployment deployment) throws ApiException {
+    printApiPodCount(deployment, "Before deleting pods");
+    printApiPods(deployment);
+    // get number of api pods
+    // get the component label from the deployment object
+    // this will be "api" for most cases, since that's what we're interested in scaling.
+    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
+
+    // select a "random" pod from list of apis
+    // TODO We may want to implement a more truly "random" selection process
+    String randomPodName;
+    try {
+      randomPodName =
+          listPods().stream()
+              .filter(
+                  pod ->
+                      deploymentComponentLabel.equals(
+                          pod.getMetadata().getLabels().get(componentLabel)))
+              .findAny()
+              .get()
+              .getMetadata()
+              .getName();
+    } catch (NoSuchElementException ex) {
+      logger.info("no api pod found");
+      return null;
     }
+    logger.info("delete random pod: {}", randomPodName);
+    // get random pod name out of this list
+    V1Status status =
+        getKubernetesClientCoreObject()
+            .deleteNamespacedPod(randomPodName, namespace, null, null, null, true, null, null);
+    printApiPodCount(deployment, "After deleting pod: " + randomPodName);
+    printApiPods(deployment);
+    return status;
+  }
 
   /**
    * Wait until the size of the replica set matches the specified number of pods. Times out after
@@ -321,16 +333,34 @@ public final class KubernetesClientUtils {
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
-    logger.debug(
-        "Pod count before scaling kubernetes pods: {}", KubernetesClientUtils.listPods().size());
+    printApiPodCount(apiDeployment, "Before scaling pod count");
     apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
     KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
 
     // print out the current pods
-    List<V1Pod> pods = KubernetesClientUtils.listPods();
-    logger.debug("Pod count after scaling kubernetes pods: {}", pods.size());
-    for (V1Pod pod : pods) {
-      logger.debug("  pod: {}", pod.getMetadata().getName());
-    }
+    printApiPodCount(apiDeployment, "After scaling pod count");
+    printApiPods(apiDeployment);
+  }
+
+  private static void printApiPodCount(V1Deployment deployment, String message)
+      throws ApiException {
+    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
+    long apiPodCount =
+        listPods().stream()
+            .filter(
+                pod ->
+                    deploymentComponentLabel.equals(
+                        pod.getMetadata().getLabels().get(componentLabel)))
+            .count();
+    logger.debug("Pod Count: {}; Message: {}", apiPodCount, message);
+  }
+
+  private static void printApiPods(V1Deployment deployment) throws ApiException {
+    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
+    listPods().stream()
+        .filter(
+            pod ->
+                deploymentComponentLabel.equals(pod.getMetadata().getLabels().get(componentLabel)))
+        .forEach(p -> logger.debug("Pod: {}", p.getMetadata().getName()));
   }
 }

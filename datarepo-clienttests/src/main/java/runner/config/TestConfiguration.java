@@ -15,6 +15,7 @@ public class TestConfiguration implements SpecificationInterface {
   public String description = "";
   public String serverSpecificationFile;
   public String billingAccount;
+  public boolean isFunctional = false;
   public List<String> testUserFiles;
 
   public ServerSpecification server;
@@ -78,6 +79,22 @@ public class TestConfiguration implements SpecificationInterface {
     logger.debug("Validating the test script specifications");
     for (TestScriptSpecification testScript : testScripts) {
       testScript.validate();
+      if (isFunctional) {
+        if (testScript.totalNumberToRun > 1) {
+          throw new IllegalArgumentException(
+              "For a functional test script, the total number to run should be 1.");
+        }
+        if (testScript.numberToRunInParallel > 1) {
+          throw new IllegalArgumentException(
+              "For a functional test script, the number to run in parallel should be 1.");
+        }
+      }
+      if (server.skipKubernetes && testScript.scriptClassInstance.manipulatesKubernetes()) {
+        throw new IllegalArgumentException(
+            "The Test Script class "
+                + name
+                + " manipulates Kubernetes, but the server specification has disabled Kubernetes manipulations (see server.skipKubernetes flag).");
+      }
     }
 
     logger.debug("Validating the test user specifications");

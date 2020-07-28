@@ -6,13 +6,13 @@ import runner.TestScript;
 
 public class TestScriptSpecification implements SpecificationInterface {
   public String name;
-  public int totalNumberToRun;
-  public int numberToRunInParallel;
+  public int totalNumberToRun = 1;
+  public int numberToRunInParallel = 1;
   public long expectedTimeForEach;
   public String expectedTimeForEachUnit;
   public List<String> parameters;
 
-  public Class<? extends TestScript> scriptClass;
+  public TestScript scriptClassInstance;
   public TimeUnit expectedTimeForEachUnitObj;
   public String description;
 
@@ -39,9 +39,13 @@ public class TestScriptSpecification implements SpecificationInterface {
 
     try {
       Class<?> scriptClassGeneric = Class.forName(scriptsPackage + "." + name);
-      scriptClass = (Class<? extends TestScript>) scriptClassGeneric;
+      Class<? extends TestScript> scriptClass = (Class<? extends TestScript>) scriptClassGeneric;
+      scriptClassInstance = scriptClass.newInstance();
     } catch (ClassNotFoundException | ClassCastException classEx) {
       throw new IllegalArgumentException("Test script class not found: " + name, classEx);
+    } catch (IllegalAccessException | InstantiationException niEx) {
+      throw new IllegalArgumentException(
+          "Error calling constructor of TestScript class: " + name, niEx);
     }
 
     // generate a separate description property that also includes any test script parameters

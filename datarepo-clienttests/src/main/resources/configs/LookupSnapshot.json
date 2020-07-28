@@ -1,6 +1,6 @@
 {
   "name": "LookupSnapshot",
-  "description": "Run lookups on a snapshot.",
+  "description": "Run lookups on two different snapshots.",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {

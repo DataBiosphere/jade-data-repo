@@ -24,11 +24,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.BigQueryUtils;
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
 public class DRSLookup extends runner.TestScript {
+  private static final Logger logger = LoggerFactory.getLogger(RetrieveSnapshot.class);
+
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public DRSLookup() {
@@ -60,7 +65,8 @@ public class DRSLookup extends runner.TestScript {
     billingProfileModel =
         DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
 
-    System.out.println("successfully created profile: " + billingProfileModel.getProfileName());
+    logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
+
 
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
@@ -72,7 +78,7 @@ public class DRSLookup extends runner.TestScript {
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
 
-    System.out.println("successfully created dataset: " + datasetSummaryModel.getName());
+    logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
 
     // load data into the new dataset
     // note that there's a fileref in the dataset
@@ -128,7 +134,7 @@ public class DRSLookup extends runner.TestScript {
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
-    System.out.println("successfully loaded data into dataset: " + ingestResponse.getDataset());
+    logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
     // make the create snapshot request and wait for the job to finish
     JobModel createSnapshotJobResponse =
@@ -139,7 +145,7 @@ public class DRSLookup extends runner.TestScript {
     SnapshotSummaryModel snapshotSummaryModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
-    System.out.println("successfully created snapshot: " + snapshotSummaryModel.getName());
+    logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
 
     // now go and retrieve the file Id that should be stored in the snapshot
     snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
@@ -160,7 +166,7 @@ public class DRSLookup extends runner.TestScript {
     ArrayList<String> fileRefs = new ArrayList<>();
     result.iterateAll().forEach(r -> fileRefs.add(r.get("VCF_File_Ref").getStringValue()));
     // fileRefs should only be 1 in size
-    System.out.println(fileRefs);
+    logger.info("Successfully retrieved file refs: {}", fileRefs);
     String fileModelFileId = fileRefs.get(0);
     String freshFileId = fileModelFileId.split("_")[2];
     dirObjectId = "v1_" + snapshotSummaryModel.getId() + "_" + freshFileId;
@@ -169,14 +175,11 @@ public class DRSLookup extends runner.TestScript {
   public void userJourney(ApiClient apiClient) throws Exception {
     DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
     DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
-
-    System.out.println(
-        "successfully retrieved drs object: "
-            + object.getName()
-            + " with id: "
-            + dirObjectId
-            + ", data project: "
-            + snapshotModel.getDataProject());
+   logger.debug(
+       "Successfully retrieved drs object: {}, with id: {} and data project: {}",
+       object.getName(),
+       dirObjectId,
+       snapshotModel.getDataProject());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
@@ -191,7 +194,7 @@ public class DRSLookup extends runner.TestScript {
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-    System.out.println("successfully deleted snapshot: " + snapshotModel.getName());
+    logger.info("Successfully deleted snapshot: {}", snapshotModel.getName());
 
     // make the delete request and wait for the job to finish
     JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
@@ -199,13 +202,13 @@ public class DRSLookup extends runner.TestScript {
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
-    System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
+    logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
 
     // delete scratch files
     FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());
-    System.out.println("successfully deleted profile: " + billingProfileModel.getProfileName());
+    logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
   }
 }

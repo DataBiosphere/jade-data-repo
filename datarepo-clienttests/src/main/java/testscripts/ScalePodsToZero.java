@@ -99,6 +99,7 @@ public class ScalePodsToZero extends runner.TestScript {
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
+    KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
     bulkLoadUtils.cleanup(apiClients);
   }
 }

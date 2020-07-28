@@ -144,7 +144,8 @@ public class DRSLookup extends runner.TestScript {
     // now go and retrieve the file Id that should be stored in the snapshot
     snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
 
-    TableModel tableModel = snapshotModel.getTables().get(0); // There is only 1 table, so just grab the first
+    TableModel tableModel =
+        snapshotModel.getTables().get(0); // There is only 1 table, so just grab the first
 
     String queryForFileRefs =
         "SELECT * FROM "

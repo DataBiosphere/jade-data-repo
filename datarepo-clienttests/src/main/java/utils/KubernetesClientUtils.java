@@ -231,19 +231,18 @@ public final class KubernetesClientUtils {
             null);
   }
 
-  /** Select any pod from api pods and delete pod. */
-  public static V1Status deleteRandomPod() throws ApiException {
-    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
-    if (apiDeployment == null) {
-      throw new RuntimeException("API deployment not found.");
-    }
-
-    printApiPodCount(apiDeployment, "Before deleting pods");
-    printApiPods(apiDeployment);
+  /**
+   * Select any pod from api pods and delete pod.
+   *
+   * @param deployment the deployment object to modify
+   */
+  public static V1Status deleteRandomPod(V1Deployment deployment) throws ApiException {
+    printApiPodCount(deployment, "Before deleting pods");
+    printApiPods(deployment);
     // get number of api pods
     // get the component label from the deployment object
     // this will be "api" for most cases, since that's what we're interested in scaling.
-    String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(componentLabel);
+    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
 
     // select a "random" pod from list of apis
     // TODO We may want to implement a more truly "random" selection process
@@ -268,9 +267,8 @@ public final class KubernetesClientUtils {
     V1Status status =
         getKubernetesClientCoreObject()
             .deleteNamespacedPod(randomPodName, namespace, null, null, null, true, null, null);
-    // printApiPodCount(apiDeployment, "After deleting pod: " + randomPodName);
-    // printApiPods(apiDeployment);
-    logger.info("delete status: {}", status.getStatus());
+    printApiPodCount(deployment, "After deleting pod: " + randomPodName);
+    printApiPods(deployment);
     return status;
   }
 

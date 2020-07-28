@@ -25,6 +25,7 @@ dependencies {
         kubernetesClient = "8.0.2"
         logback = "1.2.3"
         slf4j = "1.7.25"
+        hamcrest = "2.1"
 
         googleApi = "1.23.0"
         googlePeople = "v1-rev277-1.23.0"
@@ -44,11 +45,13 @@ dependencies {
     compile "io.kubernetes:client-java:${kubernetesClient}"
     compile "ch.qos.logback:logback-classic:${logback}"
     compile "org.slf4j:slf4j-api:${slf4j}"
+    compile "org.hamcrest:hamcrest:${hamcrest}"
 
     compile "com.google.api-client:google-api-client:${googleApi}"
     compile "com.google.oauth-client:google-oauth-client-jetty:${googleApi}"
     compile "com.google.apis:google-api-services-people:${googlePeople}"
     compile "com.google.auth:google-auth-library-oauth2-http:${googleOauth2}"
+
 
     // Gradle project property "datarepoclientjar" overrides the fetch from Maven
     if (project.hasProperty("datarepoclientjar")) {

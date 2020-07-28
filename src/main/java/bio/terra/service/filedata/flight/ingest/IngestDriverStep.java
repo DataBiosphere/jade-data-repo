@@ -143,11 +143,13 @@ public class IngestDriverStep implements Step {
     private void waitForAny(FlightContext context, UUID loadId, int concurrentLoads, int originallyRunning)
         throws DatabaseOperationException, InterruptedException {
         while (true) {
-            waiting();
+            // Is evaluating the  state of the load candidates is not instant,
+            // we recheck right away before waiting only wait if we did not find any new completions3
             LoadCandidates candidates = getLoadCandidates(context, loadId, concurrentLoads);
             if (candidates.getRunningLoads().size() < originallyRunning) {
                 break;
             }
+            waiting();
         }
     }
 

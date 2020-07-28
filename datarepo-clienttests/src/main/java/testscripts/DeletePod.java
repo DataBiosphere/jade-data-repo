@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import utils.KubernetesClientUtils;
 
 public class DeletePod extends runner.TestScript {
-  private static final Logger logger = LoggerFactory.getLogger(KubeConfig.class);
+  private static final Logger logger = LoggerFactory.getLogger(DeletePod.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public DeletePod() {

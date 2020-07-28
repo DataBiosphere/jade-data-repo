@@ -236,7 +236,7 @@ public final class KubernetesClientUtils {
    *
    * @param deployment the deployment object to modify
    */
-  public static V1Status deleteRandomPod(V1Deployment deployment) throws ApiException {
+  public static void deleteRandomPod(V1Deployment deployment) throws ApiException {
     printApiPodCount(deployment, "Before deleting pods");
     printApiPods(deployment);
     // get number of api pods
@@ -260,16 +260,19 @@ public final class KubernetesClientUtils {
               .getName();
     } catch (NoSuchElementException ex) {
       logger.info("no api pod found");
-      return null;
+      return;
     }
     logger.info("delete random pod: {}", randomPodName);
     // get random pod name out of this list
-    V1Status status =
-        getKubernetesClientCoreObject()
-            .deleteNamespacedPod(randomPodName, namespace, null, null, null, true, null, null);
-    printApiPodCount(deployment, "After deleting pod: " + randomPodName);
+    try {
+        V1Status status =
+            getKubernetesClientCoreObject()
+                .deleteNamespacedPod(randomPodName, namespace, null, null, null, true, null, null);
+    } catch (ApiException ex) {
+        logger.info("delete pod failed: {}", ex.getMessage());
+    }
+      printApiPodCount(deployment, "After deleting pod: " + randomPodName);
     printApiPods(deployment);
-    return status;
   }
 
   /**

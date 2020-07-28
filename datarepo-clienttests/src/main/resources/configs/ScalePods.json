@@ -1,5 +1,5 @@
 {
-  "name": "KubeConfig",
+  "name": "ScalePods",
   "description": "One user ingests many files into one dataset while we manipulate the kubernetes pods",
   "serverSpecificationFile": "shdev.json",
   "billingAccount": "00708C-45D19D-27AAFA",
@@ -9,11 +9,18 @@
   "application": {},
   "testScripts": [
     {
-      "name": "DeletePod",
+      "name": "ScalePodsUpDown",
       "parameters": [29],
       "totalNumberToRun": 1,
       "numberToRunInParallel": 1,
-      "expectedTimeForEach": 5000,
+      "expectedTimeForEach": 300,
+      "expectedTimeForEachUnit": "SECONDS"
+    }, {
+      "name": "ScalePodsToZero",
+      "parameters": [29],
+      "totalNumberToRun": 1,
+      "numberToRunInParallel": 1,
+      "expectedTimeForEach": 300,
       "expectedTimeForEachUnit": "SECONDS"
     }
   ],

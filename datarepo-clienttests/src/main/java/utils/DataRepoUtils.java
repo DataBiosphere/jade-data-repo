@@ -66,6 +66,7 @@ public final class DataRepoUtils {
       tryCount++;
       pollCtr--;
     }
+    logger.debug("Status at end of polling: {}", job.getJobStatus());
 
     return job;
   }

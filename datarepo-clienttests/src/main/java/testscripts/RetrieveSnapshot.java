@@ -21,10 +21,13 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
 public class RetrieveSnapshot extends runner.TestScript {
+  private static final Logger logger = LoggerFactory.getLogger(RetrieveSnapshot.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public RetrieveSnapshot() {
@@ -55,7 +58,7 @@ public class RetrieveSnapshot extends runner.TestScript {
     // create a new profile
     billingProfileModel =
         DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
-    System.out.println("successfully created profile: " + billingProfileModel.getProfileName());
+    logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
 
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
@@ -66,7 +69,7 @@ public class RetrieveSnapshot extends runner.TestScript {
     datasetSummaryModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
-    System.out.println("successfully created dataset: " + datasetSummaryModel.getName());
+    logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
 
     // load data into the new dataset
     // note that there's a fileref in the dataset
@@ -122,7 +125,7 @@ public class RetrieveSnapshot extends runner.TestScript {
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
-    System.out.println("successfully loaded data into dataset: " + ingestResponse.getDataset());
+    logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
     // make the create snapshot request and wait for the job to finish
     JobModel createSnapshotJobResponse =
@@ -133,18 +136,17 @@ public class RetrieveSnapshot extends runner.TestScript {
     snapshotSummaryModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
-    System.out.println("successfully created snapshot: " + snapshotSummaryModel.getName());
+    logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
   }
 
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     SnapshotModel snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
-    System.out.println(
-        "successfully retrieved snaphot: "
-            + snapshotModel.getName()
-            + ", data project: "
-            + snapshotModel.getDataProject());
+    logger.debug(
+        "Successfully retrieved snaphot: {}, data project: {}",
+        snapshotModel.getName(),
+        snapshotModel.getDataProject());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
@@ -159,7 +161,7 @@ public class RetrieveSnapshot extends runner.TestScript {
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-    System.out.println("successfully deleted snapshot: " + snapshotSummaryModel.getName());
+    logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
 
     // make the delete request and wait for the job to finish
     JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
@@ -167,13 +169,13 @@ public class RetrieveSnapshot extends runner.TestScript {
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
-    System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
+    logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
 
     // delete scratch files
     FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());
-    System.out.println("successfully deleted profile: " + billingProfileModel.getProfileName());
+    logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
   }
 }

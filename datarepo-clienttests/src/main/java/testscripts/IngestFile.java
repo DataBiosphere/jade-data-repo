@@ -4,11 +4,14 @@ import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
+import bio.terra.datarepo.model.BulkLoadArrayResultModel;
+import bio.terra.datarepo.model.BulkLoadFileModel;
+import bio.terra.datarepo.model.BulkLoadFileResultModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
-import bio.terra.datarepo.model.FileLoadModel;
-import bio.terra.datarepo.model.FileModel;
 import bio.terra.datarepo.model.JobModel;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -77,23 +80,31 @@ public class IngestFile extends runner.TestScript {
 
     String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
 
-    FileLoadModel fileLoadModel =
-        new FileLoadModel()
+    BulkLoadFileModel fileLoadModel =
+        new BulkLoadFileModel()
             .sourcePath(sourceFileURI.toString())
             .description("IngestFile")
             .mimeType("text/plain")
-            .targetPath(targetPath)
-            .profileId(datasetSummaryModel.getDefaultProfileId());
+            .targetPath(targetPath);
+    List<BulkLoadFileModel> bulkLoadFileModelList = new ArrayList<>();
+    bulkLoadFileModelList.add(fileLoadModel);
+    BulkLoadArrayRequestModel fileLoadModelArray =
+        new BulkLoadArrayRequestModel()
+            .profileId(datasetSummaryModel.getDefaultProfileId())
+            .loadArray(bulkLoadFileModelList);
     JobModel ingestFileJobResponse =
-        repositoryApi.ingestFile(datasetSummaryModel.getId(), fileLoadModel);
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
+
     ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
-    FileModel fileModel =
-        DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, FileModel.class);
+
+    BulkLoadArrayResultModel bulkLoadArrayResultModel =
+        DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
+    BulkLoadFileResultModel fileInfo = bulkLoadArrayResultModel.getLoadFileResults().get(0);
+
     logger.debug(
-        "Successfully ingested file: path = {}, id = {}, size = {}",
-        fileModel.getPath(),
-        fileModel.getFileId(),
-        fileModel.getSize());
+        "Successfully ingested file: path = {}, id = {}",
+        fileInfo.getSourcePath(),
+        fileInfo.getFileId());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {

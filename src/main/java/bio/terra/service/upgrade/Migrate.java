@@ -204,9 +204,8 @@ public class Migrate {
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.SERIALIZABLE)
     public MigrateAction checkDeploymentState(String deploymentUid) {
-        final String lockTableSql = "LOCK TABLE migrate.deployment_v1 IN EXCLUSIVE MODE";
         final String upsertSql = "INSERT INTO migrate.deployment_v1(dep_version, id, locking_pod_name)" +
             " VALUES (1, :id, :podname)" +
             " ON CONFLICT ON CONSTRAINT deployment_v1_pkey" +

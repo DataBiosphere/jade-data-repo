@@ -374,5 +374,4 @@ public class Migrate {
         connection.setReadOnly(false);
     }
 
-
 }

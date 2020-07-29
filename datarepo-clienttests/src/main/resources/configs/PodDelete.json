@@ -3,6 +3,7 @@
   "description": "One user ingests many files into one dataset while we delete a random pod",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
+  "isFunctional": true,
   "kubernetes": {
     "numberOfInitialPods" : 3
   },
@@ -17,5 +18,5 @@
       "expectedTimeForEachUnit": "SECONDS"
     }
   ],
-  "testUserFiles": ["dumbledore.json"]
+  "testUserFiles": ["voldemort.json"]
 }

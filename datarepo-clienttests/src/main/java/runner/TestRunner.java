@@ -428,7 +428,7 @@ class TestRunner {
       TestConfiguration testConfiguration = testSuite.testConfigurations.get(ctr);
       logger.info(
           "==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
-      logger.debug(testConfiguration.display());
+      // logger.debug(testConfiguration.display());
 
       // get an instance of a runner and tell it to execute the configuration
       TestRunner runner = new TestRunner(testConfiguration);

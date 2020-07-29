@@ -11,5 +11,6 @@
     "name": "ModularHelmChart",
     "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/sh/datarepo-api.yaml"]
   },
-  "skipDeployment": true
+  "skipDeployment": true,
+  "skipKubernetes": false
 }

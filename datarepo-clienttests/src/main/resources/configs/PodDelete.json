@@ -1,7 +1,7 @@
 {
   "name": "PodDelete",
-  "description": "One user ingests many files into one dataset while we manipulate the kubernetes pods",
-  "serverSpecificationFile": "shdev.json",
+  "description": "One user ingests many files into one dataset while we delete random pods",
+  "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 3

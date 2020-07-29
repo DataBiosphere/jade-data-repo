@@ -38,7 +38,7 @@ public class DeletePod extends runner.TestScript {
   }
 
   // The purpose of this test is to have a long-running workload that completes successfully
-  // while we scale pods to zero and then scale them back up.
+  // while we delete a random pod.
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
@@ -57,7 +57,6 @@ public class DeletePod extends runner.TestScript {
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       KubernetesClientUtils.deleteRandomPod();
     } else {
-        logger.error("Job finished before we were able to test the delete functionality.");
         throw new Exception("Job finished before we were able to test the delete functionality.");
     }
     // =========================================================================

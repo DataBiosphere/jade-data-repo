@@ -1,0 +1,24 @@
+{
+  "name": "BulkLoadScale",
+  "description": "One user ingests many files into one dataset",
+  "serverSpecificationFile": "dddev.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 1
+  },
+  "application": {
+    "maxStairwayThreads" : 110,
+    "loadConcurrentFiles": 20
+  },
+  "testScripts": [
+    {
+      "name": "BulkLoadScale",
+      "parameters": [100],
+      "totalNumberToRun": 4,
+      "numberToRunInParallel": 1,
+      "expectedTimeForEach": 1000000,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json"]
+}

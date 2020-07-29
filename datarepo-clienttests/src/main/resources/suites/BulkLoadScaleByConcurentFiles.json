@@ -1,0 +1,12 @@
+{
+  "name": "BulkLoadScaleByConcurentFiles",
+  "description": "Test bulk load at different scales",
+  "serverSpecificationFile": "dddev.json",
+  "testConfigurationFiles": [
+    "BulkLoadScale200_20.json",
+    "BulkLoadScale200_40.json",
+    "BulkLoadScale200_60.json",
+    "BulkLoadScale200_80.json",
+    "BulkLoadScale200_100.json"
+  ]
+}

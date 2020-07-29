@@ -1,0 +1,9 @@
+{
+  "name": "BulkLoadScaleByReplicas",
+  "description": "Test bulk load at different number of pods",
+  "testConfigurationFiles": [
+    "BulkLoadScale500_80_1.json",
+    "BulkLoadScale500_80_2.json",
+    "BulkLoadScale500_80_3.json"
+  ]
+}

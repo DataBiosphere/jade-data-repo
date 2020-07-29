@@ -2,7 +2,6 @@ package testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.*;
 import java.util.List;
 import java.util.Map;
@@ -57,44 +56,9 @@ public class DeletePod extends runner.TestScript {
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       KubernetesClientUtils.deleteRandomPod();
-
-      try {
-        bulkLoadArrayJobResponse =
-            DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
-      } catch (ApiException ex) {
-        logger.debug(
-            "Catching exception after pod is deleted, Job Status: {}",
-            bulkLoadArrayJobResponse.getJobStatus());
-      }
-
-      TimeUnit.SECONDS.sleep(45);
-      if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-        KubernetesClientUtils.deleteRandomPod();
-      }
-
-      /*logger.debug("Scaling pods back up to 3.");
-      KubernetesClientUtils.changeReplicaSetSizeAndWait(3);
-      int retryCounter = 0;
-      // give the job a few chances to get a non-failing results while the pods are scaled back up.
-      ApiException lastException = null;
-      while (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)
-          && retryCounter < 10) {
-          retryCounter++;
-          try {
-              bulkLoadArrayJobResponse =
-                  DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
-              lastException = null;
-          } catch (ApiException ex) {
-              logger.debug(
-                  "Catching expected error while we wait for pods to scale back up. Retry # {}",
-                  retryCounter);
-              lastException = ex;
-              TimeUnit.SECONDS.sleep(30);
-          }
-      }
-      if (lastException != null) {
-          throw lastException;
-      }*/
+    } else {
+        logger.error("Job finished before we were able to test the delete functionality.");
+        throw new Exception("Job finished before we were able to test the delete functionality.");
     }
     // =========================================================================
 

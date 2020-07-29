@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -376,7 +377,7 @@ class TestRunner {
     }
   }
 
-  static void printHelp() {
+  static void printHelp() throws IOException {
     logger.info("Specify test configuration file as first argument.");
     logger.info("  e.g. ./gradlew run --args=\"configs/BasicUnauthenticated.json\"");
     logger.info("  e.g. ./gradlew run --args=\"suites/BasicSmoke.json\"");
@@ -384,17 +385,17 @@ class TestRunner {
     // print out the available test configurations found in the resources directory
     logger.info("The following test configuration files were found:");
     List<String> availableTestConfigs =
-        FileUtils.getResourcesInDirectory(TestConfiguration.resourceDirectory + "/");
-    for (String testConfigFileName : availableTestConfigs) {
-      logger.info("  {}/{}", TestConfiguration.resourceDirectory, testConfigFileName);
+        FileUtils.getResourcesInDirectory(TestConfiguration.resourceDirectory);
+    for (String testConfigFilePath : availableTestConfigs) {
+      logger.info("  {}", testConfigFilePath);
     }
 
     // print out the available test suites found in the resources directory
     logger.info("The following test suite files were found:");
     List<String> availableTestSuites =
-        FileUtils.getResourcesInDirectory(TestSuite.resourceDirectory + "/");
-    for (String testSuiteFileName : availableTestSuites) {
-      logger.info(" {}/{}", TestSuite.resourceDirectory, testSuiteFileName);
+        FileUtils.getResourcesInDirectory(TestSuite.resourceDirectory);
+    for (String testSuiteFilePath : availableTestSuites) {
+      logger.info("  {}", testSuiteFilePath);
     }
   }
 

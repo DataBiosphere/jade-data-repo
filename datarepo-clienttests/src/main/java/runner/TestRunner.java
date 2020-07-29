@@ -55,10 +55,11 @@ class TestRunner {
       executeTestConfigurationNoGuaranteedCleanup();
     } catch (Exception originalEx) {
       // cleanup deployment (i.e. run teardown method)
-      logger.info(
-          "Deployment: Calling {}.teardown() after failure", deploymentScript.getClass().getName());
       try {
         if (!config.server.skipDeployment) {
+          logger.info(
+              "Deployment: Calling {}.teardown() after failure",
+              deploymentScript.getClass().getName());
           deploymentScript.teardown();
         }
       } catch (Exception deploymentTeardownEx) {
@@ -139,28 +140,19 @@ class TestRunner {
       apiClientsForUsers.put(testUser.name, apiClient);
     }
 
-    // get an instance of each test script class
+    // setup the instance of each test script class
     logger.info(
         "Test Scripts: Fetching instance of each class, setting billing account and parameters");
     for (TestScriptSpecification testScriptSpecification : config.testScripts) {
-      try {
-        TestScript testScriptInstance = testScriptSpecification.scriptClass.newInstance();
+      TestScript testScriptInstance = testScriptSpecification.scriptClassInstance();
 
-        // set the billing account for the test script to use
-        testScriptInstance.setBillingAccount(config.billingAccount);
+      // set the billing account for the test script to use
+      testScriptInstance.setBillingAccount(config.billingAccount);
 
-        // set any parameters specified by the configuration
-        testScriptInstance.setParameters(testScriptSpecification.parameters);
+      // set any parameters specified by the configuration
+      testScriptInstance.setParameters(testScriptSpecification.parameters);
 
-        scripts.add(testScriptInstance);
-      } catch (IllegalAccessException | InstantiationException niEx) {
-        logger.error(
-            "Test Scripts: Error calling constructor of TestScript class: {}",
-            testScriptSpecification.name,
-            niEx);
-        throw new IllegalArgumentException(
-            "Error calling constructor of TestScript class: " + testScriptSpecification.name, niEx);
-      }
+      scripts.add(testScriptInstance);
     }
 
     // call the setup method of each test script

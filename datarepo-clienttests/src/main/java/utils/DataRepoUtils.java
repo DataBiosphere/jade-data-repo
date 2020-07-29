@@ -5,8 +5,10 @@ import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BillingProfileRequestModel;
 import bio.terra.datarepo.model.DatasetRequestModel;
+import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.ErrorModel;
 import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.SnapshotRequestModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
@@ -66,6 +68,7 @@ public final class DataRepoUtils {
       tryCount++;
       pollCtr--;
     }
+    logger.debug("Status at end of polling: {}", job.getJobStatus());
 
     return job;
   }
@@ -146,6 +149,44 @@ public final class DataRepoUtils {
     // make the create request and wait for the job to finish
     JobModel createDatasetJobResponse = repositoryApi.createDataset(createDatasetRequest);
     return DataRepoUtils.waitForJobToFinish(repositoryApi, createDatasetJobResponse);
+  }
+
+  /**
+   * Create a snapshot and wait for the job to finish.
+   *
+   * @param repositoryApi the api object to use
+   * @param datasetSummaryModel the summary of the dataset used by the snapshot
+   * @param apipayloadFilename the name of the create snapshot payload file in the apipayloads
+   *     resources directory
+   * @param randomizeName true to append a random number at the end of the snapshot name, false
+   *     otherwise
+   * @return the completed job model
+   */
+  public static JobModel createSnapshot(
+      RepositoryApi repositoryApi,
+      DatasetSummaryModel datasetSummaryModel,
+      String apipayloadFilename,
+      boolean randomizeName)
+      throws Exception {
+    // use Jackson to map the stream contents to a SnapshotRequestModel object
+    ObjectMapper objectMapper = new ObjectMapper();
+    InputStream snapshotRequestFile =
+        FileUtils.getJSONFileHandle("apipayloads/" + apipayloadFilename);
+    SnapshotRequestModel createSnapshotRequest =
+        objectMapper.readValue(snapshotRequestFile, SnapshotRequestModel.class);
+    createSnapshotRequest.setProfileId(datasetSummaryModel.getDefaultProfileId());
+    if (createSnapshotRequest.getContents().size() > 1) {
+      throw new UnsupportedOperationException("This test requires content to be 1");
+    }
+    createSnapshotRequest.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
+
+    if (randomizeName) {
+      createSnapshotRequest.setName(FileUtils.randomizeName(createSnapshotRequest.getName()));
+    }
+
+    // make the create request and wait for the job to finish
+    JobModel createSnapshotJobResponse = repositoryApi.createSnapshot(createSnapshotRequest);
+    return DataRepoUtils.waitForJobToFinish(repositoryApi, createSnapshotJobResponse);
   }
 
   /**

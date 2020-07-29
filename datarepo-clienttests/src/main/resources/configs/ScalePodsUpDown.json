@@ -1,19 +1,18 @@
 {
-  "name": "KubeConfig",
-  "description": "One user ingests many files into one dataset while we manipulate the kubernetes pods",
+  "name": "ScalePods",
+  "description": "One user ingests many files into one dataset while we scale the Kubernetes pods down to 1 and up to 4.",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
+  "isFunctional": true,
   "kubernetes": {
     "numberOfInitialPods" : 3
   },
   "application": {},
   "testScripts": [
     {
-      "name": "KubeConfig",
+      "name": "ScalePodsUpDown",
       "parameters": [29],
-      "totalNumberToRun": 1,
-      "numberToRunInParallel": 1,
-      "expectedTimeForEach": 5000,
+      "expectedTimeForEach": 300,
       "expectedTimeForEachUnit": "SECONDS"
     }
   ],

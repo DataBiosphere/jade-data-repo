@@ -1,0 +1,15 @@
+{
+  "name": "rcdev",
+  "description": "Developer namespace (rc) in Jade dev cluster.",
+  "uri": "https://jade-rc.datarepo-dev.broadinstitute.org",
+  "clusterName": "gke_broad-jade-dev_us-central1_dev-master",
+  "clusterShortName": "dev-master",
+  "region": "us-central1",
+  "project": "broad-jade-dev",
+  "namespace": "rc",
+  "deploymentScript": {
+    "name": "ModularHelmChart",
+    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/rc/datarepo-api.yaml"]
+  },
+  "skipDeployment": true
+}

@@ -57,7 +57,7 @@ public class DeletePod extends runner.TestScript {
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       KubernetesClientUtils.deleteRandomPod();
     } else {
-        throw new Exception("Job finished before we were able to test the delete functionality.");
+      throw new Exception("Job finished before we were able to test the delete functionality.");
     }
     // =========================================================================
 

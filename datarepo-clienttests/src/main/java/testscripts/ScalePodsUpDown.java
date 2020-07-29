@@ -17,6 +17,7 @@ public class ScalePodsUpDown extends runner.TestScript {
   /** Public constructor so that this class can be instantiated via reflection. */
   public ScalePodsUpDown() {
     super();
+      manipulatesKubernetes = true; // this test script manipulates Kubernetes
   }
 
   private int filesToLoad;

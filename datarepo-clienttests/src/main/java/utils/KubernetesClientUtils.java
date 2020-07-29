@@ -2,6 +2,8 @@ package utils;
 
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.gson.*;
+import com.google.gson.reflect.*;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
@@ -10,15 +12,14 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.*;
+import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -236,13 +237,17 @@ public final class KubernetesClientUtils {
    *
    * @param deployment the deployment object to modify
    */
-  public static void deleteRandomPod(V1Deployment deployment) throws ApiException {
-    printApiPodCount(deployment, "Before deleting pods");
-    printApiPods(deployment);
+  public static void deleteRandomPod() throws ApiException, IOException {
+    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
+    if (apiDeployment == null) {
+      throw new RuntimeException("API deployment not found.");
+    }
+    printApiPodCount(apiDeployment, "Before deleting pods");
+    printApiPods(apiDeployment);
     // get number of api pods
     // get the component label from the deployment object
     // this will be "api" for most cases, since that's what we're interested in scaling.
-    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
+    String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(componentLabel);
 
     // select a "random" pod from list of apis
     // TODO We may want to implement a more truly "random" selection process
@@ -263,16 +268,20 @@ public final class KubernetesClientUtils {
       return;
     }
     logger.info("delete random pod: {}", randomPodName);
+    CoreV1Api coreV1Api = getKubernetesClientCoreObject();
     // get random pod name out of this list
+    Call call =
+        coreV1Api.deleteNamespacedPodCall(
+            randomPodName, namespace, null, null, null, null, null, null, null);
+    Response response = call.execute();
     try {
-        V1Status status =
-            getKubernetesClientCoreObject()
-                .deleteNamespacedPod(randomPodName, namespace, null, null, null, true, null, null);
-    } catch (ApiException ex) {
-        logger.info("delete pod failed: {}", ex.getMessage());
+      Configuration.getDefaultApiClient()
+          .handleResponse(response, (new TypeToken<V1Pod>() {}).getType());
+    } catch (JsonSyntaxException e) {
+      logger.info("caught response");
     }
-      printApiPodCount(deployment, "After deleting pod: " + randomPodName);
-    printApiPods(deployment);
+
+    logger.info("here, after the delete");
   }
 
   /**

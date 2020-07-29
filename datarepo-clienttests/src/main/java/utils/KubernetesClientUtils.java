@@ -246,11 +246,11 @@ public final class KubernetesClientUtils {
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
-    printApiPodCount(apiDeployment, "Before deleting pods");
+    long podCount = printApiPodCount(apiDeployment, "Before deleting pods");
     printApiPods(apiDeployment);
     String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(componentLabel);
 
-    // select a "random" pod from list of apis
+    // select a random pod from list of apis
     String randomPodName;
     randomPodName =
         listPods().stream()
@@ -258,7 +258,8 @@ public final class KubernetesClientUtils {
                 pod ->
                     deploymentComponentLabel.equals(
                         pod.getMetadata().getLabels().get(componentLabel)))
-            .findAny()
+            .skip((int) (podCount * Math.random()))
+            .findFirst()
             .get()
             .getMetadata()
             .getName();
@@ -348,7 +349,7 @@ public final class KubernetesClientUtils {
     printApiPods(apiDeployment);
   }
 
-  private static void printApiPodCount(V1Deployment deployment, String message)
+  private static long printApiPodCount(V1Deployment deployment, String message)
       throws ApiException {
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
     long apiPodCount =
@@ -359,6 +360,7 @@ public final class KubernetesClientUtils {
                         pod.getMetadata().getLabels().get(componentLabel)))
             .count();
     logger.debug("Pod Count: {}; Message: {}", apiPodCount, message);
+    return apiPodCount;
   }
 
   private static void printApiPods(V1Deployment deployment) throws ApiException {

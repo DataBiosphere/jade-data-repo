@@ -18,6 +18,7 @@ public class PodDelete extends runner.TestScript {
   /** Public constructor so that this class can be instantiated via reflection. */
   public PodDelete() {
     super();
+    manipulatesKubernetes = true; // this test script manipulates Kubernetess
   }
 
   private int filesToLoad;

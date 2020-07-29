@@ -260,7 +260,8 @@ public class Migrate {
                 // Either the row doesn't exist, or the uid is wrong
                 int rows = statement.executeUpdate();
                 if (rows != 1) {
-                    throw new MigrateException("Failed to upsert and take the deployment lock; that should be impossible");
+                    throw new
+                        MigrateException("Failed to upsert and take the deployment lock; that should be impossible");
                 }
                 return MigrateAction.MIGRATE;
             } finally {

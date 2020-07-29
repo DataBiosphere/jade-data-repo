@@ -23,8 +23,8 @@ public abstract class TestScript {
   }
 
   /**
-   * Getter for the manipulates Kubernetes property of this class. This property may be overridden by
-   * Test Script classes that manipulate Kubernetes as part of the setup, cleanup, or userJourney
+   * Getter for the manipulates Kubernetes property of this class. This property may be overridden
+   * by Test Script classes that manipulate Kubernetes as part of the setup, cleanup, or userJourney
    * methods. The default value of this property is false (i.e. Kubernetes is not manipulated).
    *
    * @return true if Kubernetes is required, false otherwise

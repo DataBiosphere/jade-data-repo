@@ -265,9 +265,9 @@ public final class KubernetesClientUtils {
 
     logger.info("delete random pod: {}", randomPodName);
 
-    // known issue with the build-in "deletedNamespacedPod() endpoint
+    // known issue with java api "deleteNamespacedPod()" endpoint
     // https://github.com/kubernetes-client/java/issues/252
-    // the following few lines were suggested as a workaround, but should be considered very stable
+    // the following few lines were suggested as a workaround
     // https://github.com/kubernetes-client/java/issues/86
     Call call =
         getKubernetesClientCoreObject()

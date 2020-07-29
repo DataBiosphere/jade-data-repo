@@ -12,11 +12,11 @@ import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.KubernetesClientUtils;
 
-public class DeletePod extends runner.TestScript {
+public class PodDelete extends runner.TestScript {
   private static final Logger logger = LoggerFactory.getLogger(ScalePodsToZero.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public DeletePod() {
+  public PodDelete() {
     super();
   }
 

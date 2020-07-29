@@ -9,7 +9,7 @@
   "application": {},
   "testScripts": [
     {
-      "name": "DeletePod",
+      "name": "PodDelete",
       "parameters": [29],
       "totalNumberToRun": 1,
       "numberToRunInParallel": 1,

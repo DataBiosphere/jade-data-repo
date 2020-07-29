@@ -28,6 +28,7 @@ dependencies {
         hamcrest = "2.1"
 
         googleApi = "1.23.0"
+        googleCloud = "1.108.0"
         googlePeople = "v1-rev277-1.23.0"
         googleOauth2 = "0.20.0"
 
@@ -51,7 +52,8 @@ dependencies {
     compile "com.google.oauth-client:google-oauth-client-jetty:${googleApi}"
     compile "com.google.apis:google-api-services-people:${googlePeople}"
     compile "com.google.auth:google-auth-library-oauth2-http:${googleOauth2}"
-
+    compile "com.google.cloud:google-cloud-bigquery:${googleCloud}"
+    compile "com.google.cloud:google-cloud-storage:${googleCloud}"
 
     // Gradle project property "datarepoclientjar" overrides the fetch from Maven
     if (project.hasProperty("datarepoclientjar")) {
@@ -64,7 +66,6 @@ dependencies {
     } else {
         implementation "bio.terra:datarepo-client:${datarepoClient}"
     }
-
 }
 
 group 'bio.terra'

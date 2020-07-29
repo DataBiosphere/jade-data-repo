@@ -11,7 +11,6 @@ import bio.terra.datarepo.model.BulkLoadFileResultModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.JobModel;
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -98,7 +97,8 @@ public class IngestFile extends runner.TestScript {
     ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
 
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
-        DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
+        DataRepoUtils.expectJobSuccess(
+            repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
     BulkLoadFileResultModel fileInfo = bulkLoadArrayResultModel.getLoadFileResults().get(0);
 
     logger.debug(

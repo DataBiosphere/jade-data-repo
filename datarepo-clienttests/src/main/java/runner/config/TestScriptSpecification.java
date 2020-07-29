@@ -12,13 +12,17 @@ public class TestScriptSpecification implements SpecificationInterface {
   public String expectedTimeForEachUnit;
   public List<String> parameters;
 
-  public TestScript scriptClassInstance;
+  private TestScript scriptClassInstance;
   public TimeUnit expectedTimeForEachUnitObj;
   public String description;
 
   public static final String scriptsPackage = "testscripts";
 
   TestScriptSpecification() {}
+
+  public TestScript scriptClassInstance() {
+    return scriptClassInstance;
+  }
 
   /**
    * Validate the test script specification read in from the JSON file. The time unit string is

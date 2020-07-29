@@ -144,7 +144,7 @@ class TestRunner {
     logger.info(
         "Test Scripts: Fetching instance of each class, setting billing account and parameters");
     for (TestScriptSpecification testScriptSpecification : config.testScripts) {
-      TestScript testScriptInstance = testScriptSpecification.scriptClassInstance;
+      TestScript testScriptInstance = testScriptSpecification.scriptClassInstance();
 
       // set the billing account for the test script to use
       testScriptInstance.setBillingAccount(config.billingAccount);

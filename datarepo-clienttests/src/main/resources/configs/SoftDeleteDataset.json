@@ -1,6 +1,6 @@
 {
   "name": "SoftDeleteDataset",
-  "description": "",
+  "description": "Load data into a dataset and then delete a line",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {

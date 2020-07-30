@@ -1,0 +1,22 @@
+{
+  "name": "PodDelete",
+  "description": "One user ingests many files into one dataset while we delete a random pod",
+  "serverSpecificationFile": "localhost.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "isFunctional": true,
+  "kubernetes": {
+    "numberOfInitialPods" : 3
+  },
+  "application": {},
+  "testScripts": [
+    {
+      "name": "PodDelete",
+      "parameters": [29],
+      "totalNumberToRun": 1,
+      "numberToRunInParallel": 1,
+      "expectedTimeForEach": 300,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["voldemort.json"]
+}

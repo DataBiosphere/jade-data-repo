@@ -16,7 +16,7 @@ public class BulkLoadScale extends runner.TestScript {
   /** Public constructor so that this class can be instantiated via reflection. */
   public BulkLoadScale() {
     super();
-    manipulatesKubernetes = true; // this test script manipulates Kubernetess
+    manipulatesKubernetes = true; // this test script manipulates Kubernetes
   }
 
   private int filesToLoad;

@@ -23,13 +23,13 @@ three parts:
   2. User Journey (e.g. Make one bulk file load API call)
   3. Cleanup (e.g. Delete dataset)
 
-The User Journey part contains the API call(s) that we want to profile and it may be scaled to run multiple journeys in 
-parallel. By contrast, the Setup and Cleanup parts contain the API call(s) that we do not want to profile and will not 
-be scaled to run multiple in parallel. For the example above, we could run multiple bulk file loads in parallel to test 
+The User Journey part contains the API call(s) that we want to profile and it may be scaled to run multiple journeys in
+parallel. By contrast, the Setup and Cleanup parts contain the API call(s) that we do not want to profile and will not
+be scaled to run multiple in parallel. For the example above, we could run multiple bulk file loads in parallel to test
 the performance, but the dataset creation and deletion would be done only once.
 
 #### Test Configuration
-A test configuration describes how to set up the test environment, which test script(s) to run, how to scale the test 
+A test configuration describes how to set up the test environment, which test script(s) to run, how to scale the test
 script(s), and how to add stress into the system.
 
 The environment specification includes settings for:
@@ -38,7 +38,7 @@ The environment specification includes settings for:
   * Application (e.g. Stairway thread pool size, maximum number of bulk file loads)
 
 The scripts to run specification includes the:
-  * Set of different User Journeys to run (e.g. bulk file load & DRS lookup, just DRS lookups) and any parameters they 
+  * Set of different User Journeys to run (e.g. bulk file load & DRS lookup, just DRS lookups) and any parameters they
   require (e.g. source/destination bucket region, number of files per bulk load).
   * Number of each User Journey to run (e.g. 500 bulk file loads & 300 DRS lookups, 1000 DRS lookups)
   * Timeout of client threads (e.g. each bulk file load should take < 15 minutes, each DRS lookup should take < 30 seconds)
@@ -47,7 +47,7 @@ The scaling specification includes:
   * Number of different users making the User Journey calls.
 
 **This section will be updated as more pieces of the test configuration are implemented.** See the
-[Performance Testing Infrastructure Proposal](https://docs.google.com/document/d/11PZIXZwOyd394BFOlBsDjOGjZdC-jwTr_n92nTJvFxw) 
+[Performance Testing Infrastructure Proposal](https://docs.google.com/document/d/11PZIXZwOyd394BFOlBsDjOGjZdC-jwTr_n92nTJvFxw)
 for more details on the desired end goal.
 
 #### Test Run
@@ -56,7 +56,7 @@ A test run is a single execution of a test configuration.
 #### Test Runner
 The test runner executes test configurations. The steps involved in each test run are:
   * Re-deploy the API (i.e. Helm delete then upgrade) with the application properties specified by the configuration.
-  * Modify the Kubernetes environment, as specified by the configuration. 
+  * Modify the Kubernetes environment, as specified by the configuration.
   * Run the Setup for each test script.
   * Create a client thread pool for each test script specification.
   * Kick off some number of threads, each running one User Journey, as specified by the configuration.
@@ -67,7 +67,7 @@ The test runner executes test configurations. The steps involved in each test ru
 The implementation of the test runner is where the bulk of the testing infrastructure code lives.
 
 #### Test Suite
-A test suite is a collection of test configurations that have some similar purpose. For example, a smoke test suite to 
+A test suite is a collection of test configurations that have some similar purpose. For example, a smoke test suite to
 detect major performance problems quickly or a very long running suite to detect possible memory leaks. The test
 configurations are run serially.
 
@@ -91,7 +91,7 @@ This is useful for debugging or testing local server code changes.
 #### Use a local Data Repo client JAR file
 The version of the Data Repo client JAR file is specified in the build.gradle file in this sub-project. This JAR file is
 fetched from the Broad Institute Maven repository. You can override this to use a local version of the Data Repo client
-JAR file by specifying a Gradle project property, either with a command line argument 
+JAR file by specifying a Gradle project property, either with a command line argument
 
 `./gradlew -Pdatarepoclientjar=/Users/marikomedlock/Workspaces/jade-data-repo/datarepo-client/build/libs/datarepo-client-1.0.39-SNAPSHOT.jar run --args="configs/BasicUnauthenticated.json`
 
@@ -117,17 +117,18 @@ resources/configs directory. Below are the available fields:
   * description: (optional) Description of the configuration
   * serverSpecificationFile: Name of a file in the resources/servers directory that specifies the server to test against
   * billingAccount: Google billing account to use
-  * kubernetes: Kubernetes-related settings that will be set after deploying the application and before executing any 
+  * kubernetes: Kubernetes-related settings that will be set after deploying the application and before executing any
   tests
     * numberOfInitialPods: (optional) Initial number of pods, defaults to 1
   * application: Application-related settings that will be set before deploying the application and executing any tests
     * maxStairwayThreads: (optional) defaults to 20
     * maxBulkFileLoad: (optional) defaults to 1000000
-    * loadConcurrentFiles: (optional) defaults to 4
+    * loadConcurrentFiles: (optional) defaults to 80
     * loadConcurrentIngests: (optional) defaults to 2
     * inKubernetes: (optional) defaults to false
     * loadHistoryCopyChunkSize: (optional) defaults to 1000
     * loadHistoryWaitSeconds: (optional) defaults to 2
+    * loadDriverWaitSeconds: (optional) defaults to 1
   * testScripts: List of test script specifications (i.e. instance of the TestScriptSpecification POJO class, serialized
   into JSON). Each specification should include the below required fields:
     * name: Name of the test script class to run
@@ -172,7 +173,7 @@ resources/testusers directory. Below are the required fields:
   account with permission to fetch domain-wide delegated credentials for the test user
 
 All test users must be registered in Terra and there must be a service account that can fetch domain-wide delegated
-credentials for the user. Jade has already setup test users (see 
+credentials for the user. Jade has already setup test users (see
 src/main/resources/application-integrationtest.properties) and the jade-k8-sa service account to delegate for them. It's
 probably easiest to reuse one of these test users when adding new tests.
 
@@ -204,7 +205,7 @@ contained in the suite.
 against.
 
 * Check that your IP address is included on the IP whitelist for the cluster you're testing against. The easiest way to
-do this is to connect to the Non-Split Broad VPN, because the VPN IP addresses are already included on the IP whitelist 
+do this is to connect to the Non-Split Broad VPN, because the VPN IP addresses are already included on the IP whitelist
 for the Jade dev cluster.
 
 * Check that you are calling the correct version of Gradle (6.1.1 or higher). Use the Gradle wrapper in the sub-project
@@ -216,7 +217,7 @@ the first argument. To debug, add a Run/Debug Configuration in IntelliJ that cal
 argument.
 
 * To debug a test script without the test runner, for example to make sure the API calls are coded correctly, add a main
-method that executes the setup/userjourney/cleanup steps. You can copy the main method in the TestScript base class and 
+method that executes the setup/userjourney/cleanup steps. You can copy the main method in the TestScript base class and
 paste it into the test script class you want to debug. Then change the method to call the constructor of the test script
 class you want to debug. Run the test script main method in debug mode.
 

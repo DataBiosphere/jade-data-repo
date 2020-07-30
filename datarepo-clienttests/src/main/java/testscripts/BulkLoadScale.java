@@ -15,8 +15,8 @@ public class BulkLoadScale extends runner.TestScript {
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public BulkLoadScale() {
-      super();
-      manipulatesKubernetes = true; // this test script manipulates Kubernetess
+    super();
+    manipulatesKubernetes = true; // this test script manipulates Kubernetess
   }
 
   private int filesToLoad;
@@ -50,7 +50,7 @@ public class BulkLoadScale extends runner.TestScript {
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
-      KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
-      bulkLoadUtils.cleanup(apiClients);
+    KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
+    bulkLoadUtils.cleanup(apiClients);
   }
 }

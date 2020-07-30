@@ -2,7 +2,8 @@ package testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.model.*;
+import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
+import bio.terra.datarepo.model.JobModel;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -11,13 +12,13 @@ import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.KubernetesClientUtils;
 
-public class ScalePodsUpDown extends runner.TestScript {
-  private static final Logger logger = LoggerFactory.getLogger(ScalePodsUpDown.class);
+public class PodDelete extends runner.TestScript {
+  private static final Logger logger = LoggerFactory.getLogger(ScalePodsToZero.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public ScalePodsUpDown() {
+  public PodDelete() {
     super();
-    manipulatesKubernetes = true; // this test script manipulates Kubernetes
+    manipulatesKubernetes = true; // this test script manipulates Kubernetess
   }
 
   private int filesToLoad;
@@ -38,7 +39,7 @@ public class ScalePodsUpDown extends runner.TestScript {
   }
 
   // The purpose of this test is to have a long-running workload that completes successfully
-  // while we delete pods and have them recover.
+  // while we delete a random pod.
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
@@ -55,18 +56,9 @@ public class ScalePodsUpDown extends runner.TestScript {
         DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      logger.debug("Scaling pods down to 1");
-      KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
-
-      // allow job to run on scaled down pods for interval
-      bulkLoadArrayJobResponse =
-          DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
-
-      // if job still running, scale back up
-      if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-        logger.debug("Scaling pods back up to 4");
-        KubernetesClientUtils.changeReplicaSetSizeAndWait(4);
-      }
+      KubernetesClientUtils.deleteRandomPod();
+    } else {
+      throw new Exception("Job finished before we were able to test the delete functionality.");
     }
     // =========================================================================
 

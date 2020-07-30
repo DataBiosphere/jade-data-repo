@@ -1,5 +1,8 @@
 package utils;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
@@ -17,7 +20,6 @@ public class BulkLoadUtils {
   private BillingProfileModel billingProfileModel;
   private DatasetSummaryModel datasetSummaryModel;
   private String loadTag;
-  private AssertUtils assertUtils;
 
   public String getDatasetId() {
     if (datasetSummaryModel == null) {
@@ -106,11 +108,11 @@ public class BulkLoadUtils {
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
 
     BulkLoadResultModel loadSummary = result.getLoadSummary();
-    assertUtils = new AssertUtils();
-    assertUtils.assertEquals(
+
+    assertThat(
         "Number of successful files loaded should equal total files.",
         loadSummary.getTotalFiles(),
-        loadSummary.getSucceededFiles());
+        equalTo(loadSummary.getSucceededFiles()));
     logger.debug("Total files    : {}", loadSummary.getTotalFiles());
     logger.debug("Succeeded files: {}", loadSummary.getSucceededFiles());
     logger.debug("Failed files   : {}", loadSummary.getFailedFiles());

@@ -3,7 +3,7 @@ package runner.config;
 public class ApplicationSpecification implements SpecificationInterface {
   public int maxStairwayThreads = 20;
   public int maxBulkFileLoad = 1000000;
-  public int loadConcurrentFiles = 4;
+  public int loadConcurrentFiles = 80;
   public int loadConcurrentIngests = 2;
   public int loadDriverWaitSeconds = 1;
   public long loadHistoryCopyChunkSize = 1000;

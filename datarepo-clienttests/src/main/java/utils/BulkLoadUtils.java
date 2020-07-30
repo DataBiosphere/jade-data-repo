@@ -120,7 +120,6 @@ public class BulkLoadUtils {
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
-    KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
     ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);

@@ -8,13 +8,15 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.BulkLoadUtils;
+import utils.KubernetesClientUtils;
 
 public class BulkLoadScale extends runner.TestScript {
   private static final Logger logger = LoggerFactory.getLogger(BulkLoadScale.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public BulkLoadScale() {
-    super();
+      super();
+      manipulatesKubernetes = true; // this test script manipulates Kubernetess
   }
 
   private int filesToLoad;
@@ -48,6 +50,7 @@ public class BulkLoadScale extends runner.TestScript {
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
-    bulkLoadUtils.cleanup(apiClients);
+      KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
+      bulkLoadUtils.cleanup(apiClients);
   }
 }

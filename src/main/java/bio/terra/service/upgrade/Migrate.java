@@ -166,34 +166,44 @@ public class Migrate {
      */
     public boolean waitForUnlock(String deploymentUid) {
         try {
-            while (true) {
+            Boolean result = null;
+            while (result == null) {
                 logger.info("Deployment locked - waiting");
                 TimeUnit.SECONDS.sleep(5);
-
-                try (Connection connection = dataSource.getConnection()) {
-                    startReadOnlyTransaction(connection);
-                    try {
-                        DeploymentRow row = getDeploymentRow(connection);
-                        assert (row != null);
-                        if (row.getLockingPodName() == null) {
-                            logger.info("Deployment unlocked - continuing");
-                            if (StringUtils.equals(row.getId(), deploymentUid)) {
-                                logger.info("Deployment properly set - continuing");
-                                return false;
-                            }
-                            // Other pod failed to migrate. Try again.
-                            return true;
-                        }
-                    } finally {
-                        commitReadOnlyTransaction(connection);
-                    }
-                } catch (SQLException ex) {
-                    throw new MigrateException("Failed to connect to database", ex);
-                }
+                result = tryUnlock(deploymentUid);
             }
+            return result;
         } catch (InterruptedException ex) {
             throw new MigrateException("Interrupted waiting for migration to complete", ex);
         }
+    }
+
+    // Three state return:
+    // - null - deployment row is locked
+    // - false - deployment row is unlocked and deployment is properly set - yay!
+    // - true - deployment row is unlocked but deployment is not yet properly set
+    private Boolean tryUnlock(String deploymentUid) {
+        try (Connection connection = dataSource.getConnection()) {
+            startReadOnlyTransaction(connection);
+            try {
+                DeploymentRow row = getDeploymentRow(connection);
+                assert (row != null);
+                if (row.getLockingPodName() == null) {
+                    logger.info("Deployment unlocked - continuing");
+                    if (StringUtils.equals(row.getId(), deploymentUid)) {
+                        logger.info("Deployment properly set - continuing");
+                        return false;
+                    }
+                    // Other pod failed to migrate. Try again.
+                    return true;
+                }
+            } finally {
+                commitReadOnlyTransaction(connection);
+            }
+        } catch (SQLException ex) {
+            throw new MigrateException("Failed to connect to database", ex);
+        }
+        return null; // deployment is still locked
     }
 
     private void releaseDeploymentLock() {

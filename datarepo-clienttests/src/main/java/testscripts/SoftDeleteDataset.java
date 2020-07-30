@@ -8,29 +8,21 @@ import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
 import bio.terra.datarepo.model.DataDeletionGcsFileModel;
-import bio.terra.datarepo.model.DataDeletionTableModel;
 import bio.terra.datarepo.model.DataDeletionRequest;
+import bio.terra.datarepo.model.DataDeletionTableModel;
 import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
-import com.google.api.client.util.Charsets;
-import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.TableResult;
-import com.google.cloud.storage.BlobInfo;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
@@ -47,26 +39,12 @@ public class SoftDeleteDataset extends runner.TestScript {
     super();
   }
 
-  private URI sourceFileURI;
   private String datasetCreator;
   private BillingProfileModel billingProfileModel;
   private DatasetSummaryModel datasetSummaryModel;
+  private DataDeletionRequest dataDeletionRequest;
 
-  private Storage storage;
   private String testConfigGetIngestbucket;
-
-  public void setParameters(List<String> parameters) throws Exception {
-    if (parameters == null || parameters.size() == 0) {
-      throw new IllegalArgumentException(
-          "Must provide a URI for the source file in the parameters list");
-    } else
-      try {
-        sourceFileURI = new URI(parameters.get(0));
-      } catch (URISyntaxException synEx) {
-        throw new RuntimeException("Error parsing source file URI: " + parameters.get(0), synEx);
-      }
-    logger.debug("Source file URI: {}", sourceFileURI);
-  }
 
   public void setup(Map<String, ApiClient> apiClients) throws Exception {
     // pick the first user to be the dataset creator
@@ -78,7 +56,6 @@ public class SoftDeleteDataset extends runner.TestScript {
     ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
-    storage = StorageOptions.getDefaultInstance().getService();
     testConfigGetIngestbucket = "jade-testdata"; // this could be put in DRUtils
 
     // create a new profile
@@ -134,7 +111,7 @@ public class SoftDeleteDataset extends runner.TestScript {
             + "\"}\n";
     byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
     String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
-    String dirInCloud = "scratch/testRetrieveSnapshot/";
+    String dirInCloud = "scratch/softDel/";
     String fileRefName = dirInCloud + "/" + jsonFileName;
     String gsPath = FileUtils.createGsPath(fileRefBytes, fileRefName, testConfigGetIngestbucket);
 
@@ -152,12 +129,8 @@ public class SoftDeleteDataset extends runner.TestScript {
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
-  }
 
-  public void userJourney(ApiClient apiClient) throws Exception {
-    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
-
-    String datasetId = datasetSummaryModel.getId();
+    String datasetId = datasetSummaryModel.getId(); // TODO should these be in utils?
     DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId);
     String dataProject = datasetModel.getDataProject();
     String tableName = datasetModel.getSchema().getTables().get(0).getName();
@@ -179,21 +152,14 @@ public class SoftDeleteDataset extends runner.TestScript {
             .map(fieldValues -> fieldValues.get(0).getStringValue())
             .collect(Collectors.toList());
 
-    logger.debug("Successfully retrieved row ids for table: {}", tableName);
+    logger.info("Successfully retrieved row ids for table: {}", tableName);
 
-    // write them to GCS
-    Storage storage = StorageOptions.getDefaultInstance().getService();
-    String targetPath = "scratch/softDel/" + UUID.randomUUID().toString() + ".csv";
-    BlobInfo blob = BlobInfo.newBuilder(testConfigGetIngestbucket, targetPath).build();
+    // write to GCS
+    String csvFileName = FileUtils.randomizeName("this-too-better-pass") + ".csv";
+    String csvFileRefName = dirInCloud + "/" + csvFileName;
+    String gcsPath = FileUtils.createGcsPath(rowIds, csvFileRefName, testConfigGetIngestbucket);
 
-    try (WriteChannel writer = storage.writer(blob)) {
-      for (String line : rowIds) {
-        writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
-      }
-    }
-    String gcsPath = String.format("gs://%s/%s", blob.getBucket(), targetPath);
-
-    // build the deletion request with pointers to the two files with row ids to soft delete
+    // build the deletion request with pointers to the file with row ids to soft delete
     DataDeletionGcsFileModel deletionGcsFileModel =
         new DataDeletionGcsFileModel()
             .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
@@ -202,15 +168,19 @@ public class SoftDeleteDataset extends runner.TestScript {
         new DataDeletionTableModel().tableName(tableName).gcsFileSpec(deletionGcsFileModel);
     List<DataDeletionTableModel> dataDeletionTableModels =
         Collections.singletonList(deletionTableFile);
-    DataDeletionRequest dataDeletionRequest =
+    dataDeletionRequest =
         new DataDeletionRequest()
             .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)
             .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE)
             .tables(dataDeletionTableModels);
+  }
+
+  public void userJourney(ApiClient apiClient) throws Exception {
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     // send off the soft delete request
     JobModel softDeleteJobResponse =
-        repositoryApi.applyDatasetDataDeletion(datasetId, dataDeletionRequest);
+        repositoryApi.applyDatasetDataDeletion(datasetSummaryModel.getId(), dataDeletionRequest);
     softDeleteJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, softDeleteJobResponse);
     DeleteResponseModel deleteResponseModel =
         DataRepoUtils.expectJobSuccess(
@@ -234,6 +204,9 @@ public class SoftDeleteDataset extends runner.TestScript {
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
     logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
+
+    // delete scratch files
+    FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());

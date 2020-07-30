@@ -1,5 +1,7 @@
 package utils;
 
+import com.google.api.client.util.Charsets;
+import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -11,6 +13,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.security.SecureRandom;
@@ -128,7 +131,28 @@ public final class FileUtils {
 
     // save a reference to the JSON file so we can delete it in cleanup()
     createdScratchFiles.add(fileRefName);
-    return "gs://" + testConfigGetIngestbucket + "/" + fileRefName;
+    return String.format("gs://%s/%s", testConfigGetIngestbucket, fileRefName);
+  }
+
+  public static String createGcsPath( // TODO combine this and above method
+      List<String> rowIds, String fileRefName, String testConfigGetIngestbucket) {
+    createdScratchFiles = new ArrayList<>();
+    storage = StorageOptions.getDefaultInstance().getService();
+
+    // load a csv file that contains the row ids to delete
+    BlobInfo blob = BlobInfo.newBuilder(testConfigGetIngestbucket, fileRefName).build();
+
+    try (WriteChannel writer = storage.writer(blob)) {
+      for (String line : rowIds) {
+        writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    // save a reference to the CSV file so we can delete it in cleanup()
+    createdScratchFiles.add(fileRefName);
+    return String.format("gs://%s/%s", testConfigGetIngestbucket, fileRefName);
   }
 
   public static void cleanupScratchFiles(String testConfigGetIngestbucket) {

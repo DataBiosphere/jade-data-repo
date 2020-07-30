@@ -1,11 +1,6 @@
 {
-<<<<<<< HEAD:datarepo-clienttests/src/main/resources/configs/ScalePods.json
-  "name": "ScalePods",
-  "description": "One user ingests many files into one dataset while we manipulate the kubernetes pods",
-=======
   "name": "PodDelete",
   "description": "One user ingests many files into one dataset while we delete a random pod",
->>>>>>> develop:datarepo-clienttests/src/main/resources/configs/PodDelete.json
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "isFunctional": true,
@@ -15,25 +10,11 @@
   "application": {},
   "testScripts": [
     {
-<<<<<<< HEAD:datarepo-clienttests/src/main/resources/configs/ScalePods.json
-      "name": "ScalePodsUpDown",
-=======
       "name": "PodDelete",
->>>>>>> develop:datarepo-clienttests/src/main/resources/configs/PodDelete.json
       "parameters": [29],
       "totalNumberToRun": 1,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 300,
-<<<<<<< HEAD:datarepo-clienttests/src/main/resources/configs/ScalePods.json
-      "expectedTimeForEachUnit": "SECONDS"
-    }, {
-      "name": "ScalePodsToZero",
-      "parameters": [29],
-      "totalNumberToRun": 1,
-      "numberToRunInParallel": 1,
-      "expectedTimeForEach": 300,
-=======
->>>>>>> develop:datarepo-clienttests/src/main/resources/configs/PodDelete.json
       "expectedTimeForEachUnit": "SECONDS"
     }
   ],

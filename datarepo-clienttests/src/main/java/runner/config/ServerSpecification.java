@@ -7,12 +7,20 @@ import utils.FileUtils;
 public class ServerSpecification implements SpecificationInterface {
   public String name;
   public String description = "";
-  public String uri;
+  public String datarepoUri;
+  public String samUri;
+  public String samResourceIdForDatarepo;
+
+  // note: the below information specifies the Kubernetes cluster that the Test Runner may
+  // manipulate (e.g. kill pods, scale up/down) so in the future, if we want to manipulate the
+  // cluster/namespace where SAM or WorkspaceManager is running, that would be the cluster specified
+  // by the below fields
   public String clusterName;
   public String clusterShortName;
   public String region;
   public String project;
   public String namespace;
+
   public DeploymentScriptSpecification deploymentScript;
   public boolean skipKubernetes = false;
   public boolean skipDeployment = false;
@@ -43,8 +51,14 @@ public class ServerSpecification implements SpecificationInterface {
    * null.
    */
   public void validate() {
-    if (uri == null || uri.equals("")) {
-      throw new IllegalArgumentException("Server URI cannot be empty");
+    if (datarepoUri == null || datarepoUri.equals("")) {
+      throw new IllegalArgumentException("Data Repo server URI cannot be empty");
+    }
+    if (samUri == null || samUri.equals("")) {
+      throw new IllegalArgumentException("SAM server URI cannot be empty");
+    }
+    if (samResourceIdForDatarepo == null || samResourceIdForDatarepo.equals("")) {
+      throw new IllegalArgumentException("SAM resource id for Data Repo cannot be empty");
     }
 
     if (!skipKubernetes) {

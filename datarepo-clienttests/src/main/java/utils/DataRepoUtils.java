@@ -34,15 +34,27 @@ public final class DataRepoUtils {
 
   private static Map<TestUserSpecification, ApiClient> apiClientsForTestUsers = new HashMap<>();
 
+  /**
+   * Build the Data Repo API client object for the given test user and server specifications. This
+   * class maintains a cache of API client objects, and will return the cached object if it already
+   * exists. The token is always refreshed, regardless of whether the API client object was found in
+   * the cache or not.
+   *
+   * @param testUser the test user whose credentials are supplied to the API client object
+   * @param server the server we are testing against
+   * @return the API client object for this user
+   */
   public static ApiClient getClientForTestUser(
       TestUserSpecification testUser, ServerSpecification server) throws IOException {
+    // refresh the user token
+    GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
+    AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
+
     // first check if there is already a cached ApiClient for this test user
     ApiClient cachedApiClient = apiClientsForTestUsers.get(testUser);
     if (cachedApiClient != null) {
       // refresh the token here before returning
       // this should be helpful for long-running tests (roughly > 1hr)
-      GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
-      AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
       cachedApiClient.setAccessToken(userAccessToken.getTokenValue());
 
       return cachedApiClient;
@@ -54,10 +66,8 @@ public final class DataRepoUtils {
         "Fetching credentials and building Data Repo ApiClient object for test user: {}",
         testUser.name);
     ApiClient apiClient = new ApiClient();
-    apiClient.setBasePath(server.uri);
+    apiClient.setBasePath(server.datarepoUri);
 
-    GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
-    AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
     apiClient.setAccessToken(userAccessToken.getTokenValue());
 
     apiClientsForTestUsers.put(testUser, apiClient);

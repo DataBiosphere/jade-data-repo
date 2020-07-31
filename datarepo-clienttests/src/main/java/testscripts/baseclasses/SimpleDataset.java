@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import utils.DataRepoUtils;
+import utils.SAMUtils;
 
 public class SimpleDataset extends runner.TestScript {
   private static final Logger logger = LoggerFactory.getLogger(SimpleDataset.class);
@@ -21,8 +22,11 @@ public class SimpleDataset extends runner.TestScript {
   protected DatasetSummaryModel datasetSummaryModel;
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
-    // pick the first user to be the dataset creator
-    datasetCreator = testUsers.get(0);
+    // pick the a user that is a Data Repo steward to be the dataset creator
+    datasetCreator = SAMUtils.findTestUserThatIsDataRepoSteward(testUsers, server);
+    if (datasetCreator == null) {
+      throw new IllegalArgumentException("None of the test users are Data Repo stewards.");
+    }
 
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);

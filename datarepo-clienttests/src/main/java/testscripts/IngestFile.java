@@ -9,7 +9,6 @@ import bio.terra.datarepo.model.BulkLoadFileResultModel;
 import bio.terra.datarepo.model.JobModel;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,12 +52,15 @@ public class IngestFile extends SimpleDataset {
             .description("IngestFile")
             .mimeType("text/plain")
             .targetPath(targetPath);
-    List<BulkLoadFileModel> bulkLoadFileModelList = new ArrayList<>();
-    bulkLoadFileModelList.add(fileLoadModel);
+
+    String loadTag = FileUtils.randomizeName("lookupTest");
     BulkLoadArrayRequestModel fileLoadModelArray =
         new BulkLoadArrayRequestModel()
             .profileId(datasetSummaryModel.getDefaultProfileId())
-            .loadArray(bulkLoadFileModelList);
+            .loadTag(loadTag)
+            .maxFailedFileLoads(0);
+    fileLoadModelArray.addLoadArrayItem(fileLoadModel);
+
     JobModel ingestFileJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
 

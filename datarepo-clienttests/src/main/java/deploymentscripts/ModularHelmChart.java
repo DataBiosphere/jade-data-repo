@@ -234,7 +234,8 @@ public class ModularHelmChart extends DeploymentScript {
     for (String var : environmentSpecificVariables) {
       JsonNode varValue = envSubTree.get(var);
       if (varValue == null) {
-        throw new IllegalArgumentException("Expected environment variable not found: " + var);
+        throw new IllegalArgumentException(
+            "Expected environment variable not found in datarepo-api YAML file: " + var);
       }
     }
 
@@ -263,6 +264,9 @@ public class ModularHelmChart extends DeploymentScript {
     envSubTree.put(
         "DATAREPO_LOADCONCURRENTINGESTS",
         String.valueOf(applicationSpecification.loadConcurrentIngests));
+    envSubTree.put(
+        "DATAREPO_LOADDRIVERWAITSECONDS",
+        String.valueOf(applicationSpecification.loadDriverWaitSeconds));
     envSubTree.put(
         "DATAREPO_LOADHISTORYCOPYCHUNKSIZE",
         String.valueOf(applicationSpecification.loadHistoryCopyChunkSize));

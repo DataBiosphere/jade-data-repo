@@ -74,6 +74,12 @@ public class Migrate {
         MIGRATE
     }
 
+    private enum WaitState {
+        KEEP_WAITING,
+        DONE_WAITING,
+        RETRY_MIGRATE
+    }
+
     private static class DeploymentRow {
         private String id;
         private String lockingPodName;
@@ -166,23 +172,23 @@ public class Migrate {
      */
     public boolean waitForUnlock(String deploymentUid) {
         try {
-            Boolean result = null;
-            while (result == null) {
+            WaitState result = WaitState.KEEP_WAITING;
+            while (result == WaitState.KEEP_WAITING) {
                 logger.info("Deployment locked - waiting");
                 TimeUnit.SECONDS.sleep(5);
                 result = tryUnlock(deploymentUid);
             }
-            return result;
+            return (result == WaitState.RETRY_MIGRATE);
         } catch (InterruptedException ex) {
             throw new MigrateException("Interrupted waiting for migration to complete", ex);
         }
     }
 
     // Three state return:
-    // - null - deployment row is locked
-    // - false - deployment row is unlocked and deployment is properly set - yay!
-    // - true - deployment row is unlocked but deployment is not yet properly set
-    private Boolean tryUnlock(String deploymentUid) {
+    // - KEEP_WAITING - deployment row is locked
+    // - DONE_WAITING - deployment row is unlocked and deployment is properly set - yay!
+    // - RETRY_MIGRATE - deployment row is unlocked but deployment is not yet properly set
+    private WaitState tryUnlock(String deploymentUid) {
         try (Connection connection = dataSource.getConnection()) {
             startReadOnlyTransaction(connection);
             try {
@@ -192,10 +198,10 @@ public class Migrate {
                     logger.info("Deployment unlocked - continuing");
                     if (StringUtils.equals(row.getId(), deploymentUid)) {
                         logger.info("Deployment properly set - continuing");
-                        return false;
+                        return WaitState.DONE_WAITING;
                     }
-                    // Other pod failed to migrate. Try again.
-                    return true;
+                    // Other pod failed to migrate. Try the migrate again.
+                    return WaitState.RETRY_MIGRATE;
                 }
             } finally {
                 commitReadOnlyTransaction(connection);
@@ -203,7 +209,7 @@ public class Migrate {
         } catch (SQLException ex) {
             throw new MigrateException("Failed to connect to database", ex);
         }
-        return null; // deployment is still locked
+        return WaitState.KEEP_WAITING; // deployment is still locked
     }
 
     private void releaseDeploymentLock() {

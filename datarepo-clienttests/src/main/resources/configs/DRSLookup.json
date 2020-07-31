@@ -14,6 +14,13 @@
       "numberToRunInParallel": 3,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
+    },
+    {
+      "name": "DRSLookup",
+      "totalNumberToRun": 10,
+      "numberToRunInParallel": 10,
+      "expectedTimeForEach": 20,
+      "expectedTimeForEachUnit": "SECONDS"
     }
   ],
   "testUserFiles": ["dumbledore.json", "voldemort.json"]

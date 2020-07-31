@@ -79,15 +79,15 @@ public class SoftDeleteDataset extends runner.TestScript {
     // ingest a file -- TODO CannedTestData.getMeA1KBFile
     URI sourceUri = new URI("gs://jade-testdata/fileloadprofiletest/1KBfile.txt");
 
-    String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
+    String targetPath = "/testrunner/softDel/" + FileUtils.randomizeName("") + ".txt";
 
     BulkLoadFileModel fileLoadModel =
         new BulkLoadFileModel()
             .sourcePath(sourceUri.toString())
-            .description("IngestFile")
+            .description("softDel")
             .mimeType("text/plain")
             .targetPath(targetPath);
-    String loadTag = FileUtils.randomizeName("lookupTest");
+    String loadTag = FileUtils.randomizeName("softDelTest");
     BulkLoadArrayRequestModel fileLoadModelArray =
         new BulkLoadArrayRequestModel()
             .profileId(datasetSummaryModel.getDefaultProfileId())
@@ -111,7 +111,7 @@ public class SoftDeleteDataset extends runner.TestScript {
             + "\"}\n";
     byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
     String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
-    String dirInCloud = "scratch/softDel/";
+    String dirInCloud = "scratch/softDel";
     String fileRefName = dirInCloud + "/" + jsonFileName;
     String gsPath = FileUtils.createGsPath(fileRefBytes, fileRefName, testConfigGetIngestbucket);
 

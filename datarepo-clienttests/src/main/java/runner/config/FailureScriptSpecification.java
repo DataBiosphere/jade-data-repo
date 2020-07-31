@@ -20,7 +20,7 @@ public class FailureScriptSpecification implements SpecificationInterface {
 
   // constants
   public static final String failureConfigs = "failureconfigs";
-  public static final String failurePackage = "failurescripts";
+  public static final String testScriptsPackage = "testscripts";
 
   FailureScriptSpecification() {}
 
@@ -47,7 +47,7 @@ public class FailureScriptSpecification implements SpecificationInterface {
     }
 
     try {
-      Class<?> scriptClassGeneric = Class.forName(failurePackage + "." + failureScriptName);
+      Class<?> scriptClassGeneric = Class.forName(testScriptsPackage + "." + failureScriptName);
       Class<? extends TestScript> scriptClass = (Class<? extends TestScript>) scriptClassGeneric;
       failureScriptClassInstance = scriptClass.newInstance();
     } catch (ClassNotFoundException | ClassCastException classEx) {

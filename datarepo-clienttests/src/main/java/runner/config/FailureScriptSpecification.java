@@ -6,8 +6,8 @@ import runner.*;
 import utils.*;
 
 public class FailureScriptSpecification implements SpecificationInterface {
-    // variables defined in failure config json
-    public String name;
+  // variables defined in failure config json
+  public String name;
   public String description;
   public String failureScriptName;
   public int podCount = 0;
@@ -15,16 +15,16 @@ public class FailureScriptSpecification implements SpecificationInterface {
   // public int kubernetesWaitBeforeKillingPod = 30;
   // public String kubernetesWaitBeforeKillingPodUnit= "SECONDS";
 
-    // objects defined here
-  private FailureScript failureScriptClassInstance;
+  // objects defined here
+  private TestScript failureScriptClassInstance;
 
-  //constants
+  // constants
   public static final String failureConfigs = "failureconfigs";
   public static final String failurePackage = "failurescripts";
 
   FailureScriptSpecification() {}
 
-  public FailureScript failureScriptClassInstance() {
+  public TestScript failureScriptClassInstance() {
     return failureScriptClassInstance;
   }
 
@@ -48,8 +48,7 @@ public class FailureScriptSpecification implements SpecificationInterface {
 
     try {
       Class<?> scriptClassGeneric = Class.forName(failurePackage + "." + failureScriptName);
-      Class<? extends FailureScript> scriptClass =
-          (Class<? extends FailureScript>) scriptClassGeneric;
+      Class<? extends TestScript> scriptClass = (Class<? extends TestScript>) scriptClassGeneric;
       failureScriptClassInstance = scriptClass.newInstance();
     } catch (ClassNotFoundException | ClassCastException classEx) {
       throw new IllegalArgumentException(

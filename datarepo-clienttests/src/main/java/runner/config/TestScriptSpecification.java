@@ -5,8 +5,8 @@ import java.util.concurrent.TimeUnit;
 import runner.TestScript;
 
 public class TestScriptSpecification implements SpecificationInterface {
-    // variables defined in json config
-    public String name;
+  // variables defined in json config
+  public String name;
   public int totalNumberToRun = 1;
   public int numberToRunInParallel = 1;
   public long expectedTimeForEach;
@@ -63,14 +63,15 @@ public class TestScriptSpecification implements SpecificationInterface {
     // todo: Where is the best place to do this sort of check for items that are not required?
     if (failureScriptFile != null && !failureScriptFile.isEmpty()) {
       try {
-          // For each test, we can designate a failure script to run alongside the test scripts
-          // Convert this failure script from json to the FailureScriptSpecification class
+        // For each test, we can designate a failure script to run alongside the test scripts
+        // Convert this failure script from json to the FailureScriptSpecification class
         failureScriptSpecification = FailureScriptSpecification.fromJSONFile(failureScriptFile);
       } catch (Exception ex) {
         logger.debug("Error parsing failure script. Error: {}", ex);
       }
-      // since the failure script is added on a per-testscript basis, we can't do the validate check at the
-        // TestConfiguration level along with the other validate checks
+      // since the failure script is added on a per-testscript basis, we can't do the validate check
+      // at the
+      // TestConfiguration level along with the other validate checks
       failureScriptSpecification.validate();
     }
 

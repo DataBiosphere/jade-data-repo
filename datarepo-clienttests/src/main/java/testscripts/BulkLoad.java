@@ -2,8 +2,8 @@ package testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
+import bio.terra.datarepo.model.JobModel;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;

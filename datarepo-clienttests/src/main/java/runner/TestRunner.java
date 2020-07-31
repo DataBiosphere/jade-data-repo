@@ -173,18 +173,18 @@ class TestRunner {
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
 
       // ====== handling case where we want to add a failure thread ======
-        FailureScript failureScript = null;
-        int numFailureThreads = 0;
+      TestScript failureScript = null;
+      int numFailureThreads = 0;
 
-        // check if a failure config is defined for this test
-        // convert the failure config from json to FailureScriptSpecification
+      // check if a failure config is defined for this test
+      // convert the failure config from json to FailureScriptSpecification
       FailureScriptSpecification failureScriptSpecification =
           testScriptSpecification.failureScriptSpecification();
       // if it's defined, access the failure script to run alongside the user journey threads
       if (failureScriptSpecification != null) {
         failureScript = failureScriptSpecification.failureScriptClassInstance();
         // keeping track of the number of failure threads because increment the threads in the pool
-          // and determine if we have any failure scripts to add to the thread pool
+        // and determine if we have any failure scripts to add to the thread pool
         numFailureThreads++;
       }
 
@@ -206,14 +206,14 @@ class TestRunner {
       }
       if (numFailureThreads > 0) {
         logger.debug("adding the failure thread to the pool.");
-          // this should get the next api client in the list
+        // this should get the next api client in the list
         ApiClient failureApiClient =
             apiClientList.get(testScriptSpecification.totalNumberToRun % apiClientList.size());
         // adding thread to run to user case
         userJourneyThreads.add(
             new UserJourneyThread(
                 failureScript, failureScriptSpecification.description, failureApiClient));
-          logger.debug("successfully added the failure thread to the pool.");
+        logger.debug("successfully added the failure thread to the pool.");
       }
 
       // TODO: support different patterns of kicking off user journeys. here they're all queued at
@@ -343,13 +343,13 @@ class TestRunner {
   }
 
   static class UserJourneyThread implements Callable<UserJourneyResult> {
-    ScriptInterface script;
+    TestScript testScript;
     String userJourneyDescription;
     ApiClient apiClient;
 
     public UserJourneyThread(
-        ScriptInterface script, String userJourneyDescription, ApiClient apiClient) {
-      this.script = script;
+        TestScript testScript, String userJourneyDescription, ApiClient apiClient) {
+      this.testScript = testScript;
       this.userJourneyDescription = userJourneyDescription;
       this.apiClient = apiClient;
     }
@@ -360,7 +360,7 @@ class TestRunner {
 
       long startTime = System.nanoTime();
       try {
-        script.userJourney(apiClient);
+        testScript.userJourney(apiClient);
       } catch (Exception ex) {
         result.exceptionThrown = ex;
       }

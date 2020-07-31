@@ -1,7 +1,7 @@
 {
-  "name": "DRSLookup",
-  "description": "Run DRS lookups on the file refs in a snapshot.",
-  "serverSpecificationFile": "localhost.json",
+  "name": "LookupSnapshot",
+  "description": "Run lookups on two different snapshots.",
+  "serverSpecificationFile": "mmdev.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 2
@@ -9,8 +9,15 @@
   "application": {},
   "testScripts": [
     {
-      "name": "DRSLookup",
+      "name": "RetrieveSnapshot",
       "totalNumberToRun": 1,
+      "numberToRunInParallel": 3,
+      "expectedTimeForEach": 20,
+      "expectedTimeForEachUnit": "SECONDS"
+    },
+    {
+      "name": "RetrieveSnapshot",
+      "totalNumberToRun": 15,
       "numberToRunInParallel": 3,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"

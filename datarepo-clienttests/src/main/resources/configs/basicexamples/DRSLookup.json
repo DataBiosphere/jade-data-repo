@@ -1,19 +1,16 @@
 {
-  "name": "LookupDataset",
-  "description": "Two users retrieve a dataset repeatedly, concurrently.",
-  "serverSpecificationFile": "localhost.json",
+  "name": "DRSLookup",
+  "description": "Run DRS lookups on the file refs in a snapshot.",
+  "serverSpecificationFile": "mmdev.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 2
   },
-  "application": {
-    "maxStairwayThreads": 22,
-    "maxBulkFileLoad": 10000011
-  },
+  "application": {},
   "testScripts": [
     {
-      "name": "RetrieveDataset",
-      "totalNumberToRun": 15,
+      "name": "DRSLookup",
+      "totalNumberToRun": 1,
       "numberToRunInParallel": 3,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"

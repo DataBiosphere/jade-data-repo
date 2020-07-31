@@ -85,12 +85,15 @@ public class IngestFile extends runner.TestScript {
             .description("IngestFile")
             .mimeType("text/plain")
             .targetPath(targetPath);
-    List<BulkLoadFileModel> bulkLoadFileModelList = new ArrayList<>();
-    bulkLoadFileModelList.add(fileLoadModel);
+
+    String loadTag = FileUtils.randomizeName("lookupTest");
     BulkLoadArrayRequestModel fileLoadModelArray =
         new BulkLoadArrayRequestModel()
             .profileId(datasetSummaryModel.getDefaultProfileId())
-            .loadArray(bulkLoadFileModelList);
+            .loadTag(loadTag)
+            .maxFailedFileLoads(0);
+    fileLoadModelArray.addLoadArrayItem(fileLoadModel);
+
     JobModel ingestFileJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
 

@@ -203,6 +203,9 @@ public class LaunchLocalProcess extends DeploymentScript {
         "DATAREPO_LOADCONCURRENTFILES",
         String.valueOf(applicationSpecification.loadConcurrentFiles));
     envVars.put(
+        "DATAREPO_LOADDRIVERWAITSECONDS",
+        String.valueOf(applicationSpecification.loadDriverWaitSeconds));
+    envVars.put(
         "DATAREPO_LOADCONCURRENTINGESTS",
         String.valueOf(applicationSpecification.loadConcurrentIngests));
     envVars.put(

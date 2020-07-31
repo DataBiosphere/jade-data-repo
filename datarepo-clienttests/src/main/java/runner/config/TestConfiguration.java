@@ -80,10 +80,6 @@ public class TestConfiguration implements SpecificationInterface {
     for (TestScriptSpecification testScript : testScripts) {
       testScript.validate();
       if (isFunctional) {
-        if (testScript.totalNumberToRun > 1) {
-          throw new IllegalArgumentException(
-              "For a functional test script, the total number to run should be 1.");
-        }
         if (testScript.numberToRunInParallel > 1) {
           throw new IllegalArgumentException(
               "For a functional test script, the number to run in parallel should be 1.");

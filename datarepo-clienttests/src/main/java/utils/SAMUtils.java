@@ -51,7 +51,7 @@ public class SAMUtils {
 
     // TODO: have ApiClients share an HTTP client, or one per each is ok?
     // no cached ApiClient found, so build a new one here and add it to the cache before returning
-    logger.info(
+    logger.debug(
         "Fetching credentials and building SAM ApiClient object for test user: {}", testUser.name);
     ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(server.samUri);

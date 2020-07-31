@@ -29,6 +29,19 @@ public class IngestFilePrimaryDataStep implements Step {
         this.dataset = dataset;
     }
 
+    private GoogleBucketResource getBufferInfo(FlightContext context) {
+        // The bucket has been selected for this file. In the single file load case, the info
+        // is stored in the working map. In the bulk load case, the info is stored in the input
+        // parameters.
+        // TODO: simplify this when we remove single file load
+        GoogleBucketResource bucketResource =
+            context.getInputParameters().get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+        if (bucketResource == null) {
+            bucketResource = context.getWorkingMap().get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+        }
+        return bucketResource;
+    }
+
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
@@ -38,15 +51,7 @@ public class IngestFilePrimaryDataStep implements Step {
         String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
         Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
         if (loadComplete == null || !loadComplete) {
-            // The bucket has been selected for this file. In the single file load case, the info
-            // is stored in the working map. In the bulk load case, the info is stored in the input
-            // parameters.
-            GoogleBucketResource bucketResource =
-                inputParameters.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-            if (bucketResource == null) {
-                bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-            }
-
+            GoogleBucketResource bucketResource = getBufferInfo(context);
             FSFileInfo fsFileInfo;
             if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
                 fsFileInfo = new FSFileInfo()
@@ -69,8 +74,7 @@ public class IngestFilePrimaryDataStep implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
-        GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-
+        GoogleBucketResource bucketResource = getBufferInfo(context);
         gcsPdao.deleteFileById(dataset, fileId, bucketResource);
 
         return StepResult.getStepResultSuccess();

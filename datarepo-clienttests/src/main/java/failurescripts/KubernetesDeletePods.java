@@ -1,17 +1,18 @@
 package failurescripts;
 
-import bio.terra.datarepo.client.*;
-import java.util.*;
-import java.util.concurrent.*;
-import org.slf4j.*;
-import runner.*;
+import bio.terra.datarepo.client.ApiClient;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import runner.FailureScript;
+
+// Failure script in a new folder - "failurescripts"
+// Very similarly to TestScripts, but defined separately to handle the different parameters
 
 public class KubernetesDeletePods extends FailureScript {
   private static final Logger logger = LoggerFactory.getLogger(KubernetesDeletePods.class);
 
-  public void setup(Map<String, ApiClient> apiClients) throws Exception {
-    logger.info("setup in Kubernetes DeletePods");
-  }
+ // TODO set parameters -> how many pods to kill? How long do we wait before killing them?
 
   @Override
   public void userJourney(ApiClient apiClient) throws Exception {

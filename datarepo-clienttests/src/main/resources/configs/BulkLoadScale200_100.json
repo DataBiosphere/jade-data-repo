@@ -13,7 +13,7 @@
   },
   "testScripts": [
     {
-      "name": "BulkLoadScale",
+      "name": "BulkLoad",
       "parameters": [200],
       "totalNumberToRun": 10,
       "numberToRunInParallel": 1,

@@ -10,11 +10,11 @@ import org.slf4j.LoggerFactory;
 import utils.BulkLoadUtils;
 import utils.KubernetesClientUtils;
 
-public class BulkLoadScale extends runner.TestScript {
-  private static final Logger logger = LoggerFactory.getLogger(BulkLoadScale.class);
+public class BulkLoad extends runner.TestScript {
+  private static final Logger logger = LoggerFactory.getLogger(BulkLoad.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public BulkLoadScale() {
+  public BulkLoad() {
     super();
     manipulatesKubernetes = true; // this test script manipulates Kubernetes
   }

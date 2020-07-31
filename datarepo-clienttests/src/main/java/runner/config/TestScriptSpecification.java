@@ -58,29 +58,19 @@ public class TestScriptSpecification implements SpecificationInterface {
           "Error calling constructor of TestScript class: " + name, niEx);
     }
 
+    // todo: Where is the best place to do this sort of check for items that are not required?
     if (failureScriptFile != null && !failureScriptFile.isEmpty()) {
       try {
+          // For each test, we can designate a failure script to run alongside the test scripts
+          // Convert this failure script from json to the FailureScriptSpecification class
         failureScriptSpecification = FailureScriptSpecification.fromJSONFile(failureScriptFile);
       } catch (Exception ex) {
         logger.debug("Error parsing failure script. Error: {}", ex);
       }
+      // since the failure script is added on a per-testscript basis, we can't do the validate check at the
+        // TestConfiguration level along with the other validate checks
       failureScriptSpecification.validate();
     }
-    /*if (failureScriptName != null && !failureScriptName.isEmpty()) {
-      try {
-        Class<?> failureScriptClassGeneric =
-            Class.forName(failurePackage + "." + failureScriptName);
-        Class<? extends FailureScript> failureScriptClass =
-            (Class<? extends FailureScript>) failureScriptClassGeneric;
-        failureScriptClassInstance = failureScriptClass.newInstance();
-      } catch (ClassNotFoundException | ClassCastException classEx) {
-        throw new IllegalArgumentException(
-            "Test script class not found: " + failureScriptName, classEx);
-      } catch (IllegalAccessException | InstantiationException niEx) {
-        throw new IllegalArgumentException(
-            "Error calling constructor of TestScript class: " + failureScriptName, niEx);
-      }
-    }*/
 
     // generate a separate description property that also includes any test script parameters
     description = name;

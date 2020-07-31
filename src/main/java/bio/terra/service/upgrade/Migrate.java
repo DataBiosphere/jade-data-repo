@@ -28,16 +28,16 @@ import java.util.concurrent.TimeUnit;
  * Provides methods for upgrading the data repository metadata and stairway databases.
  * See <a href="https://docs.google.com/document/d/1CY9bOSwaw0HjdZ9uuxwm1rh4LkcOqV65tjI77IhKcxE/edit#">Liquibase
  * Migration Notes</a></a>
- *
+ * <p>
  * The algorithm here is:
  * - check if the deployment table exists. If it doesn't exist, create it.
  * - get the deployment uid from KubeService. If we are in Kubernetes, this will be a real uid of a real
- *    deployment. If not in Kubernetes, it will be based on a random UUID.
+ * deployment. If not in Kubernetes, it will be based on a random UUID.
  * - take a postgres lock on the deployment table to serialize instances running this algorithm
  * - read the deployment row
  * - If the id = the KubeService id, we return false - we are not the first through with that deployment id.
  * - If the id != the KubeService id and the row is locked, we spin until the row is unlocked and return false.
- *    TODO: validate that the locker is still alive by listing pods
+ * TODO: validate that the locker is still alive by listing pods
  * - If the id != the KubeService id and the row is unlocked:
  * -- update the deployment row with the new deployment and mark that this pod owns the lock
  * -- perform the migrate according to the configuration settings
@@ -45,16 +45,16 @@ import java.util.concurrent.TimeUnit;
  * We rely on JobService to call back in to:
  * -- update the deployment row, unlocking the row and releasing any waiting DRmanagers
  * That is because we need to hold the migration lock during Stairway migration.
- *
+ * <p>
  * This is vulnerable to failure: if this pod crashes still holding the deployment lock, we will be stuck and
  * have to clear it by hand.
- *
+ * <p>
  * If we decide that is an important case to cover, we can fix it by doing yet another check that the lock holder
  * is on the list of running pods. For now, not gonna do it.
- *
+ * <p>
  * NOTE: you might be wondering why this code does not use JdbcTemplate. I wonder why also.
  * I initially coded it with JdbcTemplate and the @Transactional annotation got the error:
- *    PSQLException: ERROR: LOCK TABLE can only be used in transaction blocks
+ * PSQLException: ERROR: LOCK TABLE can only be used in transaction blocks
  * I tried a number of solutions and learned some Spring quirks on the way. My guess is that it has
  * something to do with the timing of the PlatformTransactionManager configuration with respect to
  * execution of the StartupInitializer. In the end, I never solved the problem.
@@ -72,6 +72,12 @@ public class Migrate {
         NOTHING,
         WAIT_FOR_UNLOCK,
         MIGRATE
+    }
+
+    private enum WaitState {
+        KEEP_WAITING,
+        DONE_WAITING,
+        RETRY_MIGRATE
     }
 
     private static class DeploymentRow {
@@ -109,6 +115,7 @@ public class Migrate {
 
     /**
      * Decide whether to perform migration
+     *
      * @return true if we did the migration; false otherwise
      */
     public boolean migrateDatabase() {
@@ -149,7 +156,7 @@ public class Migrate {
      * We need to separate releasing of the migrate lock from the main migrate processing, so that
      * JobService can initialize Stairway and cause its databases to be migrated, BEFORE
      * we release the lock.
-     *
+     * <p>
      * So if the migrateAllDatabases returns true, then the caller MUST call this.
      */
     public void releaseMigrateLock() {
@@ -165,30 +172,44 @@ public class Migrate {
      */
     public boolean waitForUnlock(String deploymentUid) {
         try {
-            while (true) {
+            WaitState result = WaitState.KEEP_WAITING;
+            while (result == WaitState.KEEP_WAITING) {
                 logger.info("Deployment locked - waiting");
                 TimeUnit.SECONDS.sleep(5);
-
-                try (Connection connection = dataSource.getConnection()) {
-                    startReadOnlyTransaction(connection);
-                    DeploymentRow row = getDeploymentRow(connection);
-                    assert (row != null);
-                    if (row.getLockingPodName() == null) {
-                        logger.info("Deployment unlocked - continuing");
-                        if (StringUtils.equals(row.getId(), deploymentUid)) {
-                            logger.info("Deployment properly set - continuing");
-                            return false;
-                        }
-                        // Other pod failed to migrate. Try again.
-                        return true;
-                    }
-                } catch (SQLException ex) {
-                    throw new MigrateException("Failed to connect to database", ex);
-                }
+                result = tryUnlock(deploymentUid);
             }
+            return (result == WaitState.RETRY_MIGRATE);
         } catch (InterruptedException ex) {
             throw new MigrateException("Interrupted waiting for migration to complete", ex);
         }
+    }
+
+    // Three state return:
+    // - KEEP_WAITING - deployment row is locked
+    // - DONE_WAITING - deployment row is unlocked and deployment is properly set - yay!
+    // - RETRY_MIGRATE - deployment row is unlocked but deployment is not yet properly set
+    private WaitState tryUnlock(String deploymentUid) {
+        try (Connection connection = dataSource.getConnection()) {
+            startReadOnlyTransaction(connection);
+            try {
+                DeploymentRow row = getDeploymentRow(connection);
+                assert (row != null);
+                if (row.getLockingPodName() == null) {
+                    logger.info("Deployment unlocked - continuing");
+                    if (StringUtils.equals(row.getId(), deploymentUid)) {
+                        logger.info("Deployment properly set - continuing");
+                        return WaitState.DONE_WAITING;
+                    }
+                    // Other pod failed to migrate. Try the migrate again.
+                    return WaitState.RETRY_MIGRATE;
+                }
+            } finally {
+                commitReadOnlyTransaction(connection);
+            }
+        } catch (SQLException ex) {
+            throw new MigrateException("Failed to connect to database", ex);
+        }
+        return WaitState.KEEP_WAITING; // deployment is still locked
     }
 
     private void releaseDeploymentLock() {
@@ -199,16 +220,20 @@ public class Migrate {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(updateSql)) {
             startTransaction(connection);
-            DeploymentRow row = getDeploymentRow(connection);
-            if ((row.getLockingPodName() == null) && (migrateConfiguration.getDropAllOnStart())) {
-                // Application of the migration released the lock for us. Nothing for us to do.
-                return;
-            }
+            try {
+                DeploymentRow row = getDeploymentRow(connection);
+                if ((row.getLockingPodName() == null) && (migrateConfiguration.getDropAllOnStart())) {
+                    // Application of the migration released the lock for us. Nothing for us to do.
+                    return;
+                }
 
-            int rows = statement.executeUpdate();
-            commitTransaction(connection);
-            if (rows != 1) {
-                throw new MigrateException("Failed to update and release deployment lock");
+                int rows = statement.executeUpdate();
+                commitTransaction(connection);
+                if (rows != 1) {
+                    throw new MigrateException("Failed to update and release deployment lock");
+                }
+            } finally {
+                rollbackTransaction(connection);
             }
         } catch (SQLException ex) {
             throw new MigrateException("Update deployment failed", ex);
@@ -232,30 +257,32 @@ public class Migrate {
              PreparedStatement statement = connection.prepareStatement(upsertSql)) {
 
             startTransaction(connection);
-            lockStatement.execute();
+            try {
+                lockStatement.execute();
 
-            DeploymentRow row = getDeploymentRow(connection);
-            if (row != null) {
-                if (StringUtils.equals(row.getId(), deploymentUid)) {
-                    if (row.getLockingPodName() == null) {
-                        // The deployment uid matches and no one has the row locked. We are good to go.
-                        commitTransaction(connection);
-                        return MigrateAction.NOTHING;
-                    } else {
-                        // The deployment uid matches, but the row is locked. We need to wait.
-                        commitTransaction(connection);
-                        return MigrateAction.WAIT_FOR_UNLOCK;
+                DeploymentRow row = getDeploymentRow(connection);
+                if (row != null) {
+                    if (StringUtils.equals(row.getId(), deploymentUid)) {
+                        if (row.getLockingPodName() == null) {
+                            // The deployment uid matches and no one has the row locked. We are good to go.
+                            return MigrateAction.NOTHING;
+                        } else {
+                            // The deployment uid matches, but the row is locked. We need to wait.
+                            return MigrateAction.WAIT_FOR_UNLOCK;
+                        }
                     }
                 }
-            }
 
-            // Either the row doesn't exist, or the uid is wrong
-            int rows = statement.executeUpdate();
-            if (rows != 1) {
-                throw new MigrateException("Failed to upsert and take the deployment lock; that should be impossible");
+                // Either the row doesn't exist, or the uid is wrong
+                int rows = statement.executeUpdate();
+                if (rows != 1) {
+                    throw new
+                        MigrateException("Failed to upsert and take the deployment lock; that should be impossible");
+                }
+                return MigrateAction.MIGRATE;
+            } finally {
+                commitTransaction(connection);
             }
-            commitTransaction(connection);
-            return MigrateAction.MIGRATE;
         } catch (SQLException ex) {
             throw new MigrateException("Update deployment failed", ex);
         }
@@ -311,14 +338,14 @@ public class Migrate {
     private void migrateDatabase(String changesetFile, DataSource dataSource) {
         try (Connection connection = dataSource.getConnection()) {
             Liquibase liquibase = new Liquibase(changesetFile,
-                    new ClassLoaderResourceAccessor(),
-                    new JdbcConnection(connection));
+                new ClassLoaderResourceAccessor(),
+                new JdbcConnection(connection));
             DatabaseChangeLogLock[] locks = liquibase.listLocks();
             for (DatabaseChangeLogLock lock : locks) {
                 logger.info(String.format("dbChangeLogLock changeSet: %s, id: %s, lockedBy: %s, granted: %s",
                     changesetFile, lock.getId(), lock.getLockedBy(), lock.getLockGranted()));
 
-                /**
+                /*
                  * We can get into this state where one of the APIs is running migrations and gets shut down so that
                  * another API container can run. It will result in a lock that doesn't get released. This is similar
                  * to the problems we will have from deploying multiple containers at once that try to run migrations.
@@ -345,14 +372,23 @@ public class Migrate {
         connection.setReadOnly(false);
     }
 
+    private void commitTransaction(Connection connection) throws SQLException {
+        connection.commit();
+    }
+
+    private void rollbackTransaction(Connection connection) throws SQLException {
+        connection.rollback();
+    }
+
     private void startReadOnlyTransaction(Connection connection) throws SQLException {
         connection.setAutoCommit(false);
         connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
         connection.setReadOnly(true);
     }
 
-    private void commitTransaction(Connection connection) throws SQLException {
+    private void commitReadOnlyTransaction(Connection connection) throws SQLException {
         connection.commit();
+        connection.setReadOnly(false);
     }
 
 }

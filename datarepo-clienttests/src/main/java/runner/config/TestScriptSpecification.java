@@ -2,10 +2,11 @@ package runner.config;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import runner.*;
+import runner.TestScript;
 
 public class TestScriptSpecification implements SpecificationInterface {
-  public String name;
+    // variables defined in json config
+    public String name;
   public int totalNumberToRun = 1;
   public int numberToRunInParallel = 1;
   public long expectedTimeForEach;
@@ -13,6 +14,7 @@ public class TestScriptSpecification implements SpecificationInterface {
   public List<String> parameters;
   public String failureScriptFile;
 
+  // objects defined in this class
   private TestScript scriptClassInstance;
   private FailureScriptSpecification failureScriptSpecification;
   public TimeUnit expectedTimeForEachUnitObj;

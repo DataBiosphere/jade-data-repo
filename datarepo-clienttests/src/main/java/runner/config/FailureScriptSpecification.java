@@ -6,14 +6,19 @@ import runner.*;
 import utils.*;
 
 public class FailureScriptSpecification implements SpecificationInterface {
-  public String name;
+    // variables defined in failure config json
+    public String name;
   public String description;
   public String failureScriptName;
   public int podCount = 0;
+  // todo add these other variables
   // public int kubernetesWaitBeforeKillingPod = 30;
   // public String kubernetesWaitBeforeKillingPodUnit= "SECONDS";
 
+    // objects defined here
   private FailureScript failureScriptClassInstance;
+
+  //constants
   public static final String failureConfigs = "failureconfigs";
   public static final String failurePackage = "failurescripts";
 

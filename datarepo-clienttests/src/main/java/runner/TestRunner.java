@@ -1,15 +1,10 @@
 package runner;
 
-import bio.terra.datarepo.client.ApiClient;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.auth.oauth2.AccessToken;
-import com.google.auth.oauth2.GoogleCredentials;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -23,7 +18,6 @@ import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
 import runner.config.TestSuite;
 import runner.config.TestUserSpecification;
-import utils.AuthenticationUtils;
 import utils.FileUtils;
 import utils.KubernetesClientUtils;
 
@@ -37,8 +31,6 @@ class TestRunner {
   List<ThreadPoolExecutor> threadPools;
   List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
   List<TestScriptResult> testScriptResults;
-  Map<String, ApiClient> apiClientsForUsers; // testUser -> apiClient
-  // TODO: have ApiClients share an HTTP client, or one per each is ok?
 
   static long secondsToWaitForPoolShutdown = 60;
 
@@ -48,7 +40,6 @@ class TestRunner {
     this.threadPools = new ArrayList<>();
     this.userJourneyFutureLists = new ArrayList<>();
     this.testScriptResults = new ArrayList<>();
-    this.apiClientsForUsers = new HashMap<>();
   }
 
   void executeTestConfiguration() throws Exception {
@@ -129,18 +120,6 @@ class TestRunner {
       logger.info("Kubernetes: Skipping Kubernetes configuration post-deployment");
     }
 
-    // get an instance of the API client per test user
-    logger.info("Test Users: Fetching credentials and building ApiClient objects");
-    for (TestUserSpecification testUser : config.testUsers) {
-      ApiClient apiClient = new ApiClient();
-      apiClient.setBasePath(config.server.uri);
-      GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
-      AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
-      apiClient.setAccessToken(userAccessToken.getTokenValue());
-
-      apiClientsForUsers.put(testUser.name, apiClient);
-    }
-
     // setup the instance of each test script class
     logger.info(
         "Test Scripts: Fetching instance of each class, setting billing account and parameters");
@@ -149,6 +128,9 @@ class TestRunner {
 
       // set the billing account for the test script to use
       testScriptInstance.setBillingAccount(config.billingAccount);
+
+      // set the server specification for the test script to run against
+      testScriptInstance.setServer(config.server);
 
       // set any parameters specified by the configuration
       testScriptInstance.setParameters(testScriptSpecification.parameters);
@@ -167,7 +149,6 @@ class TestRunner {
     // for each test script
     logger.info(
         "Test Scripts: Creating a thread pool for each TestScript and kicking off the user journeys");
-    List<ApiClient> apiClientList = new ArrayList<>(apiClientsForUsers.values());
     for (int tsCtr = 0; tsCtr < scripts.size(); tsCtr++) {
       TestScript testScript = scripts.get(tsCtr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
@@ -181,11 +162,11 @@ class TestRunner {
       // kick off the user journey(s), one per thread
       List<UserJourneyThread> userJourneyThreads = new ArrayList<>();
       for (int ujCtr = 0; ujCtr < testScriptSpecification.totalNumberToRun; ujCtr++) {
-        ApiClient apiClient = apiClientList.get(ujCtr % apiClientList.size());
+        TestUserSpecification testUser = config.testUsers.get(ujCtr % config.testUsers.size());
         // add a description to the user journey threads/results that includes any test script
         // parameters
         userJourneyThreads.add(
-            new UserJourneyThread(testScript, testScriptSpecification.description, apiClient));
+            new UserJourneyThread(testScript, testScriptSpecification.description, testUser));
       }
 
       // TODO: support different patterns of kicking off user journeys. here they're all queued at
@@ -282,7 +263,7 @@ class TestRunner {
   Exception callTestScriptSetups() {
     for (TestScript testScript : scripts) {
       try {
-        testScript.setup(apiClientsForUsers);
+        testScript.setup(config.testUsers);
       } catch (Exception setupEx) {
         // return the first exception thrown and stop looping through the setup methods
         return setupEx;
@@ -302,7 +283,7 @@ class TestRunner {
     Exception exceptionThrown = null;
     for (TestScript testScript : scripts) {
       try {
-        testScript.cleanup(apiClientsForUsers);
+        testScript.cleanup(config.testUsers);
       } catch (Exception cleanupEx) {
         // save the first exception thrown, keep looping through the remaining cleanup methods
         // before returning
@@ -317,13 +298,13 @@ class TestRunner {
   static class UserJourneyThread implements Callable<UserJourneyResult> {
     TestScript testScript;
     String userJourneyDescription;
-    ApiClient apiClient;
+    TestUserSpecification testUser;
 
     public UserJourneyThread(
-        TestScript testScript, String userJourneyDescription, ApiClient apiClient) {
+        TestScript testScript, String userJourneyDescription, TestUserSpecification testUser) {
       this.testScript = testScript;
       this.userJourneyDescription = userJourneyDescription;
-      this.apiClient = apiClient;
+      this.testUser = testUser;
     }
 
     public UserJourneyResult call() {
@@ -332,7 +313,7 @@ class TestRunner {
 
       long startTime = System.nanoTime();
       try {
-        testScript.userJourney(apiClient);
+        testScript.userJourney(testUser);
       } catch (Exception ex) {
         result.exceptionThrown = ex;
       }

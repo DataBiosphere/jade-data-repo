@@ -13,9 +13,10 @@ import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.TestUserSpecification;
 import testscripts.baseclasses.SimpleDataset;
 import utils.DataRepoUtils;
 import utils.FileUtils;
@@ -32,12 +33,12 @@ public class RetrieveSnapshot extends SimpleDataset {
 
   private String testConfigGetIngestbucket;
 
-  public void setup(Map<String, ApiClient> apiClients) throws Exception {
+  public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // create the profile and dataset
-    super.setup(apiClients);
+    super.setup(testUsers);
 
     // get the ApiClient for the snapshot creator, same as the dataset creator
-    ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
+    ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     testConfigGetIngestbucket = "jade-testdata"; // this could be put in DRUtils
@@ -110,7 +111,8 @@ public class RetrieveSnapshot extends SimpleDataset {
     logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
   }
 
-  public void userJourney(ApiClient apiClient) throws Exception {
+  public void userJourney(TestUserSpecification testUser) throws Exception {
+    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     SnapshotModel snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
@@ -120,9 +122,9 @@ public class RetrieveSnapshot extends SimpleDataset {
         snapshotModel.getDataProject());
   }
 
-  public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
+  public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
     // get the ApiClient for the dataset creator
-    ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
+    ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // make the delete request and wait for the job to finish
@@ -134,7 +136,7 @@ public class RetrieveSnapshot extends SimpleDataset {
     logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
 
     // delete the profile and dataset
-    super.cleanup(apiClients);
+    super.cleanup(testUsers);
 
     // delete scratch files
     FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);

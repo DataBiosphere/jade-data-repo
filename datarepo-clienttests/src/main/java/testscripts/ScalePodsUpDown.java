@@ -1,13 +1,17 @@
 package testscripts;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.*;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.TestUserSpecification;
 import testscripts.baseclasses.SimpleDataset;
-import testscripts.testutils.BulkLoadUtils;
+import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.KubernetesClientUtils;
 
@@ -33,7 +37,8 @@ public class ScalePodsUpDown extends SimpleDataset {
 
   // The purpose of this test is to have a long-running workload that completes successfully
   // while we delete pods and have them recover.
-  public void userJourney(ApiClient apiClient) throws Exception {
+  public void userJourney(TestUserSpecification testUser) throws Exception {
+    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     // set up and start bulk load job
@@ -66,7 +71,13 @@ public class ScalePodsUpDown extends SimpleDataset {
     }
     // =========================================================================
 
-    // wait for the job to complete and print out results
-    BulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
+    // wait for the job to complete and print out results to debug log level
+    BulkLoadResultModel loadSummary =
+        BulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
+
+    assertThat(
+        "Number of successful files loaded should equal total files.",
+        loadSummary.getTotalFiles(),
+        equalTo(loadSummary.getSucceededFiles()));
   }
 }

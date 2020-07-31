@@ -7,27 +7,25 @@ import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.JobModel;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.TestUserSpecification;
 import utils.DataRepoUtils;
 
 public class SimpleDataset extends runner.TestScript {
   private static final Logger logger = LoggerFactory.getLogger(SimpleDataset.class);
 
-  protected String datasetCreator;
+  protected TestUserSpecification datasetCreator;
   protected BillingProfileModel billingProfileModel;
   protected DatasetSummaryModel datasetSummaryModel;
 
-  public void setup(Map<String, ApiClient> apiClients) throws Exception {
+  public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // pick the first user to be the dataset creator
-    List<String> apiClientList = new ArrayList<>(apiClients.keySet());
-    datasetCreator = apiClientList.get(0);
+    datasetCreator = testUsers.get(0);
 
     // get the ApiClient for the dataset creator
-    ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
+    ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
@@ -48,9 +46,9 @@ public class SimpleDataset extends runner.TestScript {
     logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
   }
 
-  public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
+  public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
     // get the ApiClient for the dataset creator
-    ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
+    ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 

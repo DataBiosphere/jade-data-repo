@@ -1,14 +1,9 @@
-package testscripts.testutils;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+package utils;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.DataRepoUtils;
-import utils.FileUtils;
 
 public class BulkLoadUtils {
   private static final Logger logger = LoggerFactory.getLogger(BulkLoadUtils.class);
@@ -47,7 +42,7 @@ public class BulkLoadUtils {
     return arrayLoad;
   }
 
-  public static void getAndDisplayResults(
+  public static BulkLoadResultModel getAndDisplayResults(
       RepositoryApi repositoryApi, JobModel bulkLoadArrayJobResponse) throws Exception {
     bulkLoadArrayJobResponse =
         DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse);
@@ -58,13 +53,11 @@ public class BulkLoadUtils {
 
     BulkLoadResultModel loadSummary = result.getLoadSummary();
 
-    assertThat(
-        "Number of successful files loaded should equal total files.",
-        loadSummary.getTotalFiles(),
-        equalTo(loadSummary.getSucceededFiles()));
     logger.debug("Total files    : {}", loadSummary.getTotalFiles());
     logger.debug("Succeeded files: {}", loadSummary.getSucceededFiles());
     logger.debug("Failed files   : {}", loadSummary.getFailedFiles());
     logger.debug("Not Tried files: {}", loadSummary.getNotTriedFiles());
+
+    return loadSummary;
   }
 }

@@ -2,6 +2,7 @@ package utils;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
+import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BillingProfileRequestModel;
 import bio.terra.datarepo.model.DatasetRequestModel;
@@ -10,10 +11,17 @@ import bio.terra.datarepo.model.ErrorModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotRequestModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.ServerSpecification;
+import runner.config.TestUserSpecification;
 
 public final class DataRepoUtils {
 
@@ -23,6 +31,38 @@ public final class DataRepoUtils {
 
   private static int maximumSecondsToWaitForJob = 500;
   private static int secondsIntervalToPollJob = 5;
+
+  private static Map<TestUserSpecification, ApiClient> apiClientsForTestUsers = new HashMap<>();
+
+  public static ApiClient getClientForTestUser(
+      TestUserSpecification testUser, ServerSpecification server) throws IOException {
+    // first check if there is already a cached ApiClient for this test user
+    ApiClient cachedApiClient = apiClientsForTestUsers.get(testUser);
+    if (cachedApiClient != null) {
+      // refresh the token here before returning
+      // this should be helpful for long-running tests (roughly > 1hr)
+      GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
+      AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
+      cachedApiClient.setAccessToken(userAccessToken.getTokenValue());
+
+      return cachedApiClient;
+    }
+
+    // TODO: have ApiClients share an HTTP client, or one per each is ok?
+    // no cached ApiClient found, so build a new one here and add it to the cache before returning
+    logger.info(
+        "Fetching credentials and building Data Repo ApiClient object for test user: {}",
+        testUser.name);
+    ApiClient apiClient = new ApiClient();
+    apiClient.setBasePath(server.uri);
+
+    GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
+    AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
+    apiClient.setAccessToken(userAccessToken.getTokenValue());
+
+    apiClientsForTestUsers.put(testUser, apiClient);
+    return apiClient;
+  }
 
   // ====================================================================
   // General client utility methods

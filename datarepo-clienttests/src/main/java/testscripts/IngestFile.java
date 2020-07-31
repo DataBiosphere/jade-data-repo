@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.TestUserSpecification;
 import testscripts.baseclasses.SimpleDataset;
 import utils.DataRepoUtils;
 import utils.FileUtils;
@@ -40,7 +41,8 @@ public class IngestFile extends SimpleDataset {
     logger.debug("Source file URI: {}", sourceFileURI);
   }
 
-  public void userJourney(ApiClient apiClient) throws Exception {
+  public void userJourney(TestUserSpecification testUser) throws Exception {
+    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";

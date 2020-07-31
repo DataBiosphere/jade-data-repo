@@ -64,6 +64,7 @@ public class TestScriptSpecification implements SpecificationInterface {
       } catch (Exception ex) {
         logger.debug("Error parsing failure script. Error: {}", ex);
       }
+      failureScriptSpecification.validate();
     }
     /*if (failureScriptName != null && !failureScriptName.isEmpty()) {
       try {

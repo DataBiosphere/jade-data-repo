@@ -1,3 +1,6 @@
 {
+  "name": "DeleteOnePod",
+  "description": "fail by deleting one pod",
+  "failureScriptName": "KubernetesDeletePods",
   "podCount": 1
 }

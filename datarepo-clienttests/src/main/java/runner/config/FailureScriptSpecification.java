@@ -2,24 +2,34 @@ package runner.config;
 
 import com.fasterxml.jackson.databind.*;
 import java.io.*;
+import runner.*;
 import utils.*;
 
 public class FailureScriptSpecification implements SpecificationInterface {
+  public String name;
+  public String description;
+  public String failureScriptName;
   public int podCount = 0;
   // public int kubernetesWaitBeforeKillingPod = 30;
   // public String kubernetesWaitBeforeKillingPodUnit= "SECONDS";
 
-  public static final String failurePackage = "failureconfigs";
+  private FailureScript failureScriptClassInstance;
+  public static final String failureConfigs = "failureconfigs";
+  public static final String failurePackage = "failurescripts";
 
   FailureScriptSpecification() {}
 
+  public FailureScript failureScriptClassInstance() {
+    return failureScriptClassInstance;
+  }
+
   // todo add method description
-  public static FailureScriptSpecification fromJSONFile(String failureScriptName) throws Exception {
+  public static FailureScriptSpecification fromJSONFile(String failureConfigFile) throws Exception {
     // use Jackson to map the stream contents to a TestConfiguration object
     ObjectMapper objectMapper = new ObjectMapper();
 
     // read in the server file
-    InputStream inputStream = FileUtils.getJSONFileHandle(failurePackage + "/" + failureScriptName);
+    InputStream inputStream = FileUtils.getJSONFileHandle(failureConfigs + "/" + failureConfigFile);
     return objectMapper.readValue(inputStream, FailureScriptSpecification.class);
   }
 
@@ -29,6 +39,19 @@ public class FailureScriptSpecification implements SpecificationInterface {
       // todo
       // then we want to check that the other parameters are set
       // throw new IllegalArgumentException("Number of initial Kubernetes pods must be >= 0");
+    }
+
+    try {
+      Class<?> scriptClassGeneric = Class.forName(failurePackage + "." + failureScriptName);
+      Class<? extends FailureScript> scriptClass =
+          (Class<? extends FailureScript>) scriptClassGeneric;
+      failureScriptClassInstance = scriptClass.newInstance();
+    } catch (ClassNotFoundException | ClassCastException classEx) {
+      throw new IllegalArgumentException(
+          "Test script class not found: " + failureScriptName, classEx);
+    } catch (IllegalAccessException | InstantiationException niEx) {
+      throw new IllegalArgumentException(
+          "Error calling constructor of TestScript class: " + failureScriptName, niEx);
     }
   }
 }

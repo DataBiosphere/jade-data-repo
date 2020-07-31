@@ -4,7 +4,7 @@ import bio.terra.datarepo.client.ApiClient;
 import java.util.List;
 import java.util.Map;
 
-public abstract class TestScript {
+public abstract class TestScript implements ScriptInterface {
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public TestScript() {}

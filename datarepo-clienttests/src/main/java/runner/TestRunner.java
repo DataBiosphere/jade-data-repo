@@ -176,12 +176,18 @@ class TestRunner {
 
       FailureScriptSpecification failureScriptSpecification =
           testScriptSpecification.failureScriptSpecification();
+      FailureScript failureScript = null;
       logger.debug("Hello. {}", failureScriptSpecification.podCount);
-
+      int numFailureThreads = 0;
+      if (failureScriptSpecification != null) {
+        failureScript = failureScriptSpecification.failureScriptClassInstance();
+        numFailureThreads++;
+      }
       // create a thread pool for running its user journeys
       ThreadPoolExecutor threadPool =
           (ThreadPoolExecutor)
-              Executors.newFixedThreadPool(testScriptSpecification.numberToRunInParallel);
+              Executors.newFixedThreadPool(
+                  testScriptSpecification.numberToRunInParallel + numFailureThreads);
       threadPools.add(threadPool);
 
       // kick off the user journey(s), one per thread
@@ -193,6 +199,17 @@ class TestRunner {
         userJourneyThreads.add(
             new UserJourneyThread(testScript, testScriptSpecification.description, apiClient));
       }
+      if (numFailureThreads > 0) {
+        logger.info("adding the thread to ")
+          // this should get the next api client in the list
+        ApiClient failureApiClient =
+            apiClientList.get(testScriptSpecification.totalNumberToRun % apiClientList.size());
+        // adding thread to run to user case
+        userJourneyThreads.add(
+            new UserJourneyThread(
+                failureScript, failureScriptSpecification.description, failureApiClient));
+      }
+
       // if we are testing kubernetes failures, then add thread w/ failure script
       // we'd read in the failure speification
       // set parameters
@@ -324,13 +341,13 @@ class TestRunner {
   }
 
   static class UserJourneyThread implements Callable<UserJourneyResult> {
-    TestScript testScript;
+    ScriptInterface script;
     String userJourneyDescription;
     ApiClient apiClient;
 
     public UserJourneyThread(
-        TestScript testScript, String userJourneyDescription, ApiClient apiClient) {
-      this.testScript = testScript;
+        ScriptInterface script, String userJourneyDescription, ApiClient apiClient) {
+      this.script = script;
       this.userJourneyDescription = userJourneyDescription;
       this.apiClient = apiClient;
     }
@@ -341,7 +358,7 @@ class TestRunner {
 
       long startTime = System.nanoTime();
       try {
-        testScript.userJourney(apiClient);
+        script.userJourney(apiClient);
       } catch (Exception ex) {
         result.exceptionThrown = ex;
       }

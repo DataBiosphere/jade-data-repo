@@ -1,6 +1,6 @@
 package runner;
 
-public abstract class FailureScript {
+public abstract class FailureScript implements ScriptInterface {
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public FailureScript() {}

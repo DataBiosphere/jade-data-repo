@@ -18,10 +18,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.TestConfiguration;
-import runner.config.TestScriptSpecification;
-import runner.config.TestSuite;
-import runner.config.TestUserSpecification;
+import runner.config.*;
 import utils.AuthenticationUtils;
 import utils.FileUtils;
 import utils.KubernetesClientUtils;
@@ -170,6 +167,7 @@ class TestRunner {
     for (int tsCtr = 0; tsCtr < scripts.size(); tsCtr++) {
       TestScript testScript = scripts.get(tsCtr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
+      //  FailureSpecification failureSpecification =
 
       // create a thread pool for running its user journeys
       ThreadPoolExecutor threadPool =
@@ -186,6 +184,9 @@ class TestRunner {
         userJourneyThreads.add(
             new UserJourneyThread(testScript, testScriptSpecification.description, apiClient));
       }
+      // if we are testing kubernetes failures, then add
+      //  if (testScript)
+
 
       // TODO: support different patterns of kicking off user journeys. here they're all queued at
       // once

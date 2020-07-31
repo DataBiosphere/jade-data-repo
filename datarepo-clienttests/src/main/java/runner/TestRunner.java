@@ -49,6 +49,7 @@ class TestRunner {
 
   void executeTestConfiguration() throws Exception {
     try {
+      // main -> here
       executeTestConfigurationNoGuaranteedCleanup();
     } catch (Exception originalEx) {
       // cleanup deployment (i.e. run teardown method)
@@ -87,6 +88,7 @@ class TestRunner {
   }
 
   void executeTestConfigurationNoGuaranteedCleanup() throws Exception {
+    // next
     // specify any value overrides in the Helm chart, then deploy
     if (!config.server.skipDeployment) {
       // get an instance of the deployment script class
@@ -125,6 +127,7 @@ class TestRunner {
       logger.info("Kubernetes: Skipping Kubernetes configuration post-deployment");
     }
 
+    // ============test users =======================================
     // get an instance of the API client per test user
     logger.info("Test Users: Fetching credentials and building ApiClient objects");
     for (TestUserSpecification testUser : config.testUsers) {
@@ -141,6 +144,7 @@ class TestRunner {
     logger.info(
         "Test Scripts: Fetching instance of each class, setting billing account and parameters");
     for (TestScriptSpecification testScriptSpecification : config.testScripts) {
+      // for each test script specification, create a "TestScript"
       TestScript testScriptInstance = testScriptSpecification.scriptClassInstance();
 
       // set the billing account for the test script to use
@@ -160,14 +164,19 @@ class TestRunner {
       throw new RuntimeException("Error calling test script setup methods.", setupExceptionThrown);
     }
 
-    // for each test script
+    // ========================for each test script========================
     logger.info(
         "Test Scripts: Creating a thread pool for each TestScript and kicking off the user journeys");
     List<ApiClient> apiClientList = new ArrayList<>(apiClientsForUsers.values());
     for (int tsCtr = 0; tsCtr < scripts.size(); tsCtr++) {
+      // Q: What is the difference between test script(scripts) and test specification
+      // (config.testScripts)?
       TestScript testScript = scripts.get(tsCtr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
-      //  FailureSpecification failureSpecification =
+
+      FailureScriptSpecification failureScriptSpecification =
+          testScriptSpecification.failureScriptSpecification();
+      logger.debug("Hello. {}", failureScriptSpecification.podCount);
 
       // create a thread pool for running its user journeys
       ThreadPoolExecutor threadPool =
@@ -184,9 +193,9 @@ class TestRunner {
         userJourneyThreads.add(
             new UserJourneyThread(testScript, testScriptSpecification.description, apiClient));
       }
-      // if we are testing kubernetes failures, then add
-      //  if (testScript)
-
+      // if we are testing kubernetes failures, then add thread w/ failure script
+      // we'd read in the failure speification
+      // set parameters
 
       // TODO: support different patterns of kicking off user journeys. here they're all queued at
       // once

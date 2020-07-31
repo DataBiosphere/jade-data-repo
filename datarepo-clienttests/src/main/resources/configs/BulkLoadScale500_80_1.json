@@ -1,7 +1,7 @@
 {
   "name": "BulkLoadScale500_80_1",
   "description": "One user ingests many files into one dataset",
-  "serverSpecificationFile": "localhost.json",
+  "serverSpecificationFile": "shdev.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 1
@@ -14,8 +14,8 @@
   "testScripts": [
     {
       "name": "BulkLoad",
-      "parameters": [500],
-      "totalNumberToRun": 10,
+      "parameters": [1],
+      "totalNumberToRun": 1,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 1000000,
       "expectedTimeForEachUnit": "SECONDS"

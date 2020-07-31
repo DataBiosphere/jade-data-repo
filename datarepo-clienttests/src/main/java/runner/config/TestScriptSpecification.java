@@ -2,7 +2,7 @@ package runner.config;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import runner.TestScript;
+import runner.*;
 
 public class TestScriptSpecification implements SpecificationInterface {
   public String name;
@@ -11,8 +11,10 @@ public class TestScriptSpecification implements SpecificationInterface {
   public long expectedTimeForEach;
   public String expectedTimeForEachUnit;
   public List<String> parameters;
+  public String failureScriptFile;
 
   private TestScript scriptClassInstance;
+  private FailureScriptSpecification failureScriptSpecification;
   public TimeUnit expectedTimeForEachUnitObj;
   public String description;
 
@@ -22,6 +24,10 @@ public class TestScriptSpecification implements SpecificationInterface {
 
   public TestScript scriptClassInstance() {
     return scriptClassInstance;
+  }
+
+  public FailureScriptSpecification failureScriptSpecification() {
+    return failureScriptSpecification;
   }
 
   /**
@@ -51,6 +57,29 @@ public class TestScriptSpecification implements SpecificationInterface {
       throw new IllegalArgumentException(
           "Error calling constructor of TestScript class: " + name, niEx);
     }
+
+    if (failureScriptFile != null && !failureScriptFile.isEmpty()) {
+      try {
+        failureScriptSpecification = FailureScriptSpecification.fromJSONFile(failureScriptFile);
+      } catch (Exception ex) {
+        logger.debug("Error parsing failure script. Error: {}", ex);
+      }
+    }
+    /*if (failureScriptName != null && !failureScriptName.isEmpty()) {
+      try {
+        Class<?> failureScriptClassGeneric =
+            Class.forName(failurePackage + "." + failureScriptName);
+        Class<? extends FailureScript> failureScriptClass =
+            (Class<? extends FailureScript>) failureScriptClassGeneric;
+        failureScriptClassInstance = failureScriptClass.newInstance();
+      } catch (ClassNotFoundException | ClassCastException classEx) {
+        throw new IllegalArgumentException(
+            "Test script class not found: " + failureScriptName, classEx);
+      } catch (IllegalAccessException | InstantiationException niEx) {
+        throw new IllegalArgumentException(
+            "Error calling constructor of TestScript class: " + failureScriptName, niEx);
+      }
+    }*/
 
     // generate a separate description property that also includes any test script parameters
     description = name;

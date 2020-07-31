@@ -1,21 +1,25 @@
 {
   "name": "FailurePatternExample",
-  "description": "One user ingests several files of two different sizes (1KB, 10KB) concurrently, into two datasets.",
-  "serverSpecificationFile": "localhost.json",
+  "description": "One user ingests many files into one dataset",
+  "serverSpecificationFile": "shdev.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 3
   },
-  "application": {},
+  "application": {
+    "maxStairwayThreads" : 120,
+    "loadConcurrentFiles": 80,
+    "loadDriverWaitSeconds": 1
+  },
   "testScripts": [
     {
-      "name": "IngestFile",
-      "parameters": ["gs://jade-testdata/fileloadprofiletest/10KBfile.txt"],
-      "totalNumberToRun": 3,
-      "numberToRunInParallel": 2,
-      "expectedTimeForEach": 60,
+      "name": "BulkLoad",
+      "parameters": [2],
+      "totalNumberToRun": 1,
+      "numberToRunInParallel": 1,
+      "expectedTimeForEach": 1000000,
       "expectedTimeForEachUnit": "SECONDS",
-      "kubernetesKillPodCount": 1
+      "failureScriptFile": "DeleteOnePod.json"
     }
   ],
   "testUserFiles": ["dumbledore.json"]

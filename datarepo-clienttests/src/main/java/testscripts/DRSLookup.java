@@ -14,6 +14,7 @@ import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import bio.terra.datarepo.model.TableModel;
+import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -131,8 +132,9 @@ public class DRSLookup extends SimpleDataset {
             + "."
             + tableModel.getName();
 
-    TableResult result =
-        BigQueryUtils.queryBigQuery(snapshotModel.getDataProject(), queryForFileRefs);
+    BigQuery bigQueryClient =
+        BigQueryUtils.getClientForTestUser(datasetCreator, snapshotModel.getDataProject());
+    TableResult result = BigQueryUtils.queryBigQuery(bigQueryClient, queryForFileRefs);
     ArrayList<String> fileRefs = new ArrayList<>();
     result.iterateAll().forEach(r -> fileRefs.add(r.get("VCF_File_Ref").getStringValue()));
     // fileRefs should only be 1 in size

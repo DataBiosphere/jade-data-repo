@@ -3,7 +3,6 @@ package utils;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BillingProfileRequestModel;
 import bio.terra.datarepo.model.DatasetModel;
@@ -12,8 +11,8 @@ import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.ErrorModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotRequestModel;
+import bio.terra.datarepo.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.client.http.HttpStatusCodes;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import java.io.IOException;
@@ -27,7 +26,6 @@ import runner.config.ServerSpecification;
 import runner.config.TestUserSpecification;
 
 public final class DataRepoUtils {
-
   private static final Logger logger = LoggerFactory.getLogger(DataRepoUtils.class);
 
   private DataRepoUtils() {}
@@ -274,28 +272,18 @@ public final class DataRepoUtils {
   }
 
   /**
-   * Check if retrieving a dataset returns an unauthorized error.
+   * Build the name of a BigQuery table for a Data Repo dataset.
    *
-   * @param repositoryApi the api object to query
-   * @return true if the endpoint returns an unauthorized error, false if it does not
+   * @param datasetModel
+   * @param tableModel
+   * @return
    */
-  public static boolean retrieveDatasetIsUnauthorized(RepositoryApi repositoryApi, String datasetId)
-      throws ApiException {
-    boolean caughtAccessException = false;
-    try {
-      DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId);
-      logger.debug(
-          "Successfully retrieved dataset: name = {}, data project = {}",
-          datasetModel.getName(),
-          datasetModel.getDataProject());
-    } catch (ApiException drApiEx) {
-      logger.debug("caught exception retrieving dataset code = {}", drApiEx.getCode(), drApiEx);
-      if (drApiEx.getCode() == HttpStatusCodes.STATUS_CODE_UNAUTHORIZED) {
-        caughtAccessException = true;
-      } else {
-        throw drApiEx;
-      }
-    }
-    return caughtAccessException;
+  public static String getBigQueryDatasetTableName(
+      DatasetModel datasetModel, TableModel tableModel) {
+    return datasetModel.getDataProject()
+        + ".datarepo_"
+        + datasetModel.getName()
+        + "."
+        + tableModel.getName();
   }
 }

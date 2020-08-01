@@ -134,27 +134,6 @@ public final class FileUtils {
     return String.format("gs://%s/%s", testConfigGetIngestbucket, fileRefName);
   }
 
-  public static String createGcsPath( // TODO combine this and above method
-      List<String> rowIds, String fileRefName, String testConfigGetIngestbucket) {
-    createdScratchFiles = new ArrayList<>();
-    storage = StorageOptions.getDefaultInstance().getService();
-
-    // load a csv file that contains the row ids to delete
-    BlobInfo blob = BlobInfo.newBuilder(testConfigGetIngestbucket, fileRefName).build();
-
-    try (WriteChannel writer = storage.writer(blob)) {
-      for (String line : rowIds) {
-        writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-
-    // save a reference to the CSV file so we can delete it in cleanup()
-    createdScratchFiles.add(fileRefName);
-    return String.format("gs://%s/%s", testConfigGetIngestbucket, fileRefName);
-  }
-
   public static void cleanupScratchFiles(String testConfigGetIngestbucket) {
     storage = StorageOptions.getDefaultInstance().getService();
     // do the delete loop you've already coded.

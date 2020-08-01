@@ -16,7 +16,9 @@ import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
+import com.google.api.client.util.Charsets;
 import com.google.cloud.bigquery.TableResult;
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -130,22 +132,20 @@ public class SoftDeleteDataset extends runner.TestScript {
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
-    String datasetId = datasetSummaryModel.getId(); // TODO should these be in utils?
+    String datasetId = datasetSummaryModel.getId();
     DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId);
     String dataProject = datasetModel.getDataProject();
     String tableName = datasetModel.getSchema().getTables().get(0).getName();
 
-    // get row ids for table  TODO combine SQL query w queryForFileRefs in DRSLookup
-    String tableRef =
-        String.format(
-            "`%s.%s.%s`",
-            dataProject,
-            "datarepo_" + datasetModel.getName(), // TODO const ni BQ utils
-            tableName);
+    // get row ids for table
     String sqlQuery =
-        String.format(
-            "SELECT %s FROM %s LIMIT %s",
-            "datarepo_row_id", tableRef, 1L); // TODO what is the limit?
+        BigQueryUtils.constructQuery(
+            dataProject,
+            BigQueryUtils.getDatasetName(datasetModel.getName()),
+            tableName,
+            "datarepo_row_id",
+            1L);
+
     TableResult result = BigQueryUtils.queryBigQuery(dataProject, sqlQuery);
     List<String> rowIds =
         StreamSupport.stream(result.getValues().spliterator(), false)
@@ -157,7 +157,13 @@ public class SoftDeleteDataset extends runner.TestScript {
     // write to GCS
     String csvFileName = FileUtils.randomizeName("this-too-better-pass") + ".csv";
     String csvFileRefName = dirInCloud + "/" + csvFileName;
-    String gcsPath = FileUtils.createGcsPath(rowIds, csvFileRefName, testConfigGetIngestbucket);
+
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    for (String line : rowIds) {
+      output.write((line + "\n").getBytes(Charsets.UTF_8));
+    }
+    byte[] bytes = output.toByteArray();
+    String gcsPath = FileUtils.createGsPath(bytes, csvFileRefName, testConfigGetIngestbucket);
 
     // build the deletion request with pointers to the file with row ids to soft delete
     DataDeletionGcsFileModel deletionGcsFileModel =

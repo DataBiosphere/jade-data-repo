@@ -29,4 +29,21 @@ public final class BigQueryUtils {
       QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
       return bigQuery.query(queryConfig);
   }
+
+  public static String getDatasetName(String datasetName) {
+      return "datarepo_" + datasetName;
+  }
+  public static String constructQuery(String project, String datasetName, String tableName, String select, Long limit) {
+      String tableRef =
+          String.format(
+              "`%s.%s.%s`",
+              project,
+              datasetName,
+              tableName);
+      String sqlQuery =
+          String.format(
+              "SELECT %s FROM %s LIMIT %s",
+              select, tableRef, limit);
+      return sqlQuery;
+  }
 }

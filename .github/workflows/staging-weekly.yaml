@@ -6,7 +6,7 @@ env:
 
 on:
   schedule:
-    - cron: '0 3 * * 7' # run at 2 AM UTC
+    - cron: '0 3 * * 7' # run at 3 AM UTC ev ery Sunday
 
 jobs:
   update_image:

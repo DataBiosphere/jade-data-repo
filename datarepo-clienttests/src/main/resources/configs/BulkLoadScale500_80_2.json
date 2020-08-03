@@ -3,6 +3,7 @@
   "description": "One user ingests many files into one dataset",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
+  "numberToRunInParallel": 1,
   "kubernetes": {
     "numberOfInitialPods" : 2
   },
@@ -16,7 +17,6 @@
       "name": "BulkLoad",
       "parameters": [500],
       "totalNumberToRun": 10,
-      "numberToRunInParallel": 1,
       "expectedTimeForEach": 1000000,
       "expectedTimeForEachUnit": "SECONDS"
     }

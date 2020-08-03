@@ -3,6 +3,7 @@
   "description": "One user ingests several files of two different sizes (1KB, 10KB) concurrently, into two datasets.",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
+  "numberToRunInParallel": 2,
   "kubernetes": {
     "numberOfInitialPods" : 3
   },
@@ -12,7 +13,6 @@
       "name": "IngestFile",
       "parameters": ["gs://jade-testdata/fileloadprofiletest/1KBfile.txt"],
       "totalNumberToRun": 3,
-      "numberToRunInParallel": 2,
       "expectedTimeForEach": 60,
       "expectedTimeForEachUnit": "SECONDS"
     },
@@ -20,7 +20,6 @@
       "name": "IngestFile",
       "parameters": ["gs://jade-testdata/fileloadprofiletest/10KBfile.txt"],
       "totalNumberToRun": 3,
-      "numberToRunInParallel": 2,
       "expectedTimeForEach": 60,
       "expectedTimeForEachUnit": "SECONDS"
     }

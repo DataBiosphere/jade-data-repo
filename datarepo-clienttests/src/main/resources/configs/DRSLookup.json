@@ -3,6 +3,7 @@
   "description": "Run DRS lookups on the file refs in a snapshot.",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
+  "numberToRunInParallel": 3,
   "kubernetes": {
     "numberOfInitialPods" : 2
   },
@@ -11,7 +12,7 @@
     {
       "name": "DRSLookup",
       "totalNumberToRun": 1,
-      "numberToRunInParallel": 3,
+
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
     }

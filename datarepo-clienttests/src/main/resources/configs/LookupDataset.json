@@ -3,6 +3,7 @@
   "description": "Two users retrieve a dataset repeatedly, concurrently.",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
+  "numberToRunInParallel": 3,
   "kubernetes": {
     "numberOfInitialPods" : 2
   },
@@ -14,7 +15,6 @@
     {
       "name": "RetrieveDataset",
       "totalNumberToRun": 15,
-      "numberToRunInParallel": 3,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
     }

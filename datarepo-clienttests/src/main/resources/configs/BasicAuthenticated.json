@@ -3,13 +3,13 @@
   "description": "Two users fetch the available profiles repeatedly, concurrently. Authentication required.",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
+  "numberToRunInParallel": 2,
   "kubernetes": {},
   "application": {},
   "testScripts": [
     {
       "name": "EnumerateProfiles",
       "totalNumberToRun": 5,
-      "numberToRunInParallel": 2,
       "expectedTimeForEach": 5,
       "expectedTimeForEachUnit": "SECONDS"
     }

@@ -17,12 +17,20 @@ public class TestConfiguration implements SpecificationInterface {
   public String billingAccount;
   public boolean isFunctional = false;
   public List<String> testUserFiles;
+  public String failureScriptFile;
+  public int numberToRunInParallel = 1;
 
   public ServerSpecification server;
   public KubernetesSpecification kubernetes;
   public ApplicationSpecification application;
   public List<TestScriptSpecification> testScripts;
   public List<TestUserSpecification> testUsers = new ArrayList<>();
+
+  private FailureScriptSpecification failureScriptSpecification;
+
+  public FailureScriptSpecification failureScriptSpecification() {
+    return failureScriptSpecification;
+  }
 
   public static final String resourceDirectory = "configs";
 
@@ -76,6 +84,25 @@ public class TestConfiguration implements SpecificationInterface {
     kubernetes.validate();
     application.validate();
 
+    if (numberToRunInParallel <= 0) {
+      throw new IllegalArgumentException("Number to run in parallel must be >=0.");
+    }
+
+    // todo: Where is the best place to do this sort of check for items that are not required?
+    if (failureScriptFile != null && !failureScriptFile.isEmpty()) {
+      try {
+        // For each test, we can designate a failure script to run alongside the test scripts
+        // Convert this failure script from json to the FailureScriptSpecification class
+        failureScriptSpecification = FailureScriptSpecification.fromJSONFile(failureScriptFile);
+      } catch (Exception ex) {
+        logger.debug("Error parsing failure script. Error: {}", ex);
+      }
+      // since the failure script is added on a per-testscript basis, we can't do the validate check
+      // at the
+      // TestConfiguration level along with the other validate checks
+      failureScriptSpecification.validate();
+    }
+
     logger.debug("Validating the test script specifications");
     for (TestScriptSpecification testScript : testScripts) {
       testScript.validate();
@@ -84,7 +111,7 @@ public class TestConfiguration implements SpecificationInterface {
           throw new IllegalArgumentException(
               "For a functional test script, the total number to run should be 1.");
         }
-        if (testScript.numberToRunInParallel > 1) {
+        if (numberToRunInParallel > 1) {
           throw new IllegalArgumentException(
               "For a functional test script, the number to run in parallel should be 1.");
         }

@@ -164,41 +164,43 @@ class TestRunner {
       throw new RuntimeException("Error calling test script setup methods.", setupExceptionThrown);
     }
 
+    // ====== handling case where we want to add a failure thread ======
+    TestScript failureScript = null;
+    boolean runFailureScript = false;
+
+    // check if a failure config is defined for this test
+    // convert the failure config from json to FailureScriptSpecification
+    FailureScriptSpecification failureScriptSpecification = config.failureScriptSpecification();
+    // if it's defined, access the failure script to run alongside the user journey threads
+    if (failureScriptSpecification != null) {
+      failureScript = failureScriptSpecification.failureScriptClassInstance();
+      // set any parameters specified by the configuration
+      failureScript.setParameters(failureScriptSpecification.parameters);
+      // keeping track of the number of failure threads because increment the threads in the pool
+      // and determine if we have any failure scripts to add to the thread pool
+      runFailureScript = true;
+    }
+    // ==================================================================
+
+    // initialize the thread pool
+    // create a thread pool for running its user journeys
+    int nThreads =
+        runFailureScript ? config.numberToRunInParallel + 1 : config.numberToRunInParallel;
+    logger.debug("create thread pool w/ {} threads", nThreads);
+    ThreadPoolExecutor userJourneyThreadPool =
+        (ThreadPoolExecutor) Executors.newFixedThreadPool(nThreads);
+    threadPools.add(userJourneyThreadPool);
+
+    List<UserJourneyThread> userJourneyThreads = new ArrayList<>();
+
     // for each test script
-    logger.info(
-        "Test Scripts: Creating a thread pool for each TestScript and kicking off the user journeys");
+    logger.info("Test Scripts: Creating a shared thread pool kicking off the user journeys");
     List<ApiClient> apiClientList = new ArrayList<>(apiClientsForUsers.values());
     for (int tsCtr = 0; tsCtr < scripts.size(); tsCtr++) {
       TestScript testScript = scripts.get(tsCtr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
 
-      // ====== handling case where we want to add a failure thread ======
-      TestScript failureScript = null;
-      boolean runFailureScript = false;
-
-      // check if a failure config is defined for this test
-      // convert the failure config from json to FailureScriptSpecification
-      FailureScriptSpecification failureScriptSpecification =
-          testScriptSpecification.failureScriptSpecification();
-      // if it's defined, access the failure script to run alongside the user journey threads
-      if (failureScriptSpecification != null) {
-        failureScript = failureScriptSpecification.failureScriptClassInstance();
-        // set any parameters specified by the configuration
-        failureScript.setParameters(failureScriptSpecification.parameters);
-        // keeping track of the number of failure threads because increment the threads in the pool
-        // and determine if we have any failure scripts to add to the thread pool
-        runFailureScript = true;
-      }
-      // ==================================================================
-
-      // create a thread pool for running its user journeys
-      ThreadPoolExecutor threadPool =
-          (ThreadPoolExecutor)
-              Executors.newFixedThreadPool(testScriptSpecification.numberToRunInParallel + 1);
-      threadPools.add(threadPool);
-
       // kick off the user journey(s), one per thread
-      List<UserJourneyThread> userJourneyThreads = new ArrayList<>();
       for (int ujCtr = 0; ujCtr < testScriptSpecification.totalNumberToRun; ujCtr++) {
         ApiClient apiClient = apiClientList.get(ujCtr % apiClientList.size());
         // add a description to the user journey threads/results that includes any test script
@@ -206,30 +208,36 @@ class TestRunner {
         userJourneyThreads.add(
             new UserJourneyThread(testScript, testScriptSpecification.description, apiClient));
       }
-      // ============= add thread to run failure script ========================
-      if (runFailureScript) {
-        logger.debug("adding the failure thread to the pool.");
-        // create a thread pool for running the failure script
-        ThreadPoolExecutor failureThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-        threadPools.add(failureThreadPool);
-        // this should get the next api client in the list
-        ApiClient failureApiClient =
-            apiClientList.get(testScriptSpecification.totalNumberToRun % apiClientList.size());
-
-        UserJourneyThread ujt =
-            new UserJourneyThread(
-                failureScript, failureScriptSpecification.description, failureApiClient);
-        threadPool.submit(ujt);
-        logger.debug("successfully invoked the failure thread.");
-      }
-      // ==============================================================================
-
-      // TODO: support different patterns of kicking off user journeys. here they're all queued at
-      // once
-
-      List<Future<UserJourneyResult>> userJourneyFutures = threadPool.invokeAll(userJourneyThreads);
-      userJourneyFutureLists.add(userJourneyFutures);
     }
+
+    // ============= add thread to run failure script ========================
+    if (runFailureScript) {
+      logger.debug("adding the failure thread to the pool.");
+      // create a thread pool for running the failure script
+      ThreadPoolExecutor failureThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+      threadPools.add(failureThreadPool);
+      // this should get the next api client in the list
+      ApiClient failureApiClient =
+          apiClientList.get(userJourneyThreads.size() % apiClientList.size());
+
+      UserJourneyThread ujt =
+          new UserJourneyThread(
+              failureScript, failureScriptSpecification.description, failureApiClient);
+      // By submitting this thread, we know the failure thread will run with the first batch of
+      // threads
+      // todo when failure thread finishes, other test scripts can use the thread, preventing us
+      // from
+      // accurately counting the parallelism for a perf test run
+      userJourneyThreadPool.submit(ujt);
+      logger.debug("successfully kicked off the failure thread.");
+    }
+    // ==============================================================================
+
+    // TODO: support different patterns of kicking off user journeys. here they're all queued at
+    // once
+    List<Future<UserJourneyResult>> userJourneyFutures =
+        userJourneyThreadPool.invokeAll(userJourneyThreads);
+    userJourneyFutureLists.add(userJourneyFutures);
 
     // wait until all threads either finish or time out
     logger.info("Test Scripts: Waiting until all threads either finish or time out");

@@ -18,11 +18,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.FailureScriptSpecification;
 import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
 import runner.config.TestSuite;
 import runner.config.TestUserSpecification;
-import runner.config.FailureScriptSpecification;
 import utils.AuthenticationUtils;
 import utils.FileUtils;
 import utils.KubernetesClientUtils;
@@ -183,12 +183,13 @@ class TestRunner {
       // if it's defined, access the failure script to run alongside the user journey threads
       if (failureScriptSpecification != null) {
         failureScript = failureScriptSpecification.failureScriptClassInstance();
+        // set any parameters specified by the configuration
+        failureScript.setParameters(failureScriptSpecification.parameters);
         // keeping track of the number of failure threads because increment the threads in the pool
         // and determine if we have any failure scripts to add to the thread pool
         numFailureThreads++;
       }
       // ==================================================================
-
 
       // create a thread pool for running its user journeys
       ThreadPoolExecutor threadPool =

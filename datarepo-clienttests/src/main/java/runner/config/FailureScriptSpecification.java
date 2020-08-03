@@ -1,19 +1,17 @@
 package runner.config;
 
 import com.fasterxml.jackson.databind.*;
-import java.io.*;
-import runner.*;
-import utils.*;
+import java.io.InputStream;
+import java.util.List;
+import runner.TestScript;
+import utils.FileUtils;
 
 public class FailureScriptSpecification implements SpecificationInterface {
   // variables defined in failure config json
   public String name;
   public String description;
   public String failureScriptName;
-  public int podCount = 0;
-  // todo add these other variables
-  // public int kubernetesWaitBeforeKillingPod = 30;
-  // public String kubernetesWaitBeforeKillingPodUnit= "SECONDS";
+  public List<String> parameters;
 
   // objects defined here
   private TestScript failureScriptClassInstance;
@@ -40,12 +38,6 @@ public class FailureScriptSpecification implements SpecificationInterface {
 
   /** Validate the Failure specification read in from the JSON file. */
   public void validate() {
-    if (podCount <= 0) {
-      // todo
-      // then we want to check that the other parameters are set
-      // throw new IllegalArgumentException("Number of initial Kubernetes pods must be >= 0");
-    }
-
     try {
       Class<?> scriptClassGeneric = Class.forName(testScriptsPackage + "." + failureScriptName);
       Class<? extends TestScript> scriptClass = (Class<? extends TestScript>) scriptClassGeneric;

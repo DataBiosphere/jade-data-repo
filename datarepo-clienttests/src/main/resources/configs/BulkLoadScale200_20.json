@@ -17,7 +17,6 @@
       "name": "BulkLoad",
       "parameters": [200],
       "totalNumberToRun": 10,
-
       "expectedTimeForEach": 1000000,
       "expectedTimeForEachUnit": "SECONDS"
     }

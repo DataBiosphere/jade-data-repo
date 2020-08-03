@@ -12,7 +12,6 @@
     {
       "name": "DRSLookup",
       "totalNumberToRun": 1,
-
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
     }

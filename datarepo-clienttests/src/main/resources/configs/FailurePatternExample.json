@@ -3,6 +3,8 @@
   "description": "One user ingests many files into one dataset",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
+  "numberToRunInParallel": 1,
+  "failureScriptFile": "DeleteOnePod.json",
   "kubernetes": {
     "numberOfInitialPods" : 3
   },
@@ -16,10 +18,8 @@
       "name": "BulkLoad",
       "parameters": [2],
       "totalNumberToRun": 1,
-      "numberToRunInParallel": 1,
       "expectedTimeForEach": 1000000,
       "expectedTimeForEachUnit": "SECONDS",
-      "failureScriptFile": "DeleteOnePod.json"
     }
   ],
   "testUserFiles": ["dumbledore.json"]

@@ -116,6 +116,10 @@ public class TestConfiguration implements SpecificationInterface {
               "For a functional test script, the number to run in parallel should be 1.");
         }
       }
+      if (testScript.totalNumberToRun < numberToRunInParallel) {
+        throw new IllegalArgumentException(
+            "Total number to run should be equal to or greater than the number to run in parallel.");
+      }
       if (server.skipKubernetes && testScript.scriptClassInstance().manipulatesKubernetes()) {
         throw new IllegalArgumentException(
             "The Test Script class "

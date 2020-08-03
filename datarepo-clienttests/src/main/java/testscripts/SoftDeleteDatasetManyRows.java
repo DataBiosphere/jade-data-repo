@@ -26,6 +26,7 @@ import utils.FileUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,6 +34,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
+
+import static java.lang.Integer.max;
+import static java.lang.Integer.min;
 
 public class SoftDeleteDatasetManyRows extends runner.TestScript {
   private static final Logger logger = LoggerFactory.getLogger(SoftDeleteDatasetManyRows.class);
@@ -42,12 +46,27 @@ public class SoftDeleteDatasetManyRows extends runner.TestScript {
     super();
   }
 
+  private Integer datasetRowsCount;
+  private Integer deleteRowsCount;
   private String datasetCreator;
   private BillingProfileModel billingProfileModel;
   private DatasetSummaryModel datasetSummaryModel;
   private DataDeletionRequest dataDeletionRequest;
 
   private String testConfigGetIngestbucket;
+
+    public void setParameters(List<String> parameters) {
+        if (parameters == null || parameters.size() == 0) {
+            throw new IllegalArgumentException( // or should there be a default number set?
+                "Must provide a number of how many rows for the dataset to soft delete from");
+        } else {
+            // TODO, check for the larger number and make that the one that the is the dataset? Is max / min too lazy?
+            datasetRowsCount = max(Integer.parseInt(parameters.get(0)), Integer.parseInt(parameters.get(1)));
+            deleteRowsCount = min(Integer.parseInt(parameters.get(0)), Integer.parseInt(parameters.get(1)));
+            logger.debug("Source dataset row count: {}, and count to delete: {}", datasetRowsCount, deleteRowsCount);
+        }
+    }
+
 
   public void setup(Map<String, ApiClient> apiClients) throws Exception {
     // pick the first user to be the dataset creator
@@ -59,7 +78,7 @@ public class SoftDeleteDatasetManyRows extends runner.TestScript {
     ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
-    testConfigGetIngestbucket = "jade-testdata"; // this could be put in DRUtils
+    testConfigGetIngestbucket = "jade-testdata";
 
     // create a new profile
     billingProfileModel =
@@ -69,7 +88,7 @@ public class SoftDeleteDatasetManyRows extends runner.TestScript {
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
         DataRepoUtils.createDataset(
-            repositoryApi, billingProfileModel.getId(), "dataset-simple.json", true);
+            repositoryApi, billingProfileModel.getId(), "dataset-simpler.json", true);
 
     // save a reference to the dataset summary model so we can delete it in cleanup()
     datasetSummaryModel =
@@ -77,51 +96,28 @@ public class SoftDeleteDatasetManyRows extends runner.TestScript {
             repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
     logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
 
-    // load data into the new dataset
-    // note that there's a fileref in the dataset
-    // ingest a file -- TODO CannedTestData.getMeA1KBFile
-    URI sourceUri = new URI("gs://jade-testdata/fileloadprofiletest/1KBfile.txt");
+    // load data into the new dataset-- no fileref necessary
+    // TODO I need to load in a lot of rows---but no file refs necessary
+      ByteArrayOutputStream newRow = new ByteArrayOutputStream();
 
-    String targetPath = "/testrunner/softDel/" + FileUtils.randomizeName("") + ".txt";
+      for (int i = 0; i < datasetRowsCount; i++) {
+          String jsonLine =
+              "{\"Name\":\""
+              + i
+              + "\",  \"Description\":\"description1\"}\n";
+          newRow.write((jsonLine).getBytes(Charsets.UTF_8));
+      }
 
-    BulkLoadFileModel fileLoadModel =
-        new BulkLoadFileModel()
-            .sourcePath(sourceUri.toString())
-            .description("softDel")
-            .mimeType("text/plain")
-            .targetPath(targetPath);
-    String loadTag = FileUtils.randomizeName("softDelTest");
-    BulkLoadArrayRequestModel fileLoadModelArray =
-        new BulkLoadArrayRequestModel()
-            .profileId(datasetSummaryModel.getDefaultProfileId())
-            .loadTag(loadTag)
-            .maxFailedFileLoads(0);
-    fileLoadModelArray.addLoadArrayItem(fileLoadModel);
-
-    JobModel ingestFileJobResponse =
-        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
-    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
-    BulkLoadArrayResultModel bulkLoadArrayResultModel =
-        DataRepoUtils.expectJobSuccess(
-            repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
-    String fileId = bulkLoadArrayResultModel.getLoadFileResults().get(0).getFileId();
-
-    // ingest the tabular data from the JSON file we just generated
-    // generate a JSON file with the fileref
-    String jsonLine =
-        "{\"VCF_File_Name\":\"name1\", \"Description\":\"description1\", \"VCF_File_Ref\":\""
-            + fileId
-            + "\"}\n";
-    byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
+    byte[] newRowBytes = newRow.toByteArray();
     String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
     String dirInCloud = "scratch/softDel";
     String fileRefName = dirInCloud + "/" + jsonFileName;
-    String gsPath = FileUtils.createGsPath(fileRefBytes, fileRefName, testConfigGetIngestbucket);
+    String gsPath = FileUtils.createGsPath(newRowBytes, fileRefName, testConfigGetIngestbucket);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
-            .table("vcf_file")
+            .table("table")
             .path(gsPath);
     JobModel ingestTabularDataJobResponse =
         repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
@@ -138,14 +134,17 @@ public class SoftDeleteDatasetManyRows extends runner.TestScript {
     String dataProject = datasetModel.getDataProject();
     String tableName = datasetModel.getSchema().getTables().get(0).getName();
 
-    // get row ids for table
+    // get row ids for table to determine what to delete
+      // TODO how do we want to mod out the # we delete?
+    deleteRowsCount
+
     String sqlQuery =
         BigQueryUtils.constructQuery(
             dataProject,
             BigQueryUtils.getDatasetName(datasetModel.getName()),
             tableName,
             "datarepo_row_id",
-            1L);
+            10L);
 
     TableResult result = BigQueryUtils.queryBigQuery(dataProject, sqlQuery);
     List<String> rowIds =

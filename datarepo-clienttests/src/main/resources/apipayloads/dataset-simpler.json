@@ -1,0 +1,22 @@
+{
+  "name":        "DatasetSimple",
+  "description": "Simple dataset definition",
+  "defaultProfileId": "",
+  "schema":      {
+    "tables":        [
+      {
+        "name": "table",
+        "columns": [
+          {
+            "name": "Name",
+            "datatype": "STRING"
+          },
+          {
+            "name": "Description",
+            "datatype": "STRING"
+          }
+        ]
+      }
+    ]
+  }
+}

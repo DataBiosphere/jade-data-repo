@@ -149,12 +149,12 @@ public class DRSLookup extends runner.TestScript {
         snapshotModel.getTables().get(0); // There is only 1 table, so just grab the first
 
     String queryForFileRefs =
-        BigQueryUtils.constructQuery(
-            snapshotModel.getDataProject(),
-            snapshotModel.getName(),
-            tableModel.getName(),
-            "VCF_File_Ref",
-            1L);
+        "SELECT * FROM "
+            + snapshotModel.getDataProject()
+            + "."
+            + snapshotModel.getName()
+            + "."
+            + tableModel.getName();
 
     TableResult result =
         BigQueryUtils.queryBigQuery(snapshotModel.getDataProject(), queryForFileRefs);

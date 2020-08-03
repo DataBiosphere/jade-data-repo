@@ -174,7 +174,7 @@ class TestRunner {
 
       // ====== handling case where we want to add a failure thread ======
       TestScript failureScript = null;
-      int numFailureThreads = 0;
+      boolean runFailureScript = false;
 
       // check if a failure config is defined for this test
       // convert the failure config from json to FailureScriptSpecification
@@ -187,15 +187,14 @@ class TestRunner {
         failureScript.setParameters(failureScriptSpecification.parameters);
         // keeping track of the number of failure threads because increment the threads in the pool
         // and determine if we have any failure scripts to add to the thread pool
-        numFailureThreads++;
+        runFailureScript = true;
       }
       // ==================================================================
 
       // create a thread pool for running its user journeys
       ThreadPoolExecutor threadPool =
           (ThreadPoolExecutor)
-              Executors.newFixedThreadPool(
-                  testScriptSpecification.numberToRunInParallel + numFailureThreads);
+              Executors.newFixedThreadPool(testScriptSpecification.numberToRunInParallel + 1);
       threadPools.add(threadPool);
 
       // kick off the user journey(s), one per thread
@@ -208,21 +207,26 @@ class TestRunner {
             new UserJourneyThread(testScript, testScriptSpecification.description, apiClient));
       }
       // ============= add thread to run failure script ========================
-      if (numFailureThreads > 0) {
+      if (runFailureScript) {
         logger.debug("adding the failure thread to the pool.");
+        // create a thread pool for running the failure script
+        ThreadPoolExecutor failureThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+        threadPools.add(failureThreadPool);
         // this should get the next api client in the list
         ApiClient failureApiClient =
             apiClientList.get(testScriptSpecification.totalNumberToRun % apiClientList.size());
-        // adding thread to run to user case
-        userJourneyThreads.add(
+
+        UserJourneyThread ujt =
             new UserJourneyThread(
-                failureScript, failureScriptSpecification.description, failureApiClient));
-        logger.debug("successfully added the failure thread to the pool.");
+                failureScript, failureScriptSpecification.description, failureApiClient);
+        threadPool.submit(ujt);
+        logger.debug("successfully invoked the failure thread.");
       }
       // ==============================================================================
 
       // TODO: support different patterns of kicking off user journeys. here they're all queued at
       // once
+
       List<Future<UserJourneyResult>> userJourneyFutures = threadPool.invokeAll(userJourneyThreads);
       userJourneyFutureLists.add(userJourneyFutures);
     }

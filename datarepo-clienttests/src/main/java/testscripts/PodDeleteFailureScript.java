@@ -42,10 +42,12 @@ public class PodDeleteFailureScript extends TestScript {
 
   @Override
   public void userJourney(ApiClient apiClient) throws Exception {
+    logger.debug("Starting failure script.");
     for (int i = 0; i < repeatFailureCount; i++) {
       TimeUnit.SECONDS.sleep(secondsWaitBeforeFailure);
-      // todo actually add the delete pod call!!
-      logger.info("FAILING HERE!");
+      logger.debug("PLACEHOLDER: WOULD CALL FAILURE ACTION.");
+      // logger.debug("Deleting random pod.");
+      // KubernetesClientUtils.deleteRandomPod();
     }
   }
 }

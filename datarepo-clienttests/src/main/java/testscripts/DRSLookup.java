@@ -23,7 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import utils.BigQueryUtils;
@@ -32,7 +31,6 @@ import utils.FileUtils;
 
 public class DRSLookup extends runner.TestScript {
   private static final Logger logger = LoggerFactory.getLogger(RetrieveSnapshot.class);
-
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public DRSLookup() {
@@ -64,7 +62,6 @@ public class DRSLookup extends runner.TestScript {
         DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
 
     logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
-
 
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
@@ -151,8 +148,13 @@ public class DRSLookup extends runner.TestScript {
     TableModel tableModel =
         snapshotModel.getTables().get(0); // There is only 1 table, so just grab the first
 
-    String queryForFileRefs = BigQueryUtils.constructQuery(
-        snapshotModel.getDataProject(), snapshotModel.getName(), tableModel.getName(), "VCF_File_Ref", 1L);
+    String queryForFileRefs =
+        BigQueryUtils.constructQuery(
+            snapshotModel.getDataProject(),
+            snapshotModel.getName(),
+            tableModel.getName(),
+            "VCF_File_Ref",
+            1L);
 
     TableResult result =
         BigQueryUtils.queryBigQuery(snapshotModel.getDataProject(), queryForFileRefs);
@@ -168,11 +170,11 @@ public class DRSLookup extends runner.TestScript {
   public void userJourney(ApiClient apiClient) throws Exception {
     DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
     DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
-   logger.debug(
-       "Successfully retrieved drs object: {}, with id: {} and data project: {}",
-       object.getName(),
-       dirObjectId,
-       snapshotModel.getDataProject());
+    logger.debug(
+        "Successfully retrieved drs object: {}, with id: {} and data project: {}",
+        object.getName(),
+        dirObjectId,
+        snapshotModel.getDataProject());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {

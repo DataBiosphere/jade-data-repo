@@ -1,13 +1,12 @@
 
-name: Staging Weekly
+name: Staging Weekly tagger
 env:
   gcr_google_project: "broad-jade-dev"
   google_sdk_version: "290.0.1"
 
 on:
-  pull_request
-#  schedule:
-#    - cron: '0 3 * * 7' # run at 2 AM UTC
+  schedule:
+    - cron: '0 3 * * 7' # run at 2 AM UTC
 
 jobs:
   update_image:

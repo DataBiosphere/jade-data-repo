@@ -85,6 +85,8 @@ by either the test suite or configuration. The server specification is determine
   1. environment variable
   2. test suite server property (if running a test suite)
   3. test configuration server property
+  
+`TEST_RUNNER_SERVER_SPECIFICATION_FILE="mmdev.json" ./gradlew run --args="configs/basicexamples/LookupDataset.json"`
 
 #### Run against a local server
 There is a localhost.json server specification file in the resources/server directory. This file contains a filepath to

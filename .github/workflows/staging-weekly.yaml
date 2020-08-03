@@ -26,6 +26,6 @@ jobs:
         with:
           version: '290.0.1'
           project_id: 'broad-jade-dev'
-          service_account_key: ${{ secrets.GOOGLE_SA_CERT }}
+          service_account_key: ${{ secrets.DEV_GCP_SA_KEY }}
           export_default_credentials: true
       - run: gcloud info

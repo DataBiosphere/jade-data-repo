@@ -54,7 +54,8 @@ public class FileIngestFlight extends Flight {
         RetryRuleRandomBackoff lockDatasetRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
-        RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff fileSystemRetry =
+            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
         RetryRuleRandomBackoff createBucketRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
@@ -87,7 +88,7 @@ public class FileIngestFlight extends Flight {
         addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
         addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
         addStep(new LoadUnlockStep(loadService));
-        addStep(new UnlockDatasetStep(datasetDao, datasetId, true));
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
     }
 
 }

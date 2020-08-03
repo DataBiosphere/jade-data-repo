@@ -1,11 +1,8 @@
-package bio.terra.service.dataset;
-
-import bio.terra.common.Column;
-import bio.terra.common.Table;
+package bio.terra.common;
 
 import java.util.UUID;
 
-public class DatasetRelationship {
+public class Relationship {
 
     private UUID id;
     private String name;
@@ -18,7 +15,7 @@ public class DatasetRelationship {
         return id;
     }
 
-    public DatasetRelationship id(UUID id) {
+    public Relationship id(UUID id) {
         this.id = id;
         return this;
     }
@@ -27,7 +24,7 @@ public class DatasetRelationship {
         return name;
     }
 
-    public DatasetRelationship name(String name) {
+    public Relationship name(String name) {
         this.name = name;
         return this;
     }
@@ -36,7 +33,7 @@ public class DatasetRelationship {
         return fromTable;
     }
 
-    public DatasetRelationship fromTable(Table fromTable) {
+    public Relationship fromTable(Table fromTable) {
         this.fromTable = fromTable;
         return this;
     }
@@ -45,7 +42,7 @@ public class DatasetRelationship {
         return fromColumn;
     }
 
-    public DatasetRelationship fromColumn(Column from) {
+    public Relationship fromColumn(Column from) {
         this.fromColumn = from;
         return this;
     }
@@ -54,7 +51,7 @@ public class DatasetRelationship {
         return toTable;
     }
 
-    public DatasetRelationship toTable(Table toTable) {
+    public Relationship toTable(Table toTable) {
         this.toTable = toTable;
         return this;
     }
@@ -63,7 +60,7 @@ public class DatasetRelationship {
         return toColumn;
     }
 
-    public DatasetRelationship toColumn(Column to) {
+    public Relationship toColumn(Column to) {
         this.toColumn = to;
         return this;
     }

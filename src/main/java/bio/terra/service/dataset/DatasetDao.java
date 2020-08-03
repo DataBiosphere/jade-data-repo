@@ -41,7 +41,7 @@ public class DatasetDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final Connection connection;
     private final DatasetTableDao tableDao;
-    private final RelationshipDao relationshipDao;
+    private final DatasetRelationshipDao relationshipDao;
     private final AssetDao assetDao;
 
     private static Logger logger = LoggerFactory.getLogger(DatasetDao.class);
@@ -52,7 +52,7 @@ public class DatasetDao {
     @Autowired
     public DatasetDao(DataRepoJdbcConfiguration jdbcConfiguration,
                     DatasetTableDao tableDao,
-                    RelationshipDao relationshipDao,
+                    DatasetRelationshipDao relationshipDao,
                     AssetDao assetDao) throws SQLException {
         jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
         connection = jdbcConfiguration.getDataSource().getConnection();
@@ -78,25 +78,18 @@ public class DatasetDao {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
 
+        logger.debug("Lock Operation: Adding exclusive lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry and lock it by setting the flight id
         String sql = "UPDATE dataset SET flightid = :flightid " +
             "WHERE id = :datasetid AND (flightid IS NULL OR flightid = :flightid) AND CARDINALITY(sharedlock) = 0";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        int numRowsUpdated = jdbcTemplate.update(sql, params);
 
-        // if no rows were updated, then throw an exception
-        if (numRowsUpdated == 0) {
-            // this method checks if the dataset exists
-            // if it does not exist, then the method throws a DatasetNotFoundException
-            // we don't need the result (dataset summary) here, just the existence check, so ignore the return value.
-            retrieveSummaryById(datasetId);
 
-            // otherwise, throw a lock exception
-            logger.debug("numRowsUpdated=" + numRowsUpdated);
-            throw new DatasetLockException("Failed to lock the dataset");
-        }
+        performLockQuery(sql, params, LockType.LockExclusive, datasetId);
+
+        logger.debug("Lock Operation: Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
     }
 
     /**
@@ -111,16 +104,23 @@ public class DatasetDao {
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean unlockExclusive(UUID datasetId, String flightId) {
+        logger.debug("Lock Operation: Unlocking exclusive lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry to remove the flightid IF it is currently set to this flightid
         String sql = "UPDATE dataset SET flightid = NULL " +
             "WHERE id = :datasetid AND flightid = :flightid";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        int numRowsUpdated = jdbcTemplate.update(sql, params);
-        logger.debug("numRowsUpdated=" + numRowsUpdated);
-        return (numRowsUpdated == 1);
+
+        int numRowsUpdated = performLockQuery(sql, params, LockType.UnlockExclusive, null);
+
+        boolean unlockSucceeded = (numRowsUpdated == 1);
+        logger.debug("Lock Operation: Unlock exclusive successful? {}; for datasetId: {}, flightId: {}",
+            unlockSucceeded, datasetId, flightId);
+        return unlockSucceeded;
     }
+
+
 
     /**
      * Take a shared lock on the dataset object before doing something with it (e.g. file ingest, file delete).
@@ -138,7 +138,7 @@ public class DatasetDao {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
-
+        logger.debug("Lock Operation: Adding shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry and lock it by adding the flight id to the shared lock array column
         String sql = "UPDATE dataset SET sharedlock = " +
             // the SQL below appends flightid to an existing array
@@ -156,47 +156,13 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        DataAccessException faultToInsert = getFaultToInsert();
-        int numRowsUpdated = 0;
-        try {
-            // used for test DatasetConnectedTest > testRetryAcquireSharedLock
-            if (faultToInsert != null) {
-                logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
-                throw faultToInsert;
-            }
-            numRowsUpdated = jdbcTemplate.update(sql, params);
-        } catch (DataAccessException dataAccessException) {
-            if (retryQuery(dataAccessException)) {
-                throw new RetryQueryException("Retry", dataAccessException);
-            }
-            throw dataAccessException;
-        }
-        logger.debug("numRowsUpdated=" + numRowsUpdated);
 
-        // if no rows were updated, then throw an exception
-        if (numRowsUpdated == 0) {
-            // this method checks if the dataset exists
-            // if it does not exist, then the method throws a DatasetNotFoundException
-            // we don't need the result (dataset summary) here, just the existence check, so ignore the return value.
-            retrieveSummaryById(datasetId);
 
-            // otherwise, throw a lock exception
-            logger.debug("numRowsUpdated=" + numRowsUpdated);
-            throw new DatasetLockException("Failed to take a shared lock on the dataset");
-        }
-    }
 
-    private DataAccessException getFaultToInsert() {
-        if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT)) {
-            logger.info("LockDatasetStep - insert RETRY fault to throw during lockShared()");
-            return new OptimisticLockingFailureException(
-                "TEST RETRY SHARED LOCK - RETRIABLE EXCEPTION - insert fault, throwing shared lock exception");
-        } else if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT)) {
-            logger.info("LockDatasetStep - insert FATAL fault to throw during lockShared()");
-            return new DataIntegrityViolationException(
-                "TEST RETRY SHARED LOCK - FATAL EXCEPTION - insert fault, throwing shared lock exception");
-        }
-        return null;
+        int numRowsUpdated = performLockQuery(sql, params, LockType.LockShared, datasetId);
+
+        logger.debug("Lock Operation: Shared lock acquired for dataset {}, flight {}, with {} rows updated",
+            datasetId, flightId, numRowsUpdated);
     }
 
     /**
@@ -211,15 +177,97 @@ public class DatasetDao {
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean unlockShared(UUID datasetId, String flightId) {
+        logger.debug("Lock Operation: Unlocking shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry to remove the flightid from the sharedlock list IF it is currently included there
         String sql = "UPDATE dataset SET sharedlock = ARRAY_REMOVE(sharedlock, :flightid::text) " +
             "WHERE id = :datasetid AND :flightid = ANY(sharedlock)";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        logger.debug("Unlocking shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
+
+        int numRowsUpdated = performLockQuery(sql, params, LockType.UnlockShared, null);
+
+        boolean unlockSucceeded = (numRowsUpdated == 1);
+        logger.debug("Lock Operation: Unlock shared successful? {}; for datasetId: {}, flightId: {}",
+            unlockSucceeded, datasetId, flightId);
+        return unlockSucceeded;
+    }
+
+    private enum LockType {
+        LockExclusive,
+        LockShared,
+        UnlockExclusive,
+        UnlockShared
+    }
+    private int performLockQuery(String sql, MapSqlParameterSource params,
+                            LockType lockType, UUID datasetId) {
+        int numRowsUpdated = 0;
+        DataAccessException faultToInsert = getFaultToInsert(lockType);
+        try {
+            if (faultToInsert != null) {
+                logger.info("Test: Inserting fault to lock/unlock operation.");
+                throw faultToInsert;
+            }
+
+            numRowsUpdated = jdbcTemplate.update(sql, params);
+
+            if (numRowsUpdated == 0 &&
+                (lockType.equals(LockType.LockExclusive) || lockType.equals(LockType.LockShared))) {
+                // this method checks if the dataset exists
+                // if it does not exist, then the method throws a DatasetNotFoundException
+                // we don't need the result (dataset summary) here, just the existence check,
+                // so ignore the return value.
+                retrieveSummaryById(datasetId);
+
+                throw new DatasetLockException("Failed to lock the dataset");
+            }
+        } catch (DatasetNotFoundException notFound) {
+            logger.error("Dataset lock failed: Dataset not found. Lock Type: {}, DatasetId: {}", lockType, datasetId);
+            throw notFound;
+        } catch (DatasetLockException lockException) {
+            logger.error("Dataset lock failed: Failed to lock dataset. Lock Type: {}, DatasetId: {}",
+                lockType, datasetId);
+            throw lockException;
+        } catch (DataAccessException dataAccessException) {
+            if (retryQuery(dataAccessException)) {
+                logger.error("Dataset lock failed with retryable exception. Lock Type: {}, DatasetId: {}",
+                    lockType, datasetId);
+                throw new RetryQueryException("Retry", dataAccessException);
+            }
+            logger.error("Dataset lock failed with fatal exception. Lock Type: {}, DatasetId: {}",
+                lockType, datasetId);
+            throw dataAccessException;
+        }
+
         logger.debug("numRowsUpdated=" + numRowsUpdated);
-        return (numRowsUpdated == 1);
+        return numRowsUpdated;
+    }
+
+    private DataAccessException getFaultToInsert(LockType lockType) {
+        // fault insert for tests DatasetConnectedTest & FileOperationTests
+        ConfigEnum RetryableFault;
+        ConfigEnum FatalFault;
+
+        if (lockType.equals(LockType.LockExclusive) || lockType.equals(LockType.LockShared)) {
+            RetryableFault = ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT;
+            FatalFault = ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT;
+        } else {
+            RetryableFault = ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT;
+            FatalFault = ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT;
+        }
+
+
+        if (configurationService.testInsertFault(RetryableFault)) {
+            logger.info("{} - inserting RETRY fault to throw", lockType);
+            return new OptimisticLockingFailureException(
+                "TEST RETRY - RETRYABLE EXCEPTION - insert fault, throwing exception");
+        } else if (configurationService.testInsertFault(FatalFault)) {
+            logger.info("{} - insert FATAL fault to throw", lockType);
+            return new DataIntegrityViolationException(
+                "TEST RETRY - FATAL EXCEPTION - insert fault, throwing exception");
+        }
+        return null;
     }
 
     /**
@@ -233,7 +281,7 @@ public class DatasetDao {
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
-        logger.debug("createAndLock dataset " + dataset.getName());
+        logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
             "(name, default_profile_id, flightid, description, additional_profile_ids, sharedlock) " +
             "VALUES (:name, :default_profile_id, :flightid, :description, :additional_profile_ids, ARRAY[]::TEXT[]) ";
@@ -259,6 +307,7 @@ public class DatasetDao {
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
 
+        logger.debug("end of createAndLock datasetId: {} for flightId: {}", datasetId, flightId);
         return datasetId;
     }
 

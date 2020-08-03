@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.delete;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
@@ -15,6 +16,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRuleRandomBackoff;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
@@ -37,14 +39,19 @@ public class DatasetDeleteFlight extends Flight {
         IamService iamClient = (IamService)appContext.getBean("iamService");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
+        ApplicationConfiguration appConfig =
+            (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
 
         // get data from inputs that steps need
         UUID datasetId = UUID.fromString(inputParameters.get(
             JobMapKeys.DATASET_ID.getKeyName(), String.class));
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+        RetryRuleRandomBackoff lockDatasetRetry =
+            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
-        addStep(new LockDatasetStep(datasetDao, datasetId, false, true));
+        addStep(new LockDatasetStep(datasetDao, datasetId, false, true),
+            lockDatasetRetry);
         addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
         addStep(new DeleteDatasetPrimaryDataStep(
             bigQueryPdao,
@@ -55,6 +62,6 @@ public class DatasetDeleteFlight extends Flight {
             configService));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
-        addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, false), lockDatasetRetry);
     }
 }

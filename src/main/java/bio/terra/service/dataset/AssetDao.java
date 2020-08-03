@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Column;
+import bio.terra.common.Relationship;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -107,7 +108,7 @@ public class AssetDao {
     public List<AssetSpecification> retrieveAssetSpecifications(Dataset dataset) {
         Map<UUID, DatasetTable> allTables = dataset.getTablesById();
         Map<UUID, Column> allColumns = dataset.getAllColumnsById();
-        Map<UUID, DatasetRelationship> allRelationships = dataset.getRelationshipsById();
+        Map<UUID, Relationship> allRelationships = dataset.getRelationshipsById();
 
         String sql = "SELECT id, name, root_table_id, root_column_id FROM asset_specification WHERE dataset_id = " +
                 ":datasetId";
@@ -168,7 +169,7 @@ public class AssetDao {
 
     private List<AssetRelationship> retrieveAssetRelationships(
             UUID specId,
-            Map<UUID, DatasetRelationship> allRelationships) {
+            Map<UUID, Relationship> allRelationships) {
         String sql = "SELECT id, relationship_id FROM asset_relationship WHERE asset_id = :assetId";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("assetId", specId);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->

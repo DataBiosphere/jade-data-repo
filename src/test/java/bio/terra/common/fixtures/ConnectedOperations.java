@@ -364,10 +364,15 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(responseBody, ErrorModel.class);
     }
 
-    public void deleteTestDataset(String id) throws Exception {
+    public void deleteTestDatasetAndCleanup(String id) throws Exception {
+        deleteTestDataset(id);
+        removeDatasetFromTracking(id);
+    }
+
+    public boolean deleteTestDataset(String id) throws Exception {
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        checkDeleteResponse(response);
+        return checkDeleteResponse(response);
     }
 
     public void deleteTestProfile(String id) throws Exception {
@@ -376,21 +381,21 @@ public class ConnectedOperations {
         // databases for these tests it would make it easier to do these types of checks
     }
 
-    public void deleteTestSnapshot(String id) throws Exception {
+    public boolean deleteTestSnapshot(String id) throws Exception {
         MvcResult result = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-        checkDeleteResponse(response);
+        return checkDeleteResponse(response);
     }
 
-    public void deleteTestFile(String datasetId, String fileId) throws Exception {
+    public boolean deleteTestFile(String datasetId, String fileId) throws Exception {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
             .andReturn();
-        logger.info("deleting datasetId:{} objectId:{}", datasetId, fileId);
+        logger.info("deleting test file -  datasetId:{} objectId:{}", datasetId, fileId);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-        checkDeleteResponse(response);
+        return checkDeleteResponse(response);
     }
 
     public void deleteTestBucket(String bucketName) {
@@ -404,7 +409,7 @@ public class ConnectedOperations {
         }
     }
 
-    public void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
+    public boolean checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         HttpStatus status = HttpStatus.valueOf(response.getStatus());
         if (status.is2xxSuccessful()) {
             DeleteResponseModel responseModel =
@@ -412,10 +417,11 @@ public class ConnectedOperations {
             assertTrue("Valid delete response object state enumeration",
                 (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
                     responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
-        } else {
-            ErrorModel errorModel = handleFailureCase(response, HttpStatus.NOT_FOUND);
-            assertNotNull("error model returned", errorModel);
+            return true;
         }
+        ErrorModel errorModel = handleFailureCase(response, HttpStatus.NOT_FOUND);
+        assertNotNull("error model returned", errorModel);
+        return false;
     }
 
     public MvcResult ingestTableRaw(String datasetId, IngestRequestModel ingestRequestModel) throws Exception {
@@ -468,16 +474,35 @@ public class ConnectedOperations {
         return fileModel;
     }
 
+    public enum RetryType {
+        lock,
+        unlock
+    }
+
+    /*
+    * Retry shared lock/unlock tests in FileOperationTest
+    * Adjustable method to test acquiring locks during a file ingest while inserting different cases of exceptions:
+    * Attempt to retry or fatal errors
+    * Lock and unlock shared locks
+    * Params:
+    * retryType: Lock or unlock. If we're inserting an exception during the lock, then there won't be a shared lock.
+    *            however, if we're inserting an exception during unlock, then we should have successfully acquired the
+    *            shared lock
+    * attemptRetry: If we don't attempt to retry after exception, then we expect the method to fail
+    * removeFault: For retryable exceptions - if we never remove the fault, then we expect the method to fail
+    * faultToInsert: the exception that we are inserting during the file ingest
+     */
     public void retryAcquireLockIngestFileSuccess(
+        RetryType retryType,
         boolean attemptRetry,
+        boolean removeFault,
+        ConfigEnum faultToInsert,
         String datasetId,
         FileLoadModel fileLoadModel,
         ConfigurationService configService,
         DatasetDao datasetDao) throws Exception {
-        // Insert fault into shared lock
-        ConfigEnum faultToInsert = attemptRetry ?
-            ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT :
-            ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT;
+
+        //setting the fault
         configService.setFault(faultToInsert.name(), true);
 
         String jsonRequest = TestUtils.mapToJson(fileLoadModel);
@@ -490,20 +515,36 @@ public class ConnectedOperations {
         TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
         datasetDaoUtils = new DatasetDaoUtils();
         String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
+        if (retryType.equals(RetryType.lock)) {
+            assertEquals("no shared locks after first call", 0, sharedLocks.length);
+        } else {
+            assertEquals("Acquire shared locks after first call", 1, sharedLocks.length);
+        }
 
-        // Remove insertion of shared lock fault
-        configService.setFault(faultToInsert.name(), false);
+        if (removeFault) {
+            configService.setFault(faultToInsert.name(), false);
+        }
 
-        assertEquals("no shared locks after first call", 0, sharedLocks.length);
-
+        // get result
         MockHttpServletResponse response = validateJobModelAndWait(result);
+
         if (attemptRetry) {
+            // make sure successful unlock
+            TimeUnit.SECONDS.sleep(5);
+            String[] sharedLocks3 = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
+            assertEquals("successful unlock", 0, sharedLocks3.length);
+
             // Check if the flight successfully completed
             // Assume that if it successfully completed, then it was able to retry and acquire the shared lock
             FileModel fileModel = handleSuccessCase(response, FileModel.class);
             checkSuccessfulFileLoad(fileLoadModel, fileModel, datasetId);
         } else {
             handleFailureCase(response);
+            if (removeFault) {
+                // Remove insertion of shared lock fault
+                configService.setFault(faultToInsert.name(), false);
+            }
+
         }
     }
 
@@ -714,7 +755,13 @@ public class ConnectedOperations {
     // -- tracking methods --
 
     public void addDataset(String id) {
+        logger.info("Cleanup Tracking: Adding Dataset to list to be removed in cleanup. DatasetId: {}", id);
         createdDatasetIds.add(id);
+    }
+
+    public void removeDatasetFromTracking(String id) {
+        logger.info("Cleanup Tracking: Removing Dataset from tracking list. DatasetId: {}", id);
+        createdDatasetIds.remove(id);
     }
 
     public void addSnapshot(String id) {
@@ -764,27 +811,53 @@ public class ConnectedOperations {
             // Order is important: delete all the snapshots first so we eliminate dependencies
             // Then delete the files before the datasets
             for (String snapshotId : createdSnapshotIds) {
-                deleteTestSnapshot(snapshotId);
+                try {
+                    deleteTestSnapshot(snapshotId);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting snapshot. SnapshotId: {}", snapshotId);
+                }
             }
 
             for (String[] fileInfo : createdFileIds) {
-                deleteTestFile(fileInfo[0], fileInfo[1]);
+                try {
+                    deleteTestFile(fileInfo[0], fileInfo[1]);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting file. FileId: {}", fileInfo[0]);
+                }
             }
 
+            logger.info("Cleanup Tracking: {} datasets to be removed.", createdDatasetIds.size());
             for (String datasetId : createdDatasetIds) {
-                deleteTestDataset(datasetId);
+                logger.info("Cleanup Tracking: Dataset to be deleted {}", datasetId);
+                try {
+                    deleteTestDataset(datasetId);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting dataset. DatasetId: {}", datasetId);
+                }
             }
 
             for (String profileId : createdProfileIds) {
-                deleteTestProfile(profileId);
+                try {
+                    deleteTestProfile(profileId);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting profile. ProfileId: {}", profileId);
+                }
             }
 
             for (String bucketName : createdBuckets) {
-                deleteTestBucket(bucketName);
+                try {
+                    deleteTestBucket(bucketName);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting bucket. BucketName: {}", bucketName);
+                }
             }
 
             for (String path : createdScratchFiles) {
-                deleteTestScratchFile(path);
+                try {
+                    deleteTestScratchFile(path);
+                } catch (Exception ex) {
+                    logger.info("CLEANUP ERROR! Error deleting scratch file. Path: {}", path);
+                }
             }
         }
 

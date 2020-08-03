@@ -45,6 +45,9 @@ pom.xml
 # gradle files
 .gradle/
 .gradletasknamecache
+datarepo-client/gradle/
+datarepo-client/gradlew
+datarepo-client/gradlew.bat
 
 # Mac directory metadata
 .DS_Store

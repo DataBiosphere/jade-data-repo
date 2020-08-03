@@ -3,13 +3,13 @@ package runner.config;
 public class ApplicationSpecification implements SpecificationInterface {
   public int maxStairwayThreads = 20;
   public int maxBulkFileLoad = 1000000;
-  public int loadConcurrentFiles = 4;
+  public int loadConcurrentFiles = 80;
   public int loadConcurrentIngests = 2;
-  public boolean inKubernetes = false;
+  public int loadDriverWaitSeconds = 1;
   public long loadHistoryCopyChunkSize = 1000;
   public long loadHistoryWaitSeconds = 2;
 
-  public ApplicationSpecification() {}
+  ApplicationSpecification() {}
 
   /** Validate the application specification read in from the JSON file. */
   public void validate() {
@@ -21,6 +21,8 @@ public class ApplicationSpecification implements SpecificationInterface {
       throw new IllegalArgumentException("Application property loadConcurrentFiles must be >= 0");
     } else if (loadConcurrentIngests <= 0) {
       throw new IllegalArgumentException("Application property loadConcurrentIngests must be >= 0");
+    } else if (loadDriverWaitSeconds <= 0) {
+      throw new IllegalArgumentException("Application property loadDriverWaitSeconds must be >= 0");
     } else if (loadHistoryCopyChunkSize <= 0) {
       throw new IllegalArgumentException(
           "Application property loadHistoryCopyChunkSize must be >= 0");
@@ -28,16 +30,5 @@ public class ApplicationSpecification implements SpecificationInterface {
       throw new IllegalArgumentException(
           "Application property loadHistoryWaitSeconds must be >= 0");
     }
-  }
-
-  public void display() {
-    System.out.println("Application: ");
-    System.out.println("  maxStairwayThreads: " + maxStairwayThreads);
-    System.out.println("  maxBulkFileLoad: " + maxBulkFileLoad);
-    System.out.println("  loadConcurrentFiles: " + loadConcurrentFiles);
-    System.out.println("  loadConcurrentIngests: " + loadConcurrentIngests);
-    System.out.println("  inKubernetes: " + inKubernetes);
-    System.out.println("  loadHistoryCopyChunkSize: " + loadHistoryCopyChunkSize);
-    System.out.println("  loadHistoryWaitSeconds: " + loadHistoryWaitSeconds);
   }
 }

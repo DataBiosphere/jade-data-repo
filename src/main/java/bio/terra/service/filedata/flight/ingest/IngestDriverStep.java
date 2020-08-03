@@ -12,6 +12,7 @@ import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -142,11 +143,14 @@ public class IngestDriverStep implements Step {
     private void waitForAny(FlightContext context, UUID loadId, int concurrentLoads, int originallyRunning)
         throws DatabaseOperationException, InterruptedException {
         while (true) {
-            waiting();
+            // This code used to wait before getting load candidates again. however,
+            // when there are a large number of files being loaded, there is always something completing.
+            // So we recheck right away before waiting and only wait if we did not find any new work to do
             LoadCandidates candidates = getLoadCandidates(context, loadId, concurrentLoads);
             if (candidates.getRunningLoads().size() < originallyRunning) {
                 break;
             }
+            waiting();
         }
     }
 
@@ -207,11 +211,13 @@ public class IngestDriverStep implements Step {
                 case WAITING:
                 case READY:
                 case QUEUED:
+                    logger.debug("~~running load - flight: " + flightState.getFlightId());
                     realRunningLoads.add(loadFile);
                     break;
 
                 case ERROR:
                 case FATAL: {
+                    logger.debug("~~error load - flight: " + flightState.getFlightId());
                     String error = "unknown error";
                     if (flightState.getException().isPresent()) {
                         error = flightState.getException().get().toString();
@@ -222,6 +228,7 @@ public class IngestDriverStep implements Step {
                 }
 
                 case SUCCESS: {
+                    logger.debug("~~success load - flight: " + flightState.getFlightId());
                     FlightMap resultMap = flightState.getResultMap().orElse(null);
                     if (resultMap == null) {
                         throw new FileSystemCorruptException("no result map in flight state");
@@ -231,6 +238,9 @@ public class IngestDriverStep implements Step {
                     loadService.setLoadFileSucceeded(loadId, loadFile.getTargetPath(), fileId, fileInfo);
                     break;
                 }
+
+                default:
+                    throw new CorruptMetadataException("Invalid flight state: " + flightState.getFlightStatus());
             }
         }
 
@@ -270,6 +280,7 @@ public class IngestDriverStep implements Step {
             inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
             inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
 
+            logger.debug("~~set running load - flight: " + flightId);
             loadService.setLoadFileRunning(loadId, loadFile.getTargetPath(), flightId);
             // NOTE: this is the window where we have recorded a flight as RUNNING in the load_file
             // table, but it has not yet been launched. A failure in this window leaves "orphan"

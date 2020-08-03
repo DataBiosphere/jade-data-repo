@@ -44,6 +44,6 @@ public class DatasetIngestFlight extends Flight {
         addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));
         addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
         addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
-        addStep(new UnlockDatasetStep(datasetDao, datasetId, true));
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
     }
 }

@@ -15,6 +15,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.RelationshipModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -197,6 +198,14 @@ public class SnapshotConnectedTest {
         long snapshotSamples = queryForCount(summaryModel.getName(), "sample", bigQueryProject);
         assertThat("dataset samples loaded properly", snapshotSamples, equalTo(2L));
         assertThat("sample row count matches expectation", sampleTable.get().getRowCount(), equalTo(2));
+        List<RelationshipModel> relationships = snapshotModel.getRelationships();
+        assertThat("a relationship comes back", relationships.size(), equalTo(1));
+        RelationshipModel relationshipModel = relationships.get(0);
+        assertThat("relationship name is right", relationshipModel.getName(), equalTo("participant_sample"));
+        assertThat("from table is right", relationshipModel.getFrom().getTable(), equalTo("participant"));
+        assertThat("from column is right", relationshipModel.getFrom().getColumn(), equalTo("id"));
+        assertThat("to table is right", relationshipModel.getTo().getTable(), equalTo("sample"));
+        assertThat("to column is right", relationshipModel.getTo().getColumn(), equalTo("participant_id"));
     }
 
     @Test
@@ -310,6 +319,39 @@ public class SnapshotConnectedTest {
         // delete and confirm deleted
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void testDeleteRecreateSnapshot() throws Exception {
+        // create a dataset and load some tabular data
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        // create a snapshot
+        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+        // fetch the snapshot and confirm the metadata matches the request
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        assertNotNull("fetched snapshot successfully after creation", snapshotModel);
+
+        // check that the snapshot metadata row is unlocked
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotModel.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
+
+        // delete and confirm deleted
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
+
+        // now after deleting the snapshot, make sure you can create it again and the delete worked!
+        snapshotRequest.setName(snapshotModel.getName());
+        response = performCreateSnapshot(snapshotRequest, null);
+        SnapshotSummaryModel summaryModelSequel = validateSnapshotCreated(snapshotRequest, response);
+
+        // then delete it a final time for cleanup
+        connectedOperations.deleteTestSnapshot(summaryModelSequel.getId());
+        connectedOperations.getSnapshotExpectError(summaryModelSequel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -547,7 +589,7 @@ public class SnapshotConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(datasetRefSummary.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(datasetRefSummary.getId());
 
         // remove the file from the connectedoperation bookkeeping list
         connectedOperations.removeFile(datasetRefSummary.getId(), fileModel.getFileId());

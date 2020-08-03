@@ -1,17 +1,16 @@
 package runner;
 
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.client.Configuration;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TestScript {
+public abstract class TestScript {
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public TestScript() {}
 
   protected String billingAccount;
+  protected boolean manipulatesKubernetes = false;
 
   /**
    * Setter for the billing account property of this class. This property will be set by the Test
@@ -21,6 +20,17 @@ public class TestScript {
    */
   public void setBillingAccount(String billingAccount) {
     this.billingAccount = billingAccount;
+  }
+
+  /**
+   * Getter for the manipulates Kubernetes property of this class. This property may be overridden
+   * by Test Script classes that manipulate Kubernetes as part of the setup, cleanup, or userJourney
+   * methods. The default value of this property is false (i.e. Kubernetes is not manipulated).
+   *
+   * @return true if Kubernetes is required, false otherwise
+   */
+  public boolean manipulatesKubernetes() {
+    return manipulatesKubernetes;
   }
 
   /**
@@ -56,18 +66,13 @@ public class TestScript {
    * is intended for easier debugging (e.g. API calls, building request models) when writing a new
    * script.
    *
-   * @param args
+   * <p>public static void main(String[] args) throws Exception { // get an instance of the script
+   * and the API client TestScript testScript = new TestScript();
+   *
+   * <p>ApiClient apiClient = Configuration.getDefaultApiClient(); Map<String, ApiClient> apiClients
+   * = new HashMap<>(); apiClients.put("default", apiClient);
+   *
+   * <p>testScript.setup(apiClients); testScript.userJourney(apiClient);
+   * testScript.cleanup(apiClients); }
    */
-  public static void main(String[] args) throws Exception {
-    // get an instance of the script and the API client
-    TestScript testScript = new TestScript();
-
-    ApiClient apiClient = Configuration.getDefaultApiClient();
-    Map<String, ApiClient> apiClients = new HashMap<>();
-    apiClients.put("default", apiClient);
-
-    testScript.setup(apiClients);
-    testScript.userJourney(apiClient);
-    testScript.cleanup(apiClients);
-  }
 }

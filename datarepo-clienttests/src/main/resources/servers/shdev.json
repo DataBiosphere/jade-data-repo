@@ -1,0 +1,16 @@
+{
+  "name": "shdev",
+  "description": "Developer namespace (sh) in Jade dev cluster.",
+  "uri": "https://jade-sh.datarepo-dev.broadinstitute.org",
+  "clusterName": "gke_broad-jade-dev_us-central1_dev-master",
+  "clusterShortName": "dev-master",
+  "region": "us-central1",
+  "project": "broad-jade-dev",
+  "namespace": "sh",
+  "deploymentScript": {
+    "name": "ModularHelmChart",
+    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/sh/datarepo-api.yaml"]
+  },
+  "skipDeployment": true,
+  "skipKubernetes": false
+}

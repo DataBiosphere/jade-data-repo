@@ -1,5 +1,9 @@
 package runner.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.InputStream;
+import utils.FileUtils;
+
 public class ServerSpecification implements SpecificationInterface {
   public String name;
   public String description = "";
@@ -9,13 +13,30 @@ public class ServerSpecification implements SpecificationInterface {
   public String region;
   public String project;
   public String namespace;
-  public String helmApiDeploymentFilePath;
+  public DeploymentScriptSpecification deploymentScript;
   public boolean skipKubernetes = false;
   public boolean skipDeployment = false;
 
   public static final String resourceDirectory = "servers";
 
-  public ServerSpecification() {}
+  ServerSpecification() {}
+
+  /**
+   * Read an instance of this class in from a JSON-formatted file. This method expects that the file
+   * name exists in the directory specified by {@link #resourceDirectory}
+   *
+   * @param resourceFileName file name
+   * @return an instance of this class
+   */
+  public static ServerSpecification fromJSONFile(String resourceFileName) throws Exception {
+    // use Jackson to map the stream contents to a TestConfiguration object
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    // read in the server file
+    InputStream inputStream =
+        FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+    return objectMapper.readValue(inputStream, ServerSpecification.class);
+  }
 
   /**
    * Validate the server specification read in from the JSON file. None of the properties should be
@@ -38,21 +59,10 @@ public class ServerSpecification implements SpecificationInterface {
       }
     }
     if (!skipDeployment) {
-      if (helmApiDeploymentFilePath == null || helmApiDeploymentFilePath.equals("")) {
-        throw new IllegalArgumentException("Server Helm API deployment file path cannot be empty");
+      if (deploymentScript == null) {
+        throw new IllegalArgumentException("Server deployment script must be defined");
       }
+      deploymentScript.validate();
     }
-  }
-
-  public void display() {
-    System.out.println("Server: " + name);
-    System.out.println("  description: " + description);
-    System.out.println("  uri: " + uri);
-    System.out.println("  clusterName: " + clusterName);
-    System.out.println("  clusterShortName: " + clusterShortName);
-    System.out.println("  region: " + region);
-    System.out.println("  project: " + project);
-    System.out.println("  namespace: " + namespace);
-    System.out.println("  helmApiDeploymentFilePath: " + helmApiDeploymentFilePath);
   }
 }

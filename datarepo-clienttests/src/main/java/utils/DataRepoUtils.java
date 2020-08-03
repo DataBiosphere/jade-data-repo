@@ -5,12 +5,19 @@ import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BillingProfileRequestModel;
 import bio.terra.datarepo.model.DatasetRequestModel;
+import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.ErrorModel;
 import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.SnapshotRequestModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DataRepoUtils {
+
+  private static final Logger logger = LoggerFactory.getLogger(DataRepoUtils.class);
 
   private DataRepoUtils() {}
 
@@ -30,19 +37,38 @@ public final class DataRepoUtils {
    */
   public static JobModel waitForJobToFinish(RepositoryApi repositoryApi, JobModel job)
       throws Exception {
-    int pollCtr = Math.floorDiv(maximumSecondsToWaitForJob, secondsIntervalToPollJob);
-    job = repositoryApi.retrieveJob(job.getId());
-
-    while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
-      Thread.sleep(secondsIntervalToPollJob);
-      job = repositoryApi.retrieveJob(job.getId());
-      pollCtr--;
-    }
+    logger.debug("Waiting for Data Repo job to finish");
+    job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob);
 
     if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       throw new RuntimeException(
           "Timed out waiting for job to finish. (jobid=" + job.getId() + ")");
     }
+
+    return job;
+  }
+
+  /**
+   * Poll for running job. Polls for designated time.
+   *
+   * @param repositoryApi the api object to use
+   * @param job the job model to poll
+   * @param pollTime time in seconds for the job to poll before returning
+   */
+  public static JobModel pollForRunningJob(RepositoryApi repositoryApi, JobModel job, int pollTime)
+      throws Exception {
+    int pollCtr = Math.floorDiv(pollTime, secondsIntervalToPollJob);
+    job = repositoryApi.retrieveJob(job.getId());
+    int tryCount = 1;
+
+    while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
+      logger.debug("Sleeping. try #" + tryCount + " For Job: " + job.getDescription());
+      TimeUnit.SECONDS.sleep(secondsIntervalToPollJob);
+      job = repositoryApi.retrieveJob(job.getId());
+      tryCount++;
+      pollCtr--;
+    }
+    logger.debug("Status at end of polling: {}", job.getJobStatus());
 
     return job;
   }
@@ -58,6 +84,7 @@ public final class DataRepoUtils {
    */
   public static <T> T getJobResult(RepositoryApi repositoryApi, JobModel job, Class<T> resultClass)
       throws Exception {
+    logger.debug("Fetching Data Repo job result");
     Object jobResult = repositoryApi.retrieveJobResult(job.getId());
 
     ObjectMapper objectMapper = new ObjectMapper();
@@ -77,6 +104,7 @@ public final class DataRepoUtils {
    */
   public static <T> T expectJobSuccess(
       RepositoryApi repositoryApi, JobModel jobResponse, Class<T> resultClass) throws Exception {
+
     if (jobResponse.getJobStatus().equals(JobModel.JobStatusEnum.FAILED)) {
       ErrorModel errorModel =
           DataRepoUtils.getJobResult(repositoryApi, jobResponse, ErrorModel.class);
@@ -106,6 +134,7 @@ public final class DataRepoUtils {
       String apipayloadFilename,
       boolean randomizeName)
       throws Exception {
+    logger.debug("Creating a dataset");
     // use Jackson to map the stream contents to a DatasetRequestModel object
     ObjectMapper objectMapper = new ObjectMapper();
     InputStream datasetRequestFile =
@@ -124,6 +153,44 @@ public final class DataRepoUtils {
   }
 
   /**
+   * Create a snapshot and wait for the job to finish.
+   *
+   * @param repositoryApi the api object to use
+   * @param datasetSummaryModel the summary of the dataset used by the snapshot
+   * @param apipayloadFilename the name of the create snapshot payload file in the apipayloads
+   *     resources directory
+   * @param randomizeName true to append a random number at the end of the snapshot name, false
+   *     otherwise
+   * @return the completed job model
+   */
+  public static JobModel createSnapshot(
+      RepositoryApi repositoryApi,
+      DatasetSummaryModel datasetSummaryModel,
+      String apipayloadFilename,
+      boolean randomizeName)
+      throws Exception {
+    // use Jackson to map the stream contents to a SnapshotRequestModel object
+    ObjectMapper objectMapper = new ObjectMapper();
+    InputStream snapshotRequestFile =
+        FileUtils.getJSONFileHandle("apipayloads/" + apipayloadFilename);
+    SnapshotRequestModel createSnapshotRequest =
+        objectMapper.readValue(snapshotRequestFile, SnapshotRequestModel.class);
+    createSnapshotRequest.setProfileId(datasetSummaryModel.getDefaultProfileId());
+    if (createSnapshotRequest.getContents().size() > 1) {
+      throw new UnsupportedOperationException("This test requires content to be 1");
+    }
+    createSnapshotRequest.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
+
+    if (randomizeName) {
+      createSnapshotRequest.setName(FileUtils.randomizeName(createSnapshotRequest.getName()));
+    }
+
+    // make the create request and wait for the job to finish
+    JobModel createSnapshotJobResponse = repositoryApi.createSnapshot(createSnapshotRequest);
+    return DataRepoUtils.waitForJobToFinish(repositoryApi, createSnapshotJobResponse);
+  }
+
+  /**
    * Create a billing profile.
    *
    * @param resourcesApi the api object to use
@@ -136,6 +203,7 @@ public final class DataRepoUtils {
   public static BillingProfileModel createProfile(
       ResourcesApi resourcesApi, String billingAccount, String profileName, boolean randomizeName)
       throws Exception {
+    logger.debug("Creating a billing profile");
 
     if (randomizeName) {
       profileName = FileUtils.randomizeName(profileName);

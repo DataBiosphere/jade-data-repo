@@ -11,9 +11,12 @@ import bio.terra.datarepo.model.JobModel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.DataRepoUtils;
 
 public class RetrieveDataset extends runner.TestScript {
+  private static final Logger logger = LoggerFactory.getLogger(RetrieveDataset.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public RetrieveDataset() {
@@ -37,8 +40,7 @@ public class RetrieveDataset extends runner.TestScript {
     // create a new profile
     billingProfileModel =
         DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
-
-    System.out.println("successfully created profile: " + billingProfileModel.getProfileName());
+    logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
 
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
@@ -49,19 +51,16 @@ public class RetrieveDataset extends runner.TestScript {
     datasetSummaryModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
-
-    System.out.println("successfully created dataset: " + datasetSummaryModel.getName());
+    logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
   }
 
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
     DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetSummaryModel.getId());
-
-    System.out.println(
-        "successfully retrieved dataset: "
-            + datasetModel.getName()
-            + ", data project: "
-            + datasetModel.getDataProject());
+    logger.debug(
+        "Successfully retrieved dataset: name = {}, data project = {}",
+        datasetModel.getName(),
+        datasetModel.getDataProject());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
@@ -76,12 +75,10 @@ public class RetrieveDataset extends runner.TestScript {
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
-
-    System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
+    logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());
-
-    System.out.println("successfully deleted profile: " + billingProfileModel.getProfileName());
+    logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
   }
 }

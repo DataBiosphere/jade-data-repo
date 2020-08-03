@@ -36,6 +36,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -89,6 +91,7 @@ public class DatasetConnectedTest {
     private BillingProfileModel billingProfile;
     private DatasetRequestModel datasetRequest;
     private DatasetSummaryModel summaryModel;
+    private static Logger logger = LoggerFactory.getLogger(DatasetConnectedTest.class);
 
     @Before
     public void setup() throws Exception {
@@ -104,12 +107,16 @@ public class DatasetConnectedTest {
             .name(Names.randomizeName(datasetRequest.getName()))
             .defaultProfileId(billingProfile.getId());
         summaryModel = connectedOperations.createDataset(datasetRequest);
+        logger.info("--------begin test---------");
     }
 
     @After
     public void tearDown() throws Exception {
-        connectedOperations.teardown();
+        logger.info("--------start of tear down---------");
+
         configService.reset();
+        connectedOperations.teardown();
+
     }
 
     @Test
@@ -132,7 +139,7 @@ public class DatasetConnectedTest {
             errorModel.getMessage(), containsString("Dataset name already exists"));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -258,7 +265,7 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -353,7 +360,7 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -440,7 +447,7 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -513,7 +520,7 @@ public class DatasetConnectedTest {
         assertTrue("Soft deleted row id is still in soft delete table", softDeleteRowIds2.contains(softDeleteRowId));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -618,7 +625,7 @@ public class DatasetConnectedTest {
         assertTrue("Soft deleted row id #2 is in soft delete table", softDeleteRowIds.contains(softDeleteRowId2));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -684,7 +691,7 @@ public class DatasetConnectedTest {
         assertFalse("Good row id is not in soft delete table", softDeleteRowIdsFromBQ.contains(softDeleteGoodRowId));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -900,5 +907,122 @@ public class DatasetConnectedTest {
             .tables(Arrays.asList(softDeleteTableModel));
 
         return softDeleteRequest;
+    }
+
+    // ------ Retry exclusive lock/unlock tests ---------------
+
+    @Test
+    public void retryAndAcquireExclusiveLock() throws Exception {
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT.toString(), true);
+
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        logger.info("Sleeping for 2 seconds during delete dataset flight. It should fail to acquire exclusive lock.");
+        TimeUnit.SECONDS.sleep(2);
+        String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+        assertNull("Exclusive lock should be null while fault is set", exclusiveLock2);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT.toString(), false);
+        logger.info("Fault removed - delete dataset flight should now succeed.");
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+
+
+        // if successful, remove dataset id from tracking methods
+        // so that cleanup does not try to remove the dataset again
+        HttpStatus status = HttpStatus.valueOf(response.getStatus());
+        assertTrue("Dataset delete should have successfully completed after acquiring exclusive lock",
+            status.is2xxSuccessful());
+        if (connectedOperations.checkDeleteResponse(response)) {
+            connectedOperations.removeDatasetFromTracking(datasetId.toString());
+        }
+        logger.info("Dataset successfully deleted after acquiring exclusive lock.");
+    }
+
+    @Test
+    public void retryAndFailAcquireExclusiveLock() throws Exception {
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT.toString(), true);
+
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        logger.info("Sleeping for 5 seconds while delete dataset attempts to delete. It should fail.");
+        TimeUnit.SECONDS.sleep(5);
+        String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+        assertNull("Exclusive lock should be null while fault is set", exclusiveLock2);
+
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+
+        connectedOperations.handleFailureCase(response);
+    }
+
+    @Test
+    public void retryAndAcquireExclusiveUnlock() throws Exception {
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT.toString(), true);
+
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        logger.info("Sleeping for 10 seconds during delete dataset flight. It should acquire exclusive lock.");
+        TimeUnit.SECONDS.sleep(10);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT.toString(), false);
+        logger.info("Fault removed - delete dataset flight should now succeed.");
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+
+
+        // if successful, remove dataset id from tracking methods
+        // so that cleanup does not try to remove the dataset again
+        HttpStatus status = HttpStatus.valueOf(response.getStatus());
+        assertTrue("Dataset delete should have successfully completed after acquiring exclusive lock",
+            status.is2xxSuccessful());
+        if (connectedOperations.checkDeleteResponse(response)) {
+            connectedOperations.removeDatasetFromTracking(datasetId.toString());
+        }
+        logger.info("Dataset successfully deleted after acquiring exclusive lock.");
+    }
+
+    @Test
+    public void retryAndFailAcquireExclusiveUnlock() throws Exception {
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT.toString(), true);
+
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+
+        logger.info("Fatal fault. Dataset delete task should not succeed.");
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+
+
+        connectedOperations.handleFailureCase(response);
+        logger.info("Dataset successfully deleted, but failed to release lock, so task fails.");
+
+        // Let's handle the dataset cleanup here.
+        // (if test fails before this, it's ok - regular teardown should handle it)
+
+        // Dataset delete technically succeeds before the unlock fails, even though the task fails
+        // so it will error in teardown if we try to remove the dataset.
+        // In case something went wrong, let's try to delete the dataset again
+
+        configService.setFault(ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT.toString(), false);
+        MvcResult cleanupResult = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        MockHttpServletResponse cleanupResponse = connectedOperations.validateJobModelAndWait(cleanupResult);
+        HttpStatus status = HttpStatus.valueOf(cleanupResponse.getStatus());
+
+        // worst case: Test fails, but dataset is still cleaned up
+        assertFalse("If everything went as expected, delete should have already happened.",
+            status.is2xxSuccessful());
+
+        // since we just deleted the dataset, remove it from the cleanup tasks
+        connectedOperations.removeDatasetFromTracking(datasetId.toString());
+
     }
 }

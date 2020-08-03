@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id "com.google.cloud.tools.jib" version "1.6.1"
     id 'application'
+    id "com.google.cloud.tools.jib" version "1.6.1"
     id 'com.diffplug.gradle.spotless' version '3.27.2'
     id 'com.github.spotbugs' version '4.0.0'
 }
@@ -17,16 +17,55 @@ repositories {
 }
 
 dependencies {
-    testImplementation('org.junit.jupiter:junit-jupiter-api:5.4.2')
-    testRuntime('org.junit.jupiter:junit-jupiter-engine:5.4.2')
+    ext {
+        junit = "5.4.2"
+        findbugsAnnotations = "3.0.1"
 
-    implementation 'bio.terra:datarepo-client:1.0.12-SNAPSHOT'
+        jackson = "2.10.2"
+        kubernetesClient = "8.0.2"
+        logback = "1.2.3"
+        slf4j = "1.7.25"
+        hamcrest = "2.1"
 
-    compile group: 'io.kubernetes', name: 'client-java', version: '8.0.2'
-    compile 'com.google.api-client:google-api-client:1.23.0'
-    compile 'com.google.oauth-client:google-oauth-client-jetty:1.23.0'
-    compile 'com.google.apis:google-api-services-people:v1-rev277-1.23.0'
-    compile group: 'com.google.auth', name: 'google-auth-library-oauth2-http', version: '0.20.0'
+        googleApi = "1.23.0"
+        googleCloud = "1.108.0"
+        googlePeople = "v1-rev277-1.23.0"
+        googleOauth2 = "0.20.0"
+
+        swaggerAnnotations = "1.5.22"
+        jersey = "2.30.1"
+
+        datarepoClient = "1.0.39-SNAPSHOT"
+    }
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:${junit}")
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:${junit}")
+    compileOnly "com.google.code.findbugs:annotations:${findbugsAnnotations}"
+
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jackson}"
+    compile "io.kubernetes:client-java:${kubernetesClient}"
+    compile "ch.qos.logback:logback-classic:${logback}"
+    compile "org.slf4j:slf4j-api:${slf4j}"
+    compile "org.hamcrest:hamcrest:${hamcrest}"
+
+    compile "com.google.api-client:google-api-client:${googleApi}"
+    compile "com.google.oauth-client:google-oauth-client-jetty:${googleApi}"
+    compile "com.google.apis:google-api-services-people:${googlePeople}"
+    compile "com.google.auth:google-auth-library-oauth2-http:${googleOauth2}"
+    compile "com.google.cloud:google-cloud-bigquery:${googleCloud}"
+    compile "com.google.cloud:google-cloud-storage:${googleCloud}"
+
+    // Gradle project property "datarepoclientjar" overrides the fetch from Maven
+    if (project.hasProperty("datarepoclientjar")) {
+        implementation files(project.findProperty("datarepoclientjar"))
+
+        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jackson}"
+        compile "org.glassfish.jersey.core:jersey-client:${jersey}"
+        compile "org.glassfish.jersey.media:jersey-media-json-jackson:${jersey}"
+        compile "org.glassfish.jersey.media:jersey-media-multipart:${jersey}"
+    } else {
+        implementation "bio.terra:datarepo-client:${datarepoClient}"
+    }
 }
 
 group 'bio.terra'

@@ -6,22 +6,27 @@ import runner.TestScript;
 
 public class TestScriptSpecification implements SpecificationInterface {
   public String name;
-  public int totalNumberToRun;
-  public int numberToRunInParallel;
+  public int totalNumberToRun = 1;
+  public int numberToRunInParallel = 1;
   public long expectedTimeForEach;
   public String expectedTimeForEachUnit;
   public List<String> parameters;
 
-  public Class<? extends TestScript> scriptClass;
+  private TestScript scriptClassInstance;
   public TimeUnit expectedTimeForEachUnitObj;
+  public String description;
 
   public static final String scriptsPackage = "testscripts";
 
   TestScriptSpecification() {}
 
+  public TestScript scriptClassInstance() {
+    return scriptClassInstance;
+  }
+
   /**
-   * Validate the server specification read in from the JSON file. The timeout string is parsed into
-   * a Duration; the name is converted into a Java class reference.
+   * Validate the test script specification read in from the JSON file. The time unit string is
+   * parsed into a TimeUnit; the name is converted into a Java class reference.
    */
   public void validate() {
     if (totalNumberToRun <= 0) {
@@ -38,20 +43,19 @@ public class TestScriptSpecification implements SpecificationInterface {
 
     try {
       Class<?> scriptClassGeneric = Class.forName(scriptsPackage + "." + name);
-      scriptClass = (Class<? extends TestScript>) scriptClassGeneric;
+      Class<? extends TestScript> scriptClass = (Class<? extends TestScript>) scriptClassGeneric;
+      scriptClassInstance = scriptClass.newInstance();
     } catch (ClassNotFoundException | ClassCastException classEx) {
       throw new IllegalArgumentException("Test script class not found: " + name, classEx);
+    } catch (IllegalAccessException | InstantiationException niEx) {
+      throw new IllegalArgumentException(
+          "Error calling constructor of TestScript class: " + name, niEx);
     }
-  }
 
-  public void display() {
-    System.out.println("Test Script: " + name);
-    System.out.println("  totalNumberToRun: " + totalNumberToRun);
-    System.out.println("  numberToRunInParallel: " + numberToRunInParallel);
-    System.out.println("  expectedTimeForEach: " + expectedTimeForEach);
-    System.out.println("  expectedTimeForEachUnit: " + expectedTimeForEachUnitObj);
-
-    String parametersStr = (parameters == null) ? "" : String.join(",", parameters);
-    System.out.println("  parameters: " + parametersStr);
+    // generate a separate description property that also includes any test script parameters
+    description = name;
+    if (parameters != null) {
+      description += ": " + String.join(",", parameters);
+    }
   }
 }

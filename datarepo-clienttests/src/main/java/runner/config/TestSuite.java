@@ -42,6 +42,10 @@ public class TestSuite implements SpecificationInterface {
     TestSuite testSuite = objectMapper.readValue(inputStream, TestSuite.class);
 
     // read in the server file
+    String serverEnvVarOverride = TestConfiguration.readServerEnvironmentVariable();
+    if (serverEnvVarOverride != null) {
+      testSuite.serverSpecificationFile = serverEnvVarOverride;
+    }
     testSuite.server = ServerSpecification.fromJSONFile(testSuite.serverSpecificationFile);
 
     // read in the test config files

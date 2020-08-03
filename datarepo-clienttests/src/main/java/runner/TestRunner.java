@@ -360,8 +360,8 @@ class TestRunner {
 
   static void printHelp() throws IOException {
     logger.info("Specify test configuration file as first argument.");
-    logger.info("  e.g. ./gradlew run --args=\"configs/BasicUnauthenticated.json\"");
-    logger.info("  e.g. ./gradlew run --args=\"suites/BasicSmoke.json\"");
+    logger.info("  e.g. ./gradlew run --args=\"configs/basicexamples/BasicUnauthenticated.json\"");
+    logger.info("  e.g. ./gradlew run --args=\"suites/basicexamples/BasicSmoke.json\"");
 
     // print out the available test configurations found in the resources directory
     logger.info("The following test configuration files were found:");
@@ -410,7 +410,7 @@ class TestRunner {
       TestConfiguration testConfiguration = testSuite.testConfigurations.get(ctr);
       logger.info(
           "==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
-      logger.debug(testConfiguration.display());
+      logger.info(testConfiguration.display());
 
       // get an instance of a runner and tell it to execute the configuration
       TestRunner runner = new TestRunner(testConfiguration);

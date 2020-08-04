@@ -30,6 +30,7 @@ public class GcsPdaoTest {
     @Autowired private ConnectedTestConfiguration testConfig;
 
     private Storage storage = StorageOptions.getDefaultInstance().getService();
+    private String projectId = StorageOptions.getDefaultProjectId();
 
     @Test
     public void testGetBlobSimple() {
@@ -37,7 +38,10 @@ public class GcsPdaoTest {
 
         try {
             storage.create(BlobInfo.newBuilder(testBlob).build());
-            Blob blob = GcsPdao.getBlobFromGsPath(storage, "gs://" + testBlob.getBucket() + "/" + testBlob.getName());
+            Blob blob = GcsPdao.getBlobFromGsPath(
+                storage,
+                "gs://" + testBlob.getBucket() + "/" + testBlob.getName(),
+                projectId);
             Assert.assertNotNull(blob);
 
             BlobId actualId = blob.getBlobId();
@@ -55,7 +59,10 @@ public class GcsPdaoTest {
 
         try {
             storage.create(BlobInfo.newBuilder(testBlob).build());
-            Blob blob = GcsPdao.getBlobFromGsPath(storage, "gs://" + testBlob.getBucket() + "/" + testBlob.getName());
+            Blob blob = GcsPdao.getBlobFromGsPath(
+                storage,
+                "gs://" + testBlob.getBucket() + "/" + testBlob.getName(),
+                projectId);
             Assert.assertNotNull(blob);
 
             BlobId actualId = blob.getBlobId();
@@ -68,12 +75,18 @@ public class GcsPdaoTest {
 
     @Test(expected = PdaoInvalidUriException.class)
     public void testGetBlobNonGs() {
-        GcsPdao.getBlobFromGsPath(storage, "s3://my-aws-bucket/my-cool-path");
+        GcsPdao.getBlobFromGsPath(
+            storage,
+            "s3://my-aws-bucket/my-cool-path",
+            projectId);
     }
 
     @Test(expected = PdaoInvalidUriException.class)
     public void testGetBlobBucketNameTooShort() {
-        GcsPdao.getBlobFromGsPath(storage, "gs://ab/some-path");
+        GcsPdao.getBlobFromGsPath(
+            storage,
+            "gs://ab/some-path",
+            projectId);
     }
 
     @Test(expected = PdaoInvalidUriException.class)
@@ -83,7 +96,10 @@ public class GcsPdaoTest {
             if (i != 0) bucket.append(".");
             bucket.append("component");
         }
-        GcsPdao.getBlobFromGsPath(storage, "gs://" + bucket.toString() + "/some-path");
+        GcsPdao.getBlobFromGsPath(
+            storage,
+            "gs://" + bucket.toString() + "/some-path",
+            projectId);
     }
 
     @Test(expected = PdaoInvalidUriException.class)
@@ -92,21 +108,24 @@ public class GcsPdaoTest {
         for (int i = 0; i < 64; i++) {
             bucket.append("a");
         }
-        GcsPdao.getBlobFromGsPath(storage, "gs://" + bucket.toString() + "/some-path");
+        GcsPdao.getBlobFromGsPath(
+            storage,
+            "gs://" + bucket.toString() + "/some-path",
+            projectId);
     }
 
     @Test(expected = PdaoInvalidUriException.class)
     public void testGetBlobBucketInvalidCharacters() {
-        GcsPdao.getBlobFromGsPath(storage, "gs://AFSDAFADSFADSFASF@@@@/foo");
+        GcsPdao.getBlobFromGsPath(storage, "gs://AFSDAFADSFADSFASF@@@@/foo", projectId);
     }
 
     @Test(expected = PdaoInvalidUriException.class)
     public void testGetBlobNoObjectName() {
-        GcsPdao.getBlobFromGsPath(storage, "gs://bucket");
+        GcsPdao.getBlobFromGsPath(storage, "gs://bucket", projectId);
     }
 
     @Test(expected = PdaoSourceFileNotFoundException.class)
     public void testGetBlobNonexistent() {
-        GcsPdao.getBlobFromGsPath(storage, "gs://" + testConfig.getIngestbucket() + "/file-doesnt-exist");
+        GcsPdao.getBlobFromGsPath(storage, "gs://" + testConfig.getIngestbucket() + "/file-doesnt-exist", projectId);
     }
 }

@@ -3,10 +3,13 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
+import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsBufferedReader;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -16,7 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,13 +31,31 @@ public class IngestPopulateFileStateFromFileStep implements Step {
     private final LoadService loadService;
     private final int maxBadLines;
     private final int batchSize;
+    private final GcsPdao gcsPdao;
 
     public IngestPopulateFileStateFromFileStep(LoadService loadService,
                                                int maxBadLines,
-                                               int batchSize) {
+                                               int batchSize,
+                                               GcsPdao gcsPdao) {
         this.loadService = loadService;
         this.maxBadLines = maxBadLines;
         this.batchSize = batchSize;
+        this.gcsPdao = gcsPdao;
+    }
+
+    private GoogleBucketResource getBufferInfo(FlightContext context) {
+        // The bucket has been selected for this file. In the single file load case, the info
+        // is stored in the working map. In the bulk load case, the info is stored in the input
+        // parameters.
+        // TODO: simplify this when we remove single file load
+        // TODO: This is a cut and paste from IngestFilePrimaryDataStep. Both can be removed
+        //  when we get rid of single file load
+        GoogleBucketResource bucketResource =
+            context.getInputParameters().get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+        if (bucketResource == null) {
+            bucketResource = context.getWorkingMap().get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+        }
+        return bucketResource;
     }
 
     @Override
@@ -52,11 +72,12 @@ public class IngestPopulateFileStateFromFileStep implements Step {
 
         FlightMap workingMap = context.getWorkingMap();
         UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
-
-        Storage storage = StorageOptions.getDefaultInstance().getService();
+        GoogleBucketResource bucketResource = getBufferInfo(context);
+        Storage storage = gcsPdao.storageForBucket(bucketResource);
+        String projectId = gcsPdao.projectIdForBucket(bucketResource);
         List<String> errorDetails = new ArrayList<>();
 
-        try (BufferedReader reader = new GcsBufferedReader(storage, loadRequest.getLoadControlFile())) {
+        try (BufferedReader reader = new GcsBufferedReader(storage, projectId, loadRequest.getLoadControlFile())) {
             long lineCount = 0;
             List<BulkLoadFileModel> fileList = new ArrayList<>();
 

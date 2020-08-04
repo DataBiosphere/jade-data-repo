@@ -5,6 +5,7 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
@@ -49,6 +50,7 @@ public class FileIngestBulkFlight extends Flight {
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         ConfigurationService configurationService = (ConfigurationService) appContext.getBean("configurationService");
         KubeService kubeService = (KubeService) appContext.getBean("kubeService");
+        GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
 
         // Common input parameters
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -86,13 +88,15 @@ public class FileIngestBulkFlight extends Flight {
         // 0. Verify authorization to do the ingest
         // 1. Lock the load tag - only one flight operating on a load tag at a time
         // 2. TODO: reserve a bulk load slot to make sure we have the threads to do the flight; abort otherwise (DR-754)
-        // 3. Depends on the request type:
-        //    a. isArray - put the array into the load_file table for processing
-        //    b. !isArray - read the file into the load_file table for processing
-        // 4. Locate the bucket where this file should go and store it in the working map. We need to make the
+        // 3. Locate the bucket where this file should go and store it in the working map. We need to make the
         //    decision about where we will put the file and remember it persistently in the working map before
         //    we copy the file in. That allows the copy undo to know the location to look at to delete the file.
-        //    We do this once here and pass the information into the worker flight
+        //    We do this once here and pass the information into the worker flight. We also need to know the
+        //    project that contains the bucket. It will be charged for the copying if the source file listing
+        //    the files to load is in a requester pay bucket.
+        // 4. Depends on the request type:
+        //    a. isArray - put the array into the load_file table for processing
+        //    b. !isArray - read the file into the load_file table for processing
         // 5. Main loading loop - shared with bulk ingest from a file in a bucket
         // 6. Depends on request type:
         //    a. isArray - generate the bulk array response: summary and array of results
@@ -103,17 +107,17 @@ public class FileIngestBulkFlight extends Flight {
         // 10. Unlock the load tag
         addStep(new VerifyAuthorizationStep(iamClient, IamResourceType.DATASET, datasetId, IamAction.INGEST_DATA));
         addStep(new LoadLockStep(loadService));
-        // 2. TODO: reserve a bulk load slot
+        addStep(new IngestFilePrimaryDataLocationStep(locationService, profileId), createBucketRetry);
+
         if (isArray) {
             addStep(new IngestPopulateFileStateFromArrayStep(loadService));
         } else {
             addStep(new IngestPopulateFileStateFromFileStep(
                 loadService,
                 appConfig.getMaxBadLoadFileLineErrorsReported(),
-                appConfig.getLoadFilePopulateBatchSize()));
+                appConfig.getLoadFilePopulateBatchSize(),
+                gcsPdao));
         }
-        addStep(new IngestFilePrimaryDataLocationStep(locationService, profileId), createBucketRetry);
-
         addStep(new IngestDriverStep(
             loadService,
             configurationService,
@@ -129,7 +133,7 @@ public class FileIngestBulkFlight extends Flight {
         } else {
             addStep(new IngestBulkFileResponseStep(loadService, loadTag));
         }
-        // 7. copy results into BigQuery
+
         addStep(new IngestCopyLoadHistoryToBQStep(
             loadService,
             datasetService,
@@ -139,7 +143,7 @@ public class FileIngestBulkFlight extends Flight {
             fileChunkSize,
             loadHistoryWaitSeconds));
         addStep(new IngestCleanFileStateStep(loadService));
-        // 9. TODO: release bulk load slot
+
         addStep(new LoadUnlockStep(loadService));
     }
 }

@@ -53,12 +53,12 @@ public class GcsPdao {
         this.applicationContext = applicationContext;
     }
 
-    private Storage storageForBucket(GoogleBucketResource bucketResource) {
+    public Storage storageForBucket(GoogleBucketResource bucketResource) {
         GcsProject gcsProject = gcsProjectFactory.get(projectIdForBucket(bucketResource));
         return gcsProject.getStorage();
     }
 
-    private String projectIdForBucket(GoogleBucketResource bucketResource) {
+    public String projectIdForBucket(GoogleBucketResource bucketResource) {
         return bucketResource.getProjectResource().getGoogleProjectId();
     }
 
@@ -175,8 +175,6 @@ public class GcsPdao {
         ACL_OP_CREATE,
         ACL_OP_DELETE
     }
-
-    ;
 
     public void setAclOnFiles(Dataset dataset, List<String> fileIds, String readersPolicyEmail) {
         fileAclOp(AclOp.ACL_OP_CREATE, dataset, fileIds, readersPolicyEmail);

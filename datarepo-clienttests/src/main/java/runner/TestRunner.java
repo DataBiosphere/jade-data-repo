@@ -253,12 +253,9 @@ class TestRunner {
 
     // compile the results from all thread pools
     logger.info("Test Scripts: Compiling the results from all thread pools");
-    for (int ctr = 0; ctr < scripts.size(); ctr++) {
-      List<Future<UserJourneyResult>> userJourneyFutureList = userJourneyFutureLists.get(ctr);
-      TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
-
-      List<UserJourneyResult> userJourneyResults = new ArrayList<>();
-      for (Future<UserJourneyResult> userJourneyFuture : userJourneyFutureList) {
+    List<Future<UserJourneyResult>> userJourneyFutureList = userJourneyFutureLists.get(0);
+    List<UserJourneyResult> userJourneyResults = new ArrayList<>();
+    for (Future<UserJourneyResult> userJourneyFuture : userJourneyFutureList) {
         UserJourneyResult result = null;
         if (userJourneyFuture.isDone())
           try {
@@ -268,19 +265,20 @@ class TestRunner {
             result.completed = true;
           } catch (ExecutionException execEx) {
             // user journey thread threw an exception and didn't populate its own return object
-            result = new UserJourneyResult(testScriptSpecification.name, "");
+            result = new UserJourneyResult("userJourney", "");
             result.completed = false;
             result.exceptionThrown = execEx;
           }
         else {
           // user journey either was never started or got cancelled before it finished
-          result = new UserJourneyResult(testScriptSpecification.name, "");
+          result = new UserJourneyResult("userJourney", "");
           result.completed = false;
         }
         userJourneyResults.add(result);
       }
-      testScriptResults.add(new TestScriptResult(testScriptSpecification, userJourneyResults));
-    }
+    // todo - Add some sort of id so we can match test script specifications to user journey results
+      // testScriptResults.add(new TestScriptResult(testScriptSpecification, userJourneyResults));
+
 
     // call the cleanup method of each test script
     logger.info("Test Scripts: Calling the cleanup methods");

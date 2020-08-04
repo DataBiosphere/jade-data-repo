@@ -12,8 +12,7 @@
     {
       "name": "ScalePodsUpDown",
       "parameters": [29],
-      "expectedTimeForEach": 300,
-      "expectedTimeForEachUnit": "SECONDS"
+      "expectedSecondsForEach": 300
     }
   ],
   "testUserFiles": ["dumbledore.json"]

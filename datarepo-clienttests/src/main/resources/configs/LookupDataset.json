@@ -15,8 +15,7 @@
     {
       "name": "RetrieveDataset",
       "totalNumberToRun": 15,
-      "expectedTimeForEach": 20,
-      "expectedTimeForEachUnit": "SECONDS"
+      "expectedSecondsForEach": 20
     }
   ],
   "testUserFiles": ["dumbledore.json", "voldemort.json"]

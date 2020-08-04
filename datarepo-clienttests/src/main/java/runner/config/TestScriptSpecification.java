@@ -1,21 +1,18 @@
 package runner.config;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import runner.TestScript;
 
 public class TestScriptSpecification implements SpecificationInterface {
   // variables defined in json config
   public String name;
   public int totalNumberToRun = 1;
-  public long expectedTimeForEach;
-  public String expectedTimeForEachUnit;
+  public long expectedSecondsForEach;
   public List<String> parameters;
 
   // objects defined in this class
   private TestScript scriptClassInstance;
 
-  public TimeUnit expectedTimeForEachUnitObj;
   public String description;
 
   public static final String scriptsPackage = "testscripts";
@@ -34,11 +31,9 @@ public class TestScriptSpecification implements SpecificationInterface {
     if (totalNumberToRun <= 0) {
       throw new IllegalArgumentException("Total number to run must be >=0.");
     }
-    if (expectedTimeForEach <= 0) {
+    if (expectedSecondsForEach <= 0) {
       throw new IllegalArgumentException("Expected time for each must be >=0.");
     }
-
-    expectedTimeForEachUnitObj = TimeUnit.valueOf(expectedTimeForEachUnit);
 
     try {
       Class<?> scriptClassGeneric = Class.forName(scriptsPackage + "." + name);

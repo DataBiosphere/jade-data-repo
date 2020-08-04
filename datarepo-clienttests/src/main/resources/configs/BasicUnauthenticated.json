@@ -10,8 +10,7 @@
     {
       "name": "ServiceStatus",
       "totalNumberToRun": 10,
-      "expectedTimeForEach": 5,
-      "expectedTimeForEachUnit": "SECONDS"
+      "expectedSecondsForEach": 5
     }
   ],
   "testUserFiles": ["neville.json", "mcgonagall.json"]

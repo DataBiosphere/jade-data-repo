@@ -213,9 +213,6 @@ class TestRunner {
     // ============= add thread to run failure script ========================
     if (runFailureScript) {
       logger.debug("adding the failure thread to the pool.");
-      // create a thread pool for running the failure script
-      ThreadPoolExecutor failureThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-      threadPools.add(failureThreadPool);
       // this should get the next api client in the list
       ApiClient failureApiClient =
           apiClientList.get(userJourneyThreads.size() % apiClientList.size());
@@ -241,26 +238,17 @@ class TestRunner {
 
     // wait until all threads either finish or time out
     logger.info("Test Scripts: Waiting until all threads either finish or time out");
-    for (int ctr = 0; ctr < scripts.size(); ctr++) {
-      TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
-      ThreadPoolExecutor threadPool = threadPools.get(ctr);
 
-      threadPool.shutdown();
-      long totalTerminationTime =
-          testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
-      boolean terminatedByItself =
-          threadPool.awaitTermination(
-              totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);
-
-      // if the threads didn't finish in the expected time, then send them interrupts
-      if (!terminatedByItself) {
-        threadPool.shutdownNow();
-      }
-      if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
-        logger.error(
-            "Test Scripts: Thread pool for test script failed to terminate: {}",
-            testScriptSpecification.description);
-      }
+    ThreadPoolExecutor threadPoolFinished = threadPools.get(0);
+    threadPoolFinished.shutdown();
+    boolean terminatedByItself =
+        threadPoolFinished.awaitTermination(config.totalTerminationTime, TimeUnit.SECONDS);
+    // if the threads didn't finish in the expected time, then send them interrupts
+    if (!terminatedByItself) {
+      threadPoolFinished.shutdownNow();
+    }
+    if (!threadPoolFinished.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
+      logger.error("Test Scripts: Thread pool failed to terminate");
     }
 
     // compile the results from all thread pools

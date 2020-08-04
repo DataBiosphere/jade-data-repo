@@ -25,6 +25,7 @@ public class TestConfiguration implements SpecificationInterface {
   public ApplicationSpecification application;
   public List<TestScriptSpecification> testScripts;
   public List<TestUserSpecification> testUsers = new ArrayList<>();
+  public long totalTerminationTime = 0;
 
   private FailureScriptSpecification failureScriptSpecification;
 
@@ -116,16 +117,13 @@ public class TestConfiguration implements SpecificationInterface {
               "For a functional test script, the number to run in parallel should be 1.");
         }
       }
-      if (testScript.totalNumberToRun < numberToRunInParallel) {
-        throw new IllegalArgumentException(
-            "Total number to run should be equal to or greater than the number to run in parallel.");
-      }
       if (server.skipKubernetes && testScript.scriptClassInstance().manipulatesKubernetes()) {
         throw new IllegalArgumentException(
             "The Test Script class "
                 + name
                 + " manipulates Kubernetes, but the server specification has disabled Kubernetes manipulations (see server.skipKubernetes flag).");
       }
+      totalTerminationTime += (testScript.expectedSecondsForEach * testScript.totalNumberToRun);
     }
 
     logger.debug("Validating the test user specifications");

@@ -12,8 +12,7 @@
       "name": "SoftDeleteDataset",
       "totalNumberToRun": 3,
       "numberToRunInParallel": 2,
-      "expectedTimeForEach": 60,
-      "expectedTimeForEachUnit": "SECONDS"
+      "expectedSecondsForEach": 60
     }
   ],
   "testUserFiles": ["dumbledore.json"]

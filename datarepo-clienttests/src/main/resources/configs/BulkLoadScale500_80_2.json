@@ -17,8 +17,7 @@
       "name": "BulkLoad",
       "parameters": [500],
       "totalNumberToRun": 10,
-      "expectedTimeForEach": 1000000,
-      "expectedTimeForEachUnit": "SECONDS"
+      "expectedSecondsForEach": 1000000
     }
   ],
   "testUserFiles": ["dumbledore.json"]

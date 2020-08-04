@@ -12,14 +12,12 @@
     {
       "name": "RetrieveSnapshot",
       "totalNumberToRun": 1,
-      "expectedTimeForEach": 20,
-      "expectedTimeForEachUnit": "SECONDS"
+      "expectedSecondsForEach": 20
     },
     {
       "name": "RetrieveSnapshot",
       "totalNumberToRun": 15,
-      "expectedTimeForEach": 20,
-      "expectedTimeForEachUnit": "SECONDS"
+      "expectedSecondsForEach": 20
     }
   ],
   "testUserFiles": ["dumbledore.json", "voldemort.json"]

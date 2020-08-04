@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.TestScript;
+import utils.KubernetesClientUtils;
 
 public class PodDeleteFailureScript extends TestScript {
   private static final Logger logger = LoggerFactory.getLogger(PodDeleteFailureScript.class);
@@ -36,9 +37,8 @@ public class PodDeleteFailureScript extends TestScript {
     logger.debug("Starting failure script.");
     for (int i = 0; i < repeatFailureCount; i++) {
       TimeUnit.SECONDS.sleep(secondsWaitBeforeFailure);
-      logger.debug("PLACEHOLDER: WOULD CALL FAILURE ACTION.");
-      // logger.debug("Deleting random pod.");
-      // KubernetesClientUtils.deleteRandomPod();
+      logger.debug("Deleting random pod.");
+      KubernetesClientUtils.deleteRandomPod();
     }
   }
 }

@@ -256,29 +256,33 @@ class TestRunner {
     List<Future<UserJourneyResult>> userJourneyFutureList = userJourneyFutureLists.get(0);
     List<UserJourneyResult> userJourneyResults = new ArrayList<>();
     for (Future<UserJourneyResult> userJourneyFuture : userJourneyFutureList) {
-        UserJourneyResult result = null;
-        if (userJourneyFuture.isDone())
-          try {
-            // user journey thread completed and populated its own return object, which may include
-            // an exception
-            result = userJourneyFuture.get();
-            result.completed = true;
-          } catch (ExecutionException execEx) {
-            // user journey thread threw an exception and didn't populate its own return object
-            result = new UserJourneyResult("userJourney", "");
-            result.completed = false;
-            result.exceptionThrown = execEx;
-          }
-        else {
-          // user journey either was never started or got cancelled before it finished
-          result = new UserJourneyResult("userJourney", "");
+      UserJourneyResult result = null;
+      if (userJourneyFuture.isDone())
+        try {
+          // user journey thread completed and populated its own return object, which may include
+          // an exception
+          result = userJourneyFuture.get();
+          result.completed = true;
+        } catch (ExecutionException execEx) {
+          // user journey thread threw an exception and didn't populate its own return object
+          result = new UserJourneyResult("failedUserJourney", "");
           result.completed = false;
+          result.exceptionThrown = execEx;
         }
-        userJourneyResults.add(result);
+      else {
+        // user journey either was never started or got cancelled before it finished
+        result = new UserJourneyResult("failedUserJourney", "");
+        result.completed = false;
       }
-    // todo - Add some sort of id so we can match test script specifications to user journey results
-      // testScriptResults.add(new TestScriptResult(testScriptSpecification, userJourneyResults));
+      userJourneyResults.add(result);
+    }
 
+    Map<String, List<UserJourneyResult>> resultsGrouped =
+        userJourneyResults.stream()
+            .collect(Collectors.groupingBy(result -> result.userJourneyDescription));
+    resultsGrouped.forEach(
+        (description, resultList) ->
+            testScriptResults.add(new TestScriptResult(description, resultList)));
 
     // call the cleanup method of each test script
     logger.info("Test Scripts: Calling the cleanup methods");

@@ -2,7 +2,6 @@ package runner;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
-import runner.config.TestScriptSpecification;
 
 public class TestScriptResult {
   public List<UserJourneyResult> userJourneyResults;
@@ -35,10 +34,10 @@ public class TestScriptResult {
   }
 
   public TestScriptResult(
-      TestScriptSpecification testScriptSpecification, List<UserJourneyResult> userJourneyResults) {
+      String userJourneyDescription, List<UserJourneyResult> userJourneyResults) {
     this.userJourneyResults = userJourneyResults;
 
-    summary = new TestScriptResultSummary(testScriptSpecification.description);
+    summary = new TestScriptResultSummary(userJourneyDescription);
     calculateStatistics();
   }
 

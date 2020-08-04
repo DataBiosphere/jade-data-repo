@@ -1,25 +1,28 @@
 package testscripts;
 
-import bio.terra.datarepo.api.DataRepositoryServiceApi;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
-import bio.terra.datarepo.model.DRSObject;
+import bio.terra.datarepo.model.DataDeletionGcsFileModel;
+import bio.terra.datarepo.model.DataDeletionRequest;
+import bio.terra.datarepo.model.DataDeletionTableModel;
+import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
-import bio.terra.datarepo.model.SnapshotModel;
-import bio.terra.datarepo.model.SnapshotSummaryModel;
-import bio.terra.datarepo.model.TableModel;
+import com.google.api.client.util.Charsets;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
+import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -28,24 +31,23 @@ import utils.BigQueryUtils;
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
-public class DRSLookup extends SimpleDataset {
-  private static final Logger logger = LoggerFactory.getLogger(RetrieveSnapshot.class);
+public class SoftDeleteDataset extends SimpleDataset {
+  private static final Logger logger = LoggerFactory.getLogger(SoftDeleteDataset.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public DRSLookup() {
+  public SoftDeleteDataset() {
     super();
   }
 
-  private SnapshotModel snapshotModel;
+  private DataDeletionRequest dataDeletionRequest;
 
   private String testConfigGetIngestbucket;
-  private String dirObjectId;
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // create the profile and dataset
     super.setup(testUsers);
 
-    // get the ApiClient for the snapshot creator, same as the dataset creator
+    // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
@@ -56,15 +58,15 @@ public class DRSLookup extends SimpleDataset {
     // ingest a file -- TODO CannedTestData.getMeA1KBFile
     URI sourceUri = new URI("gs://jade-testdata/fileloadprofiletest/1KBfile.txt");
 
-    String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
+    String targetPath = "/testrunner/softDel/" + FileUtils.randomizeName("") + ".txt";
 
     BulkLoadFileModel fileLoadModel =
         new BulkLoadFileModel()
             .sourcePath(sourceUri.toString())
-            .description("IngestFile")
+            .description("softDel")
             .mimeType("text/plain")
             .targetPath(targetPath);
-    String loadTag = FileUtils.randomizeName("lookupTest");
+    String loadTag = FileUtils.randomizeName("softDelTest");
     BulkLoadArrayRequestModel fileLoadModelArray =
         new BulkLoadArrayRequestModel()
             .profileId(datasetSummaryModel.getDefaultProfileId())
@@ -87,9 +89,9 @@ public class DRSLookup extends SimpleDataset {
             + fileId
             + "\"}\n";
     byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
-    // load a JSON file that contains the table rows to load into the test bucket
     String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
-    String fileRefName = "scratch/testRetrieveSnapshot/" + jsonFileName;
+    String dirInCloud = "scratch/softDel";
+    String fileRefName = dirInCloud + "/" + jsonFileName;
     String gsPath = FileUtils.createGsPath(fileRefBytes, fileRefName, testConfigGetIngestbucket);
 
     IngestRequestModel ingestRequest =
@@ -107,67 +109,74 @@ public class DRSLookup extends SimpleDataset {
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
-    // make the create snapshot request and wait for the job to finish
-    JobModel createSnapshotJobResponse =
-        DataRepoUtils.createSnapshot(
-            repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
+    String datasetId = datasetSummaryModel.getId();
+    DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId);
+    String dataProject = datasetModel.getDataProject();
+    String tableName = datasetModel.getSchema().getTables().get(0).getName();
 
-    // save a reference to the snapshot summary model so we can delete it in cleanup()
-    SnapshotSummaryModel snapshotSummaryModel =
-        DataRepoUtils.expectJobSuccess(
-            repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
-    logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
-
-    // now go and retrieve the file Id that should be stored in the snapshot
-    snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
-
-    TableModel tableModel =
-        snapshotModel.getTables().get(0); // There is only 1 table, so just grab the first
-
-    String queryForFileRefs =
+    // get row ids for table
+    String sqlQuery =
         BigQueryUtils.buildSelectQuery(
-            snapshotModel.getDataProject(),
-            snapshotModel.getName(),
-            tableModel.getName(),
-            "VCF_File_Ref",
+            dataProject,
+            BigQueryUtils.getDatasetName(datasetModel.getName()),
+            tableName,
+            "datarepo_row_id",
             1L);
-
     BigQuery bigQueryClient =
-        BigQueryUtils.getClientForTestUser(datasetCreator, snapshotModel.getDataProject());
-    TableResult result = BigQueryUtils.queryBigQuery(bigQueryClient, queryForFileRefs);
-    ArrayList<String> fileRefs = new ArrayList<>();
-    result.iterateAll().forEach(r -> fileRefs.add(r.get("VCF_File_Ref").getStringValue()));
-    // fileRefs should only be 1 in size
-    logger.info("Successfully retrieved file refs: {}", fileRefs);
-    String fileModelFileId = fileRefs.get(0);
-    String freshFileId = fileModelFileId.split("_")[2];
-    dirObjectId = "v1_" + snapshotSummaryModel.getId() + "_" + freshFileId;
+        BigQueryUtils.getClientForTestUser(datasetCreator, datasetModel.getDataProject());
+    TableResult result = BigQueryUtils.queryBigQuery(bigQueryClient, sqlQuery);
+    List<String> rowIds =
+        StreamSupport.stream(result.getValues().spliterator(), false)
+            .map(fieldValues -> fieldValues.get(0).getStringValue())
+            .collect(Collectors.toList());
+
+    logger.info("Successfully retrieved row ids for table: {}", tableName);
+
+    // write to GCS
+    String csvFileName = FileUtils.randomizeName("this-too-better-pass") + ".csv";
+    String csvFileRefName = dirInCloud + "/" + csvFileName;
+
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    for (String line : rowIds) {
+      output.write((line + "\n").getBytes(Charsets.UTF_8));
+    }
+    byte[] bytes = output.toByteArray();
+    String gcsPath = FileUtils.createGsPath(bytes, csvFileRefName, testConfigGetIngestbucket);
+
+    // build the deletion request with pointers to the file with row ids to soft delete
+    DataDeletionGcsFileModel deletionGcsFileModel =
+        new DataDeletionGcsFileModel()
+            .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
+            .path(gcsPath);
+    DataDeletionTableModel deletionTableFile =
+        new DataDeletionTableModel().tableName(tableName).gcsFileSpec(deletionGcsFileModel);
+    List<DataDeletionTableModel> dataDeletionTableModels =
+        Collections.singletonList(deletionTableFile);
+    dataDeletionRequest =
+        new DataDeletionRequest()
+            .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)
+            .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE)
+            .tables(dataDeletionTableModels);
   }
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
-    DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
+
+    // send off the soft delete request
+    JobModel softDeleteJobResponse =
+        repositoryApi.applyDatasetDataDeletion(datasetSummaryModel.getId(), dataDeletionRequest);
+    softDeleteJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, softDeleteJobResponse);
+    DeleteResponseModel deleteResponseModel =
+        DataRepoUtils.expectJobSuccess(
+            repositoryApi, softDeleteJobResponse, DeleteResponseModel.class);
     logger.debug(
-        "Successfully retrieved drs object: {}, with id: {} and data project: {}",
-        object.getName(),
-        dirObjectId,
-        snapshotModel.getDataProject());
+        "Successfully soft deleted rows from dataset: {} with state {}",
+        datasetSummaryModel.getName(),
+        deleteResponseModel.getObjectState());
   }
 
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
-    // get the ApiClient for the dataset creator
-    ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
-
-    // make the delete request and wait for the job to finish
-    JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(snapshotModel.getId());
-    deleteSnapshotJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
-    DataRepoUtils.expectJobSuccess(
-        repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-    logger.info("Successfully deleted snapshot: {}", snapshotModel.getName());
-
     // delete the profile and dataset
     super.cleanup(testUsers);
 

@@ -1,0 +1,39 @@
+
+name: Staging Weekly tagger
+on:
+  schedule:
+    - cron: '0 3 * * 6' # run at 3 AM UTC every Sunday
+
+env:
+  gcr_google_project: "broad-jade-dev"
+  google_sdk_version: "290.0.1"
+
+jobs:
+  update_image:
+    strategy:
+      matrix:
+        gcr_image: [jade-data-repo,jade-data-repo-ui]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: 'Get Previous tag'
+        id: apiprevioustag
+        uses: "broadinstitute/github-action-get-previous-tag@master"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: 'Authenicate with google'
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          version: ${{ env.google_sdk_version }}
+          project_id: ${{ env.gcr_google_project }}
+          service_account_key: ${{ secrets.DEV_GCP_SA_KEY }}
+          export_default_credentials: true
+      - name: "GCR image ${{ matrix.gcr_image }} add new staging tag"
+        run: |
+          gcloud container images \
+          add-tag \
+          gcr.io/${{ env.gcr_google_project }}/${{ matrix.gcr_image }}:"${{ steps.apiprevioustag.outputs.tag }}-alpha" \
+          gcr.io/${{ env.gcr_google_project }}/${{ matrix.gcr_image }}:"${{ steps.apiprevioustag.outputs.tag }}-staging" --quiet

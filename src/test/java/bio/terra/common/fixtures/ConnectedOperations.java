@@ -365,10 +365,10 @@ public class ConnectedOperations {
     }
 
     public void deleteTestDatasetAndCleanup(String id) throws Exception {
-        if (deleteTestDataset(id)) {
-            removeDatasetFromTracking(id);
-        }
+        deleteTestDataset(id);
+        removeDatasetFromTracking(id);
     }
+
     public boolean deleteTestDataset(String id) throws Exception {
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);

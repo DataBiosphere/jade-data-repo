@@ -142,7 +142,7 @@ public final class FileUtils {
 
     // save a reference to the JSON file so we can delete it in cleanup()
     createdScratchFiles.add(fileRefName);
-    return "gs://" + testConfigGetIngestbucket + "/" + fileRefName;
+    return String.format("gs://%s/%s", testConfigGetIngestbucket, fileRefName);
   }
 
   public static void cleanupScratchFiles(String testConfigGetIngestbucket) {

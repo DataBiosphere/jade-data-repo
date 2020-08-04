@@ -113,7 +113,7 @@ public class EncodeFileTest {
     private Storage storage;
     private String targetProjectId;
     private String loadTag;
-    DatasetSummaryModel datasetSummary;
+    private DatasetSummaryModel datasetSummary;
 
     @Before
     public void setup() throws Exception {

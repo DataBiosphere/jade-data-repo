@@ -160,18 +160,19 @@ class TestRunner {
       threadPools.add(threadPool);
 
       // kick off the user journey(s), one per thread
-      List<UserJourneyThread> userJourneyThreads = new ArrayList<>();
+      List<Future<UserJourneyResult>> userJourneyFutures = new ArrayList<>();
       for (int ujCtr = 0; ujCtr < testScriptSpecification.totalNumberToRun; ujCtr++) {
         TestUserSpecification testUser = config.testUsers.get(ujCtr % config.testUsers.size());
         // add a description to the user journey threads/results that includes any test script
         // parameters
-        userJourneyThreads.add(
-            new UserJourneyThread(testScript, testScriptSpecification.description, testUser));
+        Future<UserJourneyResult> userJourneyFuture =
+            threadPool.submit(
+                new UserJourneyThread(testScript, testScriptSpecification.description, testUser));
+        userJourneyFutures.add(userJourneyFuture);
       }
 
       // TODO: support different patterns of kicking off user journeys. here they're all queued at
       // once
-      List<Future<UserJourneyResult>> userJourneyFutures = threadPool.invokeAll(userJourneyThreads);
       userJourneyFutureLists.add(userJourneyFutures);
     }
 

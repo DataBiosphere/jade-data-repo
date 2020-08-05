@@ -172,7 +172,7 @@ class TestRunner {
       TestScript testScript = scripts.get(tsCtr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
 
-      // ====== handling case where we want to add a failure thread ======
+      // handling case where we want to add a failure thread
       TestScript failureScript = null;
       boolean runFailureScript = false;
 
@@ -189,7 +189,6 @@ class TestRunner {
         // and determine if we have any failure scripts to add to the thread pool
         runFailureScript = true;
       }
-      // ==================================================================
 
       // create a thread pool for running its user journeys
       int numThreads =
@@ -200,7 +199,7 @@ class TestRunner {
       ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
       threadPools.add(threadPool);
 
-      // ============= add thread to run failure script ========================
+      // add thread to run failure script
       if (runFailureScript) {
         logger.debug("adding the failure thread to the pool.");
 
@@ -214,7 +213,6 @@ class TestRunner {
         threadPool.submit(ujt);
         logger.debug("successfully invoked the failure thread.");
       }
-      // ==============================================================================
 
       // kick off the user journey(s), one per thread
       List<Future<UserJourneyResult>> userJourneyFutures = new ArrayList<>();

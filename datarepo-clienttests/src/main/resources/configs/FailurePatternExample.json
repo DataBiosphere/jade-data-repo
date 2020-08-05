@@ -19,7 +19,7 @@
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 1000000,
       "expectedTimeForEachUnit": "SECONDS",
-      "failureScriptFile": "DeleteOnePod.json"
+      "failureScriptFile": "DeletePod_1_30.json"
     },
     {
       "name": "BulkLoad",
@@ -28,7 +28,7 @@
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 1000000,
       "expectedTimeForEachUnit": "SECONDS",
-      "failureScriptFile": "DeleteOnePod.json"
+      "failureScriptFile": "DeletePod_2_15.json"
     }
   ],
   "testUserFiles": ["dumbledore.json"]

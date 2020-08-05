@@ -13,7 +13,6 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -31,7 +30,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 
 @Component
 public class GcsPdao {
@@ -55,32 +53,33 @@ public class GcsPdao {
         this.applicationContext = applicationContext;
     }
 
-    private Storage storageForBucket(GoogleBucketResource bucketResource) {
-        GoogleProjectResource projectResource = bucketResource.getProjectResource();
-        GcsProject gcsProject = gcsProjectFactory.get(projectResource.getGoogleProjectId());
-        return gcsProject.getStorage();
+    public Storage storageForBucket(GoogleBucketResource bucketResource) {
+        return gcsProjectFactory.getStorage(bucketResource.projectIdForBucket());
     }
-
     public FSFileInfo copyFile(Dataset dataset,
                                FileLoadModel fileLoadModel,
                                String fileId,
                                GoogleBucketResource bucketResource) {
 
-
-        Storage storage = storageForBucket(bucketResource);
-        Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath());
-
-        // Our path is /<dataset-id>/<file-id>
-        String targetPath = dataset.getId().toString() + "/" + fileId;
-
         try {
+            Storage storage = storageForBucket(bucketResource);
+            String targetProjectId = bucketResource.projectIdForBucket();
+            Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), targetProjectId);
+
+            // Our path is /<dataset-id>/<file-id>
+            String targetPath = dataset.getId().toString() + "/" + fileId;
+
             // The documentation is vague whether or not it is important to copy by chunk. One set of
             // examples does it and another doesn't.
             //
             // I have been seeing timeouts and I think they are due to particularly large files,
-            // so I changed exported the timeouts to application.properties to allow for tuning
+            // so I exported the timeouts to application.properties to allow for tuning
             // and I am changing this to copy chunks.
-            CopyWriter writer = sourceBlob.copyTo(BlobId.of(bucketResource.getName(), targetPath));
+            //
+            // Specify the target project of the target bucket as the payor if the source is requester pays.
+            CopyWriter writer = sourceBlob.copyTo(
+                BlobId.of(bucketResource.getName(), targetPath),
+                Blob.BlobSourceOption.userProject(targetProjectId));
             while (!writer.isDone()) {
                 writer.copyChunk();
             }
@@ -159,9 +158,9 @@ public class GcsPdao {
     private boolean deleteWorker(GoogleBucketResource bucketResource, String bucketPath) {
         GcsProject gcsProject = gcsProjectFactory.get(bucketResource.getProjectResource().getGoogleProjectId());
         Storage storage = gcsProject.getStorage();
-        Optional<Blob> blob = Optional.ofNullable(storage.get(BlobId.of(bucketResource.getName(), bucketPath)));
-        if (blob.isPresent()) {
-            return blob.get().delete();
+        Blob blob = storage.get(BlobId.of(bucketResource.getName(), bucketPath));
+        if (blob != null) {
+            return blob.delete();
         }
         return false;
     }
@@ -169,7 +168,7 @@ public class GcsPdao {
     private enum AclOp {
         ACL_OP_CREATE,
         ACL_OP_DELETE
-    };
+    }
 
     public void setAclOnFiles(Dataset dataset, List<String> fileIds, String readersPolicyEmail) {
         fileAclOp(AclOp.ACL_OP_CREATE, dataset, fileIds, readersPolicyEmail);
@@ -182,7 +181,7 @@ public class GcsPdao {
     private static final String GS_PROTOCOL = "gs://";
     private static final String GS_BUCKET_PATTERN = "[a-z0-9_.\\-]{3,222}";
 
-    public static Blob getBlobFromGsPath(Storage storage, String gspath) {
+    public static Blob getBlobFromGsPath(Storage storage, String gspath, String targetProjectId) {
         if (!StringUtils.startsWith(gspath, GS_PROTOCOL)) {
             throw new PdaoInvalidUriException("Path is not a gs path: '" + gspath + "'");
         }
@@ -202,7 +201,7 @@ public class GcsPdao {
             throw new PdaoInvalidUriException("Invalid bucket name in gs path: '" + gspath + "'");
         }
         String[] bucketComponents = sourceBucket.split("\\.");
-        for (String component: bucketComponents) {
+        for (String component : bucketComponents) {
             if (component.length() > 63) {
                 throw new PdaoInvalidUriException(
                     "Component name '" + component + "' too long in gs path: '" + gspath + "'");
@@ -213,7 +212,10 @@ public class GcsPdao {
             throw new PdaoInvalidUriException("Missing object name in gs path: '" + gspath + "'");
         }
 
-        Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath));
+        // Provide the project of the destination of the file copy to pay if the
+        // source bucket is requester pays.
+        Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath),
+            Storage.BlobGetOption.userProject(targetProjectId));
         if (sourceBlob == null) {
             throw new PdaoSourceFileNotFoundException("Source file not found: '" + gspath + "'");
         }

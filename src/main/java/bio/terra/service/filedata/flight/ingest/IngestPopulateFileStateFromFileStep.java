@@ -4,9 +4,11 @@ import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
 import bio.terra.service.filedata.google.gcs.GcsBufferedReader;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -16,7 +18,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -29,13 +30,16 @@ public class IngestPopulateFileStateFromFileStep implements Step {
     private final LoadService loadService;
     private final int maxBadLines;
     private final int batchSize;
+    private final GcsPdao gcsPdao;
 
     public IngestPopulateFileStateFromFileStep(LoadService loadService,
                                                int maxBadLines,
-                                               int batchSize) {
+                                               int batchSize,
+                                               GcsPdao gcsPdao) {
         this.loadService = loadService;
         this.maxBadLines = maxBadLines;
         this.batchSize = batchSize;
+        this.gcsPdao = gcsPdao;
     }
 
     @Override
@@ -52,11 +56,12 @@ public class IngestPopulateFileStateFromFileStep implements Step {
 
         FlightMap workingMap = context.getWorkingMap();
         UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
-
-        Storage storage = StorageOptions.getDefaultInstance().getService();
+        GoogleBucketResource bucketResource = IngestUtils.getBucketInfo(context);
+        Storage storage = gcsPdao.storageForBucket(bucketResource);
+        String projectId = bucketResource.projectIdForBucket();
         List<String> errorDetails = new ArrayList<>();
 
-        try (BufferedReader reader = new GcsBufferedReader(storage, loadRequest.getLoadControlFile())) {
+        try (BufferedReader reader = new GcsBufferedReader(storage, projectId, loadRequest.getLoadControlFile())) {
             long lineCount = 0;
             List<BulkLoadFileModel> fileList = new ArrayList<>();
 

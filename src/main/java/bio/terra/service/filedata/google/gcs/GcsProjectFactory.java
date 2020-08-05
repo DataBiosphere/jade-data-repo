@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.google.gcs;
 
+import com.google.cloud.storage.Storage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -22,5 +23,9 @@ public class GcsProjectFactory {
                 gcsConfiguration.getConnectTimeoutSeconds(),
                 gcsConfiguration.getReadTimeoutSeconds()));
         return gcsProjectCache.get(projectId);
+    }
+
+    public Storage getStorage(String projectId) {
+        return get(projectId).getStorage();
     }
 }

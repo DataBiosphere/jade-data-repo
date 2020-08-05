@@ -38,15 +38,7 @@ public class IngestFilePrimaryDataStep implements Step {
         String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
         Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
         if (loadComplete == null || !loadComplete) {
-            // The bucket has been selected for this file. In the single file load case, the info
-            // is stored in the working map. In the bulk load case, the info is stored in the input
-            // parameters.
-            GoogleBucketResource bucketResource =
-                inputParameters.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-            if (bucketResource == null) {
-                bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-            }
-
+            GoogleBucketResource bucketResource = IngestUtils.getBucketInfo(context);
             FSFileInfo fsFileInfo;
             if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
                 fsFileInfo = new FSFileInfo()
@@ -69,8 +61,7 @@ public class IngestFilePrimaryDataStep implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
-        GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-
+        GoogleBucketResource bucketResource = IngestUtils.getBucketInfo(context);
         gcsPdao.deleteFileById(dataset, fileId, bucketResource);
 
         return StepResult.getStepResultSuccess();

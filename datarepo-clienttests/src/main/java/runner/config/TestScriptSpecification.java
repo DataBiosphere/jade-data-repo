@@ -5,7 +5,6 @@ import java.util.concurrent.TimeUnit;
 import runner.TestScript;
 
 public class TestScriptSpecification implements SpecificationInterface {
-  // variables defined in json config
   public String name;
   public int totalNumberToRun = 1;
   public int numberToRunInParallel = 1;
@@ -14,7 +13,6 @@ public class TestScriptSpecification implements SpecificationInterface {
   public List<String> parameters;
   public String failureScriptFile;
 
-  // objects defined in this class
   private TestScript scriptClassInstance;
   private FailureScriptSpecification failureScriptSpecification;
   public TimeUnit expectedTimeForEachUnitObj;
@@ -60,7 +58,6 @@ public class TestScriptSpecification implements SpecificationInterface {
           "Error calling constructor of TestScript class: " + name, niEx);
     }
 
-    // todo: Where is the best place to do this sort of check for items that are not required?
     if (failureScriptFile != null && !failureScriptFile.isEmpty()) {
       try {
         // For each test, we can designate a failure script to run alongside the test scripts
@@ -69,9 +66,8 @@ public class TestScriptSpecification implements SpecificationInterface {
       } catch (Exception ex) {
         logger.debug("Error parsing failure script. Error: {}", ex);
       }
-      // since the failure script is added on a per-testscript basis, we can't do the validate check
-      // at the
-      // TestConfiguration level along with the other validate checks
+      // since the failure script is added per test script, we can't do the validate check
+      // at the TestConfiguration level along with the other validate checks
       failureScriptSpecification.validate();
     }
 

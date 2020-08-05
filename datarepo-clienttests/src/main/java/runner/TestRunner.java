@@ -172,21 +172,15 @@ class TestRunner {
       TestScript testScript = scripts.get(tsCtr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
 
-      // handling case where we want to add a failure thread
+      // Failure Thread: add if defined
       TestScript failureScript = null;
       boolean runFailureScript = false;
 
-      // check if a failure config is defined for this test
-      // convert the failure config from json to FailureScriptSpecification
       FailureScriptSpecification failureScriptSpecification =
           testScriptSpecification.failureScriptSpecification();
-      // if it's defined, access the failure script to run alongside the user journey threads
       if (failureScriptSpecification != null) {
         failureScript = failureScriptSpecification.failureScriptClassInstance();
-        // set any parameters specified by the configuration
         failureScript.setParameters(failureScriptSpecification.parameters);
-        // keeping track of the number of failure threads because increment the threads in the pool
-        // and determine if we have any failure scripts to add to the thread pool
         runFailureScript = true;
       }
 
@@ -211,7 +205,7 @@ class TestRunner {
             new UserJourneyThread(
                 failureScript, failureScriptSpecification.description, failureApiClient);
         threadPool.submit(ujt);
-        logger.debug("successfully invoked the failure thread.");
+        logger.debug("successfully submitted the failure thread.");
       }
 
       // kick off the user journey(s), one per thread

@@ -18,7 +18,7 @@ public class PodDeleteFailureScript extends TestScript {
 
     if (parameters == null || parameters.size() != 2) {
       throw new IllegalArgumentException(
-          "Must 3 parameters in the parameters list: repeatFailureCount, timeWaitBeforeFailure & unit");
+          "Must have 2 parameters in the parameters list: repeatFailureCount & secondsWaitBeforeFailure");
     }
     repeatFailureCount = Integer.parseInt(parameters.get(0));
     secondsWaitBeforeFailure = Integer.parseInt(parameters.get(1));

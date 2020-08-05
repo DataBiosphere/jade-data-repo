@@ -7,16 +7,13 @@ import runner.TestScript;
 import utils.FileUtils;
 
 public class FailureScriptSpecification implements SpecificationInterface {
-  // variables defined in failure config json
   public String name;
   public String description;
   public String failureScriptName;
   public List<String> parameters;
 
-  // objects defined here
   private TestScript failureScriptClassInstance;
 
-  // constants
   public static final String failureConfigs = "failureconfigs";
   public static final String testScriptsPackage = "testscripts";
 
@@ -26,7 +23,6 @@ public class FailureScriptSpecification implements SpecificationInterface {
     return failureScriptClassInstance;
   }
 
-  // todo add method description
   public static FailureScriptSpecification fromJSONFile(String failureConfigFile) throws Exception {
     // use Jackson to map the stream contents to a TestConfiguration object
     ObjectMapper objectMapper = new ObjectMapper();
@@ -36,7 +32,7 @@ public class FailureScriptSpecification implements SpecificationInterface {
     return objectMapper.readValue(inputStream, FailureScriptSpecification.class);
   }
 
-  /** Validate the Failure specification read in from the JSON file. */
+  // Validate the Failure specification read in from the JSON file.
   public void validate() {
     try {
       Class<?> scriptClassGeneric = Class.forName(testScriptsPackage + "." + failureScriptName);

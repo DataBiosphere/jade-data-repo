@@ -2,5 +2,5 @@
   "name": "DeleteOnePod",
   "description": "fail by deleting one pod",
   "failureScriptName": "PodDeleteFailureScript",
-  "parameters": [1, 15]
+  "parameters": [3, 15]
 }

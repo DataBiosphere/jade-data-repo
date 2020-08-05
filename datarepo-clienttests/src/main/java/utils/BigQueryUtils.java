@@ -17,33 +17,24 @@ public final class BigQueryUtils {
    * @return the result of the BQ query
    * @throws InterruptedException from the bigQuery.query() method
    */
-  public static TableResult queryBigQuery(String dataproject, String query) throws InterruptedException {
-      // build the BQ object
-      BigQuery bigQuery =
-          BigQueryOptions.newBuilder()
-              .setProjectId(dataproject)
-              .build()
-              .getService();
+  public static TableResult queryBigQuery(String dataproject, String query)
+      throws InterruptedException {
+    // build the BQ object
+    BigQuery bigQuery = BigQueryOptions.newBuilder().setProjectId(dataproject).build().getService();
 
-      // query the BQ object
-      QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
-      return bigQuery.query(queryConfig);
+    // query the BQ object
+    QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query).build();
+    return bigQuery.query(queryConfig);
   }
 
   public static String getDatasetName(String datasetName) {
-      return "datarepo_" + datasetName;
+    return "datarepo_" + datasetName;
   }
-  public static String constructQuery(String project, String datasetName, String tableName, String select, Long limit) {
-      String tableRef =
-          String.format(
-              "`%s.%s.%s`",
-              project,
-              datasetName,
-              tableName);
-      String sqlQuery =
-          String.format(
-              "SELECT %s FROM %s LIMIT %s",
-              select, tableRef, limit);
-      return sqlQuery;
+
+  public static String constructQuery(
+      String project, String datasetName, String tableName, String select, Long limit) {
+    String tableRef = String.format("`%s.%s.%s`", project, datasetName, tableName);
+    String sqlQuery = String.format("SELECT %s FROM %s LIMIT %s", select, tableRef, limit);
+    return sqlQuery;
   }
 }

@@ -15,7 +15,16 @@
     {
       "name": "BulkLoad",
       "parameters": [2],
-      "totalNumberToRun": 1,
+      "totalNumberToRun": 3,
+      "numberToRunInParallel": 1,
+      "expectedTimeForEach": 1000000,
+      "expectedTimeForEachUnit": "SECONDS",
+      "failureScriptFile": "DeleteOnePod.json"
+    },
+    {
+      "name": "BulkLoad",
+      "parameters": [4],
+      "totalNumberToRun": 3,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 1000000,
       "expectedTimeForEachUnit": "SECONDS",

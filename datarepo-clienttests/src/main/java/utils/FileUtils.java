@@ -1,7 +1,5 @@
 package utils;
 
-import com.google.api.client.util.Charsets;
-import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -13,13 +11,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public final class FileUtils {
   private static ArrayList<String> createdScratchFiles;
@@ -62,11 +61,23 @@ public final class FileUtils {
    * @param resourcePath the path under the resources directory
    * @return the list of resource files
    */
-  public static List<String> getResourcesInDirectory(String resourcePath) {
+  public static List<String> getResourcesInDirectory(String resourcePath) throws IOException {
+    // recursively fetch all files under the given resources directory
     URL resourceDirectoryURL = FileUtils.class.getClassLoader().getResource(resourcePath);
     File resourceDirectoryFile = new File(resourceDirectoryURL.getFile());
-    String[] resourceFileNames = resourceDirectoryFile.list();
-    return resourceFileNames == null ? new ArrayList<>() : Arrays.asList(resourceFileNames);
+    List<Path> resourceFilePaths =
+        Files.walk(resourceDirectoryFile.toPath())
+            .filter(Files::isRegularFile)
+            .collect(Collectors.toList());
+
+    // convert each file to a file path relative to the specified resources directory
+    List<String> resourceFileNames = new ArrayList<>();
+    for (Path resourceFilePath : resourceFilePaths) {
+      String relativeFileName =
+          resourceFilePath.toString().replace(resourceDirectoryFile.getPath(), resourcePath);
+      resourceFileNames.add(relativeFileName);
+    }
+    return resourceFileNames;
   }
 
   /**

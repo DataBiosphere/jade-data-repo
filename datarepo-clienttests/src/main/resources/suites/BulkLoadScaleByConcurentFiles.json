@@ -3,10 +3,10 @@
   "description": "Test bulk load at different scales",
   "serverSpecificationFile": "localhost.json",
   "testConfigurationFiles": [
-    "BulkLoadScale200_20.json",
-    "BulkLoadScale200_40.json",
-    "BulkLoadScale200_60.json",
-    "BulkLoadScale200_80.json",
-    "BulkLoadScale200_100.json"
+    "profiling/BulkLoadScale200_20.json",
+    "profiling/BulkLoadScale200_40.json",
+    "profiling/BulkLoadScale200_60.json",
+    "profiling/BulkLoadScale200_80.json",
+    "profiling/BulkLoadScale200_100.json"
   ]
 }

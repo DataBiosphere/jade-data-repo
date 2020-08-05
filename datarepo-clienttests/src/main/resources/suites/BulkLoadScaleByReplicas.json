@@ -3,8 +3,8 @@
   "description": "Test bulk load at different number of pods",
   "serverSpecificationFile": "localhost.json",
   "testConfigurationFiles": [
-    "BulkLoadScale500_80_1.json",
-    "BulkLoadScale500_80_2.json",
-    "BulkLoadScale500_80_3.json"
+    "profiling/BulkLoadScale500_80_1.json",
+    "profiling/BulkLoadScale500_80_2.json",
+    "profiling/BulkLoadScale500_80_3.json"
   ]
 }

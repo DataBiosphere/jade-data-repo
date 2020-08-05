@@ -1,9 +1,7 @@
 package testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
-import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
@@ -11,29 +9,29 @@ import bio.terra.datarepo.model.DataDeletionGcsFileModel;
 import bio.terra.datarepo.model.DataDeletionRequest;
 import bio.terra.datarepo.model.DataDeletionTableModel;
 import bio.terra.datarepo.model.DatasetModel;
-import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
 import com.google.api.client.util.Charsets;
+import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.TestUserSpecification;
+import testscripts.baseclasses.SimpleDataset;
 import utils.BigQueryUtils;
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
-public class SoftDeleteDataset extends runner.TestScript {
+public class SoftDeleteDataset extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(SoftDeleteDataset.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
@@ -41,40 +39,19 @@ public class SoftDeleteDataset extends runner.TestScript {
     super();
   }
 
-  private String datasetCreator;
-  private BillingProfileModel billingProfileModel;
-  private DatasetSummaryModel datasetSummaryModel;
   private DataDeletionRequest dataDeletionRequest;
 
   private String testConfigGetIngestbucket;
 
-  public void setup(Map<String, ApiClient> apiClients) throws Exception {
-    // pick the first user to be the dataset creator
-    List<String> apiClientList = new ArrayList<>(apiClients.keySet());
-    datasetCreator = apiClientList.get(0);
+  public void setup(List<TestUserSpecification> testUsers) throws Exception {
+    // create the profile and dataset
+    super.setup(testUsers);
 
-    // get the ApiClient for the dataset creator --- and the snapshot creator?
-    ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
-    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
+    // get the ApiClient for the dataset creator
+    ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     testConfigGetIngestbucket = "jade-testdata"; // this could be put in DRUtils
-
-    // create a new profile
-    billingProfileModel =
-        DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
-    logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
-
-    // make the create dataset request and wait for the job to finish
-    JobModel createDatasetJobResponse =
-        DataRepoUtils.createDataset(
-            repositoryApi, billingProfileModel.getId(), "dataset-simple.json", true);
-
-    // save a reference to the dataset summary model so we can delete it in cleanup()
-    datasetSummaryModel =
-        DataRepoUtils.expectJobSuccess(
-            repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
-    logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
 
     // load data into the new dataset
     // note that there's a fileref in the dataset
@@ -139,14 +116,15 @@ public class SoftDeleteDataset extends runner.TestScript {
 
     // get row ids for table
     String sqlQuery =
-        BigQueryUtils.constructQuery(
+        BigQueryUtils.buildSelectQuery(
             dataProject,
             BigQueryUtils.getDatasetName(datasetModel.getName()),
             tableName,
             "datarepo_row_id",
             1L);
-
-    TableResult result = BigQueryUtils.queryBigQuery(dataProject, sqlQuery);
+    BigQuery bigQueryClient =
+        BigQueryUtils.getClientForTestUser(datasetCreator, datasetModel.getDataProject());
+    TableResult result = BigQueryUtils.queryBigQuery(bigQueryClient, sqlQuery);
     List<String> rowIds =
         StreamSupport.stream(result.getValues().spliterator(), false)
             .map(fieldValues -> fieldValues.get(0).getStringValue())
@@ -181,7 +159,8 @@ public class SoftDeleteDataset extends runner.TestScript {
             .tables(dataDeletionTableModels);
   }
 
-  public void userJourney(ApiClient apiClient) throws Exception {
+  public void userJourney(TestUserSpecification testUser) throws Exception {
+    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     // send off the soft delete request
@@ -197,25 +176,11 @@ public class SoftDeleteDataset extends runner.TestScript {
         deleteResponseModel.getObjectState());
   }
 
-  public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
-    // get the ApiClient for the dataset creator
-    ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
-    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
-    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
-
-    // make the delete request and wait for the job to finish
-    JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
-    deleteDatasetJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
-    DataRepoUtils.expectJobSuccess(
-        repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
-    logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
+  public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
+    // delete the profile and dataset
+    super.cleanup(testUsers);
 
     // delete scratch files
     FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);
-
-    // delete the profile
-    resourcesApi.deleteProfile(billingProfileModel.getId());
-    logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
   }
 }

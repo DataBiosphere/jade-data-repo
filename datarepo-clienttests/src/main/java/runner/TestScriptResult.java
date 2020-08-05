@@ -67,7 +67,8 @@ public class TestScriptResult {
     summary.meanElapsedTimeMS /= userJourneyResults.size();
     summary.totalRun = userJourneyResults.size();
 
-    summary.isFailure = summary.numCompleted < summary.totalRun;
+    summary.isFailure =
+        (summary.numCompleted < summary.totalRun) || (summary.numExceptionsThrown > 0);
 
     // convert all the times from nanoseconds to milliseconds
     summary.minElapsedTimeMS /= (1e6);

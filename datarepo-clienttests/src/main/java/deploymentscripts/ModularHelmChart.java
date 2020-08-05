@@ -186,7 +186,7 @@ public class ModularHelmChart extends DeploymentScript {
     // then wait for the datarepo-api deployment to respond successfully to a status request
     logger.debug("Waiting for the datarepo-api to respond successfully to a status request");
     ApiClient apiClient = new ApiClient();
-    apiClient.setBasePath(serverSpecification.uri);
+    apiClient.setBasePath(serverSpecification.datarepoUri);
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
     while (pollCtr >= 0) {
       // call the unauthenticated status endpoint

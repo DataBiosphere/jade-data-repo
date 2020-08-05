@@ -2,14 +2,11 @@ package testscripts;
 
 import bio.terra.datarepo.api.DataRepositoryServiceApi;
 import bio.terra.datarepo.api.RepositoryApi;
-import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
 import bio.terra.datarepo.model.DRSObject;
-import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
@@ -17,19 +14,21 @@ import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import bio.terra.datarepo.model.TableModel;
+import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.TestUserSpecification;
+import testscripts.baseclasses.SimpleDataset;
 import utils.BigQueryUtils;
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
-public class DRSLookup extends runner.TestScript {
+public class DRSLookup extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(RetrieveSnapshot.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
@@ -37,43 +36,20 @@ public class DRSLookup extends runner.TestScript {
     super();
   }
 
-  private String datasetCreator;
-  private BillingProfileModel billingProfileModel;
-  private DatasetSummaryModel datasetSummaryModel;
   private SnapshotModel snapshotModel;
 
   private String testConfigGetIngestbucket;
   private String dirObjectId;
 
-  public void setup(Map<String, ApiClient> apiClients) throws Exception {
-    // pick the first user to be the dataset creator
-    List<String> apiClientList = new ArrayList<>(apiClients.keySet());
-    datasetCreator = apiClientList.get(0);
+  public void setup(List<TestUserSpecification> testUsers) throws Exception {
+    // create the profile and dataset
+    super.setup(testUsers);
 
-    // get the ApiClient for the dataset creator --- and the snapshot creator?
-    ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
-    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
+    // get the ApiClient for the snapshot creator, same as the dataset creator
+    ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     testConfigGetIngestbucket = "jade-testdata"; // this could be put in DRUtils
-
-    // create a new profile
-    billingProfileModel =
-        DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
-
-    logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
-
-    // make the create dataset request and wait for the job to finish
-    JobModel createDatasetJobResponse =
-        DataRepoUtils.createDataset(
-            repositoryApi, billingProfileModel.getId(), "dataset-simple.json", true);
-
-    // save a reference to the dataset summary model so we can delete it in cleanup()
-    datasetSummaryModel =
-        DataRepoUtils.expectJobSuccess(
-            repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
-
-    logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
 
     // load data into the new dataset
     // note that there's a fileref in the dataset
@@ -149,15 +125,16 @@ public class DRSLookup extends runner.TestScript {
         snapshotModel.getTables().get(0); // There is only 1 table, so just grab the first
 
     String queryForFileRefs =
-        BigQueryUtils.constructQuery(
+        BigQueryUtils.buildSelectQuery(
             snapshotModel.getDataProject(),
             snapshotModel.getName(),
             tableModel.getName(),
             "VCF_File_Ref",
             1L);
 
-    TableResult result =
-        BigQueryUtils.queryBigQuery(snapshotModel.getDataProject(), queryForFileRefs);
+    BigQuery bigQueryClient =
+        BigQueryUtils.getClientForTestUser(datasetCreator, snapshotModel.getDataProject());
+    TableResult result = BigQueryUtils.queryBigQuery(bigQueryClient, queryForFileRefs);
     ArrayList<String> fileRefs = new ArrayList<>();
     result.iterateAll().forEach(r -> fileRefs.add(r.get("VCF_File_Ref").getStringValue()));
     // fileRefs should only be 1 in size
@@ -167,7 +144,8 @@ public class DRSLookup extends runner.TestScript {
     dirObjectId = "v1_" + snapshotSummaryModel.getId() + "_" + freshFileId;
   }
 
-  public void userJourney(ApiClient apiClient) throws Exception {
+  public void userJourney(TestUserSpecification testUser) throws Exception {
+    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
     DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
     logger.debug(
@@ -177,10 +155,9 @@ public class DRSLookup extends runner.TestScript {
         snapshotModel.getDataProject());
   }
 
-  public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
+  public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
     // get the ApiClient for the dataset creator
-    ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
-    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
+    ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // make the delete request and wait for the job to finish
@@ -191,19 +168,10 @@ public class DRSLookup extends runner.TestScript {
         repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
     logger.info("Successfully deleted snapshot: {}", snapshotModel.getName());
 
-    // make the delete request and wait for the job to finish
-    JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
-    deleteDatasetJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
-    DataRepoUtils.expectJobSuccess(
-        repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
-    logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
+    // delete the profile and dataset
+    super.cleanup(testUsers);
 
     // delete scratch files
     FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);
-
-    // delete the profile
-    resourcesApi.deleteProfile(billingProfileModel.getId());
-    logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
   }
 }

@@ -25,6 +25,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Call;
 import okhttp3.Response;
@@ -258,7 +259,7 @@ public final class KubernetesClientUtils {
                 pod ->
                     deploymentComponentLabel.equals(
                         pod.getMetadata().getLabels().get(componentLabel)))
-            .skip((int) (podCount * Math.random()))
+            .skip(new Random().nextInt((int) podCount))
             .findFirst()
             .get()
             .getMetadata()

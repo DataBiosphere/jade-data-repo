@@ -2,27 +2,78 @@ package utils;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
+import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetRequestModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.ErrorModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotRequestModel;
+import bio.terra.datarepo.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.ServerSpecification;
+import runner.config.TestUserSpecification;
 
 public final class DataRepoUtils {
-
   private static final Logger logger = LoggerFactory.getLogger(DataRepoUtils.class);
 
   private DataRepoUtils() {}
 
   private static int maximumSecondsToWaitForJob = 500;
   private static int secondsIntervalToPollJob = 5;
+
+  private static Map<TestUserSpecification, ApiClient> apiClientsForTestUsers = new HashMap<>();
+
+  /**
+   * Build the Data Repo API client object for the given test user and server specifications. This
+   * class maintains a cache of API client objects, and will return the cached object if it already
+   * exists. The token is always refreshed, regardless of whether the API client object was found in
+   * the cache or not.
+   *
+   * @param testUser the test user whose credentials are supplied to the API client object
+   * @param server the server we are testing against
+   * @return the API client object for this user
+   */
+  public static ApiClient getClientForTestUser(
+      TestUserSpecification testUser, ServerSpecification server) throws IOException {
+    // refresh the user token
+    GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
+    AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
+
+    // first check if there is already a cached ApiClient for this test user
+    ApiClient cachedApiClient = apiClientsForTestUsers.get(testUser);
+    if (cachedApiClient != null) {
+      // refresh the token here before returning
+      // this should be helpful for long-running tests (roughly > 1hr)
+      cachedApiClient.setAccessToken(userAccessToken.getTokenValue());
+
+      return cachedApiClient;
+    }
+
+    // TODO: have ApiClients share an HTTP client, or one per each is ok?
+    // no cached ApiClient found, so build a new one here and add it to the cache before returning
+    logger.debug(
+        "Fetching credentials and building Data Repo ApiClient object for test user: {}",
+        testUser.name);
+    ApiClient apiClient = new ApiClient();
+    apiClient.setBasePath(server.datarepoUri);
+
+    apiClient.setAccessToken(userAccessToken.getTokenValue());
+
+    apiClientsForTestUsers.put(testUser, apiClient);
+    return apiClient;
+  }
 
   // ====================================================================
   // General client utility methods
@@ -218,5 +269,21 @@ public final class DataRepoUtils {
     // make the create request and wait for the job to finish
     BillingProfileModel createProfileResponse = resourcesApi.createProfile(createProfileRequest);
     return createProfileResponse;
+  }
+
+  /**
+   * Build the name of a BigQuery table for a Data Repo dataset.
+   *
+   * @param datasetModel
+   * @param tableModel
+   * @return
+   */
+  public static String getBigQueryDatasetTableName(
+      DatasetModel datasetModel, TableModel tableModel) {
+    return datasetModel.getDataProject()
+        + ".datarepo_"
+        + datasetModel.getName()
+        + "."
+        + tableModel.getName();
   }
 }

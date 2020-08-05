@@ -3,7 +3,7 @@ package bio.terra.service.iam;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
-import bio.terra.common.category.Integration;
+import bio.terra.common.category.OnDemand;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
@@ -65,7 +65,7 @@ import static org.junit.Assert.fail;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
-@Category(Integration.class)
+@Category(OnDemand.class)
 @SuppressFBWarnings(
     value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
     justification = "Spurious RCN check; related to Java 11")

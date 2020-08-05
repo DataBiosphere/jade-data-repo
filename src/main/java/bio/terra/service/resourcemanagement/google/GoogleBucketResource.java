@@ -1,5 +1,7 @@
 package bio.terra.service.resourcemanagement.google;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.UUID;
 
 public class GoogleBucketResource {
@@ -73,5 +75,10 @@ public class GoogleBucketResource {
     public GoogleBucketResource region(String region) {
         this.region = region;
         return this;
+    }
+
+    @JsonIgnore
+    public String projectIdForBucket() {
+        return getProjectResource().getGoogleProjectId();
     }
 }

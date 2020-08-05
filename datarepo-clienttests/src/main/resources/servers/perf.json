@@ -1,0 +1,16 @@
+{
+"name": "perf",
+"description": "Dedicated perf cluster.",
+"uri": "https://jade-perf.datarepo-perf.broadinstitute.org",
+"clusterName": "gke_broad-jade-perf_us-central1_jade-master-us-central1",
+"clusterShortName": "jade-master-us-central1",
+"region": "us-central1",
+"project": "broad-jade-perf",
+"namespace": "perf",
+"deploymentScript": {
+"name": "ModularHelmChart",
+"parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/blob/master/perf/datarepo-api.yaml"]
+},
+"skipDeployment": true,
+"skipKubernetes": false
+}

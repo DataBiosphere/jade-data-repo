@@ -3,6 +3,8 @@ package utils;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,15 +87,20 @@ public class SAMUtils {
   }
 
   /**
-   * Returns the first test user that is a Data Repo steward, null if none found.
+   * Returns a random test user from the given list that is a Data Repo steward, null if none found.
    *
    * @param testUsers the list of test users to check
    * @param server the server we are testing against
-   * @return the first test user that is a steward, null if none found
+   * @return a test user that is a steward, null if none found
    */
   public static TestUserSpecification findTestUserThatIsDataRepoSteward(
       List<TestUserSpecification> testUsers, ServerSpecification server) throws Exception {
-    for (TestUserSpecification testUser : testUsers) {
+    // create a copy of the list and randomly reorder it
+    List<TestUserSpecification> testUsersCopy = new ArrayList<>(testUsers);
+    Collections.shuffle(testUsersCopy);
+
+    // iterate through the list copy, return the first test user that is a data repo steward
+    for (TestUserSpecification testUser : testUsersCopy) {
       ApiClient apiClient = getClientForTestUser(testUser, server);
       if (isDataRepoSteward(apiClient, server.samResourceIdForDatarepo)) {
         return testUser;

@@ -27,6 +27,7 @@ public class SimpleDataset extends runner.TestScript {
     if (datasetCreator == null) {
       throw new IllegalArgumentException("None of the test users are Data Repo stewards.");
     }
+    logger.debug("datasetCreator: {}", datasetCreator.name);
 
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);

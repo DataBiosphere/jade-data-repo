@@ -172,7 +172,7 @@ class TestRunner {
       TestScript testScript = scripts.get(tsCtr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
 
-      // Failure Thread: add if defined
+      // Failure Thread: fetch script specification if config is defined
       TestScript failureScript = null;
       boolean runFailureScript = false;
 
@@ -193,14 +193,10 @@ class TestRunner {
       ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
       threadPools.add(threadPool);
 
-      // add thread to run failure script
+      // Failure Thread: submit thread to run failure script if defined
       if (runFailureScript) {
         logger.debug("adding the failure thread to the pool.");
-
-        // this should get the next api client in the list
-        ApiClient failureApiClient =
-            apiClientList.get(testScriptSpecification.totalNumberToRun % apiClientList.size());
-
+        ApiClient failureApiClient = apiClientList.get(0);
         UserJourneyThread ujt =
             new UserJourneyThread(
                 failureScript, failureScriptSpecification.description, failureApiClient);

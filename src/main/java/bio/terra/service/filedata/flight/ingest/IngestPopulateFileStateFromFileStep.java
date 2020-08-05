@@ -3,7 +3,6 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
-import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsBufferedReader;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
@@ -43,21 +42,6 @@ public class IngestPopulateFileStateFromFileStep implements Step {
         this.gcsPdao = gcsPdao;
     }
 
-    private GoogleBucketResource getBufferInfo(FlightContext context) {
-        // The bucket has been selected for this file. In the single file load case, the info
-        // is stored in the working map. In the bulk load case, the info is stored in the input
-        // parameters.
-        // TODO: simplify this when we remove single file load
-        // TODO: This is a cut and paste from IngestFilePrimaryDataStep. Both can be removed
-        //  when we get rid of single file load
-        GoogleBucketResource bucketResource =
-            context.getInputParameters().get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-        if (bucketResource == null) {
-            bucketResource = context.getWorkingMap().get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-        }
-        return bucketResource;
-    }
-
     @Override
     public StepResult doStep(FlightContext context) {
         // Ensure that file ingestion works with extra key-value pairs
@@ -72,9 +56,9 @@ public class IngestPopulateFileStateFromFileStep implements Step {
 
         FlightMap workingMap = context.getWorkingMap();
         UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
-        GoogleBucketResource bucketResource = getBufferInfo(context);
+        GoogleBucketResource bucketResource = IngestUtils.getBucketInfo(context);
         Storage storage = gcsPdao.storageForBucket(bucketResource);
-        String projectId = gcsPdao.projectIdForBucket(bucketResource);
+        String projectId = bucketResource.projectIdForBucket();
         List<String> errorDetails = new ArrayList<>();
 
         try (BufferedReader reader = new GcsBufferedReader(storage, projectId, loadRequest.getLoadControlFile())) {

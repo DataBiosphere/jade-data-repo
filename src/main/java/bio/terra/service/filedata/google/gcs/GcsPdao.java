@@ -54,14 +54,8 @@ public class GcsPdao {
     }
 
     public Storage storageForBucket(GoogleBucketResource bucketResource) {
-        GcsProject gcsProject = gcsProjectFactory.get(projectIdForBucket(bucketResource));
-        return gcsProject.getStorage();
+        return gcsProjectFactory.getStorage(bucketResource.projectIdForBucket());
     }
-
-    public String projectIdForBucket(GoogleBucketResource bucketResource) {
-        return bucketResource.getProjectResource().getGoogleProjectId();
-    }
-
     public FSFileInfo copyFile(Dataset dataset,
                                FileLoadModel fileLoadModel,
                                String fileId,
@@ -69,7 +63,7 @@ public class GcsPdao {
 
         try {
             Storage storage = storageForBucket(bucketResource);
-            String targetProjectId = projectIdForBucket(bucketResource);
+            String targetProjectId = bucketResource.projectIdForBucket();
             Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), targetProjectId);
 
             // Our path is /<dataset-id>/<file-id>

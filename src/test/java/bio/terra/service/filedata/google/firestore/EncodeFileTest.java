@@ -17,6 +17,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
@@ -82,15 +83,26 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 public class EncodeFileTest {
     private static final Logger logger = LoggerFactory.getLogger(EncodeFileTest.class);
 
-    @Autowired private MockMvc mvc;
-    @Autowired private ObjectMapper objectMapper;
-    @Autowired private ConnectedTestConfiguration testConfig;
-    @Autowired private DataLocationService dataLocationService;
-    @Autowired private SnapshotDao snapshotDao;
-    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
-    @Autowired private ConnectedOperations connectedOperations;
-    @Autowired private DrsIdService drsIdService;
-    @Autowired private FireStoreUtils fireStoreUtils;
+    @Autowired
+    private MockMvc mvc;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private ConnectedTestConfiguration testConfig;
+    @Autowired
+    private DataLocationService dataLocationService;
+    @Autowired
+    private SnapshotDao snapshotDao;
+    @Autowired
+    private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired
+    private GcsProjectFactory gcsProjectFactory;
+    @Autowired
+    private ConnectedOperations connectedOperations;
+    @Autowired
+    private DrsIdService drsIdService;
+    @Autowired
+    private FireStoreUtils fireStoreUtils;
 
     private static final String ID_GARBAGE = "GARBAGE";
 
@@ -98,8 +110,10 @@ public class EncodeFileTest {
     private IamProviderInterface samService;
 
     private BillingProfileModel profileModel;
-    private Storage storage = StorageOptions.getDefaultInstance().getService();
+    private Storage storage;
+    private String targetProjectId;
     private String loadTag;
+    private DatasetSummaryModel datasetSummary;
 
     @Before
     public void setup() throws Exception {
@@ -108,6 +122,13 @@ public class EncodeFileTest {
         String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
         loadTag = "encodeLoadTag" + UUID.randomUUID();
+        datasetSummary = connectedOperations.createDataset(profileModel, "encodefiletest-dataset.json");
+        targetProjectId = googleResourceConfiguration.getSingleDataProjectId(); // we rely on using single project
+        // Build a storage object for the data project of the dataset.
+        StorageOptions storageOptions = StorageOptions.newBuilder()
+            .setProjectId(targetProjectId)
+            .build();
+        storage = storageOptions.getService();
         logger.info("--------begin test---------");
     }
 
@@ -117,17 +138,23 @@ public class EncodeFileTest {
         connectedOperations.teardown();
     }
 
-    // NOTES ABOUT THIS TEST: this test requires create access to the jade-testdata bucket in order to
+    // NOTES ABOUT THESE TESTS: these tests require create access to the jade-testdata bucket in order to
     // re-write the json source data replacing the gs paths with the Jade object id.
     @Test
     public void encodeFileTest() throws Exception {
-        DatasetSummaryModel datasetSummary = connectedOperations.createDataset(profileModel,
-            "encodefiletest-dataset.json");
+        encodeTest(testConfig.getIngestbucket());
+    }
 
+    @Test
+    public void encodeFileRequesterPaysTest() throws Exception {
+        encodeTest(testConfig.getIngestRequesterPaysBucket());
+    }
+
+    private void encodeTest(String bucketName) throws Exception {
         // Load all of the files into the dataset
-        String targetPath = loadFiles(datasetSummary.getId(), false, false);
+        String targetPath = loadFiles(datasetSummary.getId(), false, false, bucketName);
 
-        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
+        String gsPath = "gs://" + bucketName + "/" + targetPath;
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .table("file")
@@ -136,15 +163,16 @@ public class EncodeFileTest {
         connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
         // Delete the scratch blob
-        Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));
+        Blob scratchBlob = storage.get(BlobId.of(bucketName, targetPath),
+            Storage.BlobGetOption.userProject(targetProjectId));
         if (scratchBlob != null) {
-            scratchBlob.delete();
+            scratchBlob.delete(Blob.BlobSourceOption.userProject(targetProjectId));
         }
 
         // Load donor success
         ingestRequest
             .table("donor")
-            .path("gs://" + testConfig.getIngestbucket() + "/encodetest/donor.json");
+            .path("gs://" + bucketName + "/encodetest/donor.json");
 
         connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
@@ -196,6 +224,7 @@ public class EncodeFileTest {
     //                                                                                 /ENCFF823AJQ.bam.bai
 
     private static int MAX_DIRECTORY_DEPTH = 6;
+
     private Map<String, List<String>> makeDirectoryMap(String datasetPath) {
         Map<String, List<String>> dirmap = new HashMap<>();
         dirmap.put(datasetPath,
@@ -279,10 +308,9 @@ public class EncodeFileTest {
 
     @Test
     public void encodeFileBadFileId() throws Exception {
-        DatasetSummaryModel datasetSummary = connectedOperations.createDataset(profileModel,
-            "encodefiletest-dataset.json");
-        String targetPath = loadFiles(datasetSummary.getId(), true, false);
-        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
+        String bucketName = testConfig.getIngestbucket();
+        String targetPath = loadFiles(datasetSummary.getId(), true, false, bucketName);
+        String gsPath = "gs://" + bucketName + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
@@ -315,10 +343,9 @@ public class EncodeFileTest {
 
     @Test
     public void encodeFileBadRowTest() throws Exception {
-        DatasetSummaryModel datasetSummary = connectedOperations.createDataset(profileModel,
-            "encodefiletest-dataset.json");
-        String targetPath = loadFiles(datasetSummary.getId(), false, true);
-        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
+        String bucketName = testConfig.getIngestbucket();
+        String targetPath = loadFiles(datasetSummary.getId(), false, true, bucketName);
+        String gsPath = "gs://" + bucketName + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
@@ -355,13 +382,16 @@ public class EncodeFileTest {
                 "JSON parsing error in row starting at position 0: Parser terminated before end of string"));
 
         // Delete the scratch blob
-        Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));
+        Blob scratchBlob = storage.get(BlobId.of(bucketName, targetPath));
         if (scratchBlob != null) {
             scratchBlob.delete();
         }
     }
 
-    private String loadFiles(String datasetId, boolean insertBadId, boolean insertBadRow) throws Exception {
+    private String loadFiles(String datasetId,
+                             boolean insertBadId,
+                             boolean insertBadRow,
+                             String bucketName) throws Exception {
         // Open the source data from the bucket
         // Open target data in bucket
         // Read one line at a time - unpack into pojo
@@ -372,15 +402,17 @@ public class EncodeFileTest {
         // For a bigger test use encodetest/file.json (1000+ files)
         // For normal testing encodetest/file_small.json (10 files)
         Blob sourceBlob = storage.get(
-            BlobId.of(testConfig.getIngestbucket(), "encodetest/file_small.json"));
+            BlobId.of(bucketName, "encodetest/file_small.json"),
+            Storage.BlobGetOption.userProject(targetProjectId));
         assertNotNull("source blob not null", sourceBlob);
 
         BlobInfo targetBlobInfo = BlobInfo
-            .newBuilder(BlobId.of(testConfig.getIngestbucket(), targetPath))
+            .newBuilder(BlobId.of(bucketName, targetPath))
             .build();
 
-        try (WriteChannel writer = storage.writer(targetBlobInfo);
-             BufferedReader reader = new BufferedReader(Channels.newReader(sourceBlob.reader(), "UTF-8"))) {
+        try (WriteChannel writer = storage.writer(targetBlobInfo, Storage.BlobWriteOption.userProject(targetProjectId));
+             BufferedReader reader = new BufferedReader(Channels.newReader(
+                 sourceBlob.reader(Blob.BlobSourceOption.userProject(targetProjectId)), "UTF-8"))) {
 
             boolean badIdInserted = false;
             boolean badRowInserted = false;

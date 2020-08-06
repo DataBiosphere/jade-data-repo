@@ -73,7 +73,7 @@ public class LaunchLocalProcess extends DeploymentScript {
         "Checking service status endpoint to confirm that there is no local server already running");
     boolean statusRequestOK;
     ApiClient apiClient = new ApiClient();
-    apiClient.setBasePath(serverSpecification.uri);
+    apiClient.setBasePath(serverSpecification.datarepoUri);
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
     // call the unauthenticated status endpoint
     try {
@@ -113,7 +113,7 @@ public class LaunchLocalProcess extends DeploymentScript {
     logger.debug(
         "Waiting for the local server process to respond successfully to a status request");
     ApiClient apiClient = new ApiClient();
-    apiClient.setBasePath(serverSpecification.uri);
+    apiClient.setBasePath(serverSpecification.datarepoUri);
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
     while (pollCtr >= 0) {
       // call the unauthenticated status endpoint
@@ -156,7 +156,7 @@ public class LaunchLocalProcess extends DeploymentScript {
     logger.debug("Checking service status endpoint to confirm the local server is shut down");
     boolean statusRequestOK;
     ApiClient apiClient = new ApiClient();
-    apiClient.setBasePath(serverSpecification.uri);
+    apiClient.setBasePath(serverSpecification.datarepoUri);
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
     // call the unauthenticated status endpoint
     try {

@@ -1,18 +1,23 @@
 package testscripts;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
+import bio.terra.datarepo.model.BulkLoadResultModel;
 import bio.terra.datarepo.model.JobModel;
 import java.util.List;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.TestUserSpecification;
+import testscripts.baseclasses.SimpleDataset;
 import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.KubernetesClientUtils;
 
-public class PodDelete extends runner.TestScript {
+public class PodDelete extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(ScalePodsToZero.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
@@ -22,7 +27,6 @@ public class PodDelete extends runner.TestScript {
   }
 
   private int filesToLoad;
-  private BulkLoadUtils bulkLoadUtils;
 
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() == 0) {
@@ -33,20 +37,18 @@ public class PodDelete extends runner.TestScript {
     }
   }
 
-  public void setup(Map<String, ApiClient> apiClients) throws Exception {
-    bulkLoadUtils = new BulkLoadUtils();
-    bulkLoadUtils.bulkLoadSetup(apiClients, billingAccount);
-  }
-
   // The purpose of this test is to have a long-running workload that completes successfully
   // while we delete a random pod.
-  public void userJourney(ApiClient apiClient) throws Exception {
+  public void userJourney(TestUserSpecification testUser) throws Exception {
+    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     // set up and start bulk load job
-    BulkLoadArrayRequestModel arrayLoad = bulkLoadUtils.buildBulkLoadFileRequest(filesToLoad);
+    BulkLoadArrayRequestModel arrayLoad =
+        BulkLoadUtils.buildBulkLoadFileRequest(
+            filesToLoad, billingProfileModel.getId(), datasetSummaryModel.getId());
     JobModel bulkLoadArrayJobResponse =
-        repositoryApi.bulkFileLoadArray(bulkLoadUtils.getDatasetId(), arrayLoad);
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
 
     // =========================================================================
     /* Manipulating kubernetes pods during file ingest */
@@ -62,12 +64,13 @@ public class PodDelete extends runner.TestScript {
     }
     // =========================================================================
 
-    // wait for the job to complete and print out results
-    bulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
-  }
+    // wait for the job to complete and print out results to debug log level
+    BulkLoadResultModel loadSummary =
+        BulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
 
-  public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
-    KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
-    bulkLoadUtils.cleanup(apiClients);
+    assertThat(
+        "Number of successful files loaded should equal total files.",
+        loadSummary.getTotalFiles(),
+        equalTo(loadSummary.getSucceededFiles()));
   }
 }

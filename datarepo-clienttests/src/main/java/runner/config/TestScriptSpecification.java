@@ -1,9 +1,13 @@
 package runner.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import runner.TestScript;
 
+@SuppressFBWarnings(
+    value = "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD",
+    justification = "This POJO class is used for easy serialization to JSON using Jackson.")
 public class TestScriptSpecification implements SpecificationInterface {
   public String name;
   public int totalNumberToRun = 1;

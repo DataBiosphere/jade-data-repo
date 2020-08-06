@@ -76,9 +76,17 @@ Find a test configuration to execute. Each configuration is a JSON file in the r
 
 Call the Gradle run task and pass it the name of the test configuration or suite to execute.
 
-`./gradlew run --args="configs/BasicUnauthenticated.json"`
+`./gradlew run --args="configs/basicexamples/BasicUnauthenticated.json"`
 
 `./gradlew run --args="suites/BasicSmoke.json"`
+
+The environment variable TEST_RUNNER_SERVER_SPECIFICATION_FILE optionally overrides the server configuration specified
+by either the test suite or configuration. The server specification is determined by the following, in order:
+  1. environment variable
+  2. test suite server property (if running a test suite)
+  3. test configuration server property
+  
+`TEST_RUNNER_SERVER_SPECIFICATION_FILE="mmdev.json" ./gradlew run --args="configs/basicexamples/LookupDataset.json"`
 
 #### Run against a local server
 There is a localhost.json server specification file in the resources/server directory. This file contains a filepath to

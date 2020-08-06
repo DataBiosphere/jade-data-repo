@@ -1,6 +1,0 @@
-{
-  "name": "DeletePod_1_30",
-  "description": "Deleting 1 pod after 30 seconds",
-  "failureScriptName": "PodDeleteFailureScript",
-  "parameters": [1, 30]
-}

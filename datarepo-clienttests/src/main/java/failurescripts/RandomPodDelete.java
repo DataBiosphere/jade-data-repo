@@ -1,4 +1,4 @@
-package testscripts;
+package failurescripts;
 
 import bio.terra.datarepo.client.ApiClient;
 import java.util.List;
@@ -8,8 +8,9 @@ import org.slf4j.LoggerFactory;
 import runner.TestScript;
 import utils.KubernetesClientUtils;
 
-public class PodDeleteFailureScript extends TestScript {
-  private static final Logger logger = LoggerFactory.getLogger(PodDeleteFailureScript.class);
+
+public class RandomPodDelete extends TestScript {
+  private static final Logger logger = LoggerFactory.getLogger(RandomPodDelete.class);
 
   private int repeatFailureCount = 1;
   private int secondsWaitBeforeFailure = 30;
@@ -32,7 +33,6 @@ public class PodDeleteFailureScript extends TestScript {
     }
   }
 
-  @Override
   public void userJourney(ApiClient apiClient) throws Exception {
     logger.debug("Starting failure script.");
     for (int i = 0; i < repeatFailureCount; i++) {

@@ -11,6 +11,11 @@
     "loadConcurrentFiles": 80,
     "loadDriverWaitSeconds": 1
   },
+  "failureScript": {
+    "failureScriptName": "PodDeleteFailureScript",
+    "description": "Deleting 1 pod after 30 seconds",
+    "parameters": [1, 30]
+  },
   "testScripts": [
     {
       "name": "BulkLoad",
@@ -18,8 +23,7 @@
       "totalNumberToRun": 3,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 1000000,
-      "expectedTimeForEachUnit": "SECONDS",
-      "failureScriptFile": "DeletePod_1_30.json"
+      "expectedTimeForEachUnit": "SECONDS"
     },
     {
       "name": "BulkLoad",
@@ -27,8 +31,7 @@
       "totalNumberToRun": 3,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 1000000,
-      "expectedTimeForEachUnit": "SECONDS",
-      "failureScriptFile": "DeletePod_2_15.json"
+      "expectedTimeForEachUnit": "SECONDS"
     }
   ],
   "testUserFiles": ["dumbledore.json"]

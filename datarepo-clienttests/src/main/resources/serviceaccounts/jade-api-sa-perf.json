@@ -1,6 +1,6 @@
 {
   "name": "jade-api-sa-perf",
   "serviceAccountEmail": "datarepo-jade-api@broad-jade-perf.iam.gserviceaccount.com",
-  "jsonKeyFilePath": "/tmp/jade-dev-account.json",
-  "pemFilePath": "/tmp/jade-dev-account.pem"
+  "jsonKeyFilePath": "/tmp/jade-perf-account.json",
+  "pemFilePath": "/tmp/jade-perf-account.pem"
 }

@@ -11,7 +11,7 @@
   "namespace": "perf",
   "deploymentScript": {
     "name": "ModularHelmChart",
-    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/blob/master/perf/datarepo-api.yaml"]
+    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/perf/datarepo-api.yaml"]
   },
   "skipDeployment": true,
   "skipKubernetes": false

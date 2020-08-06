@@ -23,6 +23,7 @@ public class TestConfiguration implements SpecificationInterface {
   public ApplicationSpecification application;
   public List<TestScriptSpecification> testScripts;
   public List<TestUserSpecification> testUsers = new ArrayList<>();
+  public FailureScriptSpecification failureScriptSpecification;
 
   public static final String resourceDirectory = "configs";
   public static final String serverFileEnvironmentVarName = "TEST_RUNNER_SERVER_SPECIFICATION_FILE";
@@ -58,6 +59,8 @@ public class TestConfiguration implements SpecificationInterface {
       testConfig.testUsers.add(testUser);
     }
 
+    if (testConfig.failureScriptSpecification != )
+
     // instantiate default kubernetes, application specification objects, if null
     if (testConfig.kubernetes == null) {
       logger.debug("Test Configuration: Using default Kubernetes specification");
@@ -67,6 +70,21 @@ public class TestConfiguration implements SpecificationInterface {
       logger.debug("Test Configuration: Using default application specification");
       testConfig.application = new ApplicationSpecification();
     }
+    if(testConfig.failureScriptSpecification)
+
+
+      if (failureScriptFile != null && !failureScriptFile.isEmpty()) {
+          try {
+              // For each test, we can designate a failure script to run alongside the test scripts
+              // Convert this failure script from json to the FailureScriptSpecification class
+
+          } catch (Exception ex) {
+              logger.debug("Error parsing failure script. Error: {}", ex);
+          }
+          // since the failure script is added per test script, we can't do the validate check
+          // at the TestConfiguration level along with the other validate checks
+          failureScriptSpecification.validate();
+      }
 
     return testConfig;
   }

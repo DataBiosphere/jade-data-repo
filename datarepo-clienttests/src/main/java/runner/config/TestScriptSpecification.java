@@ -18,7 +18,6 @@ public class TestScriptSpecification implements SpecificationInterface {
   public String failureScriptFile;
 
   private TestScript scriptClassInstance;
-  private FailureScriptSpecification failureScriptSpecification;
   public TimeUnit expectedTimeForEachUnitObj;
   public String description;
 
@@ -28,10 +27,6 @@ public class TestScriptSpecification implements SpecificationInterface {
 
   public TestScript scriptClassInstance() {
     return scriptClassInstance;
-  }
-
-  public FailureScriptSpecification failureScriptSpecification() {
-    return failureScriptSpecification;
   }
 
   /**
@@ -60,19 +55,6 @@ public class TestScriptSpecification implements SpecificationInterface {
     } catch (IllegalAccessException | InstantiationException niEx) {
       throw new IllegalArgumentException(
           "Error calling constructor of TestScript class: " + name, niEx);
-    }
-
-    if (failureScriptFile != null && !failureScriptFile.isEmpty()) {
-      try {
-        // For each test, we can designate a failure script to run alongside the test scripts
-        // Convert this failure script from json to the FailureScriptSpecification class
-        failureScriptSpecification = FailureScriptSpecification.fromJSONFile(failureScriptFile);
-      } catch (Exception ex) {
-        logger.debug("Error parsing failure script. Error: {}", ex);
-      }
-      // since the failure script is added per test script, we can't do the validate check
-      // at the TestConfiguration level along with the other validate checks
-      failureScriptSpecification.validate();
     }
 
     // generate a separate description property that also includes any test script parameters

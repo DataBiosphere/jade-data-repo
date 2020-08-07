@@ -141,7 +141,7 @@ public class JobServiceTest {
     }
 
     private String makeDescription(int ii) {
-        return String.format("flight%d", ii);
+        return String.format("flight #%d", ii);
     }
 
 }

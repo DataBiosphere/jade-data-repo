@@ -3,7 +3,7 @@
   "description": "Dedicated perf cluster.",
   "datarepoUri": "https://jade-perf.datarepo-perf.broadinstitute.org",
   "samUri": "https://sam.dsde-dev.broadinstitute.org",
-  "samResourceIdForDatarepo": "broad-jade-perf",
+  "samResourceIdForDatarepo": "broad-jade-dev",
   "clusterName": "gke_broad-jade-perf_us-central1_jade-master-us-central1",
   "clusterShortName": "jade-master-us-central1",
   "region": "us-central1",
@@ -14,5 +14,5 @@
     "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/perf/datarepo-api.yaml"]
   },
   "skipDeployment": true,
-  "skipKubernetes": false
+  "skipKubernetes": true
 }

@@ -7,6 +7,7 @@ import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.BulkLoadResultModel;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

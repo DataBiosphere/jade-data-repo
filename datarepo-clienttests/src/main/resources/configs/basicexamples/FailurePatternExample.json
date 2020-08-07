@@ -12,7 +12,7 @@
     "loadDriverWaitSeconds": 1
   },
   "failureScript": {
-    "failureScriptName": "PodDeleteFailureScript",
+    "failureScriptName": "RandomPodDelete",
     "description": "Deleting 1 pod after 30 seconds",
     "parameters": [1, 30]
   },

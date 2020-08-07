@@ -1,13 +1,12 @@
 package failurescripts;
 
-import bio.terra.datarepo.client.ApiClient;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.TestScript;
+import runner.config.TestUserSpecification;
 import utils.KubernetesClientUtils;
-
 
 public class RandomPodDelete extends TestScript {
   private static final Logger logger = LoggerFactory.getLogger(RandomPodDelete.class);
@@ -33,7 +32,7 @@ public class RandomPodDelete extends TestScript {
     }
   }
 
-  public void userJourney(ApiClient apiClient) throws Exception {
+  public void userJourney(TestUserSpecification testUser) throws Exception {
     logger.debug("Starting failure script.");
     for (int i = 0; i < repeatFailureCount; i++) {
       TimeUnit.SECONDS.sleep(secondsWaitBeforeFailure);

@@ -15,7 +15,6 @@ public class TestScriptSpecification implements SpecificationInterface {
   public long expectedTimeForEach;
   public String expectedTimeForEachUnit;
   public List<String> parameters;
-  public String failureScriptFile;
 
   private TestScript scriptClassInstance;
   public TimeUnit expectedTimeForEachUnitObj;

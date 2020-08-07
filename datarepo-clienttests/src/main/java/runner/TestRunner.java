@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.FailureScriptSpecification;
 import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
 import runner.config.TestSuite;
@@ -147,6 +146,23 @@ class TestRunner {
       throw new RuntimeException("Error calling test script setup methods.", setupExceptionThrown);
     }
 
+    // Failure Thread: fetch script specification if config is defined
+    if (config.failureScript != null) {
+      logger.debug("Creating thread pool for failure script.");
+      TestScript failureScript = config.failureScript.failureScriptClassInstance();
+      failureScript.setParameters(config.failureScript.parameters);
+
+      // create a thread pool for running its user journeys
+      ThreadPoolExecutor failureThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+      threadPools.add(failureThreadPool);
+
+      TestUserSpecification failureTestUser = config.testUsers.get(0);
+      UserJourneyThread ujt =
+          new UserJourneyThread(failureScript, config.failureScript.description, failureTestUser);
+      failureThreadPool.submit(ujt);
+      logger.debug("successfully submitted the failure thread.");
+    }
+
     // for each test script
     logger.info(
         "Test Scripts: Creating a thread pool for each TestScript and kicking off the user journeys");
@@ -154,37 +170,11 @@ class TestRunner {
       TestScript testScript = scripts.get(tsCtr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
 
-      // Failure Thread: fetch script specification if config is defined
-      TestScript failureScript = null;
-      boolean runFailureScript = false;
-
-      FailureScriptSpecification failureScriptSpecification =
-          testScriptSpecification.failureScriptSpecification();
-      if (failureScriptSpecification != null) {
-        failureScript = failureScriptSpecification.failureScriptClassInstance();
-        failureScript.setParameters(failureScriptSpecification.parameters);
-        runFailureScript = true;
-      }
-
       // create a thread pool for running its user journeys
-      int numThreads =
-          runFailureScript
-              ? testScriptSpecification.numberToRunInParallel + 1
-              : testScriptSpecification.numberToRunInParallel;
-      logger.debug("Creating thread pool with {} threads.", numThreads);
-      ThreadPoolExecutor threadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(numThreads);
+      ThreadPoolExecutor threadPool =
+          (ThreadPoolExecutor)
+              Executors.newFixedThreadPool(testScriptSpecification.numberToRunInParallel);
       threadPools.add(threadPool);
-
-      // Failure Thread: submit thread to run failure script if defined
-      if (runFailureScript) {
-        logger.debug("adding the failure thread to the pool.");
-        ApiClient failureApiClient = apiClientList.get(0);
-        UserJourneyThread ujt =
-            new UserJourneyThread(
-                failureScript, failureScriptSpecification.description, failureApiClient);
-        threadPool.submit(ujt);
-        logger.debug("successfully submitted the failure thread.");
-      }
 
       // kick off the user journey(s), one per thread
       List<Future<UserJourneyResult>> userJourneyFutures = new ArrayList<>();

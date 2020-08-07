@@ -7,6 +7,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -43,6 +44,8 @@ public class JobServiceTest {
     @Autowired
     private ApplicationConfiguration appConfig;
 
+    // This test is unreliable. See https://broadworkbench.atlassian.net/browse/DR-1248
+    @Ignore
     @Test
     public void retrieveTest() throws Exception {
         // We perform 7 flights and then retrieve and enumerate them.

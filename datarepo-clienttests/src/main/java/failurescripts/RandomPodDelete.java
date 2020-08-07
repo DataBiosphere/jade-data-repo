@@ -9,6 +9,11 @@ import runner.config.TestUserSpecification;
 import utils.KubernetesClientUtils;
 
 public class RandomPodDelete extends TestScript {
+  public RandomPodDelete() {
+    super();
+    manipulatesKubernetes = true;
+  }
+
   private static final Logger logger = LoggerFactory.getLogger(RandomPodDelete.class);
 
   private int repeatFailureCount = 1;

@@ -92,6 +92,15 @@ public class TestConfiguration implements SpecificationInterface {
     application.validate();
     if (failureScript != null) {
       failureScript.validate();
+
+      if (server.skipKubernetes
+          && failureScript.failureScriptClassInstance().manipulatesKubernetes()) {
+        throw new IllegalArgumentException(
+            "The Failure Script class "
+                + failureScript.failureScriptName
+                + " manipulates Kubernetes, but the server specification has disabled Kubernetes manipulations"
+                + " (see server.skipKubernetes flag).");
+      }
     }
 
     logger.debug("Validating the test script specifications");

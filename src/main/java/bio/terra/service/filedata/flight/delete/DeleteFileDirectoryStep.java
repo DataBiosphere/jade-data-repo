@@ -26,7 +26,7 @@ public class DeleteFileDirectoryStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         try {
             boolean found = fileDao.deleteDirectoryEntry(dataset, fileId);
             DeleteResponseModel.ObjectStateEnum stateEnum =

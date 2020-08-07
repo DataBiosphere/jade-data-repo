@@ -19,19 +19,15 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 
 @Component
 public class FireStoreUtils {
 
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
 
-    <T> T transactionGet(String op, ApiFuture<T> transaction) {
+    <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {
         try {
             return transaction.get();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException(op + " - execution interrupted", ex);
         } catch (ExecutionException ex) {
             throw handleExecutionException(ex, op);
         }
@@ -121,7 +117,7 @@ public class FireStoreUtils {
     void scanCollectionObjects(Firestore firestore,
                                String collectionId,
                                int batchSize,
-                               Consumer<QueryDocumentSnapshot> func) {
+                               InterruptibleConsumer<QueryDocumentSnapshot> func) throws InterruptedException {
         CollectionReference datasetCollection = firestore.collection(collectionId);
         try {
             int batchCount = 0;
@@ -137,9 +133,6 @@ public class FireStoreUtils {
                     visited++;
                 }
             } while (visited >= batchSize);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("scanning collection - execution interrupted", ex);
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("scanning collection - execution exception", ex);
         }

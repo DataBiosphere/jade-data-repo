@@ -24,14 +24,14 @@ public class CreateSnapshotFireStoreComputeStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
         fileDao.snapshotCompute(snapshot);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
         // No undo - if we are undoing all the way, the whole snapshot file system will get
         // torn down.
         return StepResult.getStepResultSuccess();

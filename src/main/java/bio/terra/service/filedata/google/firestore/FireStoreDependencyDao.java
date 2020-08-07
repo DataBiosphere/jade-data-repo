@@ -88,7 +88,9 @@ public class FireStoreDependencyDao {
         }
     }
 
-    public void storeSnapshotFileDependencies(Dataset dataset, String snapshotId, List<String> refIds) {
+    public void storeSnapshotFileDependencies(Dataset dataset, String snapshotId, List<String> refIds)
+        throws InterruptedException {
+
         // TODO: Right now storing and deleting (below) are not done in a single
         //  transaction. That is possible, but more complicated. The assumption is that at a higher layer
         //  we will eventually implement some concurrency control so that incompatible operations - like
@@ -121,7 +123,9 @@ public class FireStoreDependencyDao {
         }
     }
 
-    public void storeSnapshotFileDependency(Dataset dataset, String snapshotId, String fileId) {
+    public void storeSnapshotFileDependency(Dataset dataset, String snapshotId, String fileId)
+        throws InterruptedException {
+
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
@@ -167,7 +171,9 @@ public class FireStoreDependencyDao {
         fireStoreUtils.transactionGet("store dependency", transaction);
     }
 
-    public void removeSnapshotFileDependency(Dataset dataset, String snapshotId, String fileId) {
+    public void removeSnapshotFileDependency(Dataset dataset, String snapshotId, String fileId)
+        throws InterruptedException {
+
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());

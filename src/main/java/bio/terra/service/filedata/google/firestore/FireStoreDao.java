@@ -1,12 +1,12 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.service.dataset.DatasetDataProject;
-import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.FSDir;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSItem;
+import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDataProject;
@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.function.Consumer;
 
 // Operations on a file often need to touch file and directory collections that is,
 // the FireStoreFileDao and the FireStoreDirectoryDao.
@@ -54,35 +53,37 @@ public class FireStoreDao {
         this.dataLocationService = dataLocationService;
     }
 
-    public void createDirectoryEntry(Dataset dataset, FireStoreDirectoryEntry newEntry) {
+    public void createDirectoryEntry(Dataset dataset, FireStoreDirectoryEntry newEntry) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = newEntry.getDatasetId();
         directoryDao.createDirectoryEntry(firestore, datasetId, newEntry);
     }
 
-    public boolean deleteDirectoryEntry(Dataset dataset, String fileId) {
+    public boolean deleteDirectoryEntry(Dataset dataset, String fileId) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         return directoryDao.deleteDirectoryEntry(firestore, datasetId, fileId);
     }
 
-    public void createFileMetadata(Dataset dataset, FireStoreFile newFile) {
+    public void createFileMetadata(Dataset dataset, FireStoreFile newFile) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         fileDao.createFileMetadata(firestore, datasetId, newFile);
     }
 
-    public boolean deleteFileMetadata(Dataset dataset, String fileId) {
+    public boolean deleteFileMetadata(Dataset dataset, String fileId) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         return fileDao.deleteFileMetadata(firestore, datasetId, fileId);
     }
 
-    public void deleteFilesFromDataset(Dataset dataset, Consumer<FireStoreFile> func) {
+    public void deleteFilesFromDataset(Dataset dataset, InterruptibleConsumer<FireStoreFile> func)
+        throws InterruptedException {
+
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
@@ -90,28 +91,32 @@ public class FireStoreDao {
         directoryDao.deleteDirectoryEntriesFromCollection(firestore, datasetId);
     }
 
-    public FireStoreDirectoryEntry lookupDirectoryEntry(Dataset dataset, String fileId) {
+    public FireStoreDirectoryEntry lookupDirectoryEntry(Dataset dataset, String fileId) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         return directoryDao.retrieveById(firestore, datasetId, fileId);
     }
 
-    public FireStoreDirectoryEntry lookupDirectoryEntryByPath(Dataset dataset, String path) {
+    public FireStoreDirectoryEntry lookupDirectoryEntryByPath(Dataset dataset, String path)
+        throws InterruptedException {
+
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         return directoryDao.retrieveByPath(firestore, datasetId, path);
     }
 
-    public FireStoreFile lookupFile(Dataset dataset, String fileId) {
+    public FireStoreFile lookupFile(Dataset dataset, String fileId) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         return fileDao.retrieveFileMetadata(firestore, datasetId, fileId);
     }
 
-    public void addFilesToSnapshot(Dataset dataset, Snapshot snapshot, List<String> refIds) {
+    public void addFilesToSnapshot(Dataset dataset, Snapshot snapshot, List<String> refIds)
+        throws InterruptedException {
+
         DatasetDataProject datasetDataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore datasetFirestore = FireStoreProject.get(datasetDataProject.getGoogleProjectId()).getFirestore();
         SnapshotDataProject snapshotDataProject = dataLocationService.getProjectOrThrow(snapshot);
@@ -133,14 +138,14 @@ public class FireStoreDao {
         }
     }
 
-    public void deleteFilesFromSnapshot(Snapshot snapshot) {
+    public void deleteFilesFromSnapshot(Snapshot snapshot) throws InterruptedException {
         SnapshotDataProject dataProject = dataLocationService.getProjectOrThrow(snapshot);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String snapshotId = snapshot.getId().toString();
         directoryDao.deleteDirectoryEntriesFromCollection(firestore, snapshotId);
     }
 
-    public void snapshotCompute(Snapshot snapshot) {
+    public void snapshotCompute(Snapshot snapshot) throws InterruptedException {
         SnapshotDataProject dataProject = dataLocationService.getProjectOrThrow(snapshot);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String snapshotId = snapshot.getId().toString();
@@ -167,7 +172,7 @@ public class FireStoreDao {
     public FSItem retrieveByPath(FSContainerInterface container,
                                  String fullPath,
                                  int enumerateDepth,
-                                 boolean throwOnNotFound) {
+                                 boolean throwOnNotFound) throws InterruptedException {
         Firestore firestore = FireStoreProject.get(getProjectIdForFSContainer(container)).getFirestore();
         String datasetId = container.getId().toString();
 
@@ -190,7 +195,7 @@ public class FireStoreDao {
     public FSItem retrieveById(FSContainerInterface container,
                                String fileId,
                                int enumerateDepth,
-                               boolean throwOnNotFound) {
+                               boolean throwOnNotFound) throws InterruptedException {
         Firestore firestore = FireStoreProject.get(getProjectIdForFSContainer(container)).getFirestore();
         String datasetId = container.getId().toString();
 
@@ -198,7 +203,7 @@ public class FireStoreDao {
         return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fileId);
     }
 
-    public List<String> validateRefIds(Dataset dataset, List<String> refIdArray) {
+    public List<String> validateRefIds(Dataset dataset, List<String> refIdArray) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
@@ -213,7 +218,7 @@ public class FireStoreDao {
                                   int enumerateDepth,
                                   FireStoreDirectoryEntry fireStoreDirectoryEntry,
                                   boolean throwOnNotFound,
-                                  String context) {
+                                  String context) throws InterruptedException {
         if (fireStoreDirectoryEntry == null) {
             return handleNotFound(throwOnNotFound, context);
         }
@@ -227,9 +232,8 @@ public class FireStoreDao {
             }
             return fsFile;
         }
-        FSItem fsItem = makeFSDir(firestore, collectionId, enumerateDepth, fireStoreDirectoryEntry);
 
-        return fsItem;
+        return makeFSDir(firestore, collectionId, enumerateDepth, fireStoreDirectoryEntry);
     }
 
     private FSItem handleNotFound(boolean throwOnNotFound, String context) {
@@ -243,7 +247,7 @@ public class FireStoreDao {
     private FSItem makeFSDir(Firestore firestore,
                              String collectionId,
                              int level,
-                             FireStoreDirectoryEntry fireStoreDirectoryEntry) {
+                             FireStoreDirectoryEntry fireStoreDirectoryEntry) throws InterruptedException {
         if (fireStoreDirectoryEntry.getIsFileRef()) {
             throw new IllegalStateException("Expected directory; got file!");
         }
@@ -288,7 +292,7 @@ public class FireStoreDao {
     // Handle files - the fireStoreDirectoryEntry is a reference to a file in a dataset.
     private FSItem makeFSFile(Firestore firestore,
                               String collectionId,
-                              FireStoreDirectoryEntry fireStoreDirectoryEntry) {
+                              FireStoreDirectoryEntry fireStoreDirectoryEntry) throws InterruptedException {
         if (!fireStoreDirectoryEntry.getIsFileRef()) {
             throw new IllegalStateException("Expected file; got directory!");
         }
@@ -325,7 +329,9 @@ public class FireStoreDao {
     }
 
     // Recursively compute the size and checksums of a directory
-    FireStoreDirectoryEntry computeDirectory(Firestore firestore, String snapshotId, FireStoreDirectoryEntry dirEntry) {
+    FireStoreDirectoryEntry computeDirectory(Firestore firestore,
+                                             String snapshotId,
+                                             FireStoreDirectoryEntry dirEntry) throws InterruptedException {
         String fullPath = fireStoreUtils.getFullPath(dirEntry.getPath(), dirEntry.getName());
         List<FireStoreDirectoryEntry> enumDir = directoryDao.enumerateDirectory(firestore, snapshotId, fullPath);
 

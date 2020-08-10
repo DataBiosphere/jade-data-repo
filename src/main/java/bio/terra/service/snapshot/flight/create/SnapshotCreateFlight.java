@@ -48,12 +48,6 @@ public class SnapshotCreateFlight extends Flight {
         // create the snapshot metadata object in postgres and lock it
         addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
 
-        // Create the IAM resource and readers for the snapshot
-        // The IAM code contains retries, so we don't make a retry rule here.
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-        addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq));
-
         // Make the big query dataset with views and populate row id filtering tables.
         // Depending on the type of snapshot, the primary data step will differ:
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
@@ -83,8 +77,13 @@ public class SnapshotCreateFlight extends Flight {
         // compute the row counts for each of the snapshot tables and store in metadata
         addStep(new CountSnapshotTableRowsStep(bigQueryPdao, snapshotDao, snapshotReq));
 
-        // Make the firestore file system for the snapshot
+        // Create the IAM resource and readers for the snapshot
+        // The IAM code contains retries, so we don't make a retry rule here.
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+        addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq));
 
+        // Make the firestore file system for the snapshot
         addStep(new CreateSnapshotFireStoreDataStep(
             bigQueryPdao, snapshotService, dependencyDao, datasetService, snapshotReq, fileDao));
 

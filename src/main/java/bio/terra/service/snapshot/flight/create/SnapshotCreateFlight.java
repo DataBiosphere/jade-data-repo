@@ -48,6 +48,12 @@ public class SnapshotCreateFlight extends Flight {
         // create the snapshot metadata object in postgres and lock it
         addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
 
+        // Create the IAM resource and readers for the snapshot
+        // The IAM code contains retries, so we don't make a retry rule here.
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+        addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq));
+
         // Make the big query dataset with views and populate row id filtering tables.
         // Depending on the type of snapshot, the primary data step will differ:
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
@@ -84,12 +90,6 @@ public class SnapshotCreateFlight extends Flight {
 
         // Calculate checksums and sizes for all directories in the snapshot
         addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
-
-        // Create the IAM resource and readers for the snapshot
-        // The IAM code contains retries, so we don't make a retry rule here.
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-        addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq));
 
         // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes. The max
         // operation timeout is generous.

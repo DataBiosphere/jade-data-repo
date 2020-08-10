@@ -23,7 +23,7 @@ public class TestConfiguration implements SpecificationInterface {
   public ApplicationSpecification application;
   public List<TestScriptSpecification> testScripts;
   public List<TestUserSpecification> testUsers = new ArrayList<>();
-  public FailureScriptSpecification failureScript;
+  public DisruptiveScriptSpecification disruptiveScript;
 
   public static final String resourceDirectory = "configs";
   public static final String serverFileEnvironmentVarName = "TEST_RUNNER_SERVER_SPECIFICATION_FILE";
@@ -90,14 +90,14 @@ public class TestConfiguration implements SpecificationInterface {
     server.validate();
     kubernetes.validate();
     application.validate();
-    if (failureScript != null) {
-      failureScript.validate();
+    if (disruptiveScript != null) {
+        disruptiveScript.validate();
 
       if (server.skipKubernetes
-          && failureScript.failureScriptClassInstance().manipulatesKubernetes()) {
+          && disruptiveScript.disruptiveScriptClassInstance().manipulatesKubernetes()) {
         throw new IllegalArgumentException(
-            "The Failure Script class "
-                + failureScript.failureScriptName
+            "The Disruptive Script class "
+                + disruptiveScript.name
                 + " manipulates Kubernetes, but the server specification has disabled Kubernetes manipulations"
                 + " (see server.skipKubernetes flag).");
       }

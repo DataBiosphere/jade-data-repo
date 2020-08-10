@@ -147,10 +147,10 @@ class TestRunner {
     }
 
     // Failure Thread: fetch script specification if config is defined
-    if (config.failureScript != null) {
-      logger.debug("Creating thread pool for failure script.");
-      TestScript failureScript = config.failureScript.failureScriptClassInstance();
-      failureScript.setParameters(config.failureScript.parameters);
+    if (config.disruptiveScript != null) {
+      logger.debug("Creating thread pool for disruptive script.");
+      DisruptiveScript disruptiveScript = config.disruptiveScript.disruptiveScriptClassInstance();
+      disruptiveScript.setParameters(config.disruptiveScript.parameters);
 
       // create a thread pool for running its user journeys
       ThreadPoolExecutor failureThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
@@ -158,7 +158,7 @@ class TestRunner {
 
       TestUserSpecification failureTestUser = config.testUsers.get(0);
       UserJourneyThread ujt =
-          new UserJourneyThread(failureScript, config.failureScript.description, failureTestUser);
+          new Thread(disruptiveScript, config.disruptiveScript.description, failureTestUser);
       failureThreadPool.submit(ujt);
       logger.debug("successfully submitted the failure thread.");
     }
@@ -340,6 +340,32 @@ class TestRunner {
       return result;
     }
   }
+
+    static class CauseTroubleThread implements Callable<CauseTroubleResult> {
+        DisruptiveScript disruptiveScript;
+        String description;
+        List<TestUserSpecification> testUsers;
+
+        public CauseTroubleThread(
+            DisruptiveScript disruptiveScript, String description, List<TestUserSpecification> testUsers) {
+            this.disruptiveScript = disruptiveScript;
+            this.description = description;
+            this.testUsers = testUsers;
+        }
+
+        public CauseTroubleResult call() {
+            CauseTroubleResult result =
+                new CauseTroubleResult(description, Thread.currentThread().getName());
+
+            try {
+                disruptiveScript.causeTrouble(testUsers);
+            } catch (Exception ex) {
+                result.exceptionThrown = ex;
+            }
+
+            return result;
+        }
+    }
 
   void modifyKubernetesPostDeployment() throws Exception {
     logger.info(

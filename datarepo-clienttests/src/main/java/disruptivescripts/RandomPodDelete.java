@@ -1,14 +1,14 @@
-package failurescripts;
+package disruptivescripts;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.TestScript;
+import runner.DisruptiveScript;
 import runner.config.TestUserSpecification;
 import utils.KubernetesClientUtils;
 
-public class RandomPodDelete extends TestScript {
+public class RandomPodDelete extends DisruptiveScript {
   public RandomPodDelete() {
     super();
     manipulatesKubernetes = true;
@@ -37,8 +37,8 @@ public class RandomPodDelete extends TestScript {
     }
   }
 
-  public void userJourney(TestUserSpecification testUser) throws Exception {
-    logger.debug("Starting failure script.");
+  public void causeTrouble(TestUserSpecification testUser) throws Exception {
+    logger.debug("Starting cause trouble script.");
     for (int i = 0; i < repeatFailureCount; i++) {
       TimeUnit.SECONDS.sleep(secondsWaitBeforeFailure);
       logger.debug("Deleting random pod.");

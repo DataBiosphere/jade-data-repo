@@ -1,7 +1,8 @@
 name: Alpha Nightly
 on:
-  schedule:
-    - cron: '0 2 * * *' # run at 2 AM UTC
+  pull_request
+#  schedule:
+#    - cron: '0 2 * * *' # run at 2 AM UTC
 
 jobs:
   update_image:
@@ -31,7 +32,7 @@ jobs:
           ref: develop
       - name: 'Create alpha release images'
         id: uiprevioustag
-        uses: broadinstitute/datarepo-actions@0.15.0
+        uses: broadinstitute/datarepo-actions@ms-apitagger
         with:
           actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}

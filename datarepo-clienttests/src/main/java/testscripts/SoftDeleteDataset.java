@@ -121,7 +121,8 @@ public class SoftDeleteDataset extends SimpleDataset {
             BigQueryUtils.getDatasetName(datasetModel.getName()),
             tableName,
             "datarepo_row_id",
-            1L);
+            1L,
+            0L);
     BigQuery bigQueryClient =
         BigQueryUtils.getClientForTestUser(datasetCreator, datasetModel.getDataProject());
     TableResult result = BigQueryUtils.queryBigQuery(bigQueryClient, sqlQuery);

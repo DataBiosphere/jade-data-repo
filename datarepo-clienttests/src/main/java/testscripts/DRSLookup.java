@@ -130,7 +130,8 @@ public class DRSLookup extends SimpleDataset {
             snapshotModel.getName(),
             tableModel.getName(),
             "VCF_File_Ref",
-            1L);
+            1L,
+            0L);
 
     BigQuery bigQueryClient =
         BigQueryUtils.getClientForTestUser(datasetCreator, snapshotModel.getDataProject());

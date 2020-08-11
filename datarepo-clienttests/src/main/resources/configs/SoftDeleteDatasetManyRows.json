@@ -1,6 +1,6 @@
 {
-  "name": "SoftDeleteDataset",
-  "description": "Load data into a dataset and then delete a single row 3 times",
+  "name": "SoftDeleteDatasetManyRows",
+  "description": "Load data into a dataset with 10k rows and delete 1000 rows with each request",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
@@ -9,7 +9,7 @@
   "application": {},
   "testScripts": [
     {
-      "name": "SoftDeleteDataset",
+      "name": "SoftDeleteDatasetManyRows",
       "parameters": [1000],
       "totalNumberToRun": 3,
       "numberToRunInParallel": 2,

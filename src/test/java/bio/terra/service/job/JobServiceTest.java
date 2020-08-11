@@ -100,6 +100,8 @@ public class JobServiceTest {
 
         List<JobModel> jobList = jobService.enumerateJobs(offset, limit, null);
         Assert.assertNotNull(jobList);
+        jobList.forEach(job -> logger.info("job from jobList: {}", job.getId()));
+        fids.forEach(fid -> logger.info("fid: {}", fid));
         int index = offset;
         for (JobModel job : jobList) {
             validateJobModel(job, index, fids);
@@ -127,6 +129,7 @@ public class JobServiceTest {
     }
 
     private void validateJobModel(JobModel jm, int index, List<String> fids) {
+        logger.info("validate job Model: jm: {}, fid: {}, idx: {}", jm.getId(), fids.get(index), index);
         Assert.assertThat(jm.getDescription(), is(equalTo(makeDescription(index))));
         Assert.assertThat(jm.getId(), is(equalTo(fids.get(index))));
         Assert.assertThat(jm.getJobStatus(), is(JobModel.JobStatusEnum.SUCCEEDED));
@@ -141,7 +144,7 @@ public class JobServiceTest {
     }
 
     private String makeDescription(int ii) {
-        return String.format("flight%d", ii);
+        return String.format("flight #%d", ii);
     }
 
 }

@@ -65,7 +65,7 @@ public class JobServiceTest {
 
             // Retrieve everything
            // testEnumRange(jobIds, 0, 100, allowedIds);
-            testEnumRange(jobIds, 0, 10000, allowedIds);
+            // testEnumRange(jobIds, 0, 10000, allowedIds);
 
             // Retrieve the middle 3; offset means skip 2 rows
             testEnumRange(jobIds, 2, 3, allowedIds);

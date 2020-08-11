@@ -77,19 +77,18 @@ public class SnapshotCreateFlight extends Flight {
         // compute the row counts for each of the snapshot tables and store in metadata
         addStep(new CountSnapshotTableRowsStep(bigQueryPdao, snapshotDao, snapshotReq));
 
-        // Make the firestore file system for the snapshot
-
-        addStep(new CreateSnapshotFireStoreDataStep(
-            bigQueryPdao, snapshotService, dependencyDao, datasetService, snapshotReq, fileDao));
-
-        // Calculate checksums and sizes for all directories in the snapshot
-        addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
-
         // Create the IAM resource and readers for the snapshot
         // The IAM code contains retries, so we don't make a retry rule here.
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq));
+
+        // Make the firestore file system for the snapshot
+        addStep(new CreateSnapshotFireStoreDataStep(
+            bigQueryPdao, snapshotService, dependencyDao, datasetService, snapshotReq, fileDao));
+
+        // Calculate checksums and sizes for all directories in the snapshot
+        addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
 
         // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes. The max
         // operation timeout is generous.

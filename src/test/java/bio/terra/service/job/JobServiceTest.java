@@ -10,6 +10,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.junit.Ignore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ public class JobServiceTest {
     @Autowired
     private ApplicationConfiguration appConfig;
 
+    @Ignore
     @Test
     public void retrieveTest() throws Exception {
         // We perform 7 flights and then retrieve and enumerate them.

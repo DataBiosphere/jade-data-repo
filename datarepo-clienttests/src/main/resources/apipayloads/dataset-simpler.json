@@ -1,6 +1,6 @@
 {
-  "name":        "DatasetSimple",
-  "description": "Simple dataset definition",
+  "name":        "DatasetSimpleNoFileRef",
+  "description": "Simple dataset definition with no file ref",
   "defaultProfileId": "",
   "schema":      {
     "tables":        [

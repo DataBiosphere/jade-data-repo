@@ -44,6 +44,7 @@ public class JobServiceTest {
     @Autowired
     private ApplicationConfiguration appConfig;
 
+    // todo - fix w/ DR-1255
     @Ignore
     @Test
     public void retrieveTest() throws Exception {

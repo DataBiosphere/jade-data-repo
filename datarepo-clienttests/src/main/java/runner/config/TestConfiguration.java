@@ -91,7 +91,7 @@ public class TestConfiguration implements SpecificationInterface {
     kubernetes.validate();
     application.validate();
     if (disruptiveScript != null) {
-        disruptiveScript.validate();
+      disruptiveScript.validate();
 
       if (server.skipKubernetes
           && disruptiveScript.disruptiveScriptClassInstance().manipulatesKubernetes()) {

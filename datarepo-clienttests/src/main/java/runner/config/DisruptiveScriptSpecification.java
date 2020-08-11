@@ -21,11 +21,11 @@ public class DisruptiveScriptSpecification implements SpecificationInterface {
   public void validate() {
     try {
       Class<?> scriptClassGeneric = Class.forName(disruptiveScriptsPackage + "." + name);
-      Class<? extends DisruptiveScript> scriptClass = (Class<? extends DisruptiveScript>) scriptClassGeneric;
+      Class<? extends DisruptiveScript> scriptClass =
+          (Class<? extends DisruptiveScript>) scriptClassGeneric;
       disruptiveScriptClassInstance = scriptClass.newInstance();
     } catch (ClassNotFoundException | ClassCastException classEx) {
-      throw new IllegalArgumentException(
-          "Disruptive script class not found: " + name, classEx);
+      throw new IllegalArgumentException("Disruptive script class not found: " + name, classEx);
     } catch (IllegalAccessException | InstantiationException niEx) {
       throw new IllegalArgumentException(
           "Error calling constructor of TestScript class: " + name, niEx);

@@ -1,6 +1,6 @@
 {
-  "name": "FailurePatternExample",
-  "description": "Example use of failure scripts during bulk load",
+  "name": "BulkLoadPodDeleteDisruption",
+  "description": "3 bulk file loads each on 2 different datasets, while killing a random pod after ~30 seconds",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
@@ -22,7 +22,7 @@
       "parameters": [2],
       "totalNumberToRun": 3,
       "numberToRunInParallel": 1,
-      "expectedTimeForEach": 1000000,
+      "expectedTimeForEach": 300,
       "expectedTimeForEachUnit": "SECONDS"
     },
     {
@@ -30,9 +30,9 @@
       "parameters": [4],
       "totalNumberToRun": 3,
       "numberToRunInParallel": 1,
-      "expectedTimeForEach": 1000000,
+      "expectedTimeForEach": 300,
       "expectedTimeForEachUnit": "SECONDS"
     }
   ],
-  "testUserFiles": ["dumbledore.json"]
+  "testUserFiles": ["dumbledore.json", "george.json", "harry.json", "hermione.json", "mcgonagall.json", "neville.json", "voldemort.json"]
 }

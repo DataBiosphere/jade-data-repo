@@ -151,16 +151,16 @@ class TestRunner {
       logger.debug("Creating thread pool for disruptive script.");
       DisruptiveScript disruptiveScript = config.disruptiveScript.disruptiveScriptClassInstance();
       disruptiveScript.setParameters(config.disruptiveScript.parameters);
+      disruptiveScript.setup(config.testUsers);
 
       // create a thread pool for running its user journeys
-      ThreadPoolExecutor failureThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-      threadPools.add(failureThreadPool);
+      ThreadPoolExecutor disruptionThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+      threadPools.add(disruptionThreadPool);
 
-      TestUserSpecification failureTestUser = config.testUsers.get(0);
-      UserJourneyThread ujt =
-          new Thread(disruptiveScript, config.disruptiveScript.description, failureTestUser);
-      failureThreadPool.submit(ujt);
-      logger.debug("successfully submitted the failure thread.");
+      DisruptiveThread disruptiveThread =
+          new DisruptiveThread(disruptiveScript, config.disruptiveScript.description, config.testUsers);
+      disruptionThreadPool.submit(disruptiveThread);
+      logger.debug("Successfully submitted disruptive thread.");
     }
 
     // for each test script
@@ -341,24 +341,24 @@ class TestRunner {
     }
   }
 
-    static class CauseTroubleThread implements Callable<CauseTroubleResult> {
+    static class DisruptiveThread implements Callable<DisruptionResult> {
         DisruptiveScript disruptiveScript;
         String description;
         List<TestUserSpecification> testUsers;
 
-        public CauseTroubleThread(
+        public DisruptiveThread(
             DisruptiveScript disruptiveScript, String description, List<TestUserSpecification> testUsers) {
             this.disruptiveScript = disruptiveScript;
             this.description = description;
             this.testUsers = testUsers;
         }
 
-        public CauseTroubleResult call() {
-            CauseTroubleResult result =
-                new CauseTroubleResult(description, Thread.currentThread().getName());
+        public DisruptionResult call() {
+            DisruptionResult result =
+                new DisruptionResult(description, Thread.currentThread().getName());
 
             try {
-                disruptiveScript.causeTrouble(testUsers);
+                disruptiveScript.disrupt(testUsers);
             } catch (Exception ex) {
                 result.exceptionThrown = ex;
             }

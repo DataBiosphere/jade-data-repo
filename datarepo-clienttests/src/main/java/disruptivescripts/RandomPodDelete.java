@@ -16,31 +16,31 @@ public class RandomPodDelete extends DisruptiveScript {
 
   private static final Logger logger = LoggerFactory.getLogger(RandomPodDelete.class);
 
-  private int repeatFailureCount = 1;
-  private int secondsWaitBeforeFailure = 30;
+  private int repeatCount = 1;
+  private int secondsBetweenRepeat = 30;
 
   public void setParameters(List<String> parameters) {
 
     if (parameters == null || parameters.size() != 2) {
       throw new IllegalArgumentException(
-          "Must have 2 parameters in the parameters list: repeatFailureCount & secondsWaitBeforeFailure");
+          "Must have 2 parameters in the parameters list: repeatCount & secondsBetweenRepeat");
     }
-    repeatFailureCount = Integer.parseInt(parameters.get(0));
-    secondsWaitBeforeFailure = Integer.parseInt(parameters.get(1));
+    repeatCount = Integer.parseInt(parameters.get(0));
+    secondsBetweenRepeat = Integer.parseInt(parameters.get(1));
 
-    if (repeatFailureCount <= 0) {
-      throw new IllegalArgumentException("Total failure counts must be >=0.");
+    if (repeatCount <= 0) {
+      throw new IllegalArgumentException("Total disruption count must be >=0.");
     }
 
-    if (secondsWaitBeforeFailure <= 0) {
-      throw new IllegalArgumentException("Time to wait for each failure must be >=0.");
+    if (secondsBetweenRepeat <= 0) {
+      throw new IllegalArgumentException("Time to wait between each disruption must be >=0.");
     }
   }
 
-  public void causeTrouble(TestUserSpecification testUser) throws Exception {
-    logger.debug("Starting cause trouble script.");
-    for (int i = 0; i < repeatFailureCount; i++) {
-      TimeUnit.SECONDS.sleep(secondsWaitBeforeFailure);
+  public void disrupt(List<TestUserSpecification> testUsers) throws Exception {
+    logger.debug("Starting disruption.");
+    for (int i = 0; i < repeatCount; i++) {
+      TimeUnit.SECONDS.sleep(secondsBetweenRepeat);
       logger.debug("Deleting random pod.");
       KubernetesClientUtils.deleteRandomPod();
     }

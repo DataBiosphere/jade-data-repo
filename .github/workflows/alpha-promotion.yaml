@@ -1,0 +1,32 @@
+name: Alpha Nightly Promotion
+on:
+  pull_request
+#  schedule:
+#    - cron: '30 2 * * *' # run at 2:30 AM UTC
+
+jobs:
+  update_image:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: 'Get Previous tag'
+        id: apiprevioustag
+        uses: "broadinstitute/github-action-get-previous-tag@master"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: 'Checkout datarepo-helm-definitions repo'
+        uses: actions/checkout@v2
+        with:
+          repository: 'broadinstitute/terra-helmfile'
+          token: ${{ secrets.HELM_REPO_TOKEN }}
+          path: terra-helmfile
+      - name: "Find and replace Datarepo version in versions.yaml"
+        uses: docker://mikefarah/yq:latest
+        with:
+          args: version

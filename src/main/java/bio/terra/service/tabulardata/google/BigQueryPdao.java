@@ -563,12 +563,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
             if (rowIds.size() > 0) {
 
                 int maxValuesInArray = 10000; // To prevent BQ choking on a huge array, split it up into chunks
-                long iterationsToLoopThrough = round(ceil(rowIds.size() / maxValuesInArray));
+                long iterationsToLoopThrough = round(ceil((double)rowIds.size() / maxValuesInArray));
 
                 for (int i = 0; i <= iterationsToLoopThrough; i++) {
                     int start = maxValuesInArray * i;
                     int end = (rowIds.size() - start) < maxValuesInArray ? rowIds.size() : start + maxValuesInArray;
-                    List<String> inputValuesSubList = rowIds.subList(start, end);
+                    List<String> inputValuesSubList = rowIds.subList(start, end); // (inclusive, exclusive)
 
                     ST sqlTemplate = new ST(loadRootRowIdsTemplate);
                     sqlTemplate.add("project", projectId);
@@ -1380,17 +1380,17 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         // Execute the query building the row id match structure that tracks the matching
         // ids and the mismatched ids
-        RowIdMatch rowIdMatch = new RowIdMatch(); // TODO this should be out of the loop
+        RowIdMatch rowIdMatch = new RowIdMatch();
 
         int maxValuesInArray = 10000; // To prevent BQ choking on a huge array, split it up into chunks
-        long iterationsToLoopThrough = round(ceil(rowIds.size() / maxValuesInArray));
+        long iterationsToLoopThrough = round(ceil((double)rowIds.size() / maxValuesInArray));
 
         for (int i = 0; i <= iterationsToLoopThrough; i++) {
             int start = maxValuesInArray * i;
             int end = (rowIds.size() - start) < maxValuesInArray ? rowIds.size() : start + maxValuesInArray;
-            List<String> inputValuesSubList = rowIds.subList(start, end);
+            List<String> inputValuesSubList = rowIds.subList(start, end); // (inclusive, exclusive)
 
-            ST sqlTemplate = new ST(mapValuesToRowsTemplate); // TODO this is the breaking query for Raaid
+            ST sqlTemplate = new ST(mapValuesToRowsTemplate); // This query fails w >100k rows
             sqlTemplate.add("project", bigQueryProject.getProjectId());
             sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
             sqlTemplate.add("table", tableName);

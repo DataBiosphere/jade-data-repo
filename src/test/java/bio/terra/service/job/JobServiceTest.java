@@ -6,6 +6,7 @@ import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
+import org.junit.Ignore;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -44,6 +45,7 @@ public class JobServiceTest {
     @Autowired
     private ApplicationConfiguration appConfig;
 
+    // todo - fix w/ DR-1255
     @Ignore
     @Test
     public void retrieveTest() throws Exception {

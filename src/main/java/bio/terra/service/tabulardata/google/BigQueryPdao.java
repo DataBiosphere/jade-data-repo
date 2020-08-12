@@ -561,13 +561,23 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             List<String> rowIds = table.getRowIds();
             if (rowIds.size() > 0) {
-                ST sqlTemplate = new ST(loadRootRowIdsTemplate);
-                sqlTemplate.add("project", projectId);
-                sqlTemplate.add("snapshot", snapshotName);
-                sqlTemplate.add("dataset", datasetBqDatasetName);
-                sqlTemplate.add("tableId", sourceTable.getId().toString());
-                sqlTemplate.add("rowIds", rowIds);
-                bigQueryProject.query(sqlTemplate.render());
+
+                int maxValuesInArray = 10000; // To prevent BQ choking on a huge array, split it up into chunks
+                long iterationsToLoopThrough = round(ceil(rowIds.size() / maxValuesInArray));
+
+                for (int i = 0; i <= iterationsToLoopThrough; i++) {
+                    int start = maxValuesInArray * i;
+                    int end = (rowIds.size() - start) < maxValuesInArray ? rowIds.size() : start + maxValuesInArray;
+                    List<String> inputValuesSubList = rowIds.subList(start, end);
+
+                    ST sqlTemplate = new ST(loadRootRowIdsTemplate);
+                    sqlTemplate.add("project", projectId);
+                    sqlTemplate.add("snapshot", snapshotName);
+                    sqlTemplate.add("dataset", datasetBqDatasetName);
+                    sqlTemplate.add("tableId", sourceTable.getId().toString());
+                    sqlTemplate.add("rowIds", inputValuesSubList);
+                    bigQueryProject.query(sqlTemplate.render());
+                }
             }
             ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
             sqlTemplate.add("project", projectId);

@@ -30,7 +30,6 @@ jobs:
           path: jade-data-repo-ui
           ref: develop
       - name: 'Create alpha release images'
-        id: uiprevioustag
         uses: broadinstitute/datarepo-actions@0.17.0
         with:
           actions_subcommand: 'alpharelease'

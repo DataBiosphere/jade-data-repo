@@ -4,7 +4,7 @@ on:
 #  schedule:
 #    - cron: '30 2 * * *' # run at 2:30 AM UTC
 env:
-  chartVersion: 0.15.0
+  chartVersion: 0.1.15
   uiVersion: 0.0.6
 
 jobs:
@@ -41,9 +41,18 @@ jobs:
         uses: docker://mikefarah/yq:latest
         with:
           args: yq r terra-helmfile/versions.yaml releases.datarepo
-      - name: Commit files
-        run: |
-          git -C terra-helmfile config --local user.email "robot@jade.team"
-          git -C terra-helmfile config --local user.name "$GITHUB_ACTOR"
-          git -C terra-helmfile commit -m "Added version.yaml changes for Datarepo" -a
-          git -C terra-helmfile diff
+      - name: Create pull request
+        uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
+        id: create-pr
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          path: $GITHUB_WORKSPACE/terra-helmfile
+          commit-message: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
+          committer: "broadbot <broadbot@broadinstitute.org>"
+          author: "broadbot <broadbot@broadinstitute.org>"
+          title: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
+          branch: "version-update/${{ steps.apiprevioustag.outputs.tag }}"
+          body: |
+            Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
+            *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
+          labels: "broadbot,datarepo"

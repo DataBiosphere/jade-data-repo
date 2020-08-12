@@ -82,6 +82,8 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
+import static java.lang.Math.ceil;
+import static java.lang.Math.round;
 
 @Component
 @Profile("google")
@@ -1366,29 +1368,39 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .table(optTable.get().getFromTable())
             .name(PDAO_ROW_ID_COLUMN);
 
-        ST sqlTemplate = new ST(mapValuesToRowsTemplate);
-        sqlTemplate.add("project", bigQueryProject.getProjectId());
-        sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
-        sqlTemplate.add("table", tableName);
-        sqlTemplate.add("column", rowIdColumn.getName());
-        sqlTemplate.add("inputVals", rowIds);
-
         // Execute the query building the row id match structure that tracks the matching
         // ids and the mismatched ids
-        RowIdMatch rowIdMatch = new RowIdMatch();
-        String sql = sqlTemplate.render();
-        logger.debug("mapValuesToRows sql: " + sql);
-        TableResult result = bigQueryProject.query(sql);
-        for (FieldValueList row : result.iterateAll()) {
-            // Test getting these by name
-            FieldValue rowId = row.get(0);
-            FieldValue inputValue = row.get(1);
-            if (rowId.isNull()) {
-                rowIdMatch.addMismatch(inputValue.getStringValue());
-                logger.debug("rowId=<NULL>" + "  inVal=" + inputValue.getStringValue());
-            } else {
-                rowIdMatch.addMatch(inputValue.getStringValue(), rowId.getStringValue());
-                logger.debug("rowId=" + rowId.getStringValue() + "  inVal=" + inputValue.getStringValue());
+        RowIdMatch rowIdMatch = new RowIdMatch(); // TODO this should be out of the loop
+
+        int maxValuesInArray = 10000; // To prevent BQ choking on a huge array, split it up into chunks
+        long iterationsToLoopThrough = round(ceil(rowIds.size() / maxValuesInArray));
+
+        for (int i = 0; i <= iterationsToLoopThrough; i++) {
+            int start = maxValuesInArray * i;
+            int end = (rowIds.size() - start) < maxValuesInArray ? rowIds.size() : start + maxValuesInArray;
+            List<String> inputValuesSubList = rowIds.subList(start, end);
+
+            ST sqlTemplate = new ST(mapValuesToRowsTemplate); // TODO this is the breaking query for Raaid
+            sqlTemplate.add("project", bigQueryProject.getProjectId());
+            sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
+            sqlTemplate.add("table", tableName);
+            sqlTemplate.add("column", rowIdColumn.getName());
+            sqlTemplate.add("inputVals", inputValuesSubList);
+
+            String sql = sqlTemplate.render();
+            logger.debug("mapValuesToRows sql: " + sql);
+            TableResult result = bigQueryProject.query(sql);
+            for (FieldValueList row : result.iterateAll()) {
+                // Test getting these by name
+                FieldValue rowId = row.get(0);
+                FieldValue inputValue = row.get(1);
+                if (rowId.isNull()) {
+                    rowIdMatch.addMismatch(inputValue.getStringValue());
+                    logger.debug("rowId=<NULL>" + "  inVal=" + inputValue.getStringValue());
+                } else {
+                    rowIdMatch.addMatch(inputValue.getStringValue(), rowId.getStringValue());
+                    logger.debug("rowId=" + rowId.getStringValue() + "  inVal=" + inputValue.getStringValue());
+                }
             }
         }
 

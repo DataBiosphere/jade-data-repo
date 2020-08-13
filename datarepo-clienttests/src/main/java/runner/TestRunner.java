@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.SpecificationInterface;
 import runner.config.TestConfiguration;
 import runner.config.TestUserSpecification;
 import runner.config.TestScriptSpecification;
@@ -31,7 +30,7 @@ class TestRunner {
   TestConfiguration config;
   List<TestScript> scripts;
   DeploymentScript deploymentScript;
-  HashMap<SpecificationInterface, ThreadPoolExecutor> threadPools;
+  HashMap<TestScriptSpecification, ThreadPoolExecutor> threadPools;
   List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
   List<TestScriptResult> testScriptResults;
 
@@ -155,14 +154,13 @@ class TestRunner {
       DisruptiveScript disruptiveScript = config.disruptiveScript.disruptiveScriptClassInstance();
       disruptiveScript.setParameters(config.disruptiveScript.parameters);
 
-      // create a thread pool for running its user journeys
+      // create a thread pool for running its disrupt method
       ThreadPoolExecutor disruptionThreadPool =
           (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-      threadPools.put(config.disruptiveScript, disruptionThreadPool);
+      threadPools.put(null, disruptionThreadPool);
 
       DisruptiveThread disruptiveThread =
-          new DisruptiveThread(
-              disruptiveScript, config.disruptiveScript.description, config.testUsers);
+          new DisruptiveThread(disruptiveScript, config.testUsers);
       disruptionThreadPool.submit(disruptiveThread);
       logger.debug("Successfully submitted disruptive thread.");
     }
@@ -201,24 +199,26 @@ class TestRunner {
     logger.info("Test Scripts: Waiting until all threads either finish or time out");
     Iterator it = threadPools.entrySet().iterator();
     while (it.hasNext()) {
-      HashMap.Entry threadPoolEntry = (HashMap.Entry) it.next();
-      ThreadPoolExecutor threadPool = (ThreadPoolExecutor) threadPoolEntry.getValue();
-      SpecificationInterface script = (SpecificationInterface) threadPoolEntry.getKey();
+        HashMap.Entry threadPoolEntry = (HashMap.Entry) it.next();
+        ThreadPoolExecutor threadPool = (ThreadPoolExecutor) threadPoolEntry.getValue();
+        TestScriptSpecification script = (TestScriptSpecification) threadPoolEntry.getKey();
 
-      threadPool.shutdown();
-      long totalTerminationTime = script.expectedTimeForEach * script.totalNumberToRun;
-      boolean terminatedByItself =
-          threadPool.awaitTermination(totalTerminationTime, script.expectedTimeForEachUnitObj);
+        threadPool.shutdown();
+        if (script != null) {
+            long totalTerminationTime = script.expectedTimeForEach * script.totalNumberToRun;
+            boolean terminatedByItself =
+                threadPool.awaitTermination(totalTerminationTime, script.expectedTimeForEachUnitObj);
 
-      // if the threads didn't finish in the expected time, then send them interrupts
-      if (!terminatedByItself) {
-        threadPool.shutdownNow();
-      }
-      if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
-        logger.error(
-            "Test Scripts: Thread pool for test script failed to terminate: {}",
-            script.description);
-      }
+            // if the threads didn't finish in the expected time, then send them interrupts
+            if (!terminatedByItself) {
+                threadPool.shutdownNow();
+            }
+            if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
+                logger.error(
+                    "Test Scripts: Thread pool for test script failed to terminate: {}",
+                    script.description);
+            }
+        }
     }
 
     // compile the results from all thread pools
@@ -345,30 +345,24 @@ class TestRunner {
     }
   }
 
-  static class DisruptiveThread implements Callable<DisruptionResult> {
+  static class DisruptiveThread implements Callable {
     DisruptiveScript disruptiveScript;
-    String description;
     List<TestUserSpecification> testUsers;
 
     public DisruptiveThread(
         DisruptiveScript disruptiveScript,
-        String description,
         List<TestUserSpecification> testUsers) {
       this.disruptiveScript = disruptiveScript;
-      this.description = description;
       this.testUsers = testUsers;
     }
 
-    public DisruptionResult call() {
-      DisruptionResult result = new DisruptionResult(description, Thread.currentThread().getName());
-
+    public Object call() {
       try {
         disruptiveScript.disrupt(testUsers);
       } catch (Exception ex) {
-        result.exceptionThrown = ex;
+        logger.info("Disruptive threw exception: {}", ex.getMessage());
       }
-
-      return result;
+        return null;
     }
   }
 

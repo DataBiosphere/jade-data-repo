@@ -1030,6 +1030,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 // This relationship is not connected to the start table
                 continue;
             }
+            logger.info("The relationship is being set from column {} in table {} to column {} in table {}",
+                relationship.getFromColumnName(),
+                relationship.getFromTableName(),
+                relationship.getToColumnName(),
+                relationship.getToTableName()
+            );
 
             relationship.setVisited();
             storeRowIdsForRelatedTable(

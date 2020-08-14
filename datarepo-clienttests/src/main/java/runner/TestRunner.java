@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -200,9 +199,11 @@ class TestRunner {
       ThreadPoolExecutor threadPool = threadPools.get(ctr);
 
       threadPool.shutdown();
-      long totalTerminationTime = testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
+      long totalTerminationTime =
+          testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
       boolean terminatedByItself =
-        threadPool.awaitTermination(totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);
+          threadPool.awaitTermination(
+              totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);
 
       // if the threads didn't finish in the expected time, then send them interrupts
       if (!terminatedByItself) {

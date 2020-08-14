@@ -507,7 +507,7 @@ public class DatasetConnectedTest {
         assertTrue("Soft deleted row id is in soft delete table", softDeleteRowIds1.contains(softDeleteRowId));
 
         // repeat the same soft delete request and wait for it to return
-        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest);
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
 
         // check that the size of the live table has not changed
         List<String> liveTableRowIds2 = getRowIdsFromBQTable(summaryModel.getName(), tableName);

@@ -366,7 +366,7 @@ public class DatasetIntegrationTest extends UsersBase {
             .tables(dataDeletionTableModels);
 
         // send off the soft delete request
-        dataRepoFixtures.deleteData(steward(), datasetId, request);
+        dataRepoFixtures.deleteData(steward(), datasetId, request); // TODO This is what is breaking
 
         // make sure the new counts make sense
         assertTableCount(bigQuery, dataset, "participant", 2L);

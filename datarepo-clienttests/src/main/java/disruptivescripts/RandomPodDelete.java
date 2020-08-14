@@ -38,8 +38,10 @@ public class RandomPodDelete extends DisruptiveScript {
   }
 
   public void disrupt(List<TestUserSpecification> testUsers) throws Exception {
-    logger.info("Starting disruption - A single random pod will be deleted {} times at {} second intervals.",
-        repeatCount, secondsBetweenRepeat);
+    logger.info(
+        "Starting disruption - A single random pod will be deleted {} times at {} second intervals.",
+        repeatCount,
+        secondsBetweenRepeat);
     for (int i = 0; i < repeatCount; i++) {
       TimeUnit.SECONDS.sleep(secondsBetweenRepeat);
       logger.debug("Deleting random pod.");

@@ -17,9 +17,9 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestConfiguration;
-import runner.config.TestUserSpecification;
 import runner.config.TestScriptSpecification;
 import runner.config.TestSuite;
+import runner.config.TestUserSpecification;
 import utils.FileUtils;
 import utils.KubernetesClientUtils;
 
@@ -159,8 +159,7 @@ class TestRunner {
           (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
       threadPools.put(null, disruptionThreadPool);
 
-      DisruptiveThread disruptiveThread =
-          new DisruptiveThread(disruptiveScript, config.testUsers);
+      DisruptiveThread disruptiveThread = new DisruptiveThread(disruptiveScript, config.testUsers);
       disruptionThreadPool.submit(disruptiveThread);
       logger.debug("Successfully submitted disruptive thread.");
     }
@@ -199,26 +198,29 @@ class TestRunner {
     logger.info("Test Scripts: Waiting until all threads either finish or time out");
     Iterator it = threadPools.entrySet().iterator();
     while (it.hasNext()) {
-        HashMap.Entry threadPoolEntry = (HashMap.Entry) it.next();
-        ThreadPoolExecutor threadPool = (ThreadPoolExecutor) threadPoolEntry.getValue();
-        TestScriptSpecification script = (TestScriptSpecification) threadPoolEntry.getKey();
+      HashMap.Entry threadPoolEntry = (HashMap.Entry) it.next();
+      ThreadPoolExecutor threadPool = (ThreadPoolExecutor) threadPoolEntry.getValue();
+      TestScriptSpecification script = (TestScriptSpecification) threadPoolEntry.getKey();
+      logger.debug("Looping through to stop thread pools.");
+      threadPool.shutdown();
+      if (script != null) {
+        logger.debug("Script is NOT null.");
+        long totalTerminationTime = script.expectedTimeForEach * script.totalNumberToRun;
+        boolean terminatedByItself =
+            threadPool.awaitTermination(totalTerminationTime, script.expectedTimeForEachUnitObj);
 
-        threadPool.shutdown();
-        if (script != null) {
-            long totalTerminationTime = script.expectedTimeForEach * script.totalNumberToRun;
-            boolean terminatedByItself =
-                threadPool.awaitTermination(totalTerminationTime, script.expectedTimeForEachUnitObj);
-
-            // if the threads didn't finish in the expected time, then send them interrupts
-            if (!terminatedByItself) {
-                threadPool.shutdownNow();
-            }
-            if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
-                logger.error(
-                    "Test Scripts: Thread pool for test script failed to terminate: {}",
-                    script.description);
-            }
+        // if the threads didn't finish in the expected time, then send them interrupts
+        if (!terminatedByItself) {
+          threadPool.shutdownNow();
         }
+        if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
+          logger.error(
+              "Test Scripts: Thread pool for test script failed to terminate: {}",
+              script.description);
+        }
+      } else {
+        logger.debug("Script is null.");
+      }
     }
 
     // compile the results from all thread pools
@@ -350,8 +352,7 @@ class TestRunner {
     List<TestUserSpecification> testUsers;
 
     public DisruptiveThread(
-        DisruptiveScript disruptiveScript,
-        List<TestUserSpecification> testUsers) {
+        DisruptiveScript disruptiveScript, List<TestUserSpecification> testUsers) {
       this.disruptiveScript = disruptiveScript;
       this.testUsers = testUsers;
     }
@@ -362,7 +363,7 @@ class TestRunner {
       } catch (Exception ex) {
         logger.info("Disruptive threw exception: {}", ex.getMessage());
       }
-        return null;
+      return null;
     }
   }
 

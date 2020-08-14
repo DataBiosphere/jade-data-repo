@@ -29,11 +29,11 @@ public class RandomPodDelete extends DisruptiveScript {
     secondsBetweenRepeat = Integer.parseInt(parameters.get(1));
 
     if (repeatCount <= 0) {
-      throw new IllegalArgumentException("Total disruption count must be >=0.");
+      throw new IllegalArgumentException("Total disruption count must be greater than 0.");
     }
 
     if (secondsBetweenRepeat <= 0) {
-      throw new IllegalArgumentException("Time to wait between each disruption must be >=0.");
+      throw new IllegalArgumentException("Time to wait between each disruption must be greater than 0.");
     }
   }
 

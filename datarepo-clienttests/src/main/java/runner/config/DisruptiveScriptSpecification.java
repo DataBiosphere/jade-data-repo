@@ -28,7 +28,7 @@ public class DisruptiveScriptSpecification implements SpecificationInterface {
       throw new IllegalArgumentException("Disruptive script class not found: " + name, classEx);
     } catch (IllegalAccessException | InstantiationException niEx) {
       throw new IllegalArgumentException(
-          "Error calling constructor of TestScript class: " + name, niEx);
+          "Error calling constructor of Disruptive Script class: " + name, niEx);
     }
   }
 }

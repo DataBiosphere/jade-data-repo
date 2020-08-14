@@ -196,14 +196,13 @@ class TestRunner {
     // wait until all threads either finish or time out
     logger.info("Test Scripts: Waiting until all threads either finish or time out");
     for (int ctr = 0; ctr < scripts.size(); ctr++) {
-        TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
-        ThreadPoolExecutor threadPool = threadPools.get(ctr);
-        logger.debug("Looping through to stop thread pools.");
+      TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
+      ThreadPoolExecutor threadPool = threadPools.get(ctr);
 
-        threadPool.shutdown();
-        long totalTerminationTime = testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
-        boolean terminatedByItself =
-          threadPool.awaitTermination(totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);
+      threadPool.shutdown();
+      long totalTerminationTime = testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
+      boolean terminatedByItself =
+        threadPool.awaitTermination(totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);
 
       // if the threads didn't finish in the expected time, then send them interrupts
       if (!terminatedByItself) {
@@ -358,7 +357,7 @@ class TestRunner {
       try {
         disruptiveScript.disrupt(testUsers);
       } catch (Exception ex) {
-        logger.info("Disruptive threw exception: {}", ex.getMessage());
+        logger.info("Disruptive thread threw exception: {}", ex.getMessage());
       }
       return null;
     }

@@ -11,7 +11,6 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.junit.Ignore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -145,7 +144,7 @@ public class JobServiceTest {
     }
 
     private String makeDescription(int ii) {
-        return String.format("flight #%d", ii);
+        return String.format("flight%d", ii);
     }
 
 }

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -30,7 +29,8 @@ class TestRunner {
   TestConfiguration config;
   List<TestScript> scripts;
   DeploymentScript deploymentScript;
-  HashMap<TestScriptSpecification, ThreadPoolExecutor> threadPools;
+  List<ThreadPoolExecutor> threadPools;
+  ThreadPoolExecutor disruptionThreadPool;
   List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
   List<TestScriptResult> testScriptResults;
 
@@ -39,7 +39,8 @@ class TestRunner {
   TestRunner(TestConfiguration config) {
     this.config = config;
     this.scripts = new ArrayList<>();
-    this.threadPools = new HashMap<>();
+    this.threadPools = new ArrayList<>();
+    this.disruptionThreadPool = null;
     this.userJourneyFutureLists = new ArrayList<>();
     this.testScriptResults = new ArrayList<>();
   }
@@ -155,9 +156,7 @@ class TestRunner {
       disruptiveScript.setParameters(config.disruptiveScript.parameters);
 
       // create a thread pool for running its disrupt method
-      ThreadPoolExecutor disruptionThreadPool =
-          (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
-      threadPools.put(null, disruptionThreadPool);
+      disruptionThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 
       DisruptiveThread disruptiveThread = new DisruptiveThread(disruptiveScript, config.testUsers);
       disruptionThreadPool.submit(disruptiveThread);
@@ -175,7 +174,7 @@ class TestRunner {
       ThreadPoolExecutor threadPool =
           (ThreadPoolExecutor)
               Executors.newFixedThreadPool(testScriptSpecification.numberToRunInParallel);
-      threadPools.put(testScriptSpecification, threadPool);
+      threadPools.add(threadPool);
 
       // kick off the user journey(s), one per thread
       List<Future<UserJourneyResult>> userJourneyFutures = new ArrayList<>();
@@ -196,31 +195,29 @@ class TestRunner {
 
     // wait until all threads either finish or time out
     logger.info("Test Scripts: Waiting until all threads either finish or time out");
-    Iterator it = threadPools.entrySet().iterator();
-    while (it.hasNext()) {
-      HashMap.Entry threadPoolEntry = (HashMap.Entry) it.next();
-      ThreadPoolExecutor threadPool = (ThreadPoolExecutor) threadPoolEntry.getValue();
-      TestScriptSpecification script = (TestScriptSpecification) threadPoolEntry.getKey();
-      logger.debug("Looping through to stop thread pools.");
-      threadPool.shutdown();
-      if (script != null) {
-        logger.debug("Script is NOT null.");
-        long totalTerminationTime = script.expectedTimeForEach * script.totalNumberToRun;
-        boolean terminatedByItself =
-            threadPool.awaitTermination(totalTerminationTime, script.expectedTimeForEachUnitObj);
+    for (int ctr = 0; ctr < scripts.size(); ctr++) {
+        TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
+        ThreadPoolExecutor threadPool = threadPools.get(ctr);
+        logger.debug("Looping through to stop thread pools.");
 
-        // if the threads didn't finish in the expected time, then send them interrupts
-        if (!terminatedByItself) {
-          threadPool.shutdownNow();
-        }
-        if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
-          logger.error(
-              "Test Scripts: Thread pool for test script failed to terminate: {}",
-              script.description);
-        }
-      } else {
-        logger.debug("Script is null.");
+        threadPool.shutdown();
+        long totalTerminationTime = testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
+        boolean terminatedByItself =
+          threadPool.awaitTermination(totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);
+
+      // if the threads didn't finish in the expected time, then send them interrupts
+      if (!terminatedByItself) {
+        threadPool.shutdownNow();
       }
+      if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
+        logger.error(
+            "Test Scripts: Thread pool for test script failed to terminate: {}",
+            testScriptSpecification.description);
+      }
+    }
+    if (disruptionThreadPool != null) {
+      logger.debug("Force shut down of the disruption thread pool");
+      disruptionThreadPool.shutdownNow();
     }
 
     // compile the results from all thread pools

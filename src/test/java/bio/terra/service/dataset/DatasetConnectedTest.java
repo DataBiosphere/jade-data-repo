@@ -453,6 +453,7 @@ public class DatasetConnectedTest {
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
+    // todo known flaky test - documented in DR-1102
     @Test
     public void testRepeatedSoftDelete() throws Exception {
         // load a CSV file that contains the table rows to load into the test bucket

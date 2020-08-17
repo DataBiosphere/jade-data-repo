@@ -178,6 +178,16 @@ skaffold run
    - Changes to integration, temp, or developer-namespace environments are good with regular PR approval (1 thumb for this repository).
    - Changes to dev or prod need more eyes, and perhaps a group discussion to discuss possible side effects or failure modes.
 
+## Developer Notes
+### Proper Handling of InterruptedException
+Care must be taken with a handling of InterruptedException. Code running in stairway flights must expect to receive
+InterruptedException during waiting states when the pod is being shut down. It is important that exception be allowed to
+propagate up to the stairway layer, so that proper termination and re-queuing of the flight can be performed.
+
+On the other hand, code running outside of the stairway flight, where the exception can become the response to
+a REST API, should catch the InterruptedException and replace it with a meaningful exception. Otherwise the caller
+ gets a useless error message.
+
 ## Deployments
 The deployments of Terra Data Repository are:
 - [Production](https://jade-terra.datarepo-prod.broadinstitute.org/)

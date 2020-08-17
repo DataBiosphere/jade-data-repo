@@ -1,5 +1,5 @@
 {
-  "name": "BulkLoadPodDeleteDisruption",
+  "name": "DeleteInitialPods",
   "description": "3 bulk file loads each on 2 different datasets, while deleting a random pod 10 times, at 30 second increments",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
@@ -12,7 +12,7 @@
     "loadDriverWaitSeconds": 1
   },
   "disruptiveScript": {
-    "name": "FIFOPodDelete",
+    "name": "DeleteInitialPods",
     "description": "Delete FIFO 3 times at 30 second increments",
     "parameters": [3, 30]
   },
@@ -20,7 +20,7 @@
     {
       "name": "BulkLoad",
       "parameters": [2],
-      "totalNumberToRun": 3,
+      "totalNumberToRun": 2,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 300,
       "expectedTimeForEachUnit": "SECONDS"
@@ -28,7 +28,7 @@
     {
       "name": "BulkLoad",
       "parameters": [4],
-      "totalNumberToRun": 3,
+      "totalNumberToRun": 2,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 300,
       "expectedTimeForEachUnit": "SECONDS"

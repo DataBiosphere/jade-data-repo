@@ -47,7 +47,6 @@ public final class KubernetesClientUtils {
 
   private static CoreV1Api kubernetesClientCoreObject;
   private static AppsV1Api kubernetesClientAppsObject;
-  private static ArrayList<String> podsToDelete;
 
   private KubernetesClientUtils() {}
 
@@ -158,7 +157,6 @@ public final class KubernetesClientUtils {
 
     kubernetesClientCoreObject = new CoreV1Api();
     kubernetesClientAppsObject = new AppsV1Api();
-    podsToDelete = new ArrayList<>();
   }
 
   /**
@@ -272,36 +270,7 @@ public final class KubernetesClientUtils {
     deletePod(randomPodName);
   }
 
-  public static void fifoDeletePod() throws ApiException, IOException {
-    logger.debug("FIFO Delete");
-    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
-    if (apiDeployment == null) {
-      throw new RuntimeException("API deployment not found.");
-    }
-    String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(componentLabel);
-    listPods().stream()
-        .filter(
-            pod ->
-                deploymentComponentLabel.equals(pod.getMetadata().getLabels().get(componentLabel)))
-        .forEach(
-            p -> {
-              String podName = p.getMetadata().getName();
-              if (!podsToDelete.contains(podName)) {
-                podsToDelete.add(podName);
-              }
-            });
-    podsToDelete.forEach(pd -> logger.debug("[before removing pod] Pod In podsToDelete: {}", pd));
-    String podNameToDelete = podsToDelete.get(0);
-
-    logger.info("delete pod: {}", podNameToDelete);
-
-    deletePod(podNameToDelete);
-
-    podsToDelete.remove(0);
-    podsToDelete.forEach(pd -> logger.debug("[after removing pod] Pod In podsToDelete: {}", pd));
-  }
-
-  private static void deletePod(String podNameToDelete) throws ApiException, IOException {
+  public static void deletePod(String podNameToDelete) throws ApiException, IOException {
     // known issue with java api "deleteNamespacedPod()" endpoint
     // https://github.com/kubernetes-client/java/issues/252
     // the following few lines were suggested as a workaround
@@ -325,6 +294,7 @@ public final class KubernetesClientUtils {
    */
   public static void waitForReplicaSetSizeChange(V1Deployment deployment, int numberOfReplicas)
       throws Exception {
+    logger.debug("waitForReplicaSetSizeChange");
     int pollCtr =
         Math.floorDiv(
             maximumSecondsToWaitForReplicaSetSizeChange, secondsIntervalToPollReplicaSetSizeChange);
@@ -335,23 +305,23 @@ public final class KubernetesClientUtils {
 
     // loop through the pods in the namespace
     // find the ones that match the deployment component label (e.g. find all the API pods)
+    TimeUnit.SECONDS.sleep(5);
     long numPods =
-        listPods().stream()
-            .filter(
-                pod ->
-                    deploymentComponentLabel.equals(
-                        pod.getMetadata().getLabels().get(componentLabel)))
-            .count();
-
-    while (numPods != numberOfReplicas && pollCtr >= 0) {
+        printApiPodCount(
+            deployment, "While waiting for number of pods to equal " + numberOfReplicas);
+    long numRunningPods =
+        printApiPodAtStatusCount(
+            deployment, "running", "While waiting for number of pods to equal " + numberOfReplicas);
+    while ((numPods != numRunningPods || numPods != numberOfReplicas) && pollCtr >= 0) {
       TimeUnit.SECONDS.sleep(secondsIntervalToPollReplicaSetSizeChange);
       numPods =
-          listPods().stream()
-              .filter(
-                  pod ->
-                      deploymentComponentLabel.equals(
-                          pod.getMetadata().getLabels().get(componentLabel)))
-              .count();
+          printApiPodCount(
+              deployment, "While waiting for number of pods to equal " + numberOfReplicas);
+      numRunningPods =
+          printApiPodAtStatusCount(
+              deployment,
+              "running",
+              "While waiting for number of pods to equal " + numberOfReplicas);
       pollCtr--;
     }
 
@@ -399,7 +369,22 @@ public final class KubernetesClientUtils {
     return apiPodCount;
   }
 
-  private static void printApiPods(V1Deployment deployment) throws ApiException {
+  private static long printApiPodAtStatusCount(
+      V1Deployment deployment, String podStatus, String message) throws ApiException {
+    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
+    long apiPodCount =
+        listPods().stream()
+            .filter(
+                pod ->
+                    deploymentComponentLabel.equals(
+                            pod.getMetadata().getLabels().get(componentLabel))
+                        && pod.getStatus().getPhase().toLowerCase().equals(podStatus))
+            .count();
+    logger.debug("{} Pod Count: {}; Message: {}", podStatus, apiPodCount, message);
+    return apiPodCount;
+  }
+
+  public static void printApiPods(V1Deployment deployment) throws ApiException {
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
     listPods().stream()
         .filter(

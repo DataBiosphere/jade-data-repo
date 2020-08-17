@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 
 /**
  * FireStoreFileDao provides CRUD operations on the file collection in Firestore.
@@ -36,7 +35,7 @@ class FireStoreFileDao {
         this.fireStoreUtils = fireStoreUtils;
     }
 
-    void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) {
+    void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) throws InterruptedException {
         String collectionId = makeCollectionId(datasetId);
         ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
             xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
@@ -46,7 +45,7 @@ class FireStoreFileDao {
         fireStoreUtils.transactionGet("createFileMetadata", transaction);
     }
 
-    boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId) {
+    boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId) throws InterruptedException {
         String collectionId = makeCollectionId(datasetId);
         ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
             DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
@@ -62,7 +61,9 @@ class FireStoreFileDao {
     }
 
     // Returns null on not found
-    FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileId) {
+    FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileId)
+        throws InterruptedException {
+
         String collectionId = makeCollectionId(datasetId);
         ApiFuture<FireStoreFile> transaction = firestore.runTransaction(xn -> {
             DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
@@ -78,14 +79,11 @@ class FireStoreFileDao {
     private DocumentSnapshot lookupByFileId(Firestore firestore,
                                             String collectionId,
                                             String fileId,
-                                            Transaction xn) {
+                                            Transaction xn) throws InterruptedException {
         DocumentReference docRef = getFileDocRef(firestore, collectionId, fileId);
         ApiFuture<DocumentSnapshot> docSnapFuture = xn.get(docRef);
         try {
             return docSnapFuture.get();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("lookupByFileId - execution interrupted", ex);
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("lookupByFileId - execution exception", ex);
         }
@@ -93,7 +91,9 @@ class FireStoreFileDao {
 
     // See comment in FireStoreUtils.java for an explanation of the batch size setting.
     private static final int DELETE_BATCH_SIZE = 500;
-    void deleteFilesFromDataset(Firestore firestore, String datasetId, Consumer<FireStoreFile> func) {
+    void deleteFilesFromDataset(Firestore firestore, String datasetId, InterruptibleConsumer<FireStoreFile> func)
+        throws InterruptedException {
+
         String collectionId = makeCollectionId(datasetId);
         fireStoreUtils.scanCollectionObjects(
             firestore,
@@ -106,12 +106,9 @@ class FireStoreFileDao {
             });
     }
 
-    private void doDelete(QueryDocumentSnapshot document) {
+    private void doDelete(QueryDocumentSnapshot document) throws InterruptedException {
         try {
             document.getReference().delete().get();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("doDelete - execution interrupted", ex);
         } catch (ExecutionException ex) {
             throw fireStoreUtils.handleExecutionException(ex, "doDelete");
         }

@@ -138,7 +138,9 @@ public class FireStoreDaoTest {
         assertThat("Total size is correct", snapObject.getSize(), equalTo(15L));
     }
 
-    private FireStoreDirectoryEntry makeFileObject(String datasetId, String fullPath, long size) {
+    private FireStoreDirectoryEntry makeFileObject(String datasetId, String fullPath, long size)
+        throws InterruptedException {
+
         String fileId = UUID.randomUUID().toString();
 
         FireStoreFile newFile = new FireStoreFile()

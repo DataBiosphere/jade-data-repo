@@ -35,7 +35,7 @@ public class IngestFileDirectoryStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap inputParameters = context.getInputParameters();
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
 
@@ -102,7 +102,7 @@ public class IngestFileDirectoryStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
         try {

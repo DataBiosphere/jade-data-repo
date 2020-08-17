@@ -79,7 +79,9 @@ public class FireStoreDirectoryDao {
 
     // Note that this does not test for duplicates. If invoked on an existing path it will overwrite
     // the entry. Existence checking is handled at upper layers.
-    public void createDirectoryEntry(Firestore firestore, String collectionId, FireStoreDirectoryEntry createEntry) {
+    public void createDirectoryEntry(Firestore firestore, String collectionId, FireStoreDirectoryEntry createEntry)
+        throws InterruptedException {
+
         ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
             List<FireStoreDirectoryEntry> createList = new ArrayList<>();
 
@@ -115,7 +117,9 @@ public class FireStoreDirectoryDao {
     }
 
     // true - directory entry existed and was deleted; false - directory entry did not exist
-    public boolean deleteDirectoryEntry(Firestore firestore, String collectionId, String fileId) {
+    public boolean deleteDirectoryEntry(Firestore firestore, String collectionId, String fileId)
+        throws InterruptedException {
+
         CollectionReference datasetCollection = firestore.collection(collectionId);
 
         ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
@@ -156,7 +160,9 @@ public class FireStoreDirectoryDao {
     }
 
     private static final int DELETE_BATCH_SIZE = 500;
-    public void deleteDirectoryEntriesFromCollection(Firestore firestore, String collectionId) {
+    public void deleteDirectoryEntriesFromCollection(Firestore firestore, String collectionId)
+        throws InterruptedException {
+
         fireStoreUtils.scanCollectionObjects(
             firestore,
             collectionId,
@@ -165,7 +171,9 @@ public class FireStoreDirectoryDao {
     }
 
     // Returns null if not found - upper layers do any throwing
-    public FireStoreDirectoryEntry retrieveById(Firestore firestore, String collectionId, String fileId) {
+    public FireStoreDirectoryEntry retrieveById(Firestore firestore, String collectionId, String fileId)
+        throws InterruptedException {
+
         ApiFuture<FireStoreDirectoryEntry> transaction = firestore.runTransaction(xn -> {
             QueryDocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
             if (docSnap == null) {
@@ -178,7 +186,9 @@ public class FireStoreDirectoryDao {
     }
 
     // Returns null if not found - upper layers do any throwing
-    public FireStoreDirectoryEntry retrieveByPath(Firestore firestore, String collectionId, String fullPath) {
+    public FireStoreDirectoryEntry retrieveByPath(Firestore firestore, String collectionId, String fullPath)
+        throws InterruptedException {
+
         String lookupPath = makeLookupPath(fullPath);
         ApiFuture<FireStoreDirectoryEntry> transaction = firestore.runTransaction(xn -> {
             DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
@@ -191,7 +201,9 @@ public class FireStoreDirectoryDao {
         return fireStoreUtils.transactionGet("retrieveByPath", transaction);
     }
 
-    public List<String> validateRefIds(Firestore firestore, String collectionId, Collection<String> refIdArray) {
+    public List<String> validateRefIds(Firestore firestore, String collectionId, Collection<String> refIdArray)
+        throws InterruptedException {
+
         List<String> missingIds = new ArrayList<>();
         for (String fileId : refIdArray) {
             if (retrieveById(firestore, collectionId, fileId) == null) {
@@ -203,7 +215,9 @@ public class FireStoreDirectoryDao {
 
     // -- private methods --
 
-    List<FireStoreDirectoryEntry> enumerateDirectory(Firestore firestore, String collectionId, String dirPath) {
+    List<FireStoreDirectoryEntry> enumerateDirectory(Firestore firestore, String collectionId, String dirPath)
+        throws InterruptedException {
+
         ApiFuture<List<FireStoreDirectoryEntry>> transaction = firestore.runTransaction(xn -> {
             Query query = firestore.collection(collectionId).whereEqualTo("path", dirPath);
             ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
@@ -239,15 +253,12 @@ public class FireStoreDirectoryDao {
     private DocumentSnapshot lookupByFilePath(Firestore firestore,
                                                String collectionId,
                                                String lookupPath,
-                                               Transaction xn) {
+                                               Transaction xn) throws InterruptedException {
         try {
             DocumentReference docRef =
                 firestore.collection(collectionId).document(encodePathAsFirestoreDocumentName(lookupPath));
             ApiFuture<DocumentSnapshot> docSnapFuture = xn.get(docRef);
             return docSnapFuture.get();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("lookupByEntryPath - execution interrupted", ex);
         } catch (AbortedException | ExecutionException ex) {
             throw handleExecutionException("lookupByEntryPath", ex);
         }
@@ -257,7 +268,7 @@ public class FireStoreDirectoryDao {
     private QueryDocumentSnapshot lookupByFileId(Firestore firestore,
                                                  String collectionId,
                                                  String fileId,
-                                                 Transaction xn) {
+                                                 Transaction xn) throws InterruptedException {
         try {
             CollectionReference datasetCollection = firestore.collection(collectionId);
             Query query = datasetCollection.whereEqualTo("fileId", fileId);
@@ -281,9 +292,6 @@ public class FireStoreDirectoryDao {
 
             return documents.get(0);
 
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("lookupByFileId - execution interrupted", ex);
         } catch (AbortedException | ExecutionException ex) {
             throw handleExecutionException("lookupByFileId", ex);
         }
@@ -334,7 +342,7 @@ public class FireStoreDirectoryDao {
                                    String datasetDirName,
                                    Firestore snapshotFirestore,
                                    String snapshotId,
-                                   String fileId) {
+                                   String fileId) throws InterruptedException {
 
         FireStoreDirectoryEntry datasetEntry = retrieveById(datasetFirestore, datasetId, fileId);
         if (!datasetEntry.getIsFileRef()) {
@@ -370,7 +378,8 @@ public class FireStoreDirectoryDao {
         }
     }
 
-    private void storeTopDirectory(Firestore firestore, String collectionId, String dirName) {
+    private void storeTopDirectory(Firestore firestore, String collectionId, String dirName)
+        throws InterruptedException {
         // We have to create the top directory structure for the dataset and the root folder.
         // Those components cannot be copied from the dataset, but have to be created new
         // in the snapshot directory. We probe to see if the dirName directory exists. If not,
@@ -392,7 +401,9 @@ public class FireStoreDirectoryDao {
     }
 
     // Non-transactional store of a directory entry
-    private void storeDirectoryEntry(Firestore firestore, String collectionId, FireStoreDirectoryEntry entry) {
+    private void storeDirectoryEntry(Firestore firestore, String collectionId, FireStoreDirectoryEntry entry)
+        throws InterruptedException {
+
         try {
             DocumentReference newRef = getDocRef(firestore, collectionId, entry);
             ApiFuture<DocumentSnapshot> newSnapFuture = newRef.get();
@@ -401,38 +412,33 @@ public class FireStoreDirectoryDao {
                 ApiFuture<WriteResult> writeFuture = newRef.set(entry);
                 writeFuture.get();
             }
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("storeDirectoryEntry - execution interrupted", ex);
         } catch (AbortedException | ExecutionException ex) {
             throw handleExecutionException("storeDirectoryEntry", ex);
         }
     }
 
     // Non-transactional update of a directory entry
-    void updateDirectoryEntry(Firestore firestore, String collectionId, FireStoreDirectoryEntry entry) {
+    void updateDirectoryEntry(Firestore firestore, String collectionId, FireStoreDirectoryEntry entry)
+        throws InterruptedException {
+
         try {
             DocumentReference newRef = getDocRef(firestore, collectionId, entry);
             ApiFuture<WriteResult> writeFuture = newRef.set(entry);
             writeFuture.get();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("updateDirectoryEntry - execution interrupted", ex);
         } catch (AbortedException | ExecutionException ex) {
             throw handleExecutionException("updateDirectoryEntry", ex);
         }
     }
 
     // Non-transactional lookup of an entry
-    private DocumentSnapshot lookupByPathNoXn(Firestore firestore, String collectionId, String lookupPath) {
+    private DocumentSnapshot lookupByPathNoXn(Firestore firestore, String collectionId, String lookupPath)
+        throws InterruptedException {
+
         try {
             DocumentReference docRef =
                 firestore.collection(collectionId).document(encodePathAsFirestoreDocumentName(lookupPath));
             ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
             return docSnapFuture.get();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("lookupByPathNoXn - execution interrupted", ex);
         } catch (AbortedException | ExecutionException ex) {
             throw handleExecutionException("lookupByPathNoXn", ex);
         }

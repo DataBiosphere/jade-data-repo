@@ -219,8 +219,8 @@ class TestRunner {
       logger.debug("Force shut down of the disruption thread pool");
       disruptionThreadPool.shutdownNow();
       if (!disruptionThreadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
-          logger.error("Disruption Script: Thread pool for disruption script failed to terminate");
-        }
+        logger.error("Disruption Script: Thread pool for disruption script failed to terminate");
+      }
     }
 
     // compile the results from all thread pools

@@ -33,7 +33,8 @@ public class RandomPodDelete extends DisruptiveScript {
     }
 
     if (secondsBetweenRepeat <= 0) {
-      throw new IllegalArgumentException("Time to wait between each disruption must be greater than 0.");
+      throw new IllegalArgumentException(
+          "Time to wait between each disruption must be greater than 0.");
     }
   }
 

@@ -47,6 +47,7 @@ public final class KubernetesClientUtils {
 
   private static CoreV1Api kubernetesClientCoreObject;
   private static AppsV1Api kubernetesClientAppsObject;
+  private static ArrayList<String> podsToDelete;
 
   private KubernetesClientUtils() {}
 
@@ -157,6 +158,7 @@ public final class KubernetesClientUtils {
 
     kubernetesClientCoreObject = new CoreV1Api();
     kubernetesClientAppsObject = new AppsV1Api();
+    podsToDelete = new ArrayList<>();
   }
 
   /**
@@ -267,6 +269,39 @@ public final class KubernetesClientUtils {
 
     logger.info("delete random pod: {}", randomPodName);
 
+    deletePod(randomPodName);
+  }
+
+  public static void fifoDeletePod() throws ApiException, IOException {
+    logger.debug("FIFO Delete");
+    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
+    if (apiDeployment == null) {
+      throw new RuntimeException("API deployment not found.");
+    }
+    String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(componentLabel);
+    listPods().stream()
+        .filter(
+            pod ->
+                deploymentComponentLabel.equals(pod.getMetadata().getLabels().get(componentLabel)))
+        .forEach(
+            p -> {
+              String podName = p.getMetadata().getName();
+              if (!podsToDelete.contains(podName)) {
+                podsToDelete.add(podName);
+              }
+            });
+    podsToDelete.forEach(pd -> logger.debug("[before removing pod] Pod In podsToDelete: {}", pd));
+    String podNameToDelete = podsToDelete.get(0);
+
+    logger.info("delete pod: {}", podNameToDelete);
+
+    deletePod(podNameToDelete);
+
+    podsToDelete.remove(0);
+    podsToDelete.forEach(pd -> logger.debug("[after removing pod] Pod In podsToDelete: {}", pd));
+  }
+
+  private static void deletePod(String podNameToDelete) throws ApiException, IOException {
     // known issue with java api "deleteNamespacedPod()" endpoint
     // https://github.com/kubernetes-client/java/issues/252
     // the following few lines were suggested as a workaround
@@ -274,7 +309,7 @@ public final class KubernetesClientUtils {
     Call call =
         getKubernetesClientCoreObject()
             .deleteNamespacedPodCall(
-                randomPodName, namespace, null, null, null, null, null, null, null);
+                podNameToDelete, namespace, null, null, null, null, null, null, null);
     Response response = call.execute();
     Configuration.getDefaultApiClient()
         .handleResponse(response, (new TypeToken<V1Pod>() {}).getType());

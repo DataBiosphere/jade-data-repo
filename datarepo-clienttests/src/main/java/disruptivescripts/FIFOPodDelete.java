@@ -8,13 +8,13 @@ import runner.DisruptiveScript;
 import runner.config.TestUserSpecification;
 import utils.KubernetesClientUtils;
 
-public class RandomPodDelete extends DisruptiveScript {
-  public RandomPodDelete() {
+public class FIFOPodDelete extends DisruptiveScript {
+  public FIFOPodDelete() {
     super();
     manipulatesKubernetes = true;
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(RandomPodDelete.class);
+  private static final Logger logger = LoggerFactory.getLogger(FIFOPodDelete.class);
 
   private int repeatCount = 1;
   private int secondsBetweenRepeat = 30;
@@ -40,13 +40,13 @@ public class RandomPodDelete extends DisruptiveScript {
 
   public void disrupt(List<TestUserSpecification> testUsers) throws Exception {
     logger.info(
-        "Starting disruption - A single random pod will be deleted {} times at {} second intervals.",
+        "Starting disruption - {} pods will be deleted, first in, first out at {} second intervals.",
         repeatCount,
         secondsBetweenRepeat);
     for (int i = 0; i < repeatCount; i++) {
       TimeUnit.SECONDS.sleep(secondsBetweenRepeat);
-      logger.debug("Deleting random pod.");
-      KubernetesClientUtils.deleteRandomPod();
+      logger.debug("Deleting next pod.");
+      KubernetesClientUtils.fifoDeletePod();
     }
   }
 }

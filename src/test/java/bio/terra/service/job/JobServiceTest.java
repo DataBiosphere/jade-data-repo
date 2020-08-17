@@ -6,7 +6,6 @@ import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
-import org.junit.Ignore;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;

@@ -1,0 +1,25 @@
+name: DataRepo Alpha Integration Tests
+on:
+  # Jenkins will kick this job off manually after Alpha is deployed
+  workflow_dispatch: {}
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Run tests
+      run: |
+        set -e
+
+        echo "TODO: Actually run tests"
+
+    - name: Notify Slack
+      uses: act10ns/slack@v1
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      with:
+        status: ${{ job.status }}
+        channel: '#dsde-qa-notify'
+      if: always()

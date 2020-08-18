@@ -299,10 +299,6 @@ public final class KubernetesClientUtils {
         Math.floorDiv(
             maximumSecondsToWaitForReplicaSetSizeChange, secondsIntervalToPollReplicaSetSizeChange);
 
-    // get the component label from the deployment object
-    // this will be "api" for most cases, since that's what we're interested in scaling.
-    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
-
     // loop through the pods in the namespace
     // find the ones that match the deployment component label (e.g. find all the API pods)
     long numPods = getApiPodCount(deployment);

@@ -21,37 +21,16 @@ public class DeleteInitialPods extends DisruptiveScript {
 
   private static final Logger logger = LoggerFactory.getLogger(DeleteInitialPods.class);
 
-  private int repeatCount = 1;
-  private int secondsBetweenRepeat = 30;
-
-  public void setParameters(List<String> parameters) {
-
-    if (parameters == null || parameters.size() != 2) {
-      throw new IllegalArgumentException(
-          "Must have 2 parameters in the parameters list: repeatCount & secondsBetweenRepeat");
-    }
-    repeatCount = Integer.parseInt(parameters.get(0));
-    secondsBetweenRepeat = Integer.parseInt(parameters.get(1));
-
-    if (repeatCount <= 0) {
-      throw new IllegalArgumentException("Total disruption count must be greater than 0.");
-    }
-
-    if (secondsBetweenRepeat <= 0) {
-      throw new IllegalArgumentException(
-          "Time to wait between each disruption must be greater than 0.");
-    }
-  }
-
   public void disrupt(List<TestUserSpecification> testUsers) throws Exception {
     logger.info(
-        "Starting disruption - {} pods will be deleted, first in, first out at {} second intervals.",
-        repeatCount,
-        secondsBetweenRepeat);
+        "Starting disruption - all initially created api pods will be deleted, one by one.");
+
     V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
+
+    // get list of api pod names
     String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(componentLabel);
     List<String> podsToDelete = new ArrayList<>();
     KubernetesClientUtils.listPods().stream()
@@ -59,17 +38,21 @@ public class DeleteInitialPods extends DisruptiveScript {
             pod ->
                 deploymentComponentLabel.equals(pod.getMetadata().getLabels().get(componentLabel)))
         .forEach(p -> podsToDelete.add(p.getMetadata().getName()));
-    logger.debug("pods before delete");
-    KubernetesClientUtils.printApiPods(apiDeployment);
-    TimeUnit.SECONDS.sleep(30);
+
+    // give task time to get started before deleting pods
+    TimeUnit.SECONDS.sleep(15);
+
+    // delete original pods, and give them a chance to recover
     for (String podName : podsToDelete) {
       logger.debug("delete pod: {}", podName);
       apiDeployment = KubernetesClientUtils.getApiDeployment();
       KubernetesClientUtils.printApiPods(apiDeployment);
       KubernetesClientUtils.deletePod(podName);
+      // this gives the pod a chance to start deleting before we check the replica size
+      TimeUnit.SECONDS.sleep(5);
       KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podsToDelete.size());
-      TimeUnit.SECONDS.sleep(15);
     }
+
     logger.debug("original pods:");
     podsToDelete.forEach(p -> logger.debug(p));
     KubernetesClientUtils.printApiPods(apiDeployment);

@@ -3,6 +3,7 @@ package runner;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -198,9 +199,23 @@ class TestRunner {
       TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
       ThreadPoolExecutor threadPool = threadPools.get(ctr);
 
-      threadPool.shutdown();
       long totalTerminationTime =
           testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
+      long chunk = testScriptSpecification.expectedTimeForEachUnitObj.convert(30, TimeUnit.SECONDS);
+      logger.debug(
+          "Total wait time: {} {}",
+          totalTerminationTime,
+          testScriptSpecification.expectedTimeForEachUnit);
+      while (threadPool.getQueue().size() > 0 && totalTerminationTime > 0) {
+        logger.debug("Waiting 30 seconds for threadpool queue to be empty");
+        testScriptSpecification.expectedTimeForEachUnitObj.sleep(chunk);
+        totalTerminationTime -= chunk;
+        logger.debug(
+            "Total wait time remaining: {} {}",
+            totalTerminationTime,
+            testScriptSpecification.expectedTimeForEachUnit);
+      }
+      threadPool.shutdown();
       boolean terminatedByItself =
           threadPool.awaitTermination(
               totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);

@@ -8,6 +8,7 @@ import bio.terra.model.DRSObject;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryDao;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
@@ -84,10 +85,15 @@ public class DrsService {
 
         int depth = (expand ? -1 : 1);
 
-        FSItem fsObject = fileService.lookupSnapshotFSItem(
-            drsId.getSnapshotId(),
-            drsId.getFsObjectId(),
-            depth);
+        FSItem fsObject = null;
+        try {
+            fsObject = fileService.lookupSnapshotFSItem(
+                drsId.getSnapshotId(),
+                drsId.getFsObjectId(),
+                depth);
+        } catch (InterruptedException ex) {
+            throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
+        }
 
         if (fsObject instanceof FSFile) {
             return drsObjectFromFSFile((FSFile)fsObject, snapshotId, authUser);

@@ -14,6 +14,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestBulkFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestFlight;
@@ -135,11 +136,20 @@ public class FileService {
     // depth == 0 means no expansion - just this node
     // depth >= 1 means expand N levels
     public FileModel lookupFile(String datasetId, String fileId, int depth) {
-        return fileModelFromFSItem(lookupFSItem(datasetId, fileId, depth));
+        try {
+            return fileModelFromFSItem(lookupFSItem(datasetId, fileId, depth));
+        } catch (InterruptedException ex) {
+            throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
+        }
     }
 
     public FileModel lookupPath(String datasetId, String path, int depth) {
-        FSItem fsItem = lookupFSItemByPath(datasetId, path, depth);
+        FSItem fsItem = null;
+        try {
+            fsItem = lookupFSItemByPath(datasetId, path, depth);
+        } catch (InterruptedException ex) {
+            throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
+        }
         return fileModelFromFSItem(fsItem);
     }
 
@@ -148,7 +158,7 @@ public class FileService {
      * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
      * an exclusively locked dataset to be returned (e.g. file deletion).
      */
-    FSItem lookupFSItem(String datasetId, String fileId, int depth) {
+    FSItem lookupFSItem(String datasetId, String fileId, int depth) throws InterruptedException {
         Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
         return fileDao.retrieveById(dataset, fileId, depth, true);
     }
@@ -158,29 +168,38 @@ public class FileService {
      * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
      * an exclusively locked dataset to be returned (e.g. file deletion).
      */
-    FSItem lookupFSItemByPath(String datasetId, String path, int depth) {
+    FSItem lookupFSItemByPath(String datasetId, String path, int depth) throws InterruptedException {
         Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
         return fileDao.retrieveByPath(dataset, path, depth, true);
     }
 
     // -- snapshot lookups --
     public FileModel lookupSnapshotFile(String snapshotId, String fileId, int depth) {
-        return fileModelFromFSItem(lookupSnapshotFSItem(snapshotId, fileId, depth));
+        try {
+            return fileModelFromFSItem(lookupSnapshotFSItem(snapshotId, fileId, depth));
+        } catch (InterruptedException ex) {
+            throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
+        }
     }
 
     public FileModel lookupSnapshotPath(String snapshotId, String path, int depth) {
-        FSItem fsItem = lookupSnapshotFSItemByPath(snapshotId, path, depth);
+        FSItem fsItem = null;
+        try {
+            fsItem = lookupSnapshotFSItemByPath(snapshotId, path, depth);
+        } catch (InterruptedException ex) {
+            throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
+        }
         return fileModelFromFSItem(fsItem);
     }
 
     // note: this method only returns snapshots that are NOT exclusively locked
-    FSItem lookupSnapshotFSItem(String snapshotId, String fileId, int depth) {
+    FSItem lookupSnapshotFSItem(String snapshotId, String fileId, int depth) throws InterruptedException {
         Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
         return fileDao.retrieveById(snapshot, fileId, depth, true);
     }
 
     // note: this method only returns snapshots that are NOT exclusively locked
-    FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth) {
+    FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth) throws InterruptedException {
         Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
         return fileDao.retrieveByPath(snapshot, path, depth, true);
     }

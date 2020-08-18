@@ -31,7 +31,7 @@ public class IngestFileFileStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
         if (loadComplete == null || !loadComplete) {
@@ -67,7 +67,7 @@ public class IngestFileFileStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         String itemId = workingMap.get(FileMapKeys.FILE_ID, String.class);
         try {

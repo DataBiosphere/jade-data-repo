@@ -170,11 +170,13 @@ public class GcsPdao {
         ACL_OP_DELETE
     }
 
-    public void setAclOnFiles(Dataset dataset, List<String> fileIds, String readersPolicyEmail) {
+    public void setAclOnFiles(Dataset dataset, List<String> fileIds, String readersPolicyEmail)
+        throws InterruptedException {
         fileAclOp(AclOp.ACL_OP_CREATE, dataset, fileIds, readersPolicyEmail);
     }
 
-    public void removeAclOnFiles(Dataset dataset, List<String> fileIds, String readersPolicyEmail) {
+    public void removeAclOnFiles(Dataset dataset, List<String> fileIds, String readersPolicyEmail)
+        throws InterruptedException {
         fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, readersPolicyEmail);
     }
 
@@ -223,7 +225,9 @@ public class GcsPdao {
         return sourceBlob;
     }
 
-    private void fileAclOp(AclOp op, Dataset dataset, List<String> fileIds, String readersPolicyEmail) {
+    private void fileAclOp(AclOp op, Dataset dataset, List<String> fileIds, String readersPolicyEmail)
+        throws InterruptedException {
+
         Acl.Group readerGroup = new Acl.Group(readersPolicyEmail);
         Acl acl = Acl.newBuilder(readerGroup, Acl.Role.READER).build();
 

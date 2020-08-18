@@ -6,8 +6,8 @@ import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
-import org.junit.Ignore;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -44,6 +44,7 @@ public class JobServiceTest {
     @Autowired
     private ApplicationConfiguration appConfig;
 
+    // This test is unreliable. See https://broadworkbench.atlassian.net/browse/DR-1248
     // todo - fix w/ DR-1255
     @Ignore
     @Test

@@ -215,6 +215,8 @@ class TestRunner {
             totalTerminationTime,
             testScriptSpecification.expectedTimeForEachUnit);
       }
+      TimeUnit.SECONDS.sleep(15);
+      logger.debug("Shutting down the thread pool");
       threadPool.shutdown();
       boolean terminatedByItself =
           threadPool.awaitTermination(

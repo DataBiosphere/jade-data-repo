@@ -67,8 +67,8 @@ public class DeleteInitialPods extends DisruptiveScript {
       apiDeployment = KubernetesClientUtils.getApiDeployment();
       KubernetesClientUtils.printApiPods(apiDeployment);
       KubernetesClientUtils.deletePod(podName);
-      // TimeUnit.SECONDS.sleep(15);
       KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podsToDelete.size());
+      TimeUnit.SECONDS.sleep(15);
     }
     logger.debug("original pods:");
     podsToDelete.forEach(p -> logger.debug(p));

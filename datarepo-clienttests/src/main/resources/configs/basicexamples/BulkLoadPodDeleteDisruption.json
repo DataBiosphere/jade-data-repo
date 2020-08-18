@@ -1,0 +1,38 @@
+{
+  "name": "BulkLoadPodDeleteDisruption",
+  "description": "3 bulk file loads each on 2 different datasets, while deleting a random pod 10 times, at 30 second increments",
+  "serverSpecificationFile": "localhost.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 3
+  },
+  "application": {
+    "maxStairwayThreads" : 120,
+    "loadConcurrentFiles": 80,
+    "loadDriverWaitSeconds": 1
+  },
+  "disruptiveScript": {
+    "name": "RandomPodDelete",
+    "description": "Delete a random pod 10 times at 30 second increments",
+    "parameters": [10, 30]
+  },
+  "testScripts": [
+    {
+      "name": "BulkLoad",
+      "parameters": [2],
+      "totalNumberToRun": 3,
+      "numberToRunInParallel": 1,
+      "expectedTimeForEach": 300,
+      "expectedTimeForEachUnit": "SECONDS"
+    },
+    {
+      "name": "BulkLoad",
+      "parameters": [4],
+      "totalNumberToRun": 3,
+      "numberToRunInParallel": 1,
+      "expectedTimeForEach": 300,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json"]
+}

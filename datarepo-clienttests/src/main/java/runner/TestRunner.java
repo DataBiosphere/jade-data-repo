@@ -29,6 +29,7 @@ class TestRunner {
   List<TestScript> scripts;
   DeploymentScript deploymentScript;
   List<ThreadPoolExecutor> threadPools;
+  ThreadPoolExecutor disruptionThreadPool;
   List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
   List<TestScriptResult> testScriptResults;
 
@@ -38,6 +39,7 @@ class TestRunner {
     this.config = config;
     this.scripts = new ArrayList<>();
     this.threadPools = new ArrayList<>();
+    this.disruptionThreadPool = null;
     this.userJourneyFutureLists = new ArrayList<>();
     this.testScriptResults = new ArrayList<>();
   }
@@ -146,6 +148,20 @@ class TestRunner {
       throw new RuntimeException("Error calling test script setup methods.", setupExceptionThrown);
     }
 
+    // Disruptive Thread: fetch script specification if config is defined
+    if (config.disruptiveScript != null) {
+      logger.debug("Creating thread pool for disruptive script.");
+      DisruptiveScript disruptiveScript = config.disruptiveScript.disruptiveScriptClassInstance();
+      disruptiveScript.setParameters(config.disruptiveScript.parameters);
+
+      // create a thread pool for running its disrupt method
+      disruptionThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
+
+      DisruptiveThread disruptiveThread = new DisruptiveThread(disruptiveScript, config.testUsers);
+      disruptionThreadPool.submit(disruptiveThread);
+      logger.debug("Successfully submitted disruptive thread.");
+    }
+
     // for each test script
     logger.info(
         "Test Scripts: Creating a thread pool for each TestScript and kicking off the user journeys");
@@ -197,6 +213,13 @@ class TestRunner {
         logger.error(
             "Test Scripts: Thread pool for test script failed to terminate: {}",
             testScriptSpecification.description);
+      }
+    }
+    if (disruptionThreadPool != null) {
+      logger.debug("Force shut down of the disruption thread pool");
+      disruptionThreadPool.shutdownNow();
+      if (!disruptionThreadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
+        logger.error("Disruption Script: Thread pool for disruption script failed to terminate");
       }
     }
 
@@ -321,6 +344,26 @@ class TestRunner {
       result.elapsedTimeNS = System.nanoTime() - startTime;
 
       return result;
+    }
+  }
+
+  static class DisruptiveThread implements Callable {
+    DisruptiveScript disruptiveScript;
+    List<TestUserSpecification> testUsers;
+
+    public DisruptiveThread(
+        DisruptiveScript disruptiveScript, List<TestUserSpecification> testUsers) {
+      this.disruptiveScript = disruptiveScript;
+      this.testUsers = testUsers;
+    }
+
+    public Object call() {
+      try {
+        disruptiveScript.disrupt(testUsers);
+      } catch (Exception ex) {
+        logger.info("Disruptive thread threw exception: {}", ex.getMessage());
+      }
+      return null;
     }
   }
 

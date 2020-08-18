@@ -305,7 +305,6 @@ public final class KubernetesClientUtils {
 
     // loop through the pods in the namespace
     // find the ones that match the deployment component label (e.g. find all the API pods)
-    TimeUnit.SECONDS.sleep(5);
     long numPods = getApiPodCount(deployment);
     long numRunningPods = getApiPodAtStatusCount(deployment, "running");
     while ((numPods != numRunningPods || numPods != numberOfReplicas) && pollCtr >= 0) {

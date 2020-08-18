@@ -27,10 +27,11 @@ jobs:
         pgport: ${{ job.services.postgres.ports[5432] }}
         test_to_run: 'testIntegration'
     - name: "Notify Slack"
-      uses: act10ns/slack@v1
+      uses: broadinstitute/action-slack@v2
       env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       with:
         status: ${{ job.status }}
-        channel: '#dsde-qa-notify'
+        channel: '#dsde-qa'
       if: always()

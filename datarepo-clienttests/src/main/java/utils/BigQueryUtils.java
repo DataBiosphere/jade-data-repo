@@ -6,8 +6,6 @@ import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
 import java.io.IOException;
-import java.util.Optional;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -60,11 +58,16 @@ public final class BigQueryUtils {
   }
 
   public static String buildSelectQuery(
-    String project, String datasetName, String tableName, String select, Long limit, Long offset) {
+      String project,
+      String datasetName,
+      String tableName,
+      String select,
+      Long limit,
+      Long offset) {
     String tableRef = String.format("`%s.%s.%s`", project, datasetName, tableName);
     String setLimit = String.format("LIMIT %s", limit);
     if (offset > 0) {
-        setLimit = String.format("LIMIT %s OFFSET %s", limit, offset);
+      setLimit = String.format("LIMIT %s OFFSET %s", limit, offset);
     }
     return String.format("SELECT %s FROM %s %s", select, tableRef, setLimit);
   }

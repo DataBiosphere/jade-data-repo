@@ -20,12 +20,6 @@ jobs:
     steps:
     - name: "Checkout code"
       uses: actions/checkout@v2
-    - name: "Run Integration test via Gradle"
-      uses: broadinstitute/datarepo-actions@0.14.0
-      with:
-        actions_subcommand: 'gradleinttest'
-        pgport: ${{ job.services.postgres.ports[5432] }}
-        test_to_run: 'testIntegration'
     - name: "Notify Slack"
       uses: broadinstitute/action-slack@v2
       env:
@@ -33,5 +27,6 @@ jobs:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       with:
         status: ${{ job.status }}
-        channel: '#dsde-qa'
+        channel: "#dsde-qa"
+        username: "Data Repo alpha integration tests"
       if: always()

@@ -306,22 +306,12 @@ public final class KubernetesClientUtils {
     // loop through the pods in the namespace
     // find the ones that match the deployment component label (e.g. find all the API pods)
     TimeUnit.SECONDS.sleep(5);
-    long numPods =
-        printApiPodCount(
-            deployment, "While waiting for number of pods to equal " + numberOfReplicas);
-    long numRunningPods =
-        printApiPodAtStatusCount(
-            deployment, "running", "While waiting for number of pods to equal " + numberOfReplicas);
+    long numPods = getApiPodCount(deployment);
+    long numRunningPods = getApiPodAtStatusCount(deployment, "running");
     while ((numPods != numRunningPods || numPods != numberOfReplicas) && pollCtr >= 0) {
       TimeUnit.SECONDS.sleep(secondsIntervalToPollReplicaSetSizeChange);
-      numPods =
-          printApiPodCount(
-              deployment, "While waiting for number of pods to equal " + numberOfReplicas);
-      numRunningPods =
-          printApiPodAtStatusCount(
-              deployment,
-              "running",
-              "While waiting for number of pods to equal " + numberOfReplicas);
+      numPods = getApiPodCount(deployment);
+      numRunningPods = getApiPodAtStatusCount(deployment, "running");
       pollCtr--;
     }
 
@@ -357,6 +347,12 @@ public final class KubernetesClientUtils {
 
   private static long printApiPodCount(V1Deployment deployment, String message)
       throws ApiException {
+    long apiPodCount = getApiPodCount(deployment);
+    logger.debug("Pod Count: {}; Message: {}", apiPodCount, message);
+    return apiPodCount;
+  }
+
+  private static long getApiPodCount(V1Deployment deployment) throws ApiException {
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
     long apiPodCount =
         listPods().stream()
@@ -365,12 +361,11 @@ public final class KubernetesClientUtils {
                     deploymentComponentLabel.equals(
                         pod.getMetadata().getLabels().get(componentLabel)))
             .count();
-    logger.debug("Pod Count: {}; Message: {}", apiPodCount, message);
     return apiPodCount;
   }
 
-  private static long printApiPodAtStatusCount(
-      V1Deployment deployment, String podStatus, String message) throws ApiException {
+  private static long getApiPodAtStatusCount(V1Deployment deployment, String podStatus)
+      throws ApiException {
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
     long apiPodCount =
         listPods().stream()
@@ -380,7 +375,6 @@ public final class KubernetesClientUtils {
                             pod.getMetadata().getLabels().get(componentLabel))
                         && pod.getStatus().getPhase().toLowerCase().equals(podStatus))
             .count();
-    logger.debug("{} Pod Count: {}; Message: {}", podStatus, apiPodCount, message);
     return apiPodCount;
   }
 

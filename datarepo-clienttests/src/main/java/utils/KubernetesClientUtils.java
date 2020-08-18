@@ -285,9 +285,10 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * Wait until the size of the replica set matches the specified number of running pods. Times out after
-   * {@link KubernetesClientUtils#maximumSecondsToWaitForReplicaSetSizeChange} seconds. Polls in
-   * intervals of {@link KubernetesClientUtils#secondsIntervalToPollReplicaSetSizeChange} seconds.
+   * Wait until the size of the replica set matches the specified number of running pods. Times out
+   * after {@link KubernetesClientUtils#maximumSecondsToWaitForReplicaSetSizeChange} seconds. Polls
+   * in intervals of {@link KubernetesClientUtils#secondsIntervalToPollReplicaSetSizeChange}
+   * seconds.
    *
    * @param deployment the deployment object to poll
    * @param numberOfReplicas the eventual expected size of the replica set
@@ -303,10 +304,12 @@ public final class KubernetesClientUtils {
     TimeUnit.SECONDS.sleep(5);
 
     // two checks to make sure we are fully back in working order
-      // 1 - does the total number of pods match the replica count (for example, there aren't still pods terminating)
+    // 1 - does the total number of pods match the replica count (for example, there aren't still
+    // pods terminating)
     long numPods = getApiPodCount(deployment);
-      // 2 - does the total number of running pods match the replica count
-      // (for example, we don't want to consider a pod in the "terminating" state as meeting the replica count criteria)
+    // 2 - does the total number of running pods match the replica count
+    // (for example, we don't want to consider a pod in the "terminating" state as meeting the
+    // replica count criteria)
     long numRunningPods = getApiPodAtStatusCount(deployment, "running");
     while ((numPods != numRunningPods || numPods != numberOfReplicas) && pollCtr >= 0) {
       TimeUnit.SECONDS.sleep(secondsIntervalToPollReplicaSetSizeChange);

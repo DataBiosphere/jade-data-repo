@@ -1,7 +1,7 @@
 {
   "name": "DeleteInitialPods",
-  "description": "3 bulk file loads each on 2 different datasets, while deleting a random pod 10 times, at 30 second increments",
-  "serverSpecificationFile": "localhost.json",
+  "description": "Two bulk file loads on two 2 different datasets, while incrementally deleting all initially created pods",
+  "serverSpecificationFile": "perf.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 3

@@ -299,6 +299,9 @@ public final class KubernetesClientUtils {
         Math.floorDiv(
             maximumSecondsToWaitForReplicaSetSizeChange, secondsIntervalToPollReplicaSetSizeChange);
 
+    // this gives the pod a chance to start changing the size before we start our checks
+    TimeUnit.SECONDS.sleep(5);
+
     // loop through the pods in the namespace
     // find the ones that match the deployment component label (e.g. find all the API pods)
     long numPods = getApiPodCount(deployment);

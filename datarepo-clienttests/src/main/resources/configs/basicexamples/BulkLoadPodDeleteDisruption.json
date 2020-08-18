@@ -13,7 +13,6 @@
   },
   "disruptiveScript": {
     "name": "RandomPodDelete",
-    "description": "Delete a random pod 10 times at 30 second increments",
     "parameters": [10, 30]
   },
   "testScripts": [

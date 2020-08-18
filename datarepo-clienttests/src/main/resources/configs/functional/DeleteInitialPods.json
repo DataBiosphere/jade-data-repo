@@ -13,7 +13,6 @@
   },
   "disruptiveScript": {
     "name": "DeleteInitialPods",
-    "description": "Delete initial pods",
     "parameters": []
   },
   "testScripts": [

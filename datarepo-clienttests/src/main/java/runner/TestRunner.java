@@ -2,6 +2,7 @@ package runner;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,9 @@ import runner.config.TestUserSpecification;
 import utils.FileUtils;
 import utils.KubernetesClientUtils;
 
+@SuppressFBWarnings(
+    value = "RV_RETURN_VALUE_IGNORED",
+    justification = "We do not use the future of the disrupt script")
 class TestRunner {
 
   private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);

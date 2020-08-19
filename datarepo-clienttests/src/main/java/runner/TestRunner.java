@@ -1,11 +1,7 @@
 package runner;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.google.monitoring.v3.Aggregation;
-import com.google.protobuf.Duration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +12,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import measurementcollectionscripts.CPUCoreUsageTimeMetric;
+import measurementcollectionscripts.MemoryUsedBytesMetric;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestConfiguration;
@@ -38,7 +36,7 @@ class TestRunner {
   List<TestScriptResult> testScriptResults;
   long startTime;
   long endTime;
-  List<MetricResult> metricResults;
+  List<MeasurementCollectionScript> measurementCollectionScripts;
 
   static long secondsToWaitForPoolShutdown = 60;
 
@@ -51,7 +49,7 @@ class TestRunner {
     this.testScriptResults = new ArrayList<>();
     this.startTime = -1;
     this.endTime = -1;
-    this.metricResults = new ArrayList<>();
+    this.measurementCollectionScripts = new ArrayList<>();
   }
 
   void executeTestConfiguration() throws Exception {
@@ -406,34 +404,23 @@ class TestRunner {
       return;
     }
 
-    // build a list of metrics to export: container cpu & memory
-    metricResults.add(
-        new MetricResult(
-            "kubernetes.io/container/cpu/core_usage_time",
-            Aggregation.newBuilder()
-                .setAlignmentPeriod(Duration.newBuilder().setSeconds(60).build())
-                .setPerSeriesAligner(Aggregation.Aligner.ALIGN_DELTA)
-                .setCrossSeriesReducer(Aggregation.Reducer.REDUCE_MEAN)
-                .build()));
+    // TODO: these should come from the test configuration instead
+    // build a list of measurements to collect
+    measurementCollectionScripts.add(new CPUCoreUsageTimeMetric()); // container cpu usage
+    measurementCollectionScripts.add(new MemoryUsedBytesMetric()); // container memory usage
 
-    metricResults.add(
-        new MetricResult(
-            "kubernetes.io/container/memory/used_bytes",
-            Aggregation.newBuilder()
-                .setAlignmentPeriod(Duration.newBuilder().setSeconds(60).build())
-                .setPerSeriesAligner(Aggregation.Aligner.ALIGN_MEAN)
-                .setCrossSeriesReducer(Aggregation.Reducer.REDUCE_MEAN)
-                .build()));
-
-    // loop through the metric results
-    for (MetricResult metricResult : metricResults) {
-      // download the data points and calculate any statistics
-      metricResult.downloadDataPoints(config.server, startTime, endTime);
+    // loop through the measurement scripts, downloading raw data points and processing them
+    for (MeasurementCollectionScript measurementCollectionScript : measurementCollectionScripts) {
+      measurementCollectionScript.setServer(config.server);
+      measurementCollectionScript.downloadDataPoints(startTime, endTime);
+      measurementCollectionScript.calculateSummaryStatistics();
     }
   }
 
   void printResults() {
     try {
+      // TODO: print the full set of results to a file instead of to debug
+
       // use Jackson to map the object to a JSON-formatted text block
       ObjectMapper objectMapper = new ObjectMapper();
 
@@ -449,20 +436,26 @@ class TestRunner {
               .writerWithDefaultPrettyPrinter()
               .writeValueAsString(testScriptResultSummaries));
 
-      // print the full set of metrics data points to debug
-      SimpleModule simpleModule = new SimpleModule("SimpleModule", new Version(1, 0, 0, null));
-      simpleModule.addSerializer(new MetricResult.TimeSeriesSerializer());
-      objectMapper.registerModule(simpleModule);
-      logger.debug(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(metricResults));
+      // print the full set of measurement data points to debug
+      measurementCollectionScripts.stream()
+          .forEach(
+              mcs ->
+                  logger.debug(
+                      "Measurement {}: {}",
+                      mcs.getSummaryStatistics().description,
+                      mcs.writeDataPointsToString()));
 
       // print the metrics summary to info
-      List<MetricResult.MetricResultSummary> metricResultSummaries =
-          metricResults.stream().map(MetricResult::getSummary).collect(Collectors.toList());
+      List<MeasurementCollectionScript.MeasurementResultSummary> measurementResultSummaries =
+          measurementCollectionScripts.stream()
+              .map(MeasurementCollectionScript::getSummaryStatistics)
+              .collect(Collectors.toList());
       logger.info(
-          objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(metricResultSummaries));
+          objectMapper
+              .writerWithDefaultPrettyPrinter()
+              .writeValueAsString(measurementResultSummaries));
 
-      // TODO: point user to a dashboard with the correct time range
-
+      // TODO: point user to dashboards with the correct time range
     } catch (JsonProcessingException jpEx) {
       throw new RuntimeException("Error converting object to a JSON-formatted string", jpEx);
     }

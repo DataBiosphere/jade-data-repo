@@ -1,63 +1,34 @@
-package runner;
+package measurementcollectionscripts.baseclasses;
 
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.monitoring.v3.Aggregation;
 import com.google.monitoring.v3.Point;
 import com.google.monitoring.v3.ProjectName;
 import com.google.monitoring.v3.TimeInterval;
 import com.google.monitoring.v3.TimeSeries;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.ServerSpecification;
+import runner.MeasurementCollectionScript;
 import utils.MetricsUtils;
 
-public class MetricResult {
-  private static final Logger logger = LoggerFactory.getLogger(MetricResult.class);
+public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
+  private static final Logger logger = LoggerFactory.getLogger(GoogleMetric.class);
 
-  String identifier;
-  Aggregation aggregation;
-  List<TimeSeries> dataPoints;
+  /** Public constructor so that this class can be instantiated via reflection. */
+  public GoogleMetric() {}
 
-  MetricResultSummary summary;
+  protected String identifier;
+  protected Aggregation aggregation;
 
-  @SuppressFBWarnings(
-      value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
-      justification = "This POJO class is used for easy serialization to JSON using Jackson.")
-  public static class MetricResultSummary {
-    public String description;
-
-    public double min;
-    public double max;
-    public double mean;
-
-    public boolean isFailure;
-
-    private MetricResultSummary(String description) {
-      this.description = description;
-    }
-  }
-
-  public MetricResult(String identifier, Aggregation aggregation) {
-    this.identifier = identifier;
-    this.aggregation = aggregation;
-  }
-
-  public MetricResultSummary getSummary() {
-    return summary;
-  }
-
-  public List<TimeSeries> getDataPoints() {
-    return dataPoints;
-  }
-
-  /** Download the raw metrics data points generated for this server during this test run. */
-  public void downloadDataPoints(ServerSpecification server, long startTimeMS, long endTimeMS)
-      throws IOException {
+  /** Download the raw data points generated during this test run. */
+  public void downloadDataPoints(long startTimeMS, long endTimeMS) throws IOException {
     // send the request to the metrics server
     String filter =
         "metric.type=\""
@@ -70,12 +41,11 @@ public class MetricResult {
             ProjectName.of(server.project), filter, interval, aggregation);
 
     // calculate statistics for reporting
-    summary = new MetricResultSummary(identifier);
-    calculateStatistics();
+    summary = new MeasurementResultSummary(identifier);
   }
 
-  /** Loop through the data points calculating reporting statistics of interest. */
-  private void calculateStatistics() {
+  /** Process the data points calculating reporting statistics of interest. */
+  public void calculateSummaryStatistics() {
     // downloading >1 TimeSeries is not wrong, and we may well want to persist >1 for additional
     // detail
     // but the calculation below (I think) makes more sense when there's only one TimeSeries
@@ -109,11 +79,25 @@ public class MetricResult {
     } else {
       summary.mean /= numDataPoints;
     }
+  }
 
-    // currently success means that we were able to download any metrics
-    // TODO: do we need a way to specify a benchmark for each metric to determine whether the run
-    // passed or not?
-    summary.isFailure = (numDataPoints == 0);
+  /** Write the raw data points generated during this test run to a String. */
+  public String writeDataPointsToString() {
+    // use Jackson to map the object to a JSON-formatted text block
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    // tell the mapper object to use the custom serializer defined below for the TimeSeries class
+    SimpleModule simpleModule = new SimpleModule("SimpleModule", new Version(1, 0, 0, null));
+    simpleModule.addSerializer(new TimeSeriesSerializer());
+    objectMapper.registerModule(simpleModule);
+
+    // write the data points as a string
+    try {
+      return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dataPoints);
+    } catch (JsonProcessingException jpEx) {
+      logger.error("Error serializing measurement data point to JSON. {}", dataPoints, jpEx);
+      return "Error serializing measurement data point to JSON.";
+    }
   }
 
   public static class TimeSeriesSerializer extends JsonSerializer<TimeSeries> {

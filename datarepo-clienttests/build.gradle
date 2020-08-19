@@ -31,6 +31,7 @@ dependencies {
         googleCloud = "1.108.0"
         googlePeople = "v1-rev277-1.23.0"
         googleOauth2 = "0.20.0"
+        googleMonitoring = "2.0.1"
 
         swaggerAnnotations = "1.5.22"
         jersey = "2.30.1"
@@ -55,9 +56,7 @@ dependencies {
     compile "com.google.auth:google-auth-library-oauth2-http:${googleOauth2}"
     compile "com.google.cloud:google-cloud-bigquery:${googleCloud}"
     compile "com.google.cloud:google-cloud-storage:${googleCloud}"
-
-    compile 'com.google.cloud:google-cloud-monitoring:2.0.1'
-
+    compile "com.google.cloud:google-cloud-monitoring:${googleMonitoring}"
 
     // Gradle project property "datarepoclientjar" overrides the fetch from Maven
     if (project.hasProperty("datarepoclientjar")) {

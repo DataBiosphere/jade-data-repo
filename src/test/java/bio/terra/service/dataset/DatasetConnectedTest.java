@@ -527,6 +527,126 @@ public class DatasetConnectedTest {
     }
 
     @Test
+    public void testRepeatedSoftDeleteHitThatQuota() throws Exception {
+        // load a CSV file that contains the table rows to load into the test bucket
+        String resourceFileName = "snapshot-test-dataset-data.csv";
+        String dirInCloud = "scratch/testRepeatedSoftDelete/" + UUID.randomUUID().toString();
+        BlobInfo ingestTableBlob = BlobInfo
+            .newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
+            .build();
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        storage.create(ingestTableBlob,
+            IOUtils.toByteArray(getClass().getClassLoader().getResource(resourceFileName)));
+        String tableIngestInputFilePath =
+            "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + resourceFileName;
+
+        // ingest the table
+        String tableName = "thetable";
+        IngestRequestModel ingestRequest = new IngestRequestModel()
+            .table(tableName)
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .csvSkipLeadingRows(1)
+            .path(tableIngestInputFilePath);
+        connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+
+        // make sure the JSON file gets cleaned up on test teardown
+        connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
+
+        // load a CSV file that contains the table rows to soft delete into the test bucket
+        String softDeleteRowId = "8c52c63e-8d9f-4cfc-82d0-0f916b2404c1";
+        List<String> softDeleteRowIds = new ArrayList<>();
+        softDeleteRowIds.add(softDeleteRowId); // add the same rowid twice
+        softDeleteRowIds.add(softDeleteRowId);
+        DataDeletionRequest softDeleteRequest = uploadInputFileAndBuildSoftDeleteRequest(
+            dirInCloud, "testRepeatedSoftDelete.csv", tableName, softDeleteRowIds);
+
+        // make the soft delete request and wait for it to return
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest);
+
+        // check that the size of the live table matches what we expect
+        List<String> liveTableRowIds1 = getRowIdsFromBQTable(summaryModel.getName(), tableName);
+        assertEquals("Size of live table is 3", 3, liveTableRowIds1.size());
+        assertFalse("Soft deleted row id is not in live table", liveTableRowIds1.contains(softDeleteRowId));
+
+        // note: the soft delete table name is not exposed to end users, so to check that the state of the
+        // soft delete table is correct, I'm reaching into our internals to fetch the table name
+        Dataset internalDatasetObj = datasetDao.retrieve(UUID.fromString(summaryModel.getId()));
+        DatasetTable internalDatasetTableObj = internalDatasetObj.getTableByName(tableName).get();
+        String internalSoftDeleteTableName = internalDatasetTableObj.getSoftDeleteTableName();
+
+        // check that the size of the soft delete table matches what we expect
+        List<String> softDeleteRowIds1 = getRowIdsFromBQTable(summaryModel.getName(), internalSoftDeleteTableName);
+        assertEquals("Size of soft delete table is 1", 1, softDeleteRowIds1.size());
+        assertTrue("Soft deleted row id is in soft delete table", softDeleteRowIds1.contains(softDeleteRowId));
+
+        // repeat the same soft delete request and wait for it to return
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest); // TODO This is what is breaking
+
+        // check that the size of the live table has not changed
+        List<String> liveTableRowIds2 = getRowIdsFromBQTable(summaryModel.getName(), tableName);
+        assertEquals("Size of live table is still 3", 3, liveTableRowIds2.size());
+        assertFalse("Soft deleted row id is still not in live table", liveTableRowIds2.contains(softDeleteRowId));
+
+        // check that the size of the soft delete table has not changed
+        List<String> softDeleteRowIds2 = getRowIdsFromBQTable(summaryModel.getName(), internalSoftDeleteTableName);
+        assertEquals("Size of soft delete table is still 1", 1, softDeleteRowIds2.size());
+        assertTrue("Soft deleted row id is still in soft delete table", softDeleteRowIds2.contains(softDeleteRowId));
+
+        // delete the dataset and check that it succeeds
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
+
+        // try to fetch the dataset again and confirm nothing is returned
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     public void testConcurrentSoftDeletes() throws Exception {
         // load a CSV file that contains the table rows to load into the test bucket
         String resourceFileName = "snapshot-test-dataset-data.csv";

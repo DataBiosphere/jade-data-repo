@@ -39,9 +39,6 @@ public class DeleteInitialPods extends DisruptiveScript {
                 deploymentComponentLabel.equals(pod.getMetadata().getLabels().get(componentLabel)))
         .forEach(p -> podsToDelete.add(p.getMetadata().getName()));
 
-    // give task time to get started before deleting pods
-    TimeUnit.SECONDS.sleep(15);
-
     // delete original pods, and give them a chance to recover
     for (String podName : podsToDelete) {
       logger.debug("delete pod: {}", podName);

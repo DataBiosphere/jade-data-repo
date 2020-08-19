@@ -354,6 +354,7 @@ class TestRunner {
   static class DisruptiveThread implements Callable {
     DisruptiveScript disruptiveScript;
     List<TestUserSpecification> testUsers;
+    int waitBeforeStartingDisrupt = 15;
 
     public DisruptiveThread(
         DisruptiveScript disruptiveScript, List<TestUserSpecification> testUsers) {
@@ -363,6 +364,8 @@ class TestRunner {
 
     public Object call() {
       try {
+        // give task time to get started before disruption
+        TimeUnit.SECONDS.sleep(waitBeforeStartingDisrupt);
         disruptiveScript.disrupt(testUsers);
       } catch (Exception ex) {
         logger.info("Disruptive thread threw exception: {}", ex.getMessage());

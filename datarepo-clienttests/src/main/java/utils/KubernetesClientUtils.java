@@ -247,7 +247,8 @@ public final class KubernetesClientUtils {
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
-    long podCount = printApiPodCount(apiDeployment, "Before deleting pods");
+    long podCount = getApiPodCount(apiDeployment);
+    logger.debug("Pod Count: {}; Message: Before deleting pods", podCount);
     printApiPods(apiDeployment);
     String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(componentLabel);
 
@@ -295,7 +296,6 @@ public final class KubernetesClientUtils {
    */
   public static void waitForReplicaSetSizeChange(V1Deployment deployment, int numberOfReplicas)
       throws Exception {
-    logger.debug("waitForReplicaSetSizeChange");
     int pollCtr =
         Math.floorDiv(
             maximumSecondsToWaitForReplicaSetSizeChange, secondsIntervalToPollReplicaSetSizeChange);
@@ -339,20 +339,16 @@ public final class KubernetesClientUtils {
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
-    printApiPodCount(apiDeployment, "Before scaling pod count");
+
+    long apiPodCount = getApiPodCount(apiDeployment);
+    logger.debug("Pod Count: {}; Message: Before scaling pod count", apiPodCount);
     apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
     KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
 
     // print out the current pods
-    printApiPodCount(apiDeployment, "After scaling pod count");
+    apiPodCount = getApiPodCount(apiDeployment);
+    logger.debug("Pod Count: {}; Message: After scaling pod count", apiPodCount);
     printApiPods(apiDeployment);
-  }
-
-  private static long printApiPodCount(V1Deployment deployment, String message)
-      throws ApiException {
-    long apiPodCount = getApiPodCount(deployment);
-    logger.debug("Pod Count: {}; Message: {}", apiPodCount, message);
-    return apiPodCount;
   }
 
   private static long getApiPodCount(V1Deployment deployment) throws ApiException {

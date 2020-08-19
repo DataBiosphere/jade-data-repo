@@ -48,6 +48,10 @@ public final class KubernetesClientUtils {
   private static CoreV1Api kubernetesClientCoreObject;
   private static AppsV1Api kubernetesClientAppsObject;
 
+  public enum PodPhase {
+      running
+  }
+
   private KubernetesClientUtils() {}
 
   public static CoreV1Api getKubernetesClientCoreObject() {
@@ -296,25 +300,24 @@ public final class KubernetesClientUtils {
    */
   public static void waitForReplicaSetSizeChange(V1Deployment deployment, int numberOfReplicas)
       throws Exception {
-    int pollCtr =
-        Math.floorDiv(
-            maximumSecondsToWaitForReplicaSetSizeChange, secondsIntervalToPollReplicaSetSizeChange);
+    // set values so that while conditions always true on first try
+    // forces the first sleep statement to be hit giving the pods a chance to start any adjustments
+    long numPods = -1;
+    long numRunningPods = -2;
+      int pollCtr =
+          Math.floorDiv(
+              maximumSecondsToWaitForReplicaSetSizeChange, secondsIntervalToPollReplicaSetSizeChange);
 
-    // this gives the pod a chance to start changing the size before we start our checks
-    TimeUnit.SECONDS.sleep(5);
-
-    // two checks to make sure we are fully back in working order
-    // 1 - does the total number of pods match the replica count (for example, there aren't still
-    // pods terminating)
-    long numPods = getApiPodCount(deployment);
-    // 2 - does the total number of running pods match the replica count
-    // (for example, we don't want to consider a pod in the "terminating" state as meeting the
-    // replica count criteria)
-    long numRunningPods = getApiPodAtStatusCount(deployment, "running");
     while ((numPods != numRunningPods || numPods != numberOfReplicas) && pollCtr >= 0) {
       TimeUnit.SECONDS.sleep(secondsIntervalToPollReplicaSetSizeChange);
+      // two checks to make sure we are fully back in working order
+      // 1 - does the total number of pods match the replica count (for example, there aren't still
+      // pods terminating)
       numPods = getApiPodCount(deployment);
-      numRunningPods = getApiPodAtStatusCount(deployment, "running");
+      // 2 - does the total number of running pods match the replica count
+      // (for example, we don't want to consider a pod in the "terminating" state as meeting the
+      // replica count criteria)
+      numRunningPods = getApiPodAtStatusCount(deployment, PodPhase.running);
       pollCtr--;
     }
 
@@ -365,7 +368,7 @@ public final class KubernetesClientUtils {
     return apiPodCount;
   }
 
-  private static long getApiPodAtStatusCount(V1Deployment deployment, String podStatus)
+  private static long getApiPodAtStatusCount(V1Deployment deployment, PodPhase podPhase)
       throws ApiException {
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
     long apiPodCount =
@@ -374,7 +377,7 @@ public final class KubernetesClientUtils {
                 pod ->
                     deploymentComponentLabel.equals(
                             pod.getMetadata().getLabels().get(componentLabel))
-                        && pod.getStatus().getPhase().toLowerCase().equals(podStatus))
+                        && pod.getStatus().getPhase().toLowerCase().equals(podPhase.toString()))
             .count();
     return apiPodCount;
   }

@@ -1,6 +1,6 @@
 {
   "name": "SoftDeleteDatasetManyRows",
-  "description": "Load data into a dataset with 10k rows and delete 1000 rows with each request",
+  "description": "Load data into a dataset with 10 million rows and delete 1000 rows with each request",
   "serverSpecificationFile": "localhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {

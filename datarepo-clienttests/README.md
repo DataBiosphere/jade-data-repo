@@ -105,7 +105,7 @@ JAR file by specifying a Gradle project property, either with a command line arg
 
 or an environment variable.
 
-`export ORG_GRADLE_PROJECT_datarepoclientjar../datarepo-client/build/libs/datarepo-client-1.0.39-SNAPSHOT.jar`
+`export ORG_GRADLE_PROJECT_datarepoclientjar=../datarepo-client/build/libs/datarepo-client-1.0.39-SNAPSHOT.jar`
 `./gradlew run --args="configs/BasicUnauthenticated.json`
 
 This is useful for debugging or testing local server code changes that affect the generated client library (e.g. new API

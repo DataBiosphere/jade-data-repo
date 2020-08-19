@@ -8,6 +8,7 @@ import com.google.monitoring.v3.Point;
 import com.google.monitoring.v3.ProjectName;
 import com.google.monitoring.v3.TimeInterval;
 import com.google.monitoring.v3.TimeSeries;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.util.List;
 import org.slf4j.Logger;
@@ -24,6 +25,9 @@ public class MetricResult {
 
   MetricResultSummary summary;
 
+  @SuppressFBWarnings(
+      value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
+      justification = "This POJO class is used for easy serialization to JSON using Jackson.")
   public static class MetricResultSummary {
     public String description;
 

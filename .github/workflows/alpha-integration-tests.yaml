@@ -28,5 +28,6 @@ jobs:
       with:
         status: ${{ job.status }}
         channel: "#dsde-qa"
-        username: "Data Repo alpha integration tests"
+        username: "Data Repo tests"
+        text: "Alpha integration tests"
       if: always()

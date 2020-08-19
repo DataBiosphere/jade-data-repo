@@ -353,7 +353,14 @@ class TestRunner {
     // database, but reporting that it was left hanging around would be helpful
   }
 
-  public void collectMetrics() throws Exception {
+  void collectMetrics() throws Exception {
+    // don't try to collect metrics for a server running locally
+    if (config.server.skipKubernetes) {
+      logger.info(
+          "Skipping metrics collection because the server specification has disabled Kubernetes (see server.skipKubernetes flag).");
+      return;
+    }
+
     // build a list of metrics to export: container cpu & memory
     metricResults.add(
         new MetricResult(

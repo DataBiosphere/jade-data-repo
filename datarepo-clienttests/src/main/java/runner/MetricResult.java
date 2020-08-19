@@ -113,7 +113,7 @@ public class MetricResult {
     // currently success means that we were able to download any metrics
     // TODO: do we need a way to specify a benchmark for each metric to determine whether the run
     // passed or not?
-    summary.isFailure = (numDataPoints > 0);
+    summary.isFailure = (numDataPoints == 0);
   }
 
   public static class TimeSeriesSerializer extends JsonSerializer<TimeSeries> {

@@ -7,12 +7,9 @@ import utils.FileUtils;
 
 public class ServiceAccountSpecification implements SpecificationInterface {
   public String name;
-  public String serviceAccountEmail;
   public String jsonKeyFilePath;
-  public String pemFilePath;
 
   public File jsonKeyFile;
-  public File pemFile;
 
   public static final String resourceDirectory = "serviceaccounts";
 
@@ -39,22 +36,15 @@ public class ServiceAccountSpecification implements SpecificationInterface {
    * should be null.
    */
   public void validate() {
-    if (serviceAccountEmail == null || serviceAccountEmail.equals("")) {
-      throw new IllegalArgumentException("Service account email cannot be empty");
+    if (name == null || name.equals("")) {
+      throw new IllegalArgumentException("Service account name cannot be empty");
     } else if (jsonKeyFilePath == null || jsonKeyFilePath.equals("")) {
       throw new IllegalArgumentException("JSON key file path cannot be empty");
-    } else if (pemFilePath == null || pemFilePath.equals("")) {
-      throw new IllegalArgumentException("PEM file path cannot be empty");
     }
 
     jsonKeyFile = new File(jsonKeyFilePath);
     if (!jsonKeyFile.exists()) {
       throw new IllegalArgumentException("JSON key file does not exist: " + jsonKeyFilePath);
-    }
-
-    pemFile = new File(pemFilePath);
-    if (!pemFile.exists()) {
-      throw new IllegalArgumentException("PEM file does not exist: " + pemFilePath);
     }
   }
 }

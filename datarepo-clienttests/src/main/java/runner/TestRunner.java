@@ -22,9 +22,6 @@ import runner.config.TestUserSpecification;
 import utils.FileUtils;
 import utils.KubernetesClientUtils;
 
-@SuppressFBWarnings(
-    value = "RV_RETURN_VALUE_IGNORED",
-    justification = "We do not use the future of the disrupt script")
 class TestRunner {
 
   private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);

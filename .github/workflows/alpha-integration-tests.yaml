@@ -13,7 +13,7 @@ jobs:
       id: vault
       uses: hashicorp/vault-action@v1.0.1
       with:
-        url: ${{ secrets.VAULT_ADDR_PORT }}
+        url: ${{ secrets.VAULT_ADDR }}
         method: approle
         roleId: ${{ secrets.ALPHA_ROLE_ID }}
         secretId: ${{ secrets.ALPHA_SECRET_ID }}

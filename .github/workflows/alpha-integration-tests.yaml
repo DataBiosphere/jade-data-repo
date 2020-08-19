@@ -2,9 +2,8 @@ name: DataRepo Alpha Integration Tests
 on:
   # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}
-
 jobs:
-  integration-tests:
+  alpha-integration-test:
     runs-on: ubuntu-latest
     steps:
     - name: "Checkout code"
@@ -23,6 +22,9 @@ jobs:
       run: |
         base64 --decode <<< "${{ steps.vault.outputs.B64_APPLICATION_CREDENTIALS }}" > "${GOOGLE_APPLICATION_CREDENTIALS}"
         jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-account.json
+        GOOGLE_SA_CERT: /tmp/jade-account.pem
     - name: "Notify Slack"
       uses: broadinstitute/action-slack@v2
       env:

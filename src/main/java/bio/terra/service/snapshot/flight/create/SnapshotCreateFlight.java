@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
@@ -40,6 +41,7 @@ public class SnapshotCreateFlight extends Flight {
         DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
         GoogleResourceService resourceService =
             (GoogleResourceService) appContext.getBean("googleResourceService");
+        PerformanceLogger performanceLogger = (PerformanceLogger) appContext.getBean("performanceLogger");
 
         SnapshotRequestModel snapshotReq = inputParameters.get(
             JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -85,7 +87,7 @@ public class SnapshotCreateFlight extends Flight {
 
         // Make the firestore file system for the snapshot
         addStep(new CreateSnapshotFireStoreDataStep(
-            bigQueryPdao, snapshotService, dependencyDao, datasetService, snapshotReq, fileDao));
+            bigQueryPdao, snapshotService, dependencyDao, datasetService, snapshotReq, fileDao, performanceLogger));
 
         // Calculate checksums and sizes for all directories in the snapshot
         addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));

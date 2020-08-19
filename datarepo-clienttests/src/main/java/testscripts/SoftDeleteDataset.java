@@ -16,20 +16,21 @@ import bio.terra.datarepo.model.JobModel;
 import com.google.api.client.util.Charsets;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
-import java.io.ByteArrayOutputStream;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import testscripts.baseclasses.SimpleDataset;
 import utils.BigQueryUtils;
+import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.FileUtils;
+
+import java.io.ByteArrayOutputStream;
+import java.net.URI;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class SoftDeleteDataset extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(SoftDeleteDataset.class);
@@ -80,25 +81,15 @@ public class SoftDeleteDataset extends SimpleDataset {
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
-    String fileId = bulkLoadArrayResultModel.getLoadFileResults().get(0).getFileId();
 
-    // ingest the tabular data from the JSON file we just generated
-    // generate a JSON file with the fileref
-    String jsonLine =
-        "{\"VCF_File_Name\":\"name1\", \"Description\":\"description1\", \"VCF_File_Ref\":\""
-            + fileId
-            + "\"}\n";
-    byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
     String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
     String dirInCloud = "scratch/softDel";
     String fileRefName = dirInCloud + "/" + jsonFileName;
-    String gsPath = FileUtils.createGsPath(fileRefBytes, fileRefName, testConfigGetIngestbucket);
 
     IngestRequestModel ingestRequest =
-        new IngestRequestModel()
-            .format(IngestRequestModel.FormatEnum.JSON)
-            .table("vcf_file")
-            .path(gsPath);
+        BulkLoadUtils.makeIngestRequestFromLoadArray(
+            bulkLoadArrayResultModel, testConfigGetIngestbucket, fileRefName);
+
     JobModel ingestTabularDataJobResponse =
         repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 

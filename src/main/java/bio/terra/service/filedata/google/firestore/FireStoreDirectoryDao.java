@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.exception.NotImplementedException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -70,11 +71,13 @@ public class FireStoreDirectoryDao {
 
     private static final String ROOT_DIR_NAME = "/_dr_";
 
-    private FireStoreUtils fireStoreUtils;
+    private final FireStoreUtils fireStoreUtils;
+    private final PerformanceLogger performanceLogger;
 
     @Autowired
-    public FireStoreDirectoryDao(FireStoreUtils fireStoreUtils) {
+    public FireStoreDirectoryDao(FireStoreUtils fireStoreUtils, PerformanceLogger performanceLogger) {
         this.fireStoreUtils = fireStoreUtils;
+        this.performanceLogger = performanceLogger;
     }
 
     // Note that this does not test for duplicates. If invoked on an existing path it will overwrite
@@ -344,7 +347,14 @@ public class FireStoreDirectoryDao {
                                    String snapshotId,
                                    String fileId) throws InterruptedException {
 
+        String retrieveTimer = performanceLogger.timerStart();
         FireStoreDirectoryEntry datasetEntry = retrieveById(datasetFirestore, datasetId, fileId);
+        performanceLogger.timerEndAndLog(
+            retrieveTimer,
+            fileId,
+            this.getClass().getName(),
+            "addEntryToSnapshot:retrieveById");
+
         if (!datasetEntry.getIsFileRef()) {
             throw new NotImplementedException("Directories are not yet supported as references");
             // TODO: Add directory support. Here is a sketch of a brute force implementation:
@@ -356,12 +366,18 @@ public class FireStoreDirectoryDao {
             // entries as we go. More efficient, but an entirely separate code path...
         }
 
+        String storeTopTimer = performanceLogger.timerStart();
         // Create the top directory structure (/_dr_/<datasetDirName>)
         storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
 
         // Store the base entry under the datasetDir
         FireStoreDirectoryEntry snapEntry = datasetEntry.copyEntryUnderNewPath(datasetDirName);
         storeDirectoryEntry(snapshotFirestore, snapshotId, snapEntry);
+        performanceLogger.timerEndAndLog(
+            storeTopTimer,
+            fileId,
+            this.getClass().getName(),
+            "addEntryToSnapshot:storeTop");
 
         // Now we walk up the *dataset* directory path, retrieving existing directories.
         // For each directory, we make a new entry under the datasetDir path and store it.
@@ -371,10 +387,24 @@ public class FireStoreDirectoryDao {
              !testPath.isEmpty();
              testPath = fireStoreUtils.getDirectoryPath(testPath)) {
 
+            String lookUpTimer = performanceLogger.timerStart();
             DocumentSnapshot docSnap = lookupByPathNoXn(datasetFirestore, datasetId, testPath);
+            performanceLogger.timerEndAndLog(
+                lookUpTimer,
+                fileId,
+                this.getClass().getName(),
+                "addEntryToSnapshot:lookupByPathNoXn");
+
             FireStoreDirectoryEntry datasetDir = docSnap.toObject(FireStoreDirectoryEntry.class);
             FireStoreDirectoryEntry snapshotDir = datasetDir.copyEntryUnderNewPath(datasetDirName);
+
+            String storeTimer = performanceLogger.timerStart();
             storeDirectoryEntry(snapshotFirestore, snapshotId, snapshotDir);
+            performanceLogger.timerEndAndLog(
+                storeTimer,
+                fileId,
+                this.getClass().getName(),
+                "addEntryToSnapshot:storeDirectoryEntry");
         }
     }
 
@@ -405,12 +435,37 @@ public class FireStoreDirectoryDao {
         throws InterruptedException {
 
         try {
+            String getDocTimer = performanceLogger.timerStart();
             DocumentReference newRef = getDocRef(firestore, collectionId, entry);
             ApiFuture<DocumentSnapshot> newSnapFuture = newRef.get();
+            String getDocWaitTimer = performanceLogger.timerStart();
             DocumentSnapshot newSnap = newSnapFuture.get();
+            performanceLogger.timerEndAndLog(
+                getDocWaitTimer,
+                entry.getFileId(),
+                this.getClass().getName(),
+                "storeDirectoryEntry:getDocWait");
+            performanceLogger.timerEndAndLog(
+                getDocTimer,
+                entry.getFileId(),
+                this.getClass().getName(),
+                "storeDirectoryEntry:getDoc");
+
             if (!newSnap.exists()) {
+                String setTimer = performanceLogger.timerStart();
                 ApiFuture<WriteResult> writeFuture = newRef.set(entry);
+                String setWaitTimer = performanceLogger.timerStart();
                 writeFuture.get();
+                performanceLogger.timerEndAndLog(
+                    setWaitTimer,
+                    entry.getFileId(),
+                    this.getClass().getName(),
+                    "storeDirectoryEntry:setWait");
+                performanceLogger.timerEndAndLog(
+                    setTimer,
+                    entry.getFileId(),
+                    this.getClass().getName(),
+                    "storeDirectoryEntry:set");
             }
         } catch (AbortedException | ExecutionException ex) {
             throw handleExecutionException("storeDirectoryEntry", ex);

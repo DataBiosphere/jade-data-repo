@@ -49,7 +49,7 @@ public final class KubernetesClientUtils {
   private static AppsV1Api kubernetesClientAppsObject;
 
   public enum PodPhase {
-      running
+    running
   }
 
   private KubernetesClientUtils() {}
@@ -304,9 +304,9 @@ public final class KubernetesClientUtils {
     // forces the first sleep statement to be hit giving the pods a chance to start any adjustments
     long numPods = -1;
     long numRunningPods = -2;
-      int pollCtr =
-          Math.floorDiv(
-              maximumSecondsToWaitForReplicaSetSizeChange, secondsIntervalToPollReplicaSetSizeChange);
+    int pollCtr =
+        Math.floorDiv(
+            maximumSecondsToWaitForReplicaSetSizeChange, secondsIntervalToPollReplicaSetSizeChange);
 
     while ((numPods != numRunningPods || numPods != numberOfReplicas) && pollCtr >= 0) {
       TimeUnit.SECONDS.sleep(secondsIntervalToPollReplicaSetSizeChange);

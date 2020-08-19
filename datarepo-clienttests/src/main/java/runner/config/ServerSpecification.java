@@ -20,6 +20,7 @@ public class ServerSpecification implements SpecificationInterface {
   public String region;
   public String project;
   public String namespace;
+  public String containerName;
 
   public DeploymentScriptSpecification deploymentScript;
   public boolean skipKubernetes = false;
@@ -70,6 +71,8 @@ public class ServerSpecification implements SpecificationInterface {
         throw new IllegalArgumentException("Server cluster region cannot be empty");
       } else if (project == null || project.equals("")) {
         throw new IllegalArgumentException("Server cluster project cannot be empty");
+      } else if (containerName == null || containerName.equals("")) {
+        throw new IllegalArgumentException("Server cluster container name cannot be empty");
       }
     }
     if (!skipDeployment) {

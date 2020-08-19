@@ -1,7 +1,11 @@
 package runner;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.monitoring.v3.Aggregation;
+import com.google.protobuf.Duration;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +35,9 @@ class TestRunner {
   List<ThreadPoolExecutor> threadPools;
   List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
   List<TestScriptResult> testScriptResults;
+  long startTime;
+  long endTime;
+  List<MetricResult> metricResults;
 
   static long secondsToWaitForPoolShutdown = 60;
 
@@ -40,6 +47,9 @@ class TestRunner {
     this.threadPools = new ArrayList<>();
     this.userJourneyFutureLists = new ArrayList<>();
     this.testScriptResults = new ArrayList<>();
+    this.startTime = -1;
+    this.endTime = -1;
+    this.metricResults = new ArrayList<>();
   }
 
   void executeTestConfiguration() throws Exception {
@@ -146,6 +156,9 @@ class TestRunner {
       throw new RuntimeException("Error calling test script setup methods.", setupExceptionThrown);
     }
 
+    // set the start time for this test run
+    startTime = System.currentTimeMillis();
+
     // for each test script
     logger.info(
         "Test Scripts: Creating a thread pool for each TestScript and kicking off the user journeys");
@@ -200,6 +213,9 @@ class TestRunner {
       }
     }
 
+    // set the end time for this test run
+    endTime = System.currentTimeMillis();
+
     // compile the results from all thread pools
     logger.info("Test Scripts: Compiling the results from all thread pools");
     for (int ctr = 0; ctr < scripts.size(); ctr++) {
@@ -241,9 +257,9 @@ class TestRunner {
           "Error calling test script cleanup methods.", cleanupExceptionThrown);
     }
 
-    // TODO: also restore any Kubernetes settings? they are always set again at the beginning of a
-    // test run, which is more important from a reproducibility standpoint. might be useful to leave
-    // the deployment as is, for debugging after a test run
+    // no need to restore any Kubernetes settings. they are always set again at the beginning of a
+    // test run, which is more important from a reproducibility standpoint. probably more useful to
+    // leave the deployment as is, for debugging after a test run
     if (!config.server.skipDeployment) {
       deploymentScript.teardown();
     } else {
@@ -337,6 +353,33 @@ class TestRunner {
     // database, but reporting that it was left hanging around would be helpful
   }
 
+  public void collectMetrics() throws Exception {
+    // build a list of metrics to export: container cpu & memory
+    metricResults.add(
+        new MetricResult(
+            "kubernetes.io/container/cpu/core_usage_time",
+            Aggregation.newBuilder()
+                .setAlignmentPeriod(Duration.newBuilder().setSeconds(60).build())
+                .setPerSeriesAligner(Aggregation.Aligner.ALIGN_DELTA)
+                .setCrossSeriesReducer(Aggregation.Reducer.REDUCE_MEAN)
+                .build()));
+
+    metricResults.add(
+        new MetricResult(
+            "kubernetes.io/container/memory/used_bytes",
+            Aggregation.newBuilder()
+                .setAlignmentPeriod(Duration.newBuilder().setSeconds(60).build())
+                .setPerSeriesAligner(Aggregation.Aligner.ALIGN_MEAN)
+                .setCrossSeriesReducer(Aggregation.Reducer.REDUCE_MEAN)
+                .build()));
+
+    // loop through the metric results
+    for (MetricResult metricResult : metricResults) {
+      // download the data points and calculate any statistics
+      metricResult.downloadDataPoints(config.server, startTime, endTime);
+    }
+  }
+
   void printResults() {
     try {
       // use Jackson to map the object to a JSON-formatted text block
@@ -354,8 +397,22 @@ class TestRunner {
               .writerWithDefaultPrettyPrinter()
               .writeValueAsString(testScriptResultSummaries));
 
+      // print the full set of metrics data points to debug
+      SimpleModule simpleModule = new SimpleModule("SimpleModule", new Version(1, 0, 0, null));
+      simpleModule.addSerializer(new MetricResult.TimeSeriesSerializer());
+      objectMapper.registerModule(simpleModule);
+      logger.debug(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(metricResults));
+
+      // print the metrics summary to info
+      List<MetricResult.MetricResultSummary> metricResultSummaries =
+          metricResults.stream().map(MetricResult::getSummary).collect(Collectors.toList());
+      logger.info(
+          objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(metricResultSummaries));
+
+      // TODO: point user to a dashboard with the correct time range
+
     } catch (JsonProcessingException jpEx) {
-      throw new RuntimeException("Error converting object to a JSON-formatted string");
+      throw new RuntimeException("Error converting object to a JSON-formatted string", jpEx);
     }
   }
 
@@ -413,11 +470,12 @@ class TestRunner {
           "==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
       logger.info(testConfiguration.display());
 
-      // get an instance of a runner and tell it to execute the configuration
+      // get an instance of a runner and tell it to execute the configuration and collect metrics
       TestRunner runner = new TestRunner(testConfiguration);
       Exception runnerEx = null;
       try {
         runner.executeTestConfiguration();
+        runner.collectMetrics();
       } catch (Exception ex) {
         runnerEx = ex; // save exception to display after printing the results
       }

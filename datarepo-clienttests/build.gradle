@@ -56,6 +56,9 @@ dependencies {
     compile "com.google.cloud:google-cloud-bigquery:${googleCloud}"
     compile "com.google.cloud:google-cloud-storage:${googleCloud}"
 
+    compile 'com.google.cloud:google-cloud-monitoring:2.0.1'
+
+
     // Gradle project property "datarepoclientjar" overrides the fetch from Maven
     if (project.hasProperty("datarepoclientjar")) {
         implementation files(project.findProperty("datarepoclientjar"))

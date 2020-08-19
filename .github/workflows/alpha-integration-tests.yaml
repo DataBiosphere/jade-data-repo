@@ -18,7 +18,7 @@ jobs:
         roleId: ${{ secrets.ALPHA_ROLE_ID }}
         secretId: ${{ secrets.ALPHA_SECRET_ID }}
         secrets: |
-          secret/dsde/datarepo/alpha/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+          secret/dsde/datarepo/alpha/datarepo-api-sa | B64_APPLICATION_CREDENTIALS ;
     - name: "Write Vault tokens"
       run: |
         base64 --decode <<< ${{ steps.vault.outputs.B64_APPLICATION_CREDENTIALS }} > $GOOGLE_APPLICATION_CREDENTIALS

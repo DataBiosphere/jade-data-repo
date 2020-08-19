@@ -1456,7 +1456,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.getBigQuery().create(tableInfo);
 
         // validate that the external table has data
-        String sql = new ST(validateExtTableTemplate)
+        String sql = new ST(validateExtTableTemplate) // TODO note that external table cant be empty anyway
             .add("rowId", PDAO_ROW_ID_COLUMN)
             .add("project", bigQueryProject.getProjectId())
             .add("dataset", tableId.getDataset())

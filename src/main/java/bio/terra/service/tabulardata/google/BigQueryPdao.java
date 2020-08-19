@@ -1448,7 +1448,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         throws InterruptedException {
 
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        String extTableName = externalTableName(tableName, suffix);
+        String extTableName = externalTableName(tableName, suffix); // where the suffix is the flight id
         TableId tableId = TableId.of(prefixName(dataset.getName()), extTableName);
         Schema schema = Schema.of(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
         ExternalTableDefinition tableDef = ExternalTableDefinition.of(path, schema, FormatOptions.csv());
@@ -1532,6 +1532,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
         "SELECT COUNT(E.<rowId>) FROM `<project>.<dataset>.<softDeleteExtTable>` E " +
         "LEFT JOIN `<project>.<dataset>.<rawTable>` R USING (<rowId>) " +
         "WHERE R.<rowId> IS NULL";
+    private static final String testtemp =
+        "SELECT COUNT(*) FROM `<project>.<dataset>.<softDeleteExtTable>` ";
 
     /**
      * Goes through each of the provided tables and checks to see if the proposed row ids to soft delete exist in the
@@ -1548,6 +1550,45 @@ public class BigQueryPdao implements PrimaryDataAccess {
         for (DataDeletionTableModel table : tables) {
             String tableName = table.getTableName();
             String rawTableName = dataset.getTableByName(tableName).get().getRawTableName();
+            String sqlTest = new ST(testtemp)
+                .add("project", bigQueryProject.getProjectId())
+                .add("dataset", prefixName(dataset.getName()))
+                .add("softDeleteExtTable", externalTableName(tableName, suffix)).render();
+            TableResult resulttest = bigQueryProject.query(sqlTest);
+            long count = getSingleLongValue(resulttest);
+            logger.info("Count of rows in ext table {}", count); // TODO: note that in the tests this is non-zero
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest);
+            bigQueryProject.query(sqlTest); // TODO note that none of these queries cause the issue. It's the join only.
+
+
+
+
             String sql = new ST(validateSoftDeleteTemplate)
                 .add("rowId", PDAO_ROW_ID_COLUMN)
                 .add("project", bigQueryProject.getProjectId())

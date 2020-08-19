@@ -20,6 +20,20 @@ jobs:
     steps:
     - name: "Checkout code"
       uses: actions/checkout@v2
+    - name: "Import Vault secrets"
+      id: vault
+      uses: hashicorp/vault-action@v1.0.1
+      with:
+        url: ${{ secrets.VAULT_ADDR }}
+        method: approle
+        roleId: ${{ secrets.ALPHA_ROLE_ID }}
+        secretId: ${{ secrets.ALPHA_SECRET_ID }}
+        secrets: |
+          secret/dsde/datarepo/alpha/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+    - name: "Write Vault tokens"
+      run: |
+        base64 --decode <<< ${{ steps.vault.outputs.B64_APPLICATION_CREDENTIALS }} > $GOOGLE_APPLICATION_CREDENTIALS
+        jq -r .private_key $GOOGLE_APPLICATION_CREDENTIALS > $GOOGLE_SA_CERT
     - name: "Notify Slack"
       uses: broadinstitute/action-slack@v2
       env:

@@ -17,7 +17,6 @@ jobs:
         method: approle
         roleId: ${{ secrets.ALPHA_ROLE_ID }}
         secretId: ${{ secrets.ALPHA_SECRET_ID }}
-        caCertificate: ${{ secrets.VAULT_CA }}
         secrets: |
           secret/dsde/datarepo/alpha/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
     - name: "Write Vault tokens"

@@ -97,3 +97,57 @@ jobs:
         uses: broadinstitute/datarepo-actions@0.14.0
         with:
           actions_subcommand: 'gcp_whitelist_clean'
+  deploy_test_perf:
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
+    runs-on: ${{ matrix.os }}
+    ## skips if pr label is 'skip-ci'
+    # run a local Postgres container in Docker for the basic check tests
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v2
+      - name: "Whitelist Runner IP"
+        uses: broadinstitute/datarepo-actions@0.14.0
+        with:
+          actions_subcommand: 'gcp_whitelist'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+          k8_cluster: 'jade-master-us-central1'
+      - name: "Build docker container via Gradle"
+        uses: broadinstitute/datarepo-actions@0.14.0
+        with:
+          actions_subcommand: 'gradlebuild'
+      - name: "Deploy to cluster with Helm"
+        uses: broadinstitute/datarepo-actions@0.14.0
+        with:
+          actions_subcommand: 'helmdeploy'
+          helm_secret_chart_version: '0.0.4'
+          helm_datarepo_api_chart_version: '0.0.17'
+          helm_datarepo_ui_chart_version: '0.0.8'
+          helm_gcloud_sqlproxy_chart_version: '0.19.7'
+          helm_oidc_proxy_chart_version: '0.0.9'
+      - name: "Run Perf test via Gradle"
+        uses: broadinstitute/datarepo-actions@0.14.0
+        with:
+          actions_subcommand: 'gradleinttest'
+          pgport: ${{ job.services.postgres.ports[5432] }}
+          test_to_run: 'testPerf'
+      - name: "Clean whitelisted Runner IP"
+        if: always()
+        uses: broadinstitute/datarepo-actions@0.14.0
+        with:
+          actions_subcommand: 'gcp_whitelist_clean'
+

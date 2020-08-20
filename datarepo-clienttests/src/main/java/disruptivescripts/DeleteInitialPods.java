@@ -3,7 +3,6 @@ package disruptivescripts;
 import static utils.KubernetesClientUtils.componentLabel;
 
 import io.kubernetes.client.openapi.models.V1Deployment;
-import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;

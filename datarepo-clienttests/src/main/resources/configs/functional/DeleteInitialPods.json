@@ -1,7 +1,7 @@
 {
-  "name": "BulkLoadPodDeleteDisruption",
-  "description": "3 bulk file loads each on 2 different datasets, while deleting a random pod 10 times, at 30 second increments",
-  "serverSpecificationFile": "localhost.json",
+  "name": "DeleteInitialPods",
+  "description": "Two bulk file loads on two 2 different datasets, while incrementally deleting all initially created pods",
+  "serverSpecificationFile": "perf.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 3
@@ -12,22 +12,22 @@
     "loadDriverWaitSeconds": 1
   },
   "disruptiveScript": {
-    "name": "RandomPodDelete",
-    "parameters": [10, 30]
+    "name": "DeleteInitialPods",
+    "parameters": []
   },
   "testScripts": [
     {
       "name": "BulkLoad",
-      "parameters": [2],
-      "totalNumberToRun": 3,
+      "parameters": [18],
+      "totalNumberToRun": 1,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 300,
       "expectedTimeForEachUnit": "SECONDS"
     },
     {
       "name": "BulkLoad",
-      "parameters": [4],
-      "totalNumberToRun": 3,
+      "parameters": [20],
+      "totalNumberToRun": 1,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 300,
       "expectedTimeForEachUnit": "SECONDS"

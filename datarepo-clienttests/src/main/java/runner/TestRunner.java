@@ -14,6 +14,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import measurementcollectionscripts.CPUCoreUsageTimeMetric;
+import measurementcollectionscripts.LoggerInterceptorHttpStatus;
 import measurementcollectionscripts.MemoryUsedBytesMetric;
 import measurementcollectionscripts.PerformanceLoggerElapsedTime;
 import org.slf4j.Logger;
@@ -416,6 +417,10 @@ class TestRunner {
         Arrays.asList(
             "bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"));
     measurementCollectionScripts.add(perfloggerScript);
+
+    LoggerInterceptorHttpStatus httpStatusScript = new LoggerInterceptorHttpStatus();
+    httpStatusScript.setParameters(Arrays.asList("500"));
+    measurementCollectionScripts.add(httpStatusScript);
 
     // loop through the measurement scripts, downloading raw data points and processing them
     for (MeasurementCollectionScript measurementCollectionScript : measurementCollectionScripts) {

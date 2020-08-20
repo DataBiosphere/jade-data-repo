@@ -307,12 +307,10 @@ public final class KubernetesClientUtils {
     while ((numPods != numRunningPods || numPods != numberOfReplicas) && pollCtr >= 0) {
       TimeUnit.SECONDS.sleep(secondsIntervalToPollReplicaSetSizeChange);
       // two checks to make sure we are fully back in working order
-      // 1 - does the total number of pods match the replica count (for example, there aren't still
-      // pods terminating)
+      // 1 - does the total number of pods match the replica count (for example, all terminating pods have
+      // finished terminating & no longer show up in list)
       numPods = getApiPodCount(deployment);
-      // 2 - does the total number of running pods match the replica count
-      // (for example, we don't want to consider a pod in the "terminating" state as meeting the
-      // replica count criteria)
+      // 2 - does the number of pods in the "ready" state matches the replica count
       numRunningPods = getApiReadyPods(deployment);
       pollCtr--;
     }

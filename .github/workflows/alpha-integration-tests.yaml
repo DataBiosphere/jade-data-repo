@@ -23,6 +23,7 @@ jobs:
         base64 --decode <<< ${{ steps.vault.outputs.B64_APPLICATION_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}
         jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
+        # export environment variables
         echo "::set-env name=GOOGLE_APPLICATION_CREDENTIALS::${GOOGLE_APPLICATION_CREDENTIALS}"
         echo "::set-env name=GOOGLE_SA_CERT::${GOOGLE_SA_CERT}"
       env:

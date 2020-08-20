@@ -49,7 +49,9 @@ public final class KubernetesClientUtils {
   private static AppsV1Api kubernetesClientAppsObject;
 
   public enum PodPhase {
-    running
+    ContainerCreating,
+    Running,
+    Terminating
   }
 
   private KubernetesClientUtils() {}
@@ -317,7 +319,7 @@ public final class KubernetesClientUtils {
       // 2 - does the total number of running pods match the replica count
       // (for example, we don't want to consider a pod in the "terminating" state as meeting the
       // replica count criteria)
-      numRunningPods = getApiPodAtStatusCount(deployment, PodPhase.running);
+      numRunningPods = getApiPodAtStatusCount(deployment, PodPhase.Running);
       pollCtr--;
     }
 
@@ -377,7 +379,7 @@ public final class KubernetesClientUtils {
                 pod ->
                     deploymentComponentLabel.equals(
                             pod.getMetadata().getLabels().get(componentLabel))
-                        && pod.getStatus().getPhase().toLowerCase().equals(podPhase.toString()))
+                        && pod.getStatus().getPhase().equals(podPhase.toString()))
             .count();
     return apiPodCount;
   }

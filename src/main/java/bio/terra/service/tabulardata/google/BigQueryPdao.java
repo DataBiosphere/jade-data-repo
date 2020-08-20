@@ -221,11 +221,15 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return Schema.of(fieldList);
     }
 
-    private static final String insertLoadHistoryToStagingTableTemplate =
+    public static final String insertLoadHistoryToStagingTableTemplate =
         "INSERT INTO `<project>.<dataset>.<stagingTable>`" +
             " (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c, checksum_md5, error)" +
             " VALUES <load_history_array:{v|('<load_tag>', '<load_time>', '<v.sourcePath>', '<v.targetPath>'," +
-            " '<v.state>', '<v.fileId>', '<v.checksumCRC>', '<v.checksumMD5>', '<v.error>')}; separator=\",\">";
+            " '<v.state>', '<v.fileId>', '<v.checksumCRC>', '<v.checksumMD5>', \"\"\"<v.error>\"\"\")}; separator=\",\">";
+
+    public String sanitizeErrorMsg(String error) {
+        return error.replaceAll("'", "\'");
+    }
 
     public void loadHistoryToStagingTable(
         Dataset dataset,
@@ -234,6 +238,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
         Instant loadTime,
         List<BulkLoadHistoryModel> loadHistoryArray) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        loadHistoryArray.forEach(value -> value.setError(sanitizeErrorMsg(value.getError())));
 
         ST sqlTemplate = new ST(insertLoadHistoryToStagingTableTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());

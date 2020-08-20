@@ -7,6 +7,8 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BulkLoadFileState;
+import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
@@ -57,11 +59,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -155,6 +159,38 @@ public class BigQueryPdaoTest {
                     equalTo(shouldExist));
             }
         }
+    }
+
+
+    private String insertExample = "INSERT INTO `broad-jade-dev.datarepo_hca_ebi.datarepo_load_history_staging_x` " +
+        "(load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c, checksum_md5, error) " +
+        "VALUES ('ebi_2020_08_15-0', '2020-08-16T01:27:54.733370Z', 'gs://broad-dsp-storage/blahblah.fastq.gz', " +
+        "'/target/path', 'failed', '', '', '', \"\"\"bio.terra.common.exception.PdaoSourceFileNotFoundException: " +
+        "Source file not found: 'gs://broad-dsp-storage/blahblah.fastq.gz'\"\"\")";
+
+    @Test
+    public void sanitizeErrorMsgTest() {
+        List<BulkLoadHistoryModel> loadHistoryArray =  new ArrayList<>();
+        BulkLoadHistoryModel loadHistoryModel = new BulkLoadHistoryModel();
+        loadHistoryModel.setSourcePath("gs://broad-dsp-storage/blahblah.fastq.gz");
+        loadHistoryModel.setTargetPath("/target/path");
+        loadHistoryModel.setState(BulkLoadFileState.FAILED);
+        loadHistoryModel.setError("bio.terra.common.exception.PdaoSourceFileNotFoundException: " +
+            "Source file not found: 'gs://broad-dsp-storage/blahblah.fastq.gz'");
+        loadHistoryArray.add(loadHistoryModel);
+
+        loadHistoryArray.forEach(value -> value.setError(bigQueryPdao.sanitizeErrorMsg(value.getError())));
+
+        ST sqlTemplate = new ST(bigQueryPdao.insertLoadHistoryToStagingTableTemplate);
+        sqlTemplate.add("project", "broad-jade-dev");
+        sqlTemplate.add("dataset", "datarepo_hca_ebi");
+        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + "x");
+
+        sqlTemplate.add("load_history_array", loadHistoryArray);
+        sqlTemplate.add("load_tag", "ebi_2020_08_15-0");
+        sqlTemplate.add("load_time", "2020-08-16T01:27:54.733370Z");
+
+        assertEquals(insertExample, sqlTemplate.render());
     }
 
     @Test

@@ -13,6 +13,7 @@ import io.kubernetes.client.openapi.models.V1DeploymentList;
 import io.kubernetes.client.openapi.models.V1DeploymentSpec;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
+import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
 import java.io.FileInputStream;
@@ -47,10 +48,6 @@ public final class KubernetesClientUtils {
 
   private static CoreV1Api kubernetesClientCoreObject;
   private static AppsV1Api kubernetesClientAppsObject;
-
-  public enum PodPhase {
-    running
-  }
 
   private KubernetesClientUtils() {}
 
@@ -317,7 +314,7 @@ public final class KubernetesClientUtils {
       // 2 - does the total number of running pods match the replica count
       // (for example, we don't want to consider a pod in the "terminating" state as meeting the
       // replica count criteria)
-      numRunningPods = getApiPodAtStatusCount(deployment, PodPhase.running);
+      numRunningPods = getApiPodAtStatusCount(deployment, V1ContainerState.SERIALIZED_NAME_RUNNING);
       pollCtr--;
     }
 
@@ -368,7 +365,7 @@ public final class KubernetesClientUtils {
     return apiPodCount;
   }
 
-  private static long getApiPodAtStatusCount(V1Deployment deployment, PodPhase podPhase)
+  private static long getApiPodAtStatusCount(V1Deployment deployment, String podPhase)
       throws ApiException {
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
     long apiPodCount =
@@ -377,7 +374,10 @@ public final class KubernetesClientUtils {
                 pod ->
                     deploymentComponentLabel.equals(
                             pod.getMetadata().getLabels().get(componentLabel))
-                        && pod.getStatus().getPhase().toLowerCase().equals(podPhase.toString()))
+                        && pod.getStatus()
+                            .getPhase()
+                            .toLowerCase()
+                            .equals(V1ContainerState.SERIALIZED_NAME_RUNNING))
             .count();
     return apiPodCount;
   }

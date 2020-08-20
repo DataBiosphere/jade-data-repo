@@ -20,6 +20,8 @@ import runner.config.ServerSpecification;
 public class MetricsUtils {
   private static final Logger logger = LoggerFactory.getLogger(MetricsUtils.class);
 
+  private static int minimumTimeRangeSizeInSeconds = 300; // test run has to last at least 5 minutes
+
   private MetricsUtils() {}
 
   /**
@@ -74,12 +76,14 @@ public class MetricsUtils {
       throw new RuntimeException("Start/end time was not set for this test run.");
     }
 
-    // make sure interval is at least 5 minutes long
-    long fiveMinMS = 5 * 60 * 1000;
-    if (endTimeMS - startTimeMS < fiveMinMS) {
+    // make sure interval is at least __ seconds long
+    long minIntervalMS = minimumTimeRangeSizeInSeconds * 1000;
+    if (endTimeMS - startTimeMS < minIntervalMS) {
       logger.info(
-          "Test run lasted less than 5 minutes. Expanding metrics interval to include the 5 minutes before the test run start.");
-      startTimeMS -= fiveMinMS;
+          "Test run lasted less than {} seconds. Expanding metrics interval to include the {} seconds before the test run start.",
+          minimumTimeRangeSizeInSeconds,
+          minimumTimeRangeSizeInSeconds);
+      startTimeMS -= minIntervalMS;
     }
 
     // restrict time to duration of the test run

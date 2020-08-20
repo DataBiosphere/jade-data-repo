@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -14,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import measurementcollectionscripts.CPUCoreUsageTimeMetric;
 import measurementcollectionscripts.MemoryUsedBytesMetric;
+import measurementcollectionscripts.PerformanceLoggerElapsedTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestConfiguration;
@@ -408,6 +410,12 @@ class TestRunner {
     // build a list of measurements to collect
     measurementCollectionScripts.add(new CPUCoreUsageTimeMetric()); // container cpu usage
     measurementCollectionScripts.add(new MemoryUsedBytesMetric()); // container memory usage
+
+    PerformanceLoggerElapsedTime perfloggerScript = new PerformanceLoggerElapsedTime();
+    perfloggerScript.setParameters(
+        Arrays.asList(
+            "bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"));
+    measurementCollectionScripts.add(perfloggerScript);
 
     // loop through the measurement scripts, downloading raw data points and processing them
     for (MeasurementCollectionScript measurementCollectionScript : measurementCollectionScripts) {

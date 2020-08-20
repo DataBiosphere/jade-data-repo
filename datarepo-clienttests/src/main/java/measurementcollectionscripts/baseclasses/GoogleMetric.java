@@ -13,6 +13,7 @@ import com.google.monitoring.v3.ProjectName;
 import com.google.monitoring.v3.TimeInterval;
 import com.google.monitoring.v3.TimeSeries;
 import java.io.IOException;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.MeasurementCollectionScript;
@@ -40,45 +41,29 @@ public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
         MetricsUtils.downloadTimeSeriesDataPoints(
             ProjectName.of(server.project), filter, interval, aggregation);
 
-    // calculate statistics for reporting
+    // instantiate summary object
     summary = new MeasurementResultSummary(identifier);
   }
 
   /** Process the data points calculating reporting statistics of interest. */
   public void calculateSummaryStatistics() {
+    // expect a non-zero number of data points
+    if (dataPoints.size() == 0) {
+      logger.error("No data points returned from metrics download: {}", identifier);
+    }
     // downloading >1 TimeSeries is not wrong, and we may well want to persist >1 for additional
-    // detail
-    // but the calculation below (I think) makes more sense when there's only one TimeSeries
-    if (dataPoints.size() != 1) {
+    // detail but the calculation below may makes more sense when there's only one TimeSeries
+    else if (dataPoints.size() != 1) {
       logger.warn("More than one time series returned from metrics download: {}", identifier);
     }
 
-    // calculate the min, max and mean of all data points across all time series
-    long numDataPoints = 0;
+    // calculate statistics across all data points in all time series
+    DescriptiveStatistics descriptiveStatistics = new DescriptiveStatistics();
     for (TimeSeries ts : dataPoints) {
-      for (Point pt : ts.getPointsList()) {
-        double dataPointVal = pt.getValue().getDoubleValue();
-        summary.mean += dataPointVal;
-        if (dataPointVal < summary.min || numDataPoints == 0) {
-          summary.min = dataPointVal;
-        }
-        if (dataPointVal > summary.max || numDataPoints == 0) {
-          summary.max = dataPointVal;
-        }
-
-        numDataPoints++;
-      }
+      ts.getPointsList().stream()
+          .forEach(pt -> descriptiveStatistics.addValue(pt.getValue().getDoubleValue()));
     }
-
-    // expect a non-zero number of data points
-    if (numDataPoints == 0) {
-      logger.error("No data points returned from metrics download: {}", identifier);
-      summary.min = 0;
-      summary.max = 0;
-      summary.mean = 0;
-    } else {
-      summary.mean /= numDataPoints;
-    }
+    calculateStandardStatistics(descriptiveStatistics);
   }
 
   /** Write the raw data points generated during this test run to a String. */
@@ -87,7 +72,7 @@ public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
     ObjectMapper objectMapper = new ObjectMapper();
 
     // tell the mapper object to use the custom serializer defined below for the TimeSeries class
-    SimpleModule simpleModule = new SimpleModule("SimpleModule", new Version(1, 0, 0, null));
+    SimpleModule simpleModule = new SimpleModule("TimeSeriesModule", new Version(1, 0, 0, null));
     simpleModule.addSerializer(new TimeSeriesSerializer());
     objectMapper.registerModule(simpleModule);
 
@@ -95,8 +80,8 @@ public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
     try {
       return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dataPoints);
     } catch (JsonProcessingException jpEx) {
-      logger.error("Error serializing measurement data point to JSON. {}", dataPoints, jpEx);
-      return "Error serializing measurement data point to JSON.";
+      logger.error("Error serializing time series to JSON. {}", dataPoints, jpEx);
+      return "Error serializing time series to JSON.";
     }
   }
 

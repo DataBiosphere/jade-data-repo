@@ -247,7 +247,8 @@ public final class KubernetesClientUtils {
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
-    long podCount = printApiPodCount(apiDeployment, "Before deleting pods");
+    long podCount = getApiPodCount(apiDeployment);
+    logger.debug("Pod Count: {}; Message: Before deleting pods", podCount);
     printApiPods(apiDeployment);
     String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(componentLabel);
 
@@ -267,6 +268,10 @@ public final class KubernetesClientUtils {
 
     logger.info("delete random pod: {}", randomPodName);
 
+    deletePod(randomPodName);
+  }
+
+  public static void deletePod(String podNameToDelete) throws ApiException, IOException {
     // known issue with java api "deleteNamespacedPod()" endpoint
     // https://github.com/kubernetes-client/java/issues/252
     // the following few lines were suggested as a workaround
@@ -274,49 +279,39 @@ public final class KubernetesClientUtils {
     Call call =
         getKubernetesClientCoreObject()
             .deleteNamespacedPodCall(
-                randomPodName, namespace, null, null, null, null, null, null, null);
+                podNameToDelete, namespace, null, null, null, null, null, null, null);
     Response response = call.execute();
     Configuration.getDefaultApiClient()
         .handleResponse(response, (new TypeToken<V1Pod>() {}).getType());
   }
 
   /**
-   * Wait until the size of the replica set matches the specified number of pods. Times out after
-   * {@link KubernetesClientUtils#maximumSecondsToWaitForReplicaSetSizeChange} seconds. Polls in
-   * intervals of {@link KubernetesClientUtils#secondsIntervalToPollReplicaSetSizeChange} seconds.
+   * Wait until the size of the replica set matches the specified number of running pods. Times out
+   * after {@link KubernetesClientUtils#maximumSecondsToWaitForReplicaSetSizeChange} seconds. Polls
+   * in intervals of {@link KubernetesClientUtils#secondsIntervalToPollReplicaSetSizeChange}
+   * seconds.
    *
    * @param deployment the deployment object to poll
    * @param numberOfReplicas the eventual expected size of the replica set
    */
   public static void waitForReplicaSetSizeChange(V1Deployment deployment, int numberOfReplicas)
       throws Exception {
+    // set values so that while conditions always true on first try
+    // forces the first sleep statement to be hit giving the pods a chance to start any adjustments
+    long numPods = -1;
+    long numRunningPods = -2;
     int pollCtr =
         Math.floorDiv(
             maximumSecondsToWaitForReplicaSetSizeChange, secondsIntervalToPollReplicaSetSizeChange);
 
-    // get the component label from the deployment object
-    // this will be "api" for most cases, since that's what we're interested in scaling.
-    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
-
-    // loop through the pods in the namespace
-    // find the ones that match the deployment component label (e.g. find all the API pods)
-    long numPods =
-        listPods().stream()
-            .filter(
-                pod ->
-                    deploymentComponentLabel.equals(
-                        pod.getMetadata().getLabels().get(componentLabel)))
-            .count();
-
-    while (numPods != numberOfReplicas && pollCtr >= 0) {
+    while ((numPods != numRunningPods || numPods != numberOfReplicas) && pollCtr >= 0) {
       TimeUnit.SECONDS.sleep(secondsIntervalToPollReplicaSetSizeChange);
-      numPods =
-          listPods().stream()
-              .filter(
-                  pod ->
-                      deploymentComponentLabel.equals(
-                          pod.getMetadata().getLabels().get(componentLabel)))
-              .count();
+      // two checks to make sure we are fully back in working order
+      // 1 - does the total number of pods match the replica count (for example, all terminating pods have
+      // finished terminating & no longer show up in list)
+      numPods = getApiPodCount(deployment);
+      // 2 - does the number of pods in the "ready" state matches the replica count
+      numRunningPods = getApiReadyPods(deployment);
       pollCtr--;
     }
 
@@ -341,18 +336,22 @@ public final class KubernetesClientUtils {
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
-    printApiPodCount(apiDeployment, "Before scaling pod count");
+
+    long apiPodCount = getApiPodCount(apiDeployment);
+    logger.debug("Pod Count: {}; Message: Before scaling pod count", apiPodCount);
     apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
     KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
 
     // print out the current pods
-    printApiPodCount(apiDeployment, "After scaling pod count");
+    apiPodCount = getApiPodCount(apiDeployment);
+    logger.debug("Pod Count: {}; Message: After scaling pod count", apiPodCount);
     printApiPods(apiDeployment);
   }
 
-  private static long printApiPodCount(V1Deployment deployment, String message)
-      throws ApiException {
+  private static long getApiPodCount(V1Deployment deployment) throws ApiException {
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
+    // loop through the pods in the namespace
+    // find the ones that match the deployment component label (e.g. find all the API pods)
     long apiPodCount =
         listPods().stream()
             .filter(
@@ -360,11 +359,23 @@ public final class KubernetesClientUtils {
                     deploymentComponentLabel.equals(
                         pod.getMetadata().getLabels().get(componentLabel)))
             .count();
-    logger.debug("Pod Count: {}; Message: {}", apiPodCount, message);
     return apiPodCount;
   }
 
-  private static void printApiPods(V1Deployment deployment) throws ApiException {
+  private static long getApiReadyPods(V1Deployment deployment) throws ApiException {
+    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
+    long apiPodCount =
+        listPods().stream()
+            .filter(
+                pod ->
+                    deploymentComponentLabel.equals(
+                            pod.getMetadata().getLabels().get(componentLabel))
+                        && pod.getStatus().getContainerStatuses().get(0).getReady())
+            .count();
+    return apiPodCount;
+  }
+
+  public static void printApiPods(V1Deployment deployment) throws ApiException {
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
     listPods().stream()
         .filter(

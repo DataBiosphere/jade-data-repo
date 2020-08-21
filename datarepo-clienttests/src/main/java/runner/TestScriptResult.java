@@ -29,6 +29,8 @@ public class TestScriptResult {
 
     public boolean isFailure; // numCompleted < totalRun
 
+    public TestScriptResultSummary() {} // default constructor so Jackson can deserialize
+
     private TestScriptResultSummary(String testScriptDescription) {
       this.testScriptDescription = testScriptDescription;
     }

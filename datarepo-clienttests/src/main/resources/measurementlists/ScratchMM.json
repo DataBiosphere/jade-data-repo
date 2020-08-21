@@ -1,0 +1,24 @@
+{
+  "name": "ScratchMM",
+  "description": "Scratch measurement list (MM)",
+  "measurementCollectionScripts": [
+    {
+      "name": "CPUCoreUsageTimeMetric",
+      "description": "Kubernetes container CPU usage"
+    },
+    {
+      "name": "MemoryUsedBytesMetric",
+      "description": "Kubernetes container memory usage"
+    },
+    {
+      "name": "PerformanceLoggerElapsedTime",
+      "description": "PerformanceLogger enumerateProfiles timer.",
+      "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"]
+    },
+    {
+      "name": "LoggerInterceptorHttpStatus",
+      "description": "LoggerInterceptor HTTP status code 500",
+      "parameters": [500]
+    }
+  ]
+}

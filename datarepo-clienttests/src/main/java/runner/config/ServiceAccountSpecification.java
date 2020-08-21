@@ -27,7 +27,7 @@ public class ServiceAccountSpecification implements SpecificationInterface {
     ObjectMapper objectMapper = new ObjectMapper();
 
     InputStream inputStream =
-        FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+        FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
     return objectMapper.readValue(inputStream, ServiceAccountSpecification.class);
   }
 

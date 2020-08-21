@@ -43,7 +43,7 @@ public class TestConfiguration implements SpecificationInterface {
 
     // read in the test config file
     InputStream inputStream =
-        FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+        FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
     TestConfiguration testConfig = objectMapper.readValue(inputStream, TestConfiguration.class);
 
     // read in the server file

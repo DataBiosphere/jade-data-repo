@@ -1,8 +1,8 @@
 package runner;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.File;
 import java.util.List;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.slf4j.Logger;
@@ -19,10 +19,10 @@ public abstract class MeasurementCollectionScript<T> {
 
   /**
    * Setter for the server specification property of this class. This property will be set by the
-   * Test Runner based on the current Test Configuration, and can be accessed by the Application
-   * Measurement Result methods.
+   * Test Runner based on the current Measurement List, and can be accessed by the measurement
+   * collection script methods.
    *
-   * @param server the specification of the server(s) this test runs against
+   * @param server the specification of the server(s) where the measurements were collected
    */
   public void setServer(ServerSpecification server) {
     this.server = server;
@@ -30,12 +30,23 @@ public abstract class MeasurementCollectionScript<T> {
 
   /**
    * Setter for any parameters required by the measurement collection script. These parameters will
-   * be set by the Test Runner based on the current Test Configuration, and can be used by the
+   * be set by the Test Runner based on the current Measurement List, and can be used by the
    * measurement collection script methods.
    *
    * @param parameters list of string parameters supplied by the test configuration
    */
   public void setParameters(List<String> parameters) throws Exception {}
+
+  /**
+   * Setter for the description property of this class. This property will be set by the Test Runner
+   * based on the current Measurement List, and can be accessed by the measurement collection script
+   * methods.
+   *
+   * @param description description of measurement
+   */
+  public void setDescription(String description) {
+    this.description = description;
+  }
 
   /** The class generic parameter specifies the type of a single raw data point. */
   protected List<T> dataPoints;
@@ -45,6 +56,7 @@ public abstract class MeasurementCollectionScript<T> {
     throw new UnsupportedOperationException("downloadDataPoints must be overridden by sub-classes");
   }
 
+  protected String description;
   protected MeasurementResultSummary summary;
 
   @SuppressFBWarnings(
@@ -75,6 +87,7 @@ public abstract class MeasurementCollectionScript<T> {
 
   /** Utility method to call standard statistics calculation methods on a set of data. */
   protected void calculateStandardStatistics(DescriptiveStatistics descriptiveStatistics) {
+    summary = new MeasurementResultSummary(description);
     summary.max = descriptiveStatistics.getMax();
     summary.min = descriptiveStatistics.getMin();
     summary.mean = descriptiveStatistics.getMean();
@@ -91,16 +104,11 @@ public abstract class MeasurementCollectionScript<T> {
   }
 
   /** Write the raw data points generated during this test run to a String. */
-  public String writeDataPointsToString() {
+  public void writeDataPointsToFile(File outputFile) throws Exception {
     // use Jackson to map the object to a JSON-formatted text block
     ObjectMapper objectMapper = new ObjectMapper();
 
     // write the data points as a string
-    try {
-      return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dataPoints);
-    } catch (JsonProcessingException jpEx) {
-      logger.error("Error serializing measurement data point to JSON. {}", dataPoints, jpEx);
-      return "Error serializing measurement data point to JSON.";
-    }
+    objectMapper.writerWithDefaultPrettyPrinter().writeValue(outputFile, dataPoints);
   }
 }

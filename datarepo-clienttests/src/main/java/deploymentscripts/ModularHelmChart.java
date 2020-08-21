@@ -75,7 +75,7 @@ public class ModularHelmChart extends DeploymentScript {
         FileUtils.createCopyOfFileFromURL(new URL(helmApiFilePath), "datarepo-api_ORIGINAL.yaml");
 
     // modify the original/template YAML file and write the output to a new file
-    File modifiedApiYamlFile = FileUtils.createNewFile("datarepo-api_MODIFIED.yaml");
+    File modifiedApiYamlFile = FileUtils.createNewFile(new File("datarepo-api_MODIFIED.yaml"));
     parseAndModifyApiYamlFile(originalApiYamlFile, modifiedApiYamlFile);
 
     // delete the existing API deployment

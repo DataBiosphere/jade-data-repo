@@ -1,7 +1,6 @@
 package measurementcollectionscripts.baseclasses;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,6 +11,7 @@ import com.google.monitoring.v3.Point;
 import com.google.monitoring.v3.ProjectName;
 import com.google.monitoring.v3.TimeInterval;
 import com.google.monitoring.v3.TimeSeries;
+import java.io.File;
 import java.io.IOException;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.slf4j.Logger;
@@ -40,9 +40,6 @@ public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
     dataPoints =
         MetricsUtils.downloadTimeSeriesDataPoints(
             ProjectName.of(server.project), filter, interval, aggregation);
-
-    // instantiate summary object
-    summary = new MeasurementResultSummary(identifier);
   }
 
   /** Process the data points calculating reporting statistics of interest. */
@@ -67,7 +64,7 @@ public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
   }
 
   /** Write the raw data points generated during this test run to a String. */
-  public String writeDataPointsToString() {
+  public void writeDataPointsToFile(File outputFile) throws Exception {
     // use Jackson to map the object to a JSON-formatted text block
     ObjectMapper objectMapper = new ObjectMapper();
 
@@ -77,12 +74,7 @@ public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
     objectMapper.registerModule(simpleModule);
 
     // write the data points as a string
-    try {
-      return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(dataPoints);
-    } catch (JsonProcessingException jpEx) {
-      logger.error("Error serializing time series to JSON. {}", dataPoints, jpEx);
-      return "Error serializing time series to JSON.";
-    }
+    objectMapper.writerWithDefaultPrettyPrinter().writeValue(outputFile, dataPoints);
   }
 
   public static class TimeSeriesSerializer extends JsonSerializer<TimeSeries> {
@@ -114,8 +106,14 @@ public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
 
         // Point.interval nested object
         jgen.writeObjectFieldStart("interval");
-        jgen.writeStringField("start_time", pt.getInterval().getStartTime().toString());
-        jgen.writeStringField("end_time", pt.getInterval().getEndTime().toString());
+        jgen.writeObjectFieldStart("start_time");
+        jgen.writeNumberField("seconds", pt.getInterval().getStartTime().getSeconds());
+        jgen.writeNumberField("nanos", pt.getInterval().getStartTime().getNanos());
+        jgen.writeEndObject();
+        jgen.writeObjectFieldStart("end_time");
+        jgen.writeNumberField("seconds", pt.getInterval().getEndTime().getSeconds());
+        jgen.writeNumberField("nanos", pt.getInterval().getEndTime().getNanos());
+        jgen.writeEndObject();
         jgen.writeEndObject();
 
         jgen.writeNumberField("value", pt.getValue().getDoubleValue());

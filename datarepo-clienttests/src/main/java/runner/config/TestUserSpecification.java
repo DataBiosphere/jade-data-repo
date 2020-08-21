@@ -27,7 +27,7 @@ public class TestUserSpecification implements SpecificationInterface {
     ObjectMapper objectMapper = new ObjectMapper();
 
     InputStream inputStream =
-        FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+        FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
     TestUserSpecification testUser =
         objectMapper.readValue(inputStream, TestUserSpecification.class);
 

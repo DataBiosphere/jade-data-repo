@@ -43,7 +43,7 @@ public class ServerSpecification implements SpecificationInterface {
 
     // read in the server file
     InputStream inputStream =
-        FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+        FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
     return objectMapper.readValue(inputStream, ServerSpecification.class);
   }
 

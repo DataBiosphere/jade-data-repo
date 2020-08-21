@@ -189,7 +189,7 @@ public final class DataRepoUtils {
     // use Jackson to map the stream contents to a DatasetRequestModel object
     ObjectMapper objectMapper = new ObjectMapper();
     InputStream datasetRequestFile =
-        FileUtils.getJSONFileHandle("apipayloads/" + apipayloadFilename);
+        FileUtils.getResourceFileHandle("apipayloads/" + apipayloadFilename);
     DatasetRequestModel createDatasetRequest =
         objectMapper.readValue(datasetRequestFile, DatasetRequestModel.class);
     createDatasetRequest.defaultProfileId(profileId);
@@ -223,7 +223,7 @@ public final class DataRepoUtils {
     // use Jackson to map the stream contents to a SnapshotRequestModel object
     ObjectMapper objectMapper = new ObjectMapper();
     InputStream snapshotRequestFile =
-        FileUtils.getJSONFileHandle("apipayloads/" + apipayloadFilename);
+        FileUtils.getResourceFileHandle("apipayloads/" + apipayloadFilename);
     SnapshotRequestModel createSnapshotRequest =
         objectMapper.readValue(snapshotRequestFile, SnapshotRequestModel.class);
     createSnapshotRequest.setProfileId(datasetSummaryModel.getDefaultProfileId());

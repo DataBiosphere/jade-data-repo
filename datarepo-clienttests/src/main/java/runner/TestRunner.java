@@ -1,11 +1,16 @@
 package runner;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -13,10 +18,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import measurementcollectionscripts.CPUCoreUsageTimeMetric;
-import measurementcollectionscripts.LoggerInterceptorHttpStatus;
-import measurementcollectionscripts.MemoryUsedBytesMetric;
-import measurementcollectionscripts.PerformanceLoggerElapsedTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestConfiguration;
@@ -36,12 +37,27 @@ class TestRunner {
   List<ThreadPoolExecutor> threadPools;
   ThreadPoolExecutor disruptionThreadPool;
   List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
+
   List<TestScriptResult> testScriptResults;
-  long startTime;
-  long endTime;
-  List<MeasurementCollectionScript> measurementCollectionScripts;
+  TestRunSummary summary;
 
   static long secondsToWaitForPoolShutdown = 60;
+
+  public static class TestRunSummary {
+    public String id;
+
+    public long startTime = -1;
+    public long startUserJourneyTime = -1;
+    public long endUserJourneyTime = -1;
+    public long endTime = -1;
+    public List<TestScriptResult.TestScriptResultSummary> testScriptResultSummaries;
+
+    public TestRunSummary() {}
+
+    public TestRunSummary(String id) {
+      this.id = id;
+    }
+  }
 
   TestRunner(TestConfiguration config) {
     this.config = config;
@@ -50,14 +66,19 @@ class TestRunner {
     this.disruptionThreadPool = null;
     this.userJourneyFutureLists = new ArrayList<>();
     this.testScriptResults = new ArrayList<>();
-    this.startTime = -1;
-    this.endTime = -1;
-    this.measurementCollectionScripts = new ArrayList<>();
+
+    this.summary = new TestRunSummary(UUID.randomUUID().toString());
   }
 
   void executeTestConfiguration() throws Exception {
     try {
+      // set the start time for this test run
+      summary.startTime = System.currentTimeMillis();
+
       executeTestConfigurationNoGuaranteedCleanup();
+
+      // set the end time for this test run
+      summary.endTime = System.currentTimeMillis();
     } catch (Exception originalEx) {
       // cleanup deployment (i.e. run teardown method)
       try {
@@ -79,15 +100,6 @@ class TestRunner {
       } catch (Exception testScriptCleanupEx) {
         logger.error(
             "Test Scripts: Exception during forced test script cleanups", testScriptCleanupEx);
-      }
-
-      // cleanup data project (i.e. run cloud cleanup scripts)
-      logger.info("Data Project: Cleaning up the data project after failure");
-      try {
-        cleanupDataProject();
-      } catch (Exception leftoverTestDataEx) {
-        logger.error(
-            "Data Project: Exception during forced data project cleanup", leftoverTestDataEx);
       }
 
       throw originalEx;
@@ -173,8 +185,8 @@ class TestRunner {
       logger.debug("Successfully submitted disruptive thread.");
     }
 
-    // set the start time for this test run
-    startTime = System.currentTimeMillis();
+    // set the start time for the user journey portion this test run
+    summary.startUserJourneyTime = System.currentTimeMillis();
 
     // for each test script
     logger.info(
@@ -230,8 +242,8 @@ class TestRunner {
       }
     }
 
-    // set the end time for this test run
-    endTime = System.currentTimeMillis();
+    // set the end time for the user journey portion this test run
+    summary.endUserJourneyTime = System.currentTimeMillis();
 
     // shutdown the disrupt thread pool
     if (disruptionThreadPool != null) {
@@ -273,6 +285,10 @@ class TestRunner {
       testScriptResults.add(new TestScriptResult(testScriptSpecification, userJourneyResults));
     }
 
+    // pull out the test script summary information into the summary object
+    summary.testScriptResultSummaries =
+        testScriptResults.stream().map(TestScriptResult::getSummary).collect(Collectors.toList());
+
     // call the cleanup method of each test script
     logger.info("Test Scripts: Calling the cleanup methods");
     Exception cleanupExceptionThrown = callTestScriptCleanups();
@@ -291,10 +307,6 @@ class TestRunner {
     } else {
       logger.info("Deployment: Skipping deployment teardown");
     }
-
-    // cleanup data project
-    logger.info("Data Project: Cleaning up data project");
-    cleanupDataProject();
   }
 
   /**
@@ -393,128 +405,66 @@ class TestRunner {
     KubernetesClientUtils.changeReplicaSetSizeAndWait(config.kubernetes.numberOfInitialPods);
   }
 
-  void cleanupDataProject() {
-    // TODO: cleanup any cloud resources/permissions generated by the test
-    // no need to cleanup any DR Manager metadata because each test run re-deploys with a clean
-    // database, but reporting that it was left hanging around would be helpful
+  protected static String renderedConfigFileName = "testConfiguration_RENDERED.json";
+  protected static String userJourneyResultsFileName = "userJourneyResults_ALL.json";
+  protected static String runSummaryFileName = "testRun_SUMMARY.json";
+
+  void writeOutResults(String outputParentDirName) throws IOException {
+    // use Jackson to map the object to a JSON-formatted text block
+    ObjectMapper objectMapper = new ObjectMapper();
+    ObjectWriter objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
+
+    // print the summary results to info
+    logger.info(objectWriter.writeValueAsString(summary));
+
+    // create the output directory if it doesn't already exist
+    Path outputDirectory = Paths.get(outputParentDirName).resolve(config.name + "_" + summary.id);
+    File outputDirectoryFile = outputDirectory.toFile();
+    if (outputDirectoryFile.exists() && !outputDirectoryFile.isDirectory()) {
+      throw new IllegalArgumentException(
+          "Output directory already exists as a file: " + outputDirectoryFile.getAbsolutePath());
+    }
+    boolean outputDirectoryCreated = outputDirectoryFile.mkdirs();
+    logger.debug(
+        "outputDirectoryCreated {}: {}",
+        outputDirectoryFile.getAbsolutePath(),
+        outputDirectoryCreated);
+    logger.info("Test run results written to directory: {}", outputDirectoryFile.getAbsolutePath());
+
+    // create the output files if they don't already exist
+    File renderedConfigFile = outputDirectory.resolve(renderedConfigFileName).toFile();
+    File userJourneyResultsFile =
+        FileUtils.createNewFile(outputDirectory.resolve(userJourneyResultsFileName).toFile());
+    File runSummaryFile = outputDirectory.resolve(runSummaryFileName).toFile();
+
+    // write the rendered test configuration that was run to a file
+    objectWriter.writeValue(renderedConfigFile, config);
+    logger.info("Rendered test configuration written to file: {}", renderedConfigFile.getName());
+
+    // write the full set of user journey results to a file
+    objectWriter.writeValue(userJourneyResultsFile, testScriptResults);
+    logger.info("All user journey results written to file: {}", userJourneyResultsFile.getName());
+
+    // write the test run summary to a file
+    objectWriter.writeValue(runSummaryFile, summary);
+    logger.info("Test run summary written to file: {}", runSummaryFile.getName());
   }
 
-  void collectMetrics() throws Exception {
-    // don't try to collect metrics for a server running locally
-    if (config.server.skipKubernetes) {
-      logger.info(
-          "Skipping metrics collection because the server specification has disabled Kubernetes (see server.skipKubernetes flag).");
-      return;
-    }
-
-    // TODO: these should come from the test configuration instead
-    // build a list of measurements to collect
-    measurementCollectionScripts.add(new CPUCoreUsageTimeMetric()); // container cpu usage
-    measurementCollectionScripts.add(new MemoryUsedBytesMetric()); // container memory usage
-
-    PerformanceLoggerElapsedTime perfloggerScript = new PerformanceLoggerElapsedTime();
-    perfloggerScript.setParameters(
-        Arrays.asList(
-            "bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"));
-    measurementCollectionScripts.add(perfloggerScript);
-
-    LoggerInterceptorHttpStatus httpStatusScript = new LoggerInterceptorHttpStatus();
-    httpStatusScript.setParameters(Arrays.asList("500"));
-    measurementCollectionScripts.add(httpStatusScript);
-
-    // loop through the measurement scripts, downloading raw data points and processing them
-    for (MeasurementCollectionScript measurementCollectionScript : measurementCollectionScripts) {
-      measurementCollectionScript.setServer(config.server);
-      measurementCollectionScript.downloadDataPoints(startTime, endTime);
-      measurementCollectionScript.calculateSummaryStatistics();
-    }
-  }
-
-  void printResults() {
-    try {
-      // TODO: print the full set of results to a file instead of to debug
-
-      // use Jackson to map the object to a JSON-formatted text block
-      ObjectMapper objectMapper = new ObjectMapper();
-
-      // print the full set of user journey results to debug
-      logger.debug(
-          objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(testScriptResults));
-
-      // print the summaries to info
-      List<TestScriptResult.TestScriptResultSummary> testScriptResultSummaries =
-          testScriptResults.stream().map(TestScriptResult::getSummary).collect(Collectors.toList());
-      logger.info(
-          objectMapper
-              .writerWithDefaultPrettyPrinter()
-              .writeValueAsString(testScriptResultSummaries));
-
-      // print the full set of measurement data points to debug
-      measurementCollectionScripts.stream()
-          .forEach(
-              mcs ->
-                  logger.debug(
-                      "Measurement {}: {}",
-                      mcs.getSummaryStatistics().description,
-                      mcs.writeDataPointsToString()));
-
-      // print the metrics summary to info
-      List<MeasurementCollectionScript.MeasurementResultSummary> measurementResultSummaries =
-          measurementCollectionScripts.stream()
-              .map(MeasurementCollectionScript::getSummaryStatistics)
-              .collect(Collectors.toList());
-      logger.info(
-          objectMapper
-              .writerWithDefaultPrettyPrinter()
-              .writeValueAsString(measurementResultSummaries));
-
-      // TODO: point user to dashboards with the correct time range
-    } catch (JsonProcessingException jpEx) {
-      throw new RuntimeException("Error converting object to a JSON-formatted string", jpEx);
-    }
-  }
-
-  static void printHelp() throws IOException {
-    logger.info("Specify test configuration file as first argument.");
-    logger.info("  e.g. ./gradlew run --args=\"configs/basicexamples/BasicUnauthenticated.json\"");
-    logger.info("  e.g. ./gradlew run --args=\"suites/BasicSmoke.json\"");
-
-    // print out the available test configurations found in the resources directory
-    logger.info("The following test configuration files were found:");
-    List<String> availableTestConfigs =
-        FileUtils.getResourcesInDirectory(TestConfiguration.resourceDirectory);
-    for (String testConfigFilePath : availableTestConfigs) {
-      logger.info("  {}", testConfigFilePath);
-    }
-
-    // print out the available test suites found in the resources directory
-    logger.info("The following test suite files were found:");
-    List<String> availableTestSuites =
-        FileUtils.getResourcesInDirectory(TestSuite.resourceDirectory);
-    for (String testSuiteFilePath : availableTestSuites) {
-      logger.info("  {}", testSuiteFilePath);
-    }
-  }
-
-  public static void main(String[] args) throws Exception {
-    // if no args specified, print help
-    if (args.length < 1) {
-      printHelp();
-      return;
-    }
-
+  public static void executeTestConfigurationOrSuite(
+      String configFileName, String outputParentDirName) throws Exception {
     logger.info("==== READING IN TEST SUITE/CONFIGURATION(S) ====");
     // read in test suite and validate it
     TestSuite testSuite;
-    boolean isSuite = args[0].startsWith(TestSuite.resourceDirectory + "/");
-    boolean isSingleConfig = args[0].startsWith(TestConfiguration.resourceDirectory + "/");
+    boolean isSuite = configFileName.startsWith(TestSuite.resourceDirectory + "/");
+    boolean isSingleConfig = configFileName.startsWith(TestConfiguration.resourceDirectory + "/");
     if (isSuite) {
-      testSuite = TestSuite.fromJSONFile(args[0].split(TestSuite.resourceDirectory + "/")[1]);
+      testSuite =
+          TestSuite.fromJSONFile(configFileName.split(TestSuite.resourceDirectory + "/")[1]);
       logger.info("Found a test suite: {}", testSuite.name);
     } else if (isSingleConfig) {
       TestConfiguration testConfiguration =
           TestConfiguration.fromJSONFile(
-              args[0].split(TestConfiguration.resourceDirectory + "/")[1]);
+              configFileName.split(TestConfiguration.resourceDirectory + "/")[1]);
       testSuite = TestSuite.fromSingleTestConfiguration(testConfiguration);
       logger.info("Found a single test configuration: {}", testConfiguration.name);
     } else {
@@ -528,22 +478,123 @@ class TestRunner {
           "==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
       logger.info(testConfiguration.display());
 
-      // get an instance of a runner and tell it to execute the configuration and collect metrics
+      // get an instance of a runner and tell it to execute the configuration
       TestRunner runner = new TestRunner(testConfiguration);
       Exception runnerEx = null;
       try {
         runner.executeTestConfiguration();
-        runner.collectMetrics();
       } catch (Exception ex) {
         runnerEx = ex; // save exception to display after printing the results
       }
 
       logger.info("==== TEST RUN RESULTS ({}) {} ====", ctr + 1, testConfiguration.name);
-      runner.printResults();
+      runner.writeOutResults(outputParentDirName);
 
       if (runnerEx != null) {
         logger.error("Test Runner threw an exception", runnerEx);
       }
     }
+  }
+
+  public static void collectMeasurementsForTestRun(
+      String measurementListFileName, String outputDirName) throws Exception {
+    // use Jackson to deserialize the stream contents
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    // get a reference to the output files
+    Path outputDirectory = Paths.get(outputDirName);
+    File outputDirectoryFile = outputDirectory.toFile();
+    if (!outputDirectoryFile.exists()) {
+      throw new FileNotFoundException(
+          "Output directory not found: " + outputDirectoryFile.getAbsolutePath());
+    }
+    File renderedConfigFile = outputDirectory.resolve(TestRunner.renderedConfigFileName).toFile();
+    File runSummaryFile = outputDirectory.resolve(TestRunner.runSummaryFileName).toFile();
+
+    // read in the test config file
+    TestConfiguration renderedTestConfig;
+    try (FileInputStream inputStream = new FileInputStream(renderedConfigFile)) {
+      renderedTestConfig = objectMapper.readValue(inputStream, TestConfiguration.class);
+      inputStream.close();
+    }
+
+    // read in the test run summary file
+    TestRunner.TestRunSummary testRunSummary;
+    try (FileInputStream inputStream = new FileInputStream(runSummaryFile)) {
+      testRunSummary = objectMapper.readValue(inputStream, TestRunner.TestRunSummary.class);
+      inputStream.close();
+    }
+
+    if (renderedTestConfig.server.skipKubernetes) {
+      logger.warn(
+          "The skipKubernetes flag is not set, so there may be no measurements to collect.");
+    }
+    logger.info(
+        "Test run id: {}, configuration: {}, server: {}",
+        testRunSummary.id,
+        renderedTestConfig.name,
+        renderedTestConfig.server.name);
+
+    MeasurementCollector.collectMeasurements(
+        measurementListFileName,
+        outputDirName,
+        renderedTestConfig.server,
+        testRunSummary.startUserJourneyTime,
+        testRunSummary.endUserJourneyTime);
+  }
+
+  public static void printHelp() throws IOException {
+    System.out.println("Usage: ./gradlew run --args=\"configOrSuiteFileName outputDirectoryName\"");
+    System.out.println(
+        "  configOrSuiteFileName = file name of the test configuration or suite JSON file");
+    System.out.println(
+        "  outputDirectoryName = name of the directory where the results will be written");
+    System.out.println();
+    System.out.println(
+        "  e.g. ./gradlew run --args=\"configs/basicexamples/BasicUnauthenticated.json /tmp/TestRunnerResults\"");
+    System.out.println(
+        "  e.g. ./gradlew run --args=\"suites/BasicSmoke.json /tmp/TestRunnerResults\"");
+    System.out.println();
+
+    // print out the available test configurations found in the resources directory
+    System.out.println("The following test configuration files were found:");
+    List<String> availableTestConfigs =
+        FileUtils.getResourcesInDirectory(TestConfiguration.resourceDirectory);
+    for (String testConfigFilePath : availableTestConfigs) {
+      System.out.println("  " + testConfigFilePath);
+    }
+    System.out.println();
+
+    // print out the available test suites found in the resources directory
+    System.out.println("The following test suite files were found:");
+    List<String> availableTestSuites =
+        FileUtils.getResourcesInDirectory(TestSuite.resourceDirectory);
+    for (String testSuiteFilePath : availableTestSuites) {
+      System.out.println("  " + testSuiteFilePath);
+    }
+  }
+
+  public static void main(String[] args) throws Exception {
+    // if no args specified, print help
+    if (args.length < 2) {
+      printHelp();
+      return;
+    }
+
+    executeTestConfigurationOrSuite(args[0], args[1]);
+
+    //    collectMeasurementsForTestRun(
+    //        "ScratchMM.json",
+    //
+    // "/Users/marikomedlock/Desktop/TestRunnerResults/Aug20/BasicUnauthenticated_308fbadb-7b5f-4ced-8a7d-eace608146f5");
+
+    //    ServerSpecification server = ServerSpecification.fromJSONFile("mmdev.json");
+    //    MeasurementCollector.collectMeasurements(
+    //        "ScratchMM.json",
+    //
+    // "/Users/marikomedlock/Desktop/TestRunnerResults/Aug20/BasicUnauthenticated_ca82d998-9c8d-4735-94bb-41df1130b034",
+    //        server,
+    //        "2020-08-20 13:18:34.613559381",
+    //        "2020-08-20 13:18:35.615628881");
   }
 }

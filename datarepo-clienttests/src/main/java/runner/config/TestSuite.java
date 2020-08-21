@@ -38,7 +38,7 @@ public class TestSuite implements SpecificationInterface {
     // read in the test suite file
     logger.info("Parsing the test suite file as JSON");
     InputStream inputStream =
-        FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+        FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
     TestSuite testSuite = objectMapper.readValue(inputStream, TestSuite.class);
 
     // read in the server file

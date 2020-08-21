@@ -40,12 +40,12 @@ public final class FileUtils {
   }
 
   /**
-   * Build a stream handle to a JSON resource file.
+   * Build a stream handle to a resource file.
    *
    * @return the new file handle
    * @throws FileNotFoundException if the resource file doesn't exist
    */
-  public static InputStream getJSONFileHandle(String resourceFilePath)
+  public static InputStream getResourceFileHandle(String resourceFilePath)
       throws FileNotFoundException {
     InputStream inputStream =
         FileUtils.class.getClassLoader().getResourceAsStream(resourceFilePath);
@@ -89,7 +89,7 @@ public final class FileUtils {
    * @return the new file
    */
   public static File createCopyOfFileFromURL(URL url, String localFileName) throws IOException {
-    File localFile = createNewFile(localFileName);
+    File localFile = createNewFile(new File(localFileName));
 
     ReadableByteChannel readChannel = Channels.newChannel(url.openStream());
     FileOutputStream outputStream = new FileOutputStream(localFile);
@@ -101,11 +101,10 @@ public final class FileUtils {
    * Create a new file. Delete the existing one first, if applicable. The file is created relative
    * to the current directory.
    *
-   * @param fileName the name of the file to create
+   * @param newFile the file to create
    * @return the new file
    */
-  public static File createNewFile(String fileName) throws IOException {
-    File newFile = new File(fileName);
+  public static File createNewFile(File newFile) throws IOException {
     if (newFile.exists()) {
       boolean deleteSucceeded = newFile.delete();
       if (!deleteSucceeded) {

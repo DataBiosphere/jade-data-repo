@@ -16,6 +16,12 @@ import bio.terra.datarepo.model.JobModel;
 import com.google.api.client.util.Charsets;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
+import java.io.ByteArrayOutputStream;
+import java.net.URI;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -24,13 +30,6 @@ import utils.BigQueryUtils;
 import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.FileUtils;
-
-import java.io.ByteArrayOutputStream;
-import java.net.URI;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 public class SoftDeleteDataset extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(SoftDeleteDataset.class);

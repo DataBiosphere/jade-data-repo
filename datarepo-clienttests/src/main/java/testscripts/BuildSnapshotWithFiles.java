@@ -1,5 +1,8 @@
 package testscripts;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
@@ -10,6 +13,7 @@ import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -17,11 +21,6 @@ import testscripts.baseclasses.SimpleDataset;
 import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.FileUtils;
-
-import java.util.List;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 
 public class BuildSnapshotWithFiles extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(BuildSnapshotWithFiles.class);
@@ -95,12 +94,11 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
             repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
     logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
 
-      JobModel deleteSnapshotJobResponse =
-              repositoryApi.deleteSnapshot(datasetSummaryModel.getId());
-      deleteSnapshotJobResponse =
-          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
-      DataRepoUtils.expectJobSuccess(
-          repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-      logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
+    JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(datasetSummaryModel.getId());
+    deleteSnapshotJobResponse =
+        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+    DataRepoUtils.expectJobSuccess(
+        repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+    logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
   }
 }

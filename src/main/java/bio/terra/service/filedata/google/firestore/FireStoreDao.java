@@ -127,15 +127,13 @@ public class FireStoreDao {
         String datasetName = dataset.getName();
         String snapshotId = snapshot.getId().toString();
 
-        for (String fileId : refIds) {
-            directoryDao.addEntryToSnapshot(
-                datasetFirestore,
-                datasetId,
-                datasetName,
-                snapshotFirestore,
-                snapshotId,
-                fileId);
-        }
+        directoryDao.addEntriesToSnapshot(
+            datasetFirestore,
+            datasetId,
+            datasetName,
+            snapshotFirestore,
+            snapshotId,
+            refIds);
     }
 
     public void deleteFilesFromSnapshot(Snapshot snapshot) throws InterruptedException {
@@ -174,10 +172,10 @@ public class FireStoreDao {
                                  int enumerateDepth,
                                  boolean throwOnNotFound) throws InterruptedException {
         Firestore firestore = FireStoreProject.get(getProjectIdForFSContainer(container)).getFirestore();
-        String datasetId = container.getId().toString();
+        String containerId = container.getId().toString();
 
-        FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveByPath(firestore, datasetId, fullPath);
-        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fullPath);
+        FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveByPath(firestore, containerId, fullPath);
+        return retrieveWorker(firestore, containerId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fullPath);
     }
 
     /**

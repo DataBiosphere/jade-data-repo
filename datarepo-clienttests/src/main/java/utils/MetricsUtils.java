@@ -86,6 +86,9 @@ public class MetricsUtils {
       startTimeMS -= minIntervalMS;
     }
 
+    startTimeMS -= 1000; // round down a second
+    endTimeMS += 1000; // round up a second
+
     // restrict time to duration of the test run
     TimeInterval interval =
         TimeInterval.newBuilder()

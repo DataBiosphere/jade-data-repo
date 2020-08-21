@@ -83,9 +83,14 @@ public class LogsUtils {
     }
 
     // convert start/end time from milliseconds to ISO-8601 format timestamp
+    startTimeMS -= 1000; // round down a second
+    endTimeMS += 1000; // round up a second
     DateFormat dateFormat =
-        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'"); // Quoted Z to indicate UTC
+        new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'"); // Quoted Z to indicate UTC
     dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+    String startTimestamp = dateFormat.format(new Date(startTimeMS));
+    String endTimestamp = dateFormat.format(new Date(endTimeMS));
+    logger.info("startTimestamp: {}, endTimestamp: {}", startTimestamp, endTimestamp);
 
     return "logName="
         + ProjectName.of(server.project).toString()
@@ -107,10 +112,10 @@ public class LogsUtils {
         + server.containerName
         + "\""
         + " AND timestamp>=\""
-        + dateFormat.format(new Date(startTimeMS))
+        + startTimestamp
         + "\""
         + " AND timestamp<=\""
-        + dateFormat.format(new Date(endTimeMS))
+        + endTimestamp
         + "\"";
   }
 }

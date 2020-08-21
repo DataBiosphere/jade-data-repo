@@ -1,18 +1,21 @@
-package runner;
+package collector;
 
+import collector.config.MeasurementCollectionScriptSpecification;
+import collector.config.MeasurementList;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.MeasurementCollectionScriptSpecification;
-import runner.config.MeasurementList;
+import runner.TestRunner;
 import runner.config.ServerSpecification;
 import utils.FileUtils;
 
@@ -114,8 +117,12 @@ public class MeasurementCollector {
       String endTimestamp)
       throws Exception {
     // timestamp format must be yyyy-mm-dd hh:mm:ss[.fffffffff] (timezone is UTC)
+    TimeZone originalDefaultTimeZone = TimeZone.getDefault();
+    TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     long startTimeMS = Timestamp.valueOf(startTimestamp).getTime();
     long endTimeMS = Timestamp.valueOf(endTimestamp).getTime();
+    TimeZone.setDefault(originalDefaultTimeZone);
+
     collectMeasurements(measurementListFileName, outputDirName, server, startTimeMS, endTimeMS);
   }
 
@@ -144,6 +151,51 @@ public class MeasurementCollector {
 
     if (collectorEx != null) {
       logger.error("Measurement Collector threw an exception", collectorEx);
+    }
+  }
+
+  public static void printHelp() throws IOException {
+    System.out.println(
+        "Usage (1): ./gradlew collectMeasurements --args=\"measurementListFileName outputDirectoryName\"");
+    System.out.println("  measurementListFileName = file name of the measurement list JSON file");
+    System.out.println(
+        "  outputDirectoryName = name of the same directory that contains the Test Runner results");
+    System.out.println();
+    System.out.println(
+        "Usage (2): ./gradlew collectMeasurements --args=\"measurementListFileName outputDirectoryName serverFileName startTimestamp endTimestamp\"");
+    System.out.println("  measurementListFileName = file name of the measurement list JSON file");
+    System.out.println(
+        "  outputDirectoryName = name of the directory where the results will be written");
+    System.out.println("  serverFileName = name of the server JSON file");
+    System.out.println(
+        "  startTimestamp = timestamp for the start of the interval; format must be yyyy-mm-dd hh:mm:ss[.fffffffff] (UTC timezone)");
+    System.out.println(
+        "  endTimestamp = timestamp for the start of the interval; format must be yyyy-mm-dd hh:mm:ss[.fffffffff] (UTC timezone)");
+    System.out.println();
+    System.out.println(
+        "  e.g. ./gradlew collectMeasurements --args=\"BasicKubernetes.json /tmp/TestRunnerResults\"");
+    System.out.println(
+        "  e.g. ./gradlew collectMeasurements --args=\"BasicKubernetes.json /tmp/TestRunnerResults mmdev.json '2020-08-20 13:18:34' '2020-08-20 13:18:35.615628881'\"");
+    System.out.println();
+  }
+
+  public static void main(String[] args) throws Exception {
+    if (args.length == 2) {
+      String measurementListFileName = args[0];
+      String outputDirName = args[1];
+      TestRunner.collectMeasurementsForTestRun(measurementListFileName, outputDirName);
+    } else if (args.length == 5) {
+      String measurementListFileName = args[0];
+      String outputDirName = args[1];
+      String serverFileName = args[2];
+      String startTimestamp = args[3];
+      String endTimestamp = args[4];
+      ServerSpecification server = ServerSpecification.fromJSONFile(serverFileName);
+      collectMeasurements(
+          measurementListFileName, outputDirName, server, startTimestamp, endTimestamp);
+    } else { // if no args specified, print help
+      printHelp();
+      return;
     }
   }
 }

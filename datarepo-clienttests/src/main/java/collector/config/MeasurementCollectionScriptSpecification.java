@@ -1,8 +1,9 @@
-package runner.config;
+package collector.config;
 
+import collector.MeasurementCollectionScript;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
-import runner.MeasurementCollectionScript;
+import runner.config.SpecificationInterface;
 
 @SuppressFBWarnings(
     value = "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD",

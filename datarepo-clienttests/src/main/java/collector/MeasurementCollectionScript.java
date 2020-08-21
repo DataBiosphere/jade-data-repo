@@ -1,4 +1,4 @@
-package runner;
+package collector;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

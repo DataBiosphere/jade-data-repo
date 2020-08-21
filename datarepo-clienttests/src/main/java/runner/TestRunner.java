@@ -1,5 +1,6 @@
 package runner;
 
+import collector.MeasurementCollector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import java.io.File;
@@ -27,8 +28,7 @@ import runner.config.TestUserSpecification;
 import utils.FileUtils;
 import utils.KubernetesClientUtils;
 
-class TestRunner {
-
+public class TestRunner {
   private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);
 
   TestConfiguration config;
@@ -405,9 +405,9 @@ class TestRunner {
     KubernetesClientUtils.changeReplicaSetSizeAndWait(config.kubernetes.numberOfInitialPods);
   }
 
-  protected static String renderedConfigFileName = "testConfiguration_RENDERED.json";
-  protected static String userJourneyResultsFileName = "userJourneyResults_ALL.json";
-  protected static String runSummaryFileName = "testRun_SUMMARY.json";
+  protected static final String renderedConfigFileName = "testConfiguration_RENDERED.json";
+  protected static final String userJourneyResultsFileName = "userJourneyResults_ALL.json";
+  protected static final String runSummaryFileName = "testRun_SUMMARY.json";
 
   void writeOutResults(String outputParentDirName) throws IOException {
     // use Jackson to map the object to a JSON-formatted text block
@@ -544,16 +544,17 @@ class TestRunner {
   }
 
   public static void printHelp() throws IOException {
-    System.out.println("Usage: ./gradlew run --args=\"configOrSuiteFileName outputDirectoryName\"");
+    System.out.println(
+        "Usage: ./gradlew runTest --args=\"configOrSuiteFileName outputDirectoryName\"");
     System.out.println(
         "  configOrSuiteFileName = file name of the test configuration or suite JSON file");
     System.out.println(
         "  outputDirectoryName = name of the directory where the results will be written");
     System.out.println();
     System.out.println(
-        "  e.g. ./gradlew run --args=\"configs/basicexamples/BasicUnauthenticated.json /tmp/TestRunnerResults\"");
+        "  e.g. ./gradlew runTest --args=\"configs/basicexamples/BasicUnauthenticated.json /tmp/TestRunnerResults\"");
     System.out.println(
-        "  e.g. ./gradlew run --args=\"suites/BasicSmoke.json /tmp/TestRunnerResults\"");
+        "  e.g. ./gradlew runTest --args=\"suites/BasicSmoke.json /tmp/TestRunnerResults\"");
     System.out.println();
 
     // print out the available test configurations found in the resources directory
@@ -582,19 +583,5 @@ class TestRunner {
     }
 
     executeTestConfigurationOrSuite(args[0], args[1]);
-
-    //    collectMeasurementsForTestRun(
-    //        "ScratchMM.json",
-    //
-    // "/Users/marikomedlock/Desktop/TestRunnerResults/Aug20/BasicUnauthenticated_308fbadb-7b5f-4ced-8a7d-eace608146f5");
-
-    //    ServerSpecification server = ServerSpecification.fromJSONFile("mmdev.json");
-    //    MeasurementCollector.collectMeasurements(
-    //        "ScratchMM.json",
-    //
-    // "/Users/marikomedlock/Desktop/TestRunnerResults/Aug20/BasicUnauthenticated_ca82d998-9c8d-4735-94bb-41df1130b034",
-    //        server,
-    //        "2020-08-20 13:18:34.613559381",
-    //        "2020-08-20 13:18:35.615628881");
   }
 }

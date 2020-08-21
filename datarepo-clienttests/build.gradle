@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.JavaExec
+
 plugins {
     id 'java'
     id 'application'
@@ -27,7 +29,6 @@ dependencies {
         slf4j = "1.7.25"
         hamcrest = "2.1"
         apacheMath = "3.0"
-        picoCLI = "4.2.0"
 
         googleApi = "1.23.0"
         googleCloud = "1.108.0"
@@ -53,8 +54,6 @@ dependencies {
     compile "org.slf4j:slf4j-api:${slf4j}"
     compile "org.hamcrest:hamcrest:${hamcrest}"
     compile "org.apache.commons:commons-math3:${apacheMath}"
-    compile "info.picocli:picocli:${picoCLI}"
-    annotationProcessor "info.picocli:picocli-codegen:${picoCLI}"
 
     compile "com.google.api-client:google-api-client:${googleApi}"
     compile "com.google.oauth-client:google-oauth-client-jetty:${googleApi}"
@@ -92,11 +91,13 @@ test {
     }
 }
 
-application {
-    ext {
-        javaMainClass = "runner.TestRunner"
-    }
-    mainClassName = javaMainClass
+task(runTest, dependsOn: 'classes', type: JavaExec) {
+    main = "runner.TestRunner"
+    classpath = sourceSets.main.runtimeClasspath
+}
+task(collectMeasurements, dependsOn: 'classes', type: JavaExec) {
+    main = "collector.MeasurementCollector"
+    classpath = sourceSets.main.runtimeClasspath
 }
 
 spotless {

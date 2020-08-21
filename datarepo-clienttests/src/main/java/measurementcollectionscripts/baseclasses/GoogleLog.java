@@ -1,5 +1,6 @@
 package measurementcollectionscripts.baseclasses;
 
+import collector.MeasurementCollectionScript;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -13,7 +14,6 @@ import java.io.IOException;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.MeasurementCollectionScript;
 import utils.LogsUtils;
 
 public class GoogleLog extends MeasurementCollectionScript<LogEntry> {

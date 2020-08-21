@@ -15,7 +15,7 @@ public class MeasurementCollectionScriptSpecification implements SpecificationIn
 
   private MeasurementCollectionScript scriptClassInstance;
 
-  public static final String scriptsPackage = "measurementcollectionscripts";
+  public static final String scriptsPackage = "scripts.measurementcollectionscripts";
 
   MeasurementCollectionScriptSpecification() {}
 

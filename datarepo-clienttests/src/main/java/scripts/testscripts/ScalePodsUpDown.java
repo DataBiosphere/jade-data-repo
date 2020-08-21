@@ -1,4 +1,4 @@
-package testscripts;
+package scripts.testscripts;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -10,7 +10,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
-import testscripts.baseclasses.SimpleDataset;
+import scripts.testscripts.baseclasses.SimpleDataset;
 import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.KubernetesClientUtils;

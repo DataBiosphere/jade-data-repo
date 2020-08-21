@@ -1,4 +1,4 @@
-package testscripts;
+package scripts.testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
@@ -6,7 +6,7 @@ import bio.terra.datarepo.model.DatasetModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
-import testscripts.baseclasses.SimpleDataset;
+import scripts.testscripts.baseclasses.SimpleDataset;
 import utils.DataRepoUtils;
 
 public class RetrieveDataset extends SimpleDataset {

@@ -1,4 +1,4 @@
-package testscripts.baseclasses;
+package scripts.testscripts.baseclasses;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;

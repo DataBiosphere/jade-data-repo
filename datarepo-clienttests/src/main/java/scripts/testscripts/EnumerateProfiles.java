@@ -1,4 +1,4 @@
-package testscripts;
+package scripts.testscripts;
 
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;

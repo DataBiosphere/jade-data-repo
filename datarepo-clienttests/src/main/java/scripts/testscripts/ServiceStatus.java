@@ -1,4 +1,4 @@
-package testscripts;
+package scripts.testscripts;
 
 import bio.terra.datarepo.api.UnauthenticatedApi;
 import bio.terra.datarepo.client.ApiClient;

@@ -1,4 +1,4 @@
-package measurementcollectionscripts.baseclasses;
+package scripts.measurementcollectionscripts.baseclasses;
 
 import collector.MeasurementCollectionScript;
 import com.fasterxml.jackson.core.JsonGenerator;

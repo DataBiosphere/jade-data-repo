@@ -1,10 +1,10 @@
-package measurementcollectionscripts;
+package scripts.measurementcollectionscripts;
 
 import com.google.logging.v2.LogEntry;
 import java.util.List;
-import measurementcollectionscripts.baseclasses.GoogleLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scripts.measurementcollectionscripts.baseclasses.GoogleLog;
 
 public class LoggerInterceptorHttpStatus extends GoogleLog {
   private static final Logger logger = LoggerFactory.getLogger(LoggerInterceptorHttpStatus.class);

@@ -1,13 +1,13 @@
-package measurementcollectionscripts;
+package scripts.measurementcollectionscripts;
 
 import com.google.logging.v2.LogEntry;
 import java.time.Duration;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import measurementcollectionscripts.baseclasses.GoogleLog;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scripts.measurementcollectionscripts.baseclasses.GoogleLog;
 
 public class PerformanceLoggerElapsedTime extends GoogleLog {
   private static final Logger logger = LoggerFactory.getLogger(PerformanceLoggerElapsedTime.class);

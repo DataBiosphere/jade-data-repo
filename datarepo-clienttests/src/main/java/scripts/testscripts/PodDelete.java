@@ -1,4 +1,4 @@
-package testscripts;
+package scripts.testscripts;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -12,17 +12,18 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
-import testscripts.baseclasses.SimpleDataset;
+import scripts.testscripts.baseclasses.SimpleDataset;
 import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
+import utils.KubernetesClientUtils;
 
-public class BulkLoad extends SimpleDataset {
-  private static final Logger logger = LoggerFactory.getLogger(BulkLoad.class);
+public class PodDelete extends SimpleDataset {
+  private static final Logger logger = LoggerFactory.getLogger(ScalePodsToZero.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public BulkLoad() {
+  public PodDelete() {
     super();
-    manipulatesKubernetes = true; // this test script manipulates Kubernetes
+    manipulatesKubernetes = true; // this test script manipulates Kubernetess
   }
 
   private int filesToLoad;
@@ -36,7 +37,8 @@ public class BulkLoad extends SimpleDataset {
     }
   }
 
-  // The purpose of this test is to measure scaling of bulk load.
+  // The purpose of this test is to have a long-running workload that completes successfully
+  // while we delete a random pod.
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
@@ -47,6 +49,20 @@ public class BulkLoad extends SimpleDataset {
             filesToLoad, billingProfileModel.getId(), datasetSummaryModel.getId());
     JobModel bulkLoadArrayJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
+
+    // =========================================================================
+    /* Manipulating kubernetes pods during file ingest */
+
+    // initial poll as file ingest begins
+    bulkLoadArrayJobResponse =
+        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+
+    if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
+      KubernetesClientUtils.deleteRandomPod();
+    } else {
+      throw new Exception("Job finished before we were able to test the delete functionality.");
+    }
+    // =========================================================================
 
     // wait for the job to complete and print out results to debug log level
     BulkLoadResultModel loadSummary =

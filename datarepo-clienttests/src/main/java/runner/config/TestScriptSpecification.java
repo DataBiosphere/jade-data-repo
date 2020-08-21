@@ -20,7 +20,7 @@ public class TestScriptSpecification implements SpecificationInterface {
   public TimeUnit expectedTimeForEachUnitObj;
   public String description;
 
-  public static final String scriptsPackage = "testscripts";
+  public static final String scriptsPackage = "scripts.testscripts";
 
   TestScriptSpecification() {}
 

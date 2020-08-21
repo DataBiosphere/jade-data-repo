@@ -1,7 +1,8 @@
-package utils;
+package scripts.utils;
 
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import common.utils.AuthenticationUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;

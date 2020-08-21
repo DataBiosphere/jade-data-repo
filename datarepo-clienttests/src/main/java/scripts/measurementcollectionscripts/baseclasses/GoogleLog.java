@@ -9,12 +9,13 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.logging.v2.LogEntry;
 import com.google.logging.v2.ProjectName;
+import common.BasicStatistics;
+import common.utils.LogsUtils;
 import java.io.File;
 import java.io.IOException;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.LogsUtils;
 
 public class GoogleLog extends MeasurementCollectionScript<LogEntry> {
   private static final Logger logger = LoggerFactory.getLogger(GoogleLog.class);
@@ -48,7 +49,9 @@ public class GoogleLog extends MeasurementCollectionScript<LogEntry> {
     for (LogEntry logEntry : dataPoints) {
       descriptiveStatistics.addValue(extractNumericValueFromLogEntry(logEntry));
     }
-    calculateStandardStatistics(descriptiveStatistics);
+
+    summary = new MeasurementResultSummary(description);
+    summary.statistics = BasicStatistics.calculateStandardStatistics(descriptiveStatistics);
   }
 
   protected double extractNumericValueFromLogEntry(LogEntry logEntry) {

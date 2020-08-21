@@ -1,12 +1,12 @@
 package collector.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import common.utils.FileUtils;
 import java.io.InputStream;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.SpecificationInterface;
-import utils.FileUtils;
 
 public class MeasurementList implements SpecificationInterface {
   private static final Logger logger = LoggerFactory.getLogger(MeasurementList.class);

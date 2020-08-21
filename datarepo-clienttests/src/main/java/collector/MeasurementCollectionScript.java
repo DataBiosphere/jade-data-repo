@@ -1,10 +1,10 @@
 package collector;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import common.BasicStatistics;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.File;
 import java.util.List;
-import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -16,6 +16,20 @@ public abstract class MeasurementCollectionScript<T> {
   public MeasurementCollectionScript() {}
 
   protected ServerSpecification server;
+  protected String description;
+  protected MeasurementResultSummary summary;
+
+  @SuppressFBWarnings(
+      value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
+      justification = "This POJO class is used for easy serialization to JSON using Jackson.")
+  public static class MeasurementResultSummary {
+    public String description;
+    public BasicStatistics statistics;
+
+    public MeasurementResultSummary(String description) {
+      this.description = description;
+    }
+  }
 
   /**
    * Setter for the server specification property of this class. This property will be set by the
@@ -56,46 +70,10 @@ public abstract class MeasurementCollectionScript<T> {
     throw new UnsupportedOperationException("downloadDataPoints must be overridden by sub-classes");
   }
 
-  protected String description;
-  protected MeasurementResultSummary summary;
-
-  @SuppressFBWarnings(
-      value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
-      justification = "This POJO class is used for easy serialization to JSON using Jackson.")
-  public static class MeasurementResultSummary {
-    public String description;
-
-    public double min;
-    public double max;
-    public double mean;
-    public double standardDeviation;
-    public double median;
-    public double percentile95;
-    public double percentile99;
-    public double sum;
-
-    public MeasurementResultSummary(String description) {
-      this.description = description;
-    }
-  }
-
   /** Process the data points calculating reporting statistics of interest. */
   public void calculateSummaryStatistics() {
     throw new UnsupportedOperationException(
         "calculateSummaryStatistics must be overridden by sub-classes");
-  }
-
-  /** Utility method to call standard statistics calculation methods on a set of data. */
-  protected void calculateStandardStatistics(DescriptiveStatistics descriptiveStatistics) {
-    summary = new MeasurementResultSummary(description);
-    summary.max = descriptiveStatistics.getMax();
-    summary.min = descriptiveStatistics.getMin();
-    summary.mean = descriptiveStatistics.getMean();
-    summary.standardDeviation = descriptiveStatistics.getStandardDeviation();
-    summary.median = descriptiveStatistics.getPercentile(50);
-    summary.percentile95 = descriptiveStatistics.getPercentile(95);
-    summary.percentile99 = descriptiveStatistics.getPercentile(99);
-    summary.sum = descriptiveStatistics.getSum();
   }
 
   /** Getter for the summary statistics nested object. */

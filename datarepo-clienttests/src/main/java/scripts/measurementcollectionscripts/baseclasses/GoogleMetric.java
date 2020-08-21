@@ -12,12 +12,13 @@ import com.google.monitoring.v3.Point;
 import com.google.monitoring.v3.ProjectName;
 import com.google.monitoring.v3.TimeInterval;
 import com.google.monitoring.v3.TimeSeries;
+import common.BasicStatistics;
+import common.utils.MetricsUtils;
 import java.io.File;
 import java.io.IOException;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.MetricsUtils;
 
 public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
   private static final Logger logger = LoggerFactory.getLogger(GoogleMetric.class);
@@ -60,7 +61,9 @@ public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
       ts.getPointsList().stream()
           .forEach(pt -> descriptiveStatistics.addValue(pt.getValue().getDoubleValue()));
     }
-    calculateStandardStatistics(descriptiveStatistics);
+
+    summary = new MeasurementResultSummary(description);
+    summary.statistics = BasicStatistics.calculateStandardStatistics(descriptiveStatistics);
   }
 
   /** Write the raw data points generated during this test run to a String. */

@@ -1,4 +1,4 @@
-package utils;
+package common.utils;
 
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;

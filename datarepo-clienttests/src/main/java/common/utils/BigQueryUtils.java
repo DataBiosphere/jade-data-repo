@@ -1,4 +1,4 @@
-package utils;
+package common.utils;
 
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.BigQuery;
@@ -16,7 +16,7 @@ public final class BigQueryUtils {
   private BigQueryUtils() {}
 
   /**
-   * Build the Data Repo API client object for the given test user and server specifications.
+   * Build the Big Query client object for the given test user and server specifications.
    *
    * @param testUser the test user whose credentials are supplied to the API client object
    * @param googleProjectId the project where BigQuery will run queries

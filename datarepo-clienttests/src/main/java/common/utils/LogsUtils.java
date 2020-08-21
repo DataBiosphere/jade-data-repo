@@ -1,4 +1,4 @@
-package utils;
+package common.utils;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;

@@ -1,4 +1,4 @@
-package utils;
+package scripts.utils;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
@@ -15,6 +15,8 @@ import bio.terra.datarepo.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import common.utils.AuthenticationUtils;
+import common.utils.FileUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;

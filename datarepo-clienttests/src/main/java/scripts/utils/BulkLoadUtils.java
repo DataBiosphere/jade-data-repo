@@ -1,7 +1,8 @@
-package utils;
+package scripts.utils;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.model.*;
+import common.utils.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

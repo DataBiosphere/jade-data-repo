@@ -1,7 +1,9 @@
 package runner;
 
+import common.BasicStatistics;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import runner.config.TestScriptSpecification;
 
 public class TestScriptResult {
@@ -19,9 +21,7 @@ public class TestScriptResult {
   public static class TestScriptResultSummary {
     public String testScriptDescription;
 
-    public long minElapsedTimeMS;
-    public long maxElapsedTimeMS;
-    public double meanElapsedTimeMS;
+    public BasicStatistics elapsedTimeStatistics;
 
     public int totalRun; // total number of user journey threads submitted to the thread pool
     public int numCompleted; // number of user journey threads that completed
@@ -50,31 +50,22 @@ public class TestScriptResult {
 
   /** Loop through the UserJourneyResults calculating reporting statistics of interest. */
   private void calculateStatistics() {
+    DescriptiveStatistics descriptiveStatistics = new DescriptiveStatistics();
     for (int ctr = 0; ctr < userJourneyResults.size(); ctr++) {
       UserJourneyResult result = userJourneyResults.get(ctr);
-
-      // calculate the min, max, mean elapsed time
-      if (summary.minElapsedTimeMS > result.elapsedTimeNS || ctr == 0) {
-        summary.minElapsedTimeMS = result.elapsedTimeNS;
-      }
-      if (summary.maxElapsedTimeMS < result.elapsedTimeNS || ctr == 0) {
-        summary.maxElapsedTimeMS = result.elapsedTimeNS;
-      }
-      summary.meanElapsedTimeMS += result.elapsedTimeNS;
 
       // count the number of user journeys that completed and threw exceptions
       summary.numCompleted += (result.completed) ? 1 : 0;
       summary.numExceptionsThrown += (result.exceptionThrown != null) ? 1 : 0;
+
+      // convert elapsed time from nanosecods to milliseconds
+      descriptiveStatistics.addValue(result.elapsedTimeNS / (1e6));
     }
-    summary.meanElapsedTimeMS /= userJourneyResults.size();
+    summary.elapsedTimeStatistics =
+        BasicStatistics.calculateStandardStatistics(descriptiveStatistics);
     summary.totalRun = userJourneyResults.size();
 
     summary.isFailure =
         (summary.numCompleted < summary.totalRun) || (summary.numExceptionsThrown > 0);
-
-    // convert all the times from nanoseconds to milliseconds
-    summary.minElapsedTimeMS /= (1e6);
-    summary.maxElapsedTimeMS /= (1e6);
-    summary.meanElapsedTimeMS /= (1e6);
   }
 }

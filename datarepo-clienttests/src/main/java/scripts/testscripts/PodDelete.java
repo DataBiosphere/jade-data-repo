@@ -8,14 +8,14 @@ import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadResultModel;
 import bio.terra.datarepo.model.JobModel;
+import common.utils.KubernetesClientUtils;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
-import utils.BulkLoadUtils;
-import utils.DataRepoUtils;
-import utils.KubernetesClientUtils;
+import scripts.utils.BulkLoadUtils;
+import scripts.utils.DataRepoUtils;
 
 public class PodDelete extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(ScalePodsToZero.class);

@@ -6,7 +6,7 @@ import bio.terra.datarepo.model.EnumerateBillingProfileModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
-import utils.DataRepoUtils;
+import scripts.utils.DataRepoUtils;
 
 public class EnumerateProfiles extends runner.TestScript {
 

@@ -13,8 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
-import utils.BulkLoadUtils;
-import utils.DataRepoUtils;
+import scripts.utils.BulkLoadUtils;
+import scripts.utils.DataRepoUtils;
 
 public class BulkLoad extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(BulkLoad.class);

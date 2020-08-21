@@ -8,6 +8,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.api.client.http.HttpStatusCodes;
+import common.utils.FileUtils;
+import common.utils.ProcessUtils;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -20,8 +22,6 @@ import org.slf4j.LoggerFactory;
 import runner.DeploymentScript;
 import runner.config.ApplicationSpecification;
 import runner.config.ServerSpecification;
-import utils.FileUtils;
-import utils.ProcessUtils;
 
 public class ModularHelmChart extends DeploymentScript {
   private static final Logger logger = LoggerFactory.getLogger(ModularHelmChart.class);

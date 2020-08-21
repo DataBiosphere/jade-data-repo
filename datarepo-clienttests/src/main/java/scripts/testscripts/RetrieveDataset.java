@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
-import utils.DataRepoUtils;
+import scripts.utils.DataRepoUtils;
 
 public class RetrieveDataset extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(RetrieveDataset.class);

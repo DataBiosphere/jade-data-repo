@@ -7,15 +7,15 @@ import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.*;
+import common.utils.KubernetesClientUtils;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
-import utils.BulkLoadUtils;
-import utils.DataRepoUtils;
-import utils.KubernetesClientUtils;
+import scripts.utils.BulkLoadUtils;
+import scripts.utils.DataRepoUtils;
 
 public class ScalePodsToZero extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(ScalePodsToZero.class);

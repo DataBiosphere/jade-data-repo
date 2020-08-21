@@ -16,6 +16,8 @@ import bio.terra.datarepo.model.SnapshotSummaryModel;
 import bio.terra.datarepo.model.TableModel;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
+import common.utils.BigQueryUtils;
+import common.utils.FileUtils;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -24,9 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
-import utils.BigQueryUtils;
-import utils.DataRepoUtils;
-import utils.FileUtils;
+import scripts.utils.DataRepoUtils;
 
 public class DRSLookup extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(RetrieveSnapshot.class);

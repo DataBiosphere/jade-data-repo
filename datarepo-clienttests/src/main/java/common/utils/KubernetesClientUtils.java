@@ -1,4 +1,4 @@
-package utils;
+package common.utils;
 
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -33,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
 
-// TODO: add try/catch for refresh token around all utils methods
+// TODO: add try/catch for refresh token around all common.utils methods
 public final class KubernetesClientUtils {
   private static final Logger logger = LoggerFactory.getLogger(KubernetesClientUtils.class);
 

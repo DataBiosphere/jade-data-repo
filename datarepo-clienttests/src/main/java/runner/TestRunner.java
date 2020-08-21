@@ -3,6 +3,8 @@ package runner;
 import collector.MeasurementCollector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import common.utils.FileUtils;
+import common.utils.KubernetesClientUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -25,8 +27,6 @@ import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
 import runner.config.TestSuite;
 import runner.config.TestUserSpecification;
-import utils.FileUtils;
-import utils.KubernetesClientUtils;
 
 public class TestRunner {
   private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);

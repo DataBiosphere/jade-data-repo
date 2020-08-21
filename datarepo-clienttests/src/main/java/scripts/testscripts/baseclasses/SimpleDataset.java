@@ -11,8 +11,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
-import utils.DataRepoUtils;
-import utils.SAMUtils;
+import scripts.utils.DataRepoUtils;
+import scripts.utils.SAMUtils;
 
 public class SimpleDataset extends runner.TestScript {
   private static final Logger logger = LoggerFactory.getLogger(SimpleDataset.class);

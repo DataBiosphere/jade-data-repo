@@ -7,6 +7,7 @@ import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
 import bio.terra.datarepo.model.BulkLoadFileResultModel;
 import bio.terra.datarepo.model.JobModel;
+import common.utils.FileUtils;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
@@ -14,8 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
-import utils.DataRepoUtils;
-import utils.FileUtils;
+import scripts.utils.DataRepoUtils;
 
 public class IngestFile extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(IngestFile.class);

@@ -231,7 +231,7 @@ class you want to debug. Run the test script main method in debug mode.
 
 ## Build out the testing infrastructure
 All the Java code is in the src/main/java directory. The runner package contains most of the testing infrastructure code,
-including the POJO classes used to specify a test configuration. The utils package contains code that may be useful for
+including the POJO classes used to specify a test configuration. The common.utils package contains code that may be useful for
 both test scripts and the test runner.
 
 Run the linters before putting up a PR.

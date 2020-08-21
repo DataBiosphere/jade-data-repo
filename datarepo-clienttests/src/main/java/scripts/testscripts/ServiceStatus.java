@@ -5,7 +5,7 @@ import bio.terra.datarepo.client.ApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
-import utils.DataRepoUtils;
+import scripts.utils.DataRepoUtils;
 
 public class ServiceStatus extends runner.TestScript {
   private static final Logger logger = LoggerFactory.getLogger(ServiceStatus.class);

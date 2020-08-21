@@ -4,6 +4,7 @@ import collector.config.MeasurementCollectionScriptSpecification;
 import collector.config.MeasurementList;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import common.utils.FileUtils;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -17,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.TestRunner;
 import runner.config.ServerSpecification;
-import utils.FileUtils;
 
 public class MeasurementCollector {
   private static final Logger logger = LoggerFactory.getLogger(MeasurementCollector.class);
@@ -62,7 +62,7 @@ public class MeasurementCollector {
 
   protected static final String measurementDataPointsFileName =
       "RAWDATA_measurementDataPoints.json";
-  protected static final String measurementSummariesFileName = "SUMMARY_measurementDataPoints.json";
+  protected static final String measurementSummariesFileName = "SUMMARY_measurementCollection.json";
 
   void writeOutResults(String outputDirName) throws Exception {
     // use Jackson to map the object to a JSON-formatted text block

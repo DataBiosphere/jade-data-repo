@@ -1,8 +1,8 @@
 package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import common.utils.FileUtils;
 import java.io.InputStream;
-import utils.FileUtils;
 
 public class ServerSpecification implements SpecificationInterface {
   public String name;

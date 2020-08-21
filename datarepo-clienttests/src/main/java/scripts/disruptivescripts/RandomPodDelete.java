@@ -1,12 +1,12 @@
 package scripts.disruptivescripts;
 
+import common.utils.KubernetesClientUtils;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.DisruptiveScript;
 import runner.config.TestUserSpecification;
-import utils.KubernetesClientUtils;
 
 public class RandomPodDelete extends DisruptiveScript {
   public RandomPodDelete() {

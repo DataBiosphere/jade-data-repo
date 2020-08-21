@@ -1,9 +1,9 @@
 package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import common.utils.FileUtils;
 import java.io.File;
 import java.io.InputStream;
-import utils.FileUtils;
 
 public class ServiceAccountSpecification implements SpecificationInterface {
   public String name;

@@ -13,14 +13,14 @@ import com.google.api.client.http.HttpStatusCodes;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.TableResult;
+import common.utils.BigQueryUtils;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
-import utils.BigQueryUtils;
-import utils.DataRepoUtils;
-import utils.SAMUtils;
+import scripts.utils.DataRepoUtils;
+import scripts.utils.SAMUtils;
 
 public class DatasetCustodianPermissions extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(DatasetCustodianPermissions.class);

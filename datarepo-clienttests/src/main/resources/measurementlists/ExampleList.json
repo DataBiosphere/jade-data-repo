@@ -11,14 +11,19 @@
       "description": "Kubernetes container memory usage"
     },
     {
-      "name": "PerformanceLoggerElapsedTime",
-      "description": "PerformanceLogger enumerateProfiles timer.",
-      "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"]
-    },
-    {
       "name": "LoggerInterceptorHttpStatus",
       "description": "LoggerInterceptor HTTP status code 500",
       "parameters": [500]
+    },
+    {
+      "name": "PerformanceLoggerElapsedTime",
+      "description": "PerformanceLogger enumerateProfiles timer elapsed time.",
+      "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"]
+    },
+    {
+      "name": "PerformanceLoggerCount",
+      "description": "PerformanceLogger enumerateProfiles timer integer count.",
+      "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"]
     }
   ]
 }

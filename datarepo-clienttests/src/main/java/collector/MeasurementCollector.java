@@ -60,8 +60,9 @@ public class MeasurementCollector {
     }
   }
 
-  protected static final String measurementDataPointsFileName = "measurementDataPoints_ALL.json";
-  protected static final String measurementSummariesFileName = "measurementDataPoints_SUMMARY.json";
+  protected static final String measurementDataPointsFileName =
+      "RAWDATA_measurementDataPoints.json";
+  protected static final String measurementSummariesFileName = "SUMMARY_measurementDataPoints.json";
 
   void writeOutResults(String outputDirName) throws Exception {
     // use Jackson to map the object to a JSON-formatted text block
@@ -95,7 +96,9 @@ public class MeasurementCollector {
         measurementList.measurementCollectionScripts) {
       File measurementDataPointsFile =
           outputDirectory
-              .resolve(specification.name + "_" + measurementDataPointsFileName)
+              .resolve(
+                  measurementDataPointsFileName.replace(
+                      ".json", "_" + specification.name + ".json"))
               .toFile();
       specification.scriptClassInstance().writeDataPointsToFile(measurementDataPointsFile);
       logger.info(

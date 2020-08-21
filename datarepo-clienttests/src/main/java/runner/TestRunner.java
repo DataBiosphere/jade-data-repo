@@ -405,9 +405,9 @@ public class TestRunner {
     KubernetesClientUtils.changeReplicaSetSizeAndWait(config.kubernetes.numberOfInitialPods);
   }
 
-  protected static final String renderedConfigFileName = "testConfiguration_RENDERED.json";
-  protected static final String userJourneyResultsFileName = "userJourneyResults_ALL.json";
-  protected static final String runSummaryFileName = "testRun_SUMMARY.json";
+  protected static final String renderedConfigFileName = "RENDERED_testConfiguration.json";
+  protected static final String userJourneyResultsFileName = "RAWDATA_userJourneyResults.json";
+  protected static final String runSummaryFileName = "SUMMARY_testRun.json";
 
   void writeOutResults(String outputParentDirName) throws IOException {
     // use Jackson to map the object to a JSON-formatted text block

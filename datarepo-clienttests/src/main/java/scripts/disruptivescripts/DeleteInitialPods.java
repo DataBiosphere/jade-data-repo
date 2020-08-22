@@ -1,7 +1,6 @@
-package disruptivescripts;
+package scripts.disruptivescripts;
 
-import static utils.KubernetesClientUtils.componentLabel;
-
+import common.utils.KubernetesClientUtils;
 import io.kubernetes.client.openapi.models.V1Deployment;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.DisruptiveScript;
 import runner.config.TestUserSpecification;
-import utils.KubernetesClientUtils;
 
 public class DeleteInitialPods extends DisruptiveScript {
   public DeleteInitialPods() {
@@ -29,12 +27,12 @@ public class DeleteInitialPods extends DisruptiveScript {
     }
 
     // get list of api pod names
-    String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(componentLabel);
+    String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(KubernetesClientUtils.apiComponentLabel);
     List<String> podsToDelete = new ArrayList<>();
     KubernetesClientUtils.listPods().stream()
         .filter(
             pod ->
-                deploymentComponentLabel.equals(pod.getMetadata().getLabels().get(componentLabel)))
+                deploymentComponentLabel.equals(pod.getMetadata().getLabels().get(KubernetesClientUtils.apiComponentLabel)))
         .forEach(p -> podsToDelete.add(p.getMetadata().getName()));
 
     // delete original pods, and give them a chance to recover

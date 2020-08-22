@@ -17,11 +17,11 @@ import scripts.testscripts.baseclasses.SimpleDataset;
 import scripts.utils.BulkLoadUtils;
 import scripts.utils.DataRepoUtils;
 
-public class PodDelete extends SimpleDataset {
+public class PodDeleteDuringBulkLoad extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(ScalePodsToZero.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public PodDelete() {
+  public PodDeleteDuringBulkLoad() {
     super();
     manipulatesKubernetes = true; // this test script manipulates Kubernetess
   }

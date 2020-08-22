@@ -1,5 +1,5 @@
 {
-  "name": "PodDelete",
+  "name": "PodDeleteDuringBulkLoad",
   "description": "One user ingests many files into one dataset while we delete a random pod",
   "serverSpecificationFile": "perf.json",
   "billingAccount": "00708C-45D19D-27AAFA",

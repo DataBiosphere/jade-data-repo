@@ -44,9 +44,9 @@ public class RandomPodDelete extends DisruptiveScript {
         repeatCount,
         secondsBetweenRepeat);
     for (int i = 0; i < repeatCount; i++) {
-      TimeUnit.SECONDS.sleep(secondsBetweenRepeat);
       logger.debug("Deleting random pod.");
       KubernetesClientUtils.deleteRandomPod();
+      TimeUnit.SECONDS.sleep(secondsBetweenRepeat);
     }
   }
 }

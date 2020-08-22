@@ -1,10 +1,13 @@
 package runner.config;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import runner.DisruptiveScript;
 
+@SuppressFBWarnings(
+    value = "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD",
+    justification = "This POJO class is used for easy serialization to JSON using Jackson.")
 public class DisruptiveScriptSpecification implements SpecificationInterface {
-  public String description;
   public String name;
   public List<String> parameters;
 

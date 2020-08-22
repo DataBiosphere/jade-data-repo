@@ -181,7 +181,7 @@ public class TestRunner {
       disruptionThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 
       DisruptiveThread disruptiveThread = new DisruptiveThread(disruptiveScript, config.testUsers);
-      disruptionThreadPool.submit(disruptiveThread);
+      disruptionThreadPool.execute(disruptiveThread);
       logger.debug("Successfully submitted disruptive thread.");
     }
 
@@ -378,9 +378,10 @@ public class TestRunner {
     }
   }
 
-  static class DisruptiveThread implements Callable {
+  static class DisruptiveThread implements Runnable {
     DisruptiveScript disruptiveScript;
     List<TestUserSpecification> testUsers;
+    int waitBeforeStartingDisrupt = 15;
 
     public DisruptiveThread(
         DisruptiveScript disruptiveScript, List<TestUserSpecification> testUsers) {
@@ -388,13 +389,14 @@ public class TestRunner {
       this.testUsers = testUsers;
     }
 
-    public Object call() {
+    public void run() {
       try {
+        // give task time to get started before disruption
+        TimeUnit.SECONDS.sleep(waitBeforeStartingDisrupt);
         disruptiveScript.disrupt(testUsers);
       } catch (Exception ex) {
         logger.info("Disruptive thread threw exception: {}", ex.getMessage());
       }
-      return null;
     }
   }
 

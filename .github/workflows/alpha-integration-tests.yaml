@@ -31,8 +31,9 @@ jobs:
         GOOGLE_SA_CERT: /tmp/jade-account.pem
     - name: "Build and run alpha integration tests"
       run: |
-        ./gradlew assemble
-        ./gradlew testIntegration --scan
+        cat ./src/main/resources/application-alpha.properties
+#        ./gradlew assemble
+#        ./gradlew testIntegration --scan
       env:
         SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
     - name: "Notify Slack"

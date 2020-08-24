@@ -36,6 +36,8 @@ jobs:
 #        ./gradlew testIntegration --scan
       env:
         SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
+        GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
+        GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
     - name: "Notify Slack"
       uses: broadinstitute/action-slack@v2
       env:

@@ -33,7 +33,7 @@ jobs:
       run: |
         ./gradlew assemble
         ./gradlew check --scan
-#        ./gradlew testIntegration --scan
+        ./gradlew testIntegration --scan
     - name: "Notify Slack"
       uses: broadinstitute/action-slack@v2
       env:

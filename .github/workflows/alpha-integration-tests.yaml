@@ -32,7 +32,6 @@ jobs:
     - name: "Build and run alpha integration tests"
       run: |
         ./gradlew assemble
-        ./gradlew check --scan
         ./gradlew testIntegration --scan
     - name: "Notify Slack"
       uses: broadinstitute/action-slack@v2

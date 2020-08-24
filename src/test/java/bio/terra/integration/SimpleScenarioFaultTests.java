@@ -36,7 +36,7 @@ import static org.junit.Assert.assertThat;
 // The tests that drive that method can configure faults to test underlying mechanisms.
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@ActiveProfiles({"google", "integrationtest"})
+@ActiveProfiles({"google", "integrationtest", "alpha"})
 @AutoConfigureMockMvc
 @Category(Integration.class)
 public class SimpleScenarioFaultTests extends UsersBase {

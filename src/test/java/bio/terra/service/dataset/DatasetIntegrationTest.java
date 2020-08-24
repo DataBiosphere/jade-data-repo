@@ -67,7 +67,7 @@ import static org.junit.Assert.assertTrue;
 // TODO move me to integration dir
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@ActiveProfiles({"google", "integrationtest"})
+@ActiveProfiles({"google", "integrationtest", "alpha"})
 @AutoConfigureMockMvc
 @Category(Integration.class)
 public class DatasetIntegrationTest extends UsersBase {

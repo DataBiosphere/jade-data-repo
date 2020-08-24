@@ -64,7 +64,7 @@ import static org.junit.Assert.fail;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles({"google", "integrationtest"})
+@ActiveProfiles({"google", "integrationtest", "alpha"})
 @Category(OnDemand.class)
 @SuppressFBWarnings(
     value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",

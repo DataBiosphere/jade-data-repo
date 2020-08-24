@@ -179,8 +179,6 @@ public class BigQueryPdaoTest {
             "Source file not found: 'gs://broad-dsp-storage/blahblah.fastq.gz'");
         loadHistoryArray.add(loadHistoryModel);
 
-        loadHistoryArray.forEach(value -> value.setError(bigQueryPdao.sanitizeErrorMsg(value.getError())));
-
         ST sqlTemplate = new ST(bigQueryPdao.insertLoadHistoryToStagingTableTemplate);
         sqlTemplate.add("project", "broad-jade-dev");
         sqlTemplate.add("dataset", "datarepo_hca_ebi");

@@ -228,10 +228,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
             " '<v.state>', '<v.fileId>', '<v.checksumCRC>', '<v.checksumMD5>', \"\"\"<v.error>\"\"\")};" +
             " separator=\",\">";
 
-    public String sanitizeErrorMsg(String error) {
-        return error.replaceAll("'", "\'");
-    }
-
     public void loadHistoryToStagingTable(
         Dataset dataset,
         String tableName_FlightId,
@@ -239,8 +235,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         Instant loadTime,
         List<BulkLoadHistoryModel> loadHistoryArray) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-
-        loadHistoryArray.forEach(value -> value.setError(sanitizeErrorMsg(value.getError())));
 
         ST sqlTemplate = new ST(insertLoadHistoryToStagingTableTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());

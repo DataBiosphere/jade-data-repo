@@ -33,6 +33,8 @@ jobs:
       run: |
         ./gradlew assemble
         ./gradlew testIntegration --scan
+      env:
+        SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
     - name: "Notify Slack"
       uses: broadinstitute/action-slack@v2
       env:

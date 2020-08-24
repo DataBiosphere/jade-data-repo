@@ -1,7 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
-import bio.terra.common.exception.NotImplementedException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
@@ -73,11 +73,15 @@ public class FireStoreDirectoryDao {
 
     private final FireStoreUtils fireStoreUtils;
     private final PerformanceLogger performanceLogger;
+    private final ApplicationConfiguration applicationConfiguration;
 
     @Autowired
-    public FireStoreDirectoryDao(FireStoreUtils fireStoreUtils, PerformanceLogger performanceLogger) {
+    public FireStoreDirectoryDao(FireStoreUtils fireStoreUtils,
+                                 PerformanceLogger performanceLogger,
+                                 ApplicationConfiguration applicationConfiguration) {
         this.fireStoreUtils = fireStoreUtils;
         this.performanceLogger = performanceLogger;
+        this.applicationConfiguration = applicationConfiguration;
     }
 
     // Note that this does not test for duplicates. If invoked on an existing path it will overwrite
@@ -358,10 +362,6 @@ public class FireStoreDirectoryDao {
 
     // -- Snapshot filesystem methods --
 
-    // TODO make this a parameter
-    private static int BATCH_SIZE = 50;
-    private static int CACHE_SIZE = 200;
-
     // To improve performance of building the snapshot file system, we use three techniques:
     // 1. Operate over batches so that we can issue requests to fire store in parallel
     // 2. Cache directory paths so that we do not due extra lookups or creates on shared directory
@@ -381,21 +381,36 @@ public class FireStoreDirectoryDao {
         String snapshotId,
         List<String> fileIdList)
         throws InterruptedException {
-        List<List<String>> batches = ListUtils.partition(fileIdList, BATCH_SIZE);
-        LRUMap<String, Boolean> pathMap = new LRUMap<>(CACHE_SIZE);
+        List<List<String>> batches =
+            ListUtils.partition(fileIdList, applicationConfiguration.getFirestoreSnapshotBatchSize());
+        LRUMap<String, Boolean> pathMap =
+            new LRUMap<>(applicationConfiguration.getFirestoreSnapshotCacheSize());
 
         // Create the top directory structure (/_dr_/<datasetDirName>)
+        String storeTopTimer = performanceLogger.timerStart();
         storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
+        performanceLogger.timerEndAndLog(
+            storeTopTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:storeTop");
 
         for (List<String> batch : batches) {
             // Find the file reference dataset entries for all file ids in this batch
+            String retrieveTimer = performanceLogger.timerStart();
             List<FireStoreDirectoryEntry> datasetEntries =
                 batchRetrieveById(datasetFirestore, datasetId, batch);
+            performanceLogger.timerEndAndLog(
+                retrieveTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:batchRetrieveById");
 
             // Find directory paths that need to be created; plus add to the cache
+            String findPathsTimer = performanceLogger.timerStart();
             List<String> newPaths = findNewDirectoryPaths(datasetEntries, pathMap);
+            performanceLogger.timerEndAndLog(
+                findPathsTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:findPaths");
+
+            String retrievePathsTimer = performanceLogger.timerStart();
             List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                 batchRetrieveByPath(datasetFirestore, datasetId, newPaths);
+            performanceLogger.timerEndAndLog(
+                retrievePathsTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:retrievePaths");
 
             // Create snapshot file system entries
             List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
@@ -406,54 +421,37 @@ public class FireStoreDirectoryDao {
                 snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
             }
 
+            // Store the batch of entries. This will override existing entries,
+            // but that is not the typical case and it is lower cost just overwrite
+            // rather than retrieve to avoid the write.
+            String storeTimer = performanceLogger.timerStart();
             batchStoreDirectoryEntry(snapshotFirestore, snapshotId, snapshotEntries);
+            performanceLogger.timerEndAndLog(
+                storeTimer, snapshotId, this.getClass().getName(), "addEntrieToSnapshot:storeDirectoryEntry");
         }
-
     }
 
-    private void batchStoreDirectoryEntry(
-        Firestore snapshotFirestore, String snapshotId, List<FireStoreDirectoryEntry> entries)
+    private void storeTopDirectory(Firestore firestore, String snapshotId, String dirName)
         throws InterruptedException {
-        CollectionReference snapshotCollection = snapshotFirestore.collection(snapshotId);
-
-        List<ApiFuture<WriteResult>> futures = new ArrayList<>();
-        for (FireStoreDirectoryEntry entry : entries) {
-            String fullPath = fireStoreUtils.getFullPath(entry.getPath(), entry.getName());
-            String lookupPath = encodePathAsFirestoreDocumentName(makeLookupPath(fullPath));
-            DocumentReference newRef = snapshotCollection.document(lookupPath);
-            futures.add(newRef.set(entry));
+        // We have to create the top directory structure for the dataset and the root folder.
+        // Those components cannot be copied from the dataset, but have to be created new
+        // in the snapshot directory. We probe to see if the dirName directory exists. If not,
+        // we use the createFileRef path to construct it and the parent, if necessary.
+        String dirPath = "/" + dirName;
+        DocumentSnapshot dirSnap = lookupByPathNoXn(firestore, snapshotId, dirPath);
+        if (dirSnap.exists()) {
+            return;
         }
 
-        try {
-            for (ApiFuture<WriteResult> future : futures) {
-                future.get();
-            }
-        } catch (ExecutionException e) {
-            throw new FileSystemExecutionException("batch store failed", e);
-        }
-    }
+        FireStoreDirectoryEntry topDir =
+            new FireStoreDirectoryEntry()
+                .fileId(UUID.randomUUID().toString())
+                .isFileRef(false)
+                .path("/")
+                .name(dirName)
+                .fileCreatedDate(Instant.now().toString());
 
-    private List<String> findNewDirectoryPaths(
-        List<FireStoreDirectoryEntry> datasetEntries, LRUMap<String, Boolean> pathMap) {
-
-        List<String> pathsToCheck = new ArrayList<>();
-        for (FireStoreDirectoryEntry entry : datasetEntries) {
-            // Only probe the real directories - not leaf file reference or the root
-            String lookupDirPath = makeLookupPath(entry.getPath());
-            for (String testPath = lookupDirPath;
-                 !testPath.isEmpty() && !StringUtils.equals(testPath, ROOT_DIR_NAME);
-                 testPath = fireStoreUtils.getDirectoryPath(testPath)) {
-
-                // check the cache
-                if (pathMap.get(testPath) == null) {
-                    // not in the cache: a to checklist and a to cache
-                    pathsToCheck.add(testPath);
-                    pathMap.put(testPath, true);
-                }
-            }
-        }
-
-        return pathsToCheck;
+        createDirectoryEntry(firestore, snapshotId, topDir);
     }
 
     private List<FireStoreDirectoryEntry> batchRetrieveById(
@@ -488,6 +486,28 @@ public class FireStoreDirectoryDao {
         return entries;
     }
 
+    private List<String> findNewDirectoryPaths(
+        List<FireStoreDirectoryEntry> datasetEntries, LRUMap<String, Boolean> pathMap) {
+
+        List<String> pathsToCheck = new ArrayList<>();
+        for (FireStoreDirectoryEntry entry : datasetEntries) {
+            // Only probe the real directories - not leaf file reference or the root
+            String lookupDirPath = makeLookupPath(entry.getPath());
+            for (String testPath = lookupDirPath;
+                 !testPath.isEmpty() && !StringUtils.equals(testPath, ROOT_DIR_NAME);
+                 testPath = fireStoreUtils.getDirectoryPath(testPath)) {
+
+                // check the cache
+                if (pathMap.get(testPath) == null) {
+                    // not in the cache: a to checklist and a to cache
+                    pathsToCheck.add(testPath);
+                    pathMap.put(testPath, true);
+                }
+            }
+        }
+        return pathsToCheck;
+    }
+
     private List<FireStoreDirectoryEntry> batchRetrieveByPath(
         Firestore datasetFirestore, String datasetId, List<String> paths)
         throws InterruptedException {
@@ -513,127 +533,25 @@ public class FireStoreDirectoryDao {
         return entries;
     }
 
-    // ===================== OLD IMPL =========================
-
-    /**
-     * Given an file id from a dataset directory, create a similar entry in the snapshot directory.
-     * The snapshot version of the entry differs because it has a the dataset name added to its path.
-     */
-    public void addEntryToSnapshot(
-        Firestore datasetFirestore,
-        String datasetId,
-        String datasetDirName,
-        Firestore snapshotFirestore,
-        String snapshotId,
-        String fileId)
+    private void batchStoreDirectoryEntry(
+        Firestore snapshotFirestore, String snapshotId, List<FireStoreDirectoryEntry> entries)
         throws InterruptedException {
+        CollectionReference snapshotCollection = snapshotFirestore.collection(snapshotId);
 
-        String retrieveTimer = performanceLogger.timerStart();
-        FireStoreDirectoryEntry datasetEntry = retrieveById(datasetFirestore, datasetId, fileId);
-        performanceLogger.timerEndAndLog(
-            retrieveTimer, fileId, this.getClass().getName(), "addEntryToSnapshot:retrieveById");
-
-        if (!datasetEntry.getIsFileRef()) {
-            throw new NotImplementedException("Directories are not yet supported as references");
-            // TODO: Add directory support. Here is a sketch of a brute force implementation:
-            // Given the directory, walk its entire subtree collecting the ids of all of the files.
-            // Then loop through that id set calling this method on each id. It is simple, but wasteful
-            // because as we walk the subtree, we can build the directory structure, so we can skip the
-            // algorithm below that creates all of the parent directories. A better way would be to
-            // insert the directory and its parents and then, as we walk the subtree, clone the directory
-            // entries as we go. More efficient, but an entirely separate code path...
+        List<ApiFuture<WriteResult>> futures = new ArrayList<>();
+        for (FireStoreDirectoryEntry entry : entries) {
+            String fullPath = fireStoreUtils.getFullPath(entry.getPath(), entry.getName());
+            String lookupPath = encodePathAsFirestoreDocumentName(makeLookupPath(fullPath));
+            DocumentReference newRef = snapshotCollection.document(lookupPath);
+            futures.add(newRef.set(entry));
         }
-
-        String storeTopTimer = performanceLogger.timerStart();
-        // Create the top directory structure (/_dr_/<datasetDirName>)
-        storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
-
-        // Store the base entry under the datasetDir
-        FireStoreDirectoryEntry snapEntry = datasetEntry.copyEntryUnderNewPath(datasetDirName);
-        storeDirectoryEntry(snapshotFirestore, snapshotId, snapEntry);
-        performanceLogger.timerEndAndLog(
-            storeTopTimer, fileId, this.getClass().getName(), "addEntryToSnapshot:storeTop");
-
-        // Now we walk up the *dataset* directory path, retrieving existing directories.
-        // For each directory, we make a new entry under the datasetDir path and store it.
-        // That keeps the directory file ids consistent
-        String lookupDirPath = makeLookupPath(datasetEntry.getPath());
-        for (String testPath = lookupDirPath;
-             !testPath.isEmpty();
-             testPath = fireStoreUtils.getDirectoryPath(testPath)) {
-
-            String lookUpTimer = performanceLogger.timerStart();
-            DocumentSnapshot docSnap = lookupByPathNoXn(datasetFirestore, datasetId, testPath);
-            performanceLogger.timerEndAndLog(
-                lookUpTimer, fileId, this.getClass().getName(), "addEntryToSnapshot:lookupByPathNoXn");
-
-            FireStoreDirectoryEntry datasetDir = docSnap.toObject(FireStoreDirectoryEntry.class);
-            FireStoreDirectoryEntry snapshotDir = datasetDir.copyEntryUnderNewPath(datasetDirName);
-
-            String storeTimer = performanceLogger.timerStart();
-            storeDirectoryEntry(snapshotFirestore, snapshotId, snapshotDir);
-            performanceLogger.timerEndAndLog(
-                storeTimer, fileId, this.getClass().getName(), "addEntryToSnapshot:storeDirectoryEntry");
-        }
-    }
-
-    private void storeTopDirectory(Firestore firestore, String snapshotId, String dirName)
-        throws InterruptedException {
-        // We have to create the top directory structure for the dataset and the root folder.
-        // Those components cannot be copied from the dataset, but have to be created new
-        // in the snapshot directory. We probe to see if the dirName directory exists. If not,
-        // we use the createFileRef path to construct it and the parent, if necessary.
-        String dirPath = "/" + dirName;
-        DocumentSnapshot dirSnap = lookupByPathNoXn(firestore, snapshotId, dirPath);
-        if (dirSnap.exists()) {
-            return;
-        }
-
-        FireStoreDirectoryEntry topDir =
-            new FireStoreDirectoryEntry()
-                .fileId(UUID.randomUUID().toString())
-                .isFileRef(false)
-                .path("/")
-                .name(dirName)
-                .fileCreatedDate(Instant.now().toString());
-
-        createDirectoryEntry(firestore, snapshotId, topDir);
-    }
-
-    // Non-transactional store of a directory entry
-    private void storeDirectoryEntry(
-        Firestore firestore, String collectionId, FireStoreDirectoryEntry entry)
-        throws InterruptedException {
 
         try {
-            String getDocTimer = performanceLogger.timerStart();
-            DocumentReference newRef = getDocRef(firestore, collectionId, entry);
-            ApiFuture<DocumentSnapshot> newSnapFuture = newRef.get();
-            String getDocWaitTimer = performanceLogger.timerStart();
-            DocumentSnapshot newSnap = newSnapFuture.get();
-            performanceLogger.timerEndAndLog(
-                getDocWaitTimer,
-                entry.getFileId(),
-                this.getClass().getName(),
-                "storeDirectoryEntry:getDocWait");
-            performanceLogger.timerEndAndLog(
-                getDocTimer, entry.getFileId(), this.getClass().getName(), "storeDirectoryEntry:getDoc");
-
-            if (!newSnap.exists()) {
-                String setTimer = performanceLogger.timerStart();
-                ApiFuture<WriteResult> writeFuture = newRef.set(entry);
-                String setWaitTimer = performanceLogger.timerStart();
-                writeFuture.get();
-                performanceLogger.timerEndAndLog(
-                    setWaitTimer,
-                    entry.getFileId(),
-                    this.getClass().getName(),
-                    "storeDirectoryEntry:setWait");
-                performanceLogger.timerEndAndLog(
-                    setTimer, entry.getFileId(), this.getClass().getName(), "storeDirectoryEntry:set");
+            for (ApiFuture<WriteResult> future : futures) {
+                future.get();
             }
-        } catch (AbortedException | ExecutionException ex) {
-            throw handleExecutionException("storeDirectoryEntry", ex);
+        } catch (ExecutionException e) {
+            throw new FileSystemExecutionException("batch store failed", e);
         }
     }
 

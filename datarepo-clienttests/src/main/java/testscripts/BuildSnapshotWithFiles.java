@@ -13,6 +13,7 @@ import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
+import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,13 +33,15 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
   }
 
   private int filesToLoad;
+  private int snapshotsToCreate;
 
   public void setParameters(List<String> parameters) throws Exception {
-    if (parameters == null || parameters.size() == 0) {
+    if (parameters == null || parameters.size() != 2) {
       throw new IllegalArgumentException(
-          "Must provide a number of files to load in the parameters list");
+          "Required parameters: number of files, number of snapshots to create");
     } else {
       filesToLoad = Integer.parseInt(parameters.get(0));
+      snapshotsToCreate = Integer.parseInt(parameters.get(1));
     }
   }
 
@@ -84,21 +87,28 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
-    // create the snapshot with all of the files
-    JobModel createSnapshotJobResponse =
-        DataRepoUtils.createSnapshot(
-            repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
+    // create the snapshots with all of the files
+    List<SnapshotSummaryModel> snapshotSummaryModels = new ArrayList<>();
+    for (int i = 0; i < snapshotsToCreate; i++) {
+      JobModel createSnapshotJobResponse =
+          DataRepoUtils.createSnapshot(
+              repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
 
-    SnapshotSummaryModel snapshotSummaryModel =
-        DataRepoUtils.expectJobSuccess(
-            repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
-    logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
+      SnapshotSummaryModel snapshotSummaryModel =
+          DataRepoUtils.expectJobSuccess(
+              repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
+      logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
+      snapshotSummaryModels.add(snapshotSummaryModel);
+    }
 
-    JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(datasetSummaryModel.getId());
-    deleteSnapshotJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
-    DataRepoUtils.expectJobSuccess(
-        repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-    logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
+    for (SnapshotSummaryModel snapshotSummaryModel : snapshotSummaryModels) {
+      JobModel deleteSnapshotJobResponse =
+          repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
+      deleteSnapshotJobResponse =
+          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+      DataRepoUtils.expectJobSuccess(
+          repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+      logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
+    }
   }
 }

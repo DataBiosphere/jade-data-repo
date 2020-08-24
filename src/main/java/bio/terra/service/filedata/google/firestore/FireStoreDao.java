@@ -175,7 +175,8 @@ public class FireStoreDao {
         String containerId = container.getId().toString();
 
         FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveByPath(firestore, containerId, fullPath);
-        return retrieveWorker(firestore, containerId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fullPath);
+        return retrieveWorker(
+            firestore, containerId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fullPath);
     }
 
     /**

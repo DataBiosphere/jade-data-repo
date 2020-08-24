@@ -31,9 +31,8 @@ jobs:
         GOOGLE_SA_CERT: /tmp/jade-account.pem
     - name: "Build and run alpha integration tests"
       run: |
-        cat ./src/main/resources/application-alpha.properties
-#        ./gradlew assemble
-#        ./gradlew testIntegration --scan
+        ./gradlew assemble
+        ./gradlew testIntegration --scan
       env:
         SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
         GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha

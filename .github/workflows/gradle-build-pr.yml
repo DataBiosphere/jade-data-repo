@@ -43,7 +43,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     ## skips if pr label is 'skip-ci'
     # run a local Postgres container in Docker for the basic check tests
-    # test5
+    # test6
     services:
       postgres:
         image: postgres:11

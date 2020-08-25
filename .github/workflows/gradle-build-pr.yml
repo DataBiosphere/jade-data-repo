@@ -57,7 +57,7 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
-        - name: "Whitelist Runner IP"
+      - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions@0.14.0
         with:
           actions_subcommand: 'gcp_whitelist'

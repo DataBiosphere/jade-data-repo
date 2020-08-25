@@ -34,6 +34,37 @@ jobs:
           test_to_run: 'testConnected'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
+  deploy_test_perf:
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
+    runs-on: ${{ matrix.os }}
+    ## skips if pr label is 'skip-ci'
+    # run a local Postgres container in Docker for the basic check tests
+    # test
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v2
+      - name: "Run Perf test via Gradle"
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
+        with:
+          actions_subcommand: 'gradleinttest'
+          pgport: ${{ job.services.postgres.ports[5432] }}
+          test_to_run: 'testPerf'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
  # deploy_test_integration:
   #  timeout-minutes: 180
   # strategy:
@@ -97,33 +128,3 @@ jobs:
   #      uses: broadinstitute/datarepo-actions@0.14.0
   #      with:
   #        actions_subcommand: 'gcp_whitelist_clean'
-  deploy_test_perf:
-    timeout-minutes: 180
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
-    runs-on: ${{ matrix.os }}
-    ## skips if pr label is 'skip-ci'
-    # run a local Postgres container in Docker for the basic check tests
-    # test
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    steps:
-      - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "Run Perf test via Gradle"
-        uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
-        with:
-          actions_subcommand: 'gradleinttest'
-          pgport: ${{ job.services.postgres.ports[5432] }}
-          test_to_run: 'testPerf'
-

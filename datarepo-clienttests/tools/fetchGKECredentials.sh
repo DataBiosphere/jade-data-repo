@@ -28,4 +28,5 @@ gcloud container clusters get-credentials $clusterShortName --region $region --p
 
 gcloud config set container/use_application_default_credentials $originalConfigVal
 gcloud config get-value container/use_application_default_credentials
+echo "$(cd "$(dirname "$1")" && pwd -P)/$(basename "$1")"
 cat $HOME/.kube/config

@@ -5,6 +5,9 @@ import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.ConfigGroupModel;
+import bio.terra.datarepo.model.ConfigModel;
+import bio.terra.datarepo.model.ConfigParameterModel;
 import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetRequestModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
@@ -269,6 +272,20 @@ public final class DataRepoUtils {
     // make the create request and wait for the job to finish
     BillingProfileModel createProfileResponse = resourcesApi.createProfile(createProfileRequest);
     return createProfileResponse;
+  }
+
+  public static void setConfigParameter(RepositoryApi repositoryApi, String name, int value)
+      throws Exception {
+    ConfigGroupModel groupModel =
+        new ConfigGroupModel()
+            .label("set parameter " + name)
+            .addGroupItem(
+                new ConfigModel()
+                    .name(name)
+                    .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
+                    .parameter(new ConfigParameterModel().value(String.valueOf(value))));
+
+    repositoryApi.setConfigList(groupModel);
   }
 
   /**

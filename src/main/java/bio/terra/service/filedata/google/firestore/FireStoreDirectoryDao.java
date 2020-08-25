@@ -1,7 +1,8 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
@@ -30,6 +31,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
 /**
  * Paths and document names FireStore uses forward slash (/) for its path separator. We also use
@@ -73,15 +76,15 @@ public class FireStoreDirectoryDao {
 
     private final FireStoreUtils fireStoreUtils;
     private final PerformanceLogger performanceLogger;
-    private final ApplicationConfiguration applicationConfiguration;
+    private final ConfigurationService configurationService;
 
     @Autowired
     public FireStoreDirectoryDao(FireStoreUtils fireStoreUtils,
                                  PerformanceLogger performanceLogger,
-                                 ApplicationConfiguration applicationConfiguration) {
+                                 ConfigurationService configurationService) {
         this.fireStoreUtils = fireStoreUtils;
         this.performanceLogger = performanceLogger;
-        this.applicationConfiguration = applicationConfiguration;
+        this.configurationService = configurationService;
     }
 
     // Note that this does not test for duplicates. If invoked on an existing path it will overwrite
@@ -381,16 +384,19 @@ public class FireStoreDirectoryDao {
         String snapshotId,
         List<String> fileIdList)
         throws InterruptedException {
+
+        int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
         List<List<String>> batches =
-            ListUtils.partition(fileIdList, applicationConfiguration.getFirestoreSnapshotBatchSize());
-        LRUMap<String, Boolean> pathMap =
-            new LRUMap<>(applicationConfiguration.getFirestoreSnapshotCacheSize());
+            ListUtils.partition(fileIdList, batchSize);
+
+        int cacheSize = configurationService.getParameterValue(ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE);
+        LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
 
         // Create the top directory structure (/_dr_/<datasetDirName>)
         String storeTopTimer = performanceLogger.timerStart();
         storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
         performanceLogger.timerEndAndLog(
-            storeTopTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:storeTop");
+            storeTopTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:storeTop:" + batchSize);
 
         for (List<String> batch : batches) {
             // Find the file reference dataset entries for all file ids in this batch
@@ -398,19 +404,19 @@ public class FireStoreDirectoryDao {
             List<FireStoreDirectoryEntry> datasetEntries =
                 batchRetrieveById(datasetFirestore, datasetId, batch);
             performanceLogger.timerEndAndLog(
-                retrieveTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:batchRetrieveById");
+                retrieveTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:batchRetrieveById:" + batchSize);
 
             // Find directory paths that need to be created; plus add to the cache
             String findPathsTimer = performanceLogger.timerStart();
             List<String> newPaths = findNewDirectoryPaths(datasetEntries, pathMap);
             performanceLogger.timerEndAndLog(
-                findPathsTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:findPaths");
+                findPathsTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:findPaths:" + batchSize);
 
             String retrievePathsTimer = performanceLogger.timerStart();
             List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                 batchRetrieveByPath(datasetFirestore, datasetId, newPaths);
             performanceLogger.timerEndAndLog(
-                retrievePathsTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:retrievePaths");
+                retrievePathsTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:retrievePaths:" + batchSize);
 
             // Create snapshot file system entries
             List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
@@ -427,7 +433,7 @@ public class FireStoreDirectoryDao {
             String storeTimer = performanceLogger.timerStart();
             batchStoreDirectoryEntry(snapshotFirestore, snapshotId, snapshotEntries);
             performanceLogger.timerEndAndLog(
-                storeTimer, snapshotId, this.getClass().getName(), "addEntrieToSnapshot:storeDirectoryEntry");
+                storeTimer, snapshotId, this.getClass().getName(), "addEntrieToSnapshot:storeDirectoryEntry:" + batchSize);
         }
     }
 

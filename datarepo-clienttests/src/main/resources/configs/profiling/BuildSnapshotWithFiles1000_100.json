@@ -11,7 +11,7 @@
   "testScripts": [
     {
       "name": "BuildSnapshotWithFiles",
-      "parameters": [1000, 5],
+      "parameters": [1000, 5, 100],
       "totalNumberToRun": 1,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 1000000,

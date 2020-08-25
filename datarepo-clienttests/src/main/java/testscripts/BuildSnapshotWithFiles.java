@@ -34,14 +34,18 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
 
   private int filesToLoad;
   private int snapshotsToCreate;
+  List<Integer> batchSizes = new ArrayList<>();
 
   public void setParameters(List<String> parameters) throws Exception {
-    if (parameters == null || parameters.size() != 2) {
+    if (parameters == null || parameters.size() < 3) {
       throw new IllegalArgumentException(
-          "Required parameters: number of files, number of snapshots to create");
+          "Required parameters: number of files, number of snapshots to create, batch size, batch size...");
     } else {
       filesToLoad = Integer.parseInt(parameters.get(0));
       snapshotsToCreate = Integer.parseInt(parameters.get(1));
+      for (int i = 2; i < parameters.size(); i++) {
+        batchSizes.add(Integer.parseInt(parameters.get(i)));
+      }
     }
   }
 
@@ -87,28 +91,33 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
-    // create the snapshots with all of the files
-    List<SnapshotSummaryModel> snapshotSummaryModels = new ArrayList<>();
-    for (int i = 0; i < snapshotsToCreate; i++) {
-      JobModel createSnapshotJobResponse =
-          DataRepoUtils.createSnapshot(
-              repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
+    for (Integer batchSize : batchSizes) {
+      logger.info("Setting batch size to {}", batchSize);
+      DataRepoUtils.setConfigParameter(repositoryApi, "FIRESTORE_SNAPSHOT_BATCH_SIZE", batchSize);
 
-      SnapshotSummaryModel snapshotSummaryModel =
-          DataRepoUtils.expectJobSuccess(
-              repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
-      logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
-      snapshotSummaryModels.add(snapshotSummaryModel);
-    }
+      // create the snapshots with all of the files
+      List<SnapshotSummaryModel> snapshotSummaryModels = new ArrayList<>();
+      for (int i = 0; i < snapshotsToCreate; i++) {
+        JobModel createSnapshotJobResponse =
+            DataRepoUtils.createSnapshot(
+                repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
 
-    for (SnapshotSummaryModel snapshotSummaryModel : snapshotSummaryModels) {
-      JobModel deleteSnapshotJobResponse =
-          repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
-      deleteSnapshotJobResponse =
-          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
-      DataRepoUtils.expectJobSuccess(
-          repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-      logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
+        SnapshotSummaryModel snapshotSummaryModel =
+            DataRepoUtils.expectJobSuccess(
+                repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
+        logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
+        snapshotSummaryModels.add(snapshotSummaryModel);
+      }
+
+      for (SnapshotSummaryModel snapshotSummaryModel : snapshotSummaryModels) {
+        JobModel deleteSnapshotJobResponse =
+            repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
+        deleteSnapshotJobResponse =
+            DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+        DataRepoUtils.expectJobSuccess(
+            repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+        logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
+      }
     }
   }
 }

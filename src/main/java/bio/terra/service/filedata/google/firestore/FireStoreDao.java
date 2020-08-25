@@ -37,10 +37,10 @@ import java.util.UUID;
 //
 @Component
 public class FireStoreDao {
-    private FireStoreDirectoryDao directoryDao;
-    private FireStoreFileDao fileDao;
-    private FireStoreUtils fireStoreUtils;
-    private DataLocationService dataLocationService;
+    private final FireStoreDirectoryDao directoryDao;
+    private final FireStoreFileDao fileDao;
+    private final FireStoreUtils fireStoreUtils;
+    private final DataLocationService dataLocationService;
 
     @Autowired
     public FireStoreDao(FireStoreDirectoryDao directoryDao,

@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
@@ -24,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
+
 @Component
 public class FireStoreDependencyDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDependencyDao.class);
@@ -31,17 +33,17 @@ public class FireStoreDependencyDao {
     // The collection name has non-hexadecimal characters in it, so it won't collide with any dataset id.
     private static final String DEPENDENCY_COLLECTION_NAME = "-dependencies";
 
-    private FireStoreUtils fireStoreUtils;
-    private DataLocationService dataLocationService;
-    private final ApplicationConfiguration applicationConfiguration;
+    private final FireStoreUtils fireStoreUtils;
+    private final DataLocationService dataLocationService;
+    private final ConfigurationService configurationService;
 
     @Autowired
     public FireStoreDependencyDao(FireStoreUtils fireStoreUtils,
                                   DataLocationService dataLocationService,
-                                  ApplicationConfiguration applicationConfiguration) {
+                                  ConfigurationService configurationService) {
         this.fireStoreUtils = fireStoreUtils;
         this.dataLocationService = dataLocationService;
-        this.applicationConfiguration = applicationConfiguration;
+        this.configurationService = configurationService;
     }
 
     public boolean fileHasSnapshotReference(Dataset dataset, String fileId) throws InterruptedException {
@@ -106,7 +108,7 @@ public class FireStoreDependencyDao {
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
 
         List<List<String>> batches =
-            ListUtils.partition(refIds, applicationConfiguration.getFirestoreSnapshotBatchSize());
+            ListUtils.partition(refIds, configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE));
 
         for (List<String> batch : batches) {
             batchStoreSnapshotFileDependencies(depColl, snapshotId, batch);

@@ -18,6 +18,8 @@ jobs:
         secretId: ${{ secrets.ALPHA_SECRET_ID }}
         secrets: |
           secret/dsde/datarepo/alpha/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+          secret/dsde/datarepo/alpha/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
+          secret/dsde/datarepo/alpha/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
     - name: "Write Vault tokens"
       run: |
         base64 --decode <<< ${{ steps.vault.outputs.B64_APPLICATION_CREDENTIALS }} > ${GOOGLE_APPLICATION_CREDENTIALS}

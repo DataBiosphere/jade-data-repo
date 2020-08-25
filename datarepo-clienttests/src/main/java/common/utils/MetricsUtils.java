@@ -8,11 +8,8 @@ import com.google.monitoring.v3.Aggregation;
 import com.google.monitoring.v3.ListTimeSeriesRequest;
 import com.google.monitoring.v3.ProjectName;
 import com.google.monitoring.v3.TimeInterval;
-import com.google.monitoring.v3.TimeSeries;
 import com.google.protobuf.util.Timestamps;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -40,8 +37,8 @@ public class MetricsUtils {
     return metricServiceClient;
   }
 
-  /** Download the raw metrics data points. */
-  public static List<TimeSeries> downloadTimeSeriesDataPoints(
+  /** Request the raw metrics data points. */
+  public static MetricServiceClient.ListTimeSeriesPagedResponse requestTimeSeriesDataPoints(
       ProjectName project, String filter, TimeInterval interval, Aggregation aggregation)
       throws IOException {
     MetricServiceClient metricServiceClient = getClient();
@@ -56,14 +53,10 @@ public class MetricsUtils {
       requestBuilder.setAggregation(aggregation);
     }
     ListTimeSeriesRequest request = requestBuilder.build();
-
     MetricServiceClient.ListTimeSeriesPagedResponse response =
         metricServiceClient.listTimeSeries(request);
 
-    List<TimeSeries> dataPoints = new ArrayList<>();
-    response.iterateAll().forEach(dataPoints::add);
-
-    return dataPoints;
+    return response;
   }
 
   /**

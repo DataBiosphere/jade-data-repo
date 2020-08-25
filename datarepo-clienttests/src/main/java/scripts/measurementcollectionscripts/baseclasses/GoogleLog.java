@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import com.google.cloud.logging.v2.LoggingClient;
 import com.google.logging.v2.LogEntry;
 import com.google.logging.v2.ProjectName;
 import common.BasicStatistics;
@@ -24,9 +25,13 @@ public class GoogleLog extends MeasurementCollectionScript<LogEntry> {
   public GoogleLog() {}
 
   protected String additionalFilter;
+  protected DescriptiveStatistics descriptiveStatistics;
 
-  /** Download the raw data points generated during this test run. */
-  public void downloadDataPoints(long startTimeMS, long endTimeMS) throws Exception {
+  /**
+   * Download the raw data points generated during this test run. Then process them to calculate
+   * reporting statistics of interest.
+   */
+  public void processDataPoints(long startTimeMS, long endTimeMS) throws Exception {
     // send the request to the logging server
     String filter =
         LogsUtils.buildStdoutContainerAndNamespaceFilter(server, startTimeMS, endTimeMS);
@@ -34,22 +39,28 @@ public class GoogleLog extends MeasurementCollectionScript<LogEntry> {
       filter = filter + " AND " + additionalFilter;
     }
     logger.debug("filter: {}", filter);
-    dataPoints = LogsUtils.downloadLogEntryDataPoints(ProjectName.of(server.project), filter);
-  }
+    LoggingClient.ListLogEntriesPagedResponse response =
+        LogsUtils.requestLogEntries(ProjectName.of(server.project), filter, null);
 
-  /** Process the data points calculating reporting statistics of interest. */
-  public void calculateSummaryStatistics() {
+    // iterate through all log entries returned, keeping either the whole entry or just the numeric
+    // value
+    descriptiveStatistics = new DescriptiveStatistics();
+    response
+        .iterateAll()
+        .forEach(
+            logEntry -> {
+              descriptiveStatistics.addValue(extractNumericValueFromLogEntry(logEntry));
+              if (saveRawDataPoints) {
+                dataPoints.add(logEntry);
+              }
+            });
+
     // expect a non-zero number of data points
-    if (dataPoints.size() == 0) {
+    if (descriptiveStatistics.getN() == 0) {
       logger.error("No data points returned from logs download: {}", description);
     }
 
-    // calculate statistics across all data points in all time series
-    DescriptiveStatistics descriptiveStatistics = new DescriptiveStatistics();
-    for (LogEntry logEntry : dataPoints) {
-      descriptiveStatistics.addValue(extractNumericValueFromLogEntry(logEntry));
-    }
-
+    // calculate basic summary statistics on the numeric values of the log entries
     summary = new MeasurementResultSummary(description);
     summary.statistics = BasicStatistics.calculateStandardStatistics(descriptiveStatistics);
   }
@@ -60,7 +71,7 @@ public class GoogleLog extends MeasurementCollectionScript<LogEntry> {
   }
 
   /** Write the raw data points generated during this test run to a String. */
-  public void writeDataPointsToFile(File outputFile) throws Exception {
+  public void writeRawDataPointsToFile(File outputFile) throws Exception {
     // use Jackson to map the object to a JSON-formatted text block
     ObjectMapper objectMapper = new ObjectMapper();
 

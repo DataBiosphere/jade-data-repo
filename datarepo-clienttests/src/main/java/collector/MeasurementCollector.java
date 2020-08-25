@@ -46,16 +46,14 @@ public class MeasurementCollector {
     for (MeasurementCollectionScriptSpecification specification :
         measurementList.measurementCollectionScripts) {
       MeasurementCollectionScript script = specification.scriptClassInstance();
+      script.initialize(server, specification.description, specification.saveRawDataPoints);
       script.setParameters(specification.parameters);
-      script.setServer(server);
-      script.setDescription(specification.description);
       scripts.add(script);
     }
 
     // loop through the measurement scripts, downloading raw data points and processing them
     for (MeasurementCollectionScript script : scripts) {
-      script.downloadDataPoints(startTime, endTime);
-      script.calculateSummaryStatistics();
+      script.processDataPoints(startTime, endTime);
       summaries.add(script.getSummaryStatistics());
     }
   }
@@ -94,13 +92,16 @@ public class MeasurementCollector {
     // write the full set of measurement data points to a file
     for (MeasurementCollectionScriptSpecification specification :
         measurementList.measurementCollectionScripts) {
+      if (!specification.saveRawDataPoints) {
+        continue;
+      }
       File measurementDataPointsFile =
           outputDirectory
               .resolve(
                   measurementDataPointsFileName.replace(
                       ".json", "_" + specification.name + ".json"))
               .toFile();
-      specification.scriptClassInstance().writeDataPointsToFile(measurementDataPointsFile);
+      specification.scriptClassInstance().writeRawDataPointsToFile(measurementDataPointsFile);
       logger.info(
           "All measurement data points from {} written to file: {}",
           specification.name,

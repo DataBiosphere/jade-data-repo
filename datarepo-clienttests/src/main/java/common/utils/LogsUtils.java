@@ -5,14 +5,11 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.logging.v2.LoggingClient;
 import com.google.cloud.logging.v2.LoggingSettings;
 import com.google.logging.v2.ListLogEntriesRequest;
-import com.google.logging.v2.LogEntry;
 import com.google.logging.v2.ProjectName;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.TimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,26 +39,24 @@ public class LogsUtils {
     return loggingServiceClient;
   }
 
-  /** Download the raw logging data points. */
-  public static List<LogEntry> downloadLogEntryDataPoints(ProjectName project, String filter)
-      throws IOException {
+  /** Request the raw logging data points. */
+  public static LoggingClient.ListLogEntriesPagedResponse requestLogEntries(
+      ProjectName project, String filter, String pageToken) throws IOException {
     LoggingClient loggingServiceClient = getClient();
 
     // Page<LogEntry> entries = loggingClient.listLogEntries(
     // Logging.EntryListOption.filter(filter)); // v1 client api
 
-    ListLogEntriesRequest request =
-        ListLogEntriesRequest.newBuilder()
-            .addResourceNames(project.toString())
-            .setFilter(filter)
-            .build();
+    ListLogEntriesRequest.Builder requestBuilder =
+        ListLogEntriesRequest.newBuilder().addResourceNames(project.toString()).setFilter(filter);
+    if (pageToken != null) {
+      requestBuilder = requestBuilder.setPageToken(pageToken);
+    }
+    ListLogEntriesRequest request = requestBuilder.build();
     LoggingClient.ListLogEntriesPagedResponse response =
         loggingServiceClient.listLogEntries(request);
 
-    List<LogEntry> dataPoints = new ArrayList<>();
-    response.iterateAll().forEach(dataPoints::add);
-
-    return dataPoints;
+    return response;
   }
 
   /** Build a logging filter on the container name and namespace */

@@ -12,6 +12,7 @@ public class MeasurementCollectionScriptSpecification implements SpecificationIn
   public String name;
   public String description;
   public List<String> parameters;
+  public boolean saveRawDataPoints;
 
   private MeasurementCollectionScript scriptClassInstance;
 

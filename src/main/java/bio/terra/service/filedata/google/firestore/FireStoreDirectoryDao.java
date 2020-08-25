@@ -404,19 +404,28 @@ public class FireStoreDirectoryDao {
             List<FireStoreDirectoryEntry> datasetEntries =
                 batchRetrieveById(datasetFirestore, datasetId, batch);
             performanceLogger.timerEndAndLog(
-                retrieveTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:batchRetrieveById:" + batchSize);
+                retrieveTimer,
+                snapshotId,
+                this.getClass().getName(),
+                "addEntriesToSnapshot:batchRetrieveById:" + batchSize);
 
             // Find directory paths that need to be created; plus add to the cache
             String findPathsTimer = performanceLogger.timerStart();
             List<String> newPaths = findNewDirectoryPaths(datasetEntries, pathMap);
             performanceLogger.timerEndAndLog(
-                findPathsTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:findPaths:" + batchSize);
+                findPathsTimer,
+                snapshotId,
+                this.getClass().getName(),
+                "addEntriesToSnapshot:findPaths:" + batchSize);
 
             String retrievePathsTimer = performanceLogger.timerStart();
             List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                 batchRetrieveByPath(datasetFirestore, datasetId, newPaths);
             performanceLogger.timerEndAndLog(
-                retrievePathsTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:retrievePaths:" + batchSize);
+                retrievePathsTimer,
+                snapshotId,
+                this.getClass().getName(),
+                "addEntriesToSnapshot:retrievePaths:" + batchSize);
 
             // Create snapshot file system entries
             List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
@@ -433,7 +442,10 @@ public class FireStoreDirectoryDao {
             String storeTimer = performanceLogger.timerStart();
             batchStoreDirectoryEntry(snapshotFirestore, snapshotId, snapshotEntries);
             performanceLogger.timerEndAndLog(
-                storeTimer, snapshotId, this.getClass().getName(), "addEntrieToSnapshot:storeDirectoryEntry:" + batchSize);
+                storeTimer,
+                snapshotId,
+                this.getClass().getName(),
+                "addEntrieToSnapshot:storeDirectoryEntry:" + batchSize);
         }
     }
 

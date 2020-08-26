@@ -1,17 +1,17 @@
 {
-  "name": "integration-3",
+  "name": "integration-6",
   "description": "Integration testing environment",
-  "datarepoUri": "https://jade-3.datarepo-integration.broadinstitute.org",
+  "datarepoUri": "https://jade-6.datarepo-integration.broadinstitute.org",
   "samUri": "https://sam.dsde-dev.broadinstitute.org",
   "samResourceIdForDatarepo": "broad-jade-dev",
   "clusterName": "gke_broad-jade-integration_us-central1_integration-master",
   "clusterShortName": "integration-master",
   "region": "us-central1",
   "project": "broad-jade-integration",
-  "namespace": "integration-3",
+  "namespace": "integration-6",
   "deploymentScript": {
     "name": "ModularHelmChart",
-    "parameters": ["https://https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/integration/integration-3/datarepo-api.yaml"]
+    "parameters": ["https://https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/integration/integration-6/datarepo-api.yaml"]
   },
   "skipDeployment": true,
   "skipKubernetes": false

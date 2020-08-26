@@ -31,4 +31,4 @@ gcloud config get-value container/use_application_default_credentials
 
 echo "datarepo-clienttests fetch GKE Credentials"
 
-cat $HOME/.kube/config
+cat /github/workspace/.kube/config

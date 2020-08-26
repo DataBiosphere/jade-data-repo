@@ -3,6 +3,7 @@ package runner;
 import collector.MeasurementCollector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import common.CommandCLI;
 import common.utils.FileUtils;
 import common.utils.KubernetesClientUtils;
 import java.io.File;
@@ -420,7 +421,8 @@ public class TestRunner {
     logger.info(objectWriter.writeValueAsString(summary));
 
     // create the output directory if it doesn't already exist
-    Path outputDirectory = Paths.get(outputParentDirName).resolve(config.name + "_" + summary.id);
+    Path outputDirectory =
+        Paths.get(outputParentDirName); // .resolve(config.name + "_" + summary.id);
     File outputDirectoryFile = outputDirectory.toFile();
     if (outputDirectoryFile.exists() && !outputDirectoryFile.isDirectory()) {
       throw new IllegalArgumentException(
@@ -545,45 +547,7 @@ public class TestRunner {
         testRunSummary.endUserJourneyTime);
   }
 
-  public static void printHelp() throws IOException {
-    System.out.println(
-        "Usage: ./gradlew runTest --args=\"configOrSuiteFileName outputDirectoryName\"");
-    System.out.println(
-        "  configOrSuiteFileName = file name of the test configuration or suite JSON file");
-    System.out.println(
-        "  outputDirectoryName = name of the directory where the results will be written");
-    System.out.println();
-    System.out.println(
-        "  e.g. ./gradlew runTest --args=\"configs/basicexamples/BasicUnauthenticated.json /tmp/TestRunnerResults\"");
-    System.out.println(
-        "  e.g. ./gradlew runTest --args=\"suites/BasicSmoke.json /tmp/TestRunnerResults\"");
-    System.out.println();
-
-    // print out the available test configurations found in the resources directory
-    System.out.println("The following test configuration files were found:");
-    List<String> availableTestConfigs =
-        FileUtils.getResourcesInDirectory(TestConfiguration.resourceDirectory);
-    for (String testConfigFilePath : availableTestConfigs) {
-      System.out.println("  " + testConfigFilePath);
-    }
-    System.out.println();
-
-    // print out the available test suites found in the resources directory
-    System.out.println("The following test suite files were found:");
-    List<String> availableTestSuites =
-        FileUtils.getResourcesInDirectory(TestSuite.resourceDirectory);
-    for (String testSuiteFilePath : availableTestSuites) {
-      System.out.println("  " + testSuiteFilePath);
-    }
-  }
-
   public static void main(String[] args) throws Exception {
-    // if no args specified, print help
-    if (args.length < 2) {
-      printHelp();
-      return;
-    }
-
-    executeTestConfigurationOrSuite(args[0], args[1]);
+    CommandCLI.runTestMain(args);
   }
 }

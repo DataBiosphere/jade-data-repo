@@ -56,28 +56,26 @@ public final class FileUtils {
   }
 
   /**
-   * Fetch a list of all the resources in the given directory path.
+   * Fetch a list of all the files in the given directory path.
    *
-   * @param resourcePath the path under the resources directory
-   * @return the list of resource files
+   * @param directoryFile the directory to search
+   * @return the list of files in the directory
    */
-  public static List<String> getResourcesInDirectory(String resourcePath) throws IOException {
-    // recursively fetch all files under the given resources directory
-    URL resourceDirectoryURL = FileUtils.class.getClassLoader().getResource(resourcePath);
-    File resourceDirectoryFile = new File(resourceDirectoryURL.getFile());
-    List<Path> resourceFilePaths =
-        Files.walk(resourceDirectoryFile.toPath())
+  public static List<String> getFilesInDirectory(File directoryFile) throws IOException {
+    // recursively fetch all files under the given directory
+    List<Path> filePaths =
+        Files.walk(directoryFile.toPath())
             .filter(Files::isRegularFile)
             .collect(Collectors.toList());
 
-    // convert each file to a file path relative to the specified resources directory
-    List<String> resourceFileNames = new ArrayList<>();
-    for (Path resourceFilePath : resourceFilePaths) {
+    // convert each file to a file path relative to the specified directory
+    List<String> fileNames = new ArrayList<>();
+    for (Path filePath : filePaths) {
       String relativeFileName =
-          resourceFilePath.toString().replace(resourceDirectoryFile.getPath(), resourcePath);
-      resourceFileNames.add(relativeFileName);
+          filePath.toString().replace(directoryFile.getPath(), directoryFile.getName());
+      fileNames.add(relativeFileName);
     }
-    return resourceFileNames;
+    return fileNames;
   }
 
   /**

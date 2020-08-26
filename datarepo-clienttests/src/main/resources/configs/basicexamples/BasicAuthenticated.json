@@ -8,8 +8,8 @@
   "testScripts": [
     {
       "name": "EnumerateProfiles",
-      "totalNumberToRun": 1500,
-      "numberToRunInParallel": 20,
+      "totalNumberToRun": 5,
+      "numberToRunInParallel": 2,
       "expectedTimeForEach": 5,
       "expectedTimeForEachUnit": "SECONDS"
     }

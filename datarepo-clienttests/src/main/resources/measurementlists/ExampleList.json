@@ -7,6 +7,12 @@
       "description": "PerformanceLogger enumerateProfiles timer integer count.",
       "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"],
       "saveRawDataPoints": false
+    },
+    {
+      "name": "LoggerInterceptorHttpStatus",
+      "description": "LoggerInterceptor HTTP status code 500",
+      "parameters": [500],
+      "saveRawDataPoints": true
     }
   ]
 }

@@ -155,9 +155,13 @@ jobs:
           k8_cluster: 'integration-master'
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
-        uses: broadinstitute/datarepo-actions@0.14.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:
           actions_subcommand: 'k8_checknamespace_clean'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+          k8_cluster: 'integration-master'
+          k8_namespaces: 'integration-1,integration-2,integration-3'
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions@0.14.0

@@ -17,7 +17,12 @@ import runner.config.ServerSpecification;
 public class MetricsUtils {
   private static final Logger logger = LoggerFactory.getLogger(MetricsUtils.class);
 
-  private static int minimumTimeRangeSizeInSeconds = 300; // test run has to last at least 5 minutes
+  // The log/metric timestamps are not exact and so trying to limit results to too small a window
+  // might be misleading
+  // This parameter sets the minimum time interval size. If the interval specified is less than
+  // this, then the code
+  // will expand the interval to the minimum size.
+  private static int minimumTimeRangeSizeInSeconds = 300; // = 5 minutes
 
   private MetricsUtils() {}
 

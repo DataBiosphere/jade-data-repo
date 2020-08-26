@@ -55,6 +55,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.ViewDefinition;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,8 +83,6 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
-import static java.lang.Math.ceil;
-import static java.lang.Math.round;
 
 @Component
 @Profile("google")
@@ -560,22 +559,21 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 .orElseThrow(() -> new CorruptMetadataException("cannot find destination table: " + tableName));
 
             List<String> rowIds = table.getRowIds();
+
             if (rowIds.size() > 0) {
+                // we break apart the list of rowIds for better scaleability
+                List<List<String>> rowIdChunks = ListUtils.partition(rowIds, 10000);
+                // partition returns consecutive sublists of a list, each of the same size (final list may be smaller)
+                // partitioning a list containing [a, b, c, d, e] with a partition size of 3 yields [[a, b, c], [d, e]]
+                // -- an outer list containing two inner lists of three and two elements, all in the original order.
 
-                int maxValuesInArray = 10000; // To prevent BQ choking on a huge array, split it up into chunks
-                long iterationsToLoopThrough = round(ceil((double)rowIds.size() / maxValuesInArray));
-
-                for (int i = 0; i <= iterationsToLoopThrough; i++) {
-                    int start = maxValuesInArray * i;
-                    int end = (rowIds.size() - start) < maxValuesInArray ? rowIds.size() : start + maxValuesInArray;
-                    List<String> inputValuesSubList = rowIds.subList(start, end); // (inclusive, exclusive)
-
+                for (List<String> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
                     ST sqlTemplate = new ST(loadRootRowIdsTemplate);
                     sqlTemplate.add("project", projectId);
                     sqlTemplate.add("snapshot", snapshotName);
                     sqlTemplate.add("dataset", datasetBqDatasetName);
                     sqlTemplate.add("tableId", sourceTable.getId().toString());
-                    sqlTemplate.add("rowIds", inputValuesSubList);
+                    sqlTemplate.add("rowIds", rowIdChunk);
                     bigQueryProject.query(sqlTemplate.render());
                 }
             }
@@ -1382,20 +1380,19 @@ public class BigQueryPdao implements PrimaryDataAccess {
         // ids and the mismatched ids
         RowIdMatch rowIdMatch = new RowIdMatch();
 
-        int maxValuesInArray = 10000; // To prevent BQ choking on a huge array, split it up into chunks
-        long iterationsToLoopThrough = round(ceil((double)rowIds.size() / maxValuesInArray));
+        List<List<String>> rowIdChunks = ListUtils.partition(rowIds, 10000);
+        // partition returns consecutive sublists of a list, each of the same size (final list may be smaller)
+        // partitioning a list containing [a, b, c, d, e] with a partition size of 3 yields [[a, b, c], [d, e]]
+        // -- an outer list containing two inner lists of three and two elements, all in the original order.
 
-        for (int i = 0; i <= iterationsToLoopThrough; i++) {
-            int start = maxValuesInArray * i;
-            int end = (rowIds.size() - start) < maxValuesInArray ? rowIds.size() : start + maxValuesInArray;
-            List<String> inputValuesSubList = rowIds.subList(start, end); // (inclusive, exclusive)
-
+        for (List<String> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
+            // To prevent BQ choking on a huge array, split it up into chunks
             ST sqlTemplate = new ST(mapValuesToRowsTemplate); // This query fails w >100k rows
             sqlTemplate.add("project", bigQueryProject.getProjectId());
             sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
             sqlTemplate.add("table", tableName);
             sqlTemplate.add("column", rowIdColumn.getName());
-            sqlTemplate.add("inputVals", inputValuesSubList);
+            sqlTemplate.add("inputVals", rowIdChunk);
 
             String sql = sqlTemplate.render();
             logger.debug("mapValuesToRows sql: " + sql);

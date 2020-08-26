@@ -45,8 +45,7 @@ public class PodDelete extends SimpleDataset {
 
     // set up and start bulk load job
     BulkLoadArrayRequestModel arrayLoad =
-        BulkLoadUtils.buildBulkLoadFileRequest(
-            filesToLoad, billingProfileModel.getId(), datasetSummaryModel.getId());
+        BulkLoadUtils.buildBulkLoadFileRequest(filesToLoad, billingProfileModel.getId());
     JobModel bulkLoadArrayJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
 

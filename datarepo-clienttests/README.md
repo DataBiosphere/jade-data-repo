@@ -85,7 +85,7 @@ by either the test suite or configuration. The server specification is determine
   1. environment variable
   2. test suite server property (if running a test suite)
   3. test configuration server property
-  
+
 `TEST_RUNNER_SERVER_SPECIFICATION_FILE="mmdev.json" ./gradlew run --args="configs/basicexamples/LookupDataset.json"`
 
 #### Run against a local server
@@ -105,7 +105,8 @@ JAR file by specifying a Gradle project property, either with a command line arg
 
 or an environment variable.
 
-`export ORG_GRADLE_PROJECT_datarepoclientjar../datarepo-client/build/libs/datarepo-client-1.0.39-SNAPSHOT.jar`
+`export ORG_GRADLE_PROJECT_datarepoclientjar=../datarepo-client/build/libs/datarepo-client-1.0.39-SNAPSHOT.jar`
+
 `./gradlew run --args="configs/BasicUnauthenticated.json`
 
 This is useful for debugging or testing local server code changes that affect the generated client library (e.g. new API

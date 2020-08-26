@@ -1,0 +1,22 @@
+{
+  "name": "BuildSnapshotWithFiles1000_50",
+  "description": "One user ingests small files into the simple dataset and then builds a snapshot",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 1
+  },
+  "application": {
+  },
+  "testScripts": [
+    {
+      "name": "BuildSnapshotWithFiles",
+      "parameters": [1000, 5, 50],
+      "totalNumberToRun": 1,
+      "numberToRunInParallel": 1,
+      "expectedTimeForEach": 1000000,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json"]
+}

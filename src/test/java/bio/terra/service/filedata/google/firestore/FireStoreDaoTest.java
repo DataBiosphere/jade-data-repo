@@ -94,7 +94,7 @@ public class FireStoreDaoTest {
         dsetObjects.add(makeFileObject(collectionId, "/adir/bdir/B2", 16));
         dsetObjects.add(makeFileObject(collectionId, "/adir/A2", 32));
 
-        // Make the snapshot file system
+        // Make the dataset file system
         List<FireStoreDirectoryEntry> fileObjects = new ArrayList<>(snapObjects);
         fileObjects.addAll(dsetObjects);
         for (FireStoreDirectoryEntry fireStoreDirectoryEntry : fileObjects) {
@@ -102,15 +102,17 @@ public class FireStoreDaoTest {
         }
 
         // Make the snapshot file system
+        List<String> fileIdList = new ArrayList<>();
         for (FireStoreDirectoryEntry fireStoreDirectoryEntry : snapObjects) {
-            directoryDao.addEntryToSnapshot(
-                firestore,
-                collectionId,
-                "dataset",
-                firestore,
-                snapshotId,
-                fireStoreDirectoryEntry.getFileId());
+            fileIdList.add(fireStoreDirectoryEntry.getFileId());
         }
+        directoryDao.addEntriesToSnapshot(
+            firestore,
+            collectionId,
+            "dataset",
+            firestore,
+            snapshotId,
+            fileIdList);
 
         // Validate we can lookup files in the snapshot
         for (FireStoreDirectoryEntry dsetObject : snapObjects) {

@@ -445,7 +445,7 @@ public class FireStoreDirectoryDao {
                 storeTimer,
                 snapshotId,
                 this.getClass().getName(),
-                "addEntrieToSnapshot:storeDirectoryEntry:" + batchSize);
+                "addEntriesToSnapshot:storeDirectoryEntry:" + batchSize);
         }
     }
 
@@ -517,7 +517,7 @@ public class FireStoreDirectoryDao {
 
                 // check the cache
                 if (pathMap.get(testPath) == null) {
-                    // not in the cache: a to checklist and a to cache
+                    // not in the cache: add to checklist and a to cache
                     pathsToCheck.add(testPath);
                     pathMap.put(testPath, true);
                 }

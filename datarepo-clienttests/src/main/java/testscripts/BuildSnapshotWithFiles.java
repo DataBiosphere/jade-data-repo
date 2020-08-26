@@ -1,8 +1,5 @@
 package testscripts;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
@@ -13,8 +10,6 @@ import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
-import java.util.ArrayList;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -22,6 +17,12 @@ import testscripts.baseclasses.SimpleDataset;
 import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.FileUtils;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 public class BuildSnapshotWithFiles extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(BuildSnapshotWithFiles.class);
@@ -35,6 +36,7 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
   private int filesToLoad;
   private int snapshotsToCreate;
   List<Integer> batchSizes = new ArrayList<>();
+  List<SnapshotSummaryModel> snapshotSummaryModels = new ArrayList<>();
 
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() < 3) {
@@ -96,7 +98,6 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
       DataRepoUtils.setConfigParameter(repositoryApi, "FIRESTORE_SNAPSHOT_BATCH_SIZE", batchSize);
 
       // create the snapshots with all of the files
-      List<SnapshotSummaryModel> snapshotSummaryModels = new ArrayList<>();
       for (int i = 0; i < snapshotsToCreate; i++) {
         JobModel createSnapshotJobResponse =
             DataRepoUtils.createSnapshot(
@@ -108,16 +109,24 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
         logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
         snapshotSummaryModels.add(snapshotSummaryModel);
       }
-
-      for (SnapshotSummaryModel snapshotSummaryModel : snapshotSummaryModels) {
-        JobModel deleteSnapshotJobResponse =
-            repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
-        deleteSnapshotJobResponse =
-            DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
-        DataRepoUtils.expectJobSuccess(
-            repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-        logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
-      }
     }
+  }
+
+  @Override
+  public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
+    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUsers.get(0), server);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
+
+    for (SnapshotSummaryModel snapshotSummaryModel : snapshotSummaryModels) {
+      JobModel deleteSnapshotJobResponse =
+          repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
+      deleteSnapshotJobResponse =
+          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+      DataRepoUtils.expectJobSuccess(
+          repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+      logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
+    }
+
+    super.cleanup(testUsers);
   }
 }

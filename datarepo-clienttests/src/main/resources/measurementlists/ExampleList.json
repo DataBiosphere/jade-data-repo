@@ -1,6 +1,6 @@
 {
   "name": "ExampleList",
-  "description": "Scratch measurement list (MM)",
+  "description": "Demo measurement list (MM)",
   "measurementCollectionScripts": [
     {
       "name": "PerformanceLoggerCount",

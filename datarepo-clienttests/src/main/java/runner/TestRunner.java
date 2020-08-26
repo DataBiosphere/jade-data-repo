@@ -492,7 +492,16 @@ public class TestRunner {
       }
 
       logger.info("==== TEST RUN RESULTS ({}) {} ====", ctr + 1, testConfiguration.name);
-      runner.writeOutResults(outputParentDirName);
+      String outputDirName =
+          outputParentDirName; // if running a single config, put the results in the given directory
+      if (isSuite) { // if running a suite, put each config results in a separate sub-directory
+        outputDirName =
+            Paths.get(outputParentDirName)
+                .resolve(testConfiguration.name + "_" + runner.summary.id)
+                .toAbsolutePath()
+                .toString();
+      }
+      runner.writeOutResults(outputDirName);
 
       if (runnerEx != null) {
         logger.error("Test Runner threw an exception", runnerEx);

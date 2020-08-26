@@ -1,12 +1,12 @@
 package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import common.utils.FileUtils;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import utils.FileUtils;
 
 public class TestSuite implements SpecificationInterface {
   private static final Logger logger = LoggerFactory.getLogger(TestSuite.class);
@@ -38,7 +38,7 @@ public class TestSuite implements SpecificationInterface {
     // read in the test suite file
     logger.info("Parsing the test suite file as JSON");
     InputStream inputStream =
-        FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+        FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
     TestSuite testSuite = objectMapper.readValue(inputStream, TestSuite.class);
 
     // read in the server file

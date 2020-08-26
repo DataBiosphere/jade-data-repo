@@ -40,7 +40,9 @@ jobs:
         GOOGLE_SA_CERT: /tmp/jade-account.pem
     - name: "Build and run alpha integration tests"
       run: |
+        gcloud auth configure-docker
         gcloud components install kubectl
+        
         kubectl port-forward --namespace terra-alpha svc/datarepo-gcloud-sqlproxy 5432:5432
 
         #./gradlew assemble

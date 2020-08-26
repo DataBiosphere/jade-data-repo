@@ -41,7 +41,8 @@ jobs:
     - name: "Build and run alpha integration tests"
       run: |
         gcloud components install kubectl
-        gcloud info
+        kubectl version
+        #kubectl port-forward --namespace terra-alpha svc/datarepo-gcloud-sqlproxy 5432:5432         
 
         #./gradlew assemble
         #./gradlew testIntegration --scan

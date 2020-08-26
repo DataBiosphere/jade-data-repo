@@ -133,6 +133,7 @@ jobs:
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-3'
+          k8_cluster: 'integration-master'
       - name: "Build docker container via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:

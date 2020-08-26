@@ -313,6 +313,28 @@ directory. Below are the available fields:
 The server specification file for the test suite overrides the server specification file for all test configurations
 contained in the suite.
 
+## Collect a new measurement type
+#### Add a new measurement collection script
+A measurement collection script is a sub-class of the MeasurementCollectionScript base class. It specifies the "query"
+to run on the server-generated data to pull down the relevant measurement data, calculate summary statistics on it,
+and write it out to a file.
+
+There are two base classes that query Google logs and metrics. If the new measurement type relies on either of these
+data stores, it can extend these base classes to reuse the Google client library class and serialization logic when
+writing out the results to a file
+
+#### Add a new measurement list
+A measurement list is an instance of the MeasurementList POJO class, serialized into JSON and saved in the
+resources/measurementlists directory. Below are the available fields:
+  * name: Name of the measurement list
+  * description: (optional) Description of the measurement list
+  * measurementCollectionScripts: List of measurement collection script specifications (i.e. instance of the
+  MeasurementCollectionScriptSpecification POJO class, serialized into JSON). Each specification should include the
+  below fields:
+    * name: Name of the measurement collection script class to run
+    * description: Description of the parametrized metric
+    * parameters: (optional) parameters to pass to the metric collection script
+
 ## Development
 #### Package structure
 All the Java code is in the src/main/java directory.

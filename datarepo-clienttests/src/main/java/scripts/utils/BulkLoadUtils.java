@@ -8,9 +8,8 @@ import bio.terra.datarepo.model.BulkLoadFileResultModel;
 import bio.terra.datarepo.model.BulkLoadResultModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.JobModel;
-import java.nio.charset.StandardCharsets;
-
 import common.utils.FileUtils;
+import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,7 +97,7 @@ public class BulkLoadUtils {
       BulkLoadArrayResultModel arrayResultModel, String bucketName, String filePath) {
 
     String jsonLine =
-        "{\"VCF_File_Name\":\"%s\", \"Description\":\"%s\", \"VCF_File_Ref\":\"%s\"}\n";
+        "{\"VCF_File_Name\":\"%s\", \"Description\":\"%s\", \"VCF_File_Ref\":\"%s\"}%n";
     StringBuilder sb = new StringBuilder();
 
     for (BulkLoadFileResultModel fileResult : arrayResultModel.getLoadFileResults()) {

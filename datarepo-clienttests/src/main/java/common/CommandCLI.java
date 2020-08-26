@@ -56,9 +56,9 @@ public class CommandCLI {
             + System.lineSeparator()
             + "  serverFileName = name of the server JSON file"
             + System.lineSeparator()
-            + "  startTimestamp = timestamp for the start of the interval; format must be yyyy-mm-dd hh:mm:ss[.fffffffff] (UTC timezone)"
+            + "  startTimestamp = start of the interval; format must be yyyy-mm-dd hh:mm:ss[.fffffffff] (UTC timezone)"
             + System.lineSeparator()
-            + "  endTimestamp = timestamp for the start of the interval; format must be yyyy-mm-dd hh:mm:ss[.fffffffff] (UTC timezone)"
+            + "  endTimestamp = end of the interval; format must be yyyy-mm-dd hh:mm:ss[.fffffffff] (UTC timezone)"
             + System.lineSeparator());
     // print out the available measurement lists found in the resources directory
     System.out.println("  The following measurement lists were found:");

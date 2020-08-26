@@ -152,7 +152,7 @@ public class SnapshotConnectedTest {
 
     @Test
     public void testRowIdsHappyPath() throws Exception {
-        snapshotHappyPathTestingHelper("snapshot-row-ids-test-snapshot.json");
+        snapshotHappyPathTestingHelper("snapshot-row-ids-test-snapshot-test.json");
     }
 
     @Test
@@ -207,6 +207,39 @@ public class SnapshotConnectedTest {
         assertThat("to table is right", relationshipModel.getTo().getTable(), equalTo("sample"));
         assertThat("to column is right", relationshipModel.getTo().getColumn(), equalTo("participant_id"));
     }
+
+    @Test
+    public void snapshotRowIdsScaleTest() throws Exception {
+        // use the dataset already created in setup
+
+        // load add'l data rows into the dataset with rows from the GCS bucket
+        IngestRequestModel ingestRequest = new IngestRequestModel()
+            .table("thetable")
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .path("gs://jade-testdata/scratch/buildSnapshotWithRowIds/hca-mvp-analysis-file-row-ids-dataset-data.csv");
+
+        ingestRequest.csvSkipLeadingRows(1);
+        connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
+
+
+        // use big snapshot request from the GCS bucket
+        // TODO RORI
+        SnapshotRequestModel snapshotRequestScale = makeSnapshotTestRequest(datasetSummary,
+            "snapshot-row-ids-test-snapshot-test.json");
+
+
+
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequestScale, "");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequestScale, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequestScale, datasetSummary);
+
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
 
     @Test
     public void testArrayStruct() throws Exception {

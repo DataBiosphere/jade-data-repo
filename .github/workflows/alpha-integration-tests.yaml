@@ -46,6 +46,11 @@ jobs:
             --enable-master-authorized-networks \
             --master-authorized-networks ${CONCAT_IPS}
 
+        # export the original IP list so it can be restored during cleanup
+        RESTORE_IPS=$(printf '%s\n' ${AUTHED_IPS} | jq -s -r 'add | unique | join(",")')
+        echo "::set-env name=RESTORE_IPS::${RESTORE_IPS}"
+        echo "::set-env name=CLUSTER_NAME::${CLUSTER_NAME}"
+
         # port forward the sql proxy endpoint and check that postgres is ready
         kubectl port-forward --namespace ${CLUSTER_NAMESPACE} svc/datarepo-gcloud-sqlproxy 5432:5432 &
         pg_isready -h 127.0.0.1 -p 5432 -t 30
@@ -56,11 +61,6 @@ jobs:
 
         # stop the port forwarding
         pkill kubectl
-
-        # export the original IP list so it can be restored during cleanup
-        RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -s -r 'add | unique | join(",")')
-        echo "::set-env name=RESTORE_IPS::${RESTORE_IPS}"
-        echo "::set-env name=CLUSTER_NAME::${CLUSTER_NAME}"
       env:
         SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
         GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-account.json

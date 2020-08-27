@@ -1,0 +1,16 @@
+{
+  "name": "BasicKubernetes",
+  "description": "Kubernetes container CPU and memory usage",
+  "measurementCollectionScripts": [
+    {
+      "name": "CPUCoreUsageTimeMetric",
+      "description": "Kubernetes container CPU usage",
+      "parameters": []
+    },
+    {
+      "name": "MemoryUsedBytesMetric",
+      "description": "Kubernetes container memory usage",
+      "parameters": []
+    }
+  ]
+}

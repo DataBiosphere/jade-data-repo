@@ -9,9 +9,10 @@
   "region": "us-central1",
   "project": "broad-jade-dev",
   "namespace": "mm",
+  "containerName": "mm-jade-datarepo-api",
   "deploymentScript": {
     "name": "ModularHelmChart",
-    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/mm/datarepo-api.yaml"]
+    "parameters": ["file:///Users/marikomedlock/Workspaces/datarepo-helm-definitions/dev/mm/datarepo-api.yaml"]
   },
   "skipDeployment": true,
   "skipKubernetes": false

@@ -10,7 +10,7 @@ public class DeploymentScriptSpecification implements SpecificationInterface {
 
   public Class<? extends DeploymentScript> scriptClass;
 
-  public static final String scriptsPackage = "deploymentscripts";
+  public static final String scriptsPackage = "scripts.deploymentscripts";
 
   DeploymentScriptSpecification() {}
 

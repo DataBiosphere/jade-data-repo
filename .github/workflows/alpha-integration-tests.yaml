@@ -47,7 +47,7 @@ jobs:
         SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
         GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
         GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
-        GOOGLE_CLOUD_ZONE: us-central-1
+        GOOGLE_CLOUD_ZONE: us-central1
         KUBE_NAMESPACE: terra-alpha
     - name: "Notify Slack"
       uses: broadinstitute/action-slack@v2

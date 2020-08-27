@@ -147,11 +147,12 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:
           actions_subcommand: 'helmdeploy'
-          helm_secret_chart_version: '0.0.4'
-          helm_datarepo_api_chart_version: '0.0.17'
-          helm_datarepo_ui_chart_version: '0.0.8'
+          helm_secret_chart_version: '0.0.5'
+          helm_datarepo_api_chart_version: '0.0.18'
+          helm_datarepo_ui_chart_version: '0.0.9'
           helm_gcloud_sqlproxy_chart_version: '0.19.7'
           helm_oidc_proxy_chart_version: '0.0.9'
+          k8_cluster: ${{ env.k8_cluster }}
       - name: "Run Perf test via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:

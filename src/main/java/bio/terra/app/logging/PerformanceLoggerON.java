@@ -29,7 +29,7 @@ import java.util.Map;
  *  New types of information that seem broadly useful should use the first option and those that will probably only
  *  be used in a small number of places should use the second option.
  */
-@Component
+@Component("performanceLogger")
 @Profile("perftest")
 @Primary
 public class PerformanceLoggerON implements PerformanceLogger {

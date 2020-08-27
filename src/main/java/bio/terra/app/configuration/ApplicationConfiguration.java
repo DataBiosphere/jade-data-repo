@@ -92,6 +92,16 @@ public class ApplicationConfiguration {
      */
     private int shutdownTimeoutSeconds;
 
+    /**
+     * Size of batches to operate on when creating snapshot file system directory entries
+     */
+    private int firestoreSnapshotBatchSize;
+
+    /**
+     * Size of cache of directories maintain when building the snapshot file system
+     */
+    private int firestoreSnapshotCacheSize;
+
     public String getUserEmail() {
         return userEmail;
     }
@@ -226,6 +236,22 @@ public class ApplicationConfiguration {
 
     public void setInKubernetes(boolean inKubernetes) {
         this.inKubernetes = inKubernetes;
+    }
+
+    public int getFirestoreSnapshotBatchSize() {
+        return firestoreSnapshotBatchSize;
+    }
+
+    public void setFirestoreSnapshotBatchSize(int firestoreSnapshotBatchSize) {
+        this.firestoreSnapshotBatchSize = firestoreSnapshotBatchSize;
+    }
+
+    public int getFirestoreSnapshotCacheSize() {
+        return firestoreSnapshotCacheSize;
+    }
+
+    public void setFirestoreSnapshotCacheSize(int firestoreSnapshotCacheSize) {
+        this.firestoreSnapshotCacheSize = firestoreSnapshotCacheSize;
     }
 
     @Bean("jdbcTemplate")

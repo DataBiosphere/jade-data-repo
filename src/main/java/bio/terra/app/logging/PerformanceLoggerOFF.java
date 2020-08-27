@@ -1,5 +1,6 @@
 package bio.terra.app.logging;
 
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -11,7 +12,8 @@ import java.time.Duration;
  * methods in a production environment, but it is low because there is no actual work being done here. It's just
  * the overhead of calling a Java method and returning.
  */
-@Component
+@Component("performanceLogger")
+@Profile("!perftest")
 public class PerformanceLoggerOFF implements PerformanceLogger {
 
     public PerformanceLoggerOFF() { }

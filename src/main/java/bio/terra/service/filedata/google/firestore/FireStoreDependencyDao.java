@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
@@ -12,6 +13,8 @@ import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
+import com.google.cloud.firestore.WriteResult;
+import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +24,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
+
 @Component
 public class FireStoreDependencyDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDependencyDao.class);
@@ -28,13 +33,17 @@ public class FireStoreDependencyDao {
     // The collection name has non-hexadecimal characters in it, so it won't collide with any dataset id.
     private static final String DEPENDENCY_COLLECTION_NAME = "-dependencies";
 
-    private FireStoreUtils fireStoreUtils;
-    private DataLocationService dataLocationService;
+    private final FireStoreUtils fireStoreUtils;
+    private final DataLocationService dataLocationService;
+    private final ConfigurationService configurationService;
 
     @Autowired
-    public FireStoreDependencyDao(FireStoreUtils fireStoreUtils, DataLocationService dataLocationService) {
+    public FireStoreDependencyDao(FireStoreUtils fireStoreUtils,
+                                  DataLocationService dataLocationService,
+                                  ConfigurationService configurationService) {
         this.fireStoreUtils = fireStoreUtils;
         this.dataLocationService = dataLocationService;
+        this.configurationService = configurationService;
     }
 
     public boolean fileHasSnapshotReference(Dataset dataset, String fileId) throws InterruptedException {
@@ -91,16 +100,75 @@ public class FireStoreDependencyDao {
     public void storeSnapshotFileDependencies(Dataset dataset, String snapshotId, List<String> refIds)
         throws InterruptedException {
 
-        // TODO: Right now storing and deleting (below) are not done in a single
-        //  transaction. That is possible, but more complicated. The assumption is that at a higher layer
-        //  we will eventually implement some concurrency control so that incompatible operations - like
-        //  hard deleting a file in a dataset and deleting a snapshot that uses that file - will not happen
-        //  at the same time. Even if this is in a transaction, it doesn't keep us from getting in trouble
-        //  in conflict cases like that. I believe we have them sprinkled all over the code. If I'm wrong
-        //  about this, let me know and I can revamp to do something like: make a map of all files needing
-        //  to be added or incremented. Then perform all adds or updates (or deletes).
-        for (String fileId : refIds) {
-            storeSnapshotFileDependency(dataset, snapshotId, fileId);
+        // We construct the snapshot file system without using transactions. We can get away with that,
+        // because no one can access this snapshot during its creation.
+        DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
+        String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
+        CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
+
+        List<List<String>> batches =
+            ListUtils.partition(refIds, configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE));
+
+        for (List<String> batch : batches) {
+            batchStoreSnapshotFileDependencies(depColl, snapshotId, batch);
+        }
+    }
+
+    private void batchStoreSnapshotFileDependencies(
+        CollectionReference depColl, String snapshotId, List<String> batch)
+        throws InterruptedException {
+
+        List<ApiFuture<QuerySnapshot>> getFutures = new ArrayList<>();
+        List<ApiFuture<WriteResult>> setFutures = new ArrayList<>();
+
+        // Launch the lookups in parallel
+        for (String fileId : batch) {
+            Query query = depColl.whereEqualTo("fileId", fileId).whereEqualTo("snapshotId", snapshotId);
+            getFutures.add(query.get());
+        }
+
+        try {
+            // Scan the lookup results and launch the sets in parallel
+            int index = 0;
+            for (ApiFuture<QuerySnapshot> future : getFutures) {
+                String fileId = batch.get(index);
+
+                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                switch (documents.size()) {
+                    case 0: {
+                        // no dependency yet. Let's make one
+                        FireStoreDependency fireStoreDependency = new FireStoreDependency()
+                            .snapshotId(snapshotId)
+                            .fileId(fileId)
+                            .refCount(1L);
+                        DocumentReference docRef = depColl.document();
+                        setFutures.add(docRef.set(fireStoreDependency));
+                        break;
+                    }
+
+                    case 1: {
+                        // existing dependency; increment the reference count
+                        QueryDocumentSnapshot docSnap = documents.get(0);
+                        FireStoreDependency fireStoreDependency = docSnap.toObject(FireStoreDependency.class);
+                        fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
+                        setFutures.add(docSnap.getReference().set(fireStoreDependency));
+                        break;
+                    }
+
+                    default:
+                        throw new FileSystemCorruptException("Found more than one document for a file dependency");
+                }
+                index++;
+            }
+
+            // Collect the set results
+            for (ApiFuture<WriteResult> future : setFutures) {
+                future.get();
+            }
+
+        } catch (ExecutionException e) {
+            throw new FileSystemExecutionException("batch retrieved by id failed", e);
         }
     }
 
@@ -121,54 +189,6 @@ public class FireStoreDependencyDao {
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("delete dependencies - execution exception", ex);
         }
-    }
-
-    public void storeSnapshotFileDependency(Dataset dataset, String snapshotId, String fileId)
-        throws InterruptedException {
-
-        DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
-        String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
-        CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
-
-        ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            Query query = depColl.whereEqualTo("fileId", fileId)
-                .whereEqualTo("snapshotId", snapshotId);
-            ApiFuture<QuerySnapshot> querySnapshot = query.get();
-
-            // There should be zero or one documents. Since we keep track of greater than one reference using the
-            // reference count.
-            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-
-            switch (documents.size()) {
-                case 0: {
-                    // no dependency yet. Let's make one
-                    FireStoreDependency fireStoreDependency = new FireStoreDependency()
-                        .snapshotId(snapshotId)
-                        .fileId(fileId)
-                        .refCount(1L);
-
-                    DocumentReference docRef = depColl.document();
-                    xn.set(docRef, fireStoreDependency);
-                    break;
-                }
-
-                case 1: {
-                    // existing dependency; increment the reference count
-                    QueryDocumentSnapshot docSnap = documents.get(0);
-                    FireStoreDependency fireStoreDependency = docSnap.toObject(FireStoreDependency.class);
-                    fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
-                    xn.set(docSnap.getReference(), fireStoreDependency);
-                    break;
-                }
-
-                default:
-                    throw new FileSystemCorruptException("Found more than one document for a file dependency");
-            }
-            return null;
-        });
-
-        fireStoreUtils.transactionGet("store dependency", transaction);
     }
 
     public void removeSnapshotFileDependency(Dataset dataset, String snapshotId, String fileId)

@@ -57,8 +57,8 @@ jobs:
         pg_isready -h 127.0.0.1 -p 5432
 
         # run integration tests
-        #./gradlew assemble
-        #./gradlew testIntegration --scan
+        ./gradlew assemble
+        ./gradlew testIntegration --scan
 
         # stop the port forwarding
         pkill kubectl

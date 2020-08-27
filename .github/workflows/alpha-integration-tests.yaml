@@ -52,11 +52,11 @@ jobs:
         echo "::set-env name=CLUSTER_NAME::${CLUSTER_NAME}"
 
         # port forward the sql proxy endpoint and check that postgres is ready
-        kubectl port-forward --namespace ${CLUSTER_NAMESPACE} svc/datarepo-gcloud-sqlproxy 5432:5432 &
-        while ! pg_isready -h 127.0.0.1 -p 5432 > /dev/null 2>&1 ; do
-          echo "Could not connect to database, retrying"
-          sleep 5
-        done
+        #kubectl port-forward --namespace ${CLUSTER_NAMESPACE} svc/datarepo-gcloud-sqlproxy 5432:5432 &
+        #while ! pg_isready -h 127.0.0.1 -p 5432 > /dev/null 2>&1 ; do
+        #  echo "Could not connect to database, retrying"
+        #  sleep 5
+        #done
 
         # run integration tests
         ./gradlew assemble

@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -12,6 +13,8 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDataProject;
 import com.google.cloud.firestore.Firestore;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -20,6 +23,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
 // Operations on a file often need to touch file and directory collections that is,
 // the FireStoreFileDao and the FireStoreDirectoryDao.
@@ -37,20 +42,25 @@ import java.util.UUID;
 //
 @Component
 public class FireStoreDao {
+    private final Logger logger = LoggerFactory.getLogger(FireStoreDao.class);
+
     private final FireStoreDirectoryDao directoryDao;
     private final FireStoreFileDao fileDao;
     private final FireStoreUtils fireStoreUtils;
     private final DataLocationService dataLocationService;
+    private final ConfigurationService configurationService;
 
     @Autowired
     public FireStoreDao(FireStoreDirectoryDao directoryDao,
                         FireStoreFileDao fileDao,
                         FireStoreUtils fireStoreUtils,
-                        DataLocationService dataLocationService) {
+                        DataLocationService dataLocationService,
+                        ConfigurationService configurationService) {
         this.directoryDao = directoryDao;
         this.fileDao = fileDao;
         this.fireStoreUtils = fireStoreUtils;
         this.dataLocationService = dataLocationService;
+        this.configurationService = configurationService;
     }
 
     public void createDirectoryEntry(Dataset dataset, FireStoreDirectoryEntry newEntry) throws InterruptedException {
@@ -151,20 +161,25 @@ public class FireStoreDao {
         // If topDir is null, it means no files were added to the snapshot file system in the previous
         // step. So there is nothing to compute
         if (topDir != null) {
-            computeDirectory(firestore, snapshotId, topDir);
+            // We batch the updates to firestore by collecting updated entries into this list,
+            // and when we get enough, writing them out.
+            List<FireStoreDirectoryEntry> updateBatch = new ArrayList<>();
+            computeDirectory(firestore, snapshotId, topDir, updateBatch);
+            // Write the last batch out
+            directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
         }
     }
 
     /**
      * Retrieve an FSItem by path
      *
-     * @param container - dataset or snapshot containing file's directory entry
-     * @param fullPath - path of the file in the directory
-     * @param enumerateDepth - how far to enumerate the directory structure; 0 means not at all;
-     *                         1 means contents of this directory; 2 means this and its directories, etc.
-     *                         -1 means the entire tree.
+     * @param container       - dataset or snapshot containing file's directory entry
+     * @param fullPath        - path of the file in the directory
+     * @param enumerateDepth  - how far to enumerate the directory structure; 0 means not at all;
+     *                        1 means contents of this directory; 2 means this and its directories, etc.
+     *                        -1 means the entire tree.
      * @param throwOnNotFound - if true, throw an exception if the file id not found; if false,
-     *                         null is returned on not found.
+     *                        null is returned on not found.
      * @return FSFile or FSDir of retrieved file; can return null on not found
      */
     public FSItem retrieveByPath(FSContainerInterface container,
@@ -182,13 +197,13 @@ public class FireStoreDao {
     /**
      * Retrieve an FSItem by id
      *
-     * @param container - dataset or snapshot containing file's directory entry
-     * @param fileId - id of the file or directory
-     * @param enumerateDepth - how far to enumerate the directory structure; 0 means not at all;
-     *                         1 means contents of this directory; 2 means this and its directories, etc.
-     *                         -1 means the entire tree.
+     * @param container       - dataset or snapshot containing file's directory entry
+     * @param fileId          - id of the file or directory
+     * @param enumerateDepth  - how far to enumerate the directory structure; 0 means not at all;
+     *                        1 means contents of this directory; 2 means this and its directories, etc.
+     *                        -1 means the entire tree.
      * @param throwOnNotFound - if true, throw an exception if the file id not found; if false,
-     *                         null is returned on not found.
+     *                        null is returned on not found.
      * @return FSFile or FSDir of retrieved file; can return null on not found
      */
     public FSItem retrieveById(FSContainerInterface container,
@@ -202,12 +217,65 @@ public class FireStoreDao {
         return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fileId);
     }
 
+    /**
+     * Retrieve a batch of FSFile by id
+     *
+     * @param container - dataset or snapshot containing file's directory entry
+     * @param fileIds   - list of ids of  file identifiers - directory identifiers will throw
+     * @return list of FSItem of retrieved files; throws on not found
+     */
+    public List<FSFile> batchRetrieveById(
+        FSContainerInterface container,
+        List<String> fileIds,
+        int enumerateDepth,
+        boolean throwOnNotFound) throws InterruptedException {
+
+        Firestore firestore = FireStoreProject.get(getProjectIdForFSContainer(container)).getFirestore();
+        String containerId = container.getId().toString();
+
+        List<FireStoreDirectoryEntry> directoryEntries =
+            directoryDao.batchRetrieveById(firestore, containerId, fileIds);
+
+        // TODO: When we have more than one dataset in a snapshot then we will have to
+        //  split entries by underlying dataset. For now we know that they all come from one dataset.
+        List<FireStoreFile> files =
+            fileDao.batchRetrieveFileMetadata(firestore, containerId, directoryEntries);
+
+        List<FSFile> resultList = new ArrayList<>();
+        assert (directoryEntries.size() == files.size());
+
+        for (int i = 0; i < files.size(); i++) {
+            FireStoreFile file = files.get(i);
+            FireStoreDirectoryEntry entry = directoryEntries.get(i);
+
+            FSFile fsFile = new FSFile()
+                .fileId(UUID.fromString(entry.getFileId()))
+                .collectionId(UUID.fromString(entry.getDatasetId()))
+                .datasetId(UUID.fromString(entry.getDatasetId()))
+                .createdDate(Instant.parse(file.getFileCreatedDate()))
+                .path(fireStoreUtils.getFullPath(entry.getPath(), entry.getName()))
+                .checksumCrc32c(file.getChecksumCrc32c())
+                .checksumMd5(file.getChecksumMd5())
+                .size(file.getSize())
+                .description(file.getDescription())
+                .gspath(file.getGspath())
+                .mimeType(file.getMimeType())
+                .bucketResourceId(file.getBucketResourceId())
+                .loadTag(file.getLoadTag());
+
+            resultList.add(fsFile);
+        }
+
+        return resultList;
+    }
+
     public List<String> validateRefIds(Dataset dataset, List<String> refIdArray) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         return directoryDao.validateRefIds(firestore, datasetId, refIdArray);
     }
+
 
     // -- private methods --
 
@@ -328,9 +396,12 @@ public class FireStoreDao {
     }
 
     // Recursively compute the size and checksums of a directory
-    FireStoreDirectoryEntry computeDirectory(Firestore firestore,
-                                             String snapshotId,
-                                             FireStoreDirectoryEntry dirEntry) throws InterruptedException {
+    FireStoreDirectoryEntry computeDirectory(
+        Firestore firestore,
+        String snapshotId,
+        FireStoreDirectoryEntry dirEntry,
+        List<FireStoreDirectoryEntry> updateBatch) throws InterruptedException {
+
         String fullPath = fireStoreUtils.getFullPath(dirEntry.getPath(), dirEntry.getName());
         List<FireStoreDirectoryEntry> enumDir = directoryDao.enumerateDirectory(firestore, snapshotId, fullPath);
 
@@ -351,7 +422,7 @@ public class FireStoreDao {
 
                 enumComputed.add(dirItem);
             } else {
-                enumComputed.add(computeDirectory(firestore, snapshotId, dirItem));
+                enumComputed.add(computeDirectory(firestore, snapshotId, dirItem, updateBatch));
             }
         }
 
@@ -388,16 +459,31 @@ public class FireStoreDao {
             .checksumCrc32c(crc32cChecksum)
             .checksumMd5(md5Checksum)
             .size(totalSize);
-        directoryDao.updateDirectoryEntry(firestore, snapshotId, dirEntry);
+        updateEntry(firestore, snapshotId, dirEntry, updateBatch);
 
         return dirEntry;
     }
 
+    private void updateEntry(
+        Firestore firestore,
+        String snapshotId,
+        FireStoreDirectoryEntry entry,
+        List<FireStoreDirectoryEntry> updateBatch) throws InterruptedException {
+
+        updateBatch.add(entry);
+        int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
+        if (updateBatch.size() >= batchSize) {
+            logger.info("Snapshot compute dating batch of {} directory entries", batchSize);
+            directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
+            updateBatch.clear();
+        }
+    }
+
     private String getProjectIdForFSContainer(FSContainerInterface container) {
         if (container instanceof Dataset) {
-            return dataLocationService.getProjectOrThrow((Dataset)container).getGoogleProjectId();
+            return dataLocationService.getProjectOrThrow((Dataset) container).getGoogleProjectId();
         } else if (container instanceof Snapshot) {
-            return dataLocationService.getProjectOrThrow((Snapshot)container).getGoogleProjectId();
+            return dataLocationService.getProjectOrThrow((Snapshot) container).getGoogleProjectId();
         }
         throw new IllegalArgumentException("Unexpected FSContainer type: " + container.getClass().getCanonicalName());
     }

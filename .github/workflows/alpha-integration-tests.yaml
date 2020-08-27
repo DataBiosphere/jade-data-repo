@@ -20,44 +20,64 @@ jobs:
           secret/dsde/datarepo/alpha/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
           secret/dsde/datarepo/alpha/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
           secret/dsde/datarepo/alpha/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
-    - name: "Write Vault tokens"
+    - name: "Build and run alpha integration tests"
       run: |
+        # write vault tokens
         base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
         jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
-        # export environment variables
-        echo "::set-env name=GOOGLE_APPLICATION_CREDENTIALS::${GOOGLE_APPLICATION_CREDENTIALS}"
-        echo "::set-env name=GOOGLE_SA_CERT::${GOOGLE_SA_CERT}"
-      env:
-        GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-account.json
-        GOOGLE_SA_CERT: /tmp/jade-account.pem
-    - name: "Build and run alpha integration tests"
-      run: |
-        # authenticate against google cloud with the vault token json
+        # authenticate against google cloud
         gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+        gcloud container clusters get-credentials ${CLUSTER_NAME} \
+          --region ${GOOGLE_CLOUD_ZONE} --project ${GOOGLE_CLOUD_PROJECT}
 
+        # set default region and project
         gcloud config set compute/zone ${GOOGLE_CLOUD_ZONE}
         gcloud config set project ${GOOGLE_CLOUD_PROJECT}
 
-        gcloud container clusters get-credentials jade-master-${GOOGLE_CLOUD_ZONE} \
-          --region ${GOOGLE_CLOUD_ZONE} --project ${GOOGLE_CLOUD_PROJECT}
+        # get the current authorized list of IPs from kubernetes and add the
+        # GitHub Action runner IP to the list as unknown IPs cannot otherwise
+        # interact with kubernetes
+        AUTHED_IPS=$(gcloud container clusters describe ${CLUSTER_NAME} --region ${GOOGLE_CLOUD_ZONE} \
+          --format json | jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
+        MACHINE_IP=$(curl https://api.ipify.org/?format=text | xargs printf '[ "%s/32" ]')
+        CONCAT_IPS=$(printf '%s\n' ${AUTHED_IPS} ${MACHINE_IP} | jq -s -r 'add | unique | join(",")')
+        gcloud container clusters update ${CLUSTER_NAME} --region ${GOOGLE_CLOUD_ZONE} \
+            --enable-master-authorized-networks \
+            --master-authorized-networks ${CONCAT_IPS}
 
-        # port forward the sql proxy endpoint
-        kubectl port-forward --namespace ${KUBE_NAMESPACE} svc/datarepo-gcloud-sqlproxy 5432:5432 &
-
+        # port forward the sql proxy endpoint and check that postgres is ready
+        kubectl port-forward --namespace ${CLUSTER_NAMESPACE} svc/datarepo-gcloud-sqlproxy 5432:5432 &
         pg_isready -h 127.0.0.1 -p 5432 -t 30
 
+        # run integration tests
         #./gradlew assemble
         #./gradlew testIntegration --scan
 
+        # stop the port forwarding
         pkill kubectl
+
+        # export the original IP list so it can be restored during cleanup
+        RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -s -r 'add | unique | join(",")')
+        echo "::set-env name=RESTORE_IPS::${RESTORE_IPS}"
+        echo "::set-env name=CLUSTER_NAME::${CLUSTER_NAME}"
       env:
         SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
+        GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-account.json
+        GOOGLE_SA_CERT: /tmp/jade-account.pem
         GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
         GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
         GOOGLE_CLOUD_ZONE: us-central1
-        KUBE_NAMESPACE: terra-alpha
+        CLUSTER_NAMESPACE: terra-alpha
+        CLUSTER_NAME: jade-master-us-central1
+    - name: "Restore original authenticated IP list"
+      if: always()
+      run: |
+        gcloud container clusters update ${CLUSTER_NAME} \
+          --enable-master-authorized-networks \
+          --master-authorized-networks ${RESTORE_IPS}
     - name: "Notify Slack"
+#      if: always()
       uses: broadinstitute/action-slack@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -67,4 +87,3 @@ jobs:
         channel: "#dsde-qa"
         username: "Data Repo tests"
         text: "Alpha integration tests"
-#      if: always()

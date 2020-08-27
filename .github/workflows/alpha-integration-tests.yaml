@@ -5,6 +5,17 @@ on:
 jobs:
   alpha-integration-test:
     runs-on: ubuntu-latest
+    # run a local Postgres container in Docker for the basic check tests
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
     - name: "Checkout code"
       uses: actions/checkout@v2
@@ -57,6 +68,7 @@ jobs:
         #  echo "Could not connect to database, retrying"
         #  sleep 5
         #done
+        psql -U postgres -f ./db/create-data-repo-db
 
         # run integration tests
         ./gradlew assemble
@@ -73,6 +85,8 @@ jobs:
         GOOGLE_CLOUD_ZONE: us-central1
         CLUSTER_NAMESPACE: terra-alpha
         CLUSTER_NAME: jade-master-us-central1
+        PGHOST: 127.0.0.1
+        PGPORT: ${{ job.services.postgres.ports[5432] }}
     - name: "Restore original authenticated IP list"
       if: always()
       run: |

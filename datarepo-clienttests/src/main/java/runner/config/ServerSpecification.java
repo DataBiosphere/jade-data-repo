@@ -1,8 +1,8 @@
 package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import common.utils.FileUtils;
 import java.io.InputStream;
-import utils.FileUtils;
 
 public class ServerSpecification implements SpecificationInterface {
   public String name;
@@ -20,6 +20,7 @@ public class ServerSpecification implements SpecificationInterface {
   public String region;
   public String project;
   public String namespace;
+  public String containerName;
 
   public DeploymentScriptSpecification deploymentScript;
   public boolean skipKubernetes = false;
@@ -42,7 +43,7 @@ public class ServerSpecification implements SpecificationInterface {
 
     // read in the server file
     InputStream inputStream =
-        FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+        FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
     return objectMapper.readValue(inputStream, ServerSpecification.class);
   }
 
@@ -70,6 +71,8 @@ public class ServerSpecification implements SpecificationInterface {
         throw new IllegalArgumentException("Server cluster region cannot be empty");
       } else if (project == null || project.equals("")) {
         throw new IllegalArgumentException("Server cluster project cannot be empty");
+      } else if (containerName == null || containerName.equals("")) {
+        throw new IllegalArgumentException("Server cluster container name cannot be empty");
       }
     }
     if (!skipDeployment) {

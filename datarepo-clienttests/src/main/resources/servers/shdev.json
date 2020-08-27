@@ -9,6 +9,7 @@
   "region": "us-central1",
   "project": "broad-jade-dev",
   "namespace": "sh",
+  "containerName": "sh-jade-datarepo-api",
   "deploymentScript": {
     "name": "ModularHelmChart",
     "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/sh/datarepo-api.yaml"]

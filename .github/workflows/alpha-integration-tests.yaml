@@ -33,9 +33,13 @@ jobs:
         GOOGLE_SA_CERT: /tmp/jade-account.pem
     - name: "Build and run alpha integration tests"
       run: |
+        # authenticate against google cloud with the vault token json
         gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+        gcloud container clusters get-credentials jade-master-${GOOGLE_CLOUD_ZONE} \
+          --region ${GOOGLE_CLOUD_ZONE} --project ${GOOGLE_CLOUD_PROJECT}
 
-        kubectl port-forward --namespace terra-alpha svc/datarepo-gcloud-sqlproxy 5432:5432
+        # port forward the sql proxy endpoint
+        kubectl port-forward --namespace ${KUBE_NAMESPACE} svc/datarepo-gcloud-sqlproxy 5432:5432
 
         #./gradlew assemble
         #./gradlew testIntegration --scan
@@ -43,6 +47,8 @@ jobs:
         SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
         GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
         GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
+        GOOGLE_CLOUD_ZONE: us-central-1
+        KUBE_NAMESPACE: terra-alpha
     - name: "Notify Slack"
       uses: broadinstitute/action-slack@v2
       env:

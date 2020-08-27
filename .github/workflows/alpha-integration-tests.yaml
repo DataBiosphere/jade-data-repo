@@ -43,7 +43,7 @@ jobs:
           --region ${GOOGLE_CLOUD_ZONE} --project ${GOOGLE_CLOUD_PROJECT}
 
         # port forward the sql proxy endpoint
-        kubectl port-forward --namespace ${KUBE_NAMESPACE} svc/datarepo-gcloud-sqlproxy 5432:5432
+        kubectl port-forward --namespace ${KUBE_NAMESPACE} svc/datarepo-gcloud-sqlproxy 5432:5432 &
 
         pg_isready -h 127.0.0.1 -p 5432 -t 10
 

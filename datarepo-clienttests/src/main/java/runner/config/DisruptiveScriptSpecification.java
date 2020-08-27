@@ -13,7 +13,7 @@ public class DisruptiveScriptSpecification implements SpecificationInterface {
 
   private DisruptiveScript disruptiveScriptClassInstance;
 
-  public static final String disruptiveScriptsPackage = "disruptivescripts";
+  public static final String disruptiveScriptsPackage = "scripts.disruptivescripts";
 
   DisruptiveScriptSpecification() {}
 

@@ -1,8 +1,8 @@
 package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import common.utils.FileUtils;
 import java.io.InputStream;
-import utils.FileUtils;
 
 public class TestUserSpecification implements SpecificationInterface {
   public String name;
@@ -27,7 +27,7 @@ public class TestUserSpecification implements SpecificationInterface {
     ObjectMapper objectMapper = new ObjectMapper();
 
     InputStream inputStream =
-        FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+        FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
     TestUserSpecification testUser =
         objectMapper.readValue(inputStream, TestUserSpecification.class);
 

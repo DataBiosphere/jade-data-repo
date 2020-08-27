@@ -9,6 +9,7 @@
   "region": "us-central1",
   "project": "broad-jade-perf",
   "namespace": "perf",
+  "containerName": "perf-jade-datarepo-api",
   "deploymentScript": {
     "name": "ModularHelmChart",
     "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/perf/datarepo-api.yaml"]

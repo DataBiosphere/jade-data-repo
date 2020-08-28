@@ -72,7 +72,7 @@ public final class KubernetesClientUtils {
         executeCommand("sh", scriptArgs);
 
         // path to kubeconfig file, that was just created/updated by gcloud get-credentials above
-        String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";
+        String kubeConfigPath = /*System.getProperty("user.home") + */"/github/home/.kube/config";
 
         // load the kubeconfig object from the file
         InputStreamReader filereader =

@@ -8,6 +8,7 @@ import bio.terra.service.filedata.FSDir;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSItem;
 import bio.terra.service.filedata.exception.FileNotFoundException;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDataProject;
@@ -242,7 +243,9 @@ public class FireStoreDao {
             fileDao.batchRetrieveFileMetadata(firestore, containerId, directoryEntries);
 
         List<FSFile> resultList = new ArrayList<>();
-        assert (directoryEntries.size() == files.size());
+        if (directoryEntries.size() != files.size()) {
+            throw new FileSystemExecutionException("List sizes should be identical");
+        }
 
         for (int i = 0; i < files.size(); i++) {
             FireStoreFile file = files.get(i);
@@ -473,7 +476,7 @@ public class FireStoreDao {
         updateBatch.add(entry);
         int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
         if (updateBatch.size() >= batchSize) {
-            logger.info("Snapshot compute dating batch of {} directory entries", batchSize);
+            logger.info("Snapshot compute updating batch of {} directory entries", batchSize);
             directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
             updateBatch.clear();
         }

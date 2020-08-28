@@ -102,8 +102,6 @@ jobs:
         with:
           actions_subcommand: 'gcp_whitelist_clean'
           k8_cluster: ${{ env.k8_cluster }}
-
-# perf test
   deploy_test_perf:
     timeout-minutes: 180
     strategy:

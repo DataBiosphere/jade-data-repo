@@ -1,4 +1,4 @@
 {
   "name": "jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com",
-  "jsonKeyFilePath": "/github/workspace/jade-dev-account.json"
+  "jsonKeyFilePath": "/github/workspace/tmp/jade-dev-account.json"
 }

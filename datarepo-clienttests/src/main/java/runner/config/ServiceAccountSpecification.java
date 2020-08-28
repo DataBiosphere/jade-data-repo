@@ -43,6 +43,7 @@ public class ServiceAccountSpecification implements SpecificationInterface {
     }
 
     jsonKeyFile = new File(jsonKeyFilePath);
+    logger.info("file: {}", jsonKeyFile.getPath());
     if (!jsonKeyFile.exists()) {
       throw new IllegalArgumentException("JSON key file does not exist: " + jsonKeyFilePath);
     }

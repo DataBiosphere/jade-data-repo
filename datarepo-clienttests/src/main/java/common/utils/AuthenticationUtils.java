@@ -12,6 +12,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import runner.config.ServiceAccountSpecification;
 import runner.config.TestUserSpecification;
 
@@ -24,6 +27,7 @@ public final class AuthenticationUtils {
 
   private static final Object lockApplicationDefaultCredential = new Object();
   private static final Object lockServiceAccountCredential = new Object();
+  private static final Logger logger = LoggerFactory.getLogger(AuthenticationUtils.class);
 
   private AuthenticationUtils() {}
 
@@ -66,6 +70,7 @@ public final class AuthenticationUtils {
       return serviceAccountCredential;
     }
 
+    logger.info("test {}", serviceAccount.jsonKeyFilePath);
     synchronized (lockServiceAccountCredential) {
       File jsonKey = serviceAccount.jsonKeyFile;
       serviceAccountCredential =

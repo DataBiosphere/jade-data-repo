@@ -1,0 +1,6 @@
+{
+  "name": "PRSmokeTests",
+  "description": "Two smoke tests to run on PR build. One requires authentication and one does not. Only queries, no data creation.",
+  "serverSpecificationFile": "integration-6.json",
+  "testConfigurationFiles": ["basicexamples/BasicAuthenticated.json", "basicexamples/BasicUnauthenticated.json"]
+}

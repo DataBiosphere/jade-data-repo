@@ -9,6 +9,7 @@
   "region": "us-central1",
   "project": "broad-jade-integration",
   "namespace": "integration-6",
+  "containerName": "integration-6-jade-datarepo-api",
   "deploymentScript": {
     "name": "ModularHelmChart",
     "parameters": ["https://https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/integration/integration-6/datarepo-api.yaml"]

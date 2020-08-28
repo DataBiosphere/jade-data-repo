@@ -70,7 +70,6 @@ public final class AuthenticationUtils {
       return serviceAccountCredential;
     }
 
-    logger.info("test {}", serviceAccount.jsonKeyFilePath);
     synchronized (lockServiceAccountCredential) {
       File jsonKey = serviceAccount.jsonKeyFile;
       serviceAccountCredential =

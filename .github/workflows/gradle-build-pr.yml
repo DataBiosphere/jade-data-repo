@@ -157,15 +157,18 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testPerf'
+          always_auth: 1
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:
           actions_subcommand: 'k8_checknamespace_clean'
           k8_cluster: ${{ env.k8_cluster }}
+          always_auth: 1
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:
           actions_subcommand: 'gcp_whitelist_clean'
           k8_cluster: ${{ env.k8_cluster }}
+          always_auth: 1

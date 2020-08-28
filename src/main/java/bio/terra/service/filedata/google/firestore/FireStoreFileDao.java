@@ -1,7 +1,9 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
@@ -12,6 +14,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -21,7 +25,7 @@ import java.util.concurrent.ExecutionException;
  * This DAO just handles the basic operations for managing the collection. It does not have
  * logic for protecting against deleting files that have dependencies or creating files
  * with duplicate paths.
- *
+ * <p>
  * Each write operation is performed in a FireStore transaction.
  */
 @Component
@@ -76,6 +80,35 @@ class FireStoreFileDao {
         return fireStoreUtils.transactionGet("retrieveFileMetadata", transaction);
     }
 
+    List<FireStoreFile> batchRetrieveFileMetadata(
+        Firestore firestore,
+        String datasetId,
+        List<FireStoreDirectoryEntry> directoryEntries) throws InterruptedException {
+
+        CollectionReference collection = firestore.collection(makeCollectionId(datasetId));
+        List<ApiFuture<DocumentSnapshot>> futures = new ArrayList<>();
+
+        for (FireStoreDirectoryEntry entry : directoryEntries) {
+            DocumentReference docRef = collection.document(entry.getFileId());
+            futures.add(docRef.get());
+        }
+
+        List<FireStoreFile> files = new ArrayList<>();
+        try {
+            for (ApiFuture<DocumentSnapshot> future : futures) {
+                DocumentSnapshot documentSnapshot = future.get();
+                if (documentSnapshot == null || !documentSnapshot.exists()) {
+                    throw new FileSystemCorruptException("Directory entry refers to non-existent file");
+                }
+                files.add(documentSnapshot.toObject(FireStoreFile.class));
+            }
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("batchRetrieveFileMetadata - execution exception", ex);
+        }
+
+        return files;
+    }
+
     private DocumentSnapshot lookupByFileId(Firestore firestore,
                                             String collectionId,
                                             String fileId,
@@ -91,6 +124,7 @@ class FireStoreFileDao {
 
     // See comment in FireStoreUtils.java for an explanation of the batch size setting.
     private static final int DELETE_BATCH_SIZE = 500;
+
     void deleteFilesFromDataset(Firestore firestore, String datasetId, InterruptibleConsumer<FireStoreFile> func)
         throws InterruptedException {
 

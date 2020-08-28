@@ -386,8 +386,9 @@ public class FireStoreDirectoryDao {
         throws InterruptedException {
 
         int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
-        List<List<String>> batches =
-            ListUtils.partition(fileIdList, batchSize);
+        List<List<String>> batches = ListUtils.partition(fileIdList, batchSize);
+        logger.info("addEntriesToSnapshot on {} file ids, in {} batches of {}",
+            fileIdList.size(), batches.size(), batchSize);
 
         int cacheSize = configurationService.getParameterValue(ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE);
         LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
@@ -398,34 +399,19 @@ public class FireStoreDirectoryDao {
         performanceLogger.timerEndAndLog(
             storeTopTimer, snapshotId, this.getClass().getName(), "addEntriesToSnapshot:storeTop:" + batchSize);
 
+        int count = 0;
         for (List<String> batch : batches) {
+            logger.info("addEntriesToSnapshot batch {}", count);
+            count++;
+
             // Find the file reference dataset entries for all file ids in this batch
-            String retrieveTimer = performanceLogger.timerStart();
             List<FireStoreDirectoryEntry> datasetEntries =
                 batchRetrieveById(datasetFirestore, datasetId, batch);
-            performanceLogger.timerEndAndLog(
-                retrieveTimer,
-                snapshotId,
-                this.getClass().getName(),
-                "addEntriesToSnapshot:batchRetrieveById:" + batchSize);
 
             // Find directory paths that need to be created; plus add to the cache
-            String findPathsTimer = performanceLogger.timerStart();
             List<String> newPaths = findNewDirectoryPaths(datasetEntries, pathMap);
-            performanceLogger.timerEndAndLog(
-                findPathsTimer,
-                snapshotId,
-                this.getClass().getName(),
-                "addEntriesToSnapshot:findPaths:" + batchSize);
-
-            String retrievePathsTimer = performanceLogger.timerStart();
             List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                 batchRetrieveByPath(datasetFirestore, datasetId, newPaths);
-            performanceLogger.timerEndAndLog(
-                retrievePathsTimer,
-                snapshotId,
-                this.getClass().getName(),
-                "addEntriesToSnapshot:retrievePaths:" + batchSize);
 
             // Create snapshot file system entries
             List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
@@ -439,13 +425,7 @@ public class FireStoreDirectoryDao {
             // Store the batch of entries. This will override existing entries,
             // but that is not the typical case and it is lower cost just overwrite
             // rather than retrieve to avoid the write.
-            String storeTimer = performanceLogger.timerStart();
             batchStoreDirectoryEntry(snapshotFirestore, snapshotId, snapshotEntries);
-            performanceLogger.timerEndAndLog(
-                storeTimer,
-                snapshotId,
-                this.getClass().getName(),
-                "addEntriesToSnapshot:storeDirectoryEntry:" + batchSize);
         }
     }
 
@@ -472,15 +452,15 @@ public class FireStoreDirectoryDao {
         createDirectoryEntry(firestore, snapshotId, topDir);
     }
 
-    private List<FireStoreDirectoryEntry> batchRetrieveById(
-        Firestore datasetFirestore, String datasetId, List<String> batch)
+    List<FireStoreDirectoryEntry> batchRetrieveById(
+        Firestore firestore, String containerId, List<String> batch)
         throws InterruptedException {
-        CollectionReference datasetCollection = datasetFirestore.collection(datasetId);
+        CollectionReference collection = firestore.collection(containerId);
 
         List<FireStoreDirectoryEntry> entries = new ArrayList<>();
         List<ApiFuture<QuerySnapshot>> futures = new ArrayList<>();
         for (String fileId : batch) {
-            Query query = datasetCollection.whereEqualTo("fileId", fileId);
+            Query query = collection.whereEqualTo("fileId", fileId);
             futures.add(query.get());
         }
 
@@ -551,7 +531,8 @@ public class FireStoreDirectoryDao {
         return entries;
     }
 
-    private void batchStoreDirectoryEntry(
+    // Non-transactional update of a batch of directory entry
+    void batchStoreDirectoryEntry(
         Firestore snapshotFirestore, String snapshotId, List<FireStoreDirectoryEntry> entries)
         throws InterruptedException {
         CollectionReference snapshotCollection = snapshotFirestore.collection(snapshotId);

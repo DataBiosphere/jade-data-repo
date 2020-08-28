@@ -26,12 +26,12 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIEVE_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
 /**
@@ -222,15 +222,20 @@ public class FireStoreDirectoryDao {
     }
 
     public List<String> validateRefIds(
-        Firestore firestore, String collectionId, Collection<String> refIdArray)
+        Firestore firestore, String collectionId, List<String> refIdArray)
         throws InterruptedException {
 
+        int batchSize = configurationService.getParameterValue(FIRESTORE_RETRIEVE_BATCH_SIZE);
+        List<List<String>> batches = ListUtils.partition(refIdArray, batchSize);
+        logger.info("addEntriesToSnapshot on {} file ids, in {} batches of {}",
+            refIdArray.size(), batches.size(), batchSize);
+
         List<String> missingIds = new ArrayList<>();
-        for (String fileId : refIdArray) {
-            if (retrieveById(firestore, collectionId, fileId) == null) {
-                missingIds.add(fileId);
-            }
+        for (List<String> batch : batches) {
+            List<String> missingBatch = batchValidateIds(firestore, collectionId, batch);
+            missingIds.addAll(missingBatch);
         }
+
         return missingIds;
     }
 
@@ -552,6 +557,35 @@ public class FireStoreDirectoryDao {
         } catch (ExecutionException e) {
             throw new FileSystemExecutionException("batch store failed", e);
         }
+    }
+
+    // We make a special method just for validating id, because when
+    // validating we do not need to actually get the data.
+    private List<String> batchValidateIds(
+        Firestore firestore, String collectionId, List<String> batch)
+        throws InterruptedException {
+        CollectionReference datasetCollection = firestore.collection(collectionId);
+
+        List<String> missingIds = new ArrayList<>();
+        List<ApiFuture<QuerySnapshot>> futures = new ArrayList<>();
+        for (String fileId : batch) {
+            Query query = datasetCollection.whereEqualTo("fileId", fileId);
+            futures.add(query.get());
+        }
+
+        try {
+            for (int i = 0; i < batch.size(); i++) {
+                ApiFuture<QuerySnapshot> future = futures.get(i);
+                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                if (documents.size() != 1) {
+                    missingIds.add(batch.get(i));
+                }
+            }
+        } catch (ExecutionException e) {
+            throw new FileSystemExecutionException("batch validate id failed", e);
+        }
+
+        return missingIds;
     }
 
     // Non-transactional update of a directory entry

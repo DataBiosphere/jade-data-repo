@@ -1,9 +1,9 @@
 package bio.terra.service.dataset.flight;
 
+import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
-import bio.terra.common.exception.RetryQueryException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -61,7 +61,7 @@ public class LockDatasetStep implements Step {
             }
         } catch (DatasetLockException ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
-        }  catch (RetryQueryException retryQueryException) {
+        } catch (RetryQueryException retryQueryException) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
         }
     }
@@ -72,13 +72,26 @@ public class LockDatasetStep implements Step {
         // note the unlock will only clear the flightid if it's set to this flightid
         boolean rowUpdated;
         String flightId = context.getFlightId();
-        if (sharedLock) {
-            rowUpdated = datasetDao.unlockShared(datasetId, flightId);
-        } else {
-            rowUpdated = datasetDao.unlockExclusive(datasetId, flightId);
+        try {
+            if (sharedLock) {
+                rowUpdated = datasetDao.unlockShared(datasetId, flightId);
+            } else {
+                rowUpdated = datasetDao.unlockExclusive(datasetId, flightId);
+            }
+            logger.debug("rowUpdated on unlock = {}", rowUpdated);
+            return StepResult.getStepResultSuccess();
+        } catch (DatasetNotFoundException notFoundEx) {
+            if (suppressNotFoundException) {
+                logger.debug("Suppressing DatasetNotFoundException");
+                return new StepResult(StepStatus.STEP_RESULT_SUCCESS);
+            } else {
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
+            }
+        } catch (DatasetLockException ex) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+        } catch (RetryQueryException retryQueryException) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
         }
-        logger.debug("rowUpdated on unlock = {}", rowUpdated);
-        return StepResult.getStepResultSuccess();
     }
 }
 

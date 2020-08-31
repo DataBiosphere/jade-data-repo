@@ -58,7 +58,7 @@ jobs:
         export GOOGLE_SA_CERT=jade-dev-account.pem
 
         pg_isready -h 127.0.0.1 -p 5432
-
+        psql -U postgres -f ./db/create-data-repo-db
         # run integration tests
         ./gradlew assemble
         ./gradlew testIntegration --scan

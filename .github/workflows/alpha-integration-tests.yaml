@@ -1,4 +1,15 @@
 name: DataRepo Alpha Integration Tests
+env:
+  SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-account.json
+  GOOGLE_SA_CERT: /tmp/jade-account.pem
+  GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
+  GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
+  GOOGLE_CLOUD_ZONE: us-central1
+  CLUSTER_NAMESPACE: terra-alpha
+  CLUSTER_NAME: jade-master-us-central1
+  PGHOST: 127.0.0.1
+  PGPORT: ${{ job.services.postgres.ports[5432] }}
 on:
   # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}
@@ -37,38 +48,7 @@ jobs:
         base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
         jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
-        # authenticate against google cloud
-        gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
-        gcloud container clusters get-credentials ${CLUSTER_NAME} \
-          --region ${GOOGLE_CLOUD_ZONE} --project ${GOOGLE_CLOUD_PROJECT}
-
-        # set default region and project
-        gcloud config set compute/zone ${GOOGLE_CLOUD_ZONE}
-        gcloud config set project ${GOOGLE_CLOUD_PROJECT}
-
-        # get the current authorized list of IPs from kubernetes and add the
-        # GitHub Action runner IP to the list as unknown IPs cannot otherwise
-        # interact with kubernetes
-        AUTHED_IPS=$(gcloud container clusters describe ${CLUSTER_NAME} --region ${GOOGLE_CLOUD_ZONE} \
-          --format json | jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
-        MACHINE_IP=$(curl https://api.ipify.org/?format=text | xargs printf '[ "%s/32" ]')
-        CONCAT_IPS=$(printf '%s\n' ${AUTHED_IPS} ${MACHINE_IP} | jq -s -r 'add | unique | join(",")')
-        gcloud container clusters update ${CLUSTER_NAME} --region ${GOOGLE_CLOUD_ZONE} \
-            --enable-master-authorized-networks \
-            --master-authorized-networks ${CONCAT_IPS}
-
-        # export the original IP list so it can be restored during cleanup
-        RESTORE_IPS=$(printf '%s\n' ${AUTHED_IPS} | jq -s -r 'add | unique | join(",")')
-        echo "::set-env name=RESTORE_IPS::${RESTORE_IPS}"
-        echo "::set-env name=CLUSTER_NAME::${CLUSTER_NAME}"
-
-        # port forward the sql proxy endpoint and check that postgres is ready
-        #kubectl port-forward --namespace ${CLUSTER_NAMESPACE} svc/datarepo-gcloud-sqlproxy 5432:5432 &
-        #while ! pg_isready -h 127.0.0.1 -p 5432 > /dev/null 2>&1 ; do
-        #  echo "Could not connect to database, retrying"
-        #  sleep 5
-        #done
-        psql -U postgres -f ./db/create-data-repo-db
+#        psql -U postgres -f ./db/create-data-repo-db
 
         # run integration tests
         ./gradlew assemble
@@ -76,17 +56,6 @@ jobs:
 
         # stop the port forwarding
         pkill kubectl
-      env:
-        SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
-        GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-account.json
-        GOOGLE_SA_CERT: /tmp/jade-account.pem
-        GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
-        GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
-        GOOGLE_CLOUD_ZONE: us-central1
-        CLUSTER_NAMESPACE: terra-alpha
-        CLUSTER_NAME: jade-master-us-central1
-        PGHOST: 127.0.0.1
-        PGPORT: ${{ job.services.postgres.ports[5432] }}
     - name: "Restore original authenticated IP list"
       if: always()
       run: |

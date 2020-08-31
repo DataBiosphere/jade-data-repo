@@ -11,7 +11,6 @@ env:
   PGPORT: 5432
   DB_DATAREPO_URI: "jdbc:postgresql://${PGHOST}:5432/datarepo"
   DB_STAIRWAY_URI: "jdbc:postgresql://${PGHOST}:5432/stairway"
-  POSTGRES_PASSWORD: postgres
 
 on:
   # Jenkins will kick this job off manually after Alpha is deployed

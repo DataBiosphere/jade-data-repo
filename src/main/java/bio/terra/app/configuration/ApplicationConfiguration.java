@@ -103,9 +103,14 @@ public class ApplicationConfiguration {
     private int firestoreSnapshotCacheSize;
 
     /**
-     * Size of batches to operate on when retrieving file system directory entries
+     * Size of batches to operate on when validating file system directory entry ids
      */
-    private int firestoreRetrieveBatchSize;
+    private int firestoreValidateBatchSize;
+
+    /**
+     * Sizes of batches of query results from firestore
+     */
+    private int firestoreQueryBatchSize;
 
     public String getUserEmail() {
         return userEmail;
@@ -259,12 +264,20 @@ public class ApplicationConfiguration {
         this.firestoreSnapshotCacheSize = firestoreSnapshotCacheSize;
     }
 
-    public int getFirestoreRetrieveBatchSize() {
-        return firestoreRetrieveBatchSize;
+    public int getFirestoreValidateBatchSize() {
+        return firestoreValidateBatchSize;
     }
 
-    public void setFirestoreRetrieveBatchSize(int firestoreRetrieveBatchSize) {
-        this.firestoreRetrieveBatchSize = firestoreRetrieveBatchSize;
+    public void setFirestoreValidateBatchSize(int firestoreValidateBatchSize) {
+        this.firestoreValidateBatchSize = firestoreValidateBatchSize;
+    }
+
+    public int getFirestoreQueryBatchSize() {
+        return firestoreQueryBatchSize;
+    }
+
+    public void setFirestoreQueryBatchSize(int firestoreQueryBatchSize) {
+        this.firestoreQueryBatchSize = firestoreQueryBatchSize;
     }
 
     @Bean("jdbcTemplate")

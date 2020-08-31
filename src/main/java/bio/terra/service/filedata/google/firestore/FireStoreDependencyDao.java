@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
 @Component
@@ -51,8 +52,15 @@ public class FireStoreDependencyDao {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
-        Query query = depColl.whereEqualTo("fileId", fileId);
-        return hasReference(query);
+        Query query = depColl.whereEqualTo("fileId", fileId).limit(1);
+        ApiFuture<QuerySnapshot> querySnapshot = query.get();
+
+        try {
+            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+            return (documents.size() > 0);
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("has reference - execution exception", ex);
+        }
     }
 
     public boolean datasetHasSnapshotReference(Dataset dataset) {
@@ -65,36 +73,28 @@ public class FireStoreDependencyDao {
         return hasDependencies;
     }
 
-    private boolean hasReference(Query query) throws InterruptedException {
-        ApiFuture<QuerySnapshot> querySnapshot = query.get();
-
-        try {
-            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-            return (documents.size() > 0);
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("has reference - execution exception", ex);
-        }
-    }
-
     public List<String> getDatasetSnapshotFileIds(Dataset dataset, String snapshotId) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
-        Query query = depColl.whereEqualTo("snapshotId", snapshotId);
-        ApiFuture<QuerySnapshot> querySnapshot = query.get();
-        List<String> fileIds = new ArrayList<>();
 
-        try {
-            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-            for (DocumentSnapshot docSnap : documents) {
+        Query query = depColl.whereEqualTo("snapshotId", snapshotId);
+        int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
+        FireStoreBatchQueryIterator queryIterator = new FireStoreBatchQueryIterator(query, batchSize);
+
+        List<String> fileIds = new ArrayList<>();
+        for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
+             batch != null;
+             batch = queryIterator.getBatch()) {
+
+            for (DocumentSnapshot docSnap : batch) {
                 FireStoreDependency fireStoreDependency = docSnap.toObject(FireStoreDependency.class);
                 fileIds.add(fireStoreDependency.getFileId());
             }
-            return fileIds;
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("get file ids - execution exception", ex);
         }
+
+        return fileIds;
     }
 
     public void storeSnapshotFileDependencies(Dataset dataset, String snapshotId, List<String> refIds)
@@ -157,7 +157,8 @@ public class FireStoreDependencyDao {
                     }
 
                     default:
-                        throw new FileSystemCorruptException("Found more than one document for a file dependency");
+                        throw new FileSystemCorruptException(
+                            "Found more than one document for a file dependency - fileId: " + fileId);
                 }
                 index++;
             }
@@ -177,17 +178,19 @@ public class FireStoreDependencyDao {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
-        Query query = depColl.whereEqualTo("snapshotId", snapshotId);
-        ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
-        try {
-            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-            for (DocumentSnapshot docSnap : documents) {
+        Query query = depColl.whereEqualTo("snapshotId", snapshotId);
+        int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
+        FireStoreBatchQueryIterator queryIterator = new FireStoreBatchQueryIterator(query, batchSize);
+
+        for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
+             batch != null;
+             batch = queryIterator.getBatch()) {
+
+            for (DocumentSnapshot docSnap : batch) {
                 logger.info("deleting: " + docSnap.toString());
                 docSnap.getReference().delete();
             }
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("delete dependencies - execution exception", ex);
         }
     }
 
@@ -211,7 +214,8 @@ public class FireStoreDependencyDao {
                 return null;
             }
             if (documents.size() > 1) {
-                throw new FileSystemCorruptException("Found more than one document for a file dependency");
+                throw new FileSystemCorruptException(
+                    "Found more than one document for a file dependency - fileId: " + fileId);
             }
 
             QueryDocumentSnapshot docSnap = documents.get(0);

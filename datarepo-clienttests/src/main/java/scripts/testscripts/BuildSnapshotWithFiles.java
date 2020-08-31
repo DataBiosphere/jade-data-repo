@@ -47,6 +47,7 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
       for (int i = 2; i < parameters.size(); i++) {
         batchSizes.add(Integer.parseInt(parameters.get(i)));
       }
+      logger.info("Load {} files; create {} snapshots", filesToLoad, snapshotsToCreate);
     }
   }
 

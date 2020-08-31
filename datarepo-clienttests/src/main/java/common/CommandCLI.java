@@ -92,7 +92,10 @@ public class CommandCLI {
 
   public static void runTestMain(String[] args) throws Exception {
     if (args.length == 2) { // execute a test configuration or suite
-      TestRunner.executeTestConfigurationOrSuite(args[0], args[1]);
+      boolean isFailure = TestRunner.executeTestConfigurationOrSuite(args[0], args[1]);
+      if (isFailure) {
+        System.exit(1);
+      }
     } else { // if no args specified or invalid number of args specified, print help
       printHelp();
     }

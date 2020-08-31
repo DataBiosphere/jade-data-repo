@@ -454,7 +454,8 @@ public class TestRunner {
     logger.info("Test run summary written to file: {}", runSummaryFile.getName());
   }
 
-  public static void executeTestConfigurationOrSuite(
+  /** Returns a boolean indicating whether the method failed or not. */
+  public static boolean executeTestConfigurationOrSuite(
       String configFileName, String outputParentDirName) throws Exception {
     logger.info("==== READING IN TEST SUITE/CONFIGURATION(S) ====");
     // read in test suite and validate it
@@ -476,6 +477,7 @@ public class TestRunner {
     }
     testSuite.validate();
 
+    boolean isFailure = false;
     for (int ctr = 0; ctr < testSuite.testConfigurations.size(); ctr++) {
       TestConfiguration testConfiguration = testSuite.testConfigurations.get(ctr);
       logger.info(
@@ -487,6 +489,17 @@ public class TestRunner {
       Exception runnerEx = null;
       try {
         runner.executeTestConfiguration();
+
+        // update the failure flag if it's not already been set
+        if (!isFailure) {
+          for (TestScriptResult.TestScriptResultSummary testScriptResultSummary :
+              runner.summary.testScriptResultSummaries) {
+            if (testScriptResultSummary.isFailure) {
+              isFailure = true;
+              break;
+            }
+          }
+        }
       } catch (Exception ex) {
         runnerEx = ex; // save exception to display after printing the results
       }
@@ -507,6 +520,8 @@ public class TestRunner {
         logger.error("Test Runner threw an exception", runnerEx);
       }
     }
+
+    return isFailure;
   }
 
   public static void collectMeasurementsForTestRun(

@@ -10,10 +10,6 @@
   "project": "terra-datarepo-alpha",
   "namespace": "terra-alpha",
   "containerName": "datarepo-datarepo-api",
-  "deploymentScript": {
-    "name": "ModularHelmChart",
-    "parameters": ["https://raw.githubusercontent.com/broadinstitute/terra-helmfile/master/terra/values/datarepo/live/alpha.yaml?token=AD5MJSFDAS6EQ2VBUHE5WV27KES7Q"]
-  },
   "skipDeployment": true,
   "skipKubernetes": false
 }

@@ -29,10 +29,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIEVE_BATCH_SIZE;
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
 
 /**
  * Paths and document names FireStore uses forward slash (/) for its path separator. We also use
@@ -225,7 +225,7 @@ public class FireStoreDirectoryDao {
         Firestore firestore, String collectionId, List<String> refIdArray)
         throws InterruptedException {
 
-        int batchSize = configurationService.getParameterValue(FIRESTORE_RETRIEVE_BATCH_SIZE);
+        int batchSize = configurationService.getParameterValue(FIRESTORE_VALIDATE_BATCH_SIZE);
         List<List<String>> batches = ListUtils.partition(refIdArray, batchSize);
         logger.info("addEntriesToSnapshot on {} file ids, in {} batches of {}",
             refIdArray.size(), batches.size(), batchSize);
@@ -243,17 +243,26 @@ public class FireStoreDirectoryDao {
 
     List<FireStoreDirectoryEntry> enumerateDirectory(
         Firestore firestore, String collectionId, String dirPath) throws InterruptedException {
-
+        int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
+        CollectionReference dirColl = firestore.collection(collectionId);
         ApiFuture<List<FireStoreDirectoryEntry>> transaction =
             firestore.runTransaction(
                 xn -> {
-                    Query query = firestore.collection(collectionId).whereEqualTo("path", dirPath);
-                    ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
-                    List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-                    List<FireStoreDirectoryEntry> entryList =
-                        documents.stream()
-                            .map(document -> document.toObject(FireStoreDirectoryEntry.class))
-                            .collect(Collectors.toList());
+                    Query query = dirColl.whereEqualTo("path", dirPath);
+                    FireStoreBatchQueryIterator queryIterator =
+                        new FireStoreBatchQueryIterator(query, batchSize, xn);
+
+                    List<FireStoreDirectoryEntry> entryList = new ArrayList<>();
+                    for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
+                         batch != null;
+                         batch = queryIterator.getBatch()) {
+
+                        for (DocumentSnapshot docSnap : batch) {
+                            FireStoreDirectoryEntry entry = docSnap.toObject(FireStoreDirectoryEntry.class);
+                            entryList.add(entry);
+                        }
+                    }
+
                     return entryList;
                 });
 

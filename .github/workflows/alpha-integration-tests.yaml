@@ -3,11 +3,16 @@ env:
   SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-account.json
   GOOGLE_SA_CERT: /tmp/jade-account.pem
-  GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
+  GOOGLE_PROJECTID: terra-datarepo-alpha
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   GOOGLE_CLOUD_ZONE: us-central1
   CLUSTER_NAMESPACE: terra-alpha
   CLUSTER_NAME: jade-master-us-central1
+  IT_JADE_API_URL: https://data.alpha.envs-terra.bio
+  PGHOST: 127.0.0.1
+  PGPORT: 5432
+  IT_JADE_PEM_FILE_NAME: /tmp/jade-account.pem
+
 on:
   # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}

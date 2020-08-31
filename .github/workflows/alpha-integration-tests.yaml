@@ -8,8 +8,6 @@ env:
   GOOGLE_CLOUD_ZONE: us-central1
   CLUSTER_NAMESPACE: terra-alpha
   CLUSTER_NAME: jade-master-us-central1
-  PGHOST: 127.0.0.1
-  PGPORT: ${{ job.services.postgres.ports[5432] }}
 on:
   # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}

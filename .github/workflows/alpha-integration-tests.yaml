@@ -9,8 +9,8 @@ env:
   IT_JADE_API_URL: https://data.alpha.envs-terra.bio
   PGHOST: 127.0.0.1
   PGPORT: 5432
-  DB_DATAREPO_URI: "jdbc:postgresql://${PGHOST}:5432/datarepo"
-  DB_STAIRWAY_URI: "jdbc:postgresql://${PGHOST}:5432/stairway"
+  DB_STAIRWAY_URI: jdbc:postgresql://datarepo-gcloud-sqlproxy.terra-alpha:5432/stairway
+  DB_DATAREPO_URI: jdbc:postgresql://datarepo-gcloud-sqlproxy.terra-alpha:5432/datarepo
 
 on:
   # Jenkins will kick this job off manually after Alpha is deployed

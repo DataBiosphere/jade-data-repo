@@ -61,6 +61,7 @@ jobs:
         psql -U postgres -f ./db/create-data-repo-db
         # run integration tests
         ./gradlew assemble
+        ./gradlew check --scan
         ./gradlew testIntegration --scan
 
     - name: Dump docker logs on failure

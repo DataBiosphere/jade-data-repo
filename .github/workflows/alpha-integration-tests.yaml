@@ -1,8 +1,8 @@
 name: DataRepo Alpha Integration Tests
 env:
   SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
-  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-account.json
-  GOOGLE_SA_CERT: /tmp/jade-account.pem
+  GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS}
+  GOOGLE_SA_CERT: ${GOOGLE_SA_CERT}
   GOOGLE_PROJECTID: terra-datarepo-alpha
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   GOOGLE_CLOUD_ZONE: us-central1
@@ -11,7 +11,7 @@ env:
   IT_JADE_API_URL: https://data.alpha.envs-terra.bio
   PGHOST: 127.0.0.1
   PGPORT: 5432
-  IT_JADE_PEM_FILE_NAME: /tmp/jade-account.pem
+  IT_JADE_PEM_FILE_NAME: ${GOOGLE_SA_CERT}
 
 on:
   # Jenkins will kick this job off manually after Alpha is deployed
@@ -51,18 +51,13 @@ jobs:
         base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
         jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
-        # psql -U postgres -f ./db/create-data-repo-db
+        ls -al
+        pg_isready -h 127.0.0.1 -p 5432
 
         # run integration tests
         ./gradlew assemble
         ./gradlew testIntegration --scan
 
-    - name: "Restore original authenticated IP list"
-      if: always()
-      run: |
-        gcloud container clusters update ${CLUSTER_NAME} \
-          --enable-master-authorized-networks \
-          --master-authorized-networks ${RESTORE_IPS}
     - name: "Notify Slack"
 #      if: always()
       uses: broadinstitute/action-slack@v2

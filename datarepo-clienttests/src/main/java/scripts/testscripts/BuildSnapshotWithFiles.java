@@ -3,6 +3,9 @@ package scripts.testscripts;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
@@ -47,6 +50,7 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
       for (int i = 2; i < parameters.size(); i++) {
         batchSizes.add(Integer.parseInt(parameters.get(i)));
       }
+      logger.info("Load {} files; create {} snapshots", filesToLoad, snapshotsToCreate);
     }
   }
 

@@ -132,7 +132,9 @@ public class FireStoreDaoTest {
 
         // Compute the size and checksums
         FireStoreDirectoryEntry topDir = directoryDao.retrieveByPath(firestore, snapshotId, "/");
-        dao.computeDirectory(firestore, snapshotId, topDir);
+        List<FireStoreDirectoryEntry> updateBatch = new ArrayList<>();
+        dao.computeDirectory(firestore, snapshotId, topDir, updateBatch);
+        directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
 
         // Check the accumulated size on the root dir
         FireStoreDirectoryEntry snapObject = directoryDao.retrieveByPath(firestore, snapshotId, "/");

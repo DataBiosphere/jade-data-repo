@@ -5,10 +5,10 @@ import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoInvalidUriException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
-import bio.terra.service.filedata.FSItem;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.resourcemanagement.DataLocationService;
@@ -19,6 +19,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,28 +30,34 @@ import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
 @Component
 public class GcsPdao {
     private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
-    private static final int DATASET_DELETE_BATCH_SIZE = 1000;
 
     private final GcsProjectFactory gcsProjectFactory;
     private final DataLocationService dataLocationService;
     private final FireStoreDao fileDao;
     private final ApplicationContext applicationContext;
+    private final ConfigurationService configurationService;
 
     @Autowired
     public GcsPdao(
         GcsProjectFactory gcsProjectFactory,
         DataLocationService dataLocationService,
         FireStoreDao fileDao,
-        ApplicationContext applicationContext) {
+        ApplicationContext applicationContext,
+        ConfigurationService configurationService) {
         this.gcsProjectFactory = gcsProjectFactory;
         this.dataLocationService = dataLocationService;
         this.fileDao = fileDao;
         this.applicationContext = applicationContext;
+        this.configurationService = configurationService;
     }
 
     public Storage storageForBucket(GoogleBucketResource bucketResource) {
@@ -231,13 +238,28 @@ public class GcsPdao {
         Acl.Group readerGroup = new Acl.Group(readersPolicyEmail);
         Acl acl = Acl.newBuilder(readerGroup, Acl.Role.READER).build();
 
-        for (String fileId : fileIds) {
-            FSItem fsItem = fileDao.retrieveById(dataset, fileId, 0, true);
-            if (fsItem instanceof FSFile) {
-                FSFile fsFile = (FSFile) fsItem;
-                GoogleBucketResource bucketForFile = dataLocationService.lookupBucket(fsFile.getBucketResourceId());
+        Map<String, GoogleBucketResource> bucketCache = new HashMap<>();
+
+        int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
+        List<List<String>> batches = ListUtils.partition(fileIds, batchSize);
+        logger.info("operation {} on {} file ids, in {} batches of {}",
+            op.name(), fileIds.size(), batches.size(), batchSize);
+
+        int count = 0;
+        for (List<String> batch : batches) {
+            logger.info("operation {} batch {}", op.name(), count);
+            count++;
+
+            List<FSFile> files = fileDao.batchRetrieveById(dataset, batch, 0, true);
+            for (FSFile file : files) {
+                // Cache the bucket resources to avoid repeated database lookups
+                GoogleBucketResource bucketForFile = bucketCache.get(file.getBucketResourceId());
+                if (bucketForFile == null) {
+                    bucketForFile = dataLocationService.lookupBucket(file.getBucketResourceId());
+                    bucketCache.put(file.getBucketResourceId(), bucketForFile);
+                }
                 Storage storage = storageForBucket(bucketForFile);
-                URI gsUri = URI.create(fsFile.getGspath());
+                URI gsUri = URI.create(file.getGspath());
                 String bucketPath = StringUtils.removeStart(gsUri.getPath(), "/");
                 BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
                 switch (op) {

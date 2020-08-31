@@ -47,7 +47,7 @@ jobs:
       run: |
         # write vault tokens
         base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > jade-dev-account.json
-        jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > jade-dev-account.pem
+        jq -r .private_key jade-dev-account.json > jade-dev-account.pem
 
         export IT_JADE_PEM_FILE_NAME=jade-dev-account.pem
         export GOOGLE_APPLICATION_CREDENTIALS=jade-dev-account.json

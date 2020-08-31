@@ -48,14 +48,12 @@ jobs:
         base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
         jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
-#        psql -U postgres -f ./db/create-data-repo-db
+        # psql -U postgres -f ./db/create-data-repo-db
 
         # run integration tests
         ./gradlew assemble
         ./gradlew testIntegration --scan
 
-        # stop the port forwarding
-        pkill kubectl
     - name: "Restore original authenticated IP list"
       if: always()
       run: |

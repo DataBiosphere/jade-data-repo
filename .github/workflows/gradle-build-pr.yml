@@ -160,7 +160,7 @@ jobs:
           always_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Run Perf test via Gradle"
+      - name: "Run Perf smoke test via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:
           actions_subcommand: 'gradleinttest'

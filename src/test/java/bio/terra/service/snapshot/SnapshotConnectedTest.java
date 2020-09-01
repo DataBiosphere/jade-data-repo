@@ -152,7 +152,7 @@ public class SnapshotConnectedTest {
 
     @Test
     public void testRowIdsHappyPath() throws Exception {
-        snapshotHappyPathTestingHelper("snapshot-row-ids-test-snapshot-test.json");
+        snapshotHappyPathTestingHelper("snapshot-row-ids-test-snapshot.json");
     }
 
     @Test
@@ -222,12 +222,9 @@ public class SnapshotConnectedTest {
         connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
 
-        // use big snapshot request from the GCS bucket
-        // TODO RORI
+        // TODO put big snapshot request into a GCS bucket
         SnapshotRequestModel snapshotRequestScale = makeSnapshotTestRequest(datasetSummary,
-            "snapshot-row-ids-test-snapshot-test.json");
-
-
+            "hca-mvp-analysis-file-row-ids-snapshot.json");
 
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequestScale, "");
         SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequestScale, response);

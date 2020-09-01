@@ -131,7 +131,7 @@ jobs:
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
           k8_cluster: ${{ env.k8_cluster }}
-      - name: "Check for an availble namespace to deploy API to and set state lock"
+      - name: "Check for an available namespace to deploy API to and set state lock"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:
           actions_subcommand: 'k8_checknamespace'
@@ -142,6 +142,10 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:
           actions_subcommand: 'gradlebuild'
+          # TODO: Following variables should not be needed in final version
+          always_auth: 1
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Deploy to cluster with Helm"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:
@@ -153,6 +157,9 @@ jobs:
           helm_oidc_proxy_chart_version: '0.0.9'
           # TODO: Following variables should not be needed in final version
           k8_cluster: ${{ env.k8_cluster }}
+          always_auth: 1
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Run Perf test via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:

@@ -13,8 +13,8 @@ import java.time.format.DateTimeFormatter;
 
 public class StairwayLoggingHooks implements StairwayHook {
     private static final String FlightLogFormat = "Operation: {}, flightClass: {}, flightId: {}, timestamp: {}";
-    private static final String StepLogFormat = "Operation: {}, flightClass: {}, flightId: {}, stepIndex: {}," +
-        "timestamp: {}";
+    private static final String StepLogFormat = "Operation: {}, flightClass: {}, flightId: {}, stepClass: {}, " +
+        "stepIndex: {}, direction: {}, timestamp: {}";
     private static final Logger logger = LoggerFactory.getLogger(StairwayHook.class);
 
     private PerformanceLogger performanceLogger;
@@ -35,7 +35,8 @@ public class StairwayLoggingHooks implements StairwayHook {
     @Override
     public HookAction startStep(FlightContext context) {
         logger.info(StepLogFormat, "startStep", context.getFlightClassName(), context.getFlightId(),
-            context.getStepIndex(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
+            context.getStepClassName(), context.getStepIndex(), context.getDirection().name(),
+            Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
         performanceLogger.timerStart("stairwayStep" + context.getFlightId());
         return HookAction.CONTINUE;
     }
@@ -51,7 +52,8 @@ public class StairwayLoggingHooks implements StairwayHook {
     @Override
     public HookAction endStep(FlightContext context) {
         logger.info(StepLogFormat, "endStep", context.getFlightClassName(), context.getFlightId(),
-            context.getStepIndex(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
+            context.getStepClassName(), context.getStepIndex(), context.getDirection().name(),
+            Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
         performanceLogger.timerEndAndLog("stairwayStep" + context.getFlightId(), context.getFlightId(),
             context.getFlightClassName(), "endStep", context.getStepIndex());
         return HookAction.CONTINUE;

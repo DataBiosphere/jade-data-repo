@@ -90,7 +90,7 @@ public final class KubernetesClientUtils {
     namespace = server.namespace;
 
     // path to kubeconfig file, that was just created/updated by gcloud get-credentials above
-    String kubeConfigPath = /*System.getProperty("user.home") + */"/github/home/.kube/config";
+    String kubeConfigPath = /*System.getProperty("user.home") + */ "/github/home/.kube/config";
 
     // load the kubeconfig object from the file
     InputStreamReader filereader =

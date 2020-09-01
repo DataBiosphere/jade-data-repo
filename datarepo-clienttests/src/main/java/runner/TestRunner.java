@@ -373,6 +373,7 @@ public class TestRunner {
         testScript.userJourney(testUser);
       } catch (Exception ex) {
         result.exceptionThrown = ex;
+        logger.debug("exception: {}, {}", ex.getMessage(), ex.getStackTrace());
       }
       result.elapsedTimeNS = System.nanoTime() - startTime;
 

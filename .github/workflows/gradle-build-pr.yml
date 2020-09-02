@@ -183,11 +183,10 @@ jobs:
           always_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Run Perf smoke test via Gradle"
+      - name: "Run Test Runner smoke tests via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-testing-branch
         with:
-          actions_subcommand: 'gradleperfsmoketest'
-          # pgport: ${{ job.services.postgres.ports[5432] }}
+          actions_subcommand: 'gradletestrunnersmoketest'
           # TODO: Following variables should not be needed in final version
           always_auth: 1
           role_id: ${{ secrets.ROLE_ID }}

@@ -135,7 +135,7 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-run-perf-test
         with:
           actions_subcommand: 'k8_checknamespace'
-          k8_namespaces: 'integration-6'
+          k8_namespaces: 'integration-2'
           # TODO: Following variables should not be needed in final version.
           k8_cluster: ${{ env.k8_cluster }}
       - name: "Build docker container via Gradle"

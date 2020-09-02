@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo $HOME/.kube/config
+
 clusterShortName=$1
 region=$2
 project=$3
@@ -28,5 +30,4 @@ gcloud container clusters get-credentials $clusterShortName --region $region --p
 
 gcloud config set container/use_application_default_credentials $originalConfigVal
 gcloud config get-value container/use_application_default_credentials
-echo $HOME/.kube/config
 cat $HOME/.kube/config

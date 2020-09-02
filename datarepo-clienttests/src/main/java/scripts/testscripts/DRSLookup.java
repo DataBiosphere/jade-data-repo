@@ -40,10 +40,22 @@ public class DRSLookup extends SimpleDataset {
 
   private String testConfigGetIngestbucket;
   private String dirObjectId;
+  private Integer countDRSObjsToLookUp;
+
+  public void setParameters(List<String> parameters) throws Exception {
+    if (parameters == null || parameters.size() == 0) {
+      throw new IllegalArgumentException(
+          "Must provide a count for the number of DRS lookups to do");
+    } else countDRSObjsToLookUp = 50;
+    // countDRSObjsToLookUp = Integer.parseInt(parameters.get(0));
+    logger.debug("Number of DRS objs to look up: {}", countDRSObjsToLookUp);
+  }
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // create the profile and dataset
     super.setup(testUsers);
+
+    // DRSObjsToLookUp
 
     // get the ApiClient for the snapshot creator, same as the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
@@ -147,12 +159,16 @@ public class DRSLookup extends SimpleDataset {
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
-    DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
-    logger.debug(
-        "Successfully retrieved drs object: {}, with id: {} and data project: {}",
-        object.getName(),
-        dirObjectId,
-        snapshotModel.getDataProject());
+
+    // use the parameter for the # of objects to look up!
+    for (int i = 0; i < countDRSObjsToLookUp; i++) {
+      DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
+      logger.debug(
+          "Successfully retrieved drs object: {}, with id: {} and data project: {}",
+          object.getName(),
+          dirObjectId,
+          snapshotModel.getDataProject());
+    }
   }
 
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {

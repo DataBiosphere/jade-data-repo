@@ -19,7 +19,7 @@ then
   echo "project cannot be empty"
   exit 1
 fi
-echo $(pwd)
+
 originalConfigVal=$(gcloud config get-value container/use_application_default_credentials)
 gcloud config set container/use_application_default_credentials True
 gcloud config get-value container/use_application_default_credentials
@@ -28,7 +28,5 @@ gcloud container clusters get-credentials $clusterShortName --region $region --p
 
 gcloud config set container/use_application_default_credentials $originalConfigVal
 gcloud config get-value container/use_application_default_credentials
-
-echo "datarepo-clienttests fetch GKE Credentials"
-echo $(pwd)
-cat /.kube/config
+echo $HOME/.kube/config
+cat $HOME/.kube/config

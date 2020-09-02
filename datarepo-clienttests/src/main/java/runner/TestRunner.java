@@ -275,7 +275,6 @@ public class TestRunner {
             result = new UserJourneyResult(testScriptSpecification.name, "");
             result.completed = false;
             result.exceptionThrown = execEx;
-            logger.debug("Exception: {}", execEx.getMessage());
           }
         else {
           // user journey either was never started or got cancelled before it finished
@@ -373,7 +372,6 @@ public class TestRunner {
         testScript.userJourney(testUser);
       } catch (Exception ex) {
         result.exceptionThrown = ex;
-        logger.debug("exception: {}, {}", ex.getMessage(), ex.getStackTrace());
       }
       result.elapsedTimeNS = System.nanoTime() - startTime;
 

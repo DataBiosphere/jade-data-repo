@@ -10,5 +10,4 @@ gcloud container clusters get-credentials dev-master --region us-central1 --proj
 
 gcloud config set container/use_application_default_credentials $originalConfigVal
 gcloud config get-value container/use_application_default_credentials
-echo "jade-data-repo fetch GKE Credentials"
 cat $HOME/.kube/config

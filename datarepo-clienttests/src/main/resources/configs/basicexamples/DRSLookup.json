@@ -1,6 +1,6 @@
 {
   "name": "DRSLookup",
-  "description": "Run DRS lookups on the file refs in a snapshot.",
+  "description": "Run 50 DRS lookups on a single file ref in a snapshot.",
   "serverSpecificationFile": "perf.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
@@ -10,6 +10,7 @@
   "testScripts": [
     {
       "name": "DRSLookup",
+      "parameters": [50],
       "totalNumberToRun": 1,
       "numberToRunInParallel": 3,
       "expectedTimeForEach": 20,

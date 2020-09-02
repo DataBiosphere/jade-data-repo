@@ -209,6 +209,36 @@ public class SnapshotConnectedTest {
     }
 
     @Test
+    public void snapshotRowIdsScaleTest() throws Exception {
+        // use the dataset already created in setup
+
+        // load add'l data rows into the dataset with rows from the GCS bucket
+        IngestRequestModel ingestRequest = new IngestRequestModel()
+            .table("thetable")
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .path("gs://jade-testdata/scratch/buildSnapshotWithRowIds/hca-mvp-analysis-file-row-ids-dataset-data.csv");
+
+        ingestRequest.csvSkipLeadingRows(1);
+        connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
+
+
+        // TODO put big snapshot request into a GCS bucket
+        SnapshotRequestModel snapshotRequestScale = makeSnapshotTestRequest(datasetSummary,
+            "hca-mvp-analysis-file-row-ids-snapshot.json");
+
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequestScale, "");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequestScale, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequestScale, datasetSummary);
+
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+
+    @Test
     public void testArrayStruct() throws Exception {
         DatasetSummaryModel datasetArraySummary = setupArrayStructDataset();
         String datasetName = PDAO_PREFIX + datasetArraySummary.getName();

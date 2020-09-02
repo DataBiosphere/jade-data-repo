@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo $HOME/.kube/config
-
 clusterShortName=$1
 region=$2
 project=$3

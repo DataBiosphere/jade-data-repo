@@ -33,6 +33,8 @@ import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_FATAL_
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX;
@@ -208,6 +210,8 @@ public class ConfigurationService {
         addParameter(LOAD_HISTORY_WAIT_SECONDS, appConfiguration.getLoadHistoryWaitSeconds());
         addParameter(FIRESTORE_SNAPSHOT_BATCH_SIZE, appConfiguration.getFirestoreSnapshotBatchSize());
         addParameter(FIRESTORE_SNAPSHOT_CACHE_SIZE, appConfiguration.getFirestoreSnapshotCacheSize());
+        addParameter(FIRESTORE_VALIDATE_BATCH_SIZE, appConfiguration.getFirestoreValidateBatchSize());
+        addParameter(FIRESTORE_QUERY_BATCH_SIZE, appConfiguration.getFirestoreQueryBatchSize());
 
         // -- Faults --
         addFaultSimple(CREATE_ASSET_FAULT);

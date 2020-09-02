@@ -34,6 +34,8 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testConnected'
+          # TODO: Following variables should not be needed in final version
+          always_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_integration:
@@ -75,6 +77,10 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-testing-branch
         with:
           actions_subcommand: 'gradlebuild'
+          # TODO: Following variables should not be needed in final version
+          always_auth: 1
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Deploy to cluster with Helm"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-testing-branch
         with:
@@ -84,24 +90,40 @@ jobs:
           helm_datarepo_ui_chart_version: '0.0.8'
           helm_gcloud_sqlproxy_chart_version: '0.19.7'
           helm_oidc_proxy_chart_version: '0.0.9'
+          # TODO: Following variables should not be needed in final version
+          always_auth: 1
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Run Integration test via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-testing-branch
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
+          # TODO: Following variables should not be needed in final version
+          always_auth: 1
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-testing-branch
         with:
           actions_subcommand: 'k8_checknamespace_clean'
           k8_cluster: ${{ env.k8_cluster }}
+          # TODO: Following variables should not be needed in final version
+          always_auth: 1
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-testing-branch
         with:
           actions_subcommand: 'gcp_whitelist_clean'
           k8_cluster: ${{ env.k8_cluster }}
+          # TODO: Following variables should not be needed in final version
+          always_auth: 1
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_perf:
     timeout-minutes: 180
     strategy:

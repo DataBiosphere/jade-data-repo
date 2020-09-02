@@ -94,6 +94,7 @@ jobs:
           always_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
+          k8_cluster: ${{ env.k8_cluster }}
       - name: "Run Integration test via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-testing-branch
         with:

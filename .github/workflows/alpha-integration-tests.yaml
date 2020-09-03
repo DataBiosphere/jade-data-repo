@@ -30,7 +30,34 @@ jobs:
     steps:
     - name: "Checkout code"
       uses: actions/checkout@v2
-    - name: "Import Vault secrets"
+    - name: "Import Vault alpha secrets"
+      id: vault
+      uses: hashicorp/vault-action@c8b383ee
+      with:
+        url: ${{ secrets.VAULT_ADDR }}
+        method: approle
+        roleId: ${{ secrets.ALPHA_ROLE_ID }}
+        secretId: ${{ secrets.ALPHA_SECRET_ID }}
+        secrets: |
+          secret/dsde/datarepo/alpha/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+          secret/dsde/datarepo/alpha/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
+          secret/dsde/datarepo/alpha/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
+    - name: "Perform IAM policy cleanup"
+      run: |
+        # write vault tokens
+        base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+        jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+
+        gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+        # clear policy members
+        BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_DATA_PROJECT} --format=json)
+        MEMBERS=$(echo ${BINDINGS} | jq -r '.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-"))')
+        for MEMBER in ${MEMBERS} ; do
+          echo "removing member: ${MEMBER}"
+          gcloud projects remove-iam-policy-binding ${GOOGLE_DATA_PROJECT} --member=${MEMBER} --role=roles/bigquery.jobUser > /dev/null 2>&1
+        done
+    - name: "Import Vault dev secrets"
       id: vault
       uses: hashicorp/vault-action@c8b383ee
       with:
@@ -47,16 +74,6 @@ jobs:
         # write vault tokens
         base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
         jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
-
-        gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
-
-        # clear policy members
-        BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_DATA_PROJECT} --format=json)
-        MEMBERS=$(echo ${BINDINGS} | jq -r '.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-"))')
-        for MEMBER in ${MEMBERS} ; do
-          echo "removing member: ${MEMBER}"
-          gcloud projects remove-iam-policy-binding ${GOOGLE_DATA_PROJECT} --member=${MEMBER} --role=roles/bigquery.jobUser > /dev/null 2>&1
-        done
 
         # check that postgres is ready
         pg_isready -h 127.0.0.1 -p 5432

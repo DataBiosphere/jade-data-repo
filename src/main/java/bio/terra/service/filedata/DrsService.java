@@ -73,17 +73,25 @@ public class DrsService {
     }
 
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
+
+        // Check in with Ruchi about what success looks like
+        // 1 DR manage can do x per second
+        // Is it linear -- or are we bottlenecked on SAM
+
+
+
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
         String snapshotId = drsId.getSnapshotId();
 
         // Make sure requester is a READER on the snapshot
+        // wrap with a timer
         samService.verifyAuthorization(
             authUser,
             IamResourceType.DATASNAPSHOT,
             snapshotId,
-            IamAction.READ_DATA);
+            IamAction.READ_DATA); // end wrap
 
-        int depth = (expand ? -1 : 1);
+        int depth = (expand ? -1 : 1); // just the basic one--if 0 indexed then
 
         FSItem fsObject = null;
         try {

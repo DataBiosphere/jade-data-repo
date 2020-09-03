@@ -1,6 +1,6 @@
 name: Integration test and Connected tests
 env:
-  k8_cluster: "integration-master"
+  K8_CLUSTER: "integration-master"
   GOOGLE_APPLICATION_CREDENTIALS: '/tmp/jade-dev-account.json'
   GOOGLE_SA_CERT: '/tmp/jade-dev-account.pem'
 on:
@@ -31,7 +31,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Run Connected test via Gradle"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -61,26 +61,24 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: ${{ env.k8_cluster }}
       - name: "Check for an availble namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'k8_checknamespace'
-          k8_cluster: ${{ env.k8_cluster }}
           k8_namespaces: 'integration-1,integration-2,integration-3'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradlebuild'
       - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'helmdeploy'
           helm_secret_chart_version: '0.0.4'
@@ -90,30 +88,26 @@ jobs:
           helm_oidc_proxy_chart_version: '0.0.9'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: ${{ env.k8_cluster }}
       - name: "Run Integration test via Gradle"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: ${{ env.k8_cluster }}
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'k8_checknamespace_clean'
-          k8_cluster: ${{ env.k8_cluster }}
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gcp_whitelist_clean'
-          k8_cluster: ${{ env.k8_cluster }}
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_perf:
@@ -139,29 +133,26 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: ${{ env.k8_cluster }}
       - name: "Check for an available namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-6'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: ${{ env.k8_cluster }}
       - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: ${{ env.k8_cluster }}
       - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'helmdeploy'
           helm_secret_chart_version: '0.0.5'
@@ -171,27 +162,23 @@ jobs:
           helm_oidc_proxy_chart_version: '0.0.9'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: ${{ env.k8_cluster }}
       - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: ${{ env.k8_cluster }}
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'k8_checknamespace_clean'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: ${{ env.k8_cluster }}
       - name: "Clean Whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions@0.18.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gcp_whitelist_clean'
-          k8_cluster: ${{ env.k8_cluster }}
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}

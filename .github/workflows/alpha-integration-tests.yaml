@@ -74,7 +74,7 @@ jobs:
         jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
         # check that postgres is ready
-        pg_isready -h 127.0.0.1 -p 5432
+        pg_isready -h ${PGHOST} -p 5432
         psql -U postgres -f ./db/create-data-repo-db
 
         # run integration tests

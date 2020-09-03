@@ -1,6 +1,5 @@
 name: DataRepo Alpha Integration Tests
 env:
-  SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_SA_CERT: /tmp/jade-dev-account.pem
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha

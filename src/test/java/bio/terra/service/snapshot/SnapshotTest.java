@@ -47,7 +47,7 @@ import static org.junit.Assert.assertThat;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles({"google", "integrationtest", "alpha"})
+@ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class SnapshotTest extends UsersBase {
     @Autowired

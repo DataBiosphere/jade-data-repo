@@ -46,7 +46,7 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@ActiveProfiles({"google", "integrationtest", "alpha"})
+@ActiveProfiles({"google", "integrationtest"})
 @AutoConfigureMockMvc
 @Category(Integration.class)
 public class FileTest extends UsersBase {

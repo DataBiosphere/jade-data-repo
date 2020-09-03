@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@ActiveProfiles({"google", "integrationtest", "alpha"})
+@ActiveProfiles({"google", "integrationtest"})
 @Component
 public class EncodeFixture {
     private static final Logger logger = LoggerFactory.getLogger(EncodeFixture.class);

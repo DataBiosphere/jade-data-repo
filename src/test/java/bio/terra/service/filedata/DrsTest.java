@@ -38,7 +38,7 @@ import static org.junit.Assert.assertTrue;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles({"google", "integrationtest", "alpha"})
+@ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class DrsTest extends UsersBase {
     private static final Logger logger = LoggerFactory.getLogger(DrsTest.class);

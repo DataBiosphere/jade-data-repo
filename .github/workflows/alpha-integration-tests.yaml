@@ -81,7 +81,7 @@ jobs:
         ./gradlew assemble
         ./gradlew testIntegration --scan
     - name: "Notify Slack"
-#      if: always()
+      if: always()
       uses: broadinstitute/action-slack@v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

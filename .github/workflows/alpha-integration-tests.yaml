@@ -5,12 +5,10 @@ env:
   GOOGLE_SA_CERT: jade-dev-account.pem
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
   GOOGLE_DATA_PROJECT: terra-datarepo-alpha-data
-  IT_JADE_API_URL: https://data.alpha.envs-terra.bio
   PGHOST: 127.0.0.1
-  PGPORT: 5432
+  PGPASSWORD: postgres
   DB_DATAREPO_URI: "jdbc:postgresql://${PGHOST}:5432/datarepo"
   DB_STAIRWAY_URI: "jdbc:postgresql://${PGHOST}:5432/stairway"
-  PGPASSWORD: postgres
 on:
   # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}

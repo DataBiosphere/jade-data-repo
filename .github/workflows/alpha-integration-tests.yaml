@@ -48,6 +48,8 @@ jobs:
         base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
         jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
+        gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
         # clear policy members
         BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_DATA_PROJECT} --format=json)
         MEMBERS=$(echo ${BINDINGS} | jq -r '.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-"))')

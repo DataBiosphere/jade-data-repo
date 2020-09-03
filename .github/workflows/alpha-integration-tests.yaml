@@ -4,7 +4,7 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_SA_CERT: /tmp/jade-dev-account.pem
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
-  GOOGLE_DATA_PROJECT: terra-datarepo-alpha-data
+  GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   IT_JADE_API_URL: https://data.alpha.envs-terra.bio
   PGHOST: 127.0.0.1
   PGPASSWORD: postgres
@@ -50,11 +50,11 @@ jobs:
         gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
         # clear policy members
-        BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_DATA_PROJECT} --format=json)
+        BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
         MEMBERS=$(echo ${BINDINGS} | jq -r '.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-"))')
         for MEMBER in ${MEMBERS} ; do
           echo "removing member: ${MEMBER}"
-          gcloud projects remove-iam-policy-binding ${GOOGLE_DATA_PROJECT} --member=${MEMBER} --role=roles/bigquery.jobUser > /dev/null 2>&1
+          gcloud projects remove-iam-policy-binding ${GOOGLE_CLOUD_DATA_PROJECT} --member=${MEMBER} --role=roles/bigquery.jobUser > /dev/null 2>&1
         done
     - name: "Import Vault dev secrets"
       uses: hashicorp/vault-action@c8b383ee
@@ -79,7 +79,7 @@ jobs:
 
         # run integration tests
         ./gradlew assemble
-        ./gradlew testIntegration --tests *DatasetIntegrationTest.testSoftDeleteNotInFullView --scan
+        ./gradlew testIntegration --scan
     - name: "Notify Slack"
 #      if: always()
       uses: broadinstitute/action-slack@v2

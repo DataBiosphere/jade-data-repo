@@ -10,6 +10,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
@@ -17,8 +18,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.commons.compress.archivers.ArchiveEntry;
+import org.apache.commons.compress.archivers.ArchiveOutputStream;
+import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
+import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
+import org.apache.commons.compress.utils.IOUtils;
 
 public final class FileUtils {
   private static ArrayList<String> createdScratchFiles;
@@ -114,6 +121,47 @@ public final class FileUtils {
       throw new RuntimeException("Creating new file failed: " + newFile.getAbsolutePath());
     }
     return newFile;
+  }
+
+  /**
+   * Compress a directory (tar.gz) and write the archive file to the give path.
+   *
+   * @param directoryToCompress the top-level directory to compress
+   * @param archiveFile the path to write the archive file to
+   */
+  public static void compressDirectory(Path directoryToCompress, Path archiveFile)
+      throws IOException {
+    // try with resources to make sure the streams get closed
+    try (OutputStream fileOS = Files.newOutputStream(archiveFile);
+        OutputStream gzipOS = new GzipCompressorOutputStream(fileOS);
+        ArchiveOutputStream tarOS = new TarArchiveOutputStream(gzipOS)) {
+
+      // get a list of all files under the output directory
+      LinkedList<Path> filesToArchive =
+          Files.walk(directoryToCompress).collect(Collectors.toCollection(LinkedList::new));
+
+      // loop through the files adding each one to the archive
+      while (!filesToArchive.isEmpty()) {
+        Path fileToArchive = filesToArchive.pop();
+
+        // no need to write directories to the archive explicitly
+        if (Files.isDirectory(fileToArchive)) {
+          continue;
+        }
+
+        // archive entry name should be the path relative to the top-level directory being archived
+        String entryName = directoryToCompress.relativize(fileToArchive).toString();
+
+        // create a new archive entry, copy over the file contents
+        ArchiveEntry entry = tarOS.createArchiveEntry(fileToArchive.toFile(), entryName);
+        tarOS.putArchiveEntry(entry);
+        try (InputStream fileIS = Files.newInputStream(fileToArchive)) {
+          IOUtils.copy(fileIS, tarOS);
+        }
+        tarOS.closeArchiveEntry();
+      }
+      tarOS.finish();
+    }
   }
 
   /**

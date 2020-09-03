@@ -2,6 +2,7 @@ name: Integration test and Connected tests
 env:
   k8_cluster: "integration-master"
   GOOGLE_APPLICATION_CREDENTIALS: '/tmp/jade-dev-account.json'
+  GOOGLE_SA_CERT: '/tmp/jade-dev-account.pem'
 on:
   pull_request:
     branches:
@@ -202,7 +203,7 @@ jobs:
           always_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Clean whitelisted Runner IP"
+      - name: "Clean Whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-testing-branch
         with:

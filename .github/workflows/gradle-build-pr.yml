@@ -1,6 +1,7 @@
 name: Integration test and Connected tests
 env:
   k8_cluster: "integration-master"
+  GOOGLE_APPLICATION_CREDENTIALS: '/tmp/jade-dev-account.json'
 on:
   pull_request:
     branches:

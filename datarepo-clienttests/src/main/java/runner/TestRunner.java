@@ -454,9 +454,9 @@ public class TestRunner {
     logger.info("Test run summary written to file: {}", runSummaryFile.getName());
   }
 
-  /** Returns a boolean indicating whether the method failed or not. */
-  public static boolean executeTestConfigurationOrSuite(
-      String configFileName, String outputParentDirName) throws Exception {
+  /** Returns a boolean indicating whether any test runs failed or not. */
+  public static boolean runTest(String configFileName, String outputParentDirName)
+      throws Exception {
     logger.info("==== READING IN TEST SUITE/CONFIGURATION(S) ====");
     // read in test suite and validate it
     TestSuite testSuite;
@@ -486,7 +486,6 @@ public class TestRunner {
 
       // get an instance of a runner and tell it to execute the configuration
       TestRunner runner = new TestRunner(testConfiguration);
-      Exception runnerEx = null;
       try {
         runner.executeTestConfiguration();
 
@@ -500,8 +499,8 @@ public class TestRunner {
             }
           }
         }
-      } catch (Exception ex) {
-        runnerEx = ex; // save exception to display after printing the results
+      } catch (Exception runnerEx) {
+        logger.error("Test Runner threw an exception", runnerEx);
       }
 
       logger.info("==== TEST RUN RESULTS ({}) {} ====", ctr + 1, testConfiguration.name);
@@ -515,10 +514,6 @@ public class TestRunner {
                 .toString();
       }
       runner.writeOutResults(outputDirName);
-
-      if (runnerEx != null) {
-        logger.error("Test Runner threw an exception", runnerEx);
-      }
     }
 
     return isFailure;
@@ -566,7 +561,7 @@ public class TestRunner {
     MeasurementCollector.collectMeasurements(
         measurementListFileName,
         outputDirName,
-        renderedTestConfig.server,
+        renderedTestConfig.serverSpecificationFile,
         testRunSummary.startUserJourneyTime,
         testRunSummary.endUserJourneyTime);
   }

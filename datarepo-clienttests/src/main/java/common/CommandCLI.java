@@ -8,9 +8,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import runner.TestRunner;
-import runner.config.ServerSpecification;
 import runner.config.TestConfiguration;
 import runner.config.TestSuite;
+import uploader.ResultUploader;
 
 public class CommandCLI {
   public static final String ANSI_RESET = "\u001B[0m";
@@ -92,7 +92,7 @@ public class CommandCLI {
 
   public static void runTestMain(String[] args) throws Exception {
     if (args.length == 2) { // execute a test configuration or suite
-      boolean isFailure = TestRunner.executeTestConfigurationOrSuite(args[0], args[1]);
+      boolean isFailure = TestRunner.runTest(args[0], args[1]);
       if (isFailure) {
         System.exit(1);
       }
@@ -112,9 +112,18 @@ public class CommandCLI {
       String serverFileName = args[2];
       String startTimestamp = args[3];
       String endTimestamp = args[4];
-      ServerSpecification server = ServerSpecification.fromJSONFile(serverFileName);
       MeasurementCollector.collectMeasurements(
-          measurementListFileName, outputDirName, server, startTimestamp, endTimestamp);
+          measurementListFileName, outputDirName, serverFileName, startTimestamp, endTimestamp);
+    } else { // if no args specified or invalid number of args specified, print help
+      printHelp();
+    }
+  }
+
+  public static void uploadResultsMain(String[] args) throws Exception {
+    if (args.length == 2) { // upload results
+      String uploadListFileName = args[0];
+      String outputDirName = args[1];
+      ResultUploader.uploadResults(uploadListFileName, outputDirName);
     } else { // if no args specified or invalid number of args specified, print help
       printHelp();
     }

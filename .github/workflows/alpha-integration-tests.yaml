@@ -1,10 +1,10 @@
 name: DataRepo Alpha Integration Tests
 env:
   SPRING_PROFILES_ACTIVE: google,cloudsql,alpha
-  GOOGLE_PROJECTID: terra-datarepo-alpha
+  GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
+  GOOGLE_SA_CERT: jade-dev-account.pem
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
-  GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
-  GOOGLE_CLOUD_ZONE: us-central1
+  GOOGLE_DATA_PROJECT: terra-datarepo-alpha-data
   IT_JADE_API_URL: https://data.alpha.envs-terra.bio
   PGHOST: 127.0.0.1
   PGPORT: 5432
@@ -46,8 +46,8 @@ jobs:
     - name: "Build and run alpha integration tests"
       run: |
         # write vault tokens
-        base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > jade-dev-account.json
-        jq -r .private_key jade-dev-account.json > jade-dev-account.pem
+        base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+        jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
         export IT_JADE_PEM_FILE_NAME=jade-dev-account.pem
         export GOOGLE_APPLICATION_CREDENTIALS=jade-dev-account.json

@@ -31,7 +31,6 @@ jobs:
     - name: "Checkout code"
       uses: actions/checkout@v2
     - name: "Import Vault alpha secrets"
-      id: vault
       uses: hashicorp/vault-action@c8b383ee
       with:
         url: ${{ secrets.VAULT_ADDR }}
@@ -58,7 +57,6 @@ jobs:
           gcloud projects remove-iam-policy-binding ${GOOGLE_DATA_PROJECT} --member=${MEMBER} --role=roles/bigquery.jobUser > /dev/null 2>&1
         done
     - name: "Import Vault dev secrets"
-      id: vault
       uses: hashicorp/vault-action@c8b383ee
       with:
         url: ${{ secrets.VAULT_ADDR }}

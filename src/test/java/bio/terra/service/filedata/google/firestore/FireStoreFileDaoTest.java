@@ -2,6 +2,13 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.StringListCompare;
+import bio.terra.model.ConfigFaultCountedModel;
+import bio.terra.model.ConfigFaultModel;
+import bio.terra.model.ConfigGroupModel;
+import bio.terra.model.ConfigModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
 import org.junit.Before;
@@ -45,11 +52,15 @@ public class FireStoreFileDaoTest {
     @Autowired
     private FireStoreUtils fireStoreUtils;
 
+    @Autowired
+    private ConfigurationService configurationService;
+
     private String datasetId;
     private Firestore firestore;
 
     @Before
     public void setup() throws Exception {
+        configurationService.reset();
         datasetId = UUID.randomUUID().toString();
         firestore = FirestoreOptions.getDefaultInstance().getService();
     }
@@ -108,6 +119,47 @@ public class FireStoreFileDaoTest {
             FireStoreFile existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, fileId);
             assertNull("File is deleted", existCheck);
         }
+    }
+
+    // Default settings of the thought should result in a retry failure
+    @Test(expected = FileSystemExecutionException.class)
+    public void faultRetrieveRetryFail() throws Exception {
+        configurationService.setFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT.name(), true);
+        FireStoreFile file1 = makeFile();
+        String objectId = file1.getFileId();
+
+        fileDao.createFileMetadata(firestore, datasetId, file1);
+        fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
+    }
+
+    @Test()
+    public void faultRetrieveRetrySuccess() throws Exception {
+        ConfigFaultCountedModel countedModel = new ConfigFaultCountedModel()
+            .skipFor(0)
+            .insert(5)
+            .rate(100)
+            .rateStyle(ConfigFaultCountedModel.RateStyleEnum.FIXED);
+
+        ConfigFaultModel configFaultModel = new ConfigFaultModel()
+            .enabled(true)
+            .faultType(ConfigFaultModel.FaultTypeEnum.COUNTED)
+            .counted(countedModel);
+
+        ConfigModel configModel = new ConfigModel()
+            .name(ConfigEnum.FIRESTORE_RETRIEVE_FAULT.name())
+            .configType(ConfigModel.ConfigTypeEnum.FAULT)
+            .fault(configFaultModel);
+
+        ConfigGroupModel configGroupModel = new ConfigGroupModel()
+            .label("faultRetrieveRetrySuccess")
+            .addGroupItem(configModel);
+        configurationService.setConfig(configGroupModel);
+
+        FireStoreFile file1 = makeFile();
+        String objectId = file1.getFileId();
+
+        fileDao.createFileMetadata(firestore, datasetId, file1);
+        fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
     }
 
     private FireStoreFile makeFile() {

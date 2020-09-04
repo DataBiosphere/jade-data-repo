@@ -302,7 +302,7 @@ public class FireStoreDirectoryDao {
             ApiFuture<DocumentSnapshot> docSnapFuture = xn.get(docRef);
             return docSnapFuture.get();
         } catch (AbortedException | ExecutionException ex) {
-            throw handleExecutionException("lookupByEntryPath", ex);
+            throw fireStoreUtils.handleExecutionException(ex, "lookupByEntryPath");
         }
     }
 
@@ -339,7 +339,7 @@ public class FireStoreDirectoryDao {
             return documents.get(0);
 
         } catch (AbortedException | ExecutionException ex) {
-            throw handleExecutionException("lookupByFileId", ex);
+            throw fireStoreUtils.handleExecutionException(ex, "lookupByFileId");
         }
     }
 
@@ -606,7 +606,7 @@ public class FireStoreDirectoryDao {
             ApiFuture<WriteResult> writeFuture = newRef.set(entry);
             writeFuture.get();
         } catch (AbortedException | ExecutionException ex) {
-            throw handleExecutionException("updateDirectoryEntry", ex);
+            throw fireStoreUtils.handleExecutionException(ex, "updateDirectoryEntry");
         }
     }
 
@@ -622,15 +622,8 @@ public class FireStoreDirectoryDao {
             ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
             return docSnapFuture.get();
         } catch (AbortedException | ExecutionException ex) {
-            throw handleExecutionException("lookupByPathNoXn", ex);
+            throw fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
         }
     }
 
-    private RuntimeException handleExecutionException(String info, Exception ex) {
-        Throwable cause = ex.getCause();
-        if ((ex instanceof AbortedException) || (cause instanceof AbortedException)) {
-            return new FileSystemAbortTransactionException(info + " - abort exception", ex);
-        }
-        return new FileSystemExecutionException(info + " - execution exception", ex);
-    }
 }

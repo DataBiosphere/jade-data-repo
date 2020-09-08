@@ -77,8 +77,6 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradlebuild'
-          always_gcloud_auth: 1
-          always_vault_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Deploy to cluster with Helm"
@@ -90,8 +88,6 @@ jobs:
           helm_datarepo_ui_chart_version: '0.0.8'
           helm_gcloud_sqlproxy_chart_version: '0.19.7'
           helm_oidc_proxy_chart_version: '0.0.9'
-          always_gcloud_auth: 1
-          always_vault_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Run Integration test via Gradle"
@@ -100,8 +96,6 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
-          always_gcloud_auth: 1
-          always_vault_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean state lock from used Namespace on API deploy"
@@ -109,8 +103,6 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'k8_checknamespace_clean'
-          always_gcloud_auth: 1
-          always_vault_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean whitelisted Runner IP"
@@ -161,8 +153,6 @@ jobs:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          always_gcloud_auth: 1
-          always_vault_auth: 1
       - name: "Deploy to cluster with Helm"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
@@ -178,8 +168,6 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
-          always_gcloud_auth: 1
-          always_vault_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean state lock from used Namespace on API deploy"
@@ -189,8 +177,6 @@ jobs:
           actions_subcommand: 'k8_checknamespace_clean'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          always_gcloud_auth: 1
-          always_vault_auth: 1
       - name: "Clean Whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth

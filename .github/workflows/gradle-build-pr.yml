@@ -161,7 +161,7 @@ jobs:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          always_gcloud_auth: 1
+          #always_gcloud_auth: 1
           always_vault_auth: 1
       - name: "Deploy to cluster with Helm"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
@@ -178,6 +178,8 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
+          always_gcloud_auth: 1
+          # always_vault_auth: 1
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean state lock from used Namespace on API deploy"

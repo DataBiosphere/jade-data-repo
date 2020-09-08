@@ -176,7 +176,9 @@ public class FileService {
     // -- snapshot lookups --
     public FileModel lookupSnapshotFile(String snapshotId, String fileId, int depth) {
         try {
-            return fileModelFromFSItem(lookupSnapshotFSItem(snapshotId, fileId, depth));
+            // note: this method only returns snapshots that are NOT exclusively locked
+            Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
+            return fileModelFromFSItem(lookupSnapshotFSItem(snapshot, fileId, depth));
         } catch (InterruptedException ex) {
             throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
         }
@@ -192,14 +194,12 @@ public class FileService {
         return fileModelFromFSItem(fsItem);
     }
 
-    // note: this method only returns snapshots that are NOT exclusively locked
-    FSItem lookupSnapshotFSItem(String snapshotId, String fileId, int depth) throws InterruptedException {
-        Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
+    FSItem lookupSnapshotFSItem(Snapshot snapshot, String fileId, int depth) throws InterruptedException {
         return fileDao.retrieveById(snapshot, fileId, depth, true);
     }
 
-    // note: this method only returns snapshots that are NOT exclusively locked
     FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth) throws InterruptedException {
+        // note: this method only returns snapshots that are NOT exclusively locked
         Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
         return fileDao.retrieveByPath(snapshot, path, depth, true);
     }

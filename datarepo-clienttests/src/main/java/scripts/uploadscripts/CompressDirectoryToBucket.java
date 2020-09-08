@@ -69,6 +69,7 @@ public class CompressDirectoryToBucket extends UploadScript {
         ByteStreams.copy(inputStream, Channels.newOutputStream(writer));
       }
     }
-    logger.info("Compressed directory written to bucket: {}", blobInfo.getName());
+    logger.info(
+        "Compressed directory written to bucket: {}/{}", blobInfo.getBucket(), blobInfo.getName());
   }
 }

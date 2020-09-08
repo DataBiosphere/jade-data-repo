@@ -10,7 +10,7 @@
     {
       "name": "SummariesToBigQueryJade",
       "description": "Write the summary results to BigQuery with the Jade schema.",
-      "parameters": ["broad-jade-testrunnerresults:test_runner_results"]
+      "parameters": ["broad-jade-testrunnerresults", "test_runner_results"]
     }
   ]
 }

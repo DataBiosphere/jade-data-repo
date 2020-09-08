@@ -94,7 +94,7 @@ public final class BigQueryUtils {
     String queryForRow =
         String.format(
             "SELECT 1 FROM %s WHERE %s = '%s' LIMIT %s", tableRef, fieldName, fieldValue, 1);
-    logger.info("queryForRow: {}", queryForRow);
+    logger.debug("queryForRow: {}", queryForRow);
 
     TableResult result = queryBigQuery(bigQueryClient, queryForRow);
     AtomicInteger numMatchedRows = new AtomicInteger();

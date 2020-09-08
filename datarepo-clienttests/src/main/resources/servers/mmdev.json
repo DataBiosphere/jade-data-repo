@@ -15,5 +15,5 @@
     "parameters": ["file:///Users/marikomedlock/Workspaces/datarepo-helm-definitions/dev/mm/datarepo-api.yaml"]
   },
   "skipDeployment": true,
-  "skipKubernetes": false
+  "skipKubernetes": true
 }

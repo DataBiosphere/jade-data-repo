@@ -20,7 +20,9 @@ import java.util.TimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.TestRunner;
+import runner.TestScriptResult;
 import runner.config.TestConfiguration;
+import runner.config.TestScriptSpecification;
 import uploader.UploadScript;
 
 public class SummariesToBigQueryJade extends UploadScript {
@@ -61,7 +63,7 @@ public class SummariesToBigQueryJade extends UploadScript {
    */
   public void uploadResults(Path outputDirectory) throws Exception {
     // get a BigQuery client object
-    logger.info("BigQuery project_id:dataset_name: {}:{}", projectId, datasetName);
+    logger.debug("BigQuery project_id:dataset_name: {}:{}", projectId, datasetName);
     BigQuery bigQueryClient = BigQueryUtils.getClient(projectId);
 
     // read in TestConfiguration TestRunSummary, and array of
@@ -90,10 +92,111 @@ public class SummariesToBigQueryJade extends UploadScript {
         entry.getValue().forEach(bqe -> logger.info("bqerror: {}", bqe.toString()));
       }
     }
+    logger.info("Test run summary written to: {}.{}.{}", projectId, datasetName, testRunTableName);
 
     // insert into testScriptResults
+    tableId = TableId.of(datasetName, testScriptResultsTableName);
+    InsertAllRequest.Builder request = InsertAllRequest.newBuilder(tableId);
+    for (int ctr = 0; ctr < renderedTestConfiguration.testScripts.size(); ctr++) {
+      TestScriptSpecification testScriptSpecification =
+          renderedTestConfiguration.testScripts.get(ctr);
+      TestScriptResult.TestScriptResultSummary testScriptResult =
+          testRunSummary.testScriptResultSummaries.get(ctr);
+      request.addRow(buildTestScriptResultsRow(testScriptSpecification, testScriptResult));
+    }
+    response = bigQueryClient.insertAll(request.build());
+    if (response.hasErrors()) {
+      logger.info("hasErrors is true");
+      // If any of the insertions failed, this lets you inspect the errors
+      for (Map.Entry<Long, List<BigQueryError>> entry : response.getInsertErrors().entrySet()) {
+        entry.getValue().forEach(bqe -> logger.info("bqerror: {}", bqe.toString()));
+      }
+    }
+    logger.info(
+        "Test script result summaries written to: {}.{}.{}",
+        projectId,
+        datasetName,
+        testScriptResultsTableName);
 
     // insert into measurementCollection
+    tableId = TableId.of(datasetName, measurementCollectionTableName);
+    request = InsertAllRequest.newBuilder(tableId);
+    for (MeasurementCollectionScript.MeasurementResultSummary measurementResult :
+        measurementCollectionSummaries) {
+      request.addRow(buildMeasurementCollectionRow(measurementResult));
+    }
+    response = bigQueryClient.insertAll(request.build());
+    if (response.hasErrors()) {
+      logger.info("hasErrors is true");
+      // If any of the insertions failed, this lets you inspect the errors
+      for (Map.Entry<Long, List<BigQueryError>> entry : response.getInsertErrors().entrySet()) {
+        entry.getValue().forEach(bqe -> logger.info("bqerror: {}", bqe.toString()));
+      }
+    }
+    logger.info(
+        "Measurement collection summaries written to: {}.{}.{}",
+        projectId,
+        datasetName,
+        measurementCollectionTableName);
+  }
+
+  /** Build a single row for each measurement collection. */
+  private Map<String, Object> buildMeasurementCollectionRow(
+      MeasurementCollectionScript.MeasurementResultSummary measurementResult) {
+    Map<String, Object> rowContent = new HashMap<>();
+
+    rowContent.put("testRun_id", testRunSummary.id);
+
+    rowContent.put("description", measurementResult.description);
+
+    rowContent.put("statistics_min", String.valueOf(measurementResult.statistics.min));
+    rowContent.put("statistics_max", String.valueOf(measurementResult.statistics.max));
+    rowContent.put("statistics_mean", String.valueOf(measurementResult.statistics.mean));
+    rowContent.put(
+        "statistics_standardDeviation",
+        String.valueOf(measurementResult.statistics.standardDeviation));
+    rowContent.put("statistics_median", String.valueOf(measurementResult.statistics.median));
+    rowContent.put(
+        "statistics_percentile95", String.valueOf(measurementResult.statistics.percentile95));
+    rowContent.put(
+        "statistics_percentile99", String.valueOf(measurementResult.statistics.percentile99));
+    rowContent.put("statistics_sum", String.valueOf(measurementResult.statistics.sum));
+
+    return rowContent;
+  }
+
+  /** Build a single row for each test script result. */
+  private Map<String, Object> buildTestScriptResultsRow(
+      TestScriptSpecification testScriptSpecification,
+      TestScriptResult.TestScriptResultSummary testScriptResult) {
+    Map<String, Object> rowContent = new HashMap<>();
+
+    rowContent.put("testRun_id", testRunSummary.id);
+
+    rowContent.put("name", testScriptSpecification.name);
+    rowContent.put("totalNumberToRun", testScriptSpecification.totalNumberToRun);
+    rowContent.put("numberToRunInParallel", testScriptSpecification.numberToRunInParallel);
+    rowContent.put("expectedTimeForEach", testScriptSpecification.expectedTimeForEach);
+    rowContent.put("expectedTimeForEachUnit", testScriptSpecification.expectedTimeForEachUnit);
+    rowContent.put("parameters", testScriptSpecification.parameters);
+
+    rowContent.put("description", testScriptResult.testScriptDescription);
+    rowContent.put("elapsedTime_min", testScriptResult.elapsedTimeStatistics.min);
+    rowContent.put("elapsedTime_max", testScriptResult.elapsedTimeStatistics.max);
+    rowContent.put("elapsedTime_mean", testScriptResult.elapsedTimeStatistics.mean);
+    rowContent.put(
+        "elapsedTime_standardDeviation", testScriptResult.elapsedTimeStatistics.standardDeviation);
+    rowContent.put("elapsedTime_median", testScriptResult.elapsedTimeStatistics.median);
+    rowContent.put("elapsedTime_percentile95", testScriptResult.elapsedTimeStatistics.percentile95);
+    rowContent.put("elapsedTime_percentile99", testScriptResult.elapsedTimeStatistics.percentile99);
+    rowContent.put("elapsedTime_sum", testScriptResult.elapsedTimeStatistics.sum);
+
+    rowContent.put("totalRun", testScriptResult.totalRun);
+    rowContent.put("numCompleted", testScriptResult.numCompleted);
+    rowContent.put("numExceptionsThrown", testScriptResult.numExceptionsThrown);
+    rowContent.put("isFailure", testScriptResult.isFailure);
+
+    return rowContent;
   }
 
   /** Build a single row for each test run. */

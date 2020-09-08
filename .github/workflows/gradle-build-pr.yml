@@ -3,6 +3,8 @@ env:
   K8_CLUSTER: "integration-master"
   GOOGLE_APPLICATION_CREDENTIALS: '/tmp/jade-dev-account.json'
   GOOGLE_SA_CERT: '/tmp/jade-dev-account.pem'
+  ROLE_ID: ${{ secrets.ROLE_ID }}
+  SECRET_ID: ${{ secrets.SECRET_ID }}
 on:
   pull_request:
     branches:
@@ -36,8 +38,6 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testConnected'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_integration:
     timeout-minutes: 180
     strategy:
@@ -64,23 +64,17 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gcp_whitelist'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Check for an availble namespace to deploy API to and set state lock"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-1,integration-2,integration-3'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Build docker container via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradlebuild'
           always_gcloud_auth: 1
           always_vault_auth: 1
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Deploy to cluster with Helm"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
@@ -92,8 +86,6 @@ jobs:
           helm_oidc_proxy_chart_version: '0.0.9'
           always_gcloud_auth: 1
           always_vault_auth: 1
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Run Integration test via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
@@ -102,8 +94,6 @@ jobs:
           test_to_run: 'testIntegration'
           always_gcloud_auth: 1
           always_vault_auth: 1
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
@@ -111,15 +101,11 @@ jobs:
           actions_subcommand: 'k8_checknamespace_clean'
           always_gcloud_auth: 1
           always_vault_auth: 1
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gcp_whitelist_clean'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_perf:
     timeout-minutes: 180
     strategy:
@@ -146,22 +132,16 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gcp_whitelist'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Check for an available namespace to deploy API to and set state lock"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-6'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Build docker container via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradlebuild'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-          #always_gcloud_auth: 1
+          always_gcloud_auth: 1
           always_vault_auth: 1
       - name: "Deploy to cluster with Helm"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
@@ -172,27 +152,19 @@ jobs:
           helm_datarepo_ui_chart_version: '0.0.9'
           helm_gcloud_sqlproxy_chart_version: '0.19.7'
           helm_oidc_proxy_chart_version: '0.0.9'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Run Test Runner smoke tests via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
           always_gcloud_auth: 1
-          # always_vault_auth: 1
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+          always_vault_auth: 1
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'k8_checknamespace_clean'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean Whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:
           actions_subcommand: 'gcp_whitelist_clean'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}

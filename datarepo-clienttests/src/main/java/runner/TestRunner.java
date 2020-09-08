@@ -1,14 +1,11 @@
 package runner;
 
-import collector.MeasurementCollector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import common.CommandCLI;
 import common.utils.FileUtils;
 import common.utils.KubernetesClientUtils;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,17 +29,17 @@ import runner.config.TestUserSpecification;
 public class TestRunner {
   private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);
 
-  TestConfiguration config;
-  List<TestScript> scripts;
-  DeploymentScript deploymentScript;
-  List<ThreadPoolExecutor> threadPools;
-  ThreadPoolExecutor disruptionThreadPool;
-  List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
+  private TestConfiguration config;
+  private List<TestScript> scripts;
+  private DeploymentScript deploymentScript;
+  private List<ThreadPoolExecutor> threadPools;
+  private ThreadPoolExecutor disruptionThreadPool;
+  private List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
 
-  List<TestScriptResult> testScriptResults;
-  TestRunSummary summary;
+  private List<TestScriptResult> testScriptResults;
+  protected TestRunSummary summary;
 
-  static long secondsToWaitForPoolShutdown = 60;
+  private static long secondsToWaitForPoolShutdown = 60;
 
   public static class TestRunSummary {
     public String id;
@@ -60,7 +57,7 @@ public class TestRunner {
     }
   }
 
-  TestRunner(TestConfiguration config) {
+  protected TestRunner(TestConfiguration config) {
     this.config = config;
     this.scripts = new ArrayList<>();
     this.threadPools = new ArrayList<>();
@@ -71,7 +68,7 @@ public class TestRunner {
     this.summary = new TestRunSummary(UUID.randomUUID().toString());
   }
 
-  void executeTestConfiguration() throws Exception {
+  protected void executeTestConfiguration() throws Exception {
     try {
       // set the start time for this test run
       summary.startTime = System.currentTimeMillis();
@@ -107,7 +104,7 @@ public class TestRunner {
     }
   }
 
-  void executeTestConfigurationNoGuaranteedCleanup() throws Exception {
+  private void executeTestConfigurationNoGuaranteedCleanup() throws Exception {
     // specify any value overrides in the Helm chart, then deploy
     if (!config.server.skipDeployment) {
       // get an instance of the deployment script class
@@ -316,7 +313,7 @@ public class TestRunner {
    *
    * @return the exception thrown, null if none
    */
-  Exception callTestScriptSetups() {
+  private Exception callTestScriptSetups() {
     for (TestScript testScript : scripts) {
       try {
         testScript.setup(config.testUsers);
@@ -335,7 +332,7 @@ public class TestRunner {
    *
    * @return the first exception thrown, null if none
    */
-  Exception callTestScriptCleanups() {
+  private Exception callTestScriptCleanups() {
     Exception exceptionThrown = null;
     for (TestScript testScript : scripts) {
       try {
@@ -351,7 +348,7 @@ public class TestRunner {
     return exceptionThrown;
   }
 
-  static class UserJourneyThread implements Callable<UserJourneyResult> {
+  private static class UserJourneyThread implements Callable<UserJourneyResult> {
     TestScript testScript;
     String userJourneyDescription;
     TestUserSpecification testUser;
@@ -379,7 +376,7 @@ public class TestRunner {
     }
   }
 
-  static class DisruptiveThread implements Runnable {
+  private static class DisruptiveThread implements Runnable {
     DisruptiveScript disruptiveScript;
     List<TestUserSpecification> testUsers;
     int waitBeforeStartingDisrupt = 15;
@@ -401,18 +398,18 @@ public class TestRunner {
     }
   }
 
-  void modifyKubernetesPostDeployment() throws Exception {
+  private void modifyKubernetesPostDeployment() throws Exception {
     logger.info(
         "Kubernetes: Setting the initial number of pods in the API deployment replica set to {}",
         config.kubernetes.numberOfInitialPods);
     KubernetesClientUtils.changeReplicaSetSizeAndWait(config.kubernetes.numberOfInitialPods);
   }
 
-  protected static final String renderedConfigFileName = "RENDERED_testConfiguration.json";
-  protected static final String userJourneyResultsFileName = "RAWDATA_userJourneyResults.json";
-  protected static final String runSummaryFileName = "SUMMARY_testRun.json";
+  private static final String renderedConfigFileName = "RENDERED_testConfiguration.json";
+  private static final String userJourneyResultsFileName = "RAWDATA_userJourneyResults.json";
+  private static final String runSummaryFileName = "SUMMARY_testRun.json";
 
-  void writeOutResults(String outputParentDirName) throws IOException {
+  protected void writeOutResults(String outputParentDirName) throws IOException {
     // use Jackson to map the object to a JSON-formatted text block
     ObjectMapper objectMapper = new ObjectMapper();
     ObjectWriter objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
@@ -452,6 +449,25 @@ public class TestRunner {
     // write the test run summary to a file
     objectWriter.writeValue(runSummaryFile, summary);
     logger.info("Test run summary written to file: {}", runSummaryFile.getName());
+  }
+
+  /**
+   * Read in the rendered test configuration from the output directory and return the
+   * TestConfiguration Java object.
+   */
+  public static TestConfiguration getRenderedTestConfiguration(Path outputDirectory)
+      throws Exception {
+    return FileUtils.readOutputFileIntoJavaObject(
+        outputDirectory, TestRunner.renderedConfigFileName, TestConfiguration.class);
+  }
+
+  /**
+   * Read in the test run summary from the output directory and return the TestRunner.TestRunSummary
+   * Java object.
+   */
+  public static TestRunner.TestRunSummary getTestRunSummary(Path outputDirectory) throws Exception {
+    return FileUtils.readOutputFileIntoJavaObject(
+        outputDirectory, TestRunner.runSummaryFileName, TestRunner.TestRunSummary.class);
   }
 
   /** Returns a boolean indicating whether any test runs failed or not. */
@@ -517,53 +533,6 @@ public class TestRunner {
     }
 
     return isFailure;
-  }
-
-  public static void collectMeasurementsForTestRun(
-      String measurementListFileName, String outputDirName) throws Exception {
-    // use Jackson to deserialize the stream contents
-    ObjectMapper objectMapper = new ObjectMapper();
-
-    // get a reference to the output files
-    Path outputDirectory = Paths.get(outputDirName);
-    File outputDirectoryFile = outputDirectory.toFile();
-    if (!outputDirectoryFile.exists()) {
-      throw new FileNotFoundException(
-          "Output directory not found: " + outputDirectoryFile.getAbsolutePath());
-    }
-    File renderedConfigFile = outputDirectory.resolve(TestRunner.renderedConfigFileName).toFile();
-    File runSummaryFile = outputDirectory.resolve(TestRunner.runSummaryFileName).toFile();
-
-    // read in the test config file
-    TestConfiguration renderedTestConfig;
-    try (FileInputStream inputStream = new FileInputStream(renderedConfigFile)) {
-      renderedTestConfig = objectMapper.readValue(inputStream, TestConfiguration.class);
-      inputStream.close();
-    }
-
-    // read in the test run summary file
-    TestRunner.TestRunSummary testRunSummary;
-    try (FileInputStream inputStream = new FileInputStream(runSummaryFile)) {
-      testRunSummary = objectMapper.readValue(inputStream, TestRunner.TestRunSummary.class);
-      inputStream.close();
-    }
-
-    if (renderedTestConfig.server.skipKubernetes) {
-      logger.warn(
-          "The skipKubernetes flag is not set, so there may be no measurements to collect.");
-    }
-    logger.info(
-        "Test run id: {}, configuration: {}, server: {}",
-        testRunSummary.id,
-        renderedTestConfig.name,
-        renderedTestConfig.server.name);
-
-    MeasurementCollector.collectMeasurements(
-        measurementListFileName,
-        outputDirName,
-        renderedTestConfig.serverSpecificationFile,
-        testRunSummary.startUserJourneyTime,
-        testRunSummary.endUserJourneyTime);
   }
 
   public static void main(String[] args) throws Exception {

@@ -28,6 +28,8 @@ public abstract class MeasurementCollectionScript<T> {
     public String description;
     public BasicStatistics statistics;
 
+    public MeasurementResultSummary() {}
+
     public MeasurementResultSummary(String description) {
       this.description = description;
     }

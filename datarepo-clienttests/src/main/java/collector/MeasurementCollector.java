@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import common.CommandCLI;
 import common.utils.FileUtils;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
@@ -15,19 +16,21 @@ import java.util.List;
 import java.util.TimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.TestRunner;
 import runner.config.ServerSpecification;
+import runner.config.TestConfiguration;
 
 public class MeasurementCollector {
   private static final Logger logger = LoggerFactory.getLogger(MeasurementCollector.class);
 
-  MeasurementList measurementList;
-  List<MeasurementCollectionScript.MeasurementResultSummary> summaries;
+  private MeasurementList measurementList;
+  private List<MeasurementCollectionScript.MeasurementResultSummary> summaries;
 
-  ServerSpecification server;
-  public long startTime = -1;
-  public long endTime = -1;
+  private ServerSpecification server;
+  private long startTime = -1;
+  private long endTime = -1;
 
-  MeasurementCollector(
+  protected MeasurementCollector(
       MeasurementList measurementList, ServerSpecification server, long startTime, long endTime) {
     this.measurementList = measurementList;
     this.summaries = new ArrayList<>();
@@ -37,11 +40,10 @@ public class MeasurementCollector {
     this.endTime = endTime;
   }
 
-  protected static final String measurementDataPointsFileName =
-      "RAWDATA_measurementDataPoints.json";
-  protected static final String measurementSummariesFileName = "SUMMARY_measurementCollection.json";
+  private static final String measurementDataPointsFileName = "RAWDATA_measurementDataPoints.json";
+  private static final String measurementSummariesFileName = "SUMMARY_measurementCollection.json";
 
-  public void executeMeasurementList(Path outputDirectory) throws Exception {
+  protected void executeMeasurementList(Path outputDirectory) throws Exception {
     // loop through the measurement script specifications
     for (MeasurementCollectionScriptSpecification specification :
         measurementList.measurementCollectionScripts) {
@@ -81,6 +83,18 @@ public class MeasurementCollector {
         FileUtils.createNewFile(outputDirectory.resolve(measurementSummariesFileName).toFile());
     objectWriter.writeValue(measurementSummariesFile, summaries);
     logger.info("Measurement summaries written to file: {}", measurementSummariesFile.getName());
+  }
+
+  /**
+   * Read in the measurement collection summaries from the output directory and return the array of
+   * MeasurementCollectionScript.MeasurementResultSummary Java objects.
+   */
+  public static MeasurementCollectionScript.MeasurementResultSummary[]
+      getMeasurementCollectionSummaries(Path outputDirectory) throws Exception {
+    return FileUtils.readOutputFileIntoJavaObject(
+        outputDirectory,
+        MeasurementCollector.measurementSummariesFileName,
+        MeasurementCollectionScript.MeasurementResultSummary[].class);
   }
 
   public static void collectMeasurements(
@@ -134,6 +148,37 @@ public class MeasurementCollector {
 
     collectMeasurements(
         measurementListFileName, outputDirName, serverFileName, startTimeMS, endTimeMS);
+  }
+
+  public static void collectMeasurementsForTestRun(
+      String measurementListFileName, String outputDirName) throws Exception {
+    // check that the output directory exists
+    Path outputDirectory = Paths.get(outputDirName);
+    if (!outputDirectory.toFile().exists()) {
+      throw new FileNotFoundException(
+          "Output directory not found: " + outputDirectory.toAbsolutePath());
+    }
+
+    // read in the test config and test run summary files
+    TestConfiguration renderedTestConfig = TestRunner.getRenderedTestConfiguration(outputDirectory);
+    TestRunner.TestRunSummary testRunSummary = TestRunner.getTestRunSummary(outputDirectory);
+
+    if (renderedTestConfig.server.skipKubernetes) {
+      logger.warn(
+          "The skipKubernetes flag is not set, so there may be no measurements to collect.");
+    }
+    logger.info(
+        "Test run id: {}, configuration: {}, server: {}",
+        testRunSummary.id,
+        renderedTestConfig.name,
+        renderedTestConfig.server.name);
+
+    MeasurementCollector.collectMeasurements(
+        measurementListFileName,
+        outputDirName,
+        renderedTestConfig.serverSpecificationFile,
+        testRunSummary.startUserJourneyTime,
+        testRunSummary.endUserJourneyTime);
   }
 
   public static void main(String[] args) throws Exception {

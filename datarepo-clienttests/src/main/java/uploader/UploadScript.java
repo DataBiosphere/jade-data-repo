@@ -1,6 +1,6 @@
 package uploader;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +23,7 @@ public abstract class UploadScript {
    * Upload the test results saved to the given directory. Results may include Test Runner
    * client-side output and any relevant measurements collected.
    */
-  public void uploadResults(File outputDirectory) throws Exception {
+  public void uploadResults(Path outputDirectory) throws Exception {
     throw new UnsupportedOperationException("uploadResults must be overridden by sub-classes");
   }
 }

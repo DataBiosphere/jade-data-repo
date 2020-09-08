@@ -1,0 +1,11 @@
+{
+  "name": "DemoList",
+  "description": "Demo upload list (MM)",
+  "uploadScripts": [
+    {
+      "name": "SummariesToBigQueryJade",
+      "description": "Write the summary results to BigQuery with the Jade schema.",
+      "parameters": ["broad-jade-testrunnerresults", "test_runner_results"]
+    }
+  ]
+}

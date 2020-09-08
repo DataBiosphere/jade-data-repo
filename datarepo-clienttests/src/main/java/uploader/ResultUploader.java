@@ -13,17 +13,15 @@ import uploader.config.UploadScriptSpecification;
 public class ResultUploader {
   private static final Logger logger = LoggerFactory.getLogger(ResultUploader.class);
 
-  UploadList uploadList;
+  private UploadList uploadList;
+  private Path outputDirectory;
 
-  File outputDirectory;
-
-  ResultUploader(UploadList uploadList, File outputDirectory) {
+  protected ResultUploader(UploadList uploadList, Path outputDirectory) {
     this.uploadList = uploadList;
-
     this.outputDirectory = outputDirectory;
   }
 
-  public void executeUploadList() throws Exception {
+  protected void executeUploadList() throws Exception {
     // loop through the upload script specifications
     for (UploadScriptSpecification specification : uploadList.uploadScripts) {
       // setup an instance of each upload script class
@@ -51,7 +49,7 @@ public class ResultUploader {
     }
 
     // get an instance of an uploader and tell it to execute the upload list
-    ResultUploader uploader = new ResultUploader(uploadList, outputDirectoryFile);
+    ResultUploader uploader = new ResultUploader(uploadList, outputDirectory);
     try {
       uploader.executeUploadList();
     } catch (Exception uplEx) {

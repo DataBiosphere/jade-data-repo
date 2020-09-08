@@ -105,7 +105,7 @@ public class CommandCLI {
     if (args.length == 2) { // collect measurements for a test run
       String measurementListFileName = args[0];
       String outputDirName = args[1];
-      TestRunner.collectMeasurementsForTestRun(measurementListFileName, outputDirName);
+      MeasurementCollector.collectMeasurementsForTestRun(measurementListFileName, outputDirName);
     } else if (args.length == 5) { // collect measurements for a time interval
       String measurementListFileName = args[0];
       String outputDirName = args[1];

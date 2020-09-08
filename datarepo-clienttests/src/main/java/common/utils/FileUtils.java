@@ -1,11 +1,13 @@
 package common.utils;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -161,6 +163,30 @@ public final class FileUtils {
         tarOS.closeArchiveEntry();
       }
       tarOS.finish();
+    }
+  }
+
+  /**
+   * Read a JSON-formatted file into a Java object using the Jackson object mapper.
+   *
+   * @param directory the directory where the file is
+   * @param fileName the file name
+   * @param javaObjectClass the Java object class
+   * @param <T> the Java object class to map the file contents to
+   * @return an instance of the Java object class
+   */
+  public static <T> T readOutputFileIntoJavaObject(
+      Path directory, String fileName, Class<T> javaObjectClass) throws Exception {
+    // get a reference to the file
+    File outputFile = directory.resolve(fileName).toFile();
+    if (!outputFile.exists()) {
+      return null;
+    }
+
+    // use Jackson to map the file contents to the TestConfiguration object
+    ObjectMapper objectMapper = new ObjectMapper();
+    try (FileInputStream inputStream = new FileInputStream(outputFile)) {
+      return objectMapper.readValue(inputStream, javaObjectClass);
     }
   }
 

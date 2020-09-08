@@ -6,7 +6,6 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import common.utils.FileUtils;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.channels.Channels;
@@ -44,19 +43,19 @@ public class CompressDirectoryToBucket extends UploadScript {
    * Upload the test results saved to the given directory. Results may include Test Runner
    * client-side output and any relevant measurements collected.
    */
-  public void uploadResults(File outputDirectory) throws Exception {
+  public void uploadResults(Path outputDirectory) throws Exception {
     // archive file path will be: outputDirectory parent directory + outputDirectory name + .tar.gz
-    Path outputDirectoryParent = outputDirectory.toPath().getParent();
+    Path outputDirectoryParent = outputDirectory.getParent();
     if (outputDirectoryParent == null) {
       throw new IllegalArgumentException(
           "Parent directory of the directory to compress is null: "
-              + outputDirectory.getAbsolutePath());
+              + outputDirectory.toAbsolutePath());
     }
-    String archiveFileName = outputDirectory.getName() + ".tar.gz";
+    String archiveFileName = outputDirectory.getFileName() + ".tar.gz";
     Path archiveFile = outputDirectoryParent.resolve(archiveFileName);
 
     // create the archive file locally
-    FileUtils.compressDirectory(outputDirectory.toPath(), archiveFile);
+    FileUtils.compressDirectory(outputDirectory, archiveFile);
     logger.info("Compressed directory written locally: {}", archiveFile.toAbsolutePath());
 
     // upload the archive file to a bucket

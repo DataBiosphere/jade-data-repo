@@ -80,7 +80,7 @@ class FireStoreFileDao {
     // We needed to add local retrying to this code path, because it is used in
     // computeDirectory inside of the create snapshot code. We do potentially thousands
     // of these calls inside that step, so retrying at the step level will not work;
-    // it would just redo the thousands of calls. Therefore, we retry here. (DR-1307
+    // it would just redo the thousands of calls. Therefore, we retry here. (DR-1307)
     FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileId)
         throws InterruptedException {
 

@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.TestRunner;
 import uploader.UploadScript;
 
 public class CompressDirectoryToBucket extends UploadScript {
@@ -44,14 +45,15 @@ public class CompressDirectoryToBucket extends UploadScript {
    * client-side output and any relevant measurements collected.
    */
   public void uploadResults(Path outputDirectory) throws Exception {
-    // archive file path will be: outputDirectory parent directory + outputDirectory name + .tar.gz
+    // archive file path will be: outputDirectory parent directory + test run id + .tar.gz
     Path outputDirectoryParent = outputDirectory.getParent();
     if (outputDirectoryParent == null) {
       throw new IllegalArgumentException(
           "Parent directory of the directory to compress is null: "
               + outputDirectory.toAbsolutePath());
     }
-    String archiveFileName = outputDirectory.getFileName() + ".tar.gz";
+    TestRunner.TestRunSummary testRunSummary = TestRunner.getTestRunSummary(outputDirectory);
+    String archiveFileName = testRunSummary.id + ".tar.gz";
     Path archiveFile = outputDirectoryParent.resolve(archiveFileName);
 
     // create the archive file locally

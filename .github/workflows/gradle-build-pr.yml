@@ -142,6 +142,8 @@ jobs:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
+      - name: "debug"
+        run: ls -al
       - name: "Check for an available namespace to deploy API to and set state lock"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-reauth
         with:

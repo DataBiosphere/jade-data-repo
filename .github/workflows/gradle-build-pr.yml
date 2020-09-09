@@ -79,8 +79,6 @@ jobs:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-      - name: "list items in tmp"
-        run: ls -al /tmp/
       - name: "Deploy to cluster with Helm"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
         with:

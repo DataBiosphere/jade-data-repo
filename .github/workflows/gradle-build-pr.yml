@@ -112,7 +112,7 @@ jobs:
           actions_subcommand: 'gcp_whitelist_clean'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-  deploy_test_perf:
+  deploy_test_runner_smoke_test:
     timeout-minutes: 180
     strategy:
       matrix:

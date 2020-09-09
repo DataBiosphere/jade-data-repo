@@ -78,7 +78,7 @@ jobs:
 
         # run integration tests
         ./gradlew assemble
-        ./gradlew testIntegration --scan
+        ./gradlew testIntegration --tests *SimpleScenarioFaultTests.testSamTimeout --scan
     - name: "Notify Slack"
       if: always()
       uses: broadinstitute/action-slack@v2

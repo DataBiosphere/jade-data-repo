@@ -19,13 +19,16 @@ public final class AuthenticationUtils {
 
   private static volatile GoogleCredentials applicationDefaultCredential;
   private static volatile GoogleCredentials serviceAccountCredential;
+  private static volatile GoogleCredentials testRunnerSACredential;
   private static Map<String, GoogleCredentials> delegatedUserCredentials =
       new ConcurrentHashMap<>();
 
   private static final Object lockApplicationDefaultCredential = new Object();
   private static final Object lockServiceAccountCredential = new Object();
 
-  private AuthenticationUtils() {}
+    public static final String testRunnerSAEnvVarName = "TEST_RUNNER_SERVICE_ACCOUNT_FILE";
+
+    private AuthenticationUtils() {}
 
   // the list of scopes we request from end users when they log in. this should always match exactly
   // what the UI requests, so our tests represent actual user behavior
@@ -89,6 +92,19 @@ public final class AuthenticationUtils {
     }
     return applicationDefaultCredential;
   }
+
+  public static GoogleCredentials getTestRunnerSACredentials() throws IOException {
+    String testRunnerSAFile = readTestRunnerSAEnvVariable();
+    if (testRunnerSAFile != null) {
+        return getServiceAccountCredential(sa);
+    }
+    return getApplicationDefaultCredential();
+  }
+
+  protected static String readTestRunnerSAEnvVariable() {
+      String testRunnerSAEnvVarValue = System.getenv(testRunnerSAEnvVarName);
+      return testRunnerSAEnvVarValue;
+    }
 
   public static AccessToken getAccessToken(GoogleCredentials credential) {
     try {

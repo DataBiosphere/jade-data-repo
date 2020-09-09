@@ -9,7 +9,6 @@ import com.google.monitoring.v3.ListTimeSeriesRequest;
 import com.google.monitoring.v3.ProjectName;
 import com.google.monitoring.v3.TimeInterval;
 import com.google.protobuf.util.Timestamps;
-import java.io.IOException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
@@ -30,9 +29,9 @@ public class MetricsUtils {
    * Build a Google Metrics client object with application default credentials. The client object is
    * newly created on each call to this method; it is not cached.
    */
-  public static MetricServiceClient getClient() throws IOException {
+  public static MetricServiceClient getClient() throws Exception {
     GoogleCredentials applicationDefaultCredentials =
-        AuthenticationUtils.getApplicationDefaultCredential();
+        AuthenticationUtils.getTestRunnerSACredentials();
     MetricServiceSettings metricServiceSettings =
         MetricServiceSettings.newBuilder()
             .setCredentialsProvider(FixedCredentialsProvider.create(applicationDefaultCredentials))
@@ -45,7 +44,7 @@ public class MetricsUtils {
   /** Request the raw metrics data points. */
   public static MetricServiceClient.ListTimeSeriesPagedResponse requestTimeSeriesDataPoints(
       ProjectName project, String filter, TimeInterval interval, Aggregation aggregation)
-      throws IOException {
+      throws Exception {
     MetricServiceClient metricServiceClient = getClient();
 
     ListTimeSeriesRequest.Builder requestBuilder =

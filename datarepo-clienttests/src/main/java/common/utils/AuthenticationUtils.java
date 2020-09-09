@@ -16,7 +16,6 @@ import runner.config.ServiceAccountSpecification;
 import runner.config.TestUserSpecification;
 
 public final class AuthenticationUtils {
-
   private static volatile GoogleCredentials applicationDefaultCredential;
   private static volatile GoogleCredentials serviceAccountCredential;
   private static volatile GoogleCredentials testRunnerSACredential;
@@ -25,10 +24,11 @@ public final class AuthenticationUtils {
 
   private static final Object lockApplicationDefaultCredential = new Object();
   private static final Object lockServiceAccountCredential = new Object();
+  private static final Object lockTestRunnerSACredential = new Object();
 
-    public static final String testRunnerSAEnvVarName = "TEST_RUNNER_SERVICE_ACCOUNT_FILE";
+  public static final String testRunnerSAEnvVarName = "TEST_RUNNER_SA_FILE";
 
-    private AuthenticationUtils() {}
+  private AuthenticationUtils() {}
 
   // the list of scopes we request from end users when they log in. this should always match exactly
   // what the UI requests, so our tests represent actual user behavior
@@ -93,18 +93,33 @@ public final class AuthenticationUtils {
     return applicationDefaultCredential;
   }
 
-  public static GoogleCredentials getTestRunnerSACredentials() throws IOException {
+  public static GoogleCredentials getTestRunnerSACredentials() throws Exception {
     String testRunnerSAFile = readTestRunnerSAEnvVariable();
     if (testRunnerSAFile != null) {
-        return getServiceAccountCredential(sa);
+      ServiceAccountSpecification testRunnerServiceAccount =
+          ServiceAccountSpecification.fromJSONFile(testRunnerSAFile);
+      testRunnerServiceAccount.validate();
+
+      if (testRunnerSACredential != null) {
+        return testRunnerSACredential;
+      }
+
+      synchronized (lockTestRunnerSACredential) {
+        File jsonKey = testRunnerServiceAccount.jsonKeyFile;
+        testRunnerSACredential =
+            ServiceAccountCredentials.fromStream(new FileInputStream(jsonKey))
+                .createScoped(
+                    Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+      }
+      return testRunnerSACredential;
     }
     return getApplicationDefaultCredential();
   }
 
   protected static String readTestRunnerSAEnvVariable() {
-      String testRunnerSAEnvVarValue = System.getenv(testRunnerSAEnvVarName);
-      return testRunnerSAEnvVarValue;
-    }
+    String testRunnerSAEnvVarValue = System.getenv(testRunnerSAEnvVarName);
+    return testRunnerSAEnvVarValue;
+  }
 
   public static AccessToken getAccessToken(GoogleCredentials credential) {
     try {

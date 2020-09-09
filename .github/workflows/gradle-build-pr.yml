@@ -3,6 +3,7 @@ env:
   K8_CLUSTER: "integration-master"
   GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
   GOOGLE_SA_CERT: 'jade-dev-account.pem'
+  TEST_RUNNER_DELEGATOR_SA_FILE: 'gihub-action-k8-sa.json'
 on:
   pull_request:
     branches:

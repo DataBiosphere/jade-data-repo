@@ -12,6 +12,7 @@ public class TestUserSpecification implements SpecificationInterface {
   public ServiceAccountSpecification delegatorServiceAccount;
 
   public static final String resourceDirectory = "testusers";
+  public static final String delegatorSAFileEnvironmentVarName = "TEST_RUNNER_DELEGATOR_SA_FILE";
 
   TestUserSpecification() {}
 
@@ -31,10 +32,24 @@ public class TestUserSpecification implements SpecificationInterface {
     TestUserSpecification testUser =
         objectMapper.readValue(inputStream, TestUserSpecification.class);
 
+    // read in the server file
+    String delegatorSaEnvVarOverride = readDelegatorSAFileEnvironmentVariable();
+    if (delegatorSaEnvVarOverride != null) {
+      testUser.delegatorServiceAccountFile = delegatorSaEnvVarOverride;
+    }
     testUser.delegatorServiceAccount =
         ServiceAccountSpecification.fromJSONFile(testUser.delegatorServiceAccountFile);
 
     return testUser;
+  }
+
+  protected static String readDelegatorSAFileEnvironmentVariable() {
+    // the server specification is determined by the following, in order:
+    //   1. environment variable
+    //   2. test suite server property
+    //   3. test configuration server property
+    String delegatorSAFileEnvironmentVarValue = System.getenv(delegatorSAFileEnvironmentVarName);
+    return delegatorSAFileEnvironmentVarValue;
   }
 
   /**

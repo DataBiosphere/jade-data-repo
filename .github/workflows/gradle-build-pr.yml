@@ -3,7 +3,6 @@ env:
   K8_CLUSTER: "integration-master"
   GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
   GOOGLE_SA_CERT: 'jade-dev-account.pem'
-  TEST_RUNNER_DELEGATOR_SA_FILE: 'gihub-action-k8-sa.json'
 on:
   pull_request:
     branches:
@@ -141,8 +140,6 @@ jobs:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-      - name: "debug"
-        run: ls -al
       - name: "Check for an available namespace to deploy API to and set state lock"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
         with:

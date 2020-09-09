@@ -68,8 +68,10 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "debug"
         run: ls -al
+      - name: "pwd"
+        run: pwd
       - name: "list items in tmp"
-        run: ls -al /github/workspace/tmp/
+        run: ls -al /tmp/
       - name: "Check for an availble namespace to deploy API to and set state lock"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
         with:

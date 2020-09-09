@@ -1,0 +1,26 @@
+[ {
+  "userJourneyResults" : [ {
+    "userJourneyDescription" : "DRSLookup: 50",
+    "threadName" : "pool-2-thread-1",
+    "completed" : true,
+    "elapsedTimeNS" : 17140327367,
+    "exceptionThrown" : null
+  } ],
+  "summary" : {
+    "testScriptDescription" : "DRSLookup: 50",
+    "elapsedTimeStatistics" : {
+      "min" : 17140.327367,
+      "max" : 17140.327367,
+      "mean" : 17140.327367,
+      "standardDeviation" : 0.0,
+      "median" : 17140.327367,
+      "percentile95" : 17140.327367,
+      "percentile99" : 17140.327367,
+      "sum" : 17140.327367
+    },
+    "totalRun" : 1,
+    "numCompleted" : 1,
+    "numExceptionsThrown" : 0,
+    "isFailure" : false
+  }
+} ]

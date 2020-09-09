@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
@@ -50,6 +51,7 @@ public class DrsService {
     private final DatasetService datasetService;
     private final IamService samService;
     private final DataLocationService locationService;
+    private final PerformanceLogger performanceLogger;
 
     @Autowired
     public DrsService(DatasetDao datasetDao,
@@ -60,7 +62,8 @@ public class DrsService {
                       GcsConfiguration gcsConfiguration,
                       DatasetService datasetService,
                       IamService samService,
-                      DataLocationService locationService) {
+                      DataLocationService locationService,
+                      PerformanceLogger performanceLogger) {
         this.datasetDao = datasetDao;
         this.snapshotDao = snapshotDao;
         this.fileDao = fileDao;
@@ -83,6 +86,8 @@ public class DrsService {
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
         String snapshotId = drsId.getSnapshotId();
 
+        String drsLookupTimer = performanceLogger.timerStart();
+
         // Make sure requester is a READER on the snapshot
         // wrap with a timer
         samService.verifyAuthorization(
@@ -91,7 +96,14 @@ public class DrsService {
             snapshotId,
             IamAction.READ_DATA); // end wrap
 
-        int depth = (expand ? -1 : 1); // just the basic one--if 0 indexed then
+        performanceLogger.timerEndAndLog(
+            drsLookupTimer,
+            drsObjectId, // questionable since normally this is a flight id
+            this.getClass().getName(),
+            "DrsService.lookupObjectByDrsId",
+            1);
+
+        int depth = (expand ? -1 : 1);
 
         FSItem fsObject = null;
         try {

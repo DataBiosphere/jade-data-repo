@@ -1,0 +1,24 @@
+{
+  "id" : "ac1e52c0-5fe5-466d-9cc0-82c5ea63a1de",
+  "startTime" : 1598992745117,
+  "startUserJourneyTime" : 1598992817853,
+  "endUserJourneyTime" : 1598992834995,
+  "endTime" : 1598992847082,
+  "testScriptResultSummaries" : [ {
+    "testScriptDescription" : "DRSLookup: 50",
+    "elapsedTimeStatistics" : {
+      "min" : 17140.327367,
+      "max" : 17140.327367,
+      "mean" : 17140.327367,
+      "standardDeviation" : 0.0,
+      "median" : 17140.327367,
+      "percentile95" : 17140.327367,
+      "percentile99" : 17140.327367,
+      "sum" : 17140.327367
+    },
+    "totalRun" : 1,
+    "numCompleted" : 1,
+    "numExceptionsThrown" : 0,
+    "isFailure" : false
+  } ]
+}

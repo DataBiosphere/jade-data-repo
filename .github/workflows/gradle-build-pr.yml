@@ -69,7 +69,7 @@ jobs:
       - name: "debug"
         run: ls -al
       - name: "list items in tmp"
-        run: ls -al /tmp/
+        run: ls -al /github/workspace/tmp/
       - name: "Check for an availble namespace to deploy API to and set state lock"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
         with:

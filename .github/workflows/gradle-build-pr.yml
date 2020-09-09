@@ -1,8 +1,8 @@
 name: Integration test and Connected tests
 env:
   K8_CLUSTER: "integration-master"
-  GOOGLE_APPLICATION_CREDENTIALS: '/tmp/jade-dev-account.json'
-  GOOGLE_SA_CERT: '/tmp/jade-dev-account.pem'
+  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+  GOOGLE_SA_CERT: 'jade-dev-account.pem'
 on:
   pull_request:
     branches:
@@ -66,12 +66,6 @@ jobs:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-      - name: "debug"
-        run: ls -al
-      - name: "pwd"
-        run: pwd
-      - name: "list items in tmp"
-        run: ls -al /tmp/
       - name: "Check for an availble namespace to deploy API to and set state lock"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
         with:

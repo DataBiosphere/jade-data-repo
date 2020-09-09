@@ -44,10 +44,9 @@ public class TestUserSpecification implements SpecificationInterface {
   }
 
   protected static String readDelegatorSAFileEnvironmentVariable() {
-    // the server specification is determined by the following, in order:
+    // the delegator SA File variable is determined by the following, in order:
     //   1. environment variable
-    //   2. test suite server property
-    //   3. test configuration server property
+    //   2. test user property
     String delegatorSAFileEnvironmentVarValue = System.getenv(delegatorSAFileEnvironmentVarName);
     return delegatorSAFileEnvironmentVarValue;
   }

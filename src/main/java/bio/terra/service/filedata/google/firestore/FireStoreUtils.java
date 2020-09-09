@@ -33,7 +33,7 @@ public class FireStoreUtils {
         }
     }
 
-    RuntimeException handleExecutionException(ExecutionException ex, String op) {
+    RuntimeException handleExecutionException(Throwable ex, String op) {
         // The ExecutionException wraps the underlying exception caught in the FireStore Future, so we need
         // to examine the properties of the cause to understand what to do.
         // Possible outcomes:
@@ -42,7 +42,7 @@ public class FireStoreUtils {
         // - RuntimeExceptions to expose other unexpected exceptions
         // - FileSystemExecutionException to wrap non-Runtime (oddball) exceptions
 
-        Throwable throwable = ex.getCause();
+        Throwable throwable = ex;
         while (throwable instanceof ExecutionException) {
             throwable = throwable.getCause();
         }

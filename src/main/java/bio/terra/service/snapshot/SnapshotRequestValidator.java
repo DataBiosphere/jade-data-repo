@@ -117,7 +117,8 @@ public class SnapshotRequestValidator implements Validator {
         if (description == null) {
             errors.rejectValue("description", "SnapshotDescriptionMissing");
         } else if (!ValidationUtils.isValidDescription(description)) {
-            errors.rejectValue("description", "SnapshotDescriptionTooLong");
+            errors.rejectValue("description", "SnapshotDescriptionTooLong",
+                "the snapshot description cannot be over 2048 characters");
         }
     }
 

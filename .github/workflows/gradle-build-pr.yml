@@ -70,7 +70,7 @@ jobs:
         uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
         with:
           actions_subcommand: 'k8_checknamespace'
-          k8_namespaces: 'integration-1,integration-2,integration-3'
+          k8_namespaces: 'integration-1,integration-2,integration-3, integration-6'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Build docker container via Gradle"
@@ -90,6 +90,12 @@ jobs:
           helm_oidc_proxy_chart_version: '0.0.9'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
+      - name: "Run Test Runner smoke tests via Gradle"
+        uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
+        with:
+          actions_subcommand: 'gradletestrunnersmoketest'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Run Integration test via Gradle"
         uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
         with:
@@ -106,78 +112,6 @@ jobs:
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Clean whitelisted Runner IP"
-        if: always()
-        uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
-        with:
-          actions_subcommand: 'gcp_whitelist_clean'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-  deploy_test_runner_smoke_test:
-    timeout-minutes: 180
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    #if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
-    runs-on: ${{ matrix.os }}
-    ## skips if pr label is 'skip-ci'
-    # run a local Postgres container in Docker for the basic check tests
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    steps:
-      - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
-        with:
-          actions_subcommand: 'gcp_whitelist'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Check for an available namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
-        with:
-          actions_subcommand: 'k8_checknamespace'
-          k8_namespaces: 'integration-6'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
-        with:
-          actions_subcommand: 'gradlebuild'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
-        with:
-          actions_subcommand: 'helmdeploy'
-          helm_secret_chart_version: '0.0.5'
-          helm_datarepo_api_chart_version: '0.0.18'
-          helm_datarepo_ui_chart_version: '0.0.9'
-          helm_gcloud_sqlproxy_chart_version: '0.19.7'
-          helm_oidc_proxy_chart_version: '0.0.9'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
-        with:
-          actions_subcommand: 'gradletestrunnersmoketest'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Clean state lock from used Namespace on API deploy"
-        if: always()
-        uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
-        with:
-          actions_subcommand: 'k8_checknamespace_clean'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Clean Whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions@sh-DR-1114-check-before-auth
         with:

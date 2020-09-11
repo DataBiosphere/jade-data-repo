@@ -32,23 +32,21 @@ public class TestUserSpecification implements SpecificationInterface {
     TestUserSpecification testUser =
         objectMapper.readValue(inputStream, TestUserSpecification.class);
 
-    // read in the server file
-    String delegatorSaEnvVarOverride = readDelegatorSAFileEnvironmentVariable();
+    // Delegator service account should have permission to act on behalf of the defined test user
+    // Which SA to use is determined by the following, in order:
+    //   if defined: 1. environment variable (TEST_RUNNER_DELEGATOR_SA_FILE) - uniform across test users
+    //   else: 2. test user property (delegatorServiceAccountFile) - specific to the test user
+    String delegatorSaEnvVarOverride = System.getenv(delegatorSAFileEnvironmentVarName);
     if (delegatorSaEnvVarOverride != null) {
-      testUser.delegatorServiceAccountFile = delegatorSaEnvVarOverride;
+        testUser.delegatorServiceAccountFile = delegatorSaEnvVarOverride;
+        testUser.delegatorServiceAccount =
+            ServiceAccountSpecification.fromJSONFile(delegatorSaEnvVarOverride);
+    } else {
+        testUser.delegatorServiceAccount =
+            ServiceAccountSpecification.fromJSONFile(testUser.delegatorServiceAccountFile);
     }
-    testUser.delegatorServiceAccount =
-        ServiceAccountSpecification.fromJSONFile(testUser.delegatorServiceAccountFile);
 
     return testUser;
-  }
-
-  protected static String readDelegatorSAFileEnvironmentVariable() {
-    // the delegator SA File variable is determined by the following, in order:
-    //   1. environment variable
-    //   2. test user property
-    String delegatorSAFileEnvironmentVarValue = System.getenv(delegatorSAFileEnvironmentVarName);
-    return delegatorSAFileEnvironmentVarValue;
   }
 
   /**

@@ -38,8 +38,7 @@ jobs:
       - name: "Publish to Artifactory"
         uses: broadinstitute/gradle-command-action@v1
         with:
-          build-root-directory: datarepo-client
-          arguments: artifactoryPublish
+          arguments: :datarepo-client:artifactoryPublish
         env:
           ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}

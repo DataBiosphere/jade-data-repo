@@ -1,4 +1,4 @@
-name: DataRepo Test Runner on Perf Tests
+name: Test Runner on Perf Tests
 env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_SA_CERT: /tmp/jade-dev-account.pem
@@ -6,10 +6,11 @@ env:
   GOOGLE_CLOUD_DATA_PROJECT: broad-jade-perf-data
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
 on:
-  schedule:
-    - cron: '0 2 * * *' # run at 2 AM UTC.
+  workflow_dispatch: {}
+  #schedule:
+  #  - cron: '0 2 * * *' # run at 2 AM UTC.
 jobs:
-  alpha-integration-test:
+  test-runner-perf:
     runs-on: ubuntu-latest
     # run a local Postgres container in Docker for the basic check tests
     services:

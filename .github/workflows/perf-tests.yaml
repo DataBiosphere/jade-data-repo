@@ -1,9 +1,10 @@
-name: DataRepo Perf Nightly tests
+name: DataRepo Test Runner on Perf Tests
 env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_SA_CERT: /tmp/jade-dev-account.pem
   GOOGLE_CLOUD_PROJECT: broad-jade-perf
   GOOGLE_CLOUD_DATA_PROJECT: broad-jade-perf-data
+  TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
 on:
   schedule:
     - cron: '0 2 * * *' # run at 2 AM UTC.
@@ -24,17 +25,17 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
-      - name: "Import Vault alpha secrets"
+      - name: "Import Vault perf secrets"
         uses: hashicorp/vault-action@c8b383ee
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
-          roleId: ${{ secrets.ALPHA_ROLE_ID }}
-          secretId: ${{ secrets.ALPHA_SECRET_ID }}
+          roleId: ${{ secrets.PERF_ROLE_ID }}
+          secretId: ${{ secrets.PERF_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/alpha/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
-            secret/dsde/datarepo/alpha/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
-            secret/dsde/datarepo/alpha/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
+            secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+            secret/dsde/datarepo/perf/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
+            secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
       - name: "Perform IAM policy cleanup"
         run: |
           # write vault tokens
@@ -67,13 +68,15 @@ jobs:
           base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
           jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
-          # check that postgres is ready
-          pg_isready -h ${PGHOST} -p 5432
-          psql -U postgres -f ./db/create-data-repo-db
-
           # run integration tests
-          ./gradlew assemble
-          ./gradlew testIntegration --scan
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-client
+          echo "Building Data Repo client library"
+          ../gradlew clean assemble  
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
+          export ORG_GRADLE_PROJECT_datarepoclientjar=$(ls ../datarepo-client/build/libs/*jar)
+          echo "Running TestRunner suite"
+          ./gradlew runTest --args="suites/PRSmokeTests.json tmp/TestRunnerResults"
+          cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Notify Slack"
         if: always()
         uses: broadinstitute/action-slack@v2
@@ -84,4 +87,4 @@ jobs:
           status: ${{ job.status }}
           channel: "#dsde-qa"
           username: "Data Repo tests"
-          text: "Alpha integration tests"
+          text: "Perf Test Runner"

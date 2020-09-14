@@ -26,32 +26,32 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
-      #- name: "Import Vault perf secrets"
-      #  uses: hashicorp/vault-action@c8b383ee
-      #  with:
-      #    url: ${{ secrets.VAULT_ADDR }}
-      #    method: approle
-      #    roleId: ${{ secrets.ROLE_ID }}
-      #    secretId: ${{ secrets.SECRET_ID }}
-      #    secrets: |
-      #      secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
-      #      secret/dsde/datarepo/perf/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
-      #      secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
-      #- name: "Perform IAM policy cleanup"
-      #  run: |
-      #    # write vault tokens
-      #    base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
-      #    jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+      - name: "Import Vault perf secrets"
+        uses: hashicorp/vault-action@c8b383ee
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.ROLE_ID }}
+          secretId: ${{ secrets.SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+            secret/dsde/datarepo/perf/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
+            secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
+      - name: "Perform IAM policy cleanup"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
-      #    gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
           # clear policy members
-      #    BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
-      #    MEMBERS=$(echo ${BINDINGS} | jq -r '.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-"))')
-      #    for MEMBER in ${MEMBERS} ; do
-      #      echo "removing member: ${MEMBER}"
-      #      gcloud projects remove-iam-policy-binding ${GOOGLE_CLOUD_DATA_PROJECT} --member=${MEMBER} --role=roles/bigquery.jobUser > /dev/null 2>&1
-      #    done
+          BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
+          MEMBERS=$(echo ${BINDINGS} | jq -r '.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-"))')
+          for MEMBER in ${MEMBERS} ; do
+            echo "removing member: ${MEMBER}"
+            gcloud projects remove-iam-policy-binding ${GOOGLE_CLOUD_DATA_PROJECT} --member=${MEMBER} --role=roles/bigquery.jobUser > /dev/null 2>&1
+          done
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@c8b383ee
         with:

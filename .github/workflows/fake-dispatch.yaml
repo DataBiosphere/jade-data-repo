@@ -1,0 +1,12 @@
+---
+name: Test Runner on Perf Tests
+on:
+  workflow_dispatch: {}
+  #schedule:
+  #  - cron: '0 2 * * *' # run at 2 AM UTC.
+jobs:
+  test-runner-fake:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v2

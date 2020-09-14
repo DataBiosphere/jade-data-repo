@@ -1,0 +1,90 @@
+name: DataRepo Test Runner on Perf Tests
+env:
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
+  GOOGLE_SA_CERT: /tmp/jade-dev-account.pem
+  GOOGLE_CLOUD_PROJECT: broad-jade-perf
+  GOOGLE_CLOUD_DATA_PROJECT: broad-jade-perf-data
+  TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
+on:
+  schedule:
+    - cron: '0 2 * * *' # run at 2 AM UTC.
+jobs:
+  alpha-integration-test:
+    runs-on: ubuntu-latest
+    # run a local Postgres container in Docker for the basic check tests
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v2
+      - name: "Import Vault perf secrets"
+        uses: hashicorp/vault-action@c8b383ee
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.PERF_ROLE_ID }}
+          secretId: ${{ secrets.PERF_SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+            secret/dsde/datarepo/perf/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
+            secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
+      - name: "Perform IAM policy cleanup"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          # clear policy members
+          BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
+          MEMBERS=$(echo ${BINDINGS} | jq -r '.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-"))')
+          for MEMBER in ${MEMBERS} ; do
+            echo "removing member: ${MEMBER}"
+            gcloud projects remove-iam-policy-binding ${GOOGLE_CLOUD_DATA_PROJECT} --member=${MEMBER} --role=roles/bigquery.jobUser > /dev/null 2>&1
+          done
+      - name: "Import Vault dev secrets"
+        uses: hashicorp/vault-action@c8b383ee
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.ROLE_ID }}
+          secretId: ${{ secrets.SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
+            secret/dsde/datarepo/dev/datarepo-sql-db datarepo_db_pw | DATAREPO_PASS ;
+            secret/dsde/datarepo/dev/datarepo-sql-db stairway_db_pw | STAIRWAY_PASS ;
+      - name: "Build and run alpha integration tests"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+
+          # run integration tests
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-client
+          echo "Building Data Repo client library"
+          ../gradlew clean assemble  
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
+          export ORG_GRADLE_PROJECT_datarepoclientjar=$(ls ../datarepo-client/build/libs/*jar)
+          echo "Running TestRunner suite"
+          ./gradlew runTest --args="suites/PRSmokeTests.json tmp/TestRunnerResults"
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: "Notify Slack"
+        if: always()
+        uses: broadinstitute/action-slack@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          channel: "#dsde-qa"
+          username: "Data Repo tests"
+          text: "Perf Test Runner"

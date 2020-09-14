@@ -39,6 +39,18 @@ public final class BigQueryUtils {
     return bigQuery;
   }
 
+  public static BigQuery getClientForServiceAccount(String googleProjectId) throws IOException {
+    GoogleCredentials userDefaultCredential = AuthenticationUtils.getApplicationDefaultCredential();
+    BigQuery bigQuery =
+        BigQueryOptions.newBuilder()
+            .setProjectId(googleProjectId)
+            .setCredentials(userDefaultCredential)
+            .build()
+            .getService();
+
+    return bigQuery;
+  }
+
   /**
    * Execute a query with the given BigQuery client object.
    *

@@ -4,6 +4,8 @@ import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
+import com.google.api.gax.rpc.DeadlineExceededException;
+import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreException;
@@ -17,8 +19,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class FireStoreUtils {
@@ -147,6 +151,70 @@ public class FireStoreUtils {
         PureJavaCrc32C crc = new PureJavaCrc32C();
         crc.update(inputBytes, 0, inputBytes.length);
         return Long.toHexString(crc.getValue());
+    }
+
+    private static final int NO_PROGRESS_MAX = 2;
+    private static final int SLEEP_MILLISECONDS = 1000;
+
+    <T, V> List<T> batchOperation(List<V> inputs, ApiFutureGenerator<T, V> generator) throws InterruptedException {
+        int inputSize = inputs.size();
+        // We drive the retry processing by which outputs have not been filled in,
+        // so we initialize the outputs to be all null -> not filled in.
+        List<T> outputs = new ArrayList<>(inputSize);
+        for (int i = 0; i < inputSize; i++) {
+            outputs.add(null);
+        }
+
+        int noProgressCount = 0;
+        while (true) {
+            List<ApiFuture<T>> futures = new ArrayList<>(inputSize);
+
+            // generate a request for every not completed output
+            int requestCount = 0;
+            for (int i = 0; i < inputSize; i++) {
+                if (outputs.get(i) != null) {
+                    futures.add(null);
+                } else {
+                    futures.add(generator.accept(inputs.get(i)));
+                    requestCount++;
+                }
+            }
+            if (requestCount == 0) {
+                break;
+            }
+
+            // tried to collect a response for every request we generated
+            int completeCount = 0;
+            for (int i = 0; i < inputSize; i++) {
+                ApiFuture<T> future = futures.get(i);
+                if (future != null) {
+                    try {
+                        outputs.set(i, future.get());
+                        completeCount++;
+                    } catch (DeadlineExceededException | UnavailableException ex) {
+                        logger.warn("Retry-able error in firestore future get - input: " +
+                            inputs.get(i) + " message: " + ex.getMessage());
+                    } catch (ExecutionException ex) {
+                        throw new FileSystemExecutionException("batch operation failed", ex);
+                    }
+                }
+            }
+            // If we completed our requests we are done
+            if (completeCount == requestCount) {
+                break;
+            }
+
+            if (completeCount == 0) {
+                noProgressCount++;
+                if (noProgressCount > NO_PROGRESS_MAX) {
+                    throw new FileSystemExecutionException("batch operation failed. " +
+                        NO_PROGRESS_MAX + " tries with no progress.");
+                }
+            }
+            TimeUnit.MILLISECONDS.sleep(SLEEP_MILLISECONDS);
+        }
+
+        return outputs;
     }
 
 }

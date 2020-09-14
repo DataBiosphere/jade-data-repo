@@ -1,6 +1,6 @@
 #!/bin/bash
 BRANCH="sh-DR-1116-perf-action"
-TOKEN=${1:-$GH_TOKEN}
+TOKEN=$(cat $HOME/.gh_token)
 REPO="DataBiosphere/jade-data-repo"
 WORKFLOW="perf-tests.yaml"
 

@@ -600,23 +600,28 @@ public class BigQueryPdao implements PrimaryDataAccess {
         snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
     }
 
-    @Override
-    public void addReaderGroupToSnapshot(Snapshot snapshot, String readerPolicyGroupEmail) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        bigQueryProject.addDatasetAcls(snapshot.getName(),
-            Collections.singletonList(Acl.of(new Acl.Group(readerPolicyGroupEmail), Acl.Role.READER)));
+    public void grantReadAccessToSnapshot(Snapshot snapshot, Collection<String> policies) throws InterruptedException {
+        grantReadAccessWorker(
+            bigQueryProjectForSnapshot(snapshot),
+            snapshot.getName(),
+            policies);
     }
 
-    @Override
-    public void grantReadAccessToDataset(Dataset dataset, Collection<String> policyGroupEmails)
-        throws InterruptedException {
+    public void grantReadAccessToDataset(Dataset dataset, Collection<String> policies) throws InterruptedException {
+        grantReadAccessWorker(
+            bigQueryProjectForDataset(dataset),
+            prefixName(dataset.getName()),
+            policies);
+    }
 
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+    private void grantReadAccessWorker(BigQueryProject bigQueryProject,
+                                       String name,
+                                       Collection<String> policyGroupEmails) {
         List<Acl> policyGroupAcls = policyGroupEmails
             .stream()
             .map(email -> Acl.of(new Acl.Group(email), Acl.Role.READER))
             .collect(Collectors.toList());
-        bigQueryProject.addDatasetAcls(prefixName(dataset.getName()), policyGroupAcls);
+        bigQueryProject.addDatasetAcls(name, policyGroupAcls);
     }
 
     @Override

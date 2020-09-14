@@ -18,6 +18,8 @@ import com.google.cloud.bigquery.BigQueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -51,7 +53,13 @@ public class CreateDatasetAuthzPrimaryDataStep implements Step {
                     new BigQueryError("invalid", "fake", "IAM setPolicy fake failure"));
             }
 
-            bigQueryPdao.grantReadAccessToDataset(dataset, policyEmails.values());
+            // Build the list of the policy emails that should have read access to the big query dataset
+            List<String> emails = new ArrayList<>();
+            emails.add(policyEmails.get(IamRole.STEWARD));
+            emails.add(policyEmails.get(IamRole.CUSTODIAN));
+            emails.add(policyEmails.get(IamRole.INGESTER));
+            bigQueryPdao.grantReadAccessToDataset(dataset, emails);
+
         } catch (BigQueryException ex) {
             if (FlightUtils.isBigQueryIamPropagationError(ex)) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);

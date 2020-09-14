@@ -74,7 +74,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
           export ORG_GRADLE_PROJECT_datarepoclientjar=$(ls ../datarepo-client/build/libs/*jar)
           echo "Running TestRunner suite"
-          ./gradlew runTest --args="suites/PRSmokeTests.json tmp/TestRunnerResults"
+          ./gradlew runTest --args="suites/BasicSmoke.json tmp/TestRunnerResults"
           cd ${GITHUB_WORKSPACE}/${workingDir}
       # - name: "Notify Slack"
         #if: always()

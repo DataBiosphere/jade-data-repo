@@ -1,14 +1,19 @@
 package bio.terra.common;
 
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotSource;
-import bio.terra.service.snapshot.RowIdMatch;
-import bio.terra.service.dataset.Dataset;
 
-import java.util.Collection;
 import java.util.List;
 
 /**
+ * TODO: removed this interface. What we have determined in our implementation experience is that
+ *  it really doesn't work to have an interface for this level. The details of what needs to be
+ *  in the flights are sensitive to the underlying implementation, so the real place where we
+ *  need to choose the back end is within the flights and not at this interface level. We have
+ *  gone around this interface as much as we have gone through it. We should remove it!
+ *
  * In the long term, we want to make the primary data store be pluggable, supporting different implementations.
  * This interface documents what that pluggable interface might look like. Of course, we never know until we
  * build another one.
@@ -80,17 +85,6 @@ public interface PrimaryDataAccess {
      * @return true if the snapshot was deleted; false if it was not found; throw on other errors
      */
     boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException;
-
-
-    /**
-     * Add the google group for the snapshot readers to the BQ snapshot
-     *
-     * @param snapshot snapshot metadata
-     * @param readersEmail email address for readers group (as returned by SAM)
-     */
-    void addReaderGroupToSnapshot(Snapshot snapshot, String readersEmail) throws InterruptedException;
-
-    void grantReadAccessToDataset(Dataset dataset, Collection<String> policyGroupEmails) throws InterruptedException;
 
     /**
      * Checks to see if a dataset exists

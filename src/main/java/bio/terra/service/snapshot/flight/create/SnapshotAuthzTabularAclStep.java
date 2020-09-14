@@ -18,6 +18,8 @@ import com.google.cloud.bigquery.BigQueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -44,15 +46,18 @@ public class SnapshotAuthzTabularAclStep implements Step {
         Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
         Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
-        String readersPolicyEmail = policies.get(IamRole.READER);
+        // Build the list of the policy emails that should have read access to the big query dataset
+        List<String> emails = new ArrayList<>();
+        emails.add(policies.get(IamRole.STEWARD));
+        emails.add(policies.get(IamRole.CUSTODIAN));
+        emails.add(policies.get(IamRole.READER));
 
         try {
             if (configService.testInsertFault(SNAPSHOT_GRANT_ACCESS_FAULT)) {
                 throw new BigQueryException(400, "IAM setPolicy fake failure",
                     new BigQueryError("invalid", "fake", "IAM setPolicy fake failure"));
             }
-
-            bigQueryPdao.addReaderGroupToSnapshot(snapshot, readersPolicyEmail);
+            bigQueryPdao.grantReadAccessToSnapshot(snapshot, emails);
         } catch (BigQueryException ex) {
             if (FlightUtils.isBigQueryIamPropagationError(ex)) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);

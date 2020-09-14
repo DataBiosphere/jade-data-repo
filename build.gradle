@@ -34,6 +34,12 @@ plugins {
   id 'antlr'
 }
 
+allprojects {
+    group 'bio.terra'
+    version '1.0.84-SNAPSHOT'
+}
+sourceCompatibility = 1.8
+
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
@@ -97,11 +103,6 @@ jacocoTestCoverageVerification {
     }
 }
 check.dependsOn jacocoTestCoverageVerification
-
-
-group 'bio.terra'
-version '0.1'
-sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()

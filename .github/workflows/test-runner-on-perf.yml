@@ -31,8 +31,8 @@ jobs:
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
-          roleId: ${{ secrets.ROLE_ID }}
-          secretId: ${{ secrets.SECRET_ID }}
+          roleId: ${{ secrets.PERF_ROLE_ID }}
+          secretId: ${{ secrets.PERF_SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
             secret/dsde/datarepo/perf/datarepo-sql-db datarepopassword | DATAREPO_PASS ;

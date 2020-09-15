@@ -52,8 +52,11 @@ jobs:
         BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
         MEMBERS=$(echo ${BINDINGS} | jq -r '.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-"))')
         for MEMBER in ${MEMBERS} ; do
-          echo "removing member: ${MEMBER}"
-          gcloud projects remove-iam-policy-binding ${GOOGLE_CLOUD_DATA_PROJECT} --member=${MEMBER} --role=roles/bigquery.jobUser > /dev/null 2>&1
+          if gcloud projects remove-iam-policy-binding ${GOOGLE_CLOUD_DATA_PROJECT} --member=${MEMBER} --role=roles/bigquery.jobUser > /dev/null 2>&1; then
+            echo "Successfully removed member: ${MEMBER}"
+          else
+            echo "Failed to remove member: ${MEMBER}"
+          fi
         done
     - name: "Import Vault dev secrets"
       uses: hashicorp/vault-action@c8b383ee

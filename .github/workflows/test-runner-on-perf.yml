@@ -75,15 +75,15 @@ jobs:
           jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
-          
+
           # configure integration prerequisites
-          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
-          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
-          gcloud auth configure-docker --quiet
-          echo 'Set google sdk to SA user'
-          if [[ -n "${K8_CLUSTER}" ]]; then
-            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
-          fi
+          #gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
+          #gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
+          #gcloud auth configure-docker --quiet
+          #echo 'Set google sdk to SA user'
+          #if [[ -n "${K8_CLUSTER}" ]]; then
+          #  gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
+          #fi
       - name: "Build and run test runner smoke tests"
         run: |
           export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"

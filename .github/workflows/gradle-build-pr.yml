@@ -27,6 +27,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Run Connected test via Gradle"
+        uses: broadinstitute/datarepo-actions@revert-0-18-0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}

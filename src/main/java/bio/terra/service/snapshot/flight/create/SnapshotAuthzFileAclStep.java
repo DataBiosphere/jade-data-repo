@@ -53,7 +53,6 @@ public class SnapshotAuthzFileAclStep implements Step {
         Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
         Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
-        String readersPolicyEmail = policies.get(IamRole.READER);
 
         // TODO: when we support multiple datasets, we can generate more than one copy of this
         //  step: one for each dataset. That is because each dataset keeps its file dependencies
@@ -69,7 +68,7 @@ public class SnapshotAuthzFileAclStep implements Step {
                 throw new StorageException(400, "Fake IAM failure", "badRequest", null);
             }
 
-            gcsPdao.setAclOnFiles(dataset, fileIds, readersPolicyEmail);
+            gcsPdao.setAclOnFiles(dataset, fileIds, policies);
         } catch (StorageException ex) {
             // Now, how to figure out if the failure is due to IAM propagation delay. We know it will
             // be a 400 - bad request and the docs indicate the reason will be "badRequest". So for now
@@ -91,7 +90,6 @@ public class SnapshotAuthzFileAclStep implements Step {
         Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
         Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
-        String readersPolicyEmail = policies.get(IamRole.READER);
 
         // TODO: when we support multiple datasets, we can generate more than one copy of this
         //  step: one for each dataset. That is because each dataset keeps its file dependencies
@@ -103,7 +101,7 @@ public class SnapshotAuthzFileAclStep implements Step {
 
         List<String> fileIds = fireStoreDao.getDatasetSnapshotFileIds(dataset, snapshotId.toString());
         try {
-            gcsPdao.removeAclOnFiles(dataset, fileIds, readersPolicyEmail);
+            gcsPdao.removeAclOnFiles(dataset, fileIds, policies);
         } catch (StorageException ex) {
             // We don't let the exception stop us from continuing to remove the rest of the snapshot parts.
             // TODO: change this to whatever our alert-a-human log message is.

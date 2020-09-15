@@ -38,6 +38,11 @@ allprojects {
     group 'bio.terra'
     version '1.0.84-SNAPSHOT'
 }
+
+subprojects.each { s ->
+    s.tasks.all { task -> task.enabled = false }
+}
+
 sourceCompatibility = 1.8
 
 apply plugin: 'java'

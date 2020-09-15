@@ -70,6 +70,12 @@ jobs:
             secret/dsde/datarepo/dev/datarepo-sql-db stairway_db_pw | STAIRWAY_PASS ;
       - name: "Configure Credentials"
         run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+          
           # configure integration prerequisites
           gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
           gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet

@@ -1,14 +1,20 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
+import com.google.api.gax.grpc.GrpcStatusCode;
+import com.google.api.gax.rpc.AbortedException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.Transaction;
+import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +23,7 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * FireStoreFileDao provides CRUD operations on the file collection in Firestore.
@@ -33,10 +40,12 @@ class FireStoreFileDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreFileDao.class);
 
     private final FireStoreUtils fireStoreUtils;
+    private final ConfigurationService configurationService;
 
     @Autowired
-    FireStoreFileDao(FireStoreUtils fireStoreUtils) {
+    FireStoreFileDao(FireStoreUtils fireStoreUtils, ConfigurationService configurationService) {
         this.fireStoreUtils = fireStoreUtils;
+        this.configurationService = configurationService;
     }
 
     void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) throws InterruptedException {
@@ -64,20 +73,49 @@ class FireStoreFileDao {
         return fireStoreUtils.transactionGet("deleteFileMetadata", transaction);
     }
 
+    private static final int MAX_RETRIES = 10;
+    private static final int RETRY_MILLISECONDS = 500;
+
     // Returns null on not found
+    // We needed to add local retrying to this code path, because it is used in
+    // computeDirectory inside of the create snapshot code. We do potentially thousands
+    // of these calls inside that step, so retrying at the step level will not work;
+    // it would just redo the thousands of calls. Therefore, we retry here. (DR-1307)
     FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileId)
         throws InterruptedException {
 
-        String collectionId = makeCollectionId(datasetId);
-        ApiFuture<FireStoreFile> transaction = firestore.runTransaction(xn -> {
-            DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
-            if (docSnap == null || !docSnap.exists()) {
-                return null;
-            }
-            return docSnap.toObject(FireStoreFile.class);
-        });
+        int retry = 0;
+        while (true) {
+            try {
+                String collectionId = makeCollectionId(datasetId);
+                ApiFuture<FireStoreFile> transaction = firestore.runTransaction(xn -> {
+                    DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
+                    if (docSnap == null || !docSnap.exists()) {
+                        return null;
+                    }
+                    return docSnap.toObject(FireStoreFile.class);
+                });
 
-        return fireStoreUtils.transactionGet("retrieveFileMetadata", transaction);
+                // Fault insertion to test retry
+                if (configurationService.testInsertFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT)) {
+                    throw new AbortedException(
+                        new FileSystemAbortTransactionException("fault insertion"),
+                        GrpcStatusCode.of(Status.Code.ABORTED),
+                        true);
+                }
+
+                return fireStoreUtils.transactionGet("retrieveFileMetadata", transaction);
+            } catch (AbortedException ex) {
+                if (retry < MAX_RETRIES) {
+                    // perform retry
+                    retry++;
+                    logger.info("Retry retrieveFileMetadata {} of {}", retry, MAX_RETRIES);
+                    TimeUnit.MILLISECONDS.sleep(RETRY_MILLISECONDS);
+                } else {
+                    throw new FileSystemExecutionException("Retries exhausted", ex);
+                }
+            }
+        }
     }
 
     List<FireStoreFile> batchRetrieveFileMetadata(
@@ -86,24 +124,20 @@ class FireStoreFileDao {
         List<FireStoreDirectoryEntry> directoryEntries) throws InterruptedException {
 
         CollectionReference collection = firestore.collection(makeCollectionId(datasetId));
-        List<ApiFuture<DocumentSnapshot>> futures = new ArrayList<>();
 
-        for (FireStoreDirectoryEntry entry : directoryEntries) {
-            DocumentReference docRef = collection.document(entry.getFileId());
-            futures.add(docRef.get());
-        }
+        List<DocumentSnapshot> documentSnapshotList = fireStoreUtils.batchOperation(
+            directoryEntries,
+            entry -> {
+                DocumentReference docRef = collection.document(entry.getFileId());
+                return docRef.get();
+            });
 
         List<FireStoreFile> files = new ArrayList<>();
-        try {
-            for (ApiFuture<DocumentSnapshot> future : futures) {
-                DocumentSnapshot documentSnapshot = future.get();
-                if (documentSnapshot == null || !documentSnapshot.exists()) {
-                    throw new FileSystemCorruptException("Directory entry refers to non-existent file");
-                }
-                files.add(documentSnapshot.toObject(FireStoreFile.class));
+        for (DocumentSnapshot documentSnapshot : documentSnapshotList) {
+            if (documentSnapshot == null || !documentSnapshot.exists()) {
+                throw new FileSystemCorruptException("Directory entry refers to non-existent file");
             }
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("batchRetrieveFileMetadata - execution exception", ex);
+            files.add(documentSnapshot.toObject(FireStoreFile.class));
         }
 
         return files;

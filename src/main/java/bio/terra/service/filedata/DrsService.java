@@ -5,20 +5,17 @@ import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
-import bio.terra.service.filedata.google.firestore.FireStoreDirectoryDao;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -41,46 +38,43 @@ public class DrsService {
 
     private static final String DRS_OBJECT_VERSION = "0";
 
-    private final DatasetDao datasetDao;
-    private final SnapshotDao snapshotDao;
-    private final FireStoreDirectoryDao fileDao;
+    private final SnapshotService snapshotService;
     private final FileService fileService;
     private final DrsIdService drsIdService;
-    private final GcsConfiguration gcsConfiguration;
-    private final DatasetService datasetService;
     private final IamService samService;
     private final DataLocationService locationService;
 
     @Autowired
-    public DrsService(DatasetDao datasetDao,
-                      SnapshotDao snapshotDao,
-                      FireStoreDirectoryDao fileDao,
+    public DrsService(SnapshotService snapshotService,
                       FileService fileService,
                       DrsIdService drsIdService,
-                      GcsConfiguration gcsConfiguration,
-                      DatasetService datasetService,
                       IamService samService,
                       DataLocationService locationService) {
-        this.datasetDao = datasetDao;
-        this.snapshotDao = snapshotDao;
-        this.fileDao = fileDao;
+        this.snapshotService = snapshotService;
         this.fileService = fileService;
         this.drsIdService = drsIdService;
-        this.gcsConfiguration = gcsConfiguration;
-        this.datasetService = datasetService;
         this.samService = samService;
         this.locationService = locationService;
     }
 
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
-        DrsId drsId = parseAndValidateDrsId(drsObjectId);
-        String snapshotId = drsId.getSnapshotId();
+        DrsId drsId = drsIdService.fromObjectId(drsObjectId);
+        Snapshot snapshot = null;
+        try {
+            UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
+            // We only look up DRS ids for unlocked snapshots.
+            snapshot = snapshotService.retrieveAvailable(snapshotId);
+        } catch (IllegalArgumentException ex) {
+            throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
+        } catch (SnapshotNotFoundException ex) {
+            throw new DrsObjectNotFoundException("No snapshot found for DRS object id '" + drsObjectId + "'", ex);
+        }
 
         // Make sure requester is a READER on the snapshot
         samService.verifyAuthorization(
             authUser,
             IamResourceType.DATASNAPSHOT,
-            snapshotId,
+            drsId.getSnapshotId(),
             IamAction.READ_DATA);
 
         int depth = (expand ? -1 : 1);
@@ -88,7 +82,7 @@ public class DrsService {
         FSItem fsObject = null;
         try {
             fsObject = fileService.lookupSnapshotFSItem(
-                drsId.getSnapshotId(),
+                snapshot,
                 drsId.getFsObjectId(),
                 depth);
         } catch (InterruptedException ex) {
@@ -96,9 +90,9 @@ public class DrsService {
         }
 
         if (fsObject instanceof FSFile) {
-            return drsObjectFromFSFile((FSFile)fsObject, snapshotId, authUser);
+            return drsObjectFromFSFile((FSFile)fsObject, drsId.getSnapshotId(), authUser);
         } else if (fsObject instanceof FSDir) {
-            return drsObjectFromFSDir((FSDir)fsObject, snapshotId);
+            return drsObjectFromFSDir((FSDir)fsObject, drsId.getSnapshotId());
         }
 
         throw new IllegalArgumentException("Invalid object type");
@@ -227,16 +221,4 @@ public class DrsService {
         return pathParts[pathParts.length - 1];
     }
 
-    private DrsId parseAndValidateDrsId(String drsObjectId) {
-        DrsId drsId = drsIdService.fromObjectId(drsObjectId);
-        try {
-            UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
-            snapshotDao.retrieveSummaryById(snapshotId);
-            return drsId;
-        } catch (IllegalArgumentException ex) {
-            throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
-        } catch (SnapshotNotFoundException ex) {
-            throw new DrsObjectNotFoundException("No snapshot found for DRS object id '" + drsObjectId + "'", ex);
-        }
-    }
 }

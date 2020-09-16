@@ -72,6 +72,7 @@ dependencies {
         compile "org.glassfish.jersey.core:jersey-client:${jersey}"
         compile "org.glassfish.jersey.media:jersey-media-json-jackson:${jersey}"
         compile "org.glassfish.jersey.media:jersey-media-multipart:${jersey}"
+        compile "org.glassfish.jersey.inject:jersey-hk2:${jersey}"
     } else {
         implementation "bio.terra:datarepo-client:${datarepoClient}"
     }

@@ -55,6 +55,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.ViewDefinition;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -559,14 +560,23 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 .orElseThrow(() -> new CorruptMetadataException("cannot find destination table: " + tableName));
 
             List<String> rowIds = table.getRowIds();
+
             if (rowIds.size() > 0) {
-                ST sqlTemplate = new ST(loadRootRowIdsTemplate);
-                sqlTemplate.add("project", projectId);
-                sqlTemplate.add("snapshot", snapshotName);
-                sqlTemplate.add("dataset", datasetBqDatasetName);
-                sqlTemplate.add("tableId", sourceTable.getId().toString());
-                sqlTemplate.add("rowIds", rowIds);
-                bigQueryProject.query(sqlTemplate.render());
+                // we break apart the list of rowIds for better scaleability
+                List<List<String>> rowIdChunks = ListUtils.partition(rowIds, 10000);
+                // partition returns consecutive sublists of a list, each of the same size (final list may be smaller)
+                // partitioning a list containing [a, b, c, d, e] with a partition size of 3 yields [[a, b, c], [d, e]]
+                // -- an outer list containing two inner lists of three and two elements, all in the original order.
+
+                for (List<String> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
+                    ST sqlTemplate = new ST(loadRootRowIdsTemplate);
+                    sqlTemplate.add("project", projectId);
+                    sqlTemplate.add("snapshot", snapshotName);
+                    sqlTemplate.add("dataset", datasetBqDatasetName);
+                    sqlTemplate.add("tableId", sourceTable.getId().toString());
+                    sqlTemplate.add("rowIds", rowIdChunk);
+                    bigQueryProject.query(sqlTemplate.render());
+                }
             }
             ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
             sqlTemplate.add("project", projectId);
@@ -590,23 +600,28 @@ public class BigQueryPdao implements PrimaryDataAccess {
         snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
     }
 
-    @Override
-    public void addReaderGroupToSnapshot(Snapshot snapshot, String readerPolicyGroupEmail) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        bigQueryProject.addDatasetAcls(snapshot.getName(),
-            Collections.singletonList(Acl.of(new Acl.Group(readerPolicyGroupEmail), Acl.Role.READER)));
+    public void grantReadAccessToSnapshot(Snapshot snapshot, Collection<String> policies) throws InterruptedException {
+        grantReadAccessWorker(
+            bigQueryProjectForSnapshot(snapshot),
+            snapshot.getName(),
+            policies);
     }
 
-    @Override
-    public void grantReadAccessToDataset(Dataset dataset, Collection<String> policyGroupEmails)
-        throws InterruptedException {
+    public void grantReadAccessToDataset(Dataset dataset, Collection<String> policies) throws InterruptedException {
+        grantReadAccessWorker(
+            bigQueryProjectForDataset(dataset),
+            prefixName(dataset.getName()),
+            policies);
+    }
 
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+    private void grantReadAccessWorker(BigQueryProject bigQueryProject,
+                                       String name,
+                                       Collection<String> policyGroupEmails) {
         List<Acl> policyGroupAcls = policyGroupEmails
             .stream()
             .map(email -> Acl.of(new Acl.Group(email), Acl.Role.READER))
             .collect(Collectors.toList());
-        bigQueryProject.addDatasetAcls(prefixName(dataset.getName()), policyGroupAcls);
+        bigQueryProject.addDatasetAcls(name, policyGroupAcls);
     }
 
     @Override
@@ -1373,29 +1388,38 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .table(optTable.get().getFromTable())
             .name(PDAO_ROW_ID_COLUMN);
 
-        ST sqlTemplate = new ST(mapValuesToRowsTemplate);
-        sqlTemplate.add("project", bigQueryProject.getProjectId());
-        sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
-        sqlTemplate.add("table", tableName);
-        sqlTemplate.add("column", rowIdColumn.getName());
-        sqlTemplate.add("inputVals", rowIds);
-
         // Execute the query building the row id match structure that tracks the matching
         // ids and the mismatched ids
         RowIdMatch rowIdMatch = new RowIdMatch();
-        String sql = sqlTemplate.render();
-        logger.debug("mapValuesToRows sql: " + sql);
-        TableResult result = bigQueryProject.query(sql);
-        for (FieldValueList row : result.iterateAll()) {
-            // Test getting these by name
-            FieldValue rowId = row.get(0);
-            FieldValue inputValue = row.get(1);
-            if (rowId.isNull()) {
-                rowIdMatch.addMismatch(inputValue.getStringValue());
-                logger.debug("rowId=<NULL>" + "  inVal=" + inputValue.getStringValue());
-            } else {
-                rowIdMatch.addMatch(inputValue.getStringValue(), rowId.getStringValue());
-                logger.debug("rowId=" + rowId.getStringValue() + "  inVal=" + inputValue.getStringValue());
+
+        List<List<String>> rowIdChunks = ListUtils.partition(rowIds, 10000);
+        // partition returns consecutive sublists of a list, each of the same size (final list may be smaller)
+        // partitioning a list containing [a, b, c, d, e] with a partition size of 3 yields [[a, b, c], [d, e]]
+        // -- an outer list containing two inner lists of three and two elements, all in the original order.
+
+        for (List<String> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
+            // To prevent BQ choking on a huge array, split it up into chunks
+            ST sqlTemplate = new ST(mapValuesToRowsTemplate); // This query fails w >100k rows
+            sqlTemplate.add("project", bigQueryProject.getProjectId());
+            sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
+            sqlTemplate.add("table", tableName);
+            sqlTemplate.add("column", rowIdColumn.getName());
+            sqlTemplate.add("inputVals", rowIdChunk);
+
+            String sql = sqlTemplate.render();
+            logger.debug("mapValuesToRows sql: " + sql);
+            TableResult result = bigQueryProject.query(sql);
+            for (FieldValueList row : result.iterateAll()) {
+                // Test getting these by name
+                FieldValue rowId = row.get(0);
+                FieldValue inputValue = row.get(1);
+                if (rowId.isNull()) {
+                    rowIdMatch.addMismatch(inputValue.getStringValue());
+                    logger.debug("rowId=<NULL>" + "  inVal=" + inputValue.getStringValue());
+                } else {
+                    rowIdMatch.addMatch(inputValue.getStringValue(), rowId.getStringValue());
+                    logger.debug("rowId=" + rowId.getStringValue() + "  inVal=" + inputValue.getStringValue());
+                }
             }
         }
 

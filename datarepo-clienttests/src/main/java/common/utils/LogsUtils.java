@@ -6,7 +6,6 @@ import com.google.cloud.logging.v2.LoggingClient;
 import com.google.cloud.logging.v2.LoggingSettings;
 import com.google.logging.v2.ListLogEntriesRequest;
 import com.google.logging.v2.ProjectName;
-import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -31,11 +30,11 @@ public class LogsUtils {
    * Build a Google Logging client object with application default credentials. The client object is
    * newly created on each call to this method; it is not cached.
    */
-  public static LoggingClient getClient() throws IOException {
+  public static LoggingClient getClient() throws Exception {
     // LoggingOptions options = LoggingOptions.getDefaultInstance(); // v1 client api
 
     GoogleCredentials applicationDefaultCredentials =
-        AuthenticationUtils.getApplicationDefaultCredential();
+        AuthenticationUtils.getTestRunnerSACredentials();
     LoggingSettings loggingServiceSettings =
         LoggingSettings.newBuilder()
             .setCredentialsProvider(FixedCredentialsProvider.create(applicationDefaultCredentials))
@@ -46,7 +45,7 @@ public class LogsUtils {
 
   /** Request the raw logging data points. */
   public static LoggingClient.ListLogEntriesPagedResponse requestLogEntries(
-      ProjectName project, String filter, String pageToken) throws IOException {
+      ProjectName project, String filter, String pageToken) throws Exception {
     LoggingClient loggingServiceClient = getClient();
 
     // Page<LogEntry> entries = loggingClient.listLogEntries(

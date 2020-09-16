@@ -11,6 +11,7 @@ import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.cloud.storage.Acl;
@@ -31,6 +32,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -177,14 +179,14 @@ public class GcsPdao {
         ACL_OP_DELETE
     }
 
-    public void setAclOnFiles(Dataset dataset, List<String> fileIds, String readersPolicyEmail)
+    public void setAclOnFiles(Dataset dataset, List<String> fileIds, Map<IamRole, String> policies)
         throws InterruptedException {
-        fileAclOp(AclOp.ACL_OP_CREATE, dataset, fileIds, readersPolicyEmail);
+        fileAclOp(AclOp.ACL_OP_CREATE, dataset, fileIds, policies);
     }
 
-    public void removeAclOnFiles(Dataset dataset, List<String> fileIds, String readersPolicyEmail)
+    public void removeAclOnFiles(Dataset dataset, List<String> fileIds, Map<IamRole, String> policies)
         throws InterruptedException {
-        fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, readersPolicyEmail);
+        fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, policies);
     }
 
     private static final String GS_PROTOCOL = "gs://";
@@ -232,11 +234,22 @@ public class GcsPdao {
         return sourceBlob;
     }
 
-    private void fileAclOp(AclOp op, Dataset dataset, List<String> fileIds, String readersPolicyEmail)
+    private void fileAclOp(AclOp op, Dataset dataset, List<String> fileIds, Map<IamRole, String> policies)
         throws InterruptedException {
 
-        Acl.Group readerGroup = new Acl.Group(readersPolicyEmail);
-        Acl acl = Acl.newBuilder(readerGroup, Acl.Role.READER).build();
+        // Build all the groups that need to get read access to the files
+        List<Acl.Group> groups = new LinkedList<>();
+        groups.add(new Acl.Group(policies.get(IamRole.READER)));
+        groups.add(new Acl.Group(policies.get(IamRole.CUSTODIAN)));
+        groups.add(new Acl.Group(policies.get(IamRole.STEWARD)));
+
+        // build acls if necessary
+        List<Acl> acls = new LinkedList<>();
+        if (op == AclOp.ACL_OP_CREATE) {
+            for (Acl.Group group : groups) {
+                acls.add(Acl.newBuilder(group, Acl.Role.READER).build());
+            }
+        }
 
         Map<String, GoogleBucketResource> bucketCache = new HashMap<>();
 
@@ -264,10 +277,14 @@ public class GcsPdao {
                 BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
                 switch (op) {
                     case ACL_OP_CREATE:
-                        storage.createAcl(blobId, acl);
+                        for (Acl acl : acls) {
+                            storage.createAcl(blobId, acl);
+                        }
                         break;
                     case ACL_OP_DELETE:
-                        storage.deleteAcl(blobId, readerGroup);
+                        for (Acl.Group group : groups) {
+                            storage.deleteAcl(blobId, group);
+                        }
                         break;
                 }
             }

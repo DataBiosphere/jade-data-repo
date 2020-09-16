@@ -14,7 +14,6 @@ on:
 jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
-    # run a local Postgres container in Docker for the basic check tests
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2

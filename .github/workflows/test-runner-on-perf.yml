@@ -7,10 +7,6 @@ env:
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
-  PGHOST: 127.0.0.1
-  PGPASSWORD: postgres
-  DB_DATAREPO_URI: "jdbc:postgresql://${PGHOST}:5432/datarepo"
-  DB_STAIRWAY_URI: "jdbc:postgresql://${PGHOST}:5432/stairway"
 on:
   workflow_dispatch: {}
   #schedule:
@@ -19,16 +15,6 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     # run a local Postgres container in Docker for the basic check tests
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
@@ -79,10 +65,6 @@ jobs:
           jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
-
-          # check that postgres is ready
-          pg_isready -h ${PGHOST} -p 5432
-          psql -U postgres -f ./db/create-data-repo-db
 
           # configure integration prerequisites
           gcloud config set compute/zone ${GOOGLE_ZONE} --quiet

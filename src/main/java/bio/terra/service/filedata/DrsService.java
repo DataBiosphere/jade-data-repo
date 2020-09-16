@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
@@ -43,21 +44,25 @@ public class DrsService {
     private final DrsIdService drsIdService;
     private final IamService samService;
     private final DataLocationService locationService;
+    private final PerformanceLogger performanceLogger;
 
     @Autowired
     public DrsService(SnapshotService snapshotService,
                       FileService fileService,
                       DrsIdService drsIdService,
                       IamService samService,
-                      DataLocationService locationService) {
+                      DataLocationService locationService,
+                      PerformanceLogger performanceLogger) {
         this.snapshotService = snapshotService;
         this.fileService = fileService;
         this.drsIdService = drsIdService;
         this.samService = samService;
         this.locationService = locationService;
+        this.performanceLogger = performanceLogger;
     }
 
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
+
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         Snapshot snapshot = null;
         try {
@@ -71,20 +76,35 @@ public class DrsService {
         }
 
         // Make sure requester is a READER on the snapshot
+        String samTimer = performanceLogger.timerStart();
+
         samService.verifyAuthorization(
             authUser,
             IamResourceType.DATASNAPSHOT,
             drsId.getSnapshotId(),
             IamAction.READ_DATA);
 
+        performanceLogger.timerEndAndLog(
+            samTimer,
+            drsObjectId, // not a flight, so no job id
+            this.getClass().getName(),
+            "samService.verifyAuthorization");
+
         int depth = (expand ? -1 : 1);
 
         FSItem fsObject = null;
         try {
+            String lookupTimer = performanceLogger.timerStart();
             fsObject = fileService.lookupSnapshotFSItem(
                 snapshot,
                 drsId.getFsObjectId(),
                 depth);
+
+            performanceLogger.timerEndAndLog(
+                lookupTimer,
+                drsObjectId, // not a flight, so no job id
+                this.getClass().getName(),
+                "fileService.lookupSnapshotFSItem");
         } catch (InterruptedException ex) {
             throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
         }

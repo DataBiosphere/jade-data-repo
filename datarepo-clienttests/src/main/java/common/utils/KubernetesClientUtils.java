@@ -87,11 +87,11 @@ public final class KubernetesClientUtils {
       logger.debug(cmdOutputLine);
     }
 
-    namespace = server.namespace;
-
     // path to kubeconfig file, that was just created/updated by gcloud get-credentials above
-    String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";
+    String kubeConfigPath = System.getenv("HOME") + "/.kube/config";
+    logger.debug("Kube config path: {}", kubeConfigPath);
 
+    namespace = server.namespace;
     // load the kubeconfig object from the file
     InputStreamReader filereader =
         new InputStreamReader(new FileInputStream(kubeConfigPath), StandardCharsets.UTF_8);
@@ -100,7 +100,7 @@ public final class KubernetesClientUtils {
     // get a refreshed SA access token and its expiration time
     logger.debug("Getting a refreshed service account access token and its expiration time");
     GoogleCredentials applicationDefaultCredentials =
-        AuthenticationUtils.getApplicationDefaultCredential();
+        AuthenticationUtils.getTestRunnerSACredentials();
     AccessToken accessToken = AuthenticationUtils.getAccessToken(applicationDefaultCredentials);
     Instant tokenExpiration = accessToken.getExpirationTime().toInstant();
     String expiryUTC = tokenExpiration.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);

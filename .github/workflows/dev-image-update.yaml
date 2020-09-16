@@ -42,6 +42,7 @@ jobs:
         env:
           ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          ENABLE_SUBPROJECT_TASKS: true
       - name: "Build new delevop docker image"
         uses: broadinstitute/datarepo-actions@0.24.0
         with:

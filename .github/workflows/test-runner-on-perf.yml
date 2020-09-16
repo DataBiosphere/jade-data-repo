@@ -72,7 +72,7 @@ jobs:
             secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
             secret/dsde/datarepo/dev/datarepo-sql-db datarepo_db_pw | DATAREPO_PASS ;
             secret/dsde/datarepo/dev/datarepo-sql-db stairway_db_pw | STAIRWAY_PASS ;
-      - name: "Configure Credentials"
+      - name: "Build and run test runner smoke tests"
         run: |
           # write vault tokens
           base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
@@ -92,8 +92,7 @@ jobs:
           if [[ -n "${K8_CLUSTER}" ]]; then
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
-      - name: "Build and run test runner smoke tests"
-        run: |
+
           export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-client
           echo "Building Data Repo client library"

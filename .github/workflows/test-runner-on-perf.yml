@@ -7,6 +7,10 @@ env:
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
+  PGHOST: 127.0.0.1
+  PGPASSWORD: postgres
+  DB_DATAREPO_URI: "jdbc:postgresql://${PGHOST}:5432/datarepo"
+  DB_STAIRWAY_URI: "jdbc:postgresql://${PGHOST}:5432/stairway"
 on:
   workflow_dispatch: {}
   #schedule:

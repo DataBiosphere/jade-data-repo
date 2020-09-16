@@ -36,7 +36,7 @@ public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
    * Download the raw data points generated during this test run. Then process them to calculate
    * reporting statistics of interest.
    */
-  public void processDataPoints(long startTimeMS, long endTimeMS) throws IOException {
+  public void processDataPoints(long startTimeMS, long endTimeMS) throws Exception {
     // send the request to the metrics server
     String filter =
         "metric.type=\""

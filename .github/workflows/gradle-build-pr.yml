@@ -1,4 +1,10 @@
 name: Integration test and Connected tests
+env:
+  K8_CLUSTER: "integration-master"
+  # This must be defined for the bash redirection
+  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+  # This must be defined for the bash redirection
+  GOOGLE_SA_CERT: 'jade-dev-account.pem'
 on:
   pull_request:
     branches:
@@ -27,14 +33,13 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Run Connected test via Gradle"
-        uses: broadinstitute/datarepo-actions@0.21.0
+        uses: broadinstitute/datarepo-actions@0.22.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testConnected'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: 'integration-master'
   deploy_test_integration:
     timeout-minutes: 180
     strategy:
@@ -58,49 +63,46 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions@0.21.0
+        uses: broadinstitute/datarepo-actions@0.22.0
         with:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          k8_cluster: 'integration-master'
       - name: "Check for an availble namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions@0.21.0
+        uses: broadinstitute/datarepo-actions@0.22.0
         with:
           actions_subcommand: 'k8_checknamespace'
-          k8_namespaces: 'integration-1,integration-2,integration-3'
-          k8_cluster: 'integration-master'
+          k8_namespaces: 'integration-1,integration-2,integration-3, integration-6'
       - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions@0.21.0
+        uses: broadinstitute/datarepo-actions@0.22.0
         with:
           actions_subcommand: 'gradlebuild'
-          k8_cluster: 'integration-master'
       - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions@0.21.0
+        uses: broadinstitute/datarepo-actions@0.22.0
         with:
           actions_subcommand: 'helmdeploy'
           helm_secret_chart_version: '0.0.4'
-          helm_datarepo_api_chart_version: '0.0.17'
-          helm_datarepo_ui_chart_version: '0.0.8'
+          helm_datarepo_api_chart_version: '0.0.19'
+          helm_datarepo_ui_chart_version: '0.0.9'
           helm_gcloud_sqlproxy_chart_version: '0.19.7'
           helm_oidc_proxy_chart_version: '0.0.9'
-          k8_cluster: 'integration-master'
+      - name: "Run Test Runner smoke tests via Gradle"
+        uses: broadinstitute/datarepo-actions@0.22.0
+        with:
+          actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run Integration test via Gradle"
-        uses: broadinstitute/datarepo-actions@0.21.0
+        uses: broadinstitute/datarepo-actions@0.22.0
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
-          k8_cluster: 'integration-master'
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
-        uses: broadinstitute/datarepo-actions@0.21.0
+        uses: broadinstitute/datarepo-actions@0.22.0
         with:
           actions_subcommand: 'k8_checknamespace_clean'
-          k8_cluster: 'integration-master'
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions@0.21.0
+        uses: broadinstitute/datarepo-actions@0.22.0
         with:
           actions_subcommand: 'gcp_whitelist_clean'
-          k8_cluster: 'integration-master'

@@ -12,6 +12,7 @@ public class TestUserSpecification implements SpecificationInterface {
   public ServiceAccountSpecification delegatorServiceAccount;
 
   public static final String resourceDirectory = "testusers";
+  public static final String delegatorSAFileEnvironmentVarName = "TEST_RUNNER_DELEGATOR_SA_FILE";
 
   TestUserSpecification() {}
 
@@ -31,8 +32,19 @@ public class TestUserSpecification implements SpecificationInterface {
     TestUserSpecification testUser =
         objectMapper.readValue(inputStream, TestUserSpecification.class);
 
-    testUser.delegatorServiceAccount =
-        ServiceAccountSpecification.fromJSONFile(testUser.delegatorServiceAccountFile);
+    // Delegator service account should have permission to act on behalf of the defined test user
+    // Which SA to use is determined by the following, in order:
+    //   if defined: 1. environment variable (TEST_RUNNER_DELEGATOR_SA_FILE) - uniform across test users
+    //   else: 2. test user property (delegatorServiceAccountFile) - specific to the test user
+    String delegatorSaEnvVarOverride = System.getenv(delegatorSAFileEnvironmentVarName);
+    if (delegatorSaEnvVarOverride != null) {
+        testUser.delegatorServiceAccountFile = delegatorSaEnvVarOverride;
+        testUser.delegatorServiceAccount =
+            ServiceAccountSpecification.fromJSONFile(delegatorSaEnvVarOverride);
+    } else {
+        testUser.delegatorServiceAccount =
+            ServiceAccountSpecification.fromJSONFile(testUser.delegatorServiceAccountFile);
+    }
 
     return testUser;
   }

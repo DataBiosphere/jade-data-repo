@@ -39,6 +39,7 @@ allprojects {
     version '1.0.84-SNAPSHOT'
 }
 
+// skip subproject tasks when building jade-data-repo
 subprojects.each { s ->
     s.tasks.all { task -> task.enabled = false }
 }

@@ -76,6 +76,10 @@ jobs:
 
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
+          # check that postgres is ready
+          pg_isready -h ${PGHOST} -p 5432
+          psql -U postgres -f ./db/create-data-repo-db
+
           # configure integration prerequisites
           #gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
           #gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
@@ -89,7 +93,7 @@ jobs:
           export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-client
           echo "Building Data Repo client library"
-          ../gradlew clean assemble  
+          ../gradlew clean assemble
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
           export ORG_GRADLE_PROJECT_datarepoclientjar=$(ls ../datarepo-client/build/libs/*jar)
           echo "Running TestRunner suite"

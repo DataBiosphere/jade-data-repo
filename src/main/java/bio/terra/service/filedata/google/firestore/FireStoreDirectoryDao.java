@@ -469,30 +469,28 @@ public class FireStoreDirectoryDao {
     List<FireStoreDirectoryEntry> batchRetrieveById(
         Firestore firestore, String containerId, List<String> batch)
         throws InterruptedException {
+
         CollectionReference collection = firestore.collection(containerId);
 
-        List<FireStoreDirectoryEntry> entries = new ArrayList<>();
-        List<ApiFuture<QuerySnapshot>> futures = new ArrayList<>();
-        for (String fileId : batch) {
-            Query query = collection.whereEqualTo("fileId", fileId);
-            futures.add(query.get());
-        }
+        List<QuerySnapshot> querySnapshotList =
+            fireStoreUtils.batchOperation(batch,
+                fileId -> {
+                    Query query = collection.whereEqualTo("fileId", fileId);
+                    return query.get();
+                });
 
-        try {
-            for (ApiFuture<QuerySnapshot> future : futures) {
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
-                if (documents.size() != 1) {
-                    throw new FileSystemExecutionException("FileId not found");
-                }
-                QueryDocumentSnapshot docSnap = documents.get(0);
-                FireStoreDirectoryEntry entry = docSnap.toObject(FireStoreDirectoryEntry.class);
-                if (!entry.getIsFileRef()) {
-                    throw new FileSystemExecutionException("Directories are not supported as references");
-                }
-                entries.add(entry);
+        List<FireStoreDirectoryEntry> entries = new ArrayList<>();
+        for (QuerySnapshot querySnapshot : querySnapshotList) {
+            List<QueryDocumentSnapshot> documents = querySnapshot.getDocuments();
+            if (documents.size() != 1) {
+                throw new FileSystemExecutionException("FileId not found:");
             }
-        } catch (ExecutionException e) {
-            throw new FileSystemExecutionException("batch retrieved by id failed", e);
+            QueryDocumentSnapshot docSnap = documents.get(0);
+            FireStoreDirectoryEntry entry = docSnap.toObject(FireStoreDirectoryEntry.class);
+            if (!entry.getIsFileRef()) {
+                throw new FileSystemExecutionException("Directories are not supported as references");
+            }
+            entries.add(entry);
         }
 
         return entries;
@@ -523,23 +521,22 @@ public class FireStoreDirectoryDao {
     private List<FireStoreDirectoryEntry> batchRetrieveByPath(
         Firestore datasetFirestore, String datasetId, List<String> paths)
         throws InterruptedException {
+
         CollectionReference datasetCollection = datasetFirestore.collection(datasetId);
 
-        List<FireStoreDirectoryEntry> entries = new ArrayList<>();
-        List<ApiFuture<DocumentSnapshot>> futures = new ArrayList<>();
-        for (String path : paths) {
-            DocumentReference docRef =
-                datasetCollection.document(encodePathAsFirestoreDocumentName(path));
-            futures.add(docRef.get());
-        }
+        List<DocumentSnapshot> documents =
+            fireStoreUtils.batchOperation(
+                paths,
+                path -> {
+                    DocumentReference docRef =
+                        datasetCollection.document(encodePathAsFirestoreDocumentName((String) path));
+                    return docRef.get();
+                });
 
-        try {
-            for (ApiFuture<DocumentSnapshot> future : futures) {
-                FireStoreDirectoryEntry entry = future.get().toObject(FireStoreDirectoryEntry.class);
-                entries.add(entry);
-            }
-        } catch (ExecutionException e) {
-            throw new FileSystemExecutionException("batch retrieved by path failed", e);
+        List<FireStoreDirectoryEntry> entries = new ArrayList<>(paths.size());
+        for (DocumentSnapshot document : documents) {
+            FireStoreDirectoryEntry entry = document.toObject(FireStoreDirectoryEntry.class);
+            entries.add(entry);
         }
 
         return entries;
@@ -549,23 +546,18 @@ public class FireStoreDirectoryDao {
     void batchStoreDirectoryEntry(
         Firestore snapshotFirestore, String snapshotId, List<FireStoreDirectoryEntry> entries)
         throws InterruptedException {
+
         CollectionReference snapshotCollection = snapshotFirestore.collection(snapshotId);
 
-        List<ApiFuture<WriteResult>> futures = new ArrayList<>();
-        for (FireStoreDirectoryEntry entry : entries) {
-            String fullPath = fireStoreUtils.getFullPath(entry.getPath(), entry.getName());
-            String lookupPath = encodePathAsFirestoreDocumentName(makeLookupPath(fullPath));
-            DocumentReference newRef = snapshotCollection.document(lookupPath);
-            futures.add(newRef.set(entry));
-        }
-
-        try {
-            for (ApiFuture<WriteResult> future : futures) {
-                future.get();
-            }
-        } catch (ExecutionException e) {
-            throw new FileSystemExecutionException("batch store failed", e);
-        }
+        // We ignore the write results - we don't have any use for them
+        fireStoreUtils.batchOperation(
+            entries,
+            entry -> {
+                String fullPath = fireStoreUtils.getFullPath(entry.getPath(), entry.getName());
+                String lookupPath = encodePathAsFirestoreDocumentName(makeLookupPath(fullPath));
+                DocumentReference newRef = snapshotCollection.document(lookupPath);
+                return newRef.set(entry);
+            });
     }
 
     // We make a special method just for validating id, because when
@@ -573,25 +565,23 @@ public class FireStoreDirectoryDao {
     private List<String> batchValidateIds(
         Firestore firestore, String collectionId, List<String> batch)
         throws InterruptedException {
+
         CollectionReference datasetCollection = firestore.collection(collectionId);
 
-        List<String> missingIds = new ArrayList<>();
-        List<ApiFuture<QuerySnapshot>> futures = new ArrayList<>();
-        for (String fileId : batch) {
-            Query query = datasetCollection.whereEqualTo("fileId", fileId);
-            futures.add(query.get());
-        }
+        List<QuerySnapshot> querySnapshotList = fireStoreUtils.batchOperation(
+            batch,
+            fileId -> {
+                Query query = datasetCollection.whereEqualTo("fileId", fileId);
+                return query.get();
+            });
 
-        try {
-            for (int i = 0; i < batch.size(); i++) {
-                ApiFuture<QuerySnapshot> future = futures.get(i);
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
-                if (documents.size() != 1) {
-                    missingIds.add(batch.get(i));
-                }
+        List<String> missingIds = new ArrayList<>();
+        for (int i = 0; i < batch.size(); i++) {
+            QuerySnapshot querySnapshot = querySnapshotList.get(i);
+            List<QueryDocumentSnapshot> documents = querySnapshot.getDocuments();
+            if (documents.size() != 1) {
+                missingIds.add(batch.get(i));
             }
-        } catch (ExecutionException e) {
-            throw new FileSystemExecutionException("batch validate id failed", e);
         }
 
         return missingIds;

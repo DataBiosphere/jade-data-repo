@@ -85,13 +85,13 @@ jobs:
           psql -U postgres -f ./db/create-data-repo-db
 
           # configure integration prerequisites
-          #gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
-          #gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
-          #gcloud auth configure-docker --quiet
+          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
+          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
+          gcloud auth configure-docker --quiet
           #echo 'Set google sdk to SA user'
-          #if [[ -n "${K8_CLUSTER}" ]]; then
-          #  gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
-          #fi
+          if [[ -n "${K8_CLUSTER}" ]]; then
+            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
+          fi
       - name: "Build and run test runner smoke tests"
         run: |
           export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"

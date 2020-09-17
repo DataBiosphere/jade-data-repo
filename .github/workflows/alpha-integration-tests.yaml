@@ -30,7 +30,7 @@ jobs:
     - name: "Checkout code"
       uses: actions/checkout@v2
     - name: "Import Vault alpha secrets"
-      uses: hashicorp/vault-action@c8b383ee
+      uses: hashicorp/vault-action@v2.0.1
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle
@@ -38,8 +38,6 @@ jobs:
         secretId: ${{ secrets.ALPHA_SECRET_ID }}
         secrets: |
           secret/dsde/datarepo/alpha/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
-          secret/dsde/datarepo/alpha/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
-          secret/dsde/datarepo/alpha/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
     - name: "Perform IAM policy cleanup"
       run: |
         # write vault tokens
@@ -59,7 +57,7 @@ jobs:
           fi
         done
     - name: "Import Vault dev secrets"
-      uses: hashicorp/vault-action@c8b383ee
+      uses: hashicorp/vault-action@v2.0.1
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle
@@ -67,8 +65,6 @@ jobs:
         secretId: ${{ secrets.SECRET_ID }}
         secrets: |
           secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
-          secret/dsde/datarepo/dev/datarepo-sql-db datarepo_db_pw | DATAREPO_PASS ;
-          secret/dsde/datarepo/dev/datarepo-sql-db stairway_db_pw | STAIRWAY_PASS ;
     - name: "Build and run alpha integration tests"
       run: |
         # write vault tokens

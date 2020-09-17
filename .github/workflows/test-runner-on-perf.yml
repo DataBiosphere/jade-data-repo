@@ -65,7 +65,7 @@ jobs:
               fi
             fi
           done
-      - name: "Build and run test runner smoke tests"
+      - name: "Build and run Test Runner"
         run: |
           export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-client

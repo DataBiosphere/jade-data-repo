@@ -67,7 +67,6 @@ jobs:
           done
       - name: "Build and run Test Runner"
         run: |
-          export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-client
           echo "Building Data Repo client library"
           ../gradlew clean assemble

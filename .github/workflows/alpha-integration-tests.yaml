@@ -73,7 +73,9 @@ jobs:
         # disable snapshotByQueryHappyPathTest
         FILE="./src/test/java/bio/terra/service/snapshot/SnapshotTest.java"
         NR=$(awk "/snapshotByQueryHappyPathTest/{print NR-1}" ${FILE})
-        sed -i "${NR}s/@Test/@Ignore\n@Test/" ${FILE}
+        sed -i \
+          -e "s/^import org.junit.Test;/import org.junit.Ignore;\nimport org.junit.Test;/" \
+          -e "${NR}s/@Test/@Ignore\n    @Test/" ${FILE}
 
         # run integration tests
         ./gradlew assemble

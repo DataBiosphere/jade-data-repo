@@ -124,24 +124,20 @@ class FireStoreFileDao {
         List<FireStoreDirectoryEntry> directoryEntries) throws InterruptedException {
 
         CollectionReference collection = firestore.collection(makeCollectionId(datasetId));
-        List<ApiFuture<DocumentSnapshot>> futures = new ArrayList<>();
 
-        for (FireStoreDirectoryEntry entry : directoryEntries) {
-            DocumentReference docRef = collection.document(entry.getFileId());
-            futures.add(docRef.get());
-        }
+        List<DocumentSnapshot> documentSnapshotList = fireStoreUtils.batchOperation(
+            directoryEntries,
+            entry -> {
+                DocumentReference docRef = collection.document(entry.getFileId());
+                return docRef.get();
+            });
 
         List<FireStoreFile> files = new ArrayList<>();
-        try {
-            for (ApiFuture<DocumentSnapshot> future : futures) {
-                DocumentSnapshot documentSnapshot = future.get();
-                if (documentSnapshot == null || !documentSnapshot.exists()) {
-                    throw new FileSystemCorruptException("Directory entry refers to non-existent file");
-                }
-                files.add(documentSnapshot.toObject(FireStoreFile.class));
+        for (DocumentSnapshot documentSnapshot : documentSnapshotList) {
+            if (documentSnapshot == null || !documentSnapshot.exists()) {
+                throw new FileSystemCorruptException("Directory entry refers to non-existent file");
             }
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("batchRetrieveFileMetadata - execution exception", ex);
+            files.add(documentSnapshot.toObject(FireStoreFile.class));
         }
 
         return files;

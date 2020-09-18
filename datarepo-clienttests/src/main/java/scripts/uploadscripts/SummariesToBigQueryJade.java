@@ -5,9 +5,7 @@ import collector.MeasurementCollector;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.InsertAllResponse;
 import com.google.cloud.bigquery.TableId;
 import common.utils.BigQueryUtils;
 import java.nio.file.Path;
@@ -82,62 +80,35 @@ public class SummariesToBigQueryJade extends UploadScript {
               + " table. Inserting a duplicate.");
     }
     TableId tableId = TableId.of(datasetName, testRunTableName);
-    InsertAllResponse response =
-        bigQueryClient.insertAll(
-            InsertAllRequest.newBuilder(tableId).addRow(buildTestRunRow(outputDirectory)).build());
-    if (response.hasErrors()) {
-      logger.info("hasErrors is true");
-      // If any of the insertions failed, this lets you inspect the errors
-      for (Map.Entry<Long, List<BigQueryError>> entry : response.getInsertErrors().entrySet()) {
-        entry.getValue().forEach(bqe -> logger.info("bqerror: {}", bqe.toString()));
-      }
-    }
-    logger.info("Test run summary written to: {}.{}.{}", projectId, datasetName, testRunTableName);
+    InsertAllRequest insertRequest =
+        InsertAllRequest.newBuilder(tableId).addRow(buildTestRunRow(outputDirectory)).build();
+    BigQueryUtils.insertAllIntoBigQuery(bigQueryClient, insertRequest);
 
     // insert into testScriptResults
     tableId = TableId.of(datasetName, testScriptResultsTableName);
-    InsertAllRequest.Builder request = InsertAllRequest.newBuilder(tableId);
+    InsertAllRequest.Builder insertRequestBuilder = InsertAllRequest.newBuilder(tableId);
     for (int ctr = 0; ctr < renderedTestConfiguration.testScripts.size(); ctr++) {
       TestScriptSpecification testScriptSpecification =
           renderedTestConfiguration.testScripts.get(ctr);
       TestScriptResult.TestScriptResultSummary testScriptResult =
           testRunSummary.testScriptResultSummaries.get(ctr);
-      request.addRow(buildTestScriptResultsRow(testScriptSpecification, testScriptResult));
+      insertRequestBuilder.addRow(
+          buildTestScriptResultsRow(testScriptSpecification, testScriptResult));
     }
-    response = bigQueryClient.insertAll(request.build());
-    if (response.hasErrors()) {
-      logger.info("hasErrors is true");
-      // If any of the insertions failed, this lets you inspect the errors
-      for (Map.Entry<Long, List<BigQueryError>> entry : response.getInsertErrors().entrySet()) {
-        entry.getValue().forEach(bqe -> logger.info("bqerror: {}", bqe.toString()));
-      }
-    }
-    logger.info(
-        "Test script result summaries written to: {}.{}.{}",
-        projectId,
-        datasetName,
-        testScriptResultsTableName);
+    BigQueryUtils.insertAllIntoBigQuery(bigQueryClient, insertRequestBuilder.build());
 
     // insert into measurementCollection
-    tableId = TableId.of(datasetName, measurementCollectionTableName);
-    request = InsertAllRequest.newBuilder(tableId);
-    for (MeasurementCollectionScript.MeasurementResultSummary measurementResult :
-        measurementCollectionSummaries) {
-      request.addRow(buildMeasurementCollectionRow(measurementResult));
-    }
-    response = bigQueryClient.insertAll(request.build());
-    if (response.hasErrors()) {
-      logger.info("hasErrors is true");
-      // If any of the insertions failed, this lets you inspect the errors
-      for (Map.Entry<Long, List<BigQueryError>> entry : response.getInsertErrors().entrySet()) {
-        entry.getValue().forEach(bqe -> logger.info("bqerror: {}", bqe.toString()));
+    if (measurementCollectionSummaries == null) {
+      logger.info("No measurement summaries found.");
+    } else {
+      tableId = TableId.of(datasetName, measurementCollectionTableName);
+      insertRequestBuilder = InsertAllRequest.newBuilder(tableId);
+      for (MeasurementCollectionScript.MeasurementResultSummary measurementResult :
+          measurementCollectionSummaries) {
+        insertRequestBuilder.addRow(buildMeasurementCollectionRow(measurementResult));
       }
+      BigQueryUtils.insertAllIntoBigQuery(bigQueryClient, insertRequestBuilder.build());
     }
-    logger.info(
-        "Measurement collection summaries written to: {}.{}.{}",
-        projectId,
-        datasetName,
-        measurementCollectionTableName);
   }
 
   /** Build a single row for each measurement collection. */

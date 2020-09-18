@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import common.CommandCLI;
 import common.utils.FileUtils;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
@@ -152,33 +151,38 @@ public class MeasurementCollector {
 
   public static void collectMeasurementsForTestRun(
       String measurementListFileName, String outputDirName) throws Exception {
-    // check that the output directory exists
-    Path outputDirectory = Paths.get(outputDirName);
-    if (!outputDirectory.toFile().exists()) {
-      throw new FileNotFoundException(
-          "Output directory not found: " + outputDirectory.toAbsolutePath());
+    // build a list of output directories to collect measurements for
+    List<Path> testRunOutputDirectories =
+        TestRunner.getTestRunOutputDirectories(Paths.get(outputDirName));
+
+    // loop through each test run output directory, collecting measurements separately for each one
+    for (int ctr = 0; ctr < testRunOutputDirectories.size(); ctr++) {
+      Path testRunOutputDirectory = testRunOutputDirectories.get(ctr);
+      logger.info("==== UPLOADING RESULTS FROM TEST CONFIGURATION ({}) ====", ctr);
+
+      // read in the test config and test run summary files
+      TestConfiguration renderedTestConfig =
+          TestRunner.getRenderedTestConfiguration(testRunOutputDirectory);
+      TestRunner.TestRunSummary testRunSummary =
+          TestRunner.getTestRunSummary(testRunOutputDirectory);
+
+      if (renderedTestConfig.server.skipKubernetes) {
+        logger.warn(
+            "The skipKubernetes flag is not set, so there may be no measurements to collect.");
+      }
+      logger.info(
+          "Test run id: {}, configuration: {}, server: {}",
+          testRunSummary.id,
+          renderedTestConfig.name,
+          renderedTestConfig.server.name);
+
+      MeasurementCollector.collectMeasurements(
+          measurementListFileName,
+          testRunOutputDirectory.toString(),
+          renderedTestConfig.serverSpecificationFile,
+          testRunSummary.startUserJourneyTime,
+          testRunSummary.endUserJourneyTime);
     }
-
-    // read in the test config and test run summary files
-    TestConfiguration renderedTestConfig = TestRunner.getRenderedTestConfiguration(outputDirectory);
-    TestRunner.TestRunSummary testRunSummary = TestRunner.getTestRunSummary(outputDirectory);
-
-    if (renderedTestConfig.server.skipKubernetes) {
-      logger.warn(
-          "The skipKubernetes flag is not set, so there may be no measurements to collect.");
-    }
-    logger.info(
-        "Test run id: {}, configuration: {}, server: {}",
-        testRunSummary.id,
-        renderedTestConfig.name,
-        renderedTestConfig.server.name);
-
-    MeasurementCollector.collectMeasurements(
-        measurementListFileName,
-        outputDirName,
-        renderedTestConfig.serverSpecificationFile,
-        testRunSummary.startUserJourneyTime,
-        testRunSummary.endUserJourneyTime);
   }
 
   public static void main(String[] args) throws Exception {

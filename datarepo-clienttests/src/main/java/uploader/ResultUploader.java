@@ -1,12 +1,12 @@
 package uploader;
 
 import common.CommandCLI;
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.TestRunner;
 import uploader.config.UploadList;
 import uploader.config.UploadScriptSpecification;
 
@@ -40,20 +40,22 @@ public class ResultUploader {
     UploadList uploadList = UploadList.fromJSONFile(uploadListFileName);
     uploadList.validate();
 
-    // get a reference to the output directory
-    Path outputDirectory = Paths.get(outputDirName);
-    File outputDirectoryFile = outputDirectory.toFile();
-    if (!outputDirectoryFile.exists()) {
-      throw new FileNotFoundException(
-          "Output directory not found: " + outputDirectoryFile.getAbsolutePath());
-    }
+    // build a list of output directories to upload results from
+    List<Path> testRunOutputDirectories =
+        TestRunner.getTestRunOutputDirectories(Paths.get(outputDirName));
 
-    // get an instance of an uploader and tell it to execute the upload list
-    ResultUploader uploader = new ResultUploader(uploadList, outputDirectory);
-    try {
-      uploader.executeUploadList();
-    } catch (Exception uplEx) {
-      logger.error("Result Uploader threw an exception", uplEx);
+    // loop through each test run output directory, uploading the results separately for each one
+    for (int ctr = 0; ctr < testRunOutputDirectories.size(); ctr++) {
+      Path testRunOutputDirectory = testRunOutputDirectories.get(ctr);
+      logger.info("==== UPLOADING RESULTS FROM TEST CONFIGURATION ({}) ====", ctr);
+
+      // get an instance of an uploader and tell it to execute the upload list
+      ResultUploader uploader = new ResultUploader(uploadList, testRunOutputDirectory);
+      try {
+        uploader.executeUploadList();
+      } catch (Exception uplEx) {
+        logger.error("Result Uploader threw an exception", uplEx);
+      }
     }
   }
 

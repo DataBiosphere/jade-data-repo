@@ -6,6 +6,7 @@ import common.CommandCLI;
 import common.utils.FileUtils;
 import common.utils.KubernetesClientUtils;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -470,6 +471,42 @@ public class TestRunner {
         outputDirectory, TestRunner.runSummaryFileName, TestRunner.TestRunSummary.class);
   }
 
+  /**
+   * Build a list of output directories that contain test run results. - For a single test config,
+   * this is just the provided output directory - For a test suite, this is all the immediate
+   * sub-directories of the provided output directory
+   *
+   * @return a list of test run output directories
+   */
+  public static List<Path> getTestRunOutputDirectories(Path outputDirectory) throws Exception {
+    // check that the output directory exists
+    if (!outputDirectory.toFile().exists()) {
+      throw new FileNotFoundException(
+          "Output directory not found: " + outputDirectory.toAbsolutePath());
+    }
+
+    // build a list of output directories that contain test run results
+    List<Path> testRunOutputDirectories = new ArrayList<>();
+    TestRunner.TestRunSummary testRunSummary = null;
+    try {
+      testRunSummary = getTestRunSummary(outputDirectory);
+    } catch (Exception ex) {
+    }
+
+    if (testRunSummary != null) { // single test config
+      testRunOutputDirectories.add(outputDirectory);
+    } else { // test suite
+      File[] subdirectories = outputDirectory.toFile().listFiles(File::isDirectory);
+      if (subdirectories == null) {
+        throw new RuntimeException("Unexpected output directory format, no test runs found.");
+      }
+      for (int ctr = 0; ctr < subdirectories.length; ctr++) {
+        testRunOutputDirectories.add(subdirectories[ctr].toPath());
+      }
+    }
+    return testRunOutputDirectories;
+  }
+
   /** Returns a boolean indicating whether any test runs failed or not. */
   public static boolean runTest(String configFileName, String outputParentDirName)
       throws Exception {
@@ -530,6 +567,8 @@ public class TestRunner {
                 .toString();
       }
       runner.writeOutResults(outputDirName);
+
+      TimeUnit.SECONDS.sleep(5);
     }
 
     return isFailure;

@@ -6,7 +6,7 @@
       "name": "PerformanceLoggerCount",
       "description": "PerformanceLogger enumerateProfiles timer integer count.",
       "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"],
-      "saveRawDataPoints": false
+      "saveRawDataPoints": true
     },
     {
       "name": "LoggerInterceptorHttpStatus",

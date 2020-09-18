@@ -46,9 +46,13 @@ jobs:
 
         gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
-        # clear policy members
+        # retrieve all iam policies for the data project
         BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
+        # remove any policies that start with group:policy- or deleted:group:policy-
+        # group policies need to be cleared out to avoid hitting 250 iam policy limit
+        # that are created during test runs
         OK_BINDINGS=$(echo ${BINDINGS} | jq 'del(.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-") or startswith("deleted:group:policy-")))')
+        # overwrite the iam policy without the group and deleted policies
         echo ${OK_BINDINGS} | jq '.' > policy.json
         gcloud projects set-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} policy.json
     - name: "Import Vault dev secrets"

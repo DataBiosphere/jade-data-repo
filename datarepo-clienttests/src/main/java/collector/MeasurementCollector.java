@@ -62,7 +62,7 @@ public class MeasurementCollector {
             outputDirectory
                 .resolve(
                     measurementDataPointsFileName.replace(
-                        ".json", "_" + specification.name + ".json"))
+                        ".json", "_[" + script.description + "].json"))
                 .toFile();
         script.writeRawDataPointsToFile(measurementDataPointsFile);
         logger.info(

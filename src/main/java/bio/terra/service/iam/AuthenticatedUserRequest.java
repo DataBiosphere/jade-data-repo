@@ -3,6 +3,7 @@ package bio.terra.service.iam;
 import bio.terra.app.controller.exception.ApiException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -67,4 +68,19 @@ public class AuthenticatedUserRequest {
         return this;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) { return true; }
+        if (!(o instanceof AuthenticatedUserRequest)) { return false; }
+        AuthenticatedUserRequest that = (AuthenticatedUserRequest) o;
+        return Objects.equals(getEmail(), that.getEmail()) &&
+            Objects.equals(getSubjectId(), that.getSubjectId()) &&
+            Objects.equals(getToken(), that.getToken()) &&
+            Objects.equals(getReqId(), that.getReqId());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getEmail(), getSubjectId(), getToken(), getReqId());
+    }
 }

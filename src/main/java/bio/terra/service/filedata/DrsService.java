@@ -68,7 +68,15 @@ public class DrsService {
         try {
             UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
             // We only look up DRS ids for unlocked snapshots.
+            String retrieveTimer = performanceLogger.timerStart();
+
             snapshot = snapshotService.retrieveAvailable(snapshotId);
+
+            performanceLogger.timerEndAndLog(
+                retrieveTimer,
+                drsObjectId, // not a flight, so no job id
+                this.getClass().getName(),
+                "snapshotService.retrieveAvailable");
         } catch (IllegalArgumentException ex) {
             throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
         } catch (SnapshotNotFoundException ex) {

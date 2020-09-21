@@ -13,6 +13,7 @@ import java.util.TimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
+import runner.config.ServiceAccountSpecification;
 
 public class LogsUtils {
   private static final Logger logger = LoggerFactory.getLogger(LogsUtils.class);
@@ -41,11 +42,26 @@ public class LogsUtils {
     return loggingServiceClient;
   }
 
+  /**
+   * Build a Google Logging client object with credentials for a given service account. The client
+   * object is newly created on each call to this method; it is not cached.
+   */
+  public static LoggingClient getClientForServiceAccount(ServiceAccountSpecification serviceAccount)
+      throws Exception {
+    GoogleCredentials serviceAccountCredentials =
+        AuthenticationUtils.getServiceAccountCredential(serviceAccount);
+    LoggingSettings loggingServiceSettings =
+        LoggingSettings.newBuilder()
+            .setCredentialsProvider(FixedCredentialsProvider.create(serviceAccountCredentials))
+            .build();
+    LoggingClient loggingServiceClient = LoggingClient.create(loggingServiceSettings);
+    return loggingServiceClient;
+  }
+
   /** Request the raw logging data points. */
   public static LoggingClient.ListLogEntriesPagedResponse requestLogEntries(
-      ProjectName project, String filter, String pageToken) throws Exception {
-    LoggingClient loggingServiceClient = getClient();
-
+      LoggingClient loggingServiceClient, ProjectName project, String filter, String pageToken)
+      throws Exception {
     // Page<LogEntry> entries = loggingClient.listLogEntries(
     // Logging.EntryListOption.filter(filter)); // v1 client api
 

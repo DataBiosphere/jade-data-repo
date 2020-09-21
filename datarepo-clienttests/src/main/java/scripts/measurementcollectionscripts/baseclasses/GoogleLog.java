@@ -39,8 +39,10 @@ public class GoogleLog extends MeasurementCollectionScript<LogEntry> {
       filter = filter + " AND " + additionalFilter;
     }
     logger.debug("filter: {}", filter);
+    LoggingClient loggingClient =
+        LogsUtils.getClientForServiceAccount(server.testRunnerServiceAccount);
     LoggingClient.ListLogEntriesPagedResponse response =
-        LogsUtils.requestLogEntries(ProjectName.of(server.project), filter, null);
+        LogsUtils.requestLogEntries(loggingClient, ProjectName.of(server.project), filter, null);
 
     // iterate through all log entries returned, keeping either the whole entry or just the numeric
     // value

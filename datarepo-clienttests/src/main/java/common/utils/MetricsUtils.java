@@ -12,6 +12,7 @@ import com.google.protobuf.util.Timestamps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServerSpecification;
+import runner.config.ServiceAccountSpecification;
 
 public class MetricsUtils {
   private static final Logger logger = LoggerFactory.getLogger(MetricsUtils.class);
@@ -39,12 +40,31 @@ public class MetricsUtils {
     return metricServiceClient;
   }
 
+  /**
+   * Build a Google Metrics client object with credentials for the given service account. The client
+   * object is newly created on each call to this method; it is not cached.
+   */
+  public static MetricServiceClient getClientForServiceAccount(
+      ServiceAccountSpecification serviceAccount) throws Exception {
+    GoogleCredentials serviceAccountCredentials =
+        AuthenticationUtils.getServiceAccountCredential(serviceAccount);
+    MetricServiceSettings metricServiceSettings =
+        MetricServiceSettings.newBuilder()
+            .setCredentialsProvider(FixedCredentialsProvider.create(serviceAccountCredentials))
+            .build();
+    MetricServiceClient metricServiceClient = MetricServiceClient.create(metricServiceSettings);
+
+    return metricServiceClient;
+  }
+
   /** Request the raw metrics data points. */
   public static MetricServiceClient.ListTimeSeriesPagedResponse requestTimeSeriesDataPoints(
-      ProjectName project, String filter, TimeInterval interval, Aggregation aggregation)
+      MetricServiceClient metricServiceClient,
+      ProjectName project,
+      String filter,
+      TimeInterval interval,
+      Aggregation aggregation)
       throws Exception {
-    MetricServiceClient metricServiceClient = getClient();
-
     ListTimeSeriesRequest.Builder requestBuilder =
         ListTimeSeriesRequest.newBuilder()
             .setName(project.toString())

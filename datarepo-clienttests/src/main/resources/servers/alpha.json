@@ -10,6 +10,7 @@
   "project": "terra-datarepo-alpha",
   "namespace": "terra-alpha",
   "containerName": "datarepo-datarepo-api",
+  "testRunnerServiceAccountFile": "github-action-k8-sa.json",
   "skipDeployment": true,
   "skipKubernetes": false
 }

@@ -23,6 +23,8 @@ public class ServerSpecification implements SpecificationInterface {
   public String containerName;
 
   public DeploymentScriptSpecification deploymentScript;
+  public String testRunnerServiceAccountFile;
+  public ServiceAccountSpecification testRunnerServiceAccount;
   public boolean skipKubernetes = false;
   public boolean skipDeployment = false;
 
@@ -44,7 +46,13 @@ public class ServerSpecification implements SpecificationInterface {
     // read in the server file
     InputStream inputStream =
         FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
-    return objectMapper.readValue(inputStream, ServerSpecification.class);
+    ServerSpecification server = objectMapper.readValue(inputStream, ServerSpecification.class);
+
+    // read in the service account file
+    server.testRunnerServiceAccount =
+        ServiceAccountSpecification.fromJSONFile(server.testRunnerServiceAccountFile);
+
+    return server;
   }
 
   /**
@@ -81,5 +89,7 @@ public class ServerSpecification implements SpecificationInterface {
       }
       deploymentScript.validate();
     }
+
+    testRunnerServiceAccount.validate();
   }
 }

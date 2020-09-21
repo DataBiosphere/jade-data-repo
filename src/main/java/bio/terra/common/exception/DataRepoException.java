@@ -1,7 +1,7 @@
 package bio.terra.common.exception;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * DataRepoException is the base exception for the other data repository exceptions.
@@ -18,17 +18,17 @@ public abstract class DataRepoException extends RuntimeException {
 
     public DataRepoException(String message) {
         super(message);
-        this.errorDetails = null;
+        this.errorDetails = Collections.emptyList();
     }
 
     public DataRepoException(String message, Throwable cause) {
         super(message, cause);
-        this.errorDetails = null;
+        this.errorDetails = Collections.emptyList();
     }
 
     public DataRepoException(Throwable cause) {
         super(cause);
-        this.errorDetails = null;
+        this.errorDetails = Collections.emptyList();
     }
 
     public DataRepoException(String message, List<String> errorDetails) {
@@ -47,10 +47,11 @@ public abstract class DataRepoException extends RuntimeException {
 
     @Override
     public String toString() {
-        if (errorDetails == null) {
-            return super.toString();
-        }
-        String details = errorDetails.stream().collect(Collectors.joining("; "));
-        return super.toString() + " Details: " + details;
+        return String.format("%s%s",
+            super.toString(),
+            !errorDetails.isEmpty()
+                ? String.format(" Details: %s", String.join("; ", errorDetails))
+                : ""
+        );
     }
 }

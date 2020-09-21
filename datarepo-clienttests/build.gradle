@@ -100,6 +100,10 @@ task(collectMeasurements, dependsOn: 'classes', type: JavaExec) {
     main = "collector.MeasurementCollector"
     classpath = sourceSets.main.runtimeClasspath
 }
+task(uploadResults, dependsOn: 'classes', type: JavaExec) {
+    main = "uploader.ResultUploader"
+    classpath = sourceSets.main.runtimeClasspath
+}
 
 spotless {
     java {

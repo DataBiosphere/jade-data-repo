@@ -93,7 +93,8 @@ public final class AuthenticationUtils {
     return applicationDefaultCredential;
   }
 
-  // Test Runner service account should have permission to perform tests (adjust kubernetes, write logs, etc.)
+  // Test Runner service account should have permission to perform tests (adjust kubernetes, write
+  // logs, etc.)
   // Which SA to use is determined by the following, in order:
   //   if defined: 1. TEST_RUNNER_SA_FILE env variable
   //   else: 2. GOOGLE_APPLICATION_CREDENTIALS env variable

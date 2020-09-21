@@ -139,7 +139,7 @@ public class DRSLookup extends SimpleDataset {
             1L);
 
     BigQuery bigQueryClient =
-        BigQueryUtils.getClientForServiceAccount(snapshotModel.getDataProject());
+        BigQueryUtils.getClientForTestUser(datasetCreator, snapshotModel.getDataProject());
     TableResult result = BigQueryUtils.queryBigQuery(bigQueryClient, queryForFileRefs);
     ArrayList<String> fileRefs = new ArrayList<>();
     result.iterateAll().forEach(r -> fileRefs.add(r.get("VCF_File_Ref").getStringValue()));

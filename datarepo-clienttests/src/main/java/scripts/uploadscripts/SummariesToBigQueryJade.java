@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.TestRunner;
 import runner.TestScriptResult;
+import runner.config.ServiceAccountSpecification;
 import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
 import uploader.UploadScript;
@@ -59,10 +60,12 @@ public class SummariesToBigQueryJade extends UploadScript {
    * Upload the test results saved to the given directory. Results may include Test Runner
    * client-side output and any relevant measurements collected.
    */
-  public void uploadResults(Path outputDirectory) throws Exception {
+  public void uploadResults(
+      Path outputDirectory, ServiceAccountSpecification uploaderServiceAccount) throws Exception {
     // get a BigQuery client object
     logger.debug("BigQuery project_id:dataset_name: {}:{}", projectId, datasetName);
-    BigQuery bigQueryClient = BigQueryUtils.getClient(projectId);
+    BigQuery bigQueryClient =
+        BigQueryUtils.getClientForServiceAccount(uploaderServiceAccount, projectId);
 
     // read in TestConfiguration TestRunSummary, and array of
     // MeasurementCollectionScript.MeasurementResultSummary objects

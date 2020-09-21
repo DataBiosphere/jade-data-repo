@@ -4,8 +4,8 @@ import com.google.api.client.util.ByteStreams;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 import common.utils.FileUtils;
+import common.utils.StorageUtils;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.channels.Channels;
@@ -14,6 +14,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.TestRunner;
+import runner.config.ServiceAccountSpecification;
 import uploader.UploadScript;
 
 public class CompressDirectoryToBucket extends UploadScript {
@@ -44,7 +45,8 @@ public class CompressDirectoryToBucket extends UploadScript {
    * Upload the test results saved to the given directory. Results may include Test Runner
    * client-side output and any relevant measurements collected.
    */
-  public void uploadResults(Path outputDirectory) throws Exception {
+  public void uploadResults(
+      Path outputDirectory, ServiceAccountSpecification uploaderServiceAccount) throws Exception {
     // archive file path will be: outputDirectory parent directory + test run id + .tar.gz
     Path outputDirectoryParent = outputDirectory.getParent();
     if (outputDirectoryParent == null) {
@@ -61,12 +63,12 @@ public class CompressDirectoryToBucket extends UploadScript {
     logger.info("Compressed directory written locally: {}", archiveFile.toAbsolutePath());
 
     // upload the archive file to a bucket
-    Storage storage = StorageOptions.getDefaultInstance().getService();
+    Storage storageClient = StorageUtils.getClientForServiceAccount(uploaderServiceAccount);
     BlobInfo blobInfo =
         BlobInfo.newBuilder(bucketPath.replace("gs://", ""), archiveFileName)
             .setContentType("application/gzip")
             .build();
-    try (WriteChannel writer = storage.writer(blobInfo)) {
+    try (WriteChannel writer = storageClient.writer(blobInfo)) {
       try (InputStream inputStream = new FileInputStream(archiveFile.toFile())) {
         ByteStreams.copy(inputStream, Channels.newOutputStream(writer));
       }

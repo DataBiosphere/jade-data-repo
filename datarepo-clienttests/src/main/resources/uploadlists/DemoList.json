@@ -1,6 +1,7 @@
 {
   "name": "DemoList",
   "description": "Demo upload list (MM)",
+  "uploaderServiceAccountFile": "jade-k8-sa.json",
   "uploadScripts": [
     {
       "name": "SummariesToBigQueryJade",

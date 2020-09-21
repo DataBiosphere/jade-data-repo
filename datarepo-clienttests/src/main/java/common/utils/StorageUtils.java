@@ -9,6 +9,7 @@ import com.google.cloud.storage.StorageOptions;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.ServiceAccountSpecification;
 
 public class StorageUtils {
   private static final Logger logger = LoggerFactory.getLogger(StorageUtils.class);
@@ -20,10 +21,31 @@ public class StorageUtils {
    * newly created on each call to this method; it is not cached.
    */
   public static Storage getClient() throws Exception {
+    logger.debug("Fetching application default credentials and building Storage client object");
+
     GoogleCredentials applicationDefaultCredentials =
         AuthenticationUtils.getTestRunnerSACredentials();
     StorageOptions storageOptions =
         StorageOptions.newBuilder().setCredentials(applicationDefaultCredentials).build();
+    Storage storageClient = storageOptions.getService();
+
+    return storageClient;
+  }
+
+  /**
+   * Build a Google Storage client object with credentials for the given service account. The client
+   * object is newly created on each call to this method; it is not cached.
+   */
+  public static Storage getClientForServiceAccount(ServiceAccountSpecification serviceAccount)
+      throws Exception {
+    logger.debug(
+        "Fetching credentials and building Storage client object for service account: {}",
+        serviceAccount.name);
+
+    GoogleCredentials serviceAccountCredentials =
+        AuthenticationUtils.getServiceAccountCredential(serviceAccount);
+    StorageOptions storageOptions =
+        StorageOptions.newBuilder().setCredentials(serviceAccountCredentials).build();
     Storage storageClient = storageOptions.getService();
 
     return storageClient;

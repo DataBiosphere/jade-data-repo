@@ -23,15 +23,20 @@ jobs:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
-      - name: "Read datarepo-helm-definitions dev image tag in devDeployment.yaml"
-        id: devImageTag
-        uses: docker://mikefarah/yq:latest
-        with:
-          args: yq r datarepo-helm-definitions/dev/dev/devDeployment.yaml datarepo-api.image.tag
+      #- name: "Read datarepo-helm-definitions dev image tag in devDeployment.yaml"
+      #  id: devImageTag
+      #  uses: docker://mikefarah/yq:latest
+      #  with:
+      #    args: yq r datarepo-helm-definitions/dev/dev/devDeployment.yaml datarepo-api.image
+      - name: 'Get Previous tag'
+        id: apiprevioustag
+        uses: "broadinstitute/github-action-get-previous-tag@master"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: "Read datarepo-helm-definitions and update perf image tag"
         uses: docker://mikefarah/yq:latest
         with:
-          args: yq r datarepo-helm-definitions/perf/datarepo-api.yaml image.tag  ${{ steps.devImageTag.outputs }}
+          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}
       # TODO remove before merging
       #- name: "Read datarepo-helm-definitions from perf"
       #  uses: docker://mikefarah/yq:latest
@@ -43,16 +48,16 @@ jobs:
         with:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
-          commit-message: "Datarepo version update: ${{ steps.devImageTag.outputs }}"
+          commit-message: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
           committer: datarepo-bot <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "Datarepo version update: ${{ steps.devImageTag.outputs }}"
-          branch: "version-update/${{ steps.devImageTag.outputs }}"
+          title: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
+          branch: "version-update-${{ steps.apiprevioustag.outputs.tag }}"
           body: |
-            Update versions in **${{ steps.devImageTag.outputs }}**.
+            Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           # todo: add "automerge"
-          labels: "broadbot,datarepo,version-update"
+          labels: "broadbot,datarepo"
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

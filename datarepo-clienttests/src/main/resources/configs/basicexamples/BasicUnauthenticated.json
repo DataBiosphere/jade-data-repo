@@ -8,8 +8,8 @@
   "testScripts": [
     {
       "name": "ServiceStatus",
-      "totalNumberToRun": 10,
-      "numberToRunInParallel": 2,
+      "numberOfUserJourneyThreadsToRun": 10,
+      "userJourneyThreadPoolSize": 2,
       "expectedTimeForEach": 5,
       "expectedTimeForEachUnit": "SECONDS"
     }

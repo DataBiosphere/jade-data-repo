@@ -13,8 +13,8 @@
   "testScripts": [
     {
       "name": "RetrieveDataset",
-      "totalNumberToRun": 15,
-      "numberToRunInParallel": 3,
+      "numberOfUserJourneyThreadsToRun": 15,
+      "userJourneyThreadPoolSize": 3,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
     }

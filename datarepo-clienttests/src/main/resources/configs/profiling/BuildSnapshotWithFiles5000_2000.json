@@ -12,8 +12,8 @@
     {
       "name": "BuildSnapshotWithFiles",
       "parameters": [5000, 5, 2000],
-      "totalNumberToRun": 1,
-      "numberToRunInParallel": 1,
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 1000000,
       "expectedTimeForEachUnit": "SECONDS"
     }

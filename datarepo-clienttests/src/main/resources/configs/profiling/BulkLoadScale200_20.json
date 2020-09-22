@@ -15,8 +15,8 @@
     {
       "name": "BulkLoad",
       "parameters": [200],
-      "totalNumberToRun": 10,
-      "numberToRunInParallel": 1,
+      "numberOfUserJourneyThreadsToRun": 10,
+      "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 1000000,
       "expectedTimeForEachUnit": "SECONDS"
     }

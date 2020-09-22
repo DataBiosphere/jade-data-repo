@@ -197,12 +197,14 @@ public class TestRunner {
       // create a thread pool for running its user journeys
       ThreadPoolExecutor threadPool =
           (ThreadPoolExecutor)
-              Executors.newFixedThreadPool(testScriptSpecification.numberToRunInParallel);
+              Executors.newFixedThreadPool(testScriptSpecification.userJourneyThreadPoolSize);
       threadPools.add(threadPool);
 
       // kick off the user journey(s), one per thread
       List<Future<UserJourneyResult>> userJourneyFutures = new ArrayList<>();
-      for (int ujCtr = 0; ujCtr < testScriptSpecification.totalNumberToRun; ujCtr++) {
+      for (int ujCtr = 0;
+          ujCtr < testScriptSpecification.numberOfUserJourneyThreadsToRun;
+          ujCtr++) {
         TestUserSpecification testUser = config.testUsers.get(ujCtr % config.testUsers.size());
         // add a description to the user journey threads/results that includes any test script
         // parameters
@@ -225,7 +227,8 @@ public class TestRunner {
 
       threadPool.shutdown();
       long totalTerminationTime =
-          testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
+          testScriptSpecification.expectedTimeForEach
+              * testScriptSpecification.numberOfUserJourneyThreadsToRun;
       boolean terminatedByItself =
           threadPool.awaitTermination(
               totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);

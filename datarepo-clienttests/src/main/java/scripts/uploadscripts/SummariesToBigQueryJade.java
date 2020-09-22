@@ -148,8 +148,8 @@ public class SummariesToBigQueryJade extends UploadScript {
     rowContent.put("testRun_id", testRunSummary.id);
 
     rowContent.put("name", testScriptSpecification.name);
-    rowContent.put("totalNumberToRun", testScriptSpecification.totalNumberToRun);
-    rowContent.put("numberToRunInParallel", testScriptSpecification.numberToRunInParallel);
+    rowContent.put("totalNumberToRun", testScriptSpecification.numberOfUserJourneyThreadsToRun);
+    rowContent.put("numberToRunInParallel", testScriptSpecification.userJourneyThreadPoolSize);
     rowContent.put("expectedTimeForEach", testScriptSpecification.expectedTimeForEach);
     rowContent.put("expectedTimeForEachUnit", testScriptSpecification.expectedTimeForEachUnit);
     rowContent.put("parameters", testScriptSpecification.parameters);

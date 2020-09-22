@@ -10,8 +10,8 @@
   "testScripts": [
     {
       "name": "SoftDeleteDataset",
-      "totalNumberToRun": 3,
-      "numberToRunInParallel": 2,
+      "numberOfUserJourneyThreadsToRun": 3,
+      "userJourneyThreadPoolSize": 2,
       "expectedTimeForEach": 60,
       "expectedTimeForEachUnit": "SECONDS"
     }

@@ -9,8 +9,8 @@
   "testScripts": [
     {
       "name": "DatasetCustodianPermissions",
-      "totalNumberToRun": 7,
-      "numberToRunInParallel": 1,
+      "numberOfUserJourneyThreadsToRun": 7,
+      "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
     }

@@ -55,8 +55,8 @@ public abstract class MeasurementCollectionScript<T> {
 
   /**
    * Setter for any parameters required by the measurement collection script. These parameters will
-   * be set by the Measurement Collector based on the current Measurement List, and can be used by the
-   * measurement collection script methods.
+   * be set by the Measurement Collector based on the current Measurement List, and can be used by
+   * the measurement collection script methods.
    *
    * @param parameters list of string parameters supplied by the measurement collection script
    */

@@ -13,7 +13,8 @@ public class ServiceAccountSpecification implements SpecificationInterface {
   public File jsonKeyFile;
 
   public static final String resourceDirectory = "serviceaccounts";
-  public static final String keyDirectoryPathEnvironmentVarName = "TEST_RUNNER_SA_KEY_DIRECTORY_PATH";
+  public static final String keyDirectoryPathEnvironmentVarName =
+      "TEST_RUNNER_SA_KEY_DIRECTORY_PATH";
 
   ServiceAccountSpecification() {}
 
@@ -57,7 +58,9 @@ public class ServiceAccountSpecification implements SpecificationInterface {
     if (name == null || name.equals("")) {
       throw new IllegalArgumentException("Service account name cannot be empty");
     } else if (jsonKeyFilename == null || jsonKeyFilename.equals("")) {
-      throw new IllegalArgumentException("JSON key file path cannot be empty");
+      throw new IllegalArgumentException("JSON key file name cannot be empty");
+    } else if (jsonKeyDirectoryPath == null || jsonKeyDirectoryPath.equals("")) {
+      throw new IllegalArgumentException("JSON key directory path cannot be empty");
     }
 
     jsonKeyFile = new File(jsonKeyDirectoryPath, jsonKeyFilename);

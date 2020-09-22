@@ -20,13 +20,13 @@ public class PerformanceLoggerElapsedTime extends GoogleLog {
   protected String className;
   protected String operationName;
 
-    /**
-     * Setter for any parameters required by the measurement collection script. These parameters will
-     * be set by the Measurement Collector based on the current Measurement List, and can be used by the
-     * measurement collection script methods.
-     *
-     * @param parameters list of string parameters supplied by the measurement collection script
-     */
+  /**
+   * Setter for any parameters required by the measurement collection script. These parameters will
+   * be set by the Measurement Collector based on the current Measurement List, and can be used by
+   * the measurement collection script methods.
+   *
+   * @param parameters list of string parameters supplied by the measurement collection script
+   */
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() < 2) {
       throw new IllegalArgumentException(

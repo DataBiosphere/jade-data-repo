@@ -20,8 +20,6 @@ plugins {
     id 'com.jfrog.artifactory' version '4.13.0'
 }
 
-group 'bio.terra'
-version '1.0.95-SNAPSHOT'
 sourceCompatibility = 1.8
 
 // TODO: there may be a better way to supply these values than envvars.

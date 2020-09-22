@@ -8,8 +8,11 @@ env:
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
 on:
-  schedule:
-    - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
+  pull_request:
+    branches:
+      - develop
+  # schedule:
+  #   - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
 jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
@@ -65,12 +68,22 @@ jobs:
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-client
+
           echo "Building Data Repo client library"
           ../gradlew clean assemble
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
           export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client-*.jar")
-          echo "Running TestRunner suite"
+          echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
+
+          echo "Running test suite"
           ./gradlew runTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
+
+          echo "Collecting measurements"
+          ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
+
+          echo "Uploading results"
+          ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
+
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()

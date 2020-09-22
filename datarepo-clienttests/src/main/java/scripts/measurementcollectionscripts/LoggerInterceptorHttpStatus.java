@@ -16,13 +16,13 @@ public class LoggerInterceptorHttpStatus extends GoogleLog {
 
   protected int httpStatusCode;
 
-  /**
-   * Setter for any parameters required by the measurement collection script. These parameters will
-   * be set by the Test Runner based on the current Test Configuration, and can be used by the
-   * measurement collection script methods.
-   *
-   * @param parameters list of string parameters supplied by the test configuration
-   */
+    /**
+     * Setter for any parameters required by the measurement collection script. These parameters will
+     * be set by the Measurement Collector based on the current Measurement List, and can be used by the
+     * measurement collection script methods.
+     *
+     * @param parameters list of string parameters supplied by the measurement collection script
+     */
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() < 1) {
       throw new IllegalArgumentException("Must provide HTTP status in the parameters list");

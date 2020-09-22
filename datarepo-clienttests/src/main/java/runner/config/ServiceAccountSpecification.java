@@ -13,7 +13,7 @@ public class ServiceAccountSpecification implements SpecificationInterface {
   public File jsonKeyFile;
 
   public static final String resourceDirectory = "serviceaccounts";
-  public static final String keyDirectoryPathEnvironmentVarName = "TEST_RUNNER_KEY_DIRECTORY_PATH";
+  public static final String keyDirectoryPathEnvironmentVarName = "TEST_RUNNER_SA_KEY_DIRECTORY_PATH";
 
   ServiceAccountSpecification() {}
 

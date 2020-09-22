@@ -7,11 +7,13 @@ import java.io.InputStream;
 
 public class ServiceAccountSpecification implements SpecificationInterface {
   public String name;
-  public String jsonKeyFilePath;
+  public String jsonKeyDirectoryPath;
+  public String jsonKeyFilename;
 
   public File jsonKeyFile;
 
   public static final String resourceDirectory = "serviceaccounts";
+  public static final String keyDirectoryPathEnvironmentVarName = "TEST_RUNNER_KEY_DIRECTORY_PATH";
 
   ServiceAccountSpecification() {}
 
@@ -28,7 +30,23 @@ public class ServiceAccountSpecification implements SpecificationInterface {
 
     InputStream inputStream =
         FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
-    return objectMapper.readValue(inputStream, ServiceAccountSpecification.class);
+    ServiceAccountSpecification serviceAccount =
+        objectMapper.readValue(inputStream, ServiceAccountSpecification.class);
+
+    String keyDirectoryPathEnvVarOverride = readKeyDirectoryPathEnvironmentVariable();
+    if (keyDirectoryPathEnvVarOverride != null) {
+      serviceAccount.jsonKeyDirectoryPath = keyDirectoryPathEnvVarOverride;
+    }
+
+    return serviceAccount;
+  }
+
+  protected static String readKeyDirectoryPathEnvironmentVariable() {
+    // look for the service account JSON key file in a directory defined by, in order:
+    //   1. environment variable
+    //   2. service account jsonKeyDirectoryPath property
+    String keyDirectoryPathEnvironmentVarValue = System.getenv(keyDirectoryPathEnvironmentVarName);
+    return keyDirectoryPathEnvironmentVarValue;
   }
 
   /**
@@ -38,13 +56,17 @@ public class ServiceAccountSpecification implements SpecificationInterface {
   public void validate() {
     if (name == null || name.equals("")) {
       throw new IllegalArgumentException("Service account name cannot be empty");
-    } else if (jsonKeyFilePath == null || jsonKeyFilePath.equals("")) {
+    } else if (jsonKeyFilename == null || jsonKeyFilename.equals("")) {
       throw new IllegalArgumentException("JSON key file path cannot be empty");
     }
 
-    jsonKeyFile = new File(jsonKeyFilePath);
+    jsonKeyFile = new File(jsonKeyDirectoryPath, jsonKeyFilename);
     if (!jsonKeyFile.exists()) {
-      throw new IllegalArgumentException("JSON key file does not exist: " + jsonKeyFilePath);
+      throw new IllegalArgumentException(
+          "JSON key file does not exist: (directory)"
+              + jsonKeyDirectoryPath
+              + ", (filename)"
+              + jsonKeyFilename);
     }
   }
 }

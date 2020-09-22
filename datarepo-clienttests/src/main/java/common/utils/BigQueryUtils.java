@@ -23,28 +23,6 @@ public final class BigQueryUtils {
   private BigQueryUtils() {}
 
   /**
-   * Build the Big Query client object with application default credentials. THe client object is
-   * newly created on each call to this method; it is not cached.
-   *
-   * @param googleProjectId the project where BigQuery will run queries
-   * @return the BigQuery client object for this data project
-   */
-  public static BigQuery getClient(String googleProjectId) throws IOException {
-    logger.debug("Fetching application default credentials and building BigQuery client object");
-
-    GoogleCredentials applicationDefaultCredentials =
-        AuthenticationUtils.getApplicationDefaultCredential();
-    BigQuery bigQuery =
-        BigQueryOptions.newBuilder()
-            .setProjectId(googleProjectId)
-            .setCredentials(applicationDefaultCredentials)
-            .build()
-            .getService();
-
-    return bigQuery;
-  }
-
-  /**
    * Build the Big Query client object for the given test user specification and project.
    *
    * @param testUser the test user whose credentials are supplied to the API client object

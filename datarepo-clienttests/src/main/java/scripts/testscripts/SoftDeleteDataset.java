@@ -88,7 +88,10 @@ public class SoftDeleteDataset extends SimpleDataset {
     String scratchFileBucketName = "jade-testdata";
     BlobId scratchFileTabularData =
         BulkLoadUtils.writeScratchFileForIngestRequest(
-            bulkLoadArrayResultModel, scratchFileBucketName, fileRefName);
+            server.testRunnerServiceAccount,
+            bulkLoadArrayResultModel,
+            scratchFileBucketName,
+            fileRefName);
     IngestRequestModel ingestRequest =
         BulkLoadUtils.makeIngestRequestFromScratchFile(scratchFileTabularData);
     scratchFiles.add(scratchFileTabularData); // make sure the scratch file gets cleaned up later
@@ -138,7 +141,10 @@ public class SoftDeleteDataset extends SimpleDataset {
 
     BlobId scratchFileSoftDeleteRows =
         StorageUtils.writeBytesToFile(
-            StorageUtils.getClient(), scratchFileBucketName, csvFileRefName, bytes);
+            StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount),
+            scratchFileBucketName,
+            csvFileRefName,
+            bytes);
     scratchFiles.add(scratchFileSoftDeleteRows); // make sure the scratch file gets cleaned up later
     String gcsPath = StorageUtils.blobIdToGSPath(scratchFileSoftDeleteRows);
 
@@ -180,6 +186,7 @@ public class SoftDeleteDataset extends SimpleDataset {
     super.cleanup(testUsers);
 
     // delete the scratch files used for ingesting tabular data and soft delete rows
-    StorageUtils.deleteFiles(StorageUtils.getClient(), scratchFiles);
+    StorageUtils.deleteFiles(
+        StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
   }
 }

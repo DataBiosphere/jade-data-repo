@@ -86,7 +86,10 @@ public class RetrieveSnapshot extends SimpleDataset {
     String scratchFileBucketName = "jade-testdata";
     BlobId scratchFileTabularData =
         StorageUtils.writeBytesToFile(
-            StorageUtils.getClient(), scratchFileBucketName, fileRefName, fileRefBytes);
+            StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount),
+            scratchFileBucketName,
+            fileRefName,
+            fileRefBytes);
     scratchFiles.add(scratchFileTabularData); // make sure the scratch file gets cleaned up later
     String gsPath = StorageUtils.blobIdToGSPath(scratchFileTabularData);
 
@@ -145,6 +148,7 @@ public class RetrieveSnapshot extends SimpleDataset {
     super.cleanup(testUsers);
 
     // delete the scratch files used for ingesting tabular data
-    StorageUtils.deleteFiles(StorageUtils.getClient(), scratchFiles);
+    StorageUtils.deleteFiles(
+        StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
   }
 }

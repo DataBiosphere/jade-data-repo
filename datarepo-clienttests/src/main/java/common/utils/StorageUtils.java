@@ -17,22 +17,6 @@ public class StorageUtils {
   private StorageUtils() {}
 
   /**
-   * Build a Google Storage client object with application default credentials. The client object is
-   * newly created on each call to this method; it is not cached.
-   */
-  public static Storage getClient() throws Exception {
-    logger.debug("Fetching application default credentials and building Storage client object");
-
-    GoogleCredentials applicationDefaultCredentials =
-        AuthenticationUtils.getTestRunnerSACredentials();
-    StorageOptions storageOptions =
-        StorageOptions.newBuilder().setCredentials(applicationDefaultCredentials).build();
-    Storage storageClient = storageOptions.getService();
-
-    return storageClient;
-  }
-
-  /**
    * Build a Google Storage client object with credentials for the given service account. The client
    * object is newly created on each call to this method; it is not cached.
    */

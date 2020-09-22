@@ -14,6 +14,7 @@ import common.utils.StorageUtils;
 import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.ServiceAccountSpecification;
 
 public class BulkLoadUtils {
   private static final Logger logger = LoggerFactory.getLogger(BulkLoadUtils.class);
@@ -96,7 +97,10 @@ public class BulkLoadUtils {
   // Given the result of an array bulk load, generate a scratch file to use for loading
   // into the simple dataset
   public static BlobId writeScratchFileForIngestRequest(
-      BulkLoadArrayResultModel arrayResultModel, String bucketName, String fileName)
+      ServiceAccountSpecification serviceAccount,
+      BulkLoadArrayResultModel arrayResultModel,
+      String bucketName,
+      String fileName)
       throws Exception {
 
     String jsonLine =
@@ -111,7 +115,10 @@ public class BulkLoadUtils {
 
     byte[] fileRefBytes = sb.toString().getBytes(StandardCharsets.UTF_8);
     return StorageUtils.writeBytesToFile(
-        StorageUtils.getClient(), bucketName, fileName, fileRefBytes);
+        StorageUtils.getClientForServiceAccount(serviceAccount),
+        bucketName,
+        fileName,
+        fileRefBytes);
   }
 
   // Given a scratch file to use for loading into the simple dataset, make the associated ingest

@@ -26,23 +26,6 @@ public class LogsUtils {
   private LogsUtils() {}
 
   /**
-   * Build a Google Logging client object with application default credentials. The client object is
-   * newly created on each call to this method; it is not cached.
-   */
-  public static LoggingClient getClient() throws Exception {
-    // LoggingOptions options = LoggingOptions.getDefaultInstance(); // v1 client api
-
-    GoogleCredentials applicationDefaultCredentials =
-        AuthenticationUtils.getTestRunnerSACredentials();
-    LoggingSettings loggingServiceSettings =
-        LoggingSettings.newBuilder()
-            .setCredentialsProvider(FixedCredentialsProvider.create(applicationDefaultCredentials))
-            .build();
-    LoggingClient loggingServiceClient = LoggingClient.create(loggingServiceSettings);
-    return loggingServiceClient;
-  }
-
-  /**
    * Build a Google Logging client object with credentials for a given service account. The client
    * object is newly created on each call to this method; it is not cached.
    */

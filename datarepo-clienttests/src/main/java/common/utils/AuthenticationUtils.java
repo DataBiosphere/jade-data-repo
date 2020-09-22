@@ -18,15 +18,11 @@ import runner.config.TestUserSpecification;
 public final class AuthenticationUtils {
   private static volatile GoogleCredentials applicationDefaultCredential;
   private static volatile GoogleCredentials serviceAccountCredential;
-  private static volatile GoogleCredentials testRunnerSACredential;
   private static Map<String, GoogleCredentials> delegatedUserCredentials =
       new ConcurrentHashMap<>();
 
   private static final Object lockApplicationDefaultCredential = new Object();
   private static final Object lockServiceAccountCredential = new Object();
-  private static final Object lockTestRunnerSACredential = new Object();
-
-  public static final String testRunnerSAEnvVarName = "TEST_RUNNER_SA_FILE";
 
   private AuthenticationUtils() {}
 
@@ -91,34 +87,6 @@ public final class AuthenticationUtils {
                   Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
     }
     return applicationDefaultCredential;
-  }
-
-  // Test Runner service account should have permission to perform tests (adjust kubernetes, write
-  // logs, etc.)
-  // Which SA to use is determined by the following, in order:
-  //   if defined: 1. TEST_RUNNER_SA_FILE env variable
-  //   else: 2. GOOGLE_APPLICATION_CREDENTIALS env variable
-  public static GoogleCredentials getTestRunnerSACredentials() throws Exception {
-    String testRunnerSAFile = System.getenv(testRunnerSAEnvVarName);
-    if (testRunnerSAFile != null) {
-      ServiceAccountSpecification testRunnerServiceAccount =
-          ServiceAccountSpecification.fromJSONFile(testRunnerSAFile);
-      testRunnerServiceAccount.validate();
-
-      if (testRunnerSACredential != null) {
-        return testRunnerSACredential;
-      }
-
-      synchronized (lockTestRunnerSACredential) {
-        File jsonKey = testRunnerServiceAccount.jsonKeyFile;
-        testRunnerSACredential =
-            ServiceAccountCredentials.fromStream(new FileInputStream(jsonKey))
-                .createScoped(
-                    Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
-      }
-      return testRunnerSACredential;
-    }
-    return getApplicationDefaultCredential();
   }
 
   public static AccessToken getAccessToken(GoogleCredentials credential) {

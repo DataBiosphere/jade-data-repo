@@ -82,7 +82,7 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
         "scratch/buildSnapshotWithFiles/" + FileUtils.randomizeName("input") + ".json";
     BlobId scratchFile =
         BulkLoadUtils.writeScratchFileForIngestRequest(
-            result, testConfigGetIngestbucket, fileRefName);
+            server.testRunnerServiceAccount, result, testConfigGetIngestbucket, fileRefName);
     IngestRequestModel ingestRequest = BulkLoadUtils.makeIngestRequestFromScratchFile(scratchFile);
     scratchFiles.add(scratchFile); // make sure the scratch file gets cleaned up later
 
@@ -132,7 +132,8 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
     }
 
     // delete the scratch files used for ingesting tabular data
-    StorageUtils.deleteFiles(StorageUtils.getClient(), scratchFiles);
+    StorageUtils.deleteFiles(
+        StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
 
     super.cleanup(testUsers);
   }

@@ -25,22 +25,6 @@ public class MetricsUtils {
   private MetricsUtils() {}
 
   /**
-   * Build a Google Metrics client object with application default credentials. The client object is
-   * newly created on each call to this method; it is not cached.
-   */
-  public static MetricServiceClient getClient() throws Exception {
-    GoogleCredentials applicationDefaultCredentials =
-        AuthenticationUtils.getTestRunnerSACredentials();
-    MetricServiceSettings metricServiceSettings =
-        MetricServiceSettings.newBuilder()
-            .setCredentialsProvider(FixedCredentialsProvider.create(applicationDefaultCredentials))
-            .build();
-    MetricServiceClient metricServiceClient = MetricServiceClient.create(metricServiceSettings);
-
-    return metricServiceClient;
-  }
-
-  /**
    * Build a Google Metrics client object with credentials for the given service account. The client
    * object is newly created on each call to this method; it is not cached.
    */

@@ -34,7 +34,7 @@ public class FlightCaughtExceptionLog extends GoogleLog {
             + "\""
             + exceptionText
             + "\")";
-    description = "Flight caught exception: " + exceptionText;
+    description = "Flight caught exception: " + exceptionText.substring(0, 20);
   }
 
   protected double extractNumericValueFromLogEntry(LogEntry logEntry) {

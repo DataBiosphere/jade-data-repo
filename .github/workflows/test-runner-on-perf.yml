@@ -1,12 +1,87 @@
-# This is a basic workflow to help you get started with Actions
-
 name: Test Runner on Perf Tests
-
+env:
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
+  GOOGLE_SA_CERT: /tmp/jade-dev-account.pem
+  GOOGLE_CLOUD_PROJECT: broad-jade-perf
+  GOOGLE_CLOUD_DATA_PROJECT: broad-jade-perf-data2
+  TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
+  GOOGLE_ZONE: us-central1
+  K8_CLUSTER: jade-master-us-central1
 on:
-  workflow_dispatch: {}
+  schedule:
+    - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
 jobs:
-  build:
+  test-runner-perf:
     runs-on: ubuntu-latest
     steps:
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: "Checkout code"
+        uses: actions/checkout@v2
+      - name: "Import Vault dev secrets"
+        uses: hashicorp/vault-action@v2.0.1
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.ROLE_ID }}
+          secretId: ${{ secrets.SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
+      - name: "Configure credentials"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          # configure integration prerequisites
+          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
+          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
+          gcloud auth configure-docker --quiet
+          #echo 'Set google sdk to SA user'
+          if [[ -n "${K8_CLUSTER}" ]]; then
+            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
+          fi
+      - name: "Whitelist Runner IP"
+        run: |
+          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \
+            jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
+            RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
+            NEW_IPS=$(printf '%s\n' $CUR_IPS $RUNNER_IP | jq -s -r 'add | unique | join(",")')
+          for i in {1..5}; do
+            if gcloud container clusters update ${K8_CLUSTER} \
+              --enable-master-authorized-networks \
+              --master-authorized-networks ${NEW_IPS}; then
+              echo "Successful whitelist"
+              break
+            else
+              echo "Failed to whitelist - Retrying"
+              sleep 15
+              if [ i == 5 ]; then
+                echo "Failed to whitelist - Terminating"
+                exit 1
+              fi
+            fi
+          done
+      - name: "Build and run Test Runner"
+        run: |
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-client
+          echo "Building Data Repo client library"
+          ../gradlew clean assemble
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
+          export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client-*.jar")
+          echo "Running TestRunner suite"
+          ./gradlew runTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: "Clean whitelisted Runner IP"
+        if: always()
+        run: |
+          # export the original IP list so it can be restored during cleanup
+          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \
+            jq -r '[ .masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock ]')
+          RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
+          RUNNER_IP=$(echo ${RUNNER_IP}| jq -r '.[0]')
+          RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -r --arg RUNNER_IP "$RUNNER_IP" '. - [ $RUNNER_IP ] | unique | join(",")')
+          # restore the original list of authorized IPs if they exist
+          gcloud container clusters update ${K8_CLUSTER} \
+            --enable-master-authorized-networks \
+            --master-authorized-networks ${RESTORE_IPS}

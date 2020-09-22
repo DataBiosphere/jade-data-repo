@@ -221,7 +221,7 @@ public class ModularHelmChart extends DeploymentScript {
       throw new IllegalArgumentException("Error parsing datarepo-api YAML file");
     }
 
-    // confirm that the expected environment variables are set
+    // confirm that the expected environment variables/application properties are set
     final List<String> environmentSpecificVariables =
         Arrays.asList(
             "GOOGLE_PROJECTID",
@@ -235,7 +235,8 @@ public class ModularHelmChart extends DeploymentScript {
       JsonNode varValue = envSubTree.get(var);
       if (varValue == null) {
         throw new IllegalArgumentException(
-            "Expected environment variable not found in datarepo-api YAML file: " + var);
+            "Expected environment variable/application property not found in datarepo-api YAML file: "
+                + var);
       }
     }
 

@@ -52,8 +52,12 @@ jobs:
           body: |
             Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
-          # todo: add "automerge"
-          labels: "broadbot,datarepo"
+          labels: "broadbot,datarepo,automerge"
+      - name: "Apply helm changes"
+        run: |
+        cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
+        echo $(pwd)
+        helmfile diff
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

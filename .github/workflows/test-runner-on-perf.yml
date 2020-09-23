@@ -22,15 +22,15 @@ jobs:
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
-          path: datarepo-helm-definitions 
+          path: datarepo-helm-definitions
       - name: "Read datarepo-helm-definitions dev image tag in devDeployment.yaml"
         uses: docker://mikefarah/yq:latest
         with:
-          args: yq r datarepo-helm-definitions/dev/dev/devDeployment.yaml datarepo-api.image.tag
+          args: devImage=$(yq r datarepo-helm-definitions/dev/dev/devDeployment.yaml datarepo-api.image.tag)
       - name: "Read datarepo-helm-definitions and update perf image tag"
         uses: docker://mikefarah/yq:latest
         with:
-          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag 'yq r datarepo-helm-definitions/dev/dev/devDeployment.yaml datarepo-api.image.tag'
+          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${devImage}
       - name: "Read datarepo-helm-definitions dev image tag in devDeployment.yaml"
         uses: docker://mikefarah/yq:latest
         with:

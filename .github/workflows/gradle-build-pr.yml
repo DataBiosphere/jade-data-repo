@@ -91,7 +91,7 @@ jobs:
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run Integration test via Gradle"
-        uses: broadinstitute/datarepo-actions@0.25.0
+        uses: broadinstitute/datarepo-actions@sh-DR-1326-jar-file-name
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}

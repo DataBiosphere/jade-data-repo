@@ -23,6 +23,8 @@ jobs:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
+      - name: "Pull down new tags"
+        run: git fetch --all --tags
       - name: 'Get Previous tag'
         id: apiprevioustag
         uses: "broadinstitute/github-action-get-previous-tag@master"

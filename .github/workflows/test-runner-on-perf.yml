@@ -55,9 +55,9 @@ jobs:
           labels: "broadbot,datarepo,automerge"
       - name: "Apply helm changes"
         run: |
-        cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
-        echo $(pwd)
-        helmfile diff
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
+          echo $(pwd)
+          helmfile diff
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

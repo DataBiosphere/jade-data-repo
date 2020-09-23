@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 
 /**
@@ -34,19 +35,18 @@ import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECO
 public class IamService {
     private final IamProviderInterface iamProvider;
     private final ConfigurationService configurationService;
+    private Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap;
+    int cacheSize;
 
     @Autowired
     public IamService(IamProviderInterface iamProvider,
                       ConfigurationService configurationService) {
         this.iamProvider = iamProvider;
         this.configurationService = configurationService;
+        cacheSize = configurationService.getParameterValue(AUTH_CACHE_SIZE);
+        // wrap the cache map with a synchronized map to safely share the cache across threads
+        authorizedMap = Collections.synchronizedMap(new LRUMap<>(cacheSize));
     }
-    int cacheSize = 100;
-    // TODO is this getting called too early? configurationService.getParameterValue(AUTH_CACHE_SIZE);
-
-    // wrap the cache map with a synchronized map to safely share the cache across threads
-    private Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap =
-        Collections.synchronizedMap(new LRUMap<>(cacheSize));
 
     /**
      * Is a user authorized to do an action on a resource.

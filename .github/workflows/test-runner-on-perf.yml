@@ -23,34 +23,22 @@ jobs:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
-      - name: "Read datarepo-helm-definitions dev image tag in devDeployment.yaml"
+      - name: 'Get Previous tag'
+        id: apiprevioustag
+        uses: "broadinstitute/github-action-get-previous-tag@master"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: "test"
+        run: |
+          echo ${{ steps.apiprevioustag.outputs.tag }}
+      - name: "Update perf image tag"
         uses: docker://mikefarah/yq:latest
         with:
-          args: devImage=$(yq r datarepo-helm-definitions/dev/dev/devDeployment.yaml datarepo-api.image.tag)
-      - name: "Read datarepo-helm-definitions and update perf image tag"
-        uses: docker://mikefarah/yq:latest
-        with:
-          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${devImage}
-      - name: "Read datarepo-helm-definitions dev image tag in devDeployment.yaml"
+          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}
+      - name: "read perf image tag"
         uses: docker://mikefarah/yq:latest
         with:
           args: yq r datarepo-helm-definitions/perf/datarepo-api.yaml image.tag
-      #- name: Create pull request
-      #  uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
-      #  id: create-pr
-      #  with:
-      #    token: ${{ secrets.HELM_REPO_TOKEN }}
-      #    path: datarepo-helm-definitions
-      #    commit-message: "Perf Datarepo version update: ${{ steps.devImage.outputs.tag }}"
-      #    committer: datarepo-bot <noreply@github.com>
-      #    author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-      #    title: "Perf Datarepo version update: ${{ steps.devImage.outputs.tag }}"
-      #    branch: "version-update-${{ steps.devImage.outputs.tag }}"
-      #    body: |
-      #      Update versions in **${{ steps.devImage.outputs.tag }}**.
-      #      *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
-          # todo: add "automerge"
-      #    labels: "broadbot,datarepo"
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

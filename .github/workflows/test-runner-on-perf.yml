@@ -32,7 +32,7 @@ jobs:
         run: |
           echo ${{ steps.devImage }}
           echo "hi"
-          echo ${{ steps.devImage.outputs }}
+          echo ${{ steps.devImage.outputs.output }}
           echo "hi2"
           echo ${{ steps.devImage.outputs.tag }}
       #- name: "Read datarepo-helm-definitions and update perf image tag"

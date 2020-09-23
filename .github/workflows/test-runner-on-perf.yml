@@ -29,10 +29,12 @@ jobs:
         with:
           args: yq r datarepo-helm-definitions/dev/dev/devDeployment.yaml datarepo-api.image
       - name: "test output variable from github set"
-        id: devImage
-        uses: docker://mikefarah/yq:latest
-        with:
-          args: yq r datarepo-helm-definitions/dev/dev/devDeployment.yaml datarepo-api.image
+        run: |
+          echo ${{ steps.devImage }}
+          echo "hi"
+          echo ${{ steps.devImage.outputs }}
+          echo "hi2"
+          echo ${{ steps.devImage.outputs.tag }}
       #- name: "Read datarepo-helm-definitions and update perf image tag"
       #  uses: docker://mikefarah/yq:latest
       #  with:

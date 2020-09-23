@@ -65,7 +65,7 @@ jobs:
           done
       - name: "Build and run Test Runner"
         run: |
-          cd ${GITHUB_WORKSPACE}/${workingDir}
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-client
           echo "Building Data Repo client library"
           ../gradlew clean assemble
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests

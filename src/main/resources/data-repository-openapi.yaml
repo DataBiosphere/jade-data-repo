@@ -2848,6 +2848,12 @@ definitions:
         type: array
         items:
           type: string
+      semVer:
+        description: the semantic version of the data repository
+        type: string
+      gitHash:
+        description: the git hash of the data repository
+        type: string
 
   ConfigModel:
     description: |

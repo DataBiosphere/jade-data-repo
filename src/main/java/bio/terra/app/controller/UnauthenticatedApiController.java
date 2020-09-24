@@ -61,7 +61,10 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     public ResponseEntity<RepositoryConfigurationModel> retrieveRepositoryConfig() {
         RepositoryConfigurationModel configurationModel = new RepositoryConfigurationModel()
             .clientId(oauthConfig.getClientId())
-            .activeProfiles(Arrays.asList(env.getActiveProfiles()));
+            .activeProfiles(Arrays.asList(env.getActiveProfiles()))
+            .semVer("1.0.0-INVALID")
+            .gitHash("00000000");
+
         return new ResponseEntity<>(configurationModel, HttpStatus.OK);
     }
 

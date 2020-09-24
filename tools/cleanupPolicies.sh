@@ -30,9 +30,9 @@ BINDINGS=$(gcloud projects get-iam-policy ${projectid} --format=json)
 # remove any policies for user role BigQuery.JobUsers that start with group:policy- or deleted:group:policy-
 OK_BINDINGS=$(echo ${BINDINGS} | jq 'del(.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-") or startswith("deleted:group:policy-")))')
 
-# {OK_BINDINGS} traverses the json output from ${BINDINGS} selecting members to be deleted from policy
-# [from "bindings" array, select member list for role bigquery.jobUser, select only group group policy members]
-# After del, leaves us only with bindings we want to keep (e.g. group:JadeStewards-dev@dev.test.firecloud.org)
+# {OK_BINDINGS} traverses the json output from ${BINDINGS}, selecting members to be deleted from policy
+# [from "bindings" array, select member list for role bigquery.jobUser, select only SAM policy members]
+# After del, this leaves us only with the bindings we want to keep (e.g. group:JadeStewards-dev@dev.test.firecloud.org)
 
 # replace the IAM policy, including only members selected in ${OK_BINDINGS}
 echo ${OK_BINDINGS} | jq '.' > policy.json

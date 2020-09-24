@@ -99,7 +99,7 @@ public class BigQueryPdaoTest {
         // Setup mock sam service
         connectedOperations.stubOutSamCalls(samService);
 
-        String coreBillingAccount = googleResourceConfiguration.getCoreBillingAccount();
+        String coreBillingAccount = testConfig.getGoogleBillingAccountId();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccount);
     }
 

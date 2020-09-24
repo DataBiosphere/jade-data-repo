@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement;
 
+import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
@@ -62,6 +63,7 @@ public class BucketResourceTest {
     @Autowired private GoogleResourceDao resourceDao;
     @Autowired private DataLocationService dataLocationService;
     @Autowired private ProfileService profileService;
+    @Autowired private ConnectedTestConfiguration testConfig;
     @MockBean private IamProviderInterface samService;
 
     private BillingProfileModel profile;
@@ -75,7 +77,7 @@ public class BucketResourceTest {
         allowReuseExistingBuckets = resourceService.getAllowReuseExistingBuckets();
         logger.info("app property allowReuseExistingBuckets = " + resourceService.getAllowReuseExistingBuckets());
 
-        profile = connectedOperations.createProfileForAccount(resourceConfiguration.getCoreBillingAccount());
+        profile = connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
         connectedOperations.stubOutSamCalls(samService);
         storage = StorageOptions.getDefaultInstance().getService();
         bucketNames = new ArrayList<>();

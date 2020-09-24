@@ -28,7 +28,7 @@ public final class ProfileFixtures {
         return String.join("-", groups).toUpperCase();
     }
 
-    public static BillingProfile billingProfileForAccount(String accountId) {
+    public static BillingProfile billingProfileForAccount(final String accountId) {
         return new BillingProfile()
             .biller("direct")
             .name("test profile")
@@ -39,11 +39,14 @@ public final class ProfileFixtures {
         return billingProfileForAccount(randomBillingAccountId());
     }
 
-    public static BillingProfileRequestModel randomBillingProfileRequest() {
-        BillingProfile profile = randomBillingProfile();
+    public static BillingProfileRequestModel billingProfileRequest(final BillingProfile profile) {
         return new BillingProfileRequestModel()
             .biller(profile.getBiller())
             .profileName(profile.getName())
             .billingAccountId(profile.getBillingAccountId());
+    }
+
+    public static BillingProfileRequestModel randomBillingProfileRequest() {
+        return billingProfileRequest(randomBillingProfile());
     }
 }

@@ -8,6 +8,7 @@ import bio.terra.controller.RepositoryApi;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
@@ -526,9 +527,8 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<Void> setFault(@PathVariable("name") String name,
-                                         @Valid @RequestParam(value = "enable", required = false, defaultValue = "true")
-                                             Boolean enable) {
-        configurationService.setFault(name, enable);
+                                         @Valid @RequestBody ConfigEnableModel configEnable) {
+        configurationService.setFault(name, configEnable.isEnabled());
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 

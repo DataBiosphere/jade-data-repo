@@ -36,8 +36,7 @@ jobs:
       #    args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}
       - name: "read perf image tag"
         uses: docker://mikefcdarah/yq:latest
-        with:
-          args: |
+        run: |
           devTag=yq r datarepo-helm-definitions/perf/datarepo-api.yaml image.tag |
           yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${devTag}
       - name: Create pull request

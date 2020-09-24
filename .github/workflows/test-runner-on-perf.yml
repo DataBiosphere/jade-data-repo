@@ -23,21 +23,23 @@ jobs:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
-      - name: "Pull down new tags"
-        run: git fetch --all --tags
-      - name: 'Get Previous tag'
-        id: apiprevioustag
-        uses: "broadinstitute/github-action-get-previous-tag@master"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: "Update perf image tag"
-        uses: docker://mikefarah/yq:latest
-        with:
-          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}
+      #- name: "Pull down new tags"
+      #  run: git fetch --all --tags
+      #- name: 'Get Previous tag'
+      #  id: apiprevioustag
+      #  uses: "broadinstitute/github-action-get-previous-tag@master"
+      #  env:
+      #    GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      #- name: "Update perf image tag"
+      #  uses: docker://mikefarah/yq:latest
+      #  with:
+      #    args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}
       - name: "read perf image tag"
         uses: docker://mikefarah/yq:latest
         with:
-          args: yq r datarepo-helm-definitions/perf/datarepo-api.yaml image.tag
+          args: |
+          devTag=yq r datarepo-helm-definitions/perf/datarepo-api.yaml image.tag
+          yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${devTag}
       - name: Create pull request
         uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
         id: create-pr

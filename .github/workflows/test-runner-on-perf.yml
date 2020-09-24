@@ -37,7 +37,7 @@ jobs:
       - name: "read perf image tag"
         uses: docker://mikefarah/yq:latest
         with:
-          args: yq w -i perf/datarepo-api.yaml image.tag $(yq r dev/dev/devDeployment.yaml 'datarepo-api.image.tag')
+          args: yq w -i perf/datarepo-api.yaml 'image.tag' $(yq r dev/dev/devDeployment.yaml 'datarepo-api.image.tag')
       - name: Create pull request
         uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
         id: create-pr

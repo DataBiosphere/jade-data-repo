@@ -24,11 +24,8 @@ BINDINGS=$(gcloud projects get-iam-policy ${projectid} --format=json)
 #      "role": "roles/bigquery.jobUser"
 #    }
 #    ... lists of members for other roles...
-#  ],
-#  "etag": "BwWwDj_0y8I=",
-#  "version": 1
+#  ]
 # }
-
 
 # remove any policies for user role BigQuery.JobUsers that start with group:policy- or deleted:group:policy-
 OK_BINDINGS=$(echo ${BINDINGS} | jq 'del(.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-") or startswith("deleted:group:policy-")))')

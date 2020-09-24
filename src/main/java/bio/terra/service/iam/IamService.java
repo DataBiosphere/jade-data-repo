@@ -36,7 +36,7 @@ public class IamService {
     private final IamProviderInterface iamProvider;
     private final ConfigurationService configurationService;
     private Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap;
-    int cacheSize;
+    private int cacheSize;
 
     @Autowired
     public IamService(IamProviderInterface iamProvider,
@@ -58,7 +58,8 @@ public class IamService {
                          IamAction action) {
         try {
             int timeoutSeconds = configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS);
-            AuthorizedCacheKey authorizedCacheKey = new AuthorizedCacheKey(userReq, iamResourceType, resourceId, action);
+            AuthorizedCacheKey authorizedCacheKey =
+                new AuthorizedCacheKey(userReq, iamResourceType, resourceId, action);
             AuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
             if (authorizedCacheValue != null) { // check if it's in the cache
                 // check if it's still in the alloted time

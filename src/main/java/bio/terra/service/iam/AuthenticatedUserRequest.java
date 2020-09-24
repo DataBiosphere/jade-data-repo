@@ -70,8 +70,12 @@ public class AuthenticatedUserRequest {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (!(o instanceof AuthenticatedUserRequest)) { return false; }
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof AuthenticatedUserRequest)) {
+            return false;
+        }
         AuthenticatedUserRequest that = (AuthenticatedUserRequest) o;
         return Objects.equals(getEmail(), that.getEmail()) &&
             Objects.equals(getSubjectId(), that.getSubjectId()) &&

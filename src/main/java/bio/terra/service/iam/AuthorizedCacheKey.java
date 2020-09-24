@@ -35,8 +35,12 @@ public class AuthorizedCacheKey {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) { return true; }
-        if (!(o instanceof AuthorizedCacheKey)) { return false; }
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof AuthorizedCacheKey)) {
+            return false;
+        }
         AuthorizedCacheKey that = (AuthorizedCacheKey) o;
         return Objects.equals(getUserReq(), that.getUserReq()) &&
             getIamResourceType() == that.getIamResourceType() &&

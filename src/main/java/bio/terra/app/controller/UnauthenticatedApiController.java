@@ -32,6 +32,23 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     private Logger logger = LoggerFactory.getLogger(UnauthenticatedApiController.class);
 
+    private String semVer = "1.0.0-UNKNOWN";
+
+    private String gitHash = "00000000";
+
+    private void setVersionData() {
+        try {
+            Properties properties = new Properties();
+            InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties");
+            properties.load(versionFile);
+            semVer = properties.getProperty("semVer");
+            gitHash = properties.getProperty("gitHash");
+            versionFile.close();
+        } catch (IOException e) {
+            logger.error("Could not access version.properties file, using defaults");
+        }
+    }
+
     @Autowired
     private JobService jobService;
 
@@ -47,6 +64,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         this.objectMapper = objectMapper;
         this.request = request;
         this.oauthConfig = oauthConfig;
+        setVersionData();
     }
 
     @Override
@@ -66,18 +84,6 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     @Override
     public ResponseEntity<RepositoryConfigurationModel> retrieveRepositoryConfig() {
-        String semVer = "1.0.0-UNKNOWN";
-        String gitHash = "00000000";
-        try {
-            Properties properties = new Properties();
-            InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties");
-            properties.load(versionFile);
-            semVer = properties.getProperty("semVer");
-            gitHash = properties.getProperty("gitHash");
-            versionFile.close();
-        } catch (IOException e) {
-            logger.error("Could not access version.properties file, using defaults");
-        }
         RepositoryConfigurationModel configurationModel = new RepositoryConfigurationModel()
             .clientId(oauthConfig.getClientId())
             .activeProfiles(Arrays.asList(env.getActiveProfiles()))

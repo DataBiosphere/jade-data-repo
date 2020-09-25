@@ -60,7 +60,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         try (InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties")) {
             properties.load(versionFile);
         } catch (IOException e) {
-            logger.error("Could not access version.properties file, using defaults");
+            logger.warn("Could not access version.properties file, using defaults");
         }
         semVer = Optional.ofNullable(properties.getProperty("semVer")).orElse(DEFAULT_SEMVER);
         gitHash = Optional.ofNullable(properties.getProperty("gitHash")).orElse(DEFAULT_GITHASH);

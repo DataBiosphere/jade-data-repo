@@ -186,7 +186,9 @@ public class TestRunner {
           new DisruptiveThread(disruptiveScriptInstance, config.testUsers);
       disruptionThreadPool.execute(disruptiveThread);
       logger.debug("Successfully submitted disruptive thread.");
-      TimeUnit.SECONDS.sleep(1);
+      TimeUnit.SECONDS.sleep(
+          1); // give the disruptive script thread some time to start before kicking off the user
+      // journeys.
     }
 
     // set the start time for the user journey portion this test run

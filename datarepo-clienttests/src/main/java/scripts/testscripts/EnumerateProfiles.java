@@ -2,6 +2,7 @@ package scripts.testscripts;
 
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.datarepo.client.ApiResponse;
 import bio.terra.datarepo.model.EnumerateBillingProfileModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,9 +21,11 @@ public class EnumerateProfiles extends runner.TestScript {
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     ResourcesApi resourcesApi = new ResourcesApi(apiClient);
-    EnumerateBillingProfileModel profiles = resourcesApi.enumerateProfiles(0, 10);
+    ApiResponse<EnumerateBillingProfileModel> response =
+        resourcesApi.enumerateProfilesWithHttpInfo(0, 10);
+    EnumerateBillingProfileModel profiles = response.getData();
 
-    int httpStatus = resourcesApi.getApiClient().getStatusCode();
+    int httpStatus = response.getStatusCode();
     logger.debug(
         "Enumerate profiles: HTTP status {}, number of profiles found = {}",
         httpStatus,

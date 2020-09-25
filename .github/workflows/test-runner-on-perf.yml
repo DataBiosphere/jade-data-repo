@@ -69,7 +69,7 @@ jobs:
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}
           echo "Building Data Repo client library"
-          ENABLE_SUBPROJECT_TASKS=1 ./gradlew clean assemble
+          ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
           export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
           echo "Running TestRunner suite"

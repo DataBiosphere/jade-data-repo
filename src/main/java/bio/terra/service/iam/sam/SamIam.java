@@ -412,11 +412,14 @@ public class SamIam implements IamProviderInterface {
     /**
      * Converts a SAM-specific ApiException to a DataRepo-specific common exception, based on the HTTP status code.
      */
-    public static DataRepoException convertSAMExToDataRepoEx(ApiException samEx) {
+    public static DataRepoException convertSAMExToDataRepoEx(final ApiException samEx) {
         // TODO: add mapping based on HTTP status code
         // SAM uses com.google.api.client.http.HttpStatusCodes
         // DataRepo uses org.springframework.http.HttpStatus
 
+        logger.warn("SAM client exception code: {}", samEx.getCode());
+        logger.warn("SAM client exception message: {}", samEx.getMessage());
+        logger.warn("SAM client exception details: {}", samEx.getResponseBody());
         switch (samEx.getCode()) {
             case HttpStatusCodes.STATUS_CODE_BAD_REQUEST: {
                 return new IamBadRequestException(samEx);

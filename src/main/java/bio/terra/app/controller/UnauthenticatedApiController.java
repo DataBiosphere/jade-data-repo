@@ -32,22 +32,9 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     private Logger logger = LoggerFactory.getLogger(UnauthenticatedApiController.class);
 
-    private String semVer = "1.0.0-UNKNOWN";
+    private static String semVer;
 
-    private String gitHash = "00000000";
-
-    private void setVersionData() {
-        try {
-            Properties properties = new Properties();
-            InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties");
-            properties.load(versionFile);
-            semVer = properties.getProperty("semVer");
-            gitHash = properties.getProperty("gitHash");
-            versionFile.close();
-        } catch (IOException e) {
-            logger.error("Could not access version.properties file, using defaults");
-        }
-    }
+    private static String gitHash;
 
     @Autowired
     private JobService jobService;
@@ -64,7 +51,15 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         this.objectMapper = objectMapper;
         this.request = request;
         this.oauthConfig = oauthConfig;
-        setVersionData();
+
+        Properties properties = new Properties();
+        try (InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties")) {
+            properties.load(versionFile);
+        } catch (IOException e) {
+            logger.error("Could not access version.properties file, using defaults");
+        }
+        semVer = Optional.ofNullable(properties.getProperty("semVer")).orElse("1.0.0-UNKNOWN");
+        gitHash = Optional.ofNullable(properties.getProperty("gitHash")).orElse("00000000");
     }
 
     @Override

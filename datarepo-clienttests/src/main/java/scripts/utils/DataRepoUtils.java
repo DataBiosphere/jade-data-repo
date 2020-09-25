@@ -3,8 +3,10 @@ package scripts.utils;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.ConfigEnableModel;
 import bio.terra.datarepo.model.ConfigGroupModel;
 import bio.terra.datarepo.model.ConfigModel;
 import bio.terra.datarepo.model.ConfigParameterModel;
@@ -288,6 +290,12 @@ public final class DataRepoUtils {
                     .parameter(new ConfigParameterModel().value(String.valueOf(value))));
 
     repositoryApi.setConfigList(groupModel);
+  }
+
+  /** Set a fault to enabled. */
+  public static void enableFault(RepositoryApi repositoryApi, String faultName)
+      throws ApiException {
+    repositoryApi.setFault(faultName, new ConfigEnableModel().enabled(true));
   }
 
   /**

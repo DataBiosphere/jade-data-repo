@@ -8,11 +8,8 @@ env:
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
 on:
-#  schedule:
-#    - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
-  pull_request:
-    branches:
-      - develop
+  schedule:
+    - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
 jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
@@ -73,7 +70,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
           export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
           echo "Running TestRunner suite"
-          ./gradlew runTest --args="suites/PRSmokeTests.json tmp/TestRunnerResults"
+          ./gradlew runTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()

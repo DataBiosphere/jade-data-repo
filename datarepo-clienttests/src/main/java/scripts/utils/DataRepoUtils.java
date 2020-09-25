@@ -295,7 +295,7 @@ public final class DataRepoUtils {
   /** Set a fault to enabled. */
   public static void enableFault(RepositoryApi repositoryApi, String faultName)
       throws ApiException {
-    repositoryApi.setFaultWithHttpInfo(faultName, new ConfigEnableModel().enabled(true));
+    repositoryApi.setFault(faultName, new ConfigEnableModel().enabled(true));
   }
 
   /**

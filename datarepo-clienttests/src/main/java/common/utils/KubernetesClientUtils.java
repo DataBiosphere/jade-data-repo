@@ -66,6 +66,21 @@ public final class KubernetesClientUtils {
     return kubernetesClientAppsObject;
   }
 
+  /** Lock cluster */
+  public static void lockCluster(ServerSpecification server) throws Exception {
+    logger.debug("Calling the lockEnv script that uses gcloud to generate secret");
+    List<String> scriptArgs = new ArrayList<>();
+    scriptArgs.add("tools/lockEnv.sh");
+    scriptArgs.add(server.clusterShortName);
+    scriptArgs.add(server.region);
+    scriptArgs.add(server.project);
+    Process fetchCredentialsProc = ProcessUtils.executeCommand("sh", scriptArgs);
+    List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(fetchCredentialsProc);
+    for (String cmdOutputLine : cmdOutputLines) {
+      logger.debug(cmdOutputLine);
+    }
+  }
+
   /**
    * Build the singleton Kubernetes client objects. This method should be called once at the
    * beginning of a test run, and then all subsequent fetches should use the getter methods instead.

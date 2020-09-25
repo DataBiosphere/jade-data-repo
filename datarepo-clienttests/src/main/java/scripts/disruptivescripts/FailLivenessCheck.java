@@ -5,7 +5,6 @@ import bio.terra.datarepo.client.ApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.DisruptiveScript;
-import runner.config.ServerSpecification;
 import runner.config.TestUserSpecification;
 import scripts.utils.DataRepoUtils;
 
@@ -35,15 +34,12 @@ public class FailLivenessCheck extends DisruptiveScript {
   }
 
   public void disrupt(List<TestUserSpecification> testUsers) throws Exception {
-    // HACK: no way to specify the server for a disruptive script so jamming it in here
-    String serverSpecificationFile = "dddev.json";
-    ServerSpecification server = ServerSpecification.fromJSONFile(serverSpecificationFile);
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUsers.get(0), server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     logger.info("Liveness check disruption will start in {} seconds", secondsBeforeDisruption);
     TimeUnit.SECONDS.sleep(secondsBeforeDisruption);
     logger.info("Liveness check disruption starting");
-    repositoryApi.setFault("LIVENESS_FAULT", true);
+    DataRepoUtils.enableFault(repositoryApi, "LIVENESS_FAULT");
   }
 }

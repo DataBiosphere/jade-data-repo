@@ -8,13 +8,13 @@
   "application": {},
   "disruptiveScript": {
     "name": "FailLivenessCheck",
-    "parameters": [10]
+    "parameters": [5]
   },
   "testScripts": [
     {
       "name": "BulkLoad",
-      "parameters": [50],
-      "totalNumberToRun": 1,
+      "parameters": [500],
+      "totalNumberToRun": 5,
       "numberToRunInParallel": 1,
       "expectedTimeForEach": 3000,
       "expectedTimeForEachUnit": "SECONDS"

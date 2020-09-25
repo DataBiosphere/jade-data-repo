@@ -3,6 +3,8 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,31 +17,32 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Controller
 public class UnauthenticatedApiController implements UnauthenticatedApi {
-
     private final ObjectMapper objectMapper;
-
     private final HttpServletRequest request;
-
     private final OauthConfiguration oauthConfig;
-
-    @Autowired
-    private JobService jobService;
-
-    @Autowired
-    private Environment env;
+    private final JobService jobService;
+    private final Environment env;
+    private final ConfigurationService configurationService;
 
     @Autowired
     public UnauthenticatedApiController(
         ObjectMapper objectMapper,
         HttpServletRequest request,
-        OauthConfiguration oauthConfig
+        OauthConfiguration oauthConfig,
+        JobService jobService,
+        Environment env,
+        ConfigurationService configurationService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.oauthConfig = oauthConfig;
+        this.jobService = jobService;
+        this.env = env;
+        this.configurationService = configurationService;
     }
 
     @Override
@@ -54,6 +57,14 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     @Override
     public ResponseEntity<Void> serviceStatus() {
+        if (configurationService.testInsertFault(ConfigEnum.LIVENESS_FAULT)) {
+            try {
+                TimeUnit.SECONDS.sleep(10);
+            } catch (InterruptedException e) {
+                // Fall through the inserted fault on interrupt.
+                // We do not expect this to happen.
+            }
+        }
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

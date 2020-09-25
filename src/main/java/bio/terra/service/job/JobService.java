@@ -147,6 +147,11 @@ public class JobService {
                 }
             }
 
+            // Add our own pod name to the list of obsolete stairways. Sometimes Kubernetes will
+            // restart the container without redeploying the pod. In that case we must ask
+            // Stairway to recover the flights we were working on before being restarted.
+            obsoleteStairways.add(kubeService.getPodName());
+
             // Recover and start stairway - step 3 of the stairway startup sequence
             stairway.recoverAndStart(obsoleteStairways);
 

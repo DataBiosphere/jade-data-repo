@@ -22,7 +22,7 @@ public class BulkLoad extends SimpleDataset {
   /** Public constructor so that this class can be instantiated via reflection. */
   public BulkLoad() {
     super();
-    manipulatesKubernetes = true; // this test script manipulates Kubernetes
+    // manipulatesKubernetes = true; // this test script manipulates Kubernetes
   }
 
   private int filesToLoad;

@@ -30,7 +30,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     private final OauthConfiguration oauthConfig;
 
-    private Logger logger = LoggerFactory.getLogger(UnauthenticatedApiController.class);
+    private final Logger logger = LoggerFactory.getLogger(UnauthenticatedApiController.class);
 
     private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
 

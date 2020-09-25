@@ -126,7 +126,7 @@ public class FileOperationTest {
         validFileCounter = 0;
 
         // Retrieve billing info
-        coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
+        coreBillingAccountId = testConfig.getGoogleBillingAccountId();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
 
         datasetSummary = connectedOperations.createDataset(profileModel, "snapshot-test-dataset.json");

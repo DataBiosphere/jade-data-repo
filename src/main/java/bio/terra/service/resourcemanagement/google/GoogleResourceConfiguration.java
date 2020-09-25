@@ -14,7 +14,6 @@ public class GoogleResourceConfiguration {
     private String applicationName;
     private long projectCreateTimeoutSeconds;
     private String projectId;
-    private String coreBillingAccount;
     private String parentResourceType;
     private String parentResourceId;
     private String singleDataProjectId;
@@ -41,14 +40,6 @@ public class GoogleResourceConfiguration {
 
     public void setProjectId(String projectId) {
         this.projectId = projectId;
-    }
-
-    public String getCoreBillingAccount() {
-        return coreBillingAccount;
-    }
-
-    public void setCoreBillingAccount(String coreBillingAccount) {
-        this.coreBillingAccount = coreBillingAccount;
     }
 
     public String getParentResourceType() {

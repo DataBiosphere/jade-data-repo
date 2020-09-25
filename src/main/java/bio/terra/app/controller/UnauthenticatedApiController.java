@@ -3,10 +3,10 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
@@ -15,34 +15,55 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import java.util.Properties;
 
 @Controller
 public class UnauthenticatedApiController implements UnauthenticatedApi {
+
     private final ObjectMapper objectMapper;
+
     private final HttpServletRequest request;
+
     private final OauthConfiguration oauthConfig;
-    private final JobService jobService;
-    private final Environment env;
-    private final ConfigurationService configurationService;
+
+    private final Logger logger = LoggerFactory.getLogger(UnauthenticatedApiController.class);
+
+    private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
+
+    private static final String DEFAULT_GITHASH = "00000000";
+
+    private final String semVer;
+
+    private final String gitHash;
+
+    @Autowired
+    private JobService jobService;
+
+    @Autowired
+    private Environment env;
 
     @Autowired
     public UnauthenticatedApiController(
         ObjectMapper objectMapper,
         HttpServletRequest request,
-        OauthConfiguration oauthConfig,
-        JobService jobService,
-        Environment env,
-        ConfigurationService configurationService
+        OauthConfiguration oauthConfig
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.oauthConfig = oauthConfig;
-        this.jobService = jobService;
-        this.env = env;
-        this.configurationService = configurationService;
+
+        Properties properties = new Properties();
+        try (InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties")) {
+            properties.load(versionFile);
+        } catch (IOException e) {
+            logger.warn("Could not access version.properties file, using defaults");
+        }
+        semVer = Optional.ofNullable(properties.getProperty("semVer")).orElse(DEFAULT_SEMVER);
+        gitHash = Optional.ofNullable(properties.getProperty("gitHash")).orElse(DEFAULT_GITHASH);
     }
 
     @Override
@@ -57,14 +78,6 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     @Override
     public ResponseEntity<Void> serviceStatus() {
-        if (configurationService.testInsertFault(ConfigEnum.LIVENESS_FAULT)) {
-            try {
-                TimeUnit.SECONDS.sleep(10);
-            } catch (InterruptedException e) {
-                // Fall through the inserted fault on interrupt.
-                // We do not expect this to happen.
-            }
-        }
         return new ResponseEntity<>(HttpStatus.OK);
     }
 
@@ -72,7 +85,10 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     public ResponseEntity<RepositoryConfigurationModel> retrieveRepositoryConfig() {
         RepositoryConfigurationModel configurationModel = new RepositoryConfigurationModel()
             .clientId(oauthConfig.getClientId())
-            .activeProfiles(Arrays.asList(env.getActiveProfiles()));
+            .activeProfiles(Arrays.asList(env.getActiveProfiles()))
+            .semVer(semVer)
+            .gitHash(gitHash);
+
         return new ResponseEntity<>(configurationModel, HttpStatus.OK);
     }
 

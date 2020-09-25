@@ -1,6 +1,7 @@
 package bio.terra.service.iam.sam;
 
 
+import bio.terra.common.exception.DataRepoException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
@@ -43,7 +44,7 @@ class SamRetry {
                 return function.apply();
 
             } catch (ApiException ex) {
-                RuntimeException rex = SamIam.convertSAMExToDataRepoEx((ApiException) ex);
+                DataRepoException rex = SamIam.convertSAMExToDataRepoEx(ex);
                 if (!(rex instanceof IamInternalServerErrorException)) {
                     throw rex;
                 }

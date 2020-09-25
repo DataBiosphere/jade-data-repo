@@ -1,14 +1,44 @@
 package runner;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
+import runner.config.ServerSpecification;
 import runner.config.TestUserSpecification;
 
+@SuppressFBWarnings(
+    value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
+    justification =
+        "There are no disruptive scripts that currently need a billing account, but a disruptive script should have all the information that a test script has.")
 public abstract class DisruptiveScript {
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public DisruptiveScript() {}
 
+  protected String billingAccount;
+  protected ServerSpecification server;
   protected boolean manipulatesKubernetes = false;
+
+  /**
+   * Setter for the billing account property of this class. This property will be set by the Test
+   * Runner based on the current Test Configuration, and can be accessed by the Disruptive Script
+   * methods.
+   *
+   * @param billingAccount Google billing account id
+   */
+  public void setBillingAccount(String billingAccount) {
+    this.billingAccount = billingAccount;
+  }
+
+  /**
+   * Setter for the server specification property of this class. This property will be set by the
+   * Test Runner based on the current Test Configuration, and can be accessed by the Disruptive
+   * Script methods.
+   *
+   * @param server the specification of the server(s) this test runs against
+   */
+  public void setServer(ServerSpecification server) {
+    this.server = server;
+  }
 
   /**
    * Getter for the manipulates Kubernetes property of this class. This property may be overridden

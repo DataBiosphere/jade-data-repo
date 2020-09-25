@@ -9,15 +9,16 @@ import runner.DisruptiveScript;
 import runner.config.TestUserSpecification;
 
 public class RandomPodDelete extends DisruptiveScript {
+  private static final Logger logger = LoggerFactory.getLogger(RandomPodDelete.class);
+
   public RandomPodDelete() {
     super();
     manipulatesKubernetes = true;
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(RandomPodDelete.class);
-
   private int repeatCount = 1;
   private int secondsBetweenRepeat = 30;
+  protected static final int secondsToWaitBeforeStartingDisrupt = 15;
 
   public void setParameters(List<String> parameters) {
 
@@ -39,6 +40,9 @@ public class RandomPodDelete extends DisruptiveScript {
   }
 
   public void disrupt(List<TestUserSpecification> testUsers) throws Exception {
+    // give user journey threads time to get started before disruption
+    TimeUnit.SECONDS.sleep(secondsToWaitBeforeStartingDisrupt);
+
     logger.info(
         "Starting disruption - A single random pod will be deleted {} times at {} second intervals.",
         repeatCount,

@@ -191,8 +191,7 @@ public class ModularHelmChart extends DeploymentScript {
     while (pollCtr >= 0) {
       // call the unauthenticated status endpoint
       try {
-        unauthenticatedApi.serviceStatus();
-        int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
+        int httpStatus = unauthenticatedApi.serviceStatusWithHttpInfo().getStatusCode();
         logger.debug("Service status: {}", httpStatus);
         if (HttpStatusCodes.isSuccess(httpStatus)) {
           break;

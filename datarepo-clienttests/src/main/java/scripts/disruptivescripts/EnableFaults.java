@@ -39,7 +39,7 @@ public class EnableFaults extends DisruptiveScript {
 
     // enable the faults
     for (String faultName : faultNames) {
-      repositoryApi.setFault(faultName, true);
+      DataRepoUtils.enableFault(repositoryApi, faultName);
       logger.info("Fault enabled: {}", faultName);
     }
   }

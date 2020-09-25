@@ -106,6 +106,10 @@ public class TestRunner {
   }
 
   private void executeTestConfigurationNoGuaranteedCleanup() throws Exception {
+    // lock the env
+    if (config.server.lockEnv) {
+      KubernetesClientUtils.lockCluster(config.server);
+    }
     // specify any value overrides in the Helm chart, then deploy
     if (!config.server.skipDeployment) {
       // get an instance of the deployment script class

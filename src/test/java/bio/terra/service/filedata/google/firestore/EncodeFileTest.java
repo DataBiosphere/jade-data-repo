@@ -119,7 +119,7 @@ public class EncodeFileTest {
     public void setup() throws Exception {
         // Setup mock sam service
         connectedOperations.stubOutSamCalls(samService);
-        String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
+        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
         loadTag = "encodeLoadTag" + UUID.randomUUID();
         datasetSummary = connectedOperations.createDataset(profileModel, "encodefiletest-dataset.json");

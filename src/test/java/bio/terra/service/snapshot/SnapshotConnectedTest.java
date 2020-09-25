@@ -126,7 +126,7 @@ public class SnapshotConnectedTest {
         connectedOperations.stubOutSamCalls(samService);
         configService.reset();
         billingProfile =
-            connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
+            connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
         datasetSummary = createTestDataset("snapshot-test-dataset.json");
         loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
     }

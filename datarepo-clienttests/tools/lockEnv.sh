@@ -20,13 +20,14 @@ then
   exit 1
 fi
 
+printf "LOCKENV: Get credentials\n"
 gcloud container clusters get-credentials ${clusterShortName} --region ${region} --project ${project}
-
+printf "LOCKENV: Check for secret\n"
 if kubectl get secrets -n ${project} ${project}-inuse > /dev/null 2>&1; then
-    printf "Namespace ${project} in use Skipping\n"
+    printf "LOCKENV: Namespace ${project} in use Skipping\n"
     exit 2
 else
-    printf "Namespace ${project} not in use, Running test runner on ${project}\n"
+    printf "LOCKENV: Namespace ${project} not in use, Running test runner on ${project}\n"
     kubectl create secret generic ${project}-inuse --from-literal=inuse=${project} -n ${project}
-    printf "Successfully created secret.\n"
+    printf "LOCKENV: Successfully created secret.\n"
 fi

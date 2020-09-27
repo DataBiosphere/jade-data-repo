@@ -10,6 +10,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
@@ -65,7 +66,8 @@ public class DataRepoFixtures {
 
     // Create a Billing Profile model: expect successful creation
     public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
-        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest();
+        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.billingProfileRequest(
+            ProfileFixtures.billingProfileForAccount(testConfig.getGoogleBillingAccountId()));
         String json = TestUtils.mapToJson(billingProfileRequestModel);
         DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.post(
             user,
@@ -598,9 +600,11 @@ public class DataRepoFixtures {
     public DataRepoResponse<ConfigModel> setFault(TestConfiguration.User user,
                                                   String configName,
                                                   boolean enable) throws Exception {
+        ConfigEnableModel configEnableModel = new ConfigEnableModel().enabled(enable);
+        String json = TestUtils.mapToJson(configEnableModel);
         return dataRepoClient.put(user,
-            "/api/repository/v1/configs/" + configName + "?enable=" + enable,
-            null,
+            "/api/repository/v1/configs/" + configName,
+            json,
             null); // TODO should this validation on returned value?
     }
 

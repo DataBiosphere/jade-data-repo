@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement;
 
+import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -61,6 +62,9 @@ public class OneProjectPerProfileIdSelectorTest {
     @Autowired
     private ConfigurationService configService;
 
+    @Autowired
+    private ConnectedTestConfiguration testConfig;
+
     @MockBean
     private IamProviderInterface iamService;
 
@@ -76,7 +80,7 @@ public class OneProjectPerProfileIdSelectorTest {
     }
     @Test
     public void shouldGetCorrectIdForDataset() throws Exception {
-        String coreBillingAccountId = resourceConfiguration.getCoreBillingAccount();
+        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
         String profileName = ProfileFixtures.randomHex(16);
         BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(coreBillingAccountId)
@@ -94,7 +98,7 @@ public class OneProjectPerProfileIdSelectorTest {
 
     @Test
     public void shouldGetCorrectIdForDatasetWithSpecialChars() throws Exception {
-        String coreBillingAccountId = resourceConfiguration.getCoreBillingAccount();
+        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
         String namePrefix = "chars  ";
         String hexDigits = ProfileFixtures.randomHex(8);
         String profileName = namePrefix + hexDigits;
@@ -114,7 +118,7 @@ public class OneProjectPerProfileIdSelectorTest {
 
     @Test
     public void shouldGetCorrectIdForSnapshot() throws Exception {
-        String coreBillingAccountId = resourceConfiguration.getCoreBillingAccount();
+        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
         String profileName = ProfileFixtures.randomHex(16);
         BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(coreBillingAccountId)

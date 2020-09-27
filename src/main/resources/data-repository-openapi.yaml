@@ -1460,11 +1460,11 @@ paths:
           required: true
           in: path
           type: string
-        - in: query
-          name: enable
+        - in: body
+          name: configEnable
           type: boolean
-          default: true
-          description: whether to enable (default) or disable the fault
+          schema:
+            $ref: '#/definitions/ConfigEnableModel'
       responses:
         204:
           description: fault was en/dis-abled successfully - no content
@@ -2848,6 +2848,12 @@ definitions:
         type: array
         items:
           type: string
+      semVer:
+        description: the semantic version of the data repository
+        type: string
+      gitHash:
+        description: the git hash of the data repository
+        type: string
 
   ConfigModel:
     description: |
@@ -2872,6 +2878,7 @@ definitions:
   # TODO: add the other configuration types
   #      logging:
   #        $ref: '#/definitions/ConfigLoggingModel'
+
 
   ConfigFaultModel:
     description: Fault control parameters
@@ -2964,8 +2971,15 @@ definitions:
         items:
           $ref: '#/definitions/ConfigModel'
 
+  ConfigEnableModel:
+    description: Control whether a fault is enabled
+    properties:
+      enabled:
+        type: boolean
+        default: true
+        description: whether to enable (default) or disable the fault
 
-##########################################################################################
+  ##########################################################################################
 # DRS DEFINITIONS
 ##########################################################################################
   DRSChecksum:

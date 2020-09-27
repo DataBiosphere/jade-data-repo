@@ -177,15 +177,22 @@ public class TestRunner {
     // Disruptive Thread: fetch script specification if config is defined
     if (config.disruptiveScript != null) {
       logger.debug("Creating thread pool for disruptive script.");
-      DisruptiveScript disruptiveScript = config.disruptiveScript.disruptiveScriptClassInstance();
-      disruptiveScript.setParameters(config.disruptiveScript.parameters);
+      DisruptiveScript disruptiveScriptInstance =
+          config.disruptiveScript.disruptiveScriptClassInstance();
+      disruptiveScriptInstance.setBillingAccount(config.billingAccount);
+      disruptiveScriptInstance.setServer(config.server);
+      disruptiveScriptInstance.setParameters(config.disruptiveScript.parameters);
 
       // create a thread pool for running its disrupt method
       disruptionThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 
-      DisruptiveThread disruptiveThread = new DisruptiveThread(disruptiveScript, config.testUsers);
+      DisruptiveThread disruptiveThread =
+          new DisruptiveThread(disruptiveScriptInstance, config.testUsers);
       disruptionThreadPool.execute(disruptiveThread);
       logger.debug("Successfully submitted disruptive thread.");
+      TimeUnit.SECONDS.sleep(
+          1); // give the disruptive script thread some time to start before kicking off the user
+      // journeys.
     }
 
     // set the start time for the user journey portion this test run
@@ -250,7 +257,7 @@ public class TestRunner {
 
     // shutdown the disrupt thread pool
     if (disruptionThreadPool != null) {
-      logger.debug("Force shut down of the disruption thread pool");
+      logger.debug("Tell the disruption thread pool to shutdown");
       disruptionThreadPool.shutdownNow();
       if (!disruptionThreadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
         logger.error("Disruption Script: Thread pool for disruption script failed to terminate");
@@ -384,7 +391,6 @@ public class TestRunner {
   private static class DisruptiveThread implements Runnable {
     DisruptiveScript disruptiveScript;
     List<TestUserSpecification> testUsers;
-    int waitBeforeStartingDisrupt = 15;
 
     public DisruptiveThread(
         DisruptiveScript disruptiveScript, List<TestUserSpecification> testUsers) {
@@ -394,8 +400,6 @@ public class TestRunner {
 
     public void run() {
       try {
-        // give task time to get started before disruption
-        TimeUnit.SECONDS.sleep(waitBeforeStartingDisrupt);
         disruptiveScript.disrupt(testUsers);
       } catch (Exception ex) {
         logger.info("Disruptive thread threw exception: {}", ex.getMessage());

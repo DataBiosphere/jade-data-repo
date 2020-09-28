@@ -67,12 +67,14 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * Lock namespace - Throw exception if secret named "NAMESPACE-inuse" exists If no existing
-   * secret, create a new secret
+   * Lock namespace - Throw exception if secret named "NAMESPACE-testrunner-inuse" exists If no
+   * existing secret, create a new secret
    */
   public static void lockNamespace(ServerSpecification server) throws Exception {
     logger.info(
-        "Lock namespace by creating secret named '{}-inuse'", server.namespace, server.namespace);
+        "Lock namespace by creating secret named '{}-testrunner-inuse'",
+        server.namespace,
+        server.namespace);
     List<String> scriptArgs = new ArrayList<>();
     scriptArgs.add("tools/lockNamespace.sh");
     scriptArgs.add(server.clusterShortName);
@@ -89,10 +91,10 @@ public final class KubernetesClientUtils {
     }
   }
 
-  /** unlock namespace - delete existing secret for "NAMESPACE-inuse" */
+  /** unlock namespace - delete existing secret for "NAMESPACE-testrunner-inuse" */
   public static void unlockNamespace(ServerSpecification server) throws Exception {
     logger.info(
-        "unlock Env for namespace by deleting secret named '{}-inuse'",
+        "unlock Env for namespace by deleting secret named '{}-testrunner-inuse'",
         server.namespace,
         server.namespace);
     List<String> scriptArgs = new ArrayList<>();

@@ -67,16 +67,21 @@ public final class ProcessUtils {
    * @param proc the process handle
    * @return the list of lines written to stdout
    */
-  public static List<String> waitForTerminateAndReadStdout(Process proc) throws IOException, InterruptedException {
+  public static List<String> waitForTerminateAndReadStdout(Process proc)
+      throws IOException, InterruptedException {
     List<String> results = readStdout(proc, -1);
-    int retry = 0;
-    while (proc.isAlive() && retry < 5){
-        logger.debug("Proc wait for terminate, retry #{}", retry);
-        proc.waitFor(5, TimeUnit.SECONDS);
-        retry++;
-        if (retry == 5) {
-            proc.destroy();
-        }
+
+    int retry = 1;
+    int maxRetries  = 5;
+    // Wait for process to terminate
+      // Without this wait/check, ran into "process hasn't exited" Exception when calling Process after return
+    while (proc.isAlive() && retry <= maxRetries) {
+      logger.debug("Proc wait for terminate, retry #{}", retry);
+      proc.waitFor(5, TimeUnit.SECONDS);
+      if (retry == maxRetries) {
+        proc.destroy();
+      }
+      retry++;
     }
     return results;
   }

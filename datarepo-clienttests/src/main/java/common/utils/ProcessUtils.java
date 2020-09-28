@@ -67,8 +67,18 @@ public final class ProcessUtils {
    * @param proc the process handle
    * @return the list of lines written to stdout
    */
-  public static List<String> waitForTerminateAndReadStdout(Process proc) throws IOException {
-    return readStdout(proc, -1);
+  public static List<String> waitForTerminateAndReadStdout(Process proc) throws IOException, InterruptedException {
+    List<String> results = readStdout(proc, -1);
+    int retry = 0;
+    while (proc.isAlive() && retry < 5){
+        logger.debug("Proc wait for terminate, retry #{}", retry);
+        proc.waitFor(5, TimeUnit.SECONDS);
+        retry++;
+        if (retry == 5) {
+            proc.destroy();
+        }
+    }
+    return results;
   }
 
   /**

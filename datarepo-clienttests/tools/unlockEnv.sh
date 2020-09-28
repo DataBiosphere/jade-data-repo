@@ -26,13 +26,7 @@ then
   exit 1
 fi
 
-printf "LOCKENV: Get credentials\n"
+printf "UNLOCKENV: Get credentials\n"
 gcloud container clusters get-credentials ${clusterShortName} --region ${region} --project ${project}
-printf "LOCKENV: Check for secret\n"
-if kubectl get secrets -n ${namespace} ${namespace}-inuse > /dev/null 2>&1; then
-    printf "LOCKENV FAILED: Namepsace ${namespace} already in use.\n"
-    exit 1
-else
-    printf "LOCKENV: Namespace ${namespace} not in use, Running test runner on ${project}\n"
-    kubectl create secret generic ${namespace}-inuse --from-literal=inuse=${namespace} -n ${namespace}
-fi
+printf "UNLOCKENV: Clear lock\n"
+kubectl delete secret -n ${namespace} ${namespace}-inuse

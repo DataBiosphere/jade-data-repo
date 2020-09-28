@@ -68,12 +68,32 @@ public final class KubernetesClientUtils {
 
   /** Lock cluster */
   public static void lockCluster(ServerSpecification server) throws Exception {
-    logger.debug("Calling the lockEnv script that uses gcloud to generate secret");
+    logger.info("Lock Env for namespace by creating secret named '{}-inuse'", server.namespace, server.namespace);
     List<String> scriptArgs = new ArrayList<>();
     scriptArgs.add("tools/lockEnv.sh");
     scriptArgs.add(server.clusterShortName);
     scriptArgs.add(server.region);
     scriptArgs.add(server.project);
+    scriptArgs.add(server.namespace);
+    Process fetchCredentialsProc = ProcessUtils.executeCommand("sh", scriptArgs);
+    List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(fetchCredentialsProc);
+    if (fetchCredentialsProc.exitValue() > 0) {
+      throw new Exception("FAILURE: Failed to acquire lock for namespace " + server.namespace);
+    }
+    for (String cmdOutputLine : cmdOutputLines) {
+      logger.debug(cmdOutputLine);
+    }
+  }
+
+  /** unlock cluster */
+  public static void unlockCluster(ServerSpecification server) throws Exception {
+    logger.info("unlock Env for namespace by deleting secret named '{}-inuse'", server.namespace, server.namespace);
+    List<String> scriptArgs = new ArrayList<>();
+    scriptArgs.add("tools/unlockEnv.sh");
+    scriptArgs.add(server.clusterShortName);
+    scriptArgs.add(server.region);
+    scriptArgs.add(server.project);
+    scriptArgs.add(server.namespace);
     Process fetchCredentialsProc = ProcessUtils.executeCommand("sh", scriptArgs);
     List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(fetchCredentialsProc);
     for (String cmdOutputLine : cmdOutputLines) {

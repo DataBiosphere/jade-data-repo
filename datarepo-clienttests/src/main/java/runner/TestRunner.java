@@ -22,10 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.TestConfiguration;
-import runner.config.TestScriptSpecification;
-import runner.config.TestSuite;
-import runner.config.TestUserSpecification;
+import runner.config.*;
 
 public class TestRunner {
   private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);
@@ -106,10 +103,6 @@ public class TestRunner {
   }
 
   private void executeTestConfigurationNoGuaranteedCleanup() throws Exception {
-    // lock the env
-    if (config.server.lockEnv) {
-      KubernetesClientUtils.lockCluster(config.server);
-    }
     // specify any value overrides in the Helm chart, then deploy
     if (!config.server.skipDeployment) {
       // get an instance of the deployment script class
@@ -541,6 +534,10 @@ public class TestRunner {
     boolean isFailure = false;
     for (int ctr = 0; ctr < testSuite.testConfigurations.size(); ctr++) {
       TestConfiguration testConfiguration = testSuite.testConfigurations.get(ctr);
+      // lock env
+      if (testConfiguration.server.lockEnv) {
+        KubernetesClientUtils.lockCluster(testConfiguration.server);
+      }
       logger.info(
           "==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
       logger.info(testConfiguration.display());
@@ -575,6 +572,11 @@ public class TestRunner {
                 .toString();
       }
       runner.writeOutResults(outputDirName);
+
+      // unlock the env
+      if (testSuite.testConfigurations.get(0).server.lockEnv) {
+        KubernetesClientUtils.unlockCluster(testConfiguration.server);
+      }
 
       TimeUnit.SECONDS.sleep(5);
     }

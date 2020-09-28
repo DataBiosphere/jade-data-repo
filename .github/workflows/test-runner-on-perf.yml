@@ -103,6 +103,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
           git checkout master
           git merge origin/version-update-${{ steps.read_property.outputs.value }}
+          git branch -d version-update-${{ steps.read_property.outputs.value }}
           git push
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Setup helmfile"
@@ -116,7 +117,7 @@ jobs:
       # QUESTION: is this then running off code from develop branch?
       - name: "Build and run Test Runner"
         run: |
-          cd ${GITHUB_WORKSPACE}/${workingDir}
+          cd ${GITHUB_WORKSPACE}/${workingDir}/jade-data-repo
           echo "Building Data Repo client library"
           ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests

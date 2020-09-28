@@ -15,8 +15,13 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     steps:
-      - name: "Checkout code"
+      - name: 'Checkout jade-data-repo repo, develop branch'
         uses: actions/checkout@v2
+        with:
+          ref: 'develop'
+          repository: 'broadinstitute/jade-data-repo'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: jade-data-repo
       - name: "Assemble data-repo code to generate version.properties file"
         run: ./gradlew clean assemble
       - name: Read value from Properties-file
@@ -25,8 +30,10 @@ jobs:
         with:
           path: './src/main/resources/version.properties'
           property: 'gitHash'
-      - name: Do something with your bumped release version
-        run: echo ${{ steps.read_property.outputs.value }}
+      - name: "Update perf image tag"
+        uses: docker://mikefarah/yq:latest
+        with:
+          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.value }}
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
         with:

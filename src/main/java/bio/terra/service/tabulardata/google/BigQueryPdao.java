@@ -23,6 +23,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
+import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
@@ -61,7 +62,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
@@ -92,24 +92,21 @@ import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
 public class BigQueryPdao implements PrimaryDataAccess {
     private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
 
-    private static final int DEFAULT_MAX_NUM_UPDATE_LIMIT_INDUCED_RETRIES = 3;
-    private static final int DEFAULT_RETRY_WAIT_MS = 500;
-
     private final String datarepoDnsName;
     private final DataLocationService dataLocationService;
+    private final BigQueryConfiguration bigQueryConfiguration;
     private final DatasetService datasetService;
-
-    @Value("${datarepo.bq.rateLimitRetries}") private Integer rateLimitRetries;
-    @Value("${datarepo.bq.rateLimitRetryWaitMs}") private Integer rateLimitWait;
 
     @Autowired
     public BigQueryPdao(
         ApplicationConfiguration applicationConfiguration,
         DataLocationService dataLocationService,
+        BigQueryConfiguration bigQueryConfiguration,
         DatasetService datasetService) {
         this.datarepoDnsName = applicationConfiguration.getDnsName();
         this.dataLocationService = dataLocationService;
         this.datasetService = datasetService;
+        this.bigQueryConfiguration = bigQueryConfiguration;
     }
 
     public BigQueryProject bigQueryProjectForDataset(Dataset dataset) throws InterruptedException {
@@ -1629,7 +1626,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private TableResult executeQueryWithRetry(
         final BigQuery bigQuery,
         final QueryJobConfiguration queryConfig
-    ) {
+    ) throws InterruptedException {
         return executeQueryWithRetry(bigQuery, queryConfig, 0);
     }
 
@@ -1640,19 +1637,15 @@ public class BigQueryPdao implements PrimaryDataAccess {
         final BigQuery bigQuery,
         final QueryJobConfiguration queryConfig,
         final int retryNum
-    ) {
-        final int maxRetries =
-            Optional.ofNullable(rateLimitRetries).orElse(DEFAULT_MAX_NUM_UPDATE_LIMIT_INDUCED_RETRIES);
-        final int retryWait =
-            Optional.ofNullable(rateLimitWait).orElse(DEFAULT_RETRY_WAIT_MS);
+    ) throws InterruptedException {
+        final int maxRetries = bigQueryConfiguration.getRateLimitRetries();
+        final int retryWait = bigQueryConfiguration.getRateLimitRetryWaitMs();
 
         if (retryNum > 0) {
             logger.info("Retry number {} of a maximum {}", retryNum, maxRetries);
         }
         try {
             return bigQuery.query(queryConfig);
-        } catch (final InterruptedException ie) {
-            throw new PdaoException("Query unexpectedly interrupted", ie);
         } catch (final BigQueryException qe) {
             if (
                 qe.getError() != null &&

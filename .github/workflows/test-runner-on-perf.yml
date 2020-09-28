@@ -1,4 +1,4 @@
-name: Test Runner on Perf Tests
+name: Update Perf Env and Run Nightly Test Runner Tests
 env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_SA_CERT: /tmp/jade-dev-account.pem
@@ -108,6 +108,7 @@ jobs:
             git push
           else
             echo "Branch version-update-${{ steps.read_property.outputs.value }} not found."
+          fi
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Setup helmfile"
         uses: mamezou-tech/setup-helmfile@v0.5.0

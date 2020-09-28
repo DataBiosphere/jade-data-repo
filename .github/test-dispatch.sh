@@ -1,5 +1,5 @@
 #!/bin/bash
-BRANCH="sh-DR-1116-perf-action"
+BRANCH="sh-DR-1334-lock"
 TOKEN=$(cat $HOME/.gh_token)
 REPO="DataBiosphere/jade-data-repo"
 WORKFLOW="test-runner-on-perf.yml"

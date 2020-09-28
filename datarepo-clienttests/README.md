@@ -259,8 +259,8 @@ resources/configs directory. Below are the available fields:
   * testScripts: List of test script specifications (i.e. instance of the TestScriptSpecification POJO class, serialized
   into JSON). Each specification should include the below required fields:
     * name: Name of the test script class to run
-    * totalNumberToRun: Integer number of user journeys to run
-    * numberToRunInParallel: Integer number of user journeys to run in parallel (i.e. size of the thread pool)
+    * numberOfUserJourneyThreadsToRun: Integer number of user journeys to run
+    * userJourneyThreadPoolSize: Integer number of user journeys to run in parallel (i.e. size of the thread pool)
     * expectedTimeForEach: Integer number of time units indicating the maximum amount of time a user journey thread will
     be allowed to execute.
     * expectedTimeForEachUnit: String representation of the Java TimeUnit class (e.g. MILLISECONDS, SECONDS, MINUTES)

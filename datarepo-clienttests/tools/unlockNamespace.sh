@@ -29,4 +29,4 @@ fi
 printf "UnlockNamespace: Get credentials\n"
 gcloud container clusters get-credentials ${clusterShortName} --region ${region} --project ${project}
 printf "UnlockNamespace: Clear lock\n"
-kubectl delete secret -n ${namespace} ${namespace}-inuse
+kubectl delete secret -n ${namespace} ${namespace}-testrunner-inuse

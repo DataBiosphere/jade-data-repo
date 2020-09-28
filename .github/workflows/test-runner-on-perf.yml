@@ -17,27 +17,20 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
+      - name: Read value from Properties-file
+        id: read_property
+        uses: christian-draeger/read-properties@1.0.1
+        with:
+          path: './src/main/resources/version.properties'
+          property: 'gitHash'
+      - name: Do something with your bumped release version
+        run: echo ${{ steps.read_property.outputs.value }}
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
-      #- name: "Pull down new tags"
-      #  run: git fetch --all --tags
-      #- name: 'Get Previous tag'
-      #  id: apiprevioustag
-      #  uses: "broadinstitute/github-action-get-previous-tag@master"
-      #  env:
-      #    GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      #- name: "Update perf image tag"
-      #  uses: docker://mikefarah/yq:latest
-      #  with:
-      #    args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}
-      - name: "read perf image tag"
-        uses: docker://mikefarah/yq:latest
-        with:
-          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml 'image.tag' $(yq r datarepo-helm-definitions/dev/dev/devDeployment.yaml 'datarepo-api.image.tag')
       - name: Create pull request
         uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
         id: create-pr
@@ -53,11 +46,11 @@ jobs:
             Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "broadbot,datarepo,automerge"
-      - name: "Apply helm changes"
-        run: |
-          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
-          echo $(pwd)
-          helmfile diff
+      # name: "Apply helm changes"
+      #  run: |
+      #    cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
+      #    echo $(pwd)
+      #    helmfile diff
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

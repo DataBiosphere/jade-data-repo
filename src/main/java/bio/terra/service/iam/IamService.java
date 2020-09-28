@@ -6,6 +6,8 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.iam.exception.IamUnavailableException;
 import org.apache.commons.collections4.map.LRUMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -33,6 +35,8 @@ import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECO
 
 @Component
 public class IamService {
+    private final Logger logger = LoggerFactory.getLogger(IamService.class);
+
     private final IamProviderInterface iamProvider;
     private final ConfigurationService configurationService;
     private Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap;
@@ -58,12 +62,14 @@ public class IamService {
                          IamAction action) {
         try {
             int timeoutSeconds = configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS);
+            AuthenticatedUserRequest userReqNoId = userReq.reqId(null);
             AuthorizedCacheKey authorizedCacheKey =
-                new AuthorizedCacheKey(userReq, iamResourceType, resourceId, action);
+                new AuthorizedCacheKey(userReqNoId, iamResourceType, resourceId, action);
             AuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
             if (authorizedCacheValue != null) { // check if it's in the cache
                 // check if it's still in the alloted time
                 if (Instant.now().isBefore(authorizedCacheValue.getTimeout())) {
+                    logger.info("Using the cache!");
                     return authorizedCacheValue.isAuthorized();
                 }
                 authorizedMap.remove(authorizedCacheKey); // if timed out, remove it

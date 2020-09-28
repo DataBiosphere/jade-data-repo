@@ -15,7 +15,7 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: "Checkout jade-data-repo develop branch"
         uses: actions/checkout@v2
         with:
           ref: develop
@@ -67,7 +67,7 @@ jobs:
           done
       - name: "Assemble data-repo code to generate version.properties file"
         run: ./gradlew clean assemble
-      - name: "Read value from Properties-file"
+      - name: "Read latest jade-data-repo gitHash from version.properties file"
         id: read_property
         uses: christian-draeger/read-properties@1.0.1
         with:
@@ -79,30 +79,33 @@ jobs:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
-      - name: "Update perf image tag"
+      - name: "Update perf image tag with gitHash"
         uses: docker://mikefarah/yq:latest
         with:
           args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.value }}
-      - name: Create pull request
+      - name: "Create datarepo-helm-definition pull request with updated perf image tag"
         uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
-        id: create-pr
+        id: perfTagPR
         with:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
-          commit-message: "Perf Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
+          commit-message: "Perf Datarepo version update: ${{ steps.read_property.outputs.value }}"
           committer: datarepo-bot <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "Perf Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
-          branch: "version-update-${{ steps.apiprevioustag.outputs.tag }}"
+          title: "Perf Datarepo version update: ${{ steps.read_property.outputs.value }}"
+          branch: "version-update-${{ steps.read_property.outputs.value }}"
           body: |
-            Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
+            Update versions in perf env to reflect image tag ${{ steps.apiprevioustag.outputs.tag }}.
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "broadbot,datarepo,automerge"
-      # name: "Apply helm changes"
-      #  run: |
-      #    cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
-      #    echo $(pwd)
-      #    helmfile diff
+      - name: "Merge datarepo-helm-definition pull request"
+        run: git merge version-update-${{ steps.read_property.outputs.value }}
+      - name: "Setup helmfile"
+        uses: mamezou-tech/setup-helmfile@v0.5.0
+      - name: "Run helmfile apply to update perf to use new image tag"
+        run: |
+          helmfile --version
+          helmfile diff
       # QUESTION: is this then running off code from develop branch?
       - name: "Build and run Test Runner"
         run: |

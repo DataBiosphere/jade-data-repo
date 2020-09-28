@@ -2,6 +2,7 @@ package bio.terra.service.iam;
 
 import bio.terra.app.controller.exception.ApiException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apache.commons.lang.builder.HashCodeBuilder;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -85,6 +86,11 @@ public class AuthenticatedUserRequest {
 
     @Override
     public int hashCode() {
-        return Objects.hash(getEmail(), getSubjectId(), getToken(), getReqId());
+        return new HashCodeBuilder(17, 37)
+            .append(getEmail())
+            .append(getSubjectId())
+            .append(getToken())
+            .append(getReqId())
+            .toHashCode();
     }
 }

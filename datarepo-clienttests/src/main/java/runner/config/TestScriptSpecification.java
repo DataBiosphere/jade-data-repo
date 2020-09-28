@@ -10,8 +10,8 @@ import runner.TestScript;
     justification = "This POJO class is used for easy serialization to JSON using Jackson.")
 public class TestScriptSpecification implements SpecificationInterface {
   public String name;
-  public int totalNumberToRun = 1;
-  public int numberToRunInParallel = 1;
+  public int numberOfUserJourneyThreadsToRun = 1;
+  public int userJourneyThreadPoolSize = 1;
   public long expectedTimeForEach;
   public String expectedTimeForEachUnit;
   public List<String> parameters;
@@ -33,11 +33,11 @@ public class TestScriptSpecification implements SpecificationInterface {
    * parsed into a TimeUnit; the name is converted into a Java class reference.
    */
   public void validate() {
-    if (totalNumberToRun <= 0) {
-      throw new IllegalArgumentException("Total number to run must be >=0.");
+    if (numberOfUserJourneyThreadsToRun <= 0) {
+      throw new IllegalArgumentException("Number of user journey threads to run must be >=0.");
     }
-    if (numberToRunInParallel <= 0) {
-      throw new IllegalArgumentException("Number to run in parallel must be >=0.");
+    if (userJourneyThreadPoolSize <= 0) {
+      throw new IllegalArgumentException("User journey thread pool size must be >=0.");
     }
     if (expectedTimeForEach <= 0) {
       throw new IllegalArgumentException("Expected time for each must be >=0.");

@@ -16,10 +16,13 @@ import bio.terra.datarepo.model.JobModel;
 import com.google.api.client.util.Charsets;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.storage.BlobId;
 import common.utils.BigQueryUtils;
 import common.utils.FileUtils;
+import common.utils.StorageUtils;
 import java.io.ByteArrayOutputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,8 +43,7 @@ public class SoftDeleteDataset extends SimpleDataset {
   }
 
   private DataDeletionRequest dataDeletionRequest;
-
-  private String testConfigGetIngestbucket;
+  private static List<BlobId> scratchFiles = new ArrayList<>();
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // create the profile and dataset
@@ -50,8 +52,6 @@ public class SoftDeleteDataset extends SimpleDataset {
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
-
-    testConfigGetIngestbucket = "jade-testdata"; // this could be put in DRUtils
 
     // load data into the new dataset
     // note that there's a fileref in the dataset
@@ -85,9 +85,16 @@ public class SoftDeleteDataset extends SimpleDataset {
     String dirInCloud = "scratch/softDel";
     String fileRefName = dirInCloud + "/" + jsonFileName;
 
+    String scratchFileBucketName = "jade-testdata";
+    BlobId scratchFileTabularData =
+        BulkLoadUtils.writeScratchFileForIngestRequest(
+            server.testRunnerServiceAccount,
+            bulkLoadArrayResultModel,
+            scratchFileBucketName,
+            fileRefName);
     IngestRequestModel ingestRequest =
-        BulkLoadUtils.makeIngestRequestFromLoadArray(
-            bulkLoadArrayResultModel, testConfigGetIngestbucket, fileRefName);
+        BulkLoadUtils.makeIngestRequestFromScratchFile(scratchFileTabularData);
+    scratchFiles.add(scratchFileTabularData); // make sure the scratch file gets cleaned up later
 
     JobModel ingestTabularDataJobResponse =
         repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
@@ -131,7 +138,15 @@ public class SoftDeleteDataset extends SimpleDataset {
       output.write((line + "\n").getBytes(Charsets.UTF_8));
     }
     byte[] bytes = output.toByteArray();
-    String gcsPath = FileUtils.createGsPath(bytes, csvFileRefName, testConfigGetIngestbucket);
+
+    BlobId scratchFileSoftDeleteRows =
+        StorageUtils.writeBytesToFile(
+            StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount),
+            scratchFileBucketName,
+            csvFileRefName,
+            bytes);
+    scratchFiles.add(scratchFileSoftDeleteRows); // make sure the scratch file gets cleaned up later
+    String gcsPath = StorageUtils.blobIdToGSPath(scratchFileSoftDeleteRows);
 
     // build the deletion request with pointers to the file with row ids to soft delete
     DataDeletionGcsFileModel deletionGcsFileModel =
@@ -170,7 +185,8 @@ public class SoftDeleteDataset extends SimpleDataset {
     // delete the profile and dataset
     super.cleanup(testUsers);
 
-    // delete scratch files
-    FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);
+    // delete the scratch files used for ingesting tabular data and soft delete rows
+    StorageUtils.deleteFiles(
+        StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
   }
 }

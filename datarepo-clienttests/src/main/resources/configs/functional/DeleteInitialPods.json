@@ -19,16 +19,16 @@
     {
       "name": "BulkLoad",
       "parameters": [18],
-      "totalNumberToRun": 1,
-      "numberToRunInParallel": 1,
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 300,
       "expectedTimeForEachUnit": "SECONDS"
     },
     {
       "name": "BulkLoad",
       "parameters": [20],
-      "totalNumberToRun": 1,
-      "numberToRunInParallel": 1,
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 300,
       "expectedTimeForEachUnit": "SECONDS"
     }

@@ -16,8 +16,10 @@ import bio.terra.datarepo.model.SnapshotSummaryModel;
 import bio.terra.datarepo.model.TableModel;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.storage.BlobId;
 import common.utils.BigQueryUtils;
 import common.utils.FileUtils;
+import common.utils.StorageUtils;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -29,7 +31,7 @@ import scripts.testscripts.baseclasses.SimpleDataset;
 import scripts.utils.DataRepoUtils;
 
 public class DRSLookup extends SimpleDataset {
-  private static final Logger logger = LoggerFactory.getLogger(RetrieveSnapshot.class);
+  private static final Logger logger = LoggerFactory.getLogger(DRSLookup.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public DRSLookup() {
@@ -38,7 +40,7 @@ public class DRSLookup extends SimpleDataset {
 
   private SnapshotModel snapshotModel;
 
-  private String testConfigGetIngestbucket;
+  private static List<BlobId> scratchFiles = new ArrayList<>();
   private String dirObjectId;
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
@@ -48,8 +50,6 @@ public class DRSLookup extends SimpleDataset {
     // get the ApiClient for the snapshot creator, same as the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
-
-    testConfigGetIngestbucket = "jade-testdata"; // this could be put in DRUtils
 
     // load data into the new dataset
     // note that there's a fileref in the dataset
@@ -89,8 +89,17 @@ public class DRSLookup extends SimpleDataset {
     byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
     // load a JSON file that contains the table rows to load into the test bucket
     String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
-    String fileRefName = "scratch/testRetrieveSnapshot/" + jsonFileName;
-    String gsPath = FileUtils.createGsPath(fileRefBytes, fileRefName, testConfigGetIngestbucket);
+    String fileRefName = "scratch/testDRSLookup/" + jsonFileName;
+
+    String scratchFileBucketName = "jade-testdata";
+    BlobId scratchFileTabularData =
+        StorageUtils.writeBytesToFile(
+            StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount),
+            scratchFileBucketName,
+            fileRefName,
+            fileRefBytes);
+    scratchFiles.add(scratchFileTabularData); // make sure the scratch file gets cleaned up later
+    String gsPath = StorageUtils.blobIdToGSPath(scratchFileTabularData);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -133,7 +142,7 @@ public class DRSLookup extends SimpleDataset {
             1L);
 
     BigQuery bigQueryClient =
-        BigQueryUtils.getClientForServiceAccount(snapshotModel.getDataProject());
+        BigQueryUtils.getClientForTestUser(datasetCreator, snapshotModel.getDataProject());
     TableResult result = BigQueryUtils.queryBigQuery(bigQueryClient, queryForFileRefs);
     ArrayList<String> fileRefs = new ArrayList<>();
     result.iterateAll().forEach(r -> fileRefs.add(r.get("VCF_File_Ref").getStringValue()));
@@ -171,7 +180,8 @@ public class DRSLookup extends SimpleDataset {
     // delete the profile and dataset
     super.cleanup(testUsers);
 
-    // delete scratch files
-    FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);
+    // delete the scratch files used for ingesting tabular data and soft delete rows
+    StorageUtils.deleteFiles(
+        StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
   }
 }

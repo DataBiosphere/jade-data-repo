@@ -12,8 +12,8 @@
   "testScripts": [
     {
       "name": "EnumerateProfiles",
-      "totalNumberToRun": 50,
-      "numberToRunInParallel": 2,
+      "numberOfUserJourneyThreadsToRun": 50,
+      "userJourneyThreadPoolSize": 2,
       "expectedTimeForEach": 5,
       "expectedTimeForEachUnit": "SECONDS"
     }

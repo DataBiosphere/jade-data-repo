@@ -1,7 +1,7 @@
 {
   "name": "BulkLoadLivenessDisruption",
   "description": "Test recovery of a bulk file load across a kubernetes restart of the container",
-  "serverSpecificationFile": "localhost.json",
+  "serverSpecificationFile": "perf.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "isFunctional": true,
   "kubernetes": {},
@@ -14,8 +14,8 @@
     {
       "name": "BulkLoad",
       "parameters": [500],
-      "totalNumberToRun": 5,
-      "numberToRunInParallel": 1,
+      "numberOfUserJourneyThreadsToRun": 5,
+      "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 3000,
       "expectedTimeForEachUnit": "SECONDS"
     }

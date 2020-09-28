@@ -5,20 +5,17 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import common.CommandCLI;
 import common.utils.FileUtils;
 import common.utils.KubernetesClientUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import runner.config.TestConfiguration;
-import runner.config.TestScriptSpecification;
-import runner.config.TestSuite;
-import runner.config.TestUserSpecification;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -27,6 +24,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import runner.config.TestConfiguration;
+import runner.config.TestScriptSpecification;
+import runner.config.TestSuite;
+import runner.config.TestUserSpecification;
 
 public class TestRunner {
   private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);
@@ -56,6 +59,34 @@ public class TestRunner {
 
     public TestRunSummary(String id) {
       this.id = id;
+    }
+
+    private String startTimestamp;
+    private String startUserJourneyTimestamp;
+    private String endUserJourneyTimestamp;
+    private String endTimestamp;
+
+    public String getStartTimestamp() {
+      return millisecondsToTimestampString(startTime);
+    }
+
+    public String getStartUserJourneyTimestamp() {
+      return millisecondsToTimestampString(startUserJourneyTime);
+    }
+
+    public String getEndUserJourneyTimestamp() {
+      return millisecondsToTimestampString(endUserJourneyTime);
+    }
+
+    public String getEndTimestamp() {
+      return millisecondsToTimestampString(endTime);
+    }
+
+    private static String millisecondsToTimestampString(long milliseconds) {
+      DateFormat dateFormat =
+          new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSSS'Z'"); // Quoted Z to indicate UTC
+      dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+      return dateFormat.format(new Date(milliseconds));
     }
   }
 
@@ -205,12 +236,14 @@ public class TestRunner {
       // create a thread pool for running its user journeys
       ThreadPoolExecutor threadPool =
           (ThreadPoolExecutor)
-              Executors.newFixedThreadPool(testScriptSpecification.numberToRunInParallel);
+              Executors.newFixedThreadPool(testScriptSpecification.userJourneyThreadPoolSize);
       threadPools.add(threadPool);
 
       // kick off the user journey(s), one per thread
       List<Future<UserJourneyResult>> userJourneyFutures = new ArrayList<>();
-      for (int ujCtr = 0; ujCtr < testScriptSpecification.totalNumberToRun; ujCtr++) {
+      for (int ujCtr = 0;
+          ujCtr < testScriptSpecification.numberOfUserJourneyThreadsToRun;
+          ujCtr++) {
         TestUserSpecification testUser = config.testUsers.get(ujCtr % config.testUsers.size());
         // add a description to the user journey threads/results that includes any test script
         // parameters
@@ -233,7 +266,8 @@ public class TestRunner {
 
       threadPool.shutdown();
       long totalTerminationTime =
-          testScriptSpecification.expectedTimeForEach * testScriptSpecification.totalNumberToRun;
+          testScriptSpecification.expectedTimeForEach
+              * testScriptSpecification.numberOfUserJourneyThreadsToRun;
       boolean terminatedByItself =
           threadPool.awaitTermination(
               totalTerminationTime, testScriptSpecification.expectedTimeForEachUnitObj);

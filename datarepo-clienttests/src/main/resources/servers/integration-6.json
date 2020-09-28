@@ -14,6 +14,7 @@
     "name": "ModularHelmChart",
     "parameters": ["https://https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/integration/integration-6/datarepo-api.yaml"]
   },
+  "testRunnerServiceAccountFile": "jade-k8-sa.json",
   "skipDeployment": true,
   "skipKubernetes": false
 }

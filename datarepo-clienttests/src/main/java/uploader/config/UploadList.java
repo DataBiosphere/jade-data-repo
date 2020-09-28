@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.ServiceAccountSpecification;
 import runner.config.SpecificationInterface;
 
 public class UploadList implements SpecificationInterface {
@@ -13,7 +14,10 @@ public class UploadList implements SpecificationInterface {
 
   public String name;
   public String description = "";
+  public String uploaderServiceAccountFile;
   public List<UploadScriptSpecification> uploadScripts;
+
+  public ServiceAccountSpecification uploaderServiceAccount;
 
   public static final String resourceDirectory = "uploadlists";
 
@@ -35,6 +39,10 @@ public class UploadList implements SpecificationInterface {
         FileUtils.getResourceFileHandle(resourceDirectory + "/" + resourceFileName);
     UploadList uploadList = objectMapper.readValue(inputStream, UploadList.class);
 
+    // read in the SA file
+    uploadList.uploaderServiceAccount =
+        ServiceAccountSpecification.fromJSONFile(uploadList.uploaderServiceAccountFile);
+
     return uploadList;
   }
 
@@ -47,5 +55,7 @@ public class UploadList implements SpecificationInterface {
     for (UploadScriptSpecification script : uploadScripts) {
       script.validate();
     }
+
+    uploaderServiceAccount.validate();
   }
 }

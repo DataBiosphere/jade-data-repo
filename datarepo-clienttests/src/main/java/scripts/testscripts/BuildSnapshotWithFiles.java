@@ -13,7 +13,9 @@ import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
+import com.google.cloud.storage.BlobId;
 import common.utils.FileUtils;
+import common.utils.StorageUtils;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -29,13 +31,13 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
   /** Public constructor so that this class can be instantiated via reflection. */
   public BuildSnapshotWithFiles() {
     super();
-    // manipulatesKubernetes = true; // this test script manipulates Kubernetes
   }
 
   private int filesToLoad;
   private int snapshotsToCreate;
   List<Integer> batchSizes = new ArrayList<>();
   List<SnapshotSummaryModel> snapshotSummaryModels = new ArrayList<>();
+  private static List<BlobId> scratchFiles = new ArrayList<>();
 
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() < 3) {
@@ -74,13 +76,15 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
         loadSummary.getTotalFiles(),
         equalTo(loadSummary.getSucceededFiles()));
 
-    // generate load for the simple datase
+    // generate load for the simple dataset
     String testConfigGetIngestbucket = "jade-testdata";
     String fileRefName =
         "scratch/buildSnapshotWithFiles/" + FileUtils.randomizeName("input") + ".json";
-    IngestRequestModel ingestRequest =
-        BulkLoadUtils.makeIngestRequestFromLoadArray(
-            result, testConfigGetIngestbucket, fileRefName);
+    BlobId scratchFile =
+        BulkLoadUtils.writeScratchFileForIngestRequest(
+            server.testRunnerServiceAccount, result, testConfigGetIngestbucket, fileRefName);
+    IngestRequestModel ingestRequest = BulkLoadUtils.makeIngestRequestFromScratchFile(scratchFile);
+    scratchFiles.add(scratchFile); // make sure the scratch file gets cleaned up later
 
     // load the data
     JobModel ingestTabularDataJobResponse =
@@ -126,6 +130,10 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
           repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
       logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
     }
+
+    // delete the scratch files used for ingesting tabular data
+    StorageUtils.deleteFiles(
+        StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
 
     super.cleanup(testUsers);
   }

@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.ServiceAccountSpecification;
 import runner.config.TestUserSpecification;
 
 public final class BigQueryUtils {
@@ -22,29 +23,7 @@ public final class BigQueryUtils {
   private BigQueryUtils() {}
 
   /**
-   * Build the Big Query client object with application default credentials. THe client object is
-   * newly created on each call to this method; it is not cached.
-   *
-   * @param googleProjectId the project where BigQuery will run queries
-   * @return the BigQuery client object for this data project
-   */
-  public static BigQuery getClient(String googleProjectId) throws IOException {
-    logger.debug("Fetching application default credentials and building BigQuery client object");
-
-    GoogleCredentials applicationDefaultCredentials =
-        AuthenticationUtils.getApplicationDefaultCredential();
-    BigQuery bigQuery =
-        BigQueryOptions.newBuilder()
-            .setProjectId(googleProjectId)
-            .setCredentials(applicationDefaultCredentials)
-            .build()
-            .getService();
-
-    return bigQuery;
-  }
-
-  /**
-   * Build the Big Query client object for the given test user and server specifications.
+   * Build the Big Query client object for the given test user specification and project.
    *
    * @param testUser the test user whose credentials are supplied to the API client object
    * @param googleProjectId the project where BigQuery will run queries
@@ -67,13 +46,26 @@ public final class BigQueryUtils {
     return bigQuery;
   }
 
-  public static BigQuery getClientForServiceAccount(String googleProjectId) throws IOException {
-    GoogleCredentials userDefaultCredential = AuthenticationUtils.getApplicationDefaultCredential();
-    logger.debug("Fetching credentials and building BigQuery client object for default user");
+  /**
+   * Build the Big Query client object for the given service account specification and project.
+   *
+   * @param serviceAccount the service account whose credentials are supplied to the API client
+   *     object
+   * @param googleProjectId the project where BigQuery will run queries
+   * @return the BigQuery client object for this user and data project
+   */
+  public static BigQuery getClientForServiceAccount(
+      ServiceAccountSpecification serviceAccount, String googleProjectId) throws IOException {
+    logger.debug(
+        "Fetching credentials and building BigQuery client object for service account: {}",
+        serviceAccount.name);
+
+    GoogleCredentials serviceAccountCredentials =
+        AuthenticationUtils.getServiceAccountCredential(serviceAccount);
     BigQuery bigQuery =
         BigQueryOptions.newBuilder()
             .setProjectId(googleProjectId)
-            .setCredentials(userDefaultCredential)
+            .setCredentials(serviceAccountCredentials)
             .build()
             .getService();
 

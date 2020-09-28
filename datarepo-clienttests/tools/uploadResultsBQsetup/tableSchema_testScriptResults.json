@@ -1,8 +1,8 @@
 [
   { "name": "testRun_id",                     "mode": "REQUIRED", "type": "STRING" },
   { "name": "name",                           "mode": "REQUIRED", "type": "STRING" },
-  { "name": "totalNumberToRun",               "mode": "REQUIRED", "type": "NUMERIC" },
-  { "name": "numberToRunInParallel",          "mode": "REQUIRED", "type": "NUMERIC" },
+  { "name": "numberOfUserJourneyThreadsToRun","mode": "REQUIRED", "type": "NUMERIC" },
+  { "name": "userJourneyThreadPoolSize",      "mode": "REQUIRED", "type": "NUMERIC" },
   { "name": "expectedTimeForEach",            "mode": "NULLABLE", "type": "NUMERIC" },
   { "name": "expectedTimeForEachUnit",        "mode": "NULLABLE", "type": "STRING" },
   { "name": "parameters",                     "mode": "REPEATED", "type": "STRING" },

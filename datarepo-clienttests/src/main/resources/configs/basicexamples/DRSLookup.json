@@ -10,8 +10,8 @@
   "testScripts": [
     {
       "name": "DRSLookup",
-      "totalNumberToRun": 1,
-      "numberToRunInParallel": 3,
+      "numberOfUserJourneyThreadsToRun": 50,
+      "userJourneyThreadPoolSize": 3,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
     }

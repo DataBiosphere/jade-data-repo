@@ -6,15 +6,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scripts.measurementcollectionscripts.baseclasses.GoogleLog;
 
-public class LoggerInterceptorHttpStatus extends GoogleLog {
-  private static final Logger logger = LoggerFactory.getLogger(LoggerInterceptorHttpStatus.class);
+public class FlightCaughtExceptionLog extends GoogleLog {
+  private static final Logger logger = LoggerFactory.getLogger(FlightCaughtExceptionLog.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public LoggerInterceptorHttpStatus() {
+  public FlightCaughtExceptionLog() {
     super();
   }
 
-  protected int httpStatusCode;
+  protected String exceptionText;
 
   /**
    * Setter for any parameters required by the measurement collection script. These parameters will
@@ -25,20 +25,16 @@ public class LoggerInterceptorHttpStatus extends GoogleLog {
    */
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() < 1) {
-      throw new IllegalArgumentException("Must provide HTTP status in the parameters list");
+      throw new IllegalArgumentException("Must provide exception text in the parameters list");
     }
-    try {
-      httpStatusCode = Integer.parseInt(parameters.get(0));
-    } catch (NumberFormatException nfEx) {
-      throw new RuntimeException("Error parsing HTTP status code: " + parameters.get(0), nfEx);
-    }
+    exceptionText = parameters.get(0);
 
     additionalFilter =
-        "textPayload:(\"LoggerInterceptor\")"
-            + " AND textPayload:(\"status: "
-            + httpStatusCode
+        "textPayload:(\"bio.terra.stairway.Flight: Caught exception\" AND "
+            + "\""
+            + exceptionText
             + "\")";
-    description = "LoggerInterceptor HTTP status: " + httpStatusCode;
+    description = "Flight caught exception: " + exceptionText.substring(0, 20);
   }
 
   protected double extractNumericValueFromLogEntry(LogEntry logEntry) {

@@ -8,6 +8,7 @@
     "name": "LaunchLocalProcess",
     "parameters": ["file:///Users/sholden/the-broad/jade-data-repo/"]
   },
+  "testRunnerServiceAccountFile": "jade-k8-sa.json",
   "skipDeployment": false,
   "skipKubernetes": true
 }

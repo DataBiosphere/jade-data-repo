@@ -30,7 +30,7 @@ public class ResultUploader {
 
       // upload the results somewhere
       logger.info("Executing measurement collection script: {}", specification.description);
-      script.uploadResults(outputDirectory);
+      script.uploadResults(outputDirectory, uploadList.uploaderServiceAccount);
     }
   }
 

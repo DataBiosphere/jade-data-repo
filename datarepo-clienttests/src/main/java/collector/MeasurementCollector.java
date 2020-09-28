@@ -167,8 +167,7 @@ public class MeasurementCollector {
           TestRunner.getTestRunSummary(testRunOutputDirectory);
 
       if (renderedTestConfig.server.skipKubernetes) {
-        logger.warn(
-            "The skipKubernetes flag is not set, so there may be no measurements to collect.");
+        logger.warn("The skipKubernetes flag is true, so there may be no measurements to collect.");
       }
       logger.info(
           "Test run id: {}, configuration: {}, server: {}",

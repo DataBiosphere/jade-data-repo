@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.ServiceAccountSpecification;
 
 public abstract class UploadScript {
   private static final Logger logger = LoggerFactory.getLogger(UploadScript.class);
@@ -22,8 +23,12 @@ public abstract class UploadScript {
   /**
    * Upload the test results saved to the given directory. Results may include Test Runner
    * client-side output and any relevant measurements collected.
+   *
+   * @param outputDirectory the output directory where the test results are saved
+   * @param uploaderServiceAccount the service account to use for the upload
    */
-  public void uploadResults(Path outputDirectory) throws Exception {
+  public void uploadResults(
+      Path outputDirectory, ServiceAccountSpecification uploaderServiceAccount) throws Exception {
     throw new UnsupportedOperationException("uploadResults must be overridden by sub-classes");
   }
 }

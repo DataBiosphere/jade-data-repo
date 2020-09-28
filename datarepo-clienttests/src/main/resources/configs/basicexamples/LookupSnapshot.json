@@ -10,15 +10,15 @@
   "testScripts": [
     {
       "name": "RetrieveSnapshot",
-      "totalNumberToRun": 1,
-      "numberToRunInParallel": 3,
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 3,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
     },
     {
       "name": "RetrieveSnapshot",
-      "totalNumberToRun": 15,
-      "numberToRunInParallel": 3,
+      "numberOfUserJourneyThreadsToRun": 15,
+      "userJourneyThreadPoolSize": 3,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
     }

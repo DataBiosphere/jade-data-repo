@@ -11,9 +11,12 @@ import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
+import com.google.cloud.storage.BlobId;
 import common.utils.FileUtils;
+import common.utils.StorageUtils;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +33,7 @@ public class RetrieveSnapshot extends SimpleDataset {
   }
 
   private SnapshotSummaryModel snapshotSummaryModel;
-
-  private String testConfigGetIngestbucket;
+  private List<BlobId> scratchFiles = new ArrayList<>();
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // create the profile and dataset
@@ -40,8 +42,6 @@ public class RetrieveSnapshot extends SimpleDataset {
     // get the ApiClient for the snapshot creator, same as the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
-
-    testConfigGetIngestbucket = "jade-testdata"; // this could be put in DRUtils
 
     // load data into the new dataset
     // note that there's a fileref in the dataset
@@ -82,7 +82,16 @@ public class RetrieveSnapshot extends SimpleDataset {
     String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
     String dirInCloud = "scratch/testRetrieveSnapshot/";
     String fileRefName = dirInCloud + "/" + jsonFileName;
-    String gsPath = FileUtils.createGsPath(fileRefBytes, fileRefName, testConfigGetIngestbucket);
+
+    String scratchFileBucketName = "jade-testdata";
+    BlobId scratchFileTabularData =
+        StorageUtils.writeBytesToFile(
+            StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount),
+            scratchFileBucketName,
+            fileRefName,
+            fileRefBytes);
+    scratchFiles.add(scratchFileTabularData); // make sure the scratch file gets cleaned up later
+    String gsPath = StorageUtils.blobIdToGSPath(scratchFileTabularData);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -138,7 +147,8 @@ public class RetrieveSnapshot extends SimpleDataset {
     // delete the profile and dataset
     super.cleanup(testUsers);
 
-    // delete scratch files
-    FileUtils.cleanupScratchFiles(testConfigGetIngestbucket);
+    // delete the scratch files used for ingesting tabular data
+    StorageUtils.deleteFiles(
+        StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
   }
 }

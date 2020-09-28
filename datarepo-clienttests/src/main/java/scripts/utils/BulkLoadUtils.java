@@ -8,10 +8,13 @@ import bio.terra.datarepo.model.BulkLoadFileResultModel;
 import bio.terra.datarepo.model.BulkLoadResultModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.JobModel;
+import com.google.cloud.storage.BlobId;
 import common.utils.FileUtils;
+import common.utils.StorageUtils;
 import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import runner.config.ServiceAccountSpecification;
 
 public class BulkLoadUtils {
   private static final Logger logger = LoggerFactory.getLogger(BulkLoadUtils.class);
@@ -92,9 +95,13 @@ public class BulkLoadUtils {
   }
 
   // Given the result of an array bulk load, generate a scratch file to use for loading
-  // into the simple dataset, and make the associated ingest request model
-  public static IngestRequestModel makeIngestRequestFromLoadArray(
-      BulkLoadArrayResultModel arrayResultModel, String bucketName, String filePath) {
+  // into the simple dataset
+  public static BlobId writeScratchFileForIngestRequest(
+      ServiceAccountSpecification serviceAccount,
+      BulkLoadArrayResultModel arrayResultModel,
+      String bucketName,
+      String fileName)
+      throws Exception {
 
     String jsonLine =
         "{\"VCF_File_Name\":\"%s\", \"Description\":\"%s\", \"VCF_File_Ref\":\"%s\"}%n";
@@ -107,7 +114,17 @@ public class BulkLoadUtils {
     }
 
     byte[] fileRefBytes = sb.toString().getBytes(StandardCharsets.UTF_8);
-    String gsPath = FileUtils.createGsPath(fileRefBytes, filePath, bucketName);
+    return StorageUtils.writeBytesToFile(
+        StorageUtils.getClientForServiceAccount(serviceAccount),
+        bucketName,
+        fileName,
+        fileRefBytes);
+  }
+
+  // Given a scratch file to use for loading into the simple dataset, make the associated ingest
+  // request model
+  public static IngestRequestModel makeIngestRequestFromScratchFile(BlobId scratchFile) {
+    String gsPath = StorageUtils.blobIdToGSPath(scratchFile);
 
     return new IngestRequestModel()
         .format(IngestRequestModel.FormatEnum.JSON)

@@ -1,6 +1,7 @@
 {
   "name": "BroadJadeDev",
   "description": "Upload to the broad-jade-testrunnerresults project, dev bucket",
+  "uploaderServiceAccountFile": "jade-k8-sa.json",
   "uploadScripts": [
     {
       "name": "CompressDirectoryToBucket",

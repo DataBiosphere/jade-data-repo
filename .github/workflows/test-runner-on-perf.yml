@@ -101,10 +101,13 @@ jobs:
       - name: "Merge datarepo-helm-definition pull request"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
-          git checkout master
-          git merge origin/version-update-${{ steps.read_property.outputs.value }}
-          git branch -d version-update-${{ steps.read_property.outputs.value }}
-          git push
+          if git rev-parse --verify version-update-${{ steps.read_property.outputs.value }}); then
+            git checkout master
+            git merge origin/version-update-${{ steps.read_property.outputs.value }}
+            git branch -d version-update-${{ steps.read_property.outputs.value }}
+            git push
+          else
+            echo "Branch version-update-${{ steps.read_property.outputs.value }} not found."
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Setup helmfile"
         uses: mamezou-tech/setup-helmfile@v0.5.0

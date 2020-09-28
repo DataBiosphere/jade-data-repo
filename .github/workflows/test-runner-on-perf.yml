@@ -111,7 +111,8 @@ jobs:
         run: |
           helmfile --version
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
-          helmfile diff
+          helmfile apply
+          cd ${GITHUB_WORKSPACE}/${workingDir}
       # QUESTION: is this then running off code from develop branch?
       - name: "Build and run Test Runner"
         run: |

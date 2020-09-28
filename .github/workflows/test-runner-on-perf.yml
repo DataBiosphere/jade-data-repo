@@ -22,44 +22,6 @@ jobs:
           repository: 'DataBiosphere/jade-data-repo'
           token: ${{ secrets.GITHUB_TOKEN }}
           path: jade-data-repo
-      - name: "Assemble data-repo code to generate version.properties file"
-        run: ./gradlew clean assemble
-      - name: Read value from Properties-file
-        id: read_property
-        uses: christian-draeger/read-properties@1.0.1
-        with:
-          path: './src/main/resources/version.properties'
-          property: 'gitHash'
-      - name: "Update perf image tag"
-        uses: docker://mikefarah/yq:latest
-        with:
-          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.value }}
-      - name: 'Checkout datarepo-helm-definitions repo'
-        uses: actions/checkout@v2
-        with:
-          repository: 'broadinstitute/datarepo-helm-definitions'
-          token: ${{ secrets.HELM_REPO_TOKEN }}
-          path: datarepo-helm-definitions
-      - name: Create pull request
-        uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
-        id: create-pr
-        with:
-          token: ${{ secrets.HELM_REPO_TOKEN }}
-          path: datarepo-helm-definitions
-          commit-message: "Perf Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
-          committer: datarepo-bot <noreply@github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "Perf Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
-          branch: "version-update-${{ steps.apiprevioustag.outputs.tag }}"
-          body: |
-            Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
-            *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
-          labels: "broadbot,datarepo,automerge"
-      # name: "Apply helm changes"
-      #  run: |
-      #    cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
-      #    echo $(pwd)
-      #    helmfile diff
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:
@@ -106,6 +68,44 @@ jobs:
               fi
             fi
           done
+      - name: "Assemble data-repo code to generate version.properties file"
+        run: ./gradlew clean assemble
+      - name: Read value from Properties-file
+        id: read_property
+        uses: christian-draeger/read-properties@1.0.1
+        with:
+          path: './src/main/resources/version.properties'
+          property: 'gitHash'
+      - name: "Update perf image tag"
+        uses: docker://mikefarah/yq:latest
+        with:
+          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.value }}
+      - name: 'Checkout datarepo-helm-definitions repo'
+        uses: actions/checkout@v2
+        with:
+          repository: 'broadinstitute/datarepo-helm-definitions'
+          token: ${{ secrets.HELM_REPO_TOKEN }}
+          path: datarepo-helm-definitions
+      - name: Create pull request
+        uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
+        id: create-pr
+        with:
+          token: ${{ secrets.HELM_REPO_TOKEN }}
+          path: datarepo-helm-definitions
+          commit-message: "Perf Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
+          committer: datarepo-bot <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          title: "Perf Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
+          branch: "version-update-${{ steps.apiprevioustag.outputs.tag }}"
+          body: |
+            Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
+            *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
+          labels: "broadbot,datarepo,automerge"
+      # name: "Apply helm changes"
+      #  run: |
+      #    cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
+      #    echo $(pwd)
+      #    helmfile diff
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

@@ -101,7 +101,7 @@ jobs:
       - name: "Merge datarepo-helm-definition pull request"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
-          if git rev-parse --verify version-update-${{ steps.read_property.outputs.value }}); then
+          if git rev-parse --verify version-update-${{ steps.read_property.outputs.value }}; then
             git checkout master
             git merge origin/version-update-${{ steps.read_property.outputs.value }}
             git branch -d version-update-${{ steps.read_property.outputs.value }}

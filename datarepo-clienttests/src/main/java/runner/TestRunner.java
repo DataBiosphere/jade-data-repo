@@ -5,13 +5,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import common.CommandCLI;
 import common.utils.FileUtils;
 import common.utils.KubernetesClientUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import runner.config.TestConfiguration;
-import runner.config.TestScriptSpecification;
-import runner.config.TestSuite;
-import runner.config.TestUserSpecification;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -31,6 +24,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import runner.config.TestConfiguration;
+import runner.config.TestScriptSpecification;
+import runner.config.TestSuite;
+import runner.config.TestUserSpecification;
 
 public class TestRunner {
   private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);

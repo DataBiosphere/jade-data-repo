@@ -23,6 +23,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
+import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
@@ -38,6 +39,7 @@ import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
@@ -71,6 +73,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -91,16 +94,19 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private final String datarepoDnsName;
     private final DataLocationService dataLocationService;
+    private final BigQueryConfiguration bigQueryConfiguration;
     private final DatasetService datasetService;
 
     @Autowired
     public BigQueryPdao(
         ApplicationConfiguration applicationConfiguration,
         DataLocationService dataLocationService,
+        BigQueryConfiguration bigQueryConfiguration,
         DatasetService datasetService) {
         this.datarepoDnsName = applicationConfiguration.getDnsName();
         this.dataLocationService = dataLocationService;
         this.datasetService = datasetService;
+        this.bigQueryConfiguration = bigQueryConfiguration;
     }
 
     public BigQueryProject bigQueryProjectForDataset(Dataset dataset) throws InterruptedException {
@@ -1096,16 +1102,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
                 .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
                 .build();
-            try {
-                final TableResult query = bigQuery.query(queryConfig);
-                // get results and validate that it got back more than 0 value
-                if (query.getTotalRows() < 1) {
-                    // should this be a different error?
-                    throw new InvalidQueryException("Query returned 0 results");
-                }
 
-            } catch (InterruptedException ie) {
-                throw new PdaoException("Append query unexpectedly interrupted", ie);
+            final TableResult query = executeQueryWithRetry(bigQuery, queryConfig);
+
+            // get results and validate that it got back more than 0 value
+            if (query.getTotalRows() < 1) {
+                // should this be a different error?
+                throw new InvalidQueryException("Query returned 0 results");
             }
 
             // join on the root table to validate that the dataset's rootTable.rowid is never null
@@ -1251,7 +1254,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
             .build();
 
-        bigQuery.query(queryConfig);
+        executeQueryWithRetry(bigQuery, queryConfig);
     }
 
     private static final String createViewsTemplate =
@@ -1615,5 +1618,50 @@ public class BigQueryPdao implements PrimaryDataAccess {
             rowCounts.put(tableName, getSingleLongValue(result));
         }
         return rowCounts;
+    }
+
+    /**
+     * Run query up to a predetermined number of times until it's first success if the failed is a rate limit exception.
+     */
+    private TableResult executeQueryWithRetry(
+        final BigQuery bigQuery,
+        final QueryJobConfiguration queryConfig
+    ) throws InterruptedException {
+        return executeQueryWithRetry(bigQuery, queryConfig, 0);
+    }
+
+    /**
+     * Run query up to a predetermined number of times until it's first success if the failed is a rate limit exception.
+     */
+    private TableResult executeQueryWithRetry(
+        final BigQuery bigQuery,
+        final QueryJobConfiguration queryConfig,
+        final int retryNum
+    ) throws InterruptedException {
+        final int maxRetries = bigQueryConfiguration.getRateLimitRetries();
+        final int retryWait = bigQueryConfiguration.getRateLimitRetryWaitMs();
+
+        if (retryNum > 0) {
+            logger.info("Retry number {} of a maximum {}", retryNum, maxRetries);
+        }
+        try {
+            return bigQuery.query(queryConfig);
+        } catch (final BigQueryException qe) {
+            if (
+                qe.getError() != null &&
+                    Objects.equals(qe.getError().getReason(), "jobRateLimitExceeded") &&
+                    retryNum <= maxRetries
+            ) {
+                logger.warn("Query failed to run due to exceeding the BigQuery update rate limit.  Retrying.");
+                try {
+                    // Pause before restarting
+                    TimeUnit.MILLISECONDS.sleep(retryWait);
+                } catch (final InterruptedException ie) {
+                    throw new PdaoException("Interrupt exception while waiting to retry", ie);
+                }
+                return executeQueryWithRetry(bigQuery, queryConfig, retryNum + 1);
+            }
+            throw new PdaoException("BigQuery query failed the maximum number of times", qe);
+        }
     }
 }

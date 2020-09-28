@@ -16,6 +16,31 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
+      - name: "Import Vault perf secrets"
+        uses: hashicorp/vault-action@c8b383ee
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.PERF_ROLE_ID }}
+          secretId: ${{ secrets.PERF_SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+            secret/dsde/datarepo/perf/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
+            secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
+      - name: "Perform IAM policy cleanup for perf"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          # retrieve all IAM policies for data project
+          BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
+          OK_BINDINGS=$(echo ${BINDINGS} | jq 'del(.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-") or startswith("deleted:group:policy-")))')
+          # replace the IAM policy, including only non-group policies/users
+          echo ${OK_BINDINGS} | jq '.' > policy.json
+          gcloud projects set-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} policy.json
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

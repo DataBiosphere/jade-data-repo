@@ -87,7 +87,7 @@ jobs:
           helm_gcloud_sqlproxy_chart_version: '0.19.7'
           helm_oidc_proxy_chart_version: '0.0.9'
       - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions@mm-DR-1318-remove-application-default-credentials
+        uses: broadinstitute/datarepo-actions@0.28.0
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run Integration test via Gradle"

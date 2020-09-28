@@ -16,5 +16,5 @@
   },
   "skipDeployment": false,
   "skipKubernetes": false,
-  "lockEnv": true
+  "lockNamespace": true
 }

@@ -534,9 +534,10 @@ public class TestRunner {
     boolean isFailure = false;
     for (int ctr = 0; ctr < testSuite.testConfigurations.size(); ctr++) {
       TestConfiguration testConfiguration = testSuite.testConfigurations.get(ctr);
-      // lock env
-      if (testConfiguration.server.lockEnv) {
-        KubernetesClientUtils.lockCluster(testConfiguration.server);
+
+      // Lock namespace - if failure, then whole test run fails
+      if (testConfiguration.server.lockNamespace) {
+        KubernetesClientUtils.lockNamespace(testConfiguration.server);
       }
       logger.info(
           "==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
@@ -573,9 +574,9 @@ public class TestRunner {
       }
       runner.writeOutResults(outputDirName);
 
-      // unlock the env
-      if (testSuite.testConfigurations.get(0).server.lockEnv) {
-        KubernetesClientUtils.unlockCluster(testConfiguration.server);
+      // unlock namespace
+      if (testSuite.testConfigurations.get(0).server.lockNamespace) {
+        KubernetesClientUtils.unlockNamespace(testConfiguration.server);
       }
 
       TimeUnit.SECONDS.sleep(5);

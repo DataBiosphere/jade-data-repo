@@ -15,6 +15,5 @@
     "parameters": ["https://https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/integration/integration-3/datarepo-api.yaml"]
   },
   "skipDeployment": true,
-  "skipKubernetes": false,
-  "lockNamespace": true
+  "skipKubernetes": false
 }

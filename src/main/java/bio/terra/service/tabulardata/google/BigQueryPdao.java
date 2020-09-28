@@ -38,6 +38,7 @@ import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
@@ -60,6 +61,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
@@ -71,6 +73,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -89,9 +92,15 @@ import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
 public class BigQueryPdao implements PrimaryDataAccess {
     private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
 
+    private static final int DEFAULT_MAX_NUM_UPDATE_LIMIT_INDUCED_RETRIES = 3;
+    private static final int DEFAULT_RETRY_WAIT_MS = 500;
+
     private final String datarepoDnsName;
     private final DataLocationService dataLocationService;
     private final DatasetService datasetService;
+
+    @Value("${datarepo.bq.rateLimitRetries}") private Integer rateLimitRetries;
+    @Value("${datarepo.bq.rateLimitRetryWaitMs}") private Integer rateLimitWait;
 
     @Autowired
     public BigQueryPdao(
@@ -1096,16 +1105,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
                 .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
                 .build();
-            try {
-                final TableResult query = bigQuery.query(queryConfig);
-                // get results and validate that it got back more than 0 value
-                if (query.getTotalRows() < 1) {
-                    // should this be a different error?
-                    throw new InvalidQueryException("Query returned 0 results");
-                }
 
-            } catch (InterruptedException ie) {
-                throw new PdaoException("Append query unexpectedly interrupted", ie);
+            final TableResult query = executeQueryWithRetry(bigQuery, queryConfig);
+
+            // get results and validate that it got back more than 0 value
+            if (query.getTotalRows() < 1) {
+                // should this be a different error?
+                throw new InvalidQueryException("Query returned 0 results");
             }
 
             // join on the root table to validate that the dataset's rootTable.rowid is never null
@@ -1251,7 +1257,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
             .build();
 
-        bigQuery.query(queryConfig);
+        executeQueryWithRetry(bigQuery, queryConfig);
     }
 
     private static final String createViewsTemplate =
@@ -1615,5 +1621,54 @@ public class BigQueryPdao implements PrimaryDataAccess {
             rowCounts.put(tableName, getSingleLongValue(result));
         }
         return rowCounts;
+    }
+
+    /**
+     * Run query up to a predetermined number of times until it's first success if the failed is a rate limit exception.
+     */
+    private TableResult executeQueryWithRetry(
+        final BigQuery bigQuery,
+        final QueryJobConfiguration queryConfig
+    ) {
+        return executeQueryWithRetry(bigQuery, queryConfig, 0);
+    }
+
+    /**
+     * Run query up to a predetermined number of times until it's first success if the failed is a rate limit exception.
+     */
+    private TableResult executeQueryWithRetry(
+        final BigQuery bigQuery,
+        final QueryJobConfiguration queryConfig,
+        final int retryNum
+    ) {
+        final int maxRetries =
+            Optional.ofNullable(rateLimitRetries).orElse(DEFAULT_MAX_NUM_UPDATE_LIMIT_INDUCED_RETRIES);
+        final int retryWait =
+            Optional.ofNullable(rateLimitWait).orElse(DEFAULT_RETRY_WAIT_MS);
+
+        if (retryNum > 0) {
+            logger.info("Retry number {} of a maximum {}", retryNum, maxRetries);
+        }
+        try {
+            return bigQuery.query(queryConfig);
+        } catch (final InterruptedException ie) {
+            throw new PdaoException("Query unexpectedly interrupted", ie);
+        } catch (final BigQueryException qe) {
+            if (
+                qe.getError() != null &&
+                    Objects.equals(qe.getError().getReason(), "jobRateLimitExceeded") &&
+                    retryNum <= maxRetries
+            ) {
+                logger.warn("Query failed to run due to exceeding the BigQuery update rate limit.  Retrying.");
+                try {
+                    // Pause before restarting
+                    TimeUnit.MILLISECONDS.sleep(retryWait);
+                } catch (final InterruptedException ie) {
+                    throw new PdaoException("Interrupt exception while waiting to retry", ie);
+                }
+                return executeQueryWithRetry(bigQuery, queryConfig, retryNum + 1);
+            }
+            throw new PdaoException("BigQuery query failed the maximum number of times", qe);
+        }
     }
 }

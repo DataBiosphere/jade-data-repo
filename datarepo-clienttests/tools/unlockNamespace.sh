@@ -7,26 +7,26 @@ namespace=$4
 
 if [ -z "$clusterShortName" ]
 then
-  echo "clusterShortName cannot be empty"
+  echo "UnlockNamespace: clusterShortName cannot be empty"
   exit 1
 fi
 if [ -z "$region" ]
 then
-  echo "region cannot be empty"
+  echo "UnlockNamespace: region cannot be empty"
   exit 1
 fi
 if [ -z "$project" ]
 then
-  echo "project cannot be empty"
+  echo "UnlockNamespace: project cannot be empty"
   exit 1
 fi
 if [ -z "$namespace" ]
 then
-  echo "namespace cannot be empty"
+  echo "UnlockNamespace: namespace cannot be empty"
   exit 1
 fi
 
-printf "UNLOCKENV: Get credentials\n"
+printf "UnlockNamespace: Get credentials\n"
 gcloud container clusters get-credentials ${clusterShortName} --region ${region} --project ${project}
-printf "UNLOCKENV: Clear lock\n"
+printf "UnlockNamespace: Clear lock\n"
 kubectl delete secret -n ${namespace} ${namespace}-inuse

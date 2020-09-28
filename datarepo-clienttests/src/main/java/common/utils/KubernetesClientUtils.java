@@ -66,11 +66,15 @@ public final class KubernetesClientUtils {
     return kubernetesClientAppsObject;
   }
 
-  /** Lock cluster */
-  public static void lockCluster(ServerSpecification server) throws Exception {
-    logger.info("Lock Env for namespace by creating secret named '{}-inuse'", server.namespace, server.namespace);
+  /**
+   * Lock namespace - Throw exception if secret named "NAMESPACE-inuse" exists If no existing
+   * secret, create a new secret
+   */
+  public static void lockNamespace(ServerSpecification server) throws Exception {
+    logger.info(
+        "Lock namespace by creating secret named '{}-inuse'", server.namespace, server.namespace);
     List<String> scriptArgs = new ArrayList<>();
-    scriptArgs.add("tools/lockEnv.sh");
+    scriptArgs.add("tools/lockNamespace.sh");
     scriptArgs.add(server.clusterShortName);
     scriptArgs.add(server.region);
     scriptArgs.add(server.project);
@@ -85,11 +89,14 @@ public final class KubernetesClientUtils {
     }
   }
 
-  /** unlock cluster */
-  public static void unlockCluster(ServerSpecification server) throws Exception {
-    logger.info("unlock Env for namespace by deleting secret named '{}-inuse'", server.namespace, server.namespace);
+  /** unlock namespace - delete existing secret for "NAMESPACE-inuse" */
+  public static void unlockNamespace(ServerSpecification server) throws Exception {
+    logger.info(
+        "unlock Env for namespace by deleting secret named '{}-inuse'",
+        server.namespace,
+        server.namespace);
     List<String> scriptArgs = new ArrayList<>();
-    scriptArgs.add("tools/unlockEnv.sh");
+    scriptArgs.add("tools/unlockNamespace.sh");
     scriptArgs.add(server.clusterShortName);
     scriptArgs.add(server.region);
     scriptArgs.add(server.project);

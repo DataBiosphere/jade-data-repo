@@ -10,7 +10,7 @@ public class ServerSpecification implements SpecificationInterface {
   public String datarepoUri;
   public String samUri;
   public String samResourceIdForDatarepo;
-  public boolean lockEnv = false;
+  public boolean lockNamespace = false;
 
   // note: the below information specifies the Kubernetes cluster that the Test Runner may
   // manipulate (e.g. kill pods, scale up/down) so in the future, if we want to manipulate the

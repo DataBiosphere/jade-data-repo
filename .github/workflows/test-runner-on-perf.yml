@@ -67,22 +67,22 @@ jobs:
           done
       - name: "Assemble data-repo code to generate version.properties file"
         run: ./gradlew clean assemble
-      - name: Read value from Properties-file
+      - name: "Read value from Properties-file"
         id: read_property
         uses: christian-draeger/read-properties@1.0.1
         with:
           path: './src/main/resources/version.properties'
           property: 'gitHash'
-      - name: "Update perf image tag"
-        uses: docker://mikefarah/yq:latest
-        with:
-          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.value }}
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
+      - name: "Update perf image tag"
+        uses: docker://mikefarah/yq:latest
+        with:
+          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.value }}
       - name: Create pull request
         uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
         id: create-pr

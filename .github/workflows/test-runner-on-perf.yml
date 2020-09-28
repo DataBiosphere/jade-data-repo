@@ -99,12 +99,18 @@ jobs:
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "broadbot,datarepo,automerge"
       - name: "Merge datarepo-helm-definition pull request"
-        run: git merge version-update-${{ steps.read_property.outputs.value }}
+        run: |
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
+          git fetch origin master
+          git checkout version-update-${{ steps.read_property.outputs.value }}
+          git merge master
+          cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Setup helmfile"
         uses: mamezou-tech/setup-helmfile@v0.5.0
       - name: "Run helmfile apply to update perf to use new image tag"
         run: |
           helmfile --version
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
           helmfile diff
       # QUESTION: is this then running off code from develop branch?
       - name: "Build and run Test Runner"

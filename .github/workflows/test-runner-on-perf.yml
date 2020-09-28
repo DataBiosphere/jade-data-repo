@@ -102,8 +102,9 @@ jobs:
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
           git fetch origin master
-          git checkout version-update-${{ steps.read_property.outputs.value }}
-          git merge master
+          git fetch version-update-${{ steps.read_property.outputs.value }}
+          git checkout master
+          git merge version-update-${{ steps.read_property.outputs.value }}
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Setup helmfile"
         uses: mamezou-tech/setup-helmfile@v0.5.0

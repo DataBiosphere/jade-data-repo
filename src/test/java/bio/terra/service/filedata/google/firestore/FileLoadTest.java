@@ -90,7 +90,7 @@ public class FileLoadTest {
         connectedOperations.stubOutSamCalls(samService);
 
         // Retrieve billing info
-        coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
+        coreBillingAccountId = testConfig.getGoogleBillingAccountId();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
         datasetSummary = connectedOperations.createDataset(profileModel, "snapshot-test-dataset.json");
     }

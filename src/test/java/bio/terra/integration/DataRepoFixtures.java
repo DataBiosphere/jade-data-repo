@@ -66,7 +66,8 @@ public class DataRepoFixtures {
 
     // Create a Billing Profile model: expect successful creation
     public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
-        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest();
+        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.billingProfileRequest(
+            ProfileFixtures.billingProfileForAccount(testConfig.getGoogleBillingAccountId()));
         String json = TestUtils.mapToJson(billingProfileRequestModel);
         DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.post(
             user,

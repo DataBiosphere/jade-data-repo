@@ -98,7 +98,7 @@ public class DatasetConnectedTest {
         connectedOperations.stubOutSamCalls(samService);
         configService.reset();
         billingProfile =
-            connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
+            connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
         // create a dataset and check that it succeeds
         String resourcePath = "snapshot-test-dataset.json";
         datasetRequest =

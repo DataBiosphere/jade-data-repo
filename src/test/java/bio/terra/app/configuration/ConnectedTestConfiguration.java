@@ -11,6 +11,7 @@ public class ConnectedTestConfiguration {
 
     private String ingestbucket;
     private String ingestRequesterPaysBucket;
+    private String googleBillingAccountId;
 
     public String getIngestbucket() {
         return ingestbucket;
@@ -26,5 +27,13 @@ public class ConnectedTestConfiguration {
 
     public void setIngestRequesterPaysBucket(String ingestRequesterPaysBucket) {
         this.ingestRequesterPaysBucket = ingestRequesterPaysBucket;
+    }
+
+    public String getGoogleBillingAccountId() {
+        return googleBillingAccountId;
+    }
+
+    public void setGoogleBillingAccountId(String googleBillingAccountId) {
+        this.googleBillingAccountId = googleBillingAccountId;
     }
 }

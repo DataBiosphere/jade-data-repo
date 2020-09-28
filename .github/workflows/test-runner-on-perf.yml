@@ -17,6 +17,8 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
+      - name: "Assemble data-repo code to generate version.properties file"
+        run: ./gradlew clean assemble
       - name: Read value from Properties-file
         id: read_property
         uses: christian-draeger/read-properties@1.0.1

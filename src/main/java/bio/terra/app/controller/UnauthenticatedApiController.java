@@ -3,6 +3,8 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -25,36 +27,34 @@ import java.util.Properties;
 public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     private final ObjectMapper objectMapper;
-
     private final HttpServletRequest request;
-
     private final OauthConfiguration oauthConfig;
-
     private final Logger logger = LoggerFactory.getLogger(UnauthenticatedApiController.class);
+    private final JobService jobService;
+    private final Environment env;
+    private final ConfigurationService configurationService;
 
     private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
-
     private static final String DEFAULT_GITHASH = "00000000";
 
     private final String semVer;
-
     private final String gitHash;
-
-    @Autowired
-    private JobService jobService;
-
-    @Autowired
-    private Environment env;
 
     @Autowired
     public UnauthenticatedApiController(
         ObjectMapper objectMapper,
         HttpServletRequest request,
-        OauthConfiguration oauthConfig
+        OauthConfiguration oauthConfig,
+        JobService jobService,
+        Environment env,
+        ConfigurationService configurationService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.oauthConfig = oauthConfig;
+        this.jobService = jobService;
+        this.env = env;
+        this.configurationService = configurationService;
 
         Properties properties = new Properties();
         try (InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties")) {
@@ -78,6 +78,10 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     @Override
     public ResponseEntity<Void> serviceStatus() {
+        if (configurationService.testInsertFault(ConfigEnum.LIVENESS_FAULT)) {
+            logger.info("LIVENESS_FAULT insertion - failing status response");
+            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
+        }
         return new ResponseEntity<>(HttpStatus.OK);
     }
 

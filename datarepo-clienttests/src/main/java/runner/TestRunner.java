@@ -6,13 +6,6 @@ import common.CommandCLI;
 import common.utils.FileUtils;
 import common.utils.KubernetesClientUtils;
 import common.utils.SecretManagerUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import runner.config.TestConfiguration;
-import runner.config.TestScriptSpecification;
-import runner.config.TestSuite;
-import runner.config.TestUserSpecification;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;

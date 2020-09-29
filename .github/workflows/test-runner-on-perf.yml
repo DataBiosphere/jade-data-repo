@@ -113,17 +113,8 @@ jobs:
             echo "Branch version-update-${{ steps.read_property.outputs.value }} not found."
           fi
           cd ${GITHUB_WORKSPACE}/${workingDir}
-      - name: "Run helmfile apply to update perf to use new image tag"
-        run: |
-          helmfile_version=0.130.0
-          os=linux
-          arch=amd64   
-          wget -q https://github.com/roboll/helmfile/releases/download/v${helmfile_version}/helmfile_${os}_${arch} -O - | sudo tar -xzO ${os}-${arch}/helmfile > /usr/local/bin/helmfile \
-            && chmod +x /usr/local/bin/helmfile
-          helmfile --version
-          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
-          helmfile apply
-          cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: "Setup helmfile"
+        uses: broadinstitute/setup-helmfile@v0.5.
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

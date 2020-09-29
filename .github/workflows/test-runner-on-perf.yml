@@ -69,10 +69,12 @@ jobs:
         run: ./gradlew clean assemble
       - name: "Read latest jade-data-repo gitHash from version.properties file"
         id: read_property
-        uses: christian-draeger/read-properties@1.0.1
-        with:
-          path: './src/main/resources/version.properties'
-          property: 'gitHash'
+        run: |
+          VERSIONPROPERTIESPATH=$("./src/main/resources/version.properties")
+          VERSIONPROPERTY=$("gitHash")
+          VERSIONRESULT=$(sed -n "/^[[:space:]]*$VERSIONPROPERTY[[:space:]]*=[[:space:]]*/s/^[[:space:]]*$VERSIONPROPERTY[[:space:]]*=[[:space:]]*//p" "$VERSIONPROPERTIESPATH")
+          echo "property value: $VERSIONRESULT"
+          echo ::set-output name=value::"$VERSIONRESULT"
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
         with:

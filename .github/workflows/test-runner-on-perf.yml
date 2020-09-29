@@ -117,11 +117,11 @@ jobs:
         run: |
           helmfile_version=0.130.0
           os=linux
-          arch=amd64
-          wget --timeout=15 -q -O helmfile "https://github.com/roboll/helmfile/releases/download/v${helmfile_version}/helmfile_${os}_${arch}" && \
-            chmod +x helmfile && \
-            mv helmfile /tools/bin && \
-            helmfile --version
+          arch=amd64   
+          wget -q https://github.com/roboll/helmfile/releases/download/v${helmfile_version}/helmfile_${os}_${arch} -O - | tar -xzO ${os}-${arch}/helmfile > /usr/local/bin/helmfile \
+            && chmod +x /usr/local/bin/helmfile && \
+            rm -rf helmfile-${helmfile_version}-${os}-${arch}.tar.gz
+          helmfile --version
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}

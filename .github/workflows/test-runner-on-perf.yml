@@ -115,6 +115,12 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Setup helmfile"
         uses: broadinstitute/setup-helmfile@v0.5.0 #Forked from mamezou-tech/setup-helmfile
+      - name: "Apply updates to Perf yaml"
+        run: |
+          helmfile --version
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
+          helmfile apply
+          cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

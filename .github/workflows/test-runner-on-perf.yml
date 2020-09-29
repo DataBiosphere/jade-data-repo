@@ -70,8 +70,8 @@ jobs:
       - name: "Read latest jade-data-repo gitHash from version.properties file"
         id: read_property
         run: |
-          VERSIONPROPERTIESPATH=$("./src/main/resources/version.properties")
-          VERSIONPROPERTY=$("gitHash")
+          VERSIONPROPERTIESPATH=./src/main/resources/version.properties
+          VERSIONPROPERTY=gitHash
           VERSIONRESULT=$(sed -n "/^[[:space:]]*$VERSIONPROPERTY[[:space:]]*=[[:space:]]*/s/^[[:space:]]*$VERSIONPROPERTY[[:space:]]*=[[:space:]]*//p" "$VERSIONPROPERTIESPATH")
           echo "property value: $VERSIONRESULT"
           echo ::set-output name=value::"$VERSIONRESULT"
@@ -113,11 +113,15 @@ jobs:
             echo "Branch version-update-${{ steps.read_property.outputs.value }} not found."
           fi
           cd ${GITHUB_WORKSPACE}/${workingDir}
-      - name: "Setup helmfile"
-        uses: mamezou-tech/setup-helmfile@v0.5.0
       - name: "Run helmfile apply to update perf to use new image tag"
         run: |
-          helmfile --version
+          helmfile_version=0.130.0
+          os=linux
+          arch=amd64
+          wget --timeout=15 -q -O helmfile "https://github.com/roboll/helmfile/releases/download/v${helmfile_version}/helmfile_${os}_${arch}" && \
+            chmod +x helmfile && \
+            mv helmfile /tools/bin && \
+            helmfile --version
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}

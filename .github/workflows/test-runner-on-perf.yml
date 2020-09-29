@@ -121,7 +121,18 @@ jobs:
       - name: "Wait for Perf Cluster to come back up with correct version"
         run: |
           PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
-          echo "Perf Version: $PerfVersion"
+          RetryCount=0
+          until [[ "$PerfVersion" == "${LATEST_GITHASH}" ]]
+          do
+            if [[ ${RetryCount} > 5 ]]; then
+              echo "Failed to match perf $PerfVersion to dev version ${LATEST_GITHASH}"
+              exit 1
+            fi
+            echo "Sleep & Retry until $PerfVersion equals ${LATEST_GITHASH}"
+            sleep 10
+            PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+            ((RetryCount++))
+          done;
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

@@ -25,7 +25,12 @@ jobs:
           echo "Current Version: $CurrentVersion"
           LatestVersion=$(curl -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
           echo "Latest Version: $LatestVersion"
-          echo ::set-env name=LATEST_GITHASH::"$NewVersion"
+          echo "::set-env name=LATEST_GITHASH::$LatestVersion"
+      - name: "Test"
+        run: |
+          echo $LATEST_GITHASH
+          echo hi
+          echo ${LATEST_GITHASH}
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

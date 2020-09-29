@@ -81,20 +81,20 @@ jobs:
       - name: "Update perf image tag with gitHash"
         uses: docker://mikefarah/yq:latest
         with:
-          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${LATEST_GITHASH}
+          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag $LATEST_GITHASH
       - name: "Create datarepo-helm-definition pull request with updated perf image tag"
         uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
         id: perfTagPR
         with:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
-          commit-message: "Perf Datarepo version update: ${LATEST_GITHASH}"
+          commit-message: "Perf Datarepo version update: $LATEST_GITHASH"
           committer: datarepo-bot <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "Perf Datarepo version update: ${LATEST_GITHASH}"
-          branch: "version-update-${LATEST_GITHASH}"
+          title: "Perf Datarepo version update: $LATEST_GITHASH"
+          branch: "version-update-$LATEST_GITHASH"
           body: |
-            Update versions in perf env to reflect image tag ${LATEST_GITHASH}.
+            Update versions in perf env to reflect image tag $LATEST_GITHASH.
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "broadbot,datarepo,automerge"
       - name: "Merge datarepo-helm-definition pull request"
@@ -102,12 +102,12 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
           git checkout master
           git config pull.rebase false
-          if git rev-parse --verify origin/version-update-${LATEST_GITHASH}; then
-            git merge origin/version-update-${LATEST_GITHASH}
-            git branch -d version-update-${LATEST_GITHASH}
+          if git rev-parse --verify origin/version-update-$LATEST_GITHASH; then
+            git merge origin/version-update-$LATEST_GITHASH
+            git branch -d version-update-$LATEST_GITHASH
             git push
           else
-            echo "Branch version-update-${LATEST_GITHASH} not found."
+            echo "Branch version-update-$LATEST_GITHASH not found."
           fi
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Setup helmfile"
@@ -122,13 +122,13 @@ jobs:
         run: |
           PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
           RetryCount=0
-          until [[ "$PerfVersion" == "${LATEST_GITHASH}" ]]
+          until [[ "$PerfVersion" == "$LATEST_GITHASH" ]]
           do
             if [[ ${RetryCount} > 5 ]]; then
-              echo "Failed to match perf $PerfVersion to dev version ${LATEST_GITHASH}"
+              echo "Failed to match perf $PerfVersion to dev version $LATEST_GITHASH"
               exit 1
             fi
-            echo "Sleep & Retry until $PerfVersion equals ${LATEST_GITHASH}"
+            echo "Sleep & Retry until $PerfVersion equals $LATEST_GITHASH"
             sleep 10
             PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
             ((RetryCount++))

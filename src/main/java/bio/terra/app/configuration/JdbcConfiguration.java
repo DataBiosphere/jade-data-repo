@@ -99,6 +99,8 @@ public class JdbcConfiguration {
         props.setProperty("password", getPassword());
         props.setProperty("maxTotal", String.valueOf(poolMaxTotal));
         props.setProperty("maxIdle", String.valueOf(poolMaxIdle));
+        props.setProperty("logExpiredConnections", "true");
+        props.setProperty("logAbandoned", "true");
 
         ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(getUri(), props);
 

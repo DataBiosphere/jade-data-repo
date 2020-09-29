@@ -99,6 +99,10 @@ public class JdbcConfiguration {
         props.setProperty("password", getPassword());
         props.setProperty("maxTotal", String.valueOf(poolMaxTotal));
         props.setProperty("maxIdle", String.valueOf(poolMaxIdle));
+        // TODO: these two settings are for trying to debug our connection hang issue.
+        //  They should be removed after that is figured out. Further, we plan to
+        //  replace dbcp2 with a different connection pooler, at which point they will
+        //  be obsolete.
         props.setProperty("logExpiredConnections", "true");
         props.setProperty("logAbandoned", "true");
 

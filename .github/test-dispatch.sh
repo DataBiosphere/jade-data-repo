@@ -1,5 +1,5 @@
 #!/bin/bash
-BRANCH="sh-DR-1356-deploy-latest-to-perf"
+BRANCH=$(git branch --show-current)
 TOKEN=$(cat $HOME/.gh_token)
 REPO="DataBiosphere/jade-data-repo"
 WORKFLOW="test-runner-on-perf.yml"

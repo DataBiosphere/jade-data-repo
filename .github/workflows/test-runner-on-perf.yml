@@ -70,6 +70,7 @@ jobs:
       - name: "Read latest jade-data-repo gitHash from version.properties file"
         id: read_property
         run: |
+          # Code Credit: christian-draeger/read-properties@1.0.1
           version_properties_path=./src/main/resources/version.properties
           version_property=gitHash
           version_result=$(sed -n "/^[[:space:]]*$version_property[[:space:]]*=[[:space:]]*/s/^[[:space:]]*$version_property[[:space:]]*=[[:space:]]*//p" "$version_properties_path")

@@ -21,7 +21,11 @@ jobs:
           ref: develop
       - name: "Hit perf and get githash"
         run: |
-          echo $(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json")
+          CurrentVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+          echo "Current Version: $CurrentVersion"
+          LatestVersion=$(curl -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+          echo "Latest Version: $LatestVersion"
+          echo ::set-env name=LATEST_GITHASH::"$NewVersion"
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:
@@ -68,17 +72,6 @@ jobs:
               fi
             fi
           done
-      - name: "Assemble data-repo code to generate version.properties file"
-        run: ./gradlew clean assemble
-      - name: "Read latest jade-data-repo gitHash from version.properties file"
-        id: read_property
-        run: |
-          # Code Credit: christian-draeger/read-properties@1.0.1
-          version_properties_path=./src/main/resources/version.properties
-          version_property=gitHash
-          version_result=$(sed -n "/^[[:space:]]*$version_property[[:space:]]*=[[:space:]]*/s/^[[:space:]]*$version_property[[:space:]]*=[[:space:]]*//p" "$version_properties_path")
-          echo "property value: $version_result"
-          echo ::set-output name=value::"$version_result"
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
         with:
@@ -88,20 +81,20 @@ jobs:
       - name: "Update perf image tag with gitHash"
         uses: docker://mikefarah/yq:latest
         with:
-          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.value }}
+          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${LATEST_GITHASH}
       - name: "Create datarepo-helm-definition pull request with updated perf image tag"
         uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
         id: perfTagPR
         with:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
-          commit-message: "Perf Datarepo version update: ${{ steps.read_property.outputs.value }}"
+          commit-message: "Perf Datarepo version update: ${LATEST_GITHASH}"
           committer: datarepo-bot <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "Perf Datarepo version update: ${{ steps.read_property.outputs.value }}"
-          branch: "version-update-${{ steps.read_property.outputs.value }}"
+          title: "Perf Datarepo version update: ${LATEST_GITHASH}"
+          branch: "version-update-${LATEST_GITHASH}"
           body: |
-            Update versions in perf env to reflect image tag ${{ steps.apiprevioustag.outputs.tag }}.
+            Update versions in perf env to reflect image tag ${LATEST_GITHASH}.
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "broadbot,datarepo,automerge"
       - name: "Merge datarepo-helm-definition pull request"
@@ -109,12 +102,12 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
           git checkout master
           git config pull.rebase false
-          if git rev-parse --verify origin/version-update-${{ steps.read_property.outputs.value }}; then
-            git merge origin/version-update-${{ steps.read_property.outputs.value }}
-            git branch -d version-update-${{ steps.read_property.outputs.value }}
+          if git rev-parse --verify origin/version-update-${LATEST_GITHASH}; then
+            git merge origin/version-update-${LATEST_GITHASH}
+            git branch -d version-update-${LATEST_GITHASH}
             git push
           else
-            echo "Branch version-update-${{ steps.read_property.outputs.value }} not found."
+            echo "Branch version-update-${LATEST_GITHASH} not found."
           fi
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Setup helmfile"
@@ -125,6 +118,10 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: "Wait for Perf Cluster to come back up with correct version"
+        run: |
+          PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+          echo "Perf Version: $PerfVersion"
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

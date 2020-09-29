@@ -19,6 +19,9 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: develop
+      - name: "Hit perf and get githash"
+        run: |
+          echo $(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json")
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

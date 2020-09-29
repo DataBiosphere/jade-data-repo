@@ -131,7 +131,11 @@ jobs:
             fi
             echo "Sleep & Retry until $PerfVersion equals ${{ steps.read_property.outputs.latest_gitHash }}"
             sleep 10
-            PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+            if PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash'); then
+                echo "Current Perf version: $PerfVersion"
+            else
+                echo "Not able to connect to perf."
+            fi
             ((RetryCount++))
           done;
       - name: "Build and run Test Runner"

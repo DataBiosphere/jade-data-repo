@@ -1,0 +1,24 @@
+{
+  "name": "DRSLookupMeasurements",
+  "description": "List that includes an example of each type of measurement.",
+  "measurementCollectionScripts": [
+    {
+      "name": "PerformanceLoggerElapsedTime",
+      "description": "PerformanceLogger drs lookup timer elapsed time.",
+      "parameters": ["bio.terra.service.filedata.DrsService", "snapshotService.retrieveAvailable"],
+      "saveRawDataPoints": true
+    },
+    {
+      "name": "PerformanceLoggerElapsedTime",
+      "description": "PerformanceLogger drs lookup timer elapsed time.",
+      "parameters": ["bio.terra.service.filedata.DrsService", "samService.verifyAuthorization"],
+      "saveRawDataPoints": true
+    },
+    {
+      "name": "PerformanceLoggerElapsedTime",
+      "description": "PerformanceLogger drs lookup timer elapsed time.",
+      "parameters": ["bio.terra.service.filedata.DrsService", "fileService.lookupSnapshotFSItem"],
+      "saveRawDataPoints": true
+    }
+  ]
+}

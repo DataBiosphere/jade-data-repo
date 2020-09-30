@@ -68,7 +68,7 @@ public final class ProcessUtils {
    * @return the list of lines written to stdout
    */
   public static List<String> waitForTerminateAndReadStdout(Process proc) throws IOException {
-      return readStdout(proc, -1);
+    return readStdout(proc, -1);
   }
 
   /**

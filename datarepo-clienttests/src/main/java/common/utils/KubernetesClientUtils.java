@@ -74,7 +74,7 @@ public final class KubernetesClientUtils {
     logger.info(
         "Lock namespace by creating secret named '{}-inuse'", server.namespace, server.namespace);
     List<String> scriptArgs = new ArrayList<>();
-    scriptArgs.add("tools/lockNamespace.sh");
+    scriptArgs.add("tools/lockDeployment.sh");
     scriptArgs.add(server.clusterShortName);
     scriptArgs.add(server.region);
     scriptArgs.add(server.project);
@@ -98,7 +98,7 @@ public final class KubernetesClientUtils {
         server.namespace,
         server.namespace);
     List<String> scriptArgs = new ArrayList<>();
-    scriptArgs.add("tools/unlockNamespace.sh");
+    scriptArgs.add("tools/unlockDeployment.sh");
     scriptArgs.add(server.clusterShortName);
     scriptArgs.add(server.region);
     scriptArgs.add(server.project);

@@ -98,21 +98,13 @@ public class JdbcConfiguration {
         final Properties props = new Properties();
         props.setProperty("user", getUsername());
         props.setProperty("password", getPassword());
-        props.setProperty("maxTotal", String.valueOf(poolMaxTotal));
-        props.setProperty("maxIdle", String.valueOf(poolMaxIdle));
-        // TODO: these two settings are for trying to debug our connection hang issue.
-        //  They should be removed after that is figured out. Further, we plan to
-        //  replace dbcp2 with a different connection pooler, at which point they will
-        //  be obsolete.
-        props.setProperty("logExpiredConnections", "true");
-        props.setProperty("logAbandoned", "true");
 
         final ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(getUri(), props);
 
         final PoolableConnectionFactory poolableConnectionFactory =
                 new PoolableConnectionFactory(connectionFactory, null);
 
-        final GenericObjectPoolConfig<PoolableConnection> config = new GenericObjectPoolConfig();
+        final GenericObjectPoolConfig<PoolableConnection> config = new GenericObjectPoolConfig<>();
         config.setMaxTotal(poolMaxTotal);
         config.setMaxIdle(poolMaxIdle);
         final ObjectPool<PoolableConnection> connectionPool =

@@ -72,10 +72,9 @@ public final class ProcessUtils {
     List<String> results = readStdout(proc, -1);
 
     int retry = 1;
-    int maxRetries = 5;
+    int maxRetries  = 5;
     // Wait for process to terminate
-    // Without this wait/check, ran into "process hasn't exited" Exception when calling Process
-    // after return
+      // Without this wait/check, ran into "process hasn't exited" Exception when calling Process after return
     while (proc.isAlive() && retry <= maxRetries) {
       logger.debug("Proc wait for terminate, retry #{}", retry);
       proc.waitFor(5, TimeUnit.SECONDS);

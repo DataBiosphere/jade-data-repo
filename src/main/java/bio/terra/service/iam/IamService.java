@@ -39,7 +39,7 @@ public class IamService {
 
     private final IamProviderInterface iamProvider;
     private final ConfigurationService configurationService;
-    private Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap;
+    private final Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap;
     private int cacheSize;
 
     @Autowired

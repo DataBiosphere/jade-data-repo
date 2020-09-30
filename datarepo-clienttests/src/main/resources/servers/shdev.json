@@ -12,10 +12,10 @@
   "containerName": "sh-jade-datarepo-api",
   "deploymentScript": {
     "name": "ModularHelmChart",
-    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/sh/datarepo-api.yaml"]
+    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/sh/datarepo-api.yaml"],
+    "lockDeployment": true
   },
   "testRunnerServiceAccountFile": "jade-k8-sa.json",
   "skipDeployment": false,
-  "skipKubernetes": false,
-  "lockNamespace": true
+  "skipKubernetes": false
 }

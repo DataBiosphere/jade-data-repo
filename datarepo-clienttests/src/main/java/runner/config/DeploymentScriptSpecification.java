@@ -2,11 +2,14 @@ package runner.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import runner.DeploymentScript;
 
 public class DeploymentScriptSpecification implements SpecificationInterface {
   public String name = "";
   public List<String> parameters = new ArrayList<>();
+  public boolean lockDeployment = false;
+  public String deploymentId = UUID.randomUUID().toString();
 
   public Class<? extends DeploymentScript> scriptClass;
 

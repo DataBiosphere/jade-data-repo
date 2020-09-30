@@ -130,7 +130,7 @@ jobs:
             fi
             echo "Retry #${RetryCount}: Waiting for $PerfVersion to equal ${{ steps.read_property.outputs.latest_gitHash }}"
             sleep 10
-            PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash'); then
+            PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
             ((RetryCount=RetryCount+1))
           done;
           echo "Perf successfully running on new version: $PerfVersion"

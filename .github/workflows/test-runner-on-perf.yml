@@ -17,7 +17,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Import Vault perf secrets"
-        uses: hashicorp/vault-action@c8b383ee
+        uses: hashicorp/vault-action@v2.0.1
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -25,8 +25,6 @@ jobs:
           secretId: ${{ secrets.PERF_SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
-            secret/dsde/datarepo/perf/datarepo-sql-db datarepopassword | DATAREPO_PASS ;
-            secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | STAIRWAY_PASS ;
       - name: "Perform IAM policy cleanup for perf"
         run: |
           # write vault tokens

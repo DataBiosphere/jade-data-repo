@@ -137,7 +137,7 @@ jobs:
                 echo "Not able to connect to perf."
             fi
             echo "before retry count"
-            ((RetryCount++))
+            ((RetryCount=RetryCount+1))
             echo "after retry count"
           done;
           echo "done"

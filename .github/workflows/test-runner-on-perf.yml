@@ -95,7 +95,7 @@ jobs:
           branch: "version-update-${{ steps.read_property.outputs.latest_gitHash }}"
           body: |
             Update versions in perf env to reflect image tag ${{ steps.read_property.outputs.latest_gitHash }}.
-            *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
+            *Note: This PR was opened by the [test-runner-perf GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "broadbot,datarepo,automerge"
       - name: "Merge datarepo-helm-definition pull request"
         run: |
@@ -104,8 +104,7 @@ jobs:
           git config pull.rebase false
           if git rev-parse --verify origin/version-update-${{ steps.read_property.outputs.latest_gitHash }}; then
             git merge origin/version-update-${{ steps.read_property.outputs.latest_gitHash }}
-            git branch -d version-update-${{ steps.read_property.outputs.latest_gitHash }}
-            git push
+            git push origin --delete version-update-${{ steps.read_property.outputs.latest_gitHash }}
           else
             echo "Branch version-update-${{ steps.read_property.outputs.latest_gitHash }} not found."
           fi

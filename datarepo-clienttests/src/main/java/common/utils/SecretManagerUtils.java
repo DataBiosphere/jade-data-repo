@@ -61,13 +61,7 @@ public class SecretManagerUtils {
   }
 
   private static boolean secretExists(SecretName secretName) {
-    try {
-      secretManagerServiceClient.getSecret(secretName);
-      return true;
-    } catch (Exception ex) {
-      logger.debug("Secret not found.");
-    }
-    return false;
+    return secretManagerServiceClient.getSecret(secretName) != null;
   }
 
   private static void deleteSecret(String secretName) {

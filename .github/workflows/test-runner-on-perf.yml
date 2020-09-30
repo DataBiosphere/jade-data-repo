@@ -15,11 +15,7 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     steps:
-      - name: "Checkout jade-data-repo develop branch"
-        uses: actions/checkout@v2
-        with:
-          ref: develop
-      - name: "Hit perf and get githash"
+      - name: "Fetch latest image git hash data-repo dev"
         id: "read_property"
         run: |
           CurrentVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
@@ -27,6 +23,71 @@ jobs:
           LatestVersion=$(curl -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
           echo "Latest Version: $LatestVersion"
           echo "::set-output name=latest_gitHash::$LatestVersion"
+      - name: 'Checkout datarepo-helm-definitions repo'
+        uses: actions/checkout@v2
+        with:
+          repository: 'broadinstitute/datarepo-helm-definitions'
+          token: ${{ secrets.HELM_REPO_TOKEN }}
+          path: datarepo-helm-definitions
+      - name: "Update perf image tag with gitHash"
+        uses: docker://mikefarah/yq:latest
+        with:
+          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.latest_gitHash }}
+      - name: "Create datarepo-helm-definition pull request with updated perf image tag"
+        uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
+        with:
+          token: ${{ secrets.HELM_REPO_TOKEN }}
+          path: datarepo-helm-definitions
+          commit-message: "Perf Datarepo version update: ${{ steps.read_property.outputs.latest_gitHash }}"
+          committer: datarepo-bot <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          title: "Perf Datarepo version update: ${{ steps.read_property.outputs.latest_gitHash }}"
+          branch: "version-update-${{ steps.read_property.outputs.latest_gitHash }}"
+          body: |
+            Update versions in perf env to reflect image tag ${{ steps.read_property.outputs.latest_gitHash }}.
+            *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
+          labels: "broadbot,datarepo,automerge"
+      - name: "Merge datarepo-helm-definition pull request"
+        run: |
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
+          git checkout master
+          git config pull.rebase false
+          if git rev-parse --verify origin/version-update-${{ steps.read_property.outputs.latest_gitHash }}; then
+            git merge origin/version-update-${{ steps.read_property.outputs.latest_gitHash }}
+            git branch -d version-update-${{ steps.read_property.outputs.latest_gitHash }}
+            git push
+          else
+            echo "Branch version-update-${{ steps.read_property.outputs.latest_gitHash }} not found."
+          fi
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: "Install Helmfile"
+        uses: broadinstitute/setup-helmfile@v0.5.0 #Forked from mamezou-tech/setup-helmfile
+      - name: "Use helmfile to apply image tag update to Perf yaml"
+        run: |
+          helmfile --version
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
+          helmfile apply
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: "Wait for Perf Cluster to come back up with correct version"
+        run: |
+          PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+          RetryCount=0
+          until [[ "$PerfVersion" == "${{ steps.read_property.outputs.latest_gitHash }}" ]]
+          do
+            if [[ ${RetryCount} > 5 ]]; then
+              echo "Failed to match perf $PerfVersion to dev version ${{ steps.read_property.outputs.latest_gitHash }}"
+              exit 1
+            fi
+            echo "Retry #${RetryCount}: Waiting for $PerfVersion to equal ${{ steps.read_property.outputs.latest_gitHash }}"
+            sleep 10
+            PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash'); then
+            ((RetryCount=RetryCount+1))
+          done;
+          echo "Perf successfully running on new version: $PerfVersion"
+      - name: "Checkout jade-data-repo develop branch"
+        uses: actions/checkout@v2
+        with:
+          ref: develop
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:
@@ -73,74 +134,6 @@ jobs:
               fi
             fi
           done
-      - name: 'Checkout datarepo-helm-definitions repo'
-        uses: actions/checkout@v2
-        with:
-          repository: 'broadinstitute/datarepo-helm-definitions'
-          token: ${{ secrets.HELM_REPO_TOKEN }}
-          path: datarepo-helm-definitions
-      - name: "Update perf image tag with gitHash"
-        uses: docker://mikefarah/yq:latest
-        with:
-          args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.latest_gitHash }}
-      - name: "Create datarepo-helm-definition pull request with updated perf image tag"
-        uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
-        id: perfTagPR
-        with:
-          token: ${{ secrets.HELM_REPO_TOKEN }}
-          path: datarepo-helm-definitions
-          commit-message: "Perf Datarepo version update: ${{ steps.read_property.outputs.latest_gitHash }}"
-          committer: datarepo-bot <noreply@github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "Perf Datarepo version update: ${{ steps.read_property.outputs.latest_gitHash }}"
-          branch: "version-update-${{ steps.read_property.outputs.latest_gitHash }}"
-          body: |
-            Update versions in perf env to reflect image tag ${{ steps.read_property.outputs.latest_gitHash }}.
-            *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
-          labels: "broadbot,datarepo,automerge"
-      - name: "Merge datarepo-helm-definition pull request"
-        run: |
-          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
-          git checkout master
-          git config pull.rebase false
-          if git rev-parse --verify origin/version-update-${{ steps.read_property.outputs.latest_gitHash }}; then
-            git merge origin/version-update-${{ steps.read_property.outputs.latest_gitHash }}
-            git branch -d version-update-${{ steps.read_property.outputs.latest_gitHash }}
-            git push
-          else
-            echo "Branch version-update-${{ steps.read_property.outputs.latest_gitHash }} not found."
-          fi
-          cd ${GITHUB_WORKSPACE}/${workingDir}
-      - name: "Setup helmfile"
-        uses: broadinstitute/setup-helmfile@v0.5.0 #Forked from mamezou-tech/setup-helmfile
-      - name: "Apply updates to Perf yaml"
-        run: |
-          helmfile --version
-          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
-          helmfile apply
-          cd ${GITHUB_WORKSPACE}/${workingDir}
-      - name: "Wait for Perf Cluster to come back up with correct version"
-        run: |
-          PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
-          RetryCount=0
-          until [[ "$PerfVersion" == "${{ steps.read_property.outputs.latest_gitHash }}" ]]
-          do
-            if [[ ${RetryCount} > 5 ]]; then
-              echo "Failed to match perf $PerfVersion to dev version ${{ steps.read_property.outputs.latest_gitHash }}"
-              exit 1
-            fi
-            echo "Sleep & Retry until $PerfVersion equals ${{ steps.read_property.outputs.latest_gitHash }}"
-            sleep 5
-            if PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash'); then
-                echo "Current Perf version: $PerfVersion"
-            else
-                echo "Not able to connect to perf."
-            fi
-            echo "before retry count"
-            ((RetryCount=RetryCount+1))
-            echo "after retry count"
-          done;
-          echo "done"
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

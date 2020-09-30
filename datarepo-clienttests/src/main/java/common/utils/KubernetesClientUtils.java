@@ -82,6 +82,7 @@ public final class KubernetesClientUtils {
     scriptArgs.add(server.deploymentScript.deploymentId);
     Process fetchCredentialsProc = ProcessUtils.executeCommand("sh", scriptArgs);
     List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(fetchCredentialsProc);
+    fetchCredentialsProc.waitFor(30, TimeUnit.SECONDS);
     if (fetchCredentialsProc.exitValue() > 0) {
       throw new Exception("FAILURE: Failed to acquire lock for namespace " + server.namespace);
     }
@@ -104,6 +105,7 @@ public final class KubernetesClientUtils {
     scriptArgs.add(server.namespace);
     Process fetchCredentialsProc = ProcessUtils.executeCommand("sh", scriptArgs);
     List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(fetchCredentialsProc);
+    fetchCredentialsProc.waitFor(30, TimeUnit.SECONDS);
     for (String cmdOutputLine : cmdOutputLines) {
       logger.debug(cmdOutputLine);
     }

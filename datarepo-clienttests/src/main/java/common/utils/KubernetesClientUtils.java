@@ -70,7 +70,7 @@ public final class KubernetesClientUtils {
    * Lock namespace - Throw exception if secret named "NAMESPACE-testrunner-inuse" exists If no
    * existing secret, create a new secret
    */
-  /*public static void lockNamespace(ServerSpecification server) throws Exception {
+  public static void lockNamespace(ServerSpecification server) throws Exception {
     logger.info(
         "Lock namespace by creating secret named '{}-testrunner-inuse'",
         server.namespace,
@@ -89,10 +89,10 @@ public final class KubernetesClientUtils {
     for (String cmdOutputLine : cmdOutputLines) {
       logger.debug(cmdOutputLine);
     }
-  }*/
+  }
 
   /** unlock namespace - delete existing secret for "NAMESPACE-testrunner-inuse" */
-  /*public static void unlockNamespace(ServerSpecification server) throws Exception {
+  public static void unlockNamespace(ServerSpecification server) throws Exception {
     logger.info(
         "unlock Env for namespace by deleting secret named '{}-testrunner-inuse'",
         server.namespace,
@@ -108,7 +108,7 @@ public final class KubernetesClientUtils {
     for (String cmdOutputLine : cmdOutputLines) {
       logger.debug(cmdOutputLine);
     }
-  }*/
+  }
 
   /**
    * Build the singleton Kubernetes client objects. This method should be called once at the

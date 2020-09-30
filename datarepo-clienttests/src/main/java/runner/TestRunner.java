@@ -5,14 +5,6 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import common.CommandCLI;
 import common.utils.FileUtils;
 import common.utils.KubernetesClientUtils;
-import common.utils.SecretManagerUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import runner.config.TestConfiguration;
-import runner.config.TestScriptSpecification;
-import runner.config.TestSuite;
-import runner.config.TestUserSpecification;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -590,7 +582,7 @@ public class TestRunner {
 
       // Lock namespace - if failure, then whole test run fails
       if (testConfiguration.server.lockNamespace) {
-        SecretManagerUtils.lockNamespace(testConfiguration.server);
+        KubernetesClientUtils.lockNamespace(testConfiguration.server);
       }
       logger.info(
           "==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
@@ -629,7 +621,7 @@ public class TestRunner {
 
       // unlock namespace
       if (testSuite.testConfigurations.get(0).server.lockNamespace) {
-        SecretManagerUtils.unlockNamespace(testConfiguration.server);
+        KubernetesClientUtils.unlockNamespace(testConfiguration.server);
       }
 
       TimeUnit.SECONDS.sleep(5);

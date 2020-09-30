@@ -15,6 +15,56 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     steps:
+      - name: "Checkout jade-data-repo develop branch"
+        uses: actions/checkout@v2
+        with:
+          ref: develop
+      - name: "Import Vault dev secrets"
+        uses: hashicorp/vault-action@v2.0.1
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.ROLE_ID }}
+          secretId: ${{ secrets.SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
+      - name: "Configure credentials"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          # configure integration prerequisites
+          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
+          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
+          gcloud auth configure-docker --quiet
+          #echo 'Set google sdk to SA user'
+          if [[ -n "${K8_CLUSTER}" ]]; then
+            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
+          fi
+      - name: "Whitelist Runner IP"
+        run: |
+          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \
+            jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
+            RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
+            NEW_IPS=$(printf '%s\n' $CUR_IPS $RUNNER_IP | jq -s -r 'add | unique | join(",")')
+          for i in {1..5}; do
+            if gcloud container clusters update ${K8_CLUSTER} \
+              --enable-master-authorized-networks \
+              --master-authorized-networks ${NEW_IPS}; then
+              echo "Successful whitelist"
+              break
+            else
+              echo "Failed to whitelist - Retrying"
+              sleep 15
+              if [ i == 5 ]; then
+                echo "Failed to whitelist - Terminating"
+                exit 1
+              fi
+            fi
+          done
       - name: "Fetch latest image git hash from data-repo dev"
         id: "read_property"
         run: |
@@ -84,56 +134,6 @@ jobs:
             ((RetryCount=RetryCount+1))
           done;
           echo "Perf successfully running on new version: $PerfVersion"
-      - name: "Checkout jade-data-repo develop branch"
-        uses: actions/checkout@v2
-        with:
-          ref: develop
-      - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.0.1
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.ROLE_ID }}
-          secretId: ${{ secrets.SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
-      - name: "Configure credentials"
-        run: |
-          # write vault tokens
-          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
-          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
-
-          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
-
-          # configure integration prerequisites
-          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
-          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
-          gcloud auth configure-docker --quiet
-          #echo 'Set google sdk to SA user'
-          if [[ -n "${K8_CLUSTER}" ]]; then
-            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
-          fi
-      - name: "Whitelist Runner IP"
-        run: |
-          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \
-            jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
-            RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
-            NEW_IPS=$(printf '%s\n' $CUR_IPS $RUNNER_IP | jq -s -r 'add | unique | join(",")')
-          for i in {1..5}; do
-            if gcloud container clusters update ${K8_CLUSTER} \
-              --enable-master-authorized-networks \
-              --master-authorized-networks ${NEW_IPS}; then
-              echo "Successful whitelist"
-              break
-            else
-              echo "Failed to whitelist - Retrying"
-              sleep 15
-              if [ i == 5 ]; then
-                echo "Failed to whitelist - Terminating"
-                exit 1
-              fi
-            fi
-          done
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

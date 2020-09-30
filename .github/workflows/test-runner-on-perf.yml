@@ -15,7 +15,7 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     steps:
-      - name: "Fetch latest image git hash data-repo dev"
+      - name: "Fetch latest image git hash from data-repo dev"
         id: "read_property"
         run: |
           CurrentVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')

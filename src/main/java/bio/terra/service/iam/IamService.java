@@ -2,14 +2,23 @@ package bio.terra.service.iam;
 
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.iam.exception.IamUnavailableException;
+import org.apache.commons.collections4.map.LRUMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
+import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 
 /**
  * The IamProvider code is used both in flights and from the REST API. It needs to be able to throw
@@ -26,11 +35,21 @@ import java.util.UUID;
 
 @Component
 public class IamService {
+    private final Logger logger = LoggerFactory.getLogger(IamService.class);
+
     private final IamProviderInterface iamProvider;
+    private final ConfigurationService configurationService;
+    private final Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap;
+    private int cacheSize;
 
     @Autowired
-    public IamService(IamProviderInterface iamProvider) {
+    public IamService(IamProviderInterface iamProvider,
+                      ConfigurationService configurationService) {
         this.iamProvider = iamProvider;
+        this.configurationService = configurationService;
+        cacheSize = configurationService.getParameterValue(AUTH_CACHE_SIZE);
+        // wrap the cache map with a synchronized map to safely share the cache across threads
+        authorizedMap = Collections.synchronizedMap(new LRUMap<>(cacheSize));
     }
 
     /**
@@ -42,7 +61,25 @@ public class IamService {
                          String resourceId,
                          IamAction action) {
         try {
-            return iamProvider.isAuthorized(userReq, iamResourceType, resourceId, action);
+            int timeoutSeconds = configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS);
+            AuthenticatedUserRequest userReqNoId = userReq.reqId(null);
+            AuthorizedCacheKey authorizedCacheKey =
+                new AuthorizedCacheKey(userReqNoId, iamResourceType, resourceId, action);
+            AuthorizedCacheValue authorizedCacheValue = authorizedMap.get(authorizedCacheKey);
+            if (authorizedCacheValue != null) { // check if it's in the cache
+                // check if it's still in the alloted time
+                if (Instant.now().isBefore(authorizedCacheValue.getTimeout())) {
+                    logger.info("Using the cache!");
+                    return authorizedCacheValue.isAuthorized();
+                }
+                authorizedMap.remove(authorizedCacheKey); // if timed out, remove it
+            }
+            boolean authorizedLookup = iamProvider.isAuthorized(userReq, iamResourceType, resourceId, action);
+            Instant newTimeout = Instant.now().plusSeconds(timeoutSeconds);
+            AuthorizedCacheValue newAuthorizedCacheValue = new AuthorizedCacheValue(newTimeout, authorizedLookup);
+            authorizedMap.put(authorizedCacheKey, newAuthorizedCacheValue);
+            // finally return the authorization
+            return authorizedLookup;
         } catch (InterruptedException ex) {
             throw new IamUnavailableException("service unavailable");
         }

@@ -19,6 +19,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
+import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
@@ -214,6 +216,8 @@ public class ConfigurationService {
         addParameter(FIRESTORE_SNAPSHOT_CACHE_SIZE, appConfiguration.getFirestoreSnapshotCacheSize());
         addParameter(FIRESTORE_VALIDATE_BATCH_SIZE, appConfiguration.getFirestoreValidateBatchSize());
         addParameter(FIRESTORE_QUERY_BATCH_SIZE, appConfiguration.getFirestoreQueryBatchSize());
+        addParameter(AUTH_CACHE_SIZE, appConfiguration.getAuthCacheSize());
+        addParameter(AUTH_CACHE_TIMEOUT_SECONDS, appConfiguration.getAuthCacheTimeoutSeconds());
 
         // -- Faults --
         addFaultSimple(CREATE_ASSET_FAULT);

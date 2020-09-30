@@ -130,14 +130,17 @@ jobs:
               exit 1
             fi
             echo "Sleep & Retry until $PerfVersion equals ${{ steps.read_property.outputs.latest_gitHash }}"
-            sleep 10
+            sleep 5
             if PerfVersion=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash'); then
                 echo "Current Perf version: $PerfVersion"
             else
                 echo "Not able to connect to perf."
             fi
+            echo "before retry count"
             ((RetryCount++))
+            echo "after retry count"
           done;
+          echo "done"
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

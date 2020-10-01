@@ -7,8 +7,9 @@ env:
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
 on:
-  schedule:
-    - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
+  workflow_dispatch: {}
+  #schedule:
+  #  - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
 jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
@@ -100,6 +101,7 @@ jobs:
           git config pull.rebase false
           if git rev-parse --verify origin/version-update-${{ steps.read_property.outputs.LATEST_GITHASH }}; then
             git merge origin/version-update-${{ steps.read_property.outputs.LATEST_GITHASH }}
+            git push
             git push origin --delete version-update-${{ steps.read_property.outputs.LATEST_GITHASH }}
           else
             echo "Branch version-update-${{ steps.read_property.outputs.LATEST_GITHASH }} not found."

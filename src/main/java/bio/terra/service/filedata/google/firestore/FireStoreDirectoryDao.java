@@ -243,30 +243,24 @@ public class FireStoreDirectoryDao {
 
     List<FireStoreDirectoryEntry> enumerateDirectory(
         Firestore firestore, String collectionId, String dirPath) throws InterruptedException {
+
         int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
         CollectionReference dirColl = firestore.collection(collectionId);
-        ApiFuture<List<FireStoreDirectoryEntry>> transaction =
-            firestore.runTransaction(
-                xn -> {
-                    Query query = dirColl.whereEqualTo("path", dirPath);
-                    FireStoreBatchQueryIterator queryIterator =
-                        new FireStoreBatchQueryIterator(query, batchSize, xn);
+        Query query = dirColl.whereEqualTo("path", dirPath);
+        FireStoreBatchQueryIterator queryIterator = new FireStoreBatchQueryIterator(query, batchSize);
 
-                    List<FireStoreDirectoryEntry> entryList = new ArrayList<>();
-                    for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
-                         batch != null;
-                         batch = queryIterator.getBatch()) {
+        List<FireStoreDirectoryEntry> entryList = new ArrayList<>();
+        for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
+             batch != null;
+             batch = queryIterator.getBatch()) {
 
-                        for (DocumentSnapshot docSnap : batch) {
-                            FireStoreDirectoryEntry entry = docSnap.toObject(FireStoreDirectoryEntry.class);
-                            entryList.add(entry);
-                        }
-                    }
+            for (DocumentSnapshot docSnap : batch) {
+                FireStoreDirectoryEntry entry = docSnap.toObject(FireStoreDirectoryEntry.class);
+                entryList.add(entry);
+            }
+        }
 
-                    return entryList;
-                });
-
-        return fireStoreUtils.transactionGet("enumerateDirectory", transaction);
+        return entryList;
     }
 
     // As mentioned at the top of the module, we can't use forward slash in a FireStore document

@@ -7,6 +7,8 @@ import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
+import com.google.api.gax.rpc.DeadlineExceededException;
+import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -193,7 +195,14 @@ public class FireStoreDirectoryDao {
         ApiFuture<FireStoreDirectoryEntry> transaction =
             firestore.runTransaction(
                 xn -> {
-                    QueryDocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
+                    QueryDocumentSnapshot docSnap = null;
+                    try {
+                       docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
+                    } catch (DeadlineExceededException | UnavailableException ex) {
+                        logger.warn("Retry-able error in firestore future get - file id: " +
+                            fileId + " message: " + ex.getMessage());
+                    }
+
                     if (docSnap == null) {
                         return null;
                     }
@@ -211,7 +220,13 @@ public class FireStoreDirectoryDao {
         ApiFuture<FireStoreDirectoryEntry> transaction =
             firestore.runTransaction(
                 xn -> {
-                    DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
+                    DocumentSnapshot docSnap = null;
+                    try {
+                        docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
+                    } catch (DeadlineExceededException | UnavailableException ex) {
+                        logger.warn("Retry-able error in firestore future get - path: " +
+                            lookupPath + " message: " + ex.getMessage());
+                    }
                     if (docSnap == null) {
                         return null;
                     }

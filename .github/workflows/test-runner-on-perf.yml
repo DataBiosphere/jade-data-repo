@@ -100,6 +100,7 @@ jobs:
           git config pull.rebase false
           if git rev-parse --verify origin/version-update-${{ steps.read_property.outputs.LATEST_GITHASH }}; then
             git merge origin/version-update-${{ steps.read_property.outputs.LATEST_GITHASH }}
+            git push
             git push origin --delete version-update-${{ steps.read_property.outputs.LATEST_GITHASH }}
           else
             echo "Branch version-update-${{ steps.read_property.outputs.LATEST_GITHASH }} not found."

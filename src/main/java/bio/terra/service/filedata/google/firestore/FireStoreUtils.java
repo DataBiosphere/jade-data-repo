@@ -191,7 +191,10 @@ public class FireStoreUtils {
                     try {
                         outputs.set(i, future.get());
                         completeCount++;
-                    } catch (DeadlineExceededException | UnavailableException | ExecutionException ex) {
+                    } catch (DeadlineExceededException |
+                        UnavailableException |
+                        AbortedException |
+                        ExecutionException ex) {
                         if (!shouldRetry(ex, inputs.get(i))) {
                             throw new FileSystemExecutionException("batch operation failed", ex);
                         }
@@ -221,7 +224,8 @@ public class FireStoreUtils {
             return false; // Did not find a retry-able exception
         }
         if (throwable instanceof DeadlineExceededException ||
-            throwable instanceof UnavailableException) {
+            throwable instanceof UnavailableException ||
+            throwable instanceof AbortedException) {
             logger.warn("Retry-able error in firestore future get - input: " +
                 input + " message: " + throwable.getMessage());
             return true;

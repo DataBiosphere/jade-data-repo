@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class FireStoreBatchQueryIterator {
     private static final Logger logger = LoggerFactory.getLogger(FireStoreBatchQueryIterator.class);
@@ -85,6 +86,8 @@ public class FireStoreBatchQueryIterator {
                     throw new FileSystemExecutionException("get batch execution exception", ex);
                 }
             }
+
+            TimeUnit.MILLISECONDS.sleep(SLEEP_MILLISECONDS);
         }
         throw new FileSystemExecutionException("get batch failed - no more retries");
     }

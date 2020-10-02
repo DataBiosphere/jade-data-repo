@@ -1,4 +1,4 @@
-#!/bin/bash
+d
 
 clusterShortName=$1
 region=$2
@@ -26,25 +26,14 @@ then
   echo "LockNamespace: namespace cannot be empty"
   exit 1
 fi
-if [ -z "$id" ]
-then
-  echo "LockNamespace: deployment id cannot be empty"
-  exit 1
-fi
 
 printf "LockNamespace: Get credentials\n"
 gcloud container clusters get-credentials ${clusterShortName} --region ${region} --project ${project}
 printf "LockNamespace: Check for secret\n"
 if kubectl get secrets -n ${namespace} ${namespace}-inuse > /dev/null 2>&1; then
-    if kubectl get secrets -n ${namespace} ${namespace}-inuse-${id} > /dev/null 2>&1; then
-        printf "LockNamespace: Namespace ${namespace} already for this test run. Continue."
-    else
-        printf "LockNamespace FAILED: Namepsace ${namespace} already in use.\n"
-        exit 1
-    fi
+    printf "LockNamespace FAILED: Namepsace ${namespace} already in use.\n"
+    exit 1
 else
     printf "LockNamespace Namespace ${namespace} not in use, Running test runner on ${project}\n"
     kubectl create secret generic ${namespace}-inuse --from-literal=inuse=${namespace} -n ${namespace}
-    kubectl create secret generic ${namespace}-inuse-${id} --from-literal=inuse=${namespace} -n ${namespace}
-    echo ${namespace}-inuse-${id}
 fi

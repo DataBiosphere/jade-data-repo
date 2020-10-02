@@ -96,6 +96,48 @@ task(runTest, dependsOn: 'classes', type: JavaExec) {
     main = "runner.TestRunner"
     classpath = sourceSets.main.runtimeClasspath
 }
+
+def getNamespace(){
+    def pathToServer = "src/main/resources/servers/" + System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE
+    println pathToServer
+    def serverFile = file(pathToServer)
+    def serverDefinition = new groovy.json.JsonSlurper().parseText(serverFile.text)
+    return serverDefinition.namespace
+}
+
+task lockEnv {
+    doFirst {
+        if (System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE) {
+            def namespace = getNamespace()
+            def outputStream = new StringBuffer();
+            def proc = Runtime.getRuntime().exec("./tools/namespaceSecret.sh $namespace")
+            proc.waitForProcessOutput(outputStream, System.err)
+            println(outputStream.toString());
+            if (proc.exitValue() > 0){
+                throw new GradleException("Lock could not be aquired.\n" +
+                    "REASON: Namespace '$namespace' already in use.\n" +
+                    "OVERRIDE: Run './gradlew unlock' to clear lock\n" +
+                    "(Warning! Check w/ team & github actions to assert no one else using namespace)")
+            }
+        } else {
+            throw new GradleException("TEST_RUNNER_SERVER_SPECIFICATION_FILE must be defined in order to lock deployment.")
+        }
+    }
+    onlyIf { project.hasProperty('lockEnv') }
+}
+
+task unLockEnv {
+    doLast {
+        print "unlock env"
+    }
+    onlyIf { project.hasProperty('lockEnv') }
+}
+// runTest.dependsOn lockEnv
+// unLockEnv.dependsOn runTest
+// runTest.mustRunAfter lockEnv
+// unLockEnv.mustRunAfter runTest
+
+
 task(collectMeasurements, dependsOn: 'classes', type: JavaExec) {
     main = "collector.MeasurementCollector"
     classpath = sourceSets.main.runtimeClasspath

@@ -94,7 +94,18 @@ jobs:
           gcloud container clusters update ${K8_CLUSTER} \
             --enable-master-authorized-networks \
             --master-authorized-networks ${RESTORE_IPS}
-      - name: "Notify Slack"
+      - name: "Notify Jade Slack"
+        if: always()
+        uses: broadinstitute/action-slack@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          channel: "#jade-alerts"
+          username: "Data Repo tests"
+          text: "Perf tests"
+      - name: "Notify QA Slack"
         if: always()
         uses: broadinstitute/action-slack@v2
         env:

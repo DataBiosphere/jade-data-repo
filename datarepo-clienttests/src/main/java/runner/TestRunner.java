@@ -14,9 +14,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.concurrent.Callable;
@@ -28,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.ServerSpecification;
 import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
 import runner.config.TestSuite;
@@ -578,17 +575,11 @@ public class TestRunner {
               + "/)");
     }
     testSuite.validate();
-    Set<ServerSpecification> lockedServers = new HashSet<>();
 
     boolean isFailure = false;
     for (int ctr = 0; ctr < testSuite.testConfigurations.size(); ctr++) {
       TestConfiguration testConfiguration = testSuite.testConfigurations.get(ctr);
 
-      // Lock namespace - if failure, then whole test run fails
-      if (testConfiguration.server.deploymentScript.lockDeployment) {
-        KubernetesClientUtils.lockDeployment(testConfiguration.server);
-        lockedServers.add(testConfiguration.server);
-      }
       logger.info(
           "==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
       logger.info(testConfiguration.display());
@@ -626,10 +617,7 @@ public class TestRunner {
 
       TimeUnit.SECONDS.sleep(5);
     }
-    // unlock namespace
-    for (ServerSpecification ss : lockedServers) {
-      KubernetesClientUtils.unlockDeployment(ss);
-    }
+
     return isFailure;
   }
 

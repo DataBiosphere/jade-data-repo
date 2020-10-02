@@ -12,8 +12,7 @@
   "containerName": "perf-jade-datarepo-api",
   "deploymentScript": {
     "name": "ModularHelmChart",
-    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/perf/datarepo-api.yaml"],
-    "lockDeployment": true
+    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/perf/datarepo-api.yaml"]
   },
   "testRunnerServiceAccountFile": "jade-k8-sa.json",
   "skipDeployment": false,

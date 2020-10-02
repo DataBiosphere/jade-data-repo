@@ -117,7 +117,7 @@ task lockEnv {
     doFirst {
         if (System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE) {
             def namespace = getNamespace()
-            def secretExitValue = runSecretScript("./tools/namespaceSecret.sh $namespace")
+            def secretExitValue = runSecretScript("./tools/namespaceLock.sh $namespace")
             if (secretExitValue > 0){
                 throw new GradleException("Lock could not be aquired.\n" +
                     "REASON: Namespace '$namespace' already in use.\n" +
@@ -128,14 +128,13 @@ task lockEnv {
             throw new GradleException("TEST_RUNNER_SERVER_SPECIFICATION_FILE must be defined in order to lock deployment.")
         }
     }
-    // onlyIf { project.hasProperty('lockEnv') }
 }
 
 task unLockEnv {
     doLast {
         if (System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE) {
             def namespace = getNamespace()
-            def secretExitValue = runSecretScript("./tools/deleteLocks.sh $namespace")
+            def secretExitValue = runSecretScript("./tools/deleteNamespaceLock.sh $namespace")
             if (secretExitValue > 0){
                 throw new GradleException("Failed to clear locks from namespace $namespace")
             }
@@ -144,10 +143,6 @@ task unLockEnv {
         }
     }
 }
-// runTest.dependsOn lockEnv
-// unLockEnv.dependsOn runTest
-// runTest.mustRunAfter lockEnv
-// unLockEnv.mustRunAfter runTest
 
 
 task(collectMeasurements, dependsOn: 'classes', type: JavaExec) {

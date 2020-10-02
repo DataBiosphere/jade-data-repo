@@ -67,51 +67,6 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * Lock namespace - Throw exception if secret named "NAMESPACE-inuse" exists If no existing
-   * secret, create a new secret
-   */
-  public static void lockDeployment(ServerSpecification server) throws Exception {
-    logger.info(
-        "Lock namespace by creating secret named '{}-inuse'", server.namespace, server.namespace);
-    List<String> scriptArgs = new ArrayList<>();
-    scriptArgs.add("tools/lockDeployment.sh");
-    scriptArgs.add(server.clusterShortName);
-    scriptArgs.add(server.region);
-    scriptArgs.add(server.project);
-    scriptArgs.add(server.namespace);
-    scriptArgs.add(server.deploymentScript.deploymentId);
-    Process fetchCredentialsProc = ProcessUtils.executeCommand("sh", scriptArgs);
-    List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(fetchCredentialsProc);
-    fetchCredentialsProc.waitFor(30, TimeUnit.SECONDS);
-    if (fetchCredentialsProc.exitValue() > 0) {
-      throw new Exception("FAILURE: Failed to acquire lock for namespace " + server.namespace);
-    }
-    for (String cmdOutputLine : cmdOutputLines) {
-      logger.debug(cmdOutputLine);
-    }
-  }
-
-  /** unlock namespace - delete existing secret for "NAMESPACE-inuse" */
-  public static void unlockDeployment(ServerSpecification server) throws Exception {
-    logger.info(
-        "unlock Env for namespace by deleting secret named '{}-inuse'",
-        server.namespace,
-        server.namespace);
-    List<String> scriptArgs = new ArrayList<>();
-    scriptArgs.add("tools/unlockDeployment.sh");
-    scriptArgs.add(server.clusterShortName);
-    scriptArgs.add(server.region);
-    scriptArgs.add(server.project);
-    scriptArgs.add(server.namespace);
-    Process fetchCredentialsProc = ProcessUtils.executeCommand("sh", scriptArgs);
-    List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(fetchCredentialsProc);
-    fetchCredentialsProc.waitFor(30, TimeUnit.SECONDS);
-    for (String cmdOutputLine : cmdOutputLines) {
-      logger.debug(cmdOutputLine);
-    }
-  }
-
-  /**
    * Build the singleton Kubernetes client objects. This method should be called once at the
    * beginning of a test run, and then all subsequent fetches should use the getter methods instead.
    *

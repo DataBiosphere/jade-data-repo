@@ -1833,11 +1833,6 @@ definitions:
       dataProject:
         type: string
         description: Project id of the project where tabular data in BigQuery lives
-      additionalProfileIds:
-        type: array
-        description: Additional profile ids to be used for this dataset
-        items:
-          $ref: '#/definitions/UniqueIdProperty'
       defaultSnapshotId:
         type: string
         description: Id of the auto-generated default passthru snapshot
@@ -1862,11 +1857,6 @@ definitions:
       defaultProfileId:
         $ref: '#/definitions/UniqueIdProperty'
         description: This is the ID of the profile used for core dataset resources
-      additionalProfileIds:
-        type: array
-        description: Additional profile IDs to be used for this dataset
-        items:
-          $ref: '#/definitions/UniqueIdProperty'
       createdDate:
         type: string
         description: Date the dataset was created
@@ -1888,11 +1878,6 @@ definitions:
       defaultProfileId:
         $ref: '#/definitions/UniqueIdProperty'
         description: This is the ID of the profile used for core dataset resources
-      additionalProfileIds:
-        type: array
-        description: Additional profile IDs to be used for this dataset
-        items:
-          $ref: '#/definitions/UniqueIdProperty'
       schema:
         $ref: '#/definitions/DatasetSpecificationModel'
 
@@ -1908,7 +1893,6 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/DatasetSummaryModel'
-
 
   ## Schema Definitions ##
 

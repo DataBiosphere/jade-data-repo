@@ -139,15 +139,6 @@ public class Dataset implements FSContainerInterface {
         return this;
     }
 
-    public List<UUID> getAdditionalProfileIds() {
-        return datasetSummary.getAdditionalProfileIds();
-    }
-
-    public Dataset additionalProfileIds(List<UUID> additionalProfileIds) {
-        datasetSummary.additionalProfileIds(additionalProfileIds);
-        return this;
-    }
-
     public Instant getCreatedDate() {
         return datasetSummary.getCreatedDate();
     }

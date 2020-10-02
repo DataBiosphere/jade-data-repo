@@ -105,15 +105,20 @@ def getNamespace(){
     return serverDefinition.namespace
 }
 
+def runSecretScript(script){
+    def outputStream = new StringBuffer();
+    def proc = Runtime.getRuntime().exec(script)
+    proc.waitForProcessOutput(outputStream, System.err)
+    println(outputStream.toString());
+    return proc.exitValue()
+}
+
 task lockEnv {
     doFirst {
         if (System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE) {
             def namespace = getNamespace()
-            def outputStream = new StringBuffer();
-            def proc = Runtime.getRuntime().exec("./tools/namespaceSecret.sh $namespace")
-            proc.waitForProcessOutput(outputStream, System.err)
-            println(outputStream.toString());
-            if (proc.exitValue() > 0){
+            def secretExitValue = runSecretScript("./tools/namespaceSecret.sh $namespace")
+            if (secretExitValue > 0){
                 throw new GradleException("Lock could not be aquired.\n" +
                     "REASON: Namespace '$namespace' already in use.\n" +
                     "OVERRIDE: Run './gradlew unlock' to clear lock\n" +
@@ -123,14 +128,21 @@ task lockEnv {
             throw new GradleException("TEST_RUNNER_SERVER_SPECIFICATION_FILE must be defined in order to lock deployment.")
         }
     }
-    onlyIf { project.hasProperty('lockEnv') }
+    // onlyIf { project.hasProperty('lockEnv') }
 }
 
 task unLockEnv {
     doLast {
-        print "unlock env"
+        if (System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE) {
+            def namespace = getNamespace()
+            def secretExitValue = runSecretScript("./tools/deleteLocks.sh $namespace")
+            if (secretExitValue > 0){
+                throw new GradleException("Failed to clear locks from namespace $namespace")
+            }
+        } else {
+            throw new GradleException("TEST_RUNNER_SERVER_SPECIFICATION_FILE must be defined in order to lock deployment.")
+        }
     }
-    onlyIf { project.hasProperty('lockEnv') }
 }
 // runTest.dependsOn lockEnv
 // unLockEnv.dependsOn runTest

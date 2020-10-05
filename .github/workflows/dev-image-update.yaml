@@ -60,7 +60,7 @@ jobs:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: 'integration-4,integration-5'
       - name: Trigger action to tag containers with semantic version
-        uses: benc-uk/workflow-dispatch@v1
+        uses: broadinstitute/workflow-dispatch@v1
         with:
           workflow: Alpha Nightly
           token: ${{ secrets.WORKFLOW_DISPATCH }}

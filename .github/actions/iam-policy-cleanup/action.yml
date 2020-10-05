@@ -1,6 +1,6 @@
 name: 'iam-policy-cleanup'
 description: 'Clears out IAM polices'
-runs: |
+run: |
   BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
   OK_BINDINGS=$(echo ${BINDINGS} | jq 'del(.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-") or startswith("deleted:group:policy-")))')
   echo ${OK_BINDINGS} | jq '.' > policy.json

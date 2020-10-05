@@ -7,8 +7,6 @@ import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
-import com.google.api.gax.rpc.DeadlineExceededException;
-import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -31,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
@@ -74,6 +73,8 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATC
 public class FireStoreDirectoryDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
 
+    private static final int RETRIES = 3;
+    private static final int SLEEP_MILLISECONDS = 1000;
     private static final String ROOT_DIR_NAME = "/_dr_";
 
     private final FireStoreUtils fireStoreUtils;
@@ -192,24 +193,31 @@ public class FireStoreDirectoryDao {
     public FireStoreDirectoryEntry retrieveById(
         Firestore firestore, String collectionId, String fileId) throws InterruptedException {
 
-        ApiFuture<FireStoreDirectoryEntry> transaction =
-            firestore.runTransaction(
-                xn -> {
-                    QueryDocumentSnapshot docSnap = null;
-                    try {
-                       docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
-                    } catch (DeadlineExceededException | UnavailableException ex) {
-                        logger.warn("Retry-able error in firestore future get - file id: " +
-                            fileId + " message: " + ex.getMessage());
-                    }
+        for (int i = 0; i < RETRIES; i++) {
+            try {
+                ApiFuture<FireStoreDirectoryEntry> transaction =
+                    firestore.runTransaction(
+                        xn -> {
+                            QueryDocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
+                            if (docSnap == null) {
+                                return null;
+                            }
+                            return docSnap.toObject(FireStoreDirectoryEntry.class);
+                        });
 
-                    if (docSnap == null) {
-                        return null;
-                    }
-                    return docSnap.toObject(FireStoreDirectoryEntry.class);
-                });
+                return fireStoreUtils.transactionGet("retrieveById", transaction);
+            } catch (Exception ex) {
+                if (FireStoreUtils.shouldRetry(ex)) {
+                    logger.warn("Retry-able error in firestore future get - file id: " +
+                        fileId + " message: " + ex.getMessage());
+                } else {
+                    throw new FileSystemExecutionException("get entry by id execution exception", ex);
+                }
+            }
 
-        return fireStoreUtils.transactionGet("retrieveById", transaction);
+            TimeUnit.MILLISECONDS.sleep(SLEEP_MILLISECONDS);
+        }
+        throw new FileSystemExecutionException("get entry by id failed - no more retries");
     }
 
     // Returns null if not found - upper layers do any throwing
@@ -217,23 +225,32 @@ public class FireStoreDirectoryDao {
         Firestore firestore, String collectionId, String fullPath) throws InterruptedException {
 
         String lookupPath = makeLookupPath(fullPath);
-        ApiFuture<FireStoreDirectoryEntry> transaction =
-            firestore.runTransaction(
-                xn -> {
-                    DocumentSnapshot docSnap = null;
-                    try {
-                        docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
-                    } catch (DeadlineExceededException | UnavailableException ex) {
-                        logger.warn("Retry-able error in firestore future get - path: " +
-                            lookupPath + " message: " + ex.getMessage());
-                    }
-                    if (docSnap == null) {
-                        return null;
-                    }
-                    return docSnap.toObject(FireStoreDirectoryEntry.class);
-                });
 
-        return fireStoreUtils.transactionGet("retrieveByPath", transaction);
+        for (int i = 0; i < RETRIES; i++) {
+            try {
+                ApiFuture<FireStoreDirectoryEntry> transaction =
+                    firestore.runTransaction(
+                        xn -> {
+                            DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
+                            if (docSnap == null) {
+                                return null;
+                            }
+                            return docSnap.toObject(FireStoreDirectoryEntry.class);
+                        });
+
+                return fireStoreUtils.transactionGet("retrieveByPath", transaction);
+            } catch (Exception ex) {
+                if (FireStoreUtils.shouldRetry(ex)) {
+                    logger.warn("Retry-able error in firestore future get - path: " +
+                        lookupPath + " message: " + ex.getMessage());
+                } else {
+                    throw new FileSystemExecutionException("get entry by path execution exception", ex);
+                }
+            }
+
+            TimeUnit.MILLISECONDS.sleep(SLEEP_MILLISECONDS);
+        }
+        throw new FileSystemExecutionException("get entry by id failed - no more retries");
     }
 
     public List<String> validateRefIds(

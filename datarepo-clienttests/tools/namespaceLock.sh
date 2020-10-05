@@ -12,6 +12,6 @@ if kubectl get secrets -n ${namespace} ${namespace}-inuse > /dev/null 2>&1; then
     printf "LockNamespace FAILED: Namepsace ${namespace} already in use.\n"
     exit 1
 else
-    printf "LockNamespace Namespace ${namespace} not in use, Running test runner on ${project}\n"
+    printf "LockNamespace Namespace ${namespace} not in use\n"
     kubectl create secret generic ${namespace}-inuse --from-literal=inuse=${namespace} -n ${namespace}
 fi

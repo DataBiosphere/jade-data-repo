@@ -95,6 +95,12 @@ test {
 task(runTest, dependsOn: 'classes', type: JavaExec) {
     main = "runner.TestRunner"
     classpath = sourceSets.main.runtimeClasspath
+    if(project.hasProperty('config')){
+        args config
+    }
+    if(project.hasProperty('outputDir')){
+        args outputDir
+    }
 }
 
 def getNamespace(){
@@ -142,6 +148,13 @@ task unLockEnv {
             throw new GradleException("TEST_RUNNER_SERVER_SPECIFICATION_FILE must be defined in order to lock deployment.")
         }
     }
+}
+
+runTest.mustRunAfter(lockEnv)
+unLockEnv.mustRunAfter(runTest)
+task lockAndRunTest {
+    runTest.finalizedBy(unLockEnv)
+    dependsOn(lockEnv, runTest)
 }
 
 

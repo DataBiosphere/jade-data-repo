@@ -103,6 +103,8 @@ task(runTest, dependsOn: 'classes', type: JavaExec) {
     }
 }
 
+/=========Lock Namespace while running Test Runnner tests =================/
+
 def getNamespace(){
     def pathToServer = "src/main/resources/servers/" + System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE
     println pathToServer
@@ -111,7 +113,7 @@ def getNamespace(){
     return serverDefinition.namespace
 }
 
-def runSecretScript(script){
+def runScript(script){
     def outputStream = new StringBuffer();
     def proc = Runtime.getRuntime().exec(script)
     proc.waitForProcessOutput(outputStream, System.err)
@@ -119,11 +121,11 @@ def runSecretScript(script){
     return proc.exitValue()
 }
 
-task lockEnv {
+task lock {
     doFirst {
         if (System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE) {
             def namespace = getNamespace()
-            def secretExitValue = runSecretScript("./tools/namespaceLock.sh $namespace")
+            def secretExitValue = runScript("./tools/namespaceLock.sh $namespace")
             if (secretExitValue > 0){
                 throw new GradleException("Lock could not be aquired.\n" +
                     "REASON: Namespace '$namespace' already in use.\n" +
@@ -136,11 +138,11 @@ task lockEnv {
     }
 }
 
-task unLockEnv {
+task unlock {
     doLast {
         if (System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE) {
             def namespace = getNamespace()
-            def secretExitValue = runSecretScript("./tools/deleteNamespaceLock.sh $namespace")
+            def secretExitValue = runScript("./tools/deleteNamespaceLock.sh $namespace")
             if (secretExitValue > 0){
                 throw new GradleException("Failed to clear locks from namespace $namespace")
             }
@@ -156,6 +158,8 @@ task lockAndRunTest {
     runTest.finalizedBy(unLockEnv)
     dependsOn(lockEnv, runTest)
 }
+
+/====================================================================================/
 
 
 task(collectMeasurements, dependsOn: 'classes', type: JavaExec) {

@@ -112,6 +112,17 @@ public class ApplicationConfiguration {
      */
     private int firestoreQueryBatchSize;
 
+    /**
+     * Size of users in auth cache
+     */
+    private int authCacheSize;
+
+    /**
+     * Time in seconds of auth cache timeout
+     */
+    private int authCacheTimeoutSeconds;
+
+
     public String getUserEmail() {
         return userEmail;
     }
@@ -278,6 +289,22 @@ public class ApplicationConfiguration {
 
     public void setFirestoreQueryBatchSize(int firestoreQueryBatchSize) {
         this.firestoreQueryBatchSize = firestoreQueryBatchSize;
+    }
+
+    public int getAuthCacheSize() {
+        return authCacheSize;
+    }
+
+    public void setAuthCacheSize(int authCacheSize) {
+        this.authCacheSize = authCacheSize;
+    }
+
+    public int getAuthCacheTimeoutSeconds() {
+        return authCacheTimeoutSeconds;
+    }
+
+    public void setAuthCacheTimeoutSeconds(int authCacheTimeoutSeconds) {
+        this.authCacheTimeoutSeconds = authCacheTimeoutSeconds;
     }
 
     @Bean("jdbcTemplate")

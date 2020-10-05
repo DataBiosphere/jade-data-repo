@@ -1,5 +1,5 @@
 #!/bin/bash
-BRANCH="sh-DR-1339-clean-iam"
+BRANCH=$(git branch --show-current)
 TOKEN=$(cat $HOME/.gh_token)
 REPO="DataBiosphere/jade-data-repo"
 WORKFLOW="test-runner-on-perf.yml"

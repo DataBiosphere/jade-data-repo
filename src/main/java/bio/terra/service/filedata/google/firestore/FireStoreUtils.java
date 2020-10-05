@@ -183,7 +183,7 @@ public class FireStoreUtils {
                 break;
             }
 
-            // tried to collect a response for every request we generated
+            // try to collect a response for every request we generated
             int completeCount = 0;
             for (int i = 0; i < inputSize; i++) {
                 ApiFuture<T> future = futures.get(i);
@@ -191,14 +191,19 @@ public class FireStoreUtils {
                     try {
                         outputs.set(i, future.get());
                         completeCount++;
-                    } catch (DeadlineExceededException | UnavailableException ex) {
-                        logger.warn("Retry-able error in firestore future get - input: " +
-                            inputs.get(i) + " message: " + ex.getMessage());
-                    } catch (ExecutionException ex) {
-                        throw new FileSystemExecutionException("batch operation failed", ex);
+                    } catch (DeadlineExceededException |
+                        UnavailableException |
+                        AbortedException |
+                        ExecutionException ex) {
+                        if (shouldRetry(ex)) {
+                            logger.warn("Retry-able error in firestore future get - input: " +
+                                inputs.get(i) + " message: " + ex.getMessage());
+                        } else
+                            throw new FileSystemExecutionException("batch operation failed", ex);
                     }
                 }
             }
+
             // If we completed our requests we are done
             if (completeCount == requestCount) {
                 break;
@@ -215,6 +220,19 @@ public class FireStoreUtils {
         }
 
         return outputs;
+    }
+
+    static boolean shouldRetry(Throwable throwable) {
+        if (throwable == null) {
+            return false; // Did not find a retry-able exception
+        }
+        if (throwable instanceof DeadlineExceededException ||
+            throwable instanceof UnavailableException ||
+            throwable instanceof AbortedException) {
+
+            return true;
+        }
+        return shouldRetry(throwable.getCause());
     }
 
 }

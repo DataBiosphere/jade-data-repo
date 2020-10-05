@@ -152,11 +152,11 @@ task unlock {
     }
 }
 
-runTest.mustRunAfter(lockEnv)
-unLockEnv.mustRunAfter(runTest)
+runTest.mustRunAfter(lock)
+unLock.mustRunAfter(runTest)
 task lockAndRunTest {
-    runTest.finalizedBy(unLockEnv)
-    dependsOn(lockEnv, runTest)
+    runTest.finalizedBy(unLock)
+    dependsOn(lock, runTest)
 }
 
 /====================================================================================/

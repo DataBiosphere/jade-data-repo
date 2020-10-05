@@ -8,7 +8,6 @@ env:
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
 on:
-  workflow_dispatch: {}
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12AM EST.
 jobs:
@@ -26,10 +25,20 @@ jobs:
           secretId: ${{ secrets.PERF_SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
-      - name: "Configure credentials for perf before IAM policy cleanup"
-        uses: ./.github/actions/configure-credentials
-      - name: "IAM policy cleanup for data project"
-        uses: ./.github/actions/iam-policy-cleanup
+      - name: "Perform IAM policy cleanup for perf"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          # retrieve all IAM policies for data project
+          BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
+          OK_BINDINGS=$(echo ${BINDINGS} | jq 'del(.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-") or startswith("deleted:group:policy-")))')
+          # replace the IAM policy, including only non-group policies/users
+          echo ${OK_BINDINGS} | jq '.' > policy.json
+          gcloud projects set-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} policy.json
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:
@@ -39,8 +48,22 @@ jobs:
           secretId: ${{ secrets.SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
-      - name: "Configure credentials for dev SA"
-        uses: ./.github/actions/configure-credentials
+      - name: "Configure credentials"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+          jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          # configure integration prerequisites
+          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
+          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
+          gcloud auth configure-docker --quiet
+          #echo 'Set google sdk to SA user'
+          if [[ -n "${K8_CLUSTER}" ]]; then
+            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
+          fi
       - name: "Whitelist Runner IP"
         run: |
           CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \

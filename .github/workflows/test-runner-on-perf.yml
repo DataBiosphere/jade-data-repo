@@ -33,12 +33,7 @@ jobs:
 
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
-          # retrieve all IAM policies for data project
-          BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
-          OK_BINDINGS=$(echo ${BINDINGS} | jq 'del(.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-") or startswith("deleted:group:policy-")))')
-          # replace the IAM policy, including only non-group policies/users
-          echo ${OK_BINDINGS} | jq '.' > policy.json
-          gcloud projects set-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} policy.json
+          ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

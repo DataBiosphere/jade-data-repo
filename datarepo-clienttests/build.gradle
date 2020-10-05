@@ -153,9 +153,9 @@ task unlock {
 }
 
 runTest.mustRunAfter(lock)
-unLock.mustRunAfter(runTest)
+unlock.mustRunAfter(runTest)
 task lockAndRunTest {
-    runTest.finalizedBy(unLock)
+    runTest.finalizedBy(unlock)
     dependsOn(lock, runTest)
 }
 

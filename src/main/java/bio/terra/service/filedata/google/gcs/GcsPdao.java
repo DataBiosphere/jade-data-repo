@@ -145,8 +145,9 @@ public class GcsPdao {
 
     public boolean deleteFileById(Dataset dataset,
                                   String fileId,
+                                  String fileName,
                                   GoogleBucketResource bucketResource) {
-        String bucketPath = dataset.getId().toString() + "/" + fileId;
+        String bucketPath = dataset.getId().toString() + "/" + fileId + "/" + fileName;
         return deleteWorker(bucketResource, bucketPath);
     }
 

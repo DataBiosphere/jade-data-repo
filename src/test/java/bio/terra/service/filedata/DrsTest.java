@@ -31,7 +31,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Optional;
 
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
@@ -122,8 +121,8 @@ public class DrsTest extends UsersBase {
                     StringUtils.equals(checksum.getType(), "crc32c"));
         }
 
-        Optional.ofNullable(drsObject.getAccessMethods()).ifPresent(m -> {
-            for (DRSAccessMethod method: m) {
+        if (drsObject.getAccessMethods() != null) {
+            for (DRSAccessMethod method: drsObject.getAccessMethods()) {
                 if (method.getType() == DRSAccessMethod.TypeEnum.GS) {
                     assertThat(
                         "Has proper file name (gs)",
@@ -146,7 +145,7 @@ public class DrsTest extends UsersBase {
                     );
                 }
             }
-        });
+        }
     }
 
     private String getDirectoryPath(String path) {

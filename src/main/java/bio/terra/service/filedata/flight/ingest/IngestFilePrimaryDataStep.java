@@ -16,6 +16,8 @@ import bio.terra.stairway.StepResult;
 
 import java.time.Instant;
 
+import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
+
 public class IngestFilePrimaryDataStep implements Step {
     private final ConfigurationService configService;
     private final GcsPdao gcsPdao;
@@ -59,10 +61,13 @@ public class IngestFilePrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
+        FlightMap inputParameters = context.getInputParameters();
+        FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
         FlightMap workingMap = context.getWorkingMap();
         String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
         GoogleBucketResource bucketResource = IngestUtils.getBucketInfo(context);
-        gcsPdao.deleteFileById(dataset, fileId, bucketResource);
+        String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
+        gcsPdao.deleteFileById(dataset, fileId, fileName, bucketResource);
 
         return StepResult.getStepResultSuccess();
     }

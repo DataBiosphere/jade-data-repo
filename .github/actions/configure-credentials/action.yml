@@ -1,5 +1,5 @@
 name: 'configure-credentials'
-run:
+run: |
   # write vault tokens
   base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
   jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}

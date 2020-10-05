@@ -7,12 +7,14 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
+import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.FileModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
 import com.google.cloud.bigquery.BigQuery;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -27,6 +29,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Optional;
+
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertNotNull;
@@ -104,6 +111,7 @@ public class DrsTest extends UsersBase {
     }
 
     private void validateDrsObject(DRSObject drsObject, String drsObjectId) {
+        logger.info("DrsObject is:" + drsObject);
         assertThat("DRS id matches", drsObject.getId(), equalTo(drsObjectId));
         assertThat("Create and update dates match", drsObject.getCreatedTime(), equalTo(drsObject.getUpdatedTime()));
         assertThat("DRS version is right", drsObject.getVersion(), equalTo("0"));
@@ -113,6 +121,32 @@ public class DrsTest extends UsersBase {
                 StringUtils.equals(checksum.getType(), "md5") ||
                     StringUtils.equals(checksum.getType(), "crc32c"));
         }
+
+        Optional.ofNullable(drsObject.getAccessMethods()).ifPresent(m -> {
+            for (DRSAccessMethod method: m) {
+                if (method.getType() == DRSAccessMethod.TypeEnum.GS) {
+                    assertThat(
+                        "Has proper file name (gs)",
+                        method.getAccessUrl().getUrl(),
+                        endsWith(drsObject.getName())
+                    );
+                } else if (method.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
+                    try {
+                        assertThat(
+                            "Has proper file name (https)",
+                            new URL(method.getAccessUrl().getUrl()).getPath(),
+                            endsWith(drsObject.getName())
+                        );
+                    } catch (final MalformedURLException e) {
+                        throw new RuntimeException("Bad URL in DRS file access", e);
+                    }
+                } else {
+                    throw new NotImplementedException(
+                        String.format("Check for access method %s not implemented", method.getType().toString())
+                    );
+                }
+            }
+        });
     }
 
     private String getDirectoryPath(String path) {

@@ -1,6 +1,8 @@
 package common.commands;
 
 import runner.TestRunner;
+import runner.config.ServerSpecification;
+import runner.config.TestConfiguration;
 
 public class LockAndRunTest {
   public static void main(String[] args) throws Exception {
@@ -9,20 +11,29 @@ public class LockAndRunTest {
       return;
     }
     // lock namespace
-    LockNamespace.main(args);
+    LockNamespace.lockNamespace();
     // execute a test configuration or suite
     boolean isFailure;
     try {
       isFailure = TestRunner.runTest(args[0], args[1]);
     } catch (Exception ex) {
       // unlock
-      UnlockNamespace.main(args);
+      UnlockNamespace.unlockNamespace();
       throw ex;
     }
-    // unlock
-    UnlockNamespace.main(args);
+    UnlockNamespace.unlockNamespace();
     if (isFailure) {
       System.exit(1);
     }
+  }
+
+  public static ServerSpecification getServer() throws Exception {
+    // read in the server file
+    String serverEnvVar = TestConfiguration.readServerEnvironmentVariable();
+    if (serverEnvVar == null) {
+      throw new Exception(
+          TestConfiguration.serverFileEnvironmentVarName + " env variable must be defined");
+    }
+    return ServerSpecification.fromJSONFile(serverEnvVar);
   }
 }

@@ -2,7 +2,6 @@ package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.utils.FileUtils;
-import common.utils.TestConfigurationUtils;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +10,8 @@ import org.slf4j.LoggerFactory;
 
 public class TestConfiguration implements SpecificationInterface {
   private static final Logger logger = LoggerFactory.getLogger(TestConfiguration.class);
+
+  public static final String serverFileEnvironmentVarName = "TEST_RUNNER_SERVER_SPECIFICATION_FILE";
 
   public String name;
   public String description = "";
@@ -47,7 +48,7 @@ public class TestConfiguration implements SpecificationInterface {
     TestConfiguration testConfig = objectMapper.readValue(inputStream, TestConfiguration.class);
 
     // read in the server file
-    String serverEnvVarOverride = TestConfigurationUtils.readServerEnvironmentVariable();
+    String serverEnvVarOverride = readServerEnvironmentVariable();
     if (serverEnvVarOverride != null) {
       testConfig.serverSpecificationFile = serverEnvVarOverride;
     }
@@ -70,6 +71,15 @@ public class TestConfiguration implements SpecificationInterface {
     }
 
     return testConfig;
+  }
+
+  public static String readServerEnvironmentVariable() {
+    // the server specification is determined by the following, in order:
+    //   1. environment variable
+    //   2. test suite server property
+    //   3. test configuration server property
+    String serverFileEnvironmentVarValue = System.getenv(serverFileEnvironmentVarName);
+    return serverFileEnvironmentVarValue;
   }
 
   /**

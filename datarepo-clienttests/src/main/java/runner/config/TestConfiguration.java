@@ -2,6 +2,7 @@ package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.utils.FileUtils;
+import common.utils.TestConfigurationUtils;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +27,6 @@ public class TestConfiguration implements SpecificationInterface {
   public DisruptiveScriptSpecification disruptiveScript;
 
   public static final String resourceDirectory = "configs";
-  public static final String serverFileEnvironmentVarName = "TEST_RUNNER_SERVER_SPECIFICATION_FILE";
 
   TestConfiguration() {}
 
@@ -47,7 +47,7 @@ public class TestConfiguration implements SpecificationInterface {
     TestConfiguration testConfig = objectMapper.readValue(inputStream, TestConfiguration.class);
 
     // read in the server file
-    String serverEnvVarOverride = readServerEnvironmentVariable();
+    String serverEnvVarOverride = TestConfigurationUtils.readServerEnvironmentVariable();
     if (serverEnvVarOverride != null) {
       testConfig.serverSpecificationFile = serverEnvVarOverride;
     }
@@ -70,15 +70,6 @@ public class TestConfiguration implements SpecificationInterface {
     }
 
     return testConfig;
-  }
-
-  protected static String readServerEnvironmentVariable() {
-    // the server specification is determined by the following, in order:
-    //   1. environment variable
-    //   2. test suite server property
-    //   3. test configuration server property
-    String serverFileEnvironmentVarValue = System.getenv(serverFileEnvironmentVarName);
-    return serverFileEnvironmentVarValue;
   }
 
   /**

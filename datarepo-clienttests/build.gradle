@@ -93,19 +93,13 @@ test {
 }
 
 task(runTest, dependsOn: 'classes', type: JavaExec) {
-    main = "runner.TestRunner"
+    main = "common.commands.RunTest"
     classpath = sourceSets.main.runtimeClasspath
-    if(project.hasProperty('config')){
-        args config
-    }
-    if(project.hasProperty('outputDir')){
-        args outputDir
-    }
 }
 
 /=========Lock Namespace while running Test Runnner tests =================/
 
-def getNamespace(){
+/*def getNamespace(){
     def pathToServer = "src/main/resources/servers/" + System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE
     println pathToServer
     def serverFile = file(pathToServer)
@@ -157,17 +151,28 @@ unlock.mustRunAfter(runTest)
 task lockAndRunTest {
     runTest.finalizedBy(unlock)
     dependsOn(lock, runTest)
-}
+}*/
 
 /====================================================================================/
 
-
+task(lockNamespace, dependsOn: 'classes', type: JavaExec) {
+    main = "common.commands.LockNamespace"
+    classpath = sourceSets.main.runtimeClasspath
+}
+task(unlockNamespace, dependsOn: 'classes', type: JavaExec) {
+    main = "common.commands.UnlockNamespace"
+    classpath = sourceSets.main.runtimeClasspath
+}
+task(lockAndRunTest, dependsOn: 'classes', type: JavaExec) {
+    main = "common.commands.LockAndRunTest"
+    classpath = sourceSets.main.runtimeClasspath
+}
 task(collectMeasurements, dependsOn: 'classes', type: JavaExec) {
-    main = "collector.MeasurementCollector"
+    main = "common.commands.CollectMeasurements"
     classpath = sourceSets.main.runtimeClasspath
 }
 task(uploadResults, dependsOn: 'classes', type: JavaExec) {
-    main = "uploader.ResultUploader"
+    main = "common.commands.UploadResults"
     classpath = sourceSets.main.runtimeClasspath
 }
 

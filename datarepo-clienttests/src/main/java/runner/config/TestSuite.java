@@ -2,6 +2,7 @@ package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import common.utils.FileUtils;
+import common.utils.TestConfigurationUtils;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +43,7 @@ public class TestSuite implements SpecificationInterface {
     TestSuite testSuite = objectMapper.readValue(inputStream, TestSuite.class);
 
     // read in the server file
-    String serverEnvVarOverride = TestConfiguration.readServerEnvironmentVariable();
+    String serverEnvVarOverride = TestConfigurationUtils.readServerEnvironmentVariable();
     if (serverEnvVarOverride != null) {
       testSuite.serverSpecificationFile = serverEnvVarOverride;
     }

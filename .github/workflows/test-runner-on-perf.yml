@@ -139,7 +139,7 @@ jobs:
           echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
           echo "Running test suite"
-          ./gradlew runTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
+          ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
           echo "Collecting measurements"
           ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"

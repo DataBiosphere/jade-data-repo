@@ -11,8 +11,6 @@ import org.slf4j.LoggerFactory;
 public class TestConfiguration implements SpecificationInterface {
   private static final Logger logger = LoggerFactory.getLogger(TestConfiguration.class);
 
-  public static final String serverFileEnvironmentVarName = "TEST_RUNNER_SERVER_SPECIFICATION_FILE";
-
   public String name;
   public String description = "";
   public String serverSpecificationFile;
@@ -28,6 +26,7 @@ public class TestConfiguration implements SpecificationInterface {
   public DisruptiveScriptSpecification disruptiveScript;
 
   public static final String resourceDirectory = "configs";
+  public static final String serverFileEnvironmentVarName = "TEST_RUNNER_SERVER_SPECIFICATION_FILE";
 
   TestConfiguration() {}
 

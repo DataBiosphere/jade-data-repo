@@ -96,65 +96,6 @@ task(runTest, dependsOn: 'classes', type: JavaExec) {
     main = "common.commands.RunTest"
     classpath = sourceSets.main.runtimeClasspath
 }
-
-/=========Lock Namespace while running Test Runnner tests =================/
-
-/*def getNamespace(){
-    def pathToServer = "src/main/resources/servers/" + System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE
-    println pathToServer
-    def serverFile = file(pathToServer)
-    def serverDefinition = new groovy.json.JsonSlurper().parseText(serverFile.text)
-    return serverDefinition.namespace
-}
-
-def runScript(script){
-    def outputStream = new StringBuffer();
-    def proc = Runtime.getRuntime().exec(script)
-    proc.waitForProcessOutput(outputStream, System.err)
-    println(outputStream.toString());
-    return proc.exitValue()
-}
-
-task lock {
-    doFirst {
-        if (System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE) {
-            def namespace = getNamespace()
-            def secretExitValue = runScript("./tools/namespaceLock.sh $namespace")
-            if (secretExitValue > 0){
-                throw new GradleException("Lock could not be aquired.\n" +
-                    "REASON: Namespace '$namespace' already in use.\n" +
-                    "OVERRIDE: Run './gradlew unlock' to clear lock\n" +
-                    "(Warning! Check w/ team & github actions to assert no one else using namespace)")
-            }
-        } else {
-            throw new GradleException("TEST_RUNNER_SERVER_SPECIFICATION_FILE must be defined in order to lock deployment.")
-        }
-    }
-}
-
-task unlock {
-    doLast {
-        if (System.env.TEST_RUNNER_SERVER_SPECIFICATION_FILE) {
-            def namespace = getNamespace()
-            def secretExitValue = runScript("./tools/deleteNamespaceLock.sh $namespace")
-            if (secretExitValue > 0){
-                throw new GradleException("Failed to clear locks from namespace $namespace")
-            }
-        } else {
-            throw new GradleException("TEST_RUNNER_SERVER_SPECIFICATION_FILE must be defined in order to lock deployment.")
-        }
-    }
-}
-
-runTest.mustRunAfter(lock)
-unlock.mustRunAfter(runTest)
-task lockAndRunTest {
-    runTest.finalizedBy(unlock)
-    dependsOn(lock, runTest)
-}*/
-
-/====================================================================================/
-
 task(lockNamespace, dependsOn: 'classes', type: JavaExec) {
     main = "common.commands.LockNamespace"
     classpath = sourceSets.main.runtimeClasspath

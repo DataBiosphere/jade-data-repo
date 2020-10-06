@@ -116,6 +116,10 @@ task(uploadResults, dependsOn: 'classes', type: JavaExec) {
     main = "common.commands.UploadResults"
     classpath = sourceSets.main.runtimeClasspath
 }
+task(printHelp, dependsOn: 'classes', type: JavaExec) {
+    main = "common.commands.PrintHelp"
+    classpath = sourceSets.main.runtimeClasspath
+}
 
 spotless {
     java {

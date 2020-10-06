@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 public class LockNamespace {
   private static final Logger logger = LoggerFactory.getLogger(LockNamespace.class);
+
   public static void main(String[] args) throws Exception {
     lockNamespace();
   }
@@ -23,10 +24,13 @@ public class LockNamespace {
     List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(fetchCredentialsProc);
     fetchCredentialsProc.waitFor(5, TimeUnit.SECONDS);
     if (fetchCredentialsProc.exitValue() > 0) {
-      throw new Exception("FAILURE: Failed to acquire lock for namespace " + namespace + "\n" +
-          "REASON: Namespace '$namespace' already in use.\n" +
-          "OVERRIDE: Run './gradlew unlockNamespace' to clear lock\n" +
-          "(Warning! Check w/ team & github actions to assert no one else using namespace)");
+      throw new Exception(
+          "FAILURE: Failed to acquire lock for namespace "
+              + namespace
+              + "\n"
+              + "REASON: Namespace already in use.\n"
+              + "OVERRIDE: Run './gradlew unlockNamespace' to clear lock\n"
+              + "(Warning! Check w/ team & github actions to assert no one else using namespace)");
     }
     for (String cmdOutputLine : cmdOutputLines) {
       logger.info(cmdOutputLine);

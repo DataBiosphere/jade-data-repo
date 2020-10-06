@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class UnlockNamespace {
   private static final Logger logger = LoggerFactory.getLogger(UnlockNamespace.class);
+
   public static void main(String[] args) throws Exception {
     unlockNamespace();
   }

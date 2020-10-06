@@ -1,12 +1,11 @@
 package common.commands;
 
-import common.CommandCLI;
 import runner.TestRunner;
 
 public class LockAndRunTest {
   public static void main(String[] args) throws Exception {
     if (args.length != 2) { // if no args specified or invalid number of args specified, print help
-      CommandCLI.printHelp();
+      PrintHelp.printHelp();
       return;
     }
     // lock namespace

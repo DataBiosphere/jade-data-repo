@@ -4,7 +4,6 @@ import collector.config.MeasurementCollectionScriptSpecification;
 import collector.config.MeasurementList;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import common.CommandCLI;
 import common.utils.FileUtils;
 import java.io.File;
 import java.nio.file.Path;
@@ -182,9 +181,5 @@ public class MeasurementCollector {
           testRunSummary.startUserJourneyTime,
           testRunSummary.endUserJourneyTime);
     }
-  }
-
-  public static void main(String[] args) throws Exception {
-    CommandCLI.collectMeasurementsMain(args);
   }
 }

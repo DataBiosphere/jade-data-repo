@@ -1,6 +1,5 @@
 package common.commands;
 
-import common.CommandCLI;
 import runner.TestRunner;
 
 public class RunTest {
@@ -11,7 +10,7 @@ public class RunTest {
         System.exit(1);
       }
     } else { // if no args specified or invalid number of args specified, print help
-      CommandCLI.printHelp();
+      PrintHelp.printHelp();
     }
   }
 }

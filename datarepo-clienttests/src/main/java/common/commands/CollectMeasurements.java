@@ -1,7 +1,6 @@
 package common.commands;
 
 import collector.MeasurementCollector;
-import common.CommandCLI;
 
 public class CollectMeasurements {
   public static void main(String[] args) throws Exception {
@@ -18,7 +17,7 @@ public class CollectMeasurements {
       MeasurementCollector.collectMeasurements(
           measurementListFileName, outputDirName, serverFileName, startTimestamp, endTimestamp);
     } else { // if no args specified or invalid number of args specified, print help
-      CommandCLI.printHelp();
+      PrintHelp.printHelp();
     }
   }
 }

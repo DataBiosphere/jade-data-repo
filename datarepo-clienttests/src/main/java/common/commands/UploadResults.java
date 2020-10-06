@@ -1,6 +1,5 @@
 package common.commands;
 
-import common.CommandCLI;
 import uploader.ResultUploader;
 
 public class UploadResults {
@@ -10,7 +9,7 @@ public class UploadResults {
       String outputDirName = args[1];
       ResultUploader.uploadResults(uploadListFileName, outputDirName);
     } else { // if no args specified or invalid number of args specified, print help
-      CommandCLI.printHelp();
+      PrintHelp.printHelp();
     }
   }
 }

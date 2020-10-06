@@ -2,7 +2,6 @@ package runner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import common.CommandCLI;
 import common.utils.FileUtils;
 import common.utils.KubernetesClientUtils;
 import java.io.File;
@@ -619,9 +618,5 @@ public class TestRunner {
     }
 
     return isFailure;
-  }
-
-  public static void main(String[] args) throws Exception {
-    CommandCLI.runTestMain(args);
   }
 }

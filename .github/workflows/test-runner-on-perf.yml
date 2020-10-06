@@ -20,7 +20,7 @@ jobs:
       - name: "Checkout jade-data-repo develop branch"
         uses: actions/checkout@v2
         with:
-          ref: develop
+          ref: mm-debug-perf-deployscript
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

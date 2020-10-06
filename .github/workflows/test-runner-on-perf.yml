@@ -12,7 +12,7 @@ on:
 #    - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
   pull_request:
     branches:
-      - mm-debug-perf-deployscript
+      - develop
 jobs:
   test-runner-perf:
     runs-on: ubuntu-latest

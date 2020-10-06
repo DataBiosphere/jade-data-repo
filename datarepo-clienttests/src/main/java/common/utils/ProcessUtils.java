@@ -44,7 +44,7 @@ public final class ProcessUtils {
       throws IOException {
     // build the full command string
     cmdArgs.add(0, cmd);
-    logger.debug("Executing command: {}", String.join(" ", cmdArgs));
+    logger.info("Executing command: {}", String.join(" ", cmdArgs));
 
     // build and run process from the specified working directory
     ProcessBuilder procBuilder = new ProcessBuilder(cmdArgs);

@@ -70,15 +70,21 @@ public class ModularHelmChart extends DeploymentScript {
     serverSpecification = server;
     applicationSpecification = app;
 
+    logger.info("inside deploy");
+
     // get file handle to original/template API deployment Helm YAML file
     File originalApiYamlFile =
         FileUtils.createCopyOfFileFromURL(new URL(helmApiFilePath), "datarepo-api_ORIGINAL.yaml");
+
+    logger.info("originalApiYamlFile: {}", originalApiYamlFile.getAbsolutePath());
 
     // modify the original/template YAML file and write the output to a new file
     File modifiedApiYamlFile = FileUtils.createNewFile(new File("datarepo-api_MODIFIED.yaml"));
     parseAndModifyApiYamlFile(originalApiYamlFile, modifiedApiYamlFile);
 
-    // delete the existing API deployment
+      logger.info("modifiedApiYamlFile: {}", modifiedApiYamlFile.getAbsolutePath());
+
+      // delete the existing API deployment
     // e.g. helm namespace delete mm-jade-datarepo-api --namespace mm
     ArrayList<String> deleteCmdArgs = new ArrayList<>();
     deleteCmdArgs.add("namespace");
@@ -86,10 +92,12 @@ public class ModularHelmChart extends DeploymentScript {
     deleteCmdArgs.add(serverSpecification.namespace + "-jade-datarepo-api");
     deleteCmdArgs.add("--namespace");
     deleteCmdArgs.add(serverSpecification.namespace);
+      logger.info("executing helm delete");
     Process helmDeleteProc = ProcessUtils.executeCommand("helm", deleteCmdArgs);
+      logger.info("waiting for helm delete to finish");
     List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmDeleteProc);
     for (String cmdOutputLine : cmdOutputLines) {
-      logger.debug(cmdOutputLine);
+      logger.info(cmdOutputLine);
     }
 
     // list the available deployments (for debugging)
@@ -98,10 +106,12 @@ public class ModularHelmChart extends DeploymentScript {
     listCmdArgs.add("ls");
     listCmdArgs.add("--namespace");
     listCmdArgs.add(serverSpecification.namespace);
+      logger.info("executing helm ls");
     Process helmListProc = ProcessUtils.executeCommand("helm", listCmdArgs);
+      logger.info("waiting for helm ls to finish");
     cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmListProc);
     for (String cmdOutputLine : cmdOutputLines) {
-      logger.debug(cmdOutputLine);
+      logger.info(cmdOutputLine);
     }
 
     // install/upgrade the API deployment using the modified YAML file we just generated
@@ -117,10 +127,12 @@ public class ModularHelmChart extends DeploymentScript {
     installCmdArgs.add(serverSpecification.namespace);
     installCmdArgs.add("-f");
     installCmdArgs.add(modifiedApiYamlFile.getAbsolutePath());
+      logger.info("executing helm upgrade");
     Process helmUpgradeProc = ProcessUtils.executeCommand("helm", installCmdArgs);
+      logger.info("waiting for helm upgrade to finish");
     cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmUpgradeProc);
     for (String cmdOutputLine : cmdOutputLines) {
-      logger.debug(cmdOutputLine);
+      logger.info(cmdOutputLine);
     }
 
     // delete the two temp YAML files created above

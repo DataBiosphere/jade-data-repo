@@ -3,7 +3,7 @@ package bio.terra.service.filedata.flight.delete;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;

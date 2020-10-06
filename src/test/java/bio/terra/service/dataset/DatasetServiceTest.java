@@ -10,6 +10,7 @@ import bio.terra.model.AssetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.iam.AuthenticatedUserRequest;

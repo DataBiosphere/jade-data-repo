@@ -24,7 +24,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;

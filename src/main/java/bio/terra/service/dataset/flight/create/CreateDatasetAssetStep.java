@@ -1,16 +1,16 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.common.Relationship;
 import bio.terra.model.AssetModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.AssetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetJsonConversion;
-import bio.terra.common.Relationship;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.JobMapKeys;
@@ -30,14 +30,14 @@ import java.util.UUID;
 public class CreateDatasetAssetStep implements Step {
 
     private final ConfigurationService configService;
-    private final AssetDao assetDao;
+    private final DatasetDao datasetDao;
     private final DatasetService datasetService;
 
     public CreateDatasetAssetStep(
-        AssetDao assetDao,
+        DatasetDao datasetDao,
         ConfigurationService configService,
         DatasetService datasetService) {
-        this.assetDao = assetDao;
+        this.datasetDao = datasetDao;
         this.configService = configService;
         this.datasetService = datasetService;
     }
@@ -90,7 +90,7 @@ public class CreateDatasetAssetStep implements Step {
         }
 
         try {
-            assetDao.create(newAssetSpecification, dataset.getId());
+            datasetDao.createAsset(newAssetSpecification, dataset.getId());
         } catch (InvalidAssetException e) {
             FlightUtils.setErrorResponse(context, e.getMessage(), HttpStatus.BAD_REQUEST);
             map.put(DatasetWorkingMapKeys.ASSET_NAME_COLLISION, true);
@@ -115,7 +115,7 @@ public class CreateDatasetAssetStep implements Step {
             // when the undoStep is run.
             if (assetSpecificationToDelete.isPresent()) {
                 // If the asset is found, then you get its id and call delete.
-                assetDao.delete(assetSpecificationToDelete.get().getId());
+                datasetDao.deleteAsset(assetSpecificationToDelete.get().getId());
             }
         }
         // Else, if the asset is not found, then you are done. It never got created.

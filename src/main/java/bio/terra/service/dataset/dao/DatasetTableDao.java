@@ -1,10 +1,12 @@
-package bio.terra.service.dataset;
+package bio.terra.service.dataset.dao;
 
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
+import bio.terra.common.Column;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
-import bio.terra.common.Column;
 import bio.terra.common.Table;
+import bio.terra.service.dataset.BigQueryPartitionConfigV1;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -12,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -25,7 +27,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-@Repository
+@Component
 public class DatasetTableDao {
 
     private static final Logger logger = LoggerFactory.getLogger(DatasetTableDao.class);
@@ -43,6 +45,7 @@ public class DatasetTableDao {
     private static final String sqlSelectColumn = "SELECT id, name, type, array_of FROM dataset_column " +
         "WHERE table_id = :table_id";
 
+    // TODO: get rid of this connection usage
     private final DataSource jdbcDataSource;
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
@@ -55,8 +58,7 @@ public class DatasetTableDao {
         this.objectMapper = objectMapper;
     }
 
-    // Assumes transaction propagation from parent's create
-    public void createTables(UUID parentId, List<DatasetTable> tableList) throws IOException {
+    void createTables(UUID parentId, List<DatasetTable> tableList) throws IOException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         params.addValue("dataset_id", parentId);
@@ -72,13 +74,13 @@ public class DatasetTableDao {
                 .stream()
                 .map(Column::getName)
                 .collect(Collectors.toList());
+
             try (Connection connection = jdbcDataSource.getConnection()) {
                 params.addValue("primary_key", DaoUtils.createSqlStringArray(connection, naturalKeyStringList));
             } catch (SQLException e) {
                 logger.error("Failed to convert primary key list to SQL array", e);
                 throw new IllegalArgumentException("Failed to convert primary key list to SQL array", e);
             }
-
             jdbcTemplate.update(sqlInsertTable, params, keyHolder);
 
             UUID tableId = keyHolder.getId();
@@ -101,7 +103,7 @@ public class DatasetTableDao {
         }
     }
 
-    public List<DatasetTable> retrieveTables(UUID parentId) {
+    List<DatasetTable> retrieveTables(UUID parentId) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("dataset_id", parentId);
         return jdbcTemplate.query(sqlSelectTable, params, (rs, rowNum) -> {
             DatasetTable table = new DatasetTable()

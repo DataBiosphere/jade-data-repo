@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.service.dataset.Dataset;

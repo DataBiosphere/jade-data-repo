@@ -1,8 +1,8 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.AssetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -13,12 +13,12 @@ public class AddAssetSpecFlight extends Flight {
         super(inputParameters, applicationContext);
         // get the required daos and services to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        AssetDao assetDao = (AssetDao) appContext.getBean("assetDao");
+        DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
         ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 
         // create job to add the assetspec to the dataset
-        addStep(new CreateDatasetAssetStep(assetDao, configService, datasetService));
+        addStep(new CreateDatasetAssetStep(datasetDao, configService, datasetService));
     }
 
 }

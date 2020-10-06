@@ -2,7 +2,7 @@ package bio.terra.common;
 
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.resourcemanagement.DataLocationService;

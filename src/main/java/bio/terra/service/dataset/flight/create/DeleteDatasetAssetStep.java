@@ -1,6 +1,6 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.service.dataset.AssetDao;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -12,15 +12,15 @@ import java.util.UUID;
 
 public class DeleteDatasetAssetStep implements Step {
 
-    private AssetDao assetDao;
+    private DatasetDao datasetDao;
 
-    public DeleteDatasetAssetStep(AssetDao assetDao) {
-        this.assetDao = assetDao;
+    public DeleteDatasetAssetStep(DatasetDao datasetDao) {
+        this.datasetDao = datasetDao;
     }
 
     private UUID getAssetId(FlightContext context) {
         // get asset Id
-        UUID assetId =  UUID.fromString(
+        UUID assetId = UUID.fromString(
             context.getInputParameters().get(JobMapKeys.ASSET_ID.getKeyName(), String.class)
         );
         return assetId;
@@ -28,7 +28,7 @@ public class DeleteDatasetAssetStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        assetDao.delete(getAssetId(context));
+        datasetDao.deleteAsset(getAssetId(context));
         FlightMap map = context.getWorkingMap();
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);
         return StepResult.getStepResultSuccess();

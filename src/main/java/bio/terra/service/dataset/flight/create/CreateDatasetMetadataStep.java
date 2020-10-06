@@ -1,6 +1,6 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;

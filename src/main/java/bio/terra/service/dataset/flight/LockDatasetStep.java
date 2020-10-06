@@ -1,7 +1,7 @@
 package bio.terra.service.dataset.flight;
 
 import bio.terra.common.exception.RetryQueryException;
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.stairway.FlightContext;

@@ -1,4 +1,4 @@
-package bio.terra.service.dataset;
+package bio.terra.service.dataset.dao;
 
 import java.util.UUID;
 

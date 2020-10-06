@@ -2,7 +2,7 @@ package bio.terra.service.snapshot;
 
 import bio.terra.common.Relationship;
 import bio.terra.common.category.Unit;
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.Column;

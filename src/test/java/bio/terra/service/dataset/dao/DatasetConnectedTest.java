@@ -1,4 +1,4 @@
-package bio.terra.service.dataset;
+package bio.terra.service.dataset.dao;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.PdaoConstant;
@@ -22,6 +22,8 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;

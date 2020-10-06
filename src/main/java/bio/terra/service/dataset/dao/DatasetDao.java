@@ -1,4 +1,4 @@
-package bio.terra.service.dataset;
+package bio.terra.service.dataset.dao;
 
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
@@ -6,6 +6,9 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
@@ -37,6 +40,16 @@ import java.util.UUID;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
+/**
+ * This is the top level of the dataset database access package.
+ * It is the only module that should be marked @Repository and
+ * the only module that should include @Transactional annotations.
+ * It is the only module that should have any public methods, beyond constructors.
+ * In this way, we can clearly understand the scope of transactions.
+ * Also, only this module will need to have the transaction management proxy in front of it.
+ * The other modules in this package are there for good encapsulation of their substructures,
+ * but not otherwise involved in transactions or connection management.
+ */
 @Repository
 public class DatasetDao {
 
@@ -47,6 +60,16 @@ public class DatasetDao {
     private final ConfigurationService configurationService;
 
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
+
+    /**
+     * Common argument for the lock entry points
+     */
+    private enum LockType {
+        LockExclusive,
+        LockShared,
+        UnlockExclusive,
+        UnlockShared
+    }
 
     @Autowired
     public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,
@@ -195,13 +218,6 @@ public class DatasetDao {
         return unlockSucceeded;
     }
 
-    private enum LockType {
-        LockExclusive,
-        LockShared,
-        UnlockExclusive,
-        UnlockShared
-    }
-
     private int performLockQuery(String sql, MapSqlParameterSource params,
                                  LockType lockType, UUID datasetId) {
         int numRowsUpdated = 0;
@@ -259,7 +275,6 @@ public class DatasetDao {
             FatalFault = ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT;
         }
 
-
         if (configurationService.testInsertFault(RetryableFault)) {
             logger.info("{} - inserting RETRY fault to throw", lockType);
             return new OptimisticLockingFailureException(
@@ -278,12 +293,11 @@ public class DatasetDao {
      *
      * @param dataset the dataset object to create
      * @return the id of the new dataset
-     * @throws SQLException
      * @throws IOException
      * @throws InvalidDatasetException if a row already exists with this dataset name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
+    public UUID createAndLock(Dataset dataset, String flightId) throws IOException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
             "(name, default_profile_id, flightid, description, sharedlock) " +
@@ -353,7 +367,7 @@ public class DatasetDao {
         }
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean delete(UUID id) {
         int rowsAffected = jdbcTemplate.update("DELETE FROM dataset WHERE id = :id",
             new MapSqlParameterSource().addValue("id", id));
@@ -373,6 +387,7 @@ public class DatasetDao {
         return rowsAffected > 0;
     }
 
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     public Dataset retrieve(UUID id) {
         DatasetSummary summary = retrieveSummaryById(id);
         return retrieveWorker(summary);
@@ -385,11 +400,13 @@ public class DatasetDao {
      * @param id the dataset id
      * @return the DatasetSummary object
      */
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     public Dataset retrieveAvailable(UUID id) {
         DatasetSummary summary = retrieveSummaryById(id, true);
         return retrieveWorker(summary);
     }
 
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     public Dataset retrieveByName(String name) {
         DatasetSummary summary = retrieveSummaryByName(name);
         return retrieveWorker(summary);
@@ -417,6 +434,7 @@ public class DatasetDao {
      * @param id the dataset id
      * @return the DatasetSummary object
      */
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     public DatasetSummary retrieveSummaryById(UUID id) {
         return retrieveSummaryById(id, false);
     }
@@ -428,6 +446,7 @@ public class DatasetDao {
      * @param onlyRetrieveAvailable true to exclude datasets that are exclusively locked, false to include all datasets
      * @return the DatasetSummary object
      */
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     public DatasetSummary retrieveSummaryById(UUID id, boolean onlyRetrieveAvailable) {
         try {
             String sql = "SELECT " +
@@ -443,6 +462,7 @@ public class DatasetDao {
         }
     }
 
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     public DatasetSummary retrieveSummaryByName(String name) {
         try {
             String sql = "SELECT " +
@@ -469,6 +489,7 @@ public class DatasetDao {
      * @param accessibleDatasetIds list of dataset ids that caller has access to (fetched from IAM service)
      * @return a list of dataset summary objects
      */
+    @Transactional(propagation = Propagation.SUPPORTS, readOnly = true)
     public MetadataEnumeration<DatasetSummary> enumerate(
         int offset,
         int limit,
@@ -514,5 +535,30 @@ public class DatasetDao {
                 .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                 .createdDate(rs.getTimestamp("created_date").toInstant());
         }
+    }
+
+    // -- public access to other dao objects --
+
+    /**
+     * Create a new AssetSpecification. If you try to create an asset with the same name as an existing
+     * one for the same dataset, this method throws an InvalidAssetException.
+     *
+     * @param assetSpecification the AssetSpecification being created
+     * @param datasetId          the ID of the dataset corresponding to the AssetSpecification being created
+     * @return
+     */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public UUID createAsset(AssetSpecification assetSpecification, UUID datasetId) {
+        return assetDao.createAsset(assetSpecification, datasetId);
+    }
+
+    /**
+     * Delete a single asset via its id
+     * @param id the unique of the asset
+     * @return true, if deleted. false, if non existent
+     */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public boolean deleteAsset(UUID id) {
+        return assetDao.deleteAsset(id);
     }
 }

@@ -1,6 +1,6 @@
 package bio.terra.service.dataset.flight.delete;
 
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.dao.DatasetDao;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.stairway.FlightContext;

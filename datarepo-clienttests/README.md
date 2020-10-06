@@ -131,6 +131,32 @@ export TEST_RUNNER_SERVER_SPECIFICATION_FILE="mmdev.json"
 ./gradlew runTest --args="configOrSuiteFileName outputDirectoryName"
 ```
 
+## Lock server during test run
+The Test Runner has multiple functionalities that directly manipulate the specified server: it can deploy specific
+settings and manipulate kubernetes. When you are testing, we want to assert that your test one is the only one running
+on the specified server. We accomplish this by creating kubernetes secrets specific to the namespace of the designated
+server. Switching to this "locking" mode is as simple as switching the gradle command from "runTest" to "lockAndRunTest,"
+as demonstrated below.
+Note: We currently require the TEST_RUNNER_SERVER_SPECIFICATION_FILE environment variable to be set, and this overrides
+any server specification in test and suite configs.
+
+```
+export TEST_RUNNER_SERVER_SPECIFICATION_FILE="mmdev.json"
+./gradlew lockAndRunTest --args="configOrSuiteFileName outputDirectoryName"
+  configOrSuiteFileName = file name of the test configuration or suite JSON file
+  outputDirectoryName = name of the directory where the results will be written
+```
+
+It is possible that the locks can get out of sync, so if you think you've incorrectly hit an "unable to lock" error, you
+can you the following commands to directly lock or unlock the namespace. Make sure the
+TEST_RUNNER_SERVER_SPECIFICATION_FILE environment variable is set.
+
+```
+export TEST_RUNNER_SERVER_SPECIFICATION_FILE="mmdev.json"
+./gradlew lockNamespace
+./gradlew unlockNamespace
+```
+
 #### Run against a local server
 There is a localhost.json server specification file in the resources/server directory. This file contains a filepath to
 the top-level directory of the jade-data-repo Git repository. Executing a test against this configuration, will start a

@@ -93,15 +93,31 @@ test {
 }
 
 task(runTest, dependsOn: 'classes', type: JavaExec) {
-    main = "runner.TestRunner"
+    main = "common.commands.RunTest"
+    classpath = sourceSets.main.runtimeClasspath
+}
+task(lockNamespace, dependsOn: 'classes', type: JavaExec) {
+    main = "common.commands.LockNamespace"
+    classpath = sourceSets.main.runtimeClasspath
+}
+task(unlockNamespace, dependsOn: 'classes', type: JavaExec) {
+    main = "common.commands.UnlockNamespace"
+    classpath = sourceSets.main.runtimeClasspath
+}
+task(lockAndRunTest, dependsOn: 'classes', type: JavaExec) {
+    main = "common.commands.LockAndRunTest"
     classpath = sourceSets.main.runtimeClasspath
 }
 task(collectMeasurements, dependsOn: 'classes', type: JavaExec) {
-    main = "collector.MeasurementCollector"
+    main = "common.commands.CollectMeasurements"
     classpath = sourceSets.main.runtimeClasspath
 }
 task(uploadResults, dependsOn: 'classes', type: JavaExec) {
-    main = "uploader.ResultUploader"
+    main = "common.commands.UploadResults"
+    classpath = sourceSets.main.runtimeClasspath
+}
+task(printHelp, dependsOn: 'classes', type: JavaExec) {
+    main = "common.commands.PrintHelp"
     classpath = sourceSets.main.runtimeClasspath
 }
 

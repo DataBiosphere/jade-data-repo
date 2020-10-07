@@ -72,7 +72,7 @@ public class TestConfiguration implements SpecificationInterface {
     return testConfig;
   }
 
-  protected static String readServerEnvironmentVariable() {
+  public static String readServerEnvironmentVariable() {
     // the server specification is determined by the following, in order:
     //   1. environment variable
     //   2. test suite server property

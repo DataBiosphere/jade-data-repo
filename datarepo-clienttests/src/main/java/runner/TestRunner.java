@@ -2,7 +2,6 @@ package runner;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import common.CommandCLI;
 import common.utils.FileUtils;
 import common.utils.KubernetesClientUtils;
 import java.io.File;
@@ -579,6 +578,7 @@ public class TestRunner {
     boolean isFailure = false;
     for (int ctr = 0; ctr < testSuite.testConfigurations.size(); ctr++) {
       TestConfiguration testConfiguration = testSuite.testConfigurations.get(ctr);
+
       logger.info(
           "==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
       logger.info(testConfiguration.display());
@@ -618,9 +618,5 @@ public class TestRunner {
     }
 
     return isFailure;
-  }
-
-  public static void main(String[] args) throws Exception {
-    CommandCLI.runTestMain(args);
   }
 }

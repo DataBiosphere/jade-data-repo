@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
+import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
 @Component
 public class GcsPdao {
@@ -75,8 +76,10 @@ public class GcsPdao {
             String targetProjectId = bucketResource.projectIdForBucket();
             Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), targetProjectId);
 
-            // Our path is /<dataset-id>/<file-id>
-            String targetPath = dataset.getId().toString() + "/" + fileId;
+            // Read the leaf node of the source file to use as a way to sname the file we store
+            String sourceFileName = getLastNameFromPath(sourceBlob.getName());
+            // Our path is /<dataset-id>/<file-id>/<source-file-name>
+            String targetPath = dataset.getId().toString() + "/" + fileId + "/" + sourceFileName;
 
             // The documentation is vague whether or not it is important to copy by chunk. One set of
             // examples does it and another doesn't.
@@ -142,8 +145,9 @@ public class GcsPdao {
 
     public boolean deleteFileById(Dataset dataset,
                                   String fileId,
+                                  String fileName,
                                   GoogleBucketResource bucketResource) {
-        String bucketPath = dataset.getId().toString() + "/" + fileId;
+        String bucketPath = dataset.getId().toString() + "/" + fileId + "/" + fileName;
         return deleteWorker(bucketResource, bucketPath);
     }
 
@@ -171,6 +175,7 @@ public class GcsPdao {
         if (blob != null) {
             return blob.delete();
         }
+        logger.warn("{} was not found and so deletion was skipped", bucketPath);
         return false;
     }
 

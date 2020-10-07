@@ -1,6 +1,5 @@
 package uploader;
 
-import common.CommandCLI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -57,9 +56,5 @@ public class ResultUploader {
         logger.error("Result Uploader threw an exception", uplEx);
       }
     }
-  }
-
-  public static void main(String[] args) throws Exception {
-    CommandCLI.uploadResultsMain(args);
   }
 }

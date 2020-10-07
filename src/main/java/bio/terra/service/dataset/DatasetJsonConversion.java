@@ -25,7 +25,6 @@ public final class DatasetJsonConversion {
         Map<String, Relationship> relationshipsMap = new HashMap<>();
         List<AssetSpecification> assetSpecifications = new ArrayList<>();
         UUID defaultProfileId = UUID.fromString(datasetRequest.getDefaultProfileId());
-        List<UUID> additionalProfileIds = stringsToUUIDs(datasetRequest.getAdditionalProfileIds());
         DatasetSpecificationModel datasetSpecification = datasetRequest.getSchema();
         datasetSpecification.getTables().forEach(tableModel ->
                 tablesMap.put(tableModel.getName(), tableModelToTable(tableModel)));
@@ -45,8 +44,7 @@ public final class DatasetJsonConversion {
         return new Dataset(new DatasetSummary()
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
-                .defaultProfileId(defaultProfileId)
-                .additionalProfileIds(additionalProfileIds))
+                .defaultProfileId(defaultProfileId))
                 .tables(new ArrayList<>(tablesMap.values()))
                 .relationships(new ArrayList<>(relationshipsMap.values()))
                 .assetSpecifications(assetSpecifications);
@@ -58,8 +56,8 @@ public final class DatasetJsonConversion {
                 .name(dataset.getName())
                 .description(dataset.getDescription())
                 .createdDate(dataset.getCreatedDate().toString())
-                .defaultProfileId(dataset.getDefaultProfileId().toString())
-                .additionalProfileIds(uuidsToStrings(dataset.getAdditionalProfileIds()));
+                .defaultProfileId(dataset.getDefaultProfileId().toString());
+
     }
 
     public static DatasetModel populateDatasetModelFromDataset(Dataset dataset) {
@@ -68,7 +66,6 @@ public final class DatasetJsonConversion {
                 .name(dataset.getName())
                 .description(dataset.getDescription())
                 .defaultProfileId(dataset.getDefaultProfileId().toString())
-                .additionalProfileIds(uuidsToStrings(dataset.getAdditionalProfileIds()))
                 .createdDate(dataset.getCreatedDate().toString())
                 .schema(datasetSpecificationModelFromDatasetSchema(dataset));
     }

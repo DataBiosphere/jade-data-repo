@@ -151,13 +151,14 @@ jobs:
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}
           echo "Building Data Repo client library"
+          export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
           ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
           export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
           echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
           echo "Running test suite"
-          ./gradlew runTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
+          ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
           echo "Collecting measurements"
           ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
@@ -190,14 +191,14 @@ jobs:
           channel: "#jade-alerts"
           username: "Data Repo tests"
           text: "Perf tests"
-      - name: "Notify QA Slack"
-        if: always()
-        uses: broadinstitute/action-slack@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#dsde-qa"
-          username: "Data Repo tests"
-          text: "Perf tests"
+      #- name: "Notify QA Slack"
+      #  if: always()
+      #  uses: broadinstitute/action-slack@v2
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #    SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #  with:
+      #    status: ${{ job.status }}
+      #    channel: "#dsde-qa"
+      #    username: "Data Repo tests"
+       #   text: "Perf tests"

@@ -244,7 +244,7 @@ public class DrsService {
         return Collections.singletonList(hdr);
     }
 
-    private String getLastNameFromPath(String path) {
+    public static String getLastNameFromPath(String path) {
         String[] pathParts = StringUtils.split(path, '/');
         return pathParts[pathParts.length - 1];
     }

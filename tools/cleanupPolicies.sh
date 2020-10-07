@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script is also used as a cleanup script used ahead of running integration tests on Jade data projects.
+# This script is also used as a cleanup script used ahead of running integration and Test Runner tests on Jade data projects.
 
 # SAM policies are created as a part of our test run and need to be cleared out
 # to avoid hitting 250 IAM policy limit

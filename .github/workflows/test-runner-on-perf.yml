@@ -18,6 +18,23 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: develop
+      - name: "Import Vault perf secrets"
+        uses: hashicorp/vault-action@v2.0.1
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.PERF_ROLE_ID }}
+          secretId: ${{ secrets.PERF_SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/perf/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+      - name: "Perform IAM policy cleanup for perf"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

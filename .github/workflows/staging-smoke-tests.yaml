@@ -1,10 +1,10 @@
 name: DataRepo Staging Smoke Tests
 env:
-  K8_CLUSTER: 'staging-master'
-  # This must be defined for the bash redirection
-  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
-  # This must be defined for the bash redirection
-  GOOGLE_SA_CERT: 'jade-dev-account.pem'
+  K8_CLUSTER: jade-master-us-central1
+  GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
+  GOOGLE_SA_CERT: jade-dev-account.pem
+  GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
+  GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
 on:
   workflow_dispatch: {}
 jobs:

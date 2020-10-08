@@ -11,10 +11,8 @@ jobs:
   test-runner-staging:
     runs-on: ubuntu-latest
     steps:
-      - name: "Checkout jade-data-repo develop branch"
+      - name: "Checkout jade-data-repo"
         uses: actions/checkout@v2
-        with:
-          ref: develop
       - name: "Import Vault staging secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:

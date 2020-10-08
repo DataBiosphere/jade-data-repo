@@ -1,8 +1,8 @@
 name: DataRepo Staging Smoke Tests
 env:
   K8_CLUSTER: jade-master-us-central1
-  GOOGLE_APPLICATION_CREDENTIALS: jade-dev-account.json
-  GOOGLE_SA_CERT: jade-dev-account.pem
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
+  GOOGLE_SA_CERT: /tmp/jade-dev-account.pem
   GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
 on:

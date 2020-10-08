@@ -1,0 +1,17 @@
+name: DataRepo Staging Smoke Tests
+env:
+  K8_CLUSTER: 'staging-master'
+  # This must be defined for the bash redirection
+  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+  # This must be defined for the bash redirection
+  GOOGLE_SA_CERT: 'jade-dev-account.pem'
+on:
+  workflow_dispatch: {}
+jobs:
+  test-runner-staging:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout jade-data-repo develop branch"
+        uses: actions/checkout@v2
+        with:
+          ref: develop

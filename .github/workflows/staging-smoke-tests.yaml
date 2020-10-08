@@ -15,3 +15,55 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: develop
+      - name: "Import Vault staging secrets"
+        uses: hashicorp/vault-action@v2.0.1
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.STAGING_ROLE_ID }}
+          secretId: ${{ secrets.STAGING_SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/staging/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+      - name: "Perform IAM policy cleanup for staging"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
+      - name: "Import Vault dev secrets"
+        uses: hashicorp/vault-action@v2.0.1
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.ROLE_ID }}
+          secretId: ${{ secrets.SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
+      - name: "Configure credentials"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+      - name: "Build and run Test Runner"
+        run: |
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+          echo "Building Data Repo client library"
+          export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
+          ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
+          export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
+          echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
+
+          echo "Running test suite"
+          ./gradlew runTest --args="suites/PRSmokeTests.json tmp/TestRunnerResults"
+
+          echo "Collecting measurements"
+          ./gradlew collectMeasurements --args="PRSmokeTests.json tmp/TestRunnerResults"
+
+          echo "Uploading results"
+          ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
+
+          cd ${GITHUB_WORKSPACE}/${workingDir}

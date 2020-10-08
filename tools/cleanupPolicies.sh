@@ -5,11 +5,17 @@
 # to avoid hitting 250 IAM policy limit
 
 # Require a project id
-: ${1?"Usage: $0 projectid"}
-projectid=$1
+: ${1?"Usage: $0 PROJECT_ID"}
+PROJECT_ID=$1
+
+PROJECT_EXISTS=$(gcloud projects list --filter ${PROJECT_ID} --uri 2>/dev/null)
+if [ -z "${PROJECT_EXISTS}" ]; then
+    echo "ERROR: Cannot find project '${PROJECT_ID}'"
+    exit 1
+fi
 
 # retrieve all IAM policies for gcloud project
-BINDINGS=$(gcloud projects get-iam-policy ${projectid} --format=json)
+BINDINGS=$(gcloud projects get-iam-policy ${PROJECT_ID} --format=json)
 
 #${BINDINGS} returns something in this format:
 # {
@@ -36,4 +42,4 @@ OK_BINDINGS=$(echo ${BINDINGS} | jq 'del(.bindings[] | select(.role=="roles/bigq
 
 # replace the IAM policy, including only members selected in ${OK_BINDINGS}
 echo ${OK_BINDINGS} | jq '.' > policy.json
-gcloud projects set-iam-policy ${projectid} policy.json
+gcloud projects set-iam-policy ${PROJECT_ID} policy.json

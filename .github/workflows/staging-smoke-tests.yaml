@@ -56,10 +56,10 @@ jobs:
           echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
           echo "Running test suite"
-          ./gradlew runTest --args="configs/basicexamples/LookupSnapshot.json tmp/TestRunnerResults"
+          ./gradlew runTest --args="suites/StagingSmokeTests.json tmp/TestRunnerResults"
 
           echo "Collecting measurements"
-          ./gradlew collectMeasurements --args="PRSmokeTests.json tmp/TestRunnerResults"
+          ./gradlew collectMeasurements --args="StagingSmokeTests.json tmp/TestRunnerResults"
 
           echo "Uploading results"
           ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"

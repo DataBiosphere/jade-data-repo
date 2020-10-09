@@ -74,7 +74,6 @@ public class FireStoreDirectoryDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
 
     private static final int RETRIES = 3;
-    private static final int SLEEP_MILLISECONDS = 1000;
     private static final String ROOT_DIR_NAME = "/_dr_";
 
     private final FireStoreUtils fireStoreUtils;
@@ -221,7 +220,7 @@ public class FireStoreDirectoryDao {
                 }
             }
 
-            TimeUnit.MILLISECONDS.sleep(SLEEP_MILLISECONDS);
+            TimeUnit.SECONDS.sleep(1);
         }
         throw new FileSystemExecutionException(transactionOp + " failed - no more retries");
     }

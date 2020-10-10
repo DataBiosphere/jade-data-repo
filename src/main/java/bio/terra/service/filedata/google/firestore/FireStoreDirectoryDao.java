@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
@@ -72,6 +73,7 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATC
 public class FireStoreDirectoryDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
 
+    private static final int RETRIES = 3;
     private static final String ROOT_DIR_NAME = "/_dr_";
 
     private final FireStoreUtils fireStoreUtils;
@@ -186,21 +188,49 @@ public class FireStoreDirectoryDao {
             firestore, collectionId, DELETE_BATCH_SIZE, document -> document.getReference().delete());
     }
 
+
+    interface LookupFunction {
+        DocumentSnapshot apply(Transaction xn) throws InterruptedException;
+    }
+
+    // Returns null if not found - upper layers do any throwing
+    private FireStoreDirectoryEntry runTransactionWithRetry(Firestore firestore,
+                                                            LookupFunction lookupFunction,
+                                                            String transactionOp,
+                                                            String warnMessage) throws InterruptedException {
+        for (int i = 0; i < RETRIES; i++) {
+            try {
+                ApiFuture<FireStoreDirectoryEntry> transaction =
+                    firestore.runTransaction(
+                        xn -> {
+                            DocumentSnapshot docSnap = lookupFunction.apply(xn);
+                            if (docSnap == null) {
+                                return null;
+                            }
+                            return docSnap.toObject(FireStoreDirectoryEntry.class);
+                        });
+
+                return fireStoreUtils.transactionGet(transactionOp, transaction);
+            } catch (Exception ex) {
+                if (FireStoreUtils.shouldRetry(ex)) {
+                    logger.warn("Retry-able error in firestore future get - " +
+                        warnMessage + " message: " + ex.getMessage());
+                } else {
+                    throw new FileSystemExecutionException(transactionOp + " execution exception", ex);
+                }
+            }
+
+            TimeUnit.SECONDS.sleep(1);
+        }
+        throw new FileSystemExecutionException(transactionOp + " failed - no more retries");
+    }
+
     // Returns null if not found - upper layers do any throwing
     public FireStoreDirectoryEntry retrieveById(
         Firestore firestore, String collectionId, String fileId) throws InterruptedException {
 
-        ApiFuture<FireStoreDirectoryEntry> transaction =
-            firestore.runTransaction(
-                xn -> {
-                    QueryDocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
-                    if (docSnap == null) {
-                        return null;
-                    }
-                    return docSnap.toObject(FireStoreDirectoryEntry.class);
-                });
-
-        return fireStoreUtils.transactionGet("retrieveById", transaction);
+        return runTransactionWithRetry(firestore, (xn) -> lookupByFileId(firestore, collectionId, fileId, xn),
+            "retrieveById", " file id: " + fileId);
     }
 
     // Returns null if not found - upper layers do any throwing
@@ -208,18 +238,13 @@ public class FireStoreDirectoryDao {
         Firestore firestore, String collectionId, String fullPath) throws InterruptedException {
 
         String lookupPath = makeLookupPath(fullPath);
-        ApiFuture<FireStoreDirectoryEntry> transaction =
-            firestore.runTransaction(
-                xn -> {
-                    DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
-                    if (docSnap == null) {
-                        return null;
-                    }
-                    return docSnap.toObject(FireStoreDirectoryEntry.class);
-                });
 
-        return fireStoreUtils.transactionGet("retrieveByPath", transaction);
+        return runTransactionWithRetry(firestore, (xn) -> lookupByFilePath(firestore, collectionId, lookupPath, xn),
+            "retrieveByPath", " path: " + lookupPath);
     }
+
+
+
 
     public List<String> validateRefIds(
         Firestore firestore, String collectionId, List<String> refIdArray)

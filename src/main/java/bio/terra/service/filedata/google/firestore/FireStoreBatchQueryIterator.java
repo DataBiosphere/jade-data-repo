@@ -3,9 +3,6 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
-import com.google.api.gax.rpc.AbortedException;
-import com.google.api.gax.rpc.DeadlineExceededException;
-import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
@@ -13,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 public class FireStoreBatchQueryIterator {
@@ -76,10 +72,7 @@ public class FireStoreBatchQueryIterator {
                     return null;
                 }
                 return currentList;
-            } catch (DeadlineExceededException |
-                UnavailableException |
-                AbortedException |
-                ExecutionException ex) {
+            } catch (Exception ex) {
                 if (FireStoreUtils.shouldRetry(ex)) {
                     logger.warn("Retry-able error in firestore future get - message: " + ex.getMessage());
                 } else {

@@ -205,6 +205,16 @@ public class SnapshotDao {
         return rowsAffected > 0;
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public boolean deleteByNameAndFlight(String snapshotName, String flightId) {
+        String sql = "DELETE FROM snapshot WHERE name = :name AND flightid = :flightid";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("name", snapshotName)
+            .addValue("flightid", flightId);
+        int rowsAffected = jdbcTemplate.update(sql, params);
+        return rowsAffected > 0;
+    }
+
     /**
      * This is a convenience wrapper that returns a snapshot only if it is NOT exclusively locked.
      * This method is intended for user-facing API calls (e.g. from RepositoryApiController).

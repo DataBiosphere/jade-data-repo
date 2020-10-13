@@ -62,7 +62,7 @@ public class CreateSnapshotMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         logger.debug("Snapshot creation failed. Deleting metadata.");
-        snapshotDao.deleteByName(snapshotReq.getName());
+        snapshotDao.deleteByNameAndFlight(snapshotReq.getName(), context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 

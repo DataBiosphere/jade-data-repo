@@ -6,6 +6,7 @@ import bio.terra.model.RepositoryConfigurationModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.job.JobService;
+import bio.terra.service.dataset.DatasetDao;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     private final JobService jobService;
     private final Environment env;
     private final ConfigurationService configurationService;
+    private final DatasetDao datasetDao;
 
     private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
     private static final String DEFAULT_GITHASH = "00000000";
@@ -47,7 +49,8 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         OauthConfiguration oauthConfig,
         JobService jobService,
         Environment env,
-        ConfigurationService configurationService
+        ConfigurationService configurationService,
+        DatasetDao datasetDao
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -55,6 +58,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         this.jobService = jobService;
         this.env = env;
         this.configurationService = configurationService;
+        this.datasetDao = datasetDao;
 
         Properties properties = new Properties();
         try (InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties")) {
@@ -80,6 +84,9 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     public ResponseEntity<Void> serviceStatus() {
         if (configurationService.testInsertFault(ConfigEnum.LIVENESS_FAULT)) {
             logger.info("LIVENESS_FAULT insertion - failing status response");
+            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
+        }
+        if (!datasetDao.statusCheck()) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
         return new ResponseEntity<>(HttpStatus.OK);

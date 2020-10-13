@@ -515,4 +515,20 @@ public class DatasetDao {
                 .createdDate(rs.getTimestamp("created_date").toInstant());
         }
     }
+
+    /**
+     * Probe to see if can access database
+     */
+    public boolean statusCheck() {
+        String sql = "SELECT count(1)";
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        try {
+            jdbcTemplate.queryForObject(sql, params, Integer.class);
+            return true;
+        } catch (Exception ex) {
+            logger.error("Database status check failed: " + ex.getMessage());
+            return false;
+        }
+
+    }
 }

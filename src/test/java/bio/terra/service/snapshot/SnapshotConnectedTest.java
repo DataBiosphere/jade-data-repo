@@ -346,6 +346,10 @@ public class SnapshotConnectedTest {
         assertThat("error message includes name conflict",
             errorModel.getMessage(), containsString("Snapshot name already exists"));
 
+        // fetch the snapshot and confirm the metadata still matches the original
+        SnapshotModel origModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        assertEquals("fetched snapshot remains unchanged", snapshotModel, origModel);
+
         // delete and confirm deleted
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);

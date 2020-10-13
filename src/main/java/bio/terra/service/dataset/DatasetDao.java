@@ -520,7 +520,7 @@ public class DatasetDao {
      * Probe to see if can access database
      */
     public boolean statusCheck() {
-        String sql = "Select count(1)";
+        String sql = "SELECT count(1)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         try {
             jdbcTemplate.queryForObject(sql, params, Integer.class);

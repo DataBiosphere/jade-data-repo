@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Test conditional"
-        if:  ${{ github.event_name != 'workflow_dispatch' }} || always()
+        if:  ${{ github.event_name != 'workflow_dispatch' && always() }}
         run: echo ${{ github.event_name }}
       - name: "Fetch latest image git hash from data-repo dev"
         id: "read_property"

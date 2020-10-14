@@ -83,8 +83,8 @@ jobs:
       - name: "Fetch latest image git hash from data-repo dev"
         id: "read_property"
         run: |
-          echo "Current Version: " $(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
-          LATEST_VERSION=$(curl -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+          echo "Current Version: " $(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+          LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
           echo "Latest Version: $LATEST_VERSION"
           echo "::set-output name=LATEST_GITHASH::$LATEST_VERSION"
       - name: 'Checkout datarepo-helm-definitions repo'
@@ -134,7 +134,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Wait for Perf Cluster to come back up with correct version"
         run: |
-          PERF_VERSION=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+          PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
           RETRY_COUNT=0
           until [[ "$PERF_VERSION" == "${{ steps.read_property.outputs.LATEST_GITHASH }}" ]]; do
             if [[ ${RETRY_COUNT} > 5 ]]; then
@@ -142,8 +142,8 @@ jobs:
               exit 1
             fi
             echo "Retry #${RETRY_COUNT}: Waiting for $PERF_VERSION to equal ${{ steps.read_property.outputs.LATEST_GITHASH }}"
-            sleep 10
-            PERF_VERSION=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+            sleep 15
+            PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
             ((RETRY_COUNT=RETRY_COUNT+1))
           done;
           echo "Perf successfully running on new version: $PERF_VERSION"

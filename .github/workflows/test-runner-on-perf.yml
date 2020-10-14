@@ -187,7 +187,7 @@ jobs:
       
             #- name: "Notify Jade Slack"
       - name: "Test conditional2"
-        if:  ${{ github.event_name != "workflow_dispatch"}} && always()
+        if:  ${{ github.event_name != 'workflow_dispatch' }} && always()
         run: echo ${{ github.event_name }}
       #  if: always()
       #  uses: broadinstitute/action-slack@v2

@@ -14,15 +14,15 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: "Checkout jade-data-repo develop branch"
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0
-      - name: 'Get Previous tag'
+          ref: develop
+      - name: 'Get latest semantic version from data-repo dev'
         id: apilatesttag
         uses: "broadinstitute/github-action-get-previous-tag@master"
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"  
       - name: "Checkout jade-data-repo ${{ steps.apilatesttag.outputs.tag }} branch"
         uses: actions/checkout@v2
         with:

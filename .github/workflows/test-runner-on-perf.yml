@@ -21,12 +21,7 @@ jobs:
           echo "Current Version: $CURRENT_VERSION" 
           LATEST_VERSION=$(curl -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer')
           echo "Latest Version: $LATEST_VERSION"
-          echo "::set-output name=LATEST_SEMVER::$LATEST_VERSION"
-          TO_UPDATE=0
-          if [[ "$CURRENT_VERSION" != "$LATEST_VERSION" ]]
-            TO_UPDATE=1
-          fi
-          echo "::set-output name=UPDATE::$TO_UPDATE"    
+          echo "::set-output name=LATEST_SEMVER::$LATEST_VERSION"  
       - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_SEMVER }} branch"
         uses: actions/checkout@v2
         with:
@@ -94,19 +89,16 @@ jobs:
             fi
           done
       - name: 'Checkout datarepo-helm-definitions repo'
-        if: ${{ steps.read_property.outputs.UPDATE }} == 1
         uses: actions/checkout@v2
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
       - name: "Update perf image tag with semVer"
-        if: ${{ steps.read_property.outputs.UPDATE }} == 1
         uses: docker://mikefarah/yq:latest
         with:
           args: yq w -i datarepo-helm-definitions/perf/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_SEMVER }}
       - name: "Create datarepo-helm-definition pull request with updated perf image tag"
-        if: ${{ steps.read_property.outputs.UPDATE }} == 1
         uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
         with:
           token: ${{ secrets.HELM_REPO_TOKEN }}
@@ -121,7 +113,6 @@ jobs:
             *Note: This PR was opened by the [test-runner-perf GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "broadbot,datarepo,automerge"
       - name: "Merge datarepo-helm-definition pull request"
-        if: ${{ steps.read_property.outputs.UPDATE }} == 1
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
           git checkout master
@@ -135,17 +126,14 @@ jobs:
           fi
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Install Helmfile"
-        if: ${{ steps.read_property.outputs.UPDATE }} == 1
         uses: broadinstitute/setup-helmfile@v0.5.0 #Forked from mamezou-tech/setup-helmfile
       - name: "Use helmfile to apply image tag update to Perf yaml"
-        if: ${{ steps.read_property.outputs.UPDATE }} == 1
         run: |
           helmfile --version
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Wait for Perf Cluster to come back up with correct version"
-        if: ${{ steps.read_property.outputs.UPDATE }} == 1
         run: |
           PERF_VERSION=$(curl -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer')
           RETRY_COUNT=0

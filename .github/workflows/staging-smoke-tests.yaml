@@ -1,8 +1,7 @@
 name: DataRepo Staging Smoke Tests
 env:
   K8_CLUSTER: jade-master-us-central1
-  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
-  GOOGLE_SA_CERT: /tmp/jade-dev-account.pem
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/staging-test-runner.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
 on:
@@ -35,10 +34,10 @@ jobs:
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
-          roleId: ${{ secrets.ROLE_ID }}
-          secretId: ${{ secrets.SECRET_ID }}
+          roleId: ${{ secrets.STAGING_ROLE_ID }}
+          secretId: ${{ secrets.STAGING_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
+            secret/dsde/datarepo/staging/test-runner-sa key | B64_APPLICATION_CREDENTIALS ;
       - name: "Configure credentials"
         run: |
           # write vault tokens

@@ -14,7 +14,7 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     steps:
-      - name: "Fetch latest sematic version from data-repo dev"
+      - name: "Fetch latest semantic version from data-repo dev"
         id: "read_property"
         run: |
           CURRENT_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer' | sed 's/-SNAPSHOT//')

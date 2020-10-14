@@ -20,7 +20,7 @@ jobs:
           roleId: ${{ secrets.STAGING_ROLE_ID }}
           secretId: ${{ secrets.STAGING_SECRET_ID }}
           secrets: |
-            secret/dsde/datarepo/staging/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+            secret/dsde/datarepo/staging/test-runner-sa key | B64_APPLICATION_CREDENTIALS ;
       - name: "Perform IAM policy cleanup for staging"
         run: |
           # write vault tokens
@@ -38,28 +38,13 @@ jobs:
           secretId: ${{ secrets.SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
-      - name: "Configure credentials"
+      - name: "Add dev credentials to run as Harry Potter test users"
         run: |
           # write vault tokens
           base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
         env:
           # note: hack to overwrite the env var to grab the dev credentials too
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
-      - name: "Import Vault staging secrets"
-        uses: hashicorp/vault-action@v2.0.1
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.STAGING_ROLE_ID }}
-          secretId: ${{ secrets.STAGING_SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/staging/test-runner-sa key | B64_APPLICATION_CREDENTIALS ;
-      - name: "Configure credentials"
-        run: |
-          # write vault tokens
-          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
-
-          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

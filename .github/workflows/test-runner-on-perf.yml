@@ -14,10 +14,6 @@ jobs:
   test-runner-perf:
     runs-on: ubuntu-latest
     steps:
-      - name: "Checkout jade-data-repo develop branch"
-        uses: actions/checkout@v2
-        with:
-          ref: develop
       - name: 'Get latest semantic version from data-repo dev'
         id: apilatesttag
         uses: "broadinstitute/github-action-get-previous-tag@master"

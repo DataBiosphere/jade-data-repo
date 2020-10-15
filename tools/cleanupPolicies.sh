@@ -10,7 +10,7 @@ PROJECT_ID=$1
 
 PROJECT_EXISTS=$(gcloud projects list --filter ${PROJECT_ID} --uri 2>/dev/null)
 if [ -z "${PROJECT_EXISTS}" ]; then
-    echo "ERROR: Cannot find project '${PROJECT_ID}'"
+    echo "ERROR: Cannot find project '${PROJECT_ID}' (do you have permission?)"
     exit 1
 fi
 

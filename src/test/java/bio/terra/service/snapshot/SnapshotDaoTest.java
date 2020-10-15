@@ -24,6 +24,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -103,6 +104,12 @@ public class SnapshotDaoTest {
 
         String flightId = "happyInOutTest_flightId";
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+        UUID snapshotId = UUID.randomUUID();
+        Instant createdDate = Instant.now(); // TODO Does this need to be set for timezone / format etc?
+        // Load Service uses Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT);
+        snapshot
+            .id(snapshotId)
+            .createdDate(createdDate);
         snapshotId = snapshotDao.createAndLock(snapshot, flightId);
         snapshotDao.unlock(snapshotId, flightId);
         Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotId);
@@ -209,7 +216,13 @@ public class SnapshotDaoTest {
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
             String flightId = "snapshotEnumerateTest_flightId";
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-            snapshotId = snapshotDao.createAndLock(snapshot, flightId);
+            UUID snapshotId = UUID.randomUUID();
+            Instant createdDate = Instant.now(); // TODO Does this need to be set for timezone / format etc?
+            // Load Service uses Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT);
+            snapshot
+                .id(snapshotId)
+                .createdDate(createdDate);
+            snapshotDao.createAndLock(snapshot, flightId);
             snapshotDao.unlock(snapshotId, flightId);
             snapshotIds.add(snapshotId);
         }

@@ -39,12 +39,12 @@ jobs:
           secrets: |
             secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
       - name: "Add dev credentials to run as Harry Potter test users"
-        run: |
-          # write vault tokens
-          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
         env:
           # note: hack to overwrite the env var to grab the dev credentials too
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

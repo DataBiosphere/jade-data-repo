@@ -23,8 +23,6 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath('org.springframework.boot:spring-boot-starter-web:2.2.6.RELEASE')
-        classpath('org.springframework.boot:spring-boot-starter-validation:2.3.4.RELEASE')
         classpath('io.swagger:swagger-codegen:2.4.11')
         classpath('gradle.plugin.com.srcclr:gradle:3.1.0')
     }
@@ -154,7 +152,6 @@ dependencies {
     compile 'org.postgresql:postgresql:42.2.8'           // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
     compile "org.springframework.boot:spring-boot-starter-web:2.2.6.RELEASE"
-    compile "org.springframework.boot:spring-boot-starter-validation:2.3.4.RELEASE"
 
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-9435410-SNAP'
@@ -197,7 +194,6 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     testCompile "org.springframework.boot:spring-boot-starter-test"
-    testCompile "org.springframework.boot:spring-boot-starter-validation"
     testCompile 'org.postgresql:postgresql:42.2.8'
     testCompile 'com.google.code.findbugs:annotations:3.0.1'
 

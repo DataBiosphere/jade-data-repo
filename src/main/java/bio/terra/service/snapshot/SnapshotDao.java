@@ -128,12 +128,13 @@ public class SnapshotDao {
     public UUID createAndLock(Snapshot snapshot, String flightId) {
         logger.debug("createAndLock snapshot " + snapshot.getName());
 
-        String sql = "INSERT INTO snapshot (name, description, profile_id, flightid) " +
-            "VALUES (:name, :description, :profile_id, :flightid) ";
+        String sql = "INSERT INTO snapshot (name, description, profile_id, id, flightid) " +
+            "VALUES (:name, :description, :profile_id, :id, :flightid) ";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", snapshot.getName())
             .addValue("description", snapshot.getDescription())
             .addValue("profile_id", snapshot.getProfileId())
+            .addValue("id", snapshot.getId())
             .addValue("flightid", flightId);
         try {
             jdbcTemplate.update(sql, params);

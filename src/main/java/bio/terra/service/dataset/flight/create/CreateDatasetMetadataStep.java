@@ -17,6 +17,7 @@ import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.UUID;
 
 
@@ -36,9 +37,16 @@ public class CreateDatasetMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         try {
             Dataset newDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-            UUID datasetId = datasetDao.createAndLock(newDataset, context.getFlightId());
+
             FlightMap workingMap = context.getWorkingMap();
+            UUID datasetId = UUID.randomUUID();
+            Instant createdDate = Instant.now();
             workingMap.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
+            newDataset
+                .id(datasetId)
+                .createdDate(createdDate);
+
+            datasetDao.createAndLock(newDataset, context.getFlightId());
 
             DatasetSummaryModel datasetSummary =
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(newDataset.getDatasetSummary());
@@ -55,7 +63,10 @@ public class CreateDatasetMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         logger.debug("Dataset creation failed. Deleting metadata.");
-        datasetDao.deleteByNameAndFlight(datasetRequest.getName(), context.getFlightId());
+        FlightMap workingMap = context.getWorkingMap();
+        UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+        // TODO what if the datasetId has not yet been set when the undo happens?
+        datasetDao.delete(datasetId);
         return StepResult.getStepResultSuccess();
     }
 }

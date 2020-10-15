@@ -190,7 +190,7 @@ jobs:
             --enable-master-authorized-networks \
             --master-authorized-networks ${RESTORE_IPS}
       - name: "Notify Jade Slack"
-        if:  ${{ github.event_name != 'workflow_dispatch' && always() }}
+        if:  always()
         uses: broadinstitute/action-slack@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -9,6 +9,9 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.AuthenticatedUserRequestFactory;
+import bio.terra.service.iam.IamService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Matcher;
@@ -19,6 +22,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
@@ -29,6 +33,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -36,6 +41,8 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -59,9 +66,21 @@ public class SnapshotValidationTest {
     private SnapshotRequestModel snapshotByQueryRequestModel;
 
 
+    @MockBean
+    private IamService mockIamService;
+
+    // Mock MVC doesn't populate the fields used to build this.
+    @MockBean
+    private AuthenticatedUserRequestFactory mockAuthenticatedUserRequestFactory;
 
     @Before
     public void setup() {
+        AuthenticatedUserRequest fakeAuthentication = new AuthenticatedUserRequest();
+        fakeAuthentication
+            .token(Optional.of("fake-token"))
+            .email("fake@email.com")
+            .subjectId("fakeID123");
+        when(mockAuthenticatedUserRequestFactory.from(any())).thenReturn(fakeAuthentication);
         snapshotByAssetRequest = makeSnapshotAssetRequest();
         snapshotByRowIdsRequestModel = makeSnapshotRowIdsRequest();
         snapshotByQueryRequestModel = makeSnapshotByQueryRequest();

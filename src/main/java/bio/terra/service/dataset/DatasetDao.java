@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
@@ -285,32 +284,29 @@ public class DatasetDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
+        // TODO why did this method think it already had a dataset id? ^
         String sql = "INSERT INTO dataset " +
-            "(name, default_profile_id, flightid, description, sharedlock) " +
-            "VALUES (:name, :default_profile_id, :flightid, :description, ARRAY[]::TEXT[]) ";
+            "(name, default_profile_id, id, flightid, description, sharedlock) " +
+            "VALUES (:name, :default_profile_id, :id, :flightid, :description, ARRAY[]::TEXT[]) ";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
             .addValue("default_profile_id", dataset.getDefaultProfileId())
+            .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
             .addValue("description", dataset.getDescription());
-        DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
-            jdbcTemplate.update(sql, params, keyHolder);
+            jdbcTemplate.update(sql, params);
         } catch (DuplicateKeyException dkEx) {
             throw new InvalidDatasetException("Dataset name already exists: " + dataset.getName(), dkEx);
         }
-
-        UUID datasetId = keyHolder.getId();
-        dataset.id(datasetId);
-        dataset.createdDate(keyHolder.getCreatedDate());
 
         tableDao.createTables(dataset.getId(), dataset.getTables());
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
 
-        logger.debug("end of createAndLock datasetId: {} for flightId: {}", datasetId, flightId);
-        return datasetId;
+        logger.debug("end of createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
+        return dataset.getId();
     }
 
     /**

@@ -1,0 +1,20 @@
+{
+  "name": "staging",
+  "description": "Staging performance smoke tests",
+  "datarepoUri": "https://data.staging.envs-terra.bio",
+  "samUri": "https://sam.dsde-staging.broadinstitute.org",
+  "samResourceIdForDatarepo": "terra-datarepo-staging",
+  "clusterName": "gke_terra-datarepo-staging_us-central1_jade-master-us-central1",
+  "clusterShortName": "jade-master-us-central1",
+  "region": "us-central1",
+  "project": "terra-datarepo-staging",
+  "namespace": "terra-staging",
+  "containerName": "datarepo-datarepo-api",
+  "deploymentScript": {
+    "name": "ModularHelmChart",
+    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/staging/datarepo-api.yaml"]
+  },
+  "testRunnerServiceAccountFile": "staging-test-runner-sa.json",
+  "skipDeployment": true,
+  "skipKubernetes": true
+}

@@ -12,6 +12,16 @@ jobs:
     steps:
       - name: "Checkout jade-data-repo"
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: "Get previous tag"
+        id: apiprevioustag
+        uses: "broadinstitute/github-action-get-previous-tag@master"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Checkout tag for DataBiosphere/jade-data-repo"
+        run: |
+          git checkout ${{ steps.apiprevioustag.outputs.tag }}
       - name: "Import Vault staging secrets"
         uses: hashicorp/vault-action@v2.0.1
         with:
@@ -65,3 +75,14 @@ jobs:
           ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
           cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: "Notify Jade Slack"
+        if: always()
+        uses: broadinstitute/action-slack@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          channel: "#jade-alerts"
+          username: "Data Repo tests"
+          text: "Staging smoke tests"

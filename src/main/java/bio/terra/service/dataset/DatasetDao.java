@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -285,14 +286,16 @@ public class DatasetDao {
     public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         // TODO why did this method think it already had a dataset id? ^
+        Timestamp created_date = new Timestamp(dataset.getCreatedDate().toEpochMilli());
         String sql = "INSERT INTO dataset " +
-            "(name, default_profile_id, id, flightid, description, sharedlock) " +
-            "VALUES (:name, :default_profile_id, :id, :flightid, :description, ARRAY[]::TEXT[]) ";
+            "(name, default_profile_id, id, created_date, flightid, description, sharedlock) " +
+            "VALUES (:name, :default_profile_id, :id, :created_date, :flightid, :description, ARRAY[]::TEXT[]) ";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
             .addValue("default_profile_id", dataset.getDefaultProfileId())
             .addValue("id", dataset.getId())
+            .addValue("created_date", created_date)
             .addValue("flightid", flightId)
             .addValue("description", dataset.getDescription());
         try {

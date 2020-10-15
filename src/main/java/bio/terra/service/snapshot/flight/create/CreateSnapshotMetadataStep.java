@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.FlightUtils;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.snapshot.Snapshot;
@@ -9,7 +9,6 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.common.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -20,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
+import java.time.Instant;
 import java.util.UUID;
 
 public class CreateSnapshotMetadataStep implements Step {
@@ -42,14 +42,16 @@ public class CreateSnapshotMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         try {
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotReq);
-            DaoKeyHolder keyHolder = new DaoKeyHolder();
-            UUID snapshotId = keyHolder.getId();
+
+            FlightMap workingMap = context.getWorkingMap();
+            UUID snapshotId = UUID.randomUUID();
+            Instant createdDate = Instant.now();
+            workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
             snapshot
                 .id(snapshotId)
-                .createdDate(keyHolder.getCreatedDate());
-            snapshotDao.createAndLock(snapshot, context.getFlightId(), keyHolder);
-            FlightMap workingMap = context.getWorkingMap();
-            workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
+                .createdDate(createdDate);
+
+            snapshotDao.createAndLock(snapshot, context.getFlightId());
 
             SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(snapshot.getId());
             SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);

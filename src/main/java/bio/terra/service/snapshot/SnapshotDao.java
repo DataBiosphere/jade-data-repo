@@ -125,7 +125,7 @@ public class SnapshotDao {
      * @throws InvalidSnapshotException if a row already exists with this snapshot name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public UUID createAndLock(Snapshot snapshot, String flightId, DaoKeyHolder keyHolder) {
+    public UUID createAndLock(Snapshot snapshot, String flightId) {
         logger.debug("createAndLock snapshot " + snapshot.getName());
 
         String sql = "INSERT INTO snapshot (name, description, profile_id, flightid) " +
@@ -136,7 +136,7 @@ public class SnapshotDao {
             .addValue("profile_id", snapshot.getProfileId())
             .addValue("flightid", flightId);
         try {
-            jdbcTemplate.update(sql, params, keyHolder); // TODO does this need to pass the keyholder?
+            jdbcTemplate.update(sql, params);
         } catch (DuplicateKeyException dkEx) {
             throw new InvalidSnapshotException("Snapshot name already exists: " + snapshot.getName(), dkEx);
         }

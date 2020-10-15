@@ -125,7 +125,7 @@ public class SnapshotDao {
      * @throws InvalidSnapshotException if a row already exists with this snapshot name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public UUID createAndLock(Snapshot snapshot, String flightId) {
+    public UUID createAndLock(Snapshot snapshot, String flightId, DaoKeyHolder keyHolder) {
         logger.debug("createAndLock snapshot " + snapshot.getName());
 
         String sql = "INSERT INTO snapshot (name, description, profile_id, flightid) " +
@@ -135,24 +135,18 @@ public class SnapshotDao {
             .addValue("description", snapshot.getDescription())
             .addValue("profile_id", snapshot.getProfileId())
             .addValue("flightid", flightId);
-        DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
-            jdbcTemplate.update(sql, params, keyHolder);
+            jdbcTemplate.update(sql, params, keyHolder); // TODO does this need to pass the keyholder?
         } catch (DuplicateKeyException dkEx) {
             throw new InvalidSnapshotException("Snapshot name already exists: " + snapshot.getName(), dkEx);
         }
 
-        UUID snapshotId = keyHolder.getId();
-        snapshot
-            .id(snapshotId)
-            .createdDate(keyHolder.getCreatedDate());
-
-        snapshotTableDao.createTables(snapshotId, snapshot.getTables());
+        snapshotTableDao.createTables(snapshot.getId(), snapshot.getTables());
         for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
             createSnapshotSource(snapshotSource);
         }
 
-        return snapshotId;
+        return snapshot.getId(); // TODO should this return nothing now?
     }
 
     /**
@@ -195,13 +189,6 @@ public class SnapshotDao {
         logger.debug("delete snapshot by id: " + id);
         int rowsAffected = jdbcTemplate.update("DELETE FROM snapshot WHERE id = :id",
                 new MapSqlParameterSource().addValue("id", id));
-        return rowsAffected > 0;
-    }
-
-    public boolean deleteByName(String snapshotName) {
-        logger.debug("delete snapshot by name: " + snapshotName);
-        int rowsAffected = jdbcTemplate.update("DELETE FROM snapshot WHERE name = :name",
-                new MapSqlParameterSource().addValue("name", snapshotName));
         return rowsAffected > 0;
     }
 

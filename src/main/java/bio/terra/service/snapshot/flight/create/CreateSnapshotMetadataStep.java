@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.snapshot.Snapshot;
@@ -41,8 +42,12 @@ public class CreateSnapshotMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         try {
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotReq);
-
-            UUID snapshotId = snapshotDao.createAndLock(snapshot, context.getFlightId());
+            DaoKeyHolder keyHolder = new DaoKeyHolder();
+            UUID snapshotId = keyHolder.getId();
+            snapshot
+                .id(snapshotId)
+                .createdDate(keyHolder.getCreatedDate());
+            snapshotDao.createAndLock(snapshot, context.getFlightId(), keyHolder);
             FlightMap workingMap = context.getWorkingMap();
             workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
 
@@ -62,7 +67,10 @@ public class CreateSnapshotMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         logger.debug("Snapshot creation failed. Deleting metadata.");
-        snapshotDao.deleteByNameAndFlight(snapshotReq.getName(), context.getFlightId());
+        FlightMap workingMap = context.getWorkingMap();
+        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+        // TODO what if the snapshotId has not yet been set?
+        snapshotDao.delete(snapshotId);
         return StepResult.getStepResultSuccess();
     }
 

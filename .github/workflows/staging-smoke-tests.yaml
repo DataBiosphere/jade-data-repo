@@ -38,7 +38,7 @@ jobs:
           secretId: ${{ secrets.SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
-      - name: "Add dev credentials to run as Harry Potter test users"
+      - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
         env:
           # note: hack to overwrite the env var to grab the dev credentials too
           GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json

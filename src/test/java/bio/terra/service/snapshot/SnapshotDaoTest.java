@@ -1,16 +1,16 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.common.Relationship;
-import bio.terra.common.category.Unit;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
-import bio.terra.service.dataset.Dataset;
+import bio.terra.common.Relationship;
 import bio.terra.common.Table;
-import bio.terra.model.SnapshotRequestModel;
+import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
@@ -73,7 +73,12 @@ public class SnapshotDaoTest {
             .defaultProfileId(profileId.toString());
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
-        datasetId = datasetDao.createAndLock(dataset, createFlightId);
+        datasetId = UUID.randomUUID();
+        Instant createdDate = Instant.now();
+        dataset
+            .id(datasetId)
+            .createdDate(createdDate);
+        datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         dataset = datasetDao.retrieve(datasetId);
 

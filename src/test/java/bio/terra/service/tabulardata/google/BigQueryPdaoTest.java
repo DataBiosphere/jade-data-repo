@@ -53,6 +53,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -124,6 +125,11 @@ public class BigQueryPdaoTest {
             .name(datasetName());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
+        UUID datasetId = UUID.randomUUID();
+        Instant createdDate = Instant.now();
+        dataset
+            .id(datasetId)
+            .createdDate(createdDate);
         datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         dataLocationService.getOrCreateProject(dataset);

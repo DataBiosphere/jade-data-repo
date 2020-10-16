@@ -1,17 +1,88 @@
 name: DataRepo Staging Smoke Tests
 env:
-  K8_CLUSTER: 'staging-master'
-  # This must be defined for the bash redirection
-  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
-  # This must be defined for the bash redirection
-  GOOGLE_SA_CERT: 'jade-dev-account.pem'
+  K8_CLUSTER: jade-master-us-central1
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/staging-test-runner.json
+  GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
+  GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
 on:
   workflow_dispatch: {}
 jobs:
   test-runner-staging:
     runs-on: ubuntu-latest
     steps:
-      - name: "Checkout jade-data-repo develop branch"
+      - name: "Checkout jade-data-repo"
         uses: actions/checkout@v2
         with:
-          ref: develop
+          fetch-depth: 0
+      - name: "Get previous tag"
+        id: apiprevioustag
+        uses: "broadinstitute/github-action-get-previous-tag@master"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Checkout tag for DataBiosphere/jade-data-repo"
+        run: |
+          git checkout ${{ steps.apiprevioustag.outputs.tag }}
+      - name: "Import Vault staging secrets"
+        uses: hashicorp/vault-action@v2.0.1
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.STAGING_ROLE_ID }}
+          secretId: ${{ secrets.STAGING_SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/staging/test-runner-sa key | B64_APPLICATION_CREDENTIALS ;
+      - name: "Perform IAM policy cleanup for staging"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
+      - name: "Import Vault dev secrets"
+        uses: hashicorp/vault-action@v2.0.1
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.ROLE_ID }}
+          secretId: ${{ secrets.SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
+      - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
+        env:
+          # note: hack to overwrite the env var to grab the dev credentials too
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+      - name: "Build and run Test Runner"
+        run: |
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+          echo "Building Data Repo client library"
+          export TEST_RUNNER_SERVER_SPECIFICATION_FILE="staging.json"
+          ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
+          export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
+          echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
+
+          echo "Running test suite"
+          ./gradlew runTest --args="suites/StagingSmokeTests.json tmp/TestRunnerResults"
+
+          echo "Collecting measurements"
+          ./gradlew collectMeasurements --args="StagingSmokeTests.json tmp/TestRunnerResults"
+
+          echo "Uploading results"
+          ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
+
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: "Notify Jade Slack"
+        if: always()
+        uses: broadinstitute/action-slack@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          channel: "#jade-alerts"
+          username: "Data Repo tests"
+          text: "Staging smoke tests"

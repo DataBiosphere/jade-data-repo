@@ -26,6 +26,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -64,7 +65,12 @@ public class DatasetDaoTest {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
-        UUID datasetId = datasetDao.createAndLock(dataset, createFlightId);
+        UUID datasetId = UUID.randomUUID();
+        Instant createdDate = Instant.now();
+        dataset
+            .id(datasetId)
+            .createdDate(createdDate);
+        datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         return datasetId;
     }

@@ -285,7 +285,6 @@ public class DatasetDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
-        // TODO why did this method think it already had a dataset id? ^
         Timestamp created_date = new Timestamp(dataset.getCreatedDate().toEpochMilli());
         String sql = "INSERT INTO dataset " +
             "(name, default_profile_id, id, created_date, flightid, description, sharedlock) " +

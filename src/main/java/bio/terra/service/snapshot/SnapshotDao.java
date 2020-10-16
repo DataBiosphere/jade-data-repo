@@ -186,20 +186,11 @@ public class SnapshotDao {
         snapshotRelationshipDao.createSnapshotRelationships(snapshotSource.getSnapshot());
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean delete(UUID id) {
         logger.debug("delete snapshot by id: " + id);
         int rowsAffected = jdbcTemplate.update("DELETE FROM snapshot WHERE id = :id",
                 new MapSqlParameterSource().addValue("id", id));
-        return rowsAffected > 0;
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public boolean deleteByNameAndFlight(String snapshotName, String flightId) {
-        String sql = "DELETE FROM snapshot WHERE name = :name AND flightid = :flightid";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("name", snapshotName)
-            .addValue("flightid", flightId);
-        int rowsAffected = jdbcTemplate.update(sql, params);
         return rowsAffected > 0;
     }
 

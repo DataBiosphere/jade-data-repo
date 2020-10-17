@@ -25,6 +25,7 @@ buildscript {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
         classpath('io.swagger:swagger-codegen:2.4.11')
         classpath('gradle.plugin.com.srcclr:gradle:3.1.0')
+        classpath "gradle.plugin.com.github.spotbugs.snom:spotbugs-gradle-plugin:4.5.1"
     }
 }
 
@@ -32,6 +33,7 @@ plugins {
   id "com.google.cloud.tools.jib" version "1.6.1"
   id 'org.liquibase.gradle' version '2.0.1'
   id 'antlr'
+  id 'com.github.spotbugs' version '4.5.1'
 }
 
 allprojects {
@@ -55,8 +57,8 @@ apply plugin: 'io.spring.dependency-management'
 apply plugin: 'antlr'
 
 apply plugin: 'checkstyle'
-apply plugin: 'findbugs'
 apply plugin: 'jacoco'
+apply plugin: "com.github.spotbugs"
 
 apply plugin: 'com.srcclr.gradle'
 
@@ -83,12 +85,10 @@ if (hasProperty('buildScan')) {
     }
 }
 
-tasks.withType(FindBugs) {
-    reports {
-        xml.enabled false
-        html.enabled true
-        html.stylesheet resources.text.fromFile('config/findbugs/plain.xsl')
-    }
+tasks.withType(com.github.spotbugs.snom.SpotBugsTask) {
+    //xml.enabled = false
+    //html.enabled = true
+    //html.stylesheet resources.text.fromFile('config/findbugs/plain.xsl')
 }
 
 tasks.withType(JacocoReport) {
@@ -185,7 +185,9 @@ dependencies {
     runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
-    compileOnly 'com.google.code.findbugs:annotations:3.0.1'
+    compileOnly 'net.jcip:jcip-annotations:1.0'
+    compileOnly 'com.github.spotbugs:spotbugs-annotations:4.1.4'
+
 
     liquibaseRuntime 'org.liquibase:liquibase-core:3.8.0'
     liquibaseRuntime 'org.postgresql:postgresql:42.2.7'
@@ -195,7 +197,6 @@ dependencies {
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     testCompile "org.springframework.boot:spring-boot-starter-test"
     testCompile 'org.postgresql:postgresql:42.2.8'
-    testCompile 'com.google.code.findbugs:annotations:3.0.1'
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
@@ -293,13 +294,13 @@ sourceSets {
         checkstyleGenerated.enabled = false // Don't check generated code
         configFile file("config/checkstyle/checkstyle.xml")
     }
-    findbugs {
-        toolVersion '3.0.1'
-        ignoreFailures = false
-        excludeFilter = file("config/findbugs/excludeFilter.xml")
-        reportsDir = file("$project.buildDir/reports/findbugs")
-        effort = "max"
-    }
+    //spotbugs {
+    //    toolVersion '4.1.4'
+        //ignoreFailures = false
+        //excludeFilter = file("config/findbugs/excludeFilter.xml")
+        //reportsDir = file("$project.buildDir/reports/findbugs")
+        //effort = "max"
+    //}
     jacoco {
         toolVersion '0.8.2'
     }

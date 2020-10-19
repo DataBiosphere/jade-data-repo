@@ -109,7 +109,6 @@ public class SnapshotDaoTest {
 
         String flightId = "happyInOutTest_flightId";
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-        UUID snapshotId = UUID.randomUUID();
         Instant createdDate = Instant.now();
         snapshot
             .id(snapshotId)
@@ -319,7 +318,7 @@ public class SnapshotDaoTest {
             assertThat("correct snapshot id",
                     snapshotIds.get(index),
                     equalTo(summary.getId()));
-            assertThat("correct snapshot namee",
+            assertThat("correct snapshot name",
                     makeName(snapshotName, index),
                     equalTo(summary.getName()));
             index++;

@@ -96,9 +96,8 @@ spotbugsMain {
         html {
             enabled = true
             destination = file("$buildDir/reports/spotbugs/main.txt")
-            stylesheet = 'fancy.xsl'
-            excludeFilter = file("config/findbugs/excludeFilter.xml")
-            //reportsDir = file("$project.buildDir/reports/findbugs")
+            stylesheet = "plain.xsl"
+            excludeFilter = file("config/spotbugs/excludeFilter.xml")
         }
     }
 }
@@ -107,8 +106,8 @@ spotbugsTest {
         html {
             enabled = true
             destination = file("$buildDir/reports/spotbugs/test.txt")
-            excludeFilter = file("config/findbugs/excludeFilter.xml")
-            stylesheet = 'fancy.xsl'
+            stylesheet = "plain.xsl"
+            excludeFilter = file("config/spotbugs/excludeFilter.xml")
         }
     }
 }
@@ -180,7 +179,6 @@ dependencies {
     compile 'org.antlr:ST4:4.3'                          // String templating
     compile group: 'io.kubernetes', name: 'client-java', version: '8.0.2'
 
-
     // This allows you to build with a local Stairway JAR file, instead of the one from the repository
     // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
     // Or define the environment variable ORG_GRADLE_PROJECT_stairwayjar
@@ -207,9 +205,7 @@ dependencies {
     runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
-    //compileOnly 'net.jcip:jcip-annotations:1.0'
     compileOnly 'com.github.spotbugs:spotbugs-annotations:4.1.4'
-    //compileOnly 'com.google.code.findbugs:annotations:3.0.1'
 
 
     liquibaseRuntime 'org.liquibase:liquibase-core:3.8.0'
@@ -317,13 +313,6 @@ sourceSets {
         checkstyleGenerated.enabled = false // Don't check generated code
         configFile file("config/checkstyle/checkstyle.xml")
     }
-    //spotbugs {
-    //    toolVersion '4.1.4'
-        //ignoreFailures = false
-        //excludeFilter = file("config/findbugs/excludeFilter.xml")
-        //reportsDir = file("$project.buildDir/reports/findbugs")
-        //effort = "max"
-    //}
     jacoco {
         toolVersion '0.8.2'
     }

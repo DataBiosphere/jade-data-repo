@@ -205,7 +205,7 @@ dependencies {
     runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
-    compileOnly 'com.github.spotbugs:spotbugs-annotations:4.1.4'
+    compileOnly 'com.google.code.findbugs:annotations:3.0.1'
 
 
     liquibaseRuntime 'org.liquibase:liquibase-core:3.8.0'
@@ -216,6 +216,7 @@ dependencies {
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     testCompile "org.springframework.boot:spring-boot-starter-test"
     testCompile 'org.postgresql:postgresql:42.2.8'
+    testCompile 'com.google.code.findbugs:annotations:3.0.1'
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'

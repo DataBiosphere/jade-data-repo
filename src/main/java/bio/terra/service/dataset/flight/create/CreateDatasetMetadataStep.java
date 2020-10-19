@@ -39,9 +39,8 @@ public class CreateDatasetMetadataStep implements Step {
             Dataset newDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
 
             FlightMap workingMap = context.getWorkingMap();
-            UUID datasetId = UUID.randomUUID();
+            UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
             Instant createdDate = Instant.now();
-            workingMap.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
             newDataset
                 .id(datasetId)
                 .createdDate(createdDate);
@@ -65,7 +64,6 @@ public class CreateDatasetMetadataStep implements Step {
         logger.debug("Dataset creation failed. Deleting metadata.");
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-        // TODO what if the datasetId has not yet been set when the undo happens?
         datasetDao.delete(datasetId);
         return StepResult.getStepResultSuccess();
     }

@@ -44,9 +44,8 @@ public class CreateSnapshotMetadataStep implements Step {
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotReq);
 
             FlightMap workingMap = context.getWorkingMap();
-            UUID snapshotId = UUID.randomUUID();
+            UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
             Instant createdDate = Instant.now();
-            workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
             snapshot
                 .id(snapshotId)
                 .createdDate(createdDate);
@@ -71,7 +70,6 @@ public class CreateSnapshotMetadataStep implements Step {
         logger.debug("Snapshot creation failed. Deleting metadata.");
         FlightMap workingMap = context.getWorkingMap();
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-        // TODO what if the snapshotId has not yet been set?
         snapshotDao.delete(snapshotId);
         return StepResult.getStepResultSuccess();
     }

@@ -49,6 +49,7 @@ public class SnapshotCreateFlight extends Flight {
 
         // create the snapshot metadata object in postgres and lock it
         // mint a snapshot id and put it in the working map
+        addStep(new CreateSnapshotIdStep(snapshotReq));
         addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
 
         // Make the big query dataset with views and populate row id filtering tables.

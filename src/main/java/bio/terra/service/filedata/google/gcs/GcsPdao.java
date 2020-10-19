@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.google.gcs;
 
+import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoInvalidUriException;
@@ -25,16 +27,21 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
@@ -48,6 +55,8 @@ public class GcsPdao {
     private final FireStoreDao fileDao;
     private final ApplicationContext applicationContext;
     private final ConfigurationService configurationService;
+    private final ExecutorService executor;
+    private final PerformanceLogger performanceLogger;
 
     @Autowired
     public GcsPdao(
@@ -55,12 +64,16 @@ public class GcsPdao {
         DataLocationService dataLocationService,
         FireStoreDao fileDao,
         ApplicationContext applicationContext,
-        ConfigurationService configurationService) {
+        ConfigurationService configurationService,
+        @Qualifier("performanceThreadpool") ExecutorService executor,
+        PerformanceLogger performanceLogger) {
         this.gcsProjectFactory = gcsProjectFactory;
         this.dataLocationService = dataLocationService;
         this.fileDao = fileDao;
         this.applicationContext = applicationContext;
         this.configurationService = configurationService;
+        this.executor = executor;
+        this.performanceLogger = performanceLogger;
     }
 
     public Storage storageForBucket(GoogleBucketResource bucketResource) {
@@ -256,43 +269,56 @@ public class GcsPdao {
             }
         }
 
-        Map<String, GoogleBucketResource> bucketCache = new HashMap<>();
+        Map<String, GoogleBucketResource> bucketCache = new ConcurrentHashMap<>();
 
         int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
         List<List<String>> batches = ListUtils.partition(fileIds, batchSize);
         logger.info("operation {} on {} file ids, in {} batches of {}",
             op.name(), fileIds.size(), batches.size(), batchSize);
 
+        String retrieveTimer = performanceLogger.timerStart();
         int count = 0;
         for (List<String> batch : batches) {
             logger.info("operation {} batch {}", op.name(), count);
             count++;
 
             List<FSFile> files = fileDao.batchRetrieveById(dataset, batch, 0, true);
-            for (FSFile file : files) {
-                // Cache the bucket resources to avoid repeated database lookups
-                GoogleBucketResource bucketForFile = bucketCache.get(file.getBucketResourceId());
-                if (bucketForFile == null) {
-                    bucketForFile = dataLocationService.lookupBucket(file.getBucketResourceId());
-                    bucketCache.put(file.getBucketResourceId(), bucketForFile);
-                }
-                Storage storage = storageForBucket(bucketForFile);
-                URI gsUri = URI.create(file.getGspath());
-                String bucketPath = StringUtils.removeStart(gsUri.getPath(), "/");
-                BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
-                switch (op) {
-                    case ACL_OP_CREATE:
-                        for (Acl acl : acls) {
-                            storage.createAcl(blobId, acl);
-                        }
-                        break;
-                    case ACL_OP_DELETE:
-                        for (Acl.Group group : groups) {
-                            storage.deleteAcl(blobId, group);
-                        }
-                        break;
-                }
+
+            try (Stream<FSFile> stream = files.stream()) {
+                List<Future<FSFile>> futures = stream.map(file -> executor.submit(() -> {
+                    // Cache the bucket resources to avoid repeated database lookups
+                    GoogleBucketResource bucketForFile = bucketCache.get(file.getBucketResourceId());
+                    if (bucketForFile == null) {
+                        bucketForFile = dataLocationService.lookupBucket(file.getBucketResourceId());
+                        bucketCache.put(file.getBucketResourceId(), bucketForFile);
+                    }
+                    Storage storage = storageForBucket(bucketForFile);
+                    URI gsUri = URI.create(file.getGspath());
+                    String bucketPath = StringUtils.removeStart(gsUri.getPath(), "/");
+                    BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
+                    switch (op) {
+                        case ACL_OP_CREATE:
+                            for (Acl acl : acls) {
+                                storage.createAcl(blobId, acl);
+                            }
+                            break;
+                        case ACL_OP_DELETE:
+                            for (Acl.Group group : groups) {
+                                storage.deleteAcl(blobId, group);
+                            }
+                            break;
+                    }
+                    return file;
+                })).collect(Collectors.toList());
+
+                FutureUtils.waitFor(futures);
             }
         }
+
+        performanceLogger.timerEndAndLog(
+            retrieveTimer,
+            dataset.getId().toString(), // not a flight, so no job id
+            this.getClass().getName(),
+            "gcsPdao.performAclCommands");
     }
 }

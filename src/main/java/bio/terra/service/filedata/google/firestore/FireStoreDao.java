@@ -1,6 +1,5 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.app.controller.exception.ApiException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -9,6 +8,7 @@ import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.FSDir;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSItem;
+import bio.terra.service.filedata.exception.DirectoryMetadataComputeException;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.resourcemanagement.DataLocationService;
@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -107,9 +108,7 @@ public class FireStoreDao {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
-        //Slow
         fileDao.deleteFilesFromDataset(firestore, datasetId, func);
-//        firestore.
         directoryDao.deleteDirectoryEntriesFromCollection(firestore, datasetId);
     }
 
@@ -437,7 +436,7 @@ public class FireStoreDao {
                     try {
                         return computeDirectory(firestore, snapshotId, f, updateBatch);
                     } catch (InterruptedException e) {
-                        throw new ApiException("Error computing directory metadata", e);
+                        throw new DirectoryMetadataComputeException("Error computing directory metadata", e);
                     }
                 })
                 .collect(Collectors.toList())
@@ -456,21 +455,12 @@ public class FireStoreDao {
                 final List<FireStoreFile> fireStoreFiles =
                     fileDao.batchRetrieveFileMetadata(firestore, entry.getKey(), entry.getValue());
 
-                // Index by fileId to be able to look up
-                final Map<String, FireStoreFile> fireStoreFilesById;
-                try (Stream<FireStoreFile> fileStream = fireStoreFiles.stream()) {
-                    fireStoreFilesById = fileStream
-                        .collect(Collectors.toMap(
-                            FireStoreFile::getFileId,
-                            f -> f
-                        ));
-                }
-
+                final AtomicInteger index = new AtomicInteger(0);
                 enumComputed.addAll(
                     CollectionUtils.collect(entry.getValue(), dirItem -> {
-                        final FireStoreFile file = fireStoreFilesById.get(dirItem.getFileId());
+                        final FireStoreFile file = fireStoreFiles.get(index.getAndIncrement());
                         if (file == null) {
-                            throw new ApiException("File metadata was missing");
+                            throw new FileNotFoundException("File metadata was missing");
                         }
                         return dirItem
                             .size(file.getSize())

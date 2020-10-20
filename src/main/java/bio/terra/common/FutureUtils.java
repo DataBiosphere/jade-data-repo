@@ -40,7 +40,10 @@ public final class FutureUtils {
             List<T> returnList = stream
                 .map(f -> {
                     try {
-                        if (maxThreadWait.isPresent()) {
+                        // If a failure was found, all subsequent tasks should be canceled
+                        if (foundFailure.get().isPresent()) {
+                            f.cancel(true);
+                        } else if (maxThreadWait.isPresent()) {
                             return f.get(maxThreadWait.get().toMillis(), TimeUnit.MILLISECONDS);
                         } else {
                             return f.get();

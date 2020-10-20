@@ -1,6 +1,7 @@
 package bio.terra.common;
 
 import bio.terra.common.category.Unit;
+import org.apache.commons.collections4.IterableUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -142,11 +143,12 @@ public class FutureUtilsTest {
         final AtomicInteger counter = new AtomicInteger(0);
         final Callable<Integer> action = () -> {
             try {
-                if (counter.get() > 5) {
+                final int count = counter.getAndIncrement();
+                if (count == 5) {
                     throw new RuntimeException("Injected error");
                 }
                 TimeUnit.SECONDS.sleep(1);
-                return counter.getAndIncrement();
+                return count;
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -159,6 +161,9 @@ public class FutureUtilsTest {
 
         assertThatThrownBy(() -> FutureUtils.waitFor(futures)).hasMessage("Error executing thread");
         assertThat(executorService.getActiveCount()).isZero();
+
+        // Make sure that some tasks after the failure were cancelled
+        assertThat(IterableUtils.countMatches(futures, Future::isCancelled)).isPositive();
     }
 
     @Test

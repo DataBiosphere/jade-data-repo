@@ -17,6 +17,8 @@ public class GoogleResourceConfiguration {
     private String parentResourceType;
     private String parentResourceId;
     private String singleDataProjectId;
+    private boolean allowReuseExistingProjects;
+    private boolean allowReuseExistingBuckets;
 
     public String getApplicationName() {
         return applicationName;
@@ -66,6 +68,23 @@ public class GoogleResourceConfiguration {
         this.singleDataProjectId = singleDataProjectId;
     }
 
+    public boolean getAllowReuseExistingProjects() {
+        return allowReuseExistingProjects;
+    }
+
+    public void setAllowReuseExistingProjects(boolean allowReuseExistingProjects) {
+        this.allowReuseExistingProjects = allowReuseExistingProjects;
+    }
+
+    public boolean getAllowReuseExistingBuckets() {
+        return allowReuseExistingBuckets;
+    }
+
+    public void setAllowReuseExistingBuckets(boolean allowReuseExistingBuckets) {
+        this.allowReuseExistingBuckets = allowReuseExistingBuckets;
+    }
+
+    // TODO: Is this used?
     @Bean("firestore")
     public Firestore firestore() {
         return FirestoreOptions.newBuilder()

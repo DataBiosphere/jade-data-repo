@@ -1,16 +1,20 @@
 package bio.terra.service.dataset;
 
-import bio.terra.common.category.Unit;
-import bio.terra.service.dataset.exception.DatasetLockException;
-import bio.terra.service.dataset.exception.DatasetNotFoundException;
-import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
+import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.ProfileFixtures;
+import bio.terra.common.fixtures.ResourceFixtures;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.service.resourcemanagement.ProfileDao;
+import bio.terra.service.dataset.exception.DatasetLockException;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -24,8 +28,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,45 +58,53 @@ public class DatasetDaoTest {
     private ProfileDao profileDao;
 
     @Autowired
+    private GoogleResourceDao resourceDao;
+
+    @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
-    private BillingProfile billingProfile;
+    private BillingProfileModel billingProfile;
+    private UUID projectId;
 
-    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws IOException, SQLException {
-        datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
+    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws Exception {
+        datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        dataset.projectResourceId(projectId);
         String createFlightId = UUID.randomUUID().toString();
         UUID datasetId = datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         return datasetId;
     }
 
-    private UUID createDataset(String datasetFile) throws IOException, SQLException  {
+    private UUID createDataset(String datasetFile) throws Exception  {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
         return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
     }
 
     @Before
     public void setup() {
-        billingProfile = ProfileFixtures.randomBillingProfile();
-        UUID profileId = profileDao.createBillingProfile(billingProfile);
-        billingProfile.id(profileId);
+        BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
+        billingProfile = profileDao.createBillingProfile(profileRequest, "hi@hi.hi");
+
+        GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
+        projectId = resourceDao.createProject(projectResource);
     }
 
     @After
     public void teardown() {
-        profileDao.deleteBillingProfileById(billingProfile.getId());
+        resourceDao.deleteProject(projectId);
+        profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
     }
 
     @Test(expected = DatasetNotFoundException.class)
-    public void datasetDeleteTest() throws IOException, SQLException {
+    public void datasetDeleteTest() throws Exception {
         UUID datasetId = createDataset("dataset-minimal.json");
         assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
         datasetDao.retrieve(datasetId);
     }
 
     @Test
-    public void enumerateTest() throws IOException, SQLException {
+    public void enumerateTest() throws Exception {
         UUID dataset1 = createDataset("dataset-minimal.json");
         UUID dataset2 = createDataset("dataset-create-test.json");
         List<UUID> datasetIds = new ArrayList<>();
@@ -124,7 +134,7 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void datasetTest() throws IOException, SQLException {
+    public void datasetTest() throws Exception {
         DatasetRequestModel request = jsonLoader.loadObject("dataset-create-test.json", DatasetRequestModel.class);
         String expectedName = request.getName() + UUID.randomUUID().toString();
 
@@ -159,7 +169,7 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void partitionTest() throws IOException, SQLException {
+    public void partitionTest() throws Exception {
         UUID datasetId = createDataset("ingest-test-partitioned-dataset.json");
         try {
             Dataset fromDB = datasetDao.retrieve(datasetId);
@@ -185,7 +195,7 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void primaryKeyTest() throws IOException, SQLException {
+    public void primaryKeyTest() throws Exception {
         UUID datasetId = createDataset("dataset-primary-key.json");
         try {
             Dataset fromDB = datasetDao.retrieve(datasetId);
@@ -278,7 +288,7 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void mixingSharedAndExclusiveLocksTest() throws IOException, SQLException {
+    public void mixingSharedAndExclusiveLocksTest() throws Exception {
         UUID datasetId = createDataset("dataset-primary-key.json");
         try {
             // check that there are no outstanding locks
@@ -405,7 +415,7 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void duplicateCallsForExclusiveLockTest() throws IOException, SQLException {
+    public void duplicateCallsForExclusiveLockTest() throws Exception {
         UUID datasetId = createDataset("dataset-primary-key.json");
         try {
             // check that there are no outstanding locks
@@ -462,7 +472,7 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void duplicateCallsForSharedLockTest() throws IOException, SQLException {
+    public void duplicateCallsForSharedLockTest() throws Exception {
         UUID datasetId = createDataset("dataset-primary-key.json");
         try {
             // check that there are no outstanding locks
@@ -522,7 +532,7 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void lockNonExistentDatasetTest() throws IOException, SQLException {
+    public void lockNonExistentDatasetTest() throws Exception {
         UUID nonExistentDatasetId = UUID.randomUUID();
 
         // try to take out an exclusive lock

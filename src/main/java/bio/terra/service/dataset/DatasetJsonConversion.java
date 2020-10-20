@@ -67,7 +67,8 @@ public final class DatasetJsonConversion {
                 .description(dataset.getDescription())
                 .defaultProfileId(dataset.getDefaultProfileId().toString())
                 .createdDate(dataset.getCreatedDate().toString())
-                .schema(datasetSpecificationModelFromDatasetSchema(dataset));
+                .schema(datasetSpecificationModelFromDatasetSchema(dataset))
+                .dataProject(dataset.getProjectResource().getGoogleProjectId());
     }
 
     public static DatasetSpecificationModel datasetSpecificationModelFromDatasetSchema(Dataset dataset) {

@@ -2,10 +2,9 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -35,21 +34,20 @@ public class FireStoreDependencyDao {
     private static final String DEPENDENCY_COLLECTION_NAME = "-dependencies";
 
     private final FireStoreUtils fireStoreUtils;
-    private final DataLocationService dataLocationService;
+    private final ResourceService resourceService;
     private final ConfigurationService configurationService;
 
     @Autowired
     public FireStoreDependencyDao(FireStoreUtils fireStoreUtils,
-                                  DataLocationService dataLocationService,
+                                  ResourceService resourceService,
                                   ConfigurationService configurationService) {
         this.fireStoreUtils = fireStoreUtils;
-        this.dataLocationService = dataLocationService;
+        this.resourceService = resourceService;
         this.configurationService = configurationService;
     }
 
     public boolean fileHasSnapshotReference(Dataset dataset, String fileId) throws InterruptedException {
-        DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
         Query query = depColl.whereEqualTo("fileId", fileId).limit(1);
@@ -64,8 +62,7 @@ public class FireStoreDependencyDao {
     }
 
     public boolean datasetHasSnapshotReference(Dataset dataset) {
-        DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
         // check to see if the datasets collection contains any dependencies
@@ -74,8 +71,7 @@ public class FireStoreDependencyDao {
     }
 
     public List<String> getDatasetSnapshotFileIds(Dataset dataset, String snapshotId) throws InterruptedException {
-        DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
 
@@ -102,8 +98,7 @@ public class FireStoreDependencyDao {
 
         // We construct the snapshot file system without using transactions. We can get away with that,
         // because no one can access this snapshot during its creation.
-        DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
 
@@ -174,8 +169,7 @@ public class FireStoreDependencyDao {
     }
 
     public void deleteSnapshotFileDependencies(Dataset dataset, String snapshotId) throws InterruptedException {
-        DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
 
@@ -197,8 +191,7 @@ public class FireStoreDependencyDao {
     public void removeSnapshotFileDependency(Dataset dataset, String snapshotId, String fileId)
         throws InterruptedException {
 
-        DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
 

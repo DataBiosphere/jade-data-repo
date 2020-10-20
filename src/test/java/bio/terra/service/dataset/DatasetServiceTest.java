@@ -6,7 +6,10 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
+import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.AssetModel;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
@@ -15,8 +18,9 @@ import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobService;
-import bio.terra.service.resourcemanagement.BillingProfile;
-import bio.terra.service.resourcemanagement.ProfileDao;
+import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -72,17 +76,20 @@ public class DatasetServiceTest {
     private ProfileDao profileDao;
 
     @Autowired
+    private GoogleResourceDao resourceDao;
+
+    @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
-    private BillingProfile billingProfile;
-
+    private BillingProfileModel billingProfile;
+    private UUID projectId;
     private ArrayList<String> flightIdsList;
-
     private ArrayList<UUID> datasetIdList;
 
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws IOException, SQLException {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        dataset.projectResourceId(projectId);
         String createFlightId = UUID.randomUUID().toString();
         UUID datasetId = datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
@@ -99,9 +106,11 @@ public class DatasetServiceTest {
 
     @Before
     public void setup() throws Exception {
-        billingProfile = ProfileFixtures.randomBillingProfile();
-        UUID profileId = profileDao.createBillingProfile(billingProfile);
-        billingProfile.id(profileId);
+        BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
+        billingProfile = profileDao.createBillingProfile(profileRequest, "hi@hi.hi");
+        GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
+        projectId = resourceDao.createProject(projectResource);
+
         // Setup mock sam service
         connectedOperations.stubOutSamCalls(samService);
         flightIdsList = new ArrayList<>();
@@ -113,7 +122,8 @@ public class DatasetServiceTest {
         for (UUID datasetId : datasetIdList) {
             datasetDao.delete(datasetId);
         }
-        profileDao.deleteBillingProfileById(billingProfile.getId());
+        resourceDao.deleteProject(projectId);
+        profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
         for (String flightId : flightIdsList) {
             jobService.releaseJob(flightId, testUser);
         }

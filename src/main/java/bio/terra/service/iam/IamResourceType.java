@@ -7,7 +7,8 @@ import org.apache.commons.lang3.StringUtils;
 public enum IamResourceType {
     DATAREPO,
     DATASET,
-    DATASNAPSHOT;
+    DATASNAPSHOT,
+    SPEND_PROFILE;
 
     @Override
     @JsonValue

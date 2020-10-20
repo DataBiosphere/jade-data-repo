@@ -11,7 +11,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleRandomBackoff;
@@ -30,7 +30,7 @@ public class FileDeleteFlight extends Flight {
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
-        DataLocationService locationService = (DataLocationService) appContext.getBean("dataLocationService");
+        ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
         ApplicationConfiguration appConfig =
             (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
         ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
@@ -42,6 +42,7 @@ public class FileDeleteFlight extends Flight {
         //  Error handling within this constructor results in an obscure throw from
         //  Java (INVOCATION_EXCEPTION), instead of getting a good DATASET_NOT_FOUND error.
         //  We should NOT put code like that in the flight constructor.
+        //  ** Well, what we really should do is fix Stairway to throw the contained exception **
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 
         RetryRuleRandomBackoff fileSystemRetry =
@@ -64,7 +65,7 @@ public class FileDeleteFlight extends Flight {
             lockDatasetRetry);
         addStep(new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao, configService), fileSystemRetry);
         addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset), fileSystemRetry);
-        addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao, locationService));
+        addStep(new DeleteFilePrimaryDataStep(gcsPdao, resourceService));
         addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset), fileSystemRetry);
         addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
     }

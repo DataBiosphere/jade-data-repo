@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: resource_manager_refactor_step
+      # In step 1 we add all the new columns.
+      # In step 2 we moved the data from the old columns to the new columns.
+      # In step 3 we remove the old tables
+      author: dd
+      changes:
+        - sql:
+            comment: move data from dataset_data_project into dataset
+            sql: >
+              UPDATE dataset SET project_resource_id = dataset_data_project.project_resource_id
+              FROM dataset_data_project
+              WHERE dataset.id = dataset_data_project.dataset_id
+        - sql:
+            comment: move data from snapshot_data_project into snapshot
+            sql: >
+              UPDATE snapshot SET project_resource_id = snapshot_data_project.project_resource_id
+              FROM snapshot_data_project
+              WHERE snapshot.id = snapshot_data_project.snapshot_id
+        - sql:
+            comment: |
+              Build the dataset_bucket table. This will find all buckets allocated from the same project
+              as the dataset. However, if there are buckets used by the dataset in other projects, this
+              will not find them. In fact, there is no path using just the metadata database to locate them,
+              which is why this table is needed.
+            sql: >
+              INSERT INTO dataset_bucket (dataset_id, bucket_resource_id)
+              SELECT dataset.id, bucket_resource.id
+              FROM dataset, bucket_resource, project_resource
+              WHERE dataset.default_profile_id = project_resource.profile_id
+              AND bucket_resource.project_resource_id = project_resource.id
+

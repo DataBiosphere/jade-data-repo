@@ -28,8 +28,8 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.DataLocationService;
-import bio.terra.service.resourcemanagement.ProfileDao;
+import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -106,7 +106,7 @@ public class SnapshotConnectedTest {
     @Autowired private DatasetDao datasetDao;
     @Autowired private SnapshotDao snapshotDao;
     @Autowired private ProfileDao profileDao;
-    @Autowired private DataLocationService dataLocationService;
+    @Autowired private ResourceService dataLocationService;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private ConnectedTestConfiguration testConfig;
@@ -169,8 +169,8 @@ public class SnapshotConnectedTest {
     public void testMinimal() throws Exception {
         DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
         String datasetName = PDAO_PREFIX + datasetMinimalSummary.getName();
-        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetMinimalSummary.getName());
+        BigQueryProject bigQueryProject =
+            TestUtils.bigQueryProjectForDatasetName(datasetDao, datasetMinimalSummary.getName());
         long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
@@ -242,8 +242,8 @@ public class SnapshotConnectedTest {
     public void testArrayStruct() throws Exception {
         DatasetSummaryModel datasetArraySummary = setupArrayStructDataset();
         String datasetName = PDAO_PREFIX + datasetArraySummary.getName();
-        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetArraySummary.getName());
+        BigQueryProject bigQueryProject =
+            TestUtils.bigQueryProjectForDatasetName(datasetDao, datasetArraySummary.getName());
         long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
@@ -813,12 +813,11 @@ public class SnapshotConnectedTest {
     // Technically a helper method, but so specific to testExcludeLockedFromSnapshotFileLookups, likely not re-useable
     private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) throws InterruptedException {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
-        SnapshotDataProject dataProject = dataLocationService.getOrCreateProject(snapshot);
-        BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
+        BigQueryProject bigQueryProject = BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 
         ST sqlTemplate = new ST(queryForRefIdTemplate);
-        sqlTemplate.add("project", dataProject.getGoogleProjectId());
+        sqlTemplate.add("project", snapshot.getProjectResource().getGoogleProjectId());
         sqlTemplate.add("snapshot", snapshot.getName());
         sqlTemplate.add("table", "tableA");
 

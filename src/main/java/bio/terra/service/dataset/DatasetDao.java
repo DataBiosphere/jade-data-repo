@@ -9,6 +9,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -45,20 +46,26 @@ public class DatasetDao {
     private final DatasetRelationshipDao relationshipDao;
     private final AssetDao assetDao;
     private final ConfigurationService configurationService;
+    private final ResourceService resourceService;
 
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
+
+    private static final String summaryQueryColumns =
+        " id, name, description, default_profile_id, project_resource_id, created_date ";
 
     @Autowired
     public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,
                       DatasetTableDao tableDao,
                       DatasetRelationshipDao relationshipDao,
                       AssetDao assetDao,
-                      ConfigurationService configurationService) throws SQLException {
+                      ConfigurationService configurationService,
+                      ResourceService resourceService) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;
         this.assetDao = assetDao;
         this.configurationService = configurationService;
+        this.resourceService = resourceService;
     }
 
     /**
@@ -286,12 +293,13 @@ public class DatasetDao {
     public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
-            "(name, default_profile_id, flightid, description, sharedlock) " +
-            "VALUES (:name, :default_profile_id, :flightid, :description, ARRAY[]::TEXT[]) ";
+            "(name, default_profile_id, project_resource_id, flightid, description, sharedlock) " +
+            "VALUES (:name, :default_profile_id, :project_resource_id, :flightid, :description, ARRAY[]::TEXT[]) ";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
             .addValue("default_profile_id", dataset.getDefaultProfileId())
+            .addValue("project_resource_id", dataset.getProjectResourceId())
             .addValue("flightid", flightId)
             .addValue("description", dataset.getDescription());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
@@ -403,6 +411,10 @@ public class DatasetDao {
                 dataset.tables(tableDao.retrieveTables(dataset.getId()));
                 relationshipDao.retrieve(dataset);
                 assetDao.retrieve(dataset);
+                // Retrieve the project resource associated with the dataset
+                // This is a bit sketchy filling in the object via a dao in another package.
+                // It seemed like the cleanest thing to me at the time.
+                dataset.projectResource(resourceService.getProjectResource(dataset.getProjectResourceId()));
             }
             return dataset;
         } catch (EmptyResultDataAccessException ex) {
@@ -431,7 +443,7 @@ public class DatasetDao {
     public DatasetSummary retrieveSummaryById(UUID id, boolean onlyRetrieveAvailable) {
         try {
             String sql = "SELECT " +
-                "id, name, description, default_profile_id, created_date " +
+                summaryQueryColumns +
                 "FROM dataset WHERE id = :id";
             if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
                 sql += " AND flightid IS NULL";
@@ -446,7 +458,7 @@ public class DatasetDao {
     public DatasetSummary retrieveSummaryByName(String name) {
         try {
             String sql = "SELECT " +
-                "id, name, description, default_profile_id, created_date " +
+                summaryQueryColumns +
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
@@ -486,6 +498,9 @@ public class DatasetDao {
         String countSql = "SELECT count(id) AS total FROM dataset WHERE " +
             StringUtils.join(whereClauses, " AND ");
         Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
+        if (total == null) {
+            throw new CorruptMetadataException("Impossible null value from count");
+        }
 
         // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
@@ -494,7 +509,7 @@ public class DatasetDao {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
         String sql = "SELECT " +
-            "id, name, description, default_profile_id, created_date " +
+            "id, name, description, default_profile_id, project_resource_id, created_date " +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
@@ -502,7 +517,7 @@ public class DatasetDao {
 
         return new MetadataEnumeration<DatasetSummary>()
             .items(summaries)
-            .total(total == null ? -1 : total);
+            .total(total);
     }
 
     private static class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
@@ -512,7 +527,9 @@ public class DatasetDao {
                 .name(rs.getString("name"))
                 .description(rs.getString("description"))
                 .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
+                .projectResourceId(rs.getObject("project_resource_id", UUID.class))
                 .createdDate(rs.getTimestamp("created_date").toInstant());
+
         }
     }
 

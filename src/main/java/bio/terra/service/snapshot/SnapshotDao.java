@@ -6,6 +6,7 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
@@ -43,18 +44,21 @@ public class SnapshotDao {
     private final SnapshotMapTableDao snapshotMapTableDao;
     private final SnapshotRelationshipDao snapshotRelationshipDao;
     private final DatasetDao datasetDao;
+    private final ResourceService resourceService;
 
     @Autowired
     public SnapshotDao(NamedParameterJdbcTemplate jdbcTemplate,
-                      SnapshotTableDao snapshotTableDao,
-                      SnapshotMapTableDao snapshotMapTableDao,
-                      SnapshotRelationshipDao snapshotRelationshipDao,
-                      DatasetDao datasetDao) {
+                       SnapshotTableDao snapshotTableDao,
+                       SnapshotMapTableDao snapshotMapTableDao,
+                       SnapshotRelationshipDao snapshotRelationshipDao,
+                       DatasetDao datasetDao,
+                       ResourceService resourceService) {
         this.jdbcTemplate = jdbcTemplate;
         this.snapshotTableDao = snapshotTableDao;
         this.snapshotMapTableDao = snapshotMapTableDao;
         this.snapshotRelationshipDao = snapshotRelationshipDao;
         this.datasetDao = datasetDao;
+        this.resourceService = resourceService;
     }
 
     /**
@@ -128,12 +132,13 @@ public class SnapshotDao {
     public UUID createAndLock(Snapshot snapshot, String flightId) {
         logger.debug("createAndLock snapshot " + snapshot.getName());
 
-        String sql = "INSERT INTO snapshot (name, description, profile_id, flightid) " +
-            "VALUES (:name, :description, :profile_id, :flightid) ";
+        String sql = "INSERT INTO snapshot (name, description, profile_id, project_resource_id, flightid) " +
+            "VALUES (:name, :description, :profile_id, :project_resource_id, :flightid) ";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", snapshot.getName())
             .addValue("description", snapshot.getDescription())
             .addValue("profile_id", snapshot.getProfileId())
+            .addValue("project_resource_id", snapshot.getProjectResourceId())
             .addValue("flightid", flightId);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
@@ -264,7 +269,8 @@ public class SnapshotDao {
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
                     .createdDate(rs.getTimestamp("created_date").toInstant())
-                    .profileId(rs.getObject("profile_id", UUID.class)));
+                    .profileId(rs.getObject("profile_id", UUID.class))
+                    .projectResourceId(rs.getObject("project_resource_id", UUID.class)));
             // needed for findbugs. but really can't be null
             if (snapshot != null) {
                 // retrieve the snapshot tables and relationships
@@ -273,6 +279,11 @@ public class SnapshotDao {
 
                 // Must be done after we we make the snapshot tables so we can resolve the table and column references
                 snapshot.snapshotSources(retrieveSnapshotSources(snapshot));
+
+                // Retrieve the project resource associated with the snapshot
+                // This is a bit sketchy filling in the object via a dao in another package.
+                // It seemed like the cleanest thing to me at the time.
+                snapshot.projectResource(resourceService.getProjectResource(snapshot.getProjectResourceId()));
             }
             return snapshot;
         } catch (EmptyResultDataAccessException ex) {
@@ -364,6 +375,9 @@ public class SnapshotDao {
         // get total count of objects
         String countSql = "SELECT count(id) AS total FROM snapshot " + whereSql;
         Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
+        if (total == null) {
+            throw new CorruptMetadataException("Impossible null value from count");
+        }
 
         String sql = "SELECT id, name, description, created_date, profile_id FROM snapshot " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
@@ -372,7 +386,7 @@ public class SnapshotDao {
 
         return new MetadataEnumeration<SnapshotSummary>()
             .items(summaries)
-            .total(total == null ? -1 : total);
+            .total(total);
     }
 
     public SnapshotSummary retrieveSummaryById(UUID id) {

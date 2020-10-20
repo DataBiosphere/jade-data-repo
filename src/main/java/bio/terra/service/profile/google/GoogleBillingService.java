@@ -1,8 +1,8 @@
-package bio.terra.service.resourcemanagement.google;
+package bio.terra.service.profile.google;
 
-import bio.terra.service.resourcemanagement.BillingProfile;
-import bio.terra.service.resourcemanagement.BillingService;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.exception.BillingServiceException;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -22,7 +22,7 @@ import java.util.List;
 
 @Service
 @Profile("google")
-public class GoogleBillingService implements BillingService {
+public class GoogleBillingService {
 
     private static Cloudbilling cloudbilling() {
         try {
@@ -67,11 +67,10 @@ public class GoogleBillingService implements BillingService {
      *
      * The second permission is specific to projects, so we will check for the first permission here.
      *
-     * @param billingProfile
+     * @param billingProfile billing profile model to check
      * @return true if the repository can act as a billing account *user* (viewer is not enough), false otherwise
      */
-    @Override
-    public boolean canAccess(BillingProfile billingProfile) {
+    public boolean canAccess(BillingProfileModel billingProfile) {
         String accountId = "billingAccounts/" + billingProfile.getBillingAccountId();
         List<String> permissions = Collections.singletonList("billing.resourceAssociations.create");
         TestIamPermissionsRequest permissionsRequest = new TestIamPermissionsRequest().setPermissions(permissions);
@@ -94,7 +93,7 @@ public class GoogleBillingService implements BillingService {
         }
     }
 
-    public boolean assignProjectBilling(BillingProfile billingProfile, GoogleProjectResource project) {
+    public boolean assignProjectBilling(BillingProfileModel billingProfile, GoogleProjectResource project) {
         String billingAccountId = billingProfile.getBillingAccountId();
         String projectId = project.getGoogleProjectId();
         ProjectBillingInfo content = new ProjectBillingInfo()

@@ -4,25 +4,31 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetBucketDao;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.flight.VerifyAuthorizationStep;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.load.flight.LoadUnlockStep;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.profile.ProfileService;
+import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.RetryRuleRandomBackoff;
 import org.springframework.context.ApplicationContext;
+
+import java.util.UUID;
 
 /*
  * Required input parameters:
@@ -42,23 +48,31 @@ public class FileIngestBulkFlight extends Flight {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
         LoadService loadService = (LoadService)appContext.getBean("loadService");
         ApplicationConfiguration appConfig = (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
-        DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
+        ResourceService resourceService = (ResourceService)appContext.getBean("resourceService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         ConfigurationService configurationService = (ConfigurationService) appContext.getBean("configurationService");
         KubeService kubeService = (KubeService) appContext.getBean("kubeService");
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
+        ProfileService profileService = (ProfileService) appContext.getBean("profileService");
+        DatasetBucketDao datasetBucketDao = (DatasetBucketDao) appContext.getBean("datasetBucketDao");
+        DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
 
         // Common input parameters
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
+        UUID datasetUuid = UUID.fromString(datasetId);
+        Dataset dataset = datasetService.retrieve(datasetUuid);
+
         String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
         int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
         int loadHistoryWaitSeconds = inputParameters.get(LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS, Integer.class);
         int fileChunkSize = inputParameters.get(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE, Integer.class);
         boolean isArray = inputParameters.get(LoadMapKeys.IS_ARRAY, Boolean.class);
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
         // TODO: for reserving a bulk load slot:
         //    int concurrentIngests = inputParameters.get(LoadMapKeys.CONCURRENT_INGESTS, Integer.class);
         //  We can maybe just use the load tag lock table to know how many are active.
@@ -81,11 +95,13 @@ public class FileIngestBulkFlight extends Flight {
 
         RetryRuleRandomBackoff createBucketRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-
         RetryRuleExponentialBackoff driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
+        RetryRuleRandomBackoff lockDatasetRetry =
+            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         // The flight plan:
-        // 0. Verify authorization to do the ingest
+        // 0. Make sure this user is allowed to use the billing profile and that the underlying
+        //    billing information remains valid.
         // 1. Lock the load tag - only one flight operating on a load tag at a time
         // 2. TODO: reserve a bulk load slot to make sure we have the threads to do the flight; abort otherwise (DR-754)
         // 3. Locate the bucket where this file should go and store it in the working map. We need to make the
@@ -105,9 +121,11 @@ public class FileIngestBulkFlight extends Flight {
         // 8. Clean load_file table
         // 9. TODO: release the bulk load slot (DR-754) - may not need a step if we use the count of locked tags
         // 10. Unlock the load tag
-        addStep(new VerifyAuthorizationStep(iamClient, IamResourceType.DATASET, datasetId, IamAction.INGEST_DATA));
+        addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
+        addStep(new LockDatasetStep(datasetDao, datasetUuid, true), lockDatasetRetry);
         addStep(new LoadLockStep(loadService));
-        addStep(new IngestFilePrimaryDataLocationStep(locationService, profileId), createBucketRetry);
+        addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), createBucketRetry);
+        addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), createBucketRetry);
 
         if (isArray) {
             addStep(new IngestPopulateFileStateFromArrayStep(loadService));
@@ -145,5 +163,6 @@ public class FileIngestBulkFlight extends Flight {
         addStep(new IngestCleanFileStateStep(loadService));
 
         addStep(new LoadUnlockStep(loadService));
+        addStep(new UnlockDatasetStep(datasetDao, datasetUuid, true), lockDatasetRetry);
     }
 }

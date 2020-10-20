@@ -21,8 +21,9 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.JobInfo;
@@ -83,13 +84,15 @@ public class BigQueryPdaoTest {
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private DatasetService datasetService;
-    @Autowired private DataLocationService dataLocationService;
+    @Autowired private ResourceService resourceService;
+    @Autowired private GoogleResourceDao resourceDao;
 
     @MockBean
     private IamProviderInterface samService;
 
     private BillingProfileModel profileModel;
-    private Storage storage = StorageOptions.getDefaultInstance().getService();
+
+    private final Storage storage = StorageOptions.getDefaultInstance().getService();
 
     @Rule
     public ExpectedException exceptionGrabber = ExpectedException.none();
@@ -108,7 +111,7 @@ public class BigQueryPdaoTest {
         connectedOperations.teardown();
     }
 
-    private String datasetName() {
+    private String makeDatasetName() {
         return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
     }
 
@@ -118,15 +121,19 @@ public class BigQueryPdaoTest {
     // datasets from the DAO at the end of a test, you'll see a FK violation when `connectedOperations`
     // tries to delete the resource profile generated in `setup()`.
     private Dataset readDataset(String requestFile) throws Exception {
+        String datasetName = makeDatasetName();
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(requestFile, DatasetRequestModel.class);
         datasetRequest
             .defaultProfileId(profileModel.getId())
-            .name(datasetName());
+            .name(datasetName);
+        UUID projectId = resourceService.getOrCreateDatasetProject(datasetName, profileModel);
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        dataset.projectResourceId(projectId);
+        dataset.projectResource(resourceService.getProjectResource(projectId));
+
         String createFlightId = UUID.randomUUID().toString();
         datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
-        dataLocationService.getOrCreateProject(dataset);
         return dataset;
     }
 
@@ -275,7 +282,7 @@ public class BigQueryPdaoTest {
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
             BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-                datasetDao, dataLocationService, dataset.getName());
+                datasetDao, dataset.getName());
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
             List<String> participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
             List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
@@ -372,8 +379,8 @@ public class BigQueryPdaoTest {
                     "ingest-test-snapshot-by-date.json", "");
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-            BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-                datasetDao, dataLocationService, dataset.getName());
+            BigQueryProject bigQueryProject =
+                TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
             List<String> participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
             List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
@@ -411,8 +418,8 @@ public class BigQueryPdaoTest {
 
         try {
             bigQueryPdao.createDataset(dataset);
-            BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-                datasetDao, dataLocationService, dataset.getName());
+            BigQueryProject bigQueryProject =
+                TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
 
             for (String tableName : Arrays.asList("participant", "sample", "file")) {
                 DatasetTable table = getTable(dataset, tableName);
@@ -550,8 +557,8 @@ public class BigQueryPdaoTest {
                 "snapshot-fullviews-test-snapshot.json", "");
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-            BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-                datasetDao, dataLocationService, dataset.getName());
+            BigQueryProject bigQueryProject =
+                TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
             List<String> participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
             List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);

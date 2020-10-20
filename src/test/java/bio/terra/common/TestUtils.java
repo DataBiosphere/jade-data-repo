@@ -3,9 +3,8 @@ package bio.terra.common;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -92,11 +91,9 @@ public final class TestUtils {
     }
 
     public static BigQueryProject bigQueryProjectForDatasetName(DatasetDao datasetDao,
-                                                                DataLocationService dataLocationService,
                                                                 String datasetName) throws InterruptedException {
         Dataset dataset = datasetDao.retrieveByName(datasetName);
-        DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
-        return BigQueryProject.get(dataProject.getGoogleProjectId());
+        return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
     }
 
     private static final String selectFromBigQueryDatasetTemplate =
@@ -113,12 +110,11 @@ public final class TestUtils {
      * @return the BigQuery TableResult
      */
     public static TableResult selectFromBigQueryDataset(
-        BigQueryPdao bigQueryPdao, DatasetDao datasetDao, DataLocationService dataLocationService,
+        BigQueryPdao bigQueryPdao, DatasetDao datasetDao, ResourceService dataLocationService,
         String datasetName, String tableName, String columns) throws Exception {
 
         String bqDatasetName = bigQueryPdao.prefixName(datasetName);
-        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetName);
+        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetDao, datasetName);
         String bigQueryProjectId = bigQueryProject.getProjectId();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 

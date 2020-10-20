@@ -35,9 +35,13 @@ public class CreateDatasetMetadataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            Dataset newDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-            UUID datasetId = datasetDao.createAndLock(newDataset, context.getFlightId());
             FlightMap workingMap = context.getWorkingMap();
+            UUID projectResourceId = workingMap.get(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
+
+            Dataset newDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+            newDataset.projectResourceId(projectResourceId);
+            UUID datasetId = datasetDao.createAndLock(newDataset, context.getFlightId());
+
             workingMap.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
 
             DatasetSummaryModel datasetSummary =

@@ -69,11 +69,17 @@ public class DataRepoFixtures {
         BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.billingProfileRequest(
             ProfileFixtures.billingProfileForAccount(testConfig.getGoogleBillingAccountId()));
         String json = TestUtils.mapToJson(billingProfileRequestModel);
-        DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.post(
+
+        DataRepoResponse<JobModel> jobResponse = dataRepoClient.post(
             user,
             "/api/resources/v1/profiles",
             json,
-            BillingProfileModel.class);
+            JobModel.class);
+        assertTrue("profile create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("profile create launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.waitForResponse(
+            user, jobResponse, BillingProfileModel.class);
 
         assertThat("billing profile model is successfuly created", postResponse.getStatusCode(),
             equalTo(HttpStatus.CREATED));

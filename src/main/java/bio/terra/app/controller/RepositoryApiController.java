@@ -64,6 +64,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static bio.terra.app.utils.ControllerUtils.jobToResponse;
+
 @Controller
 public class RepositoryApiController implements RepositoryApi {
 
@@ -331,7 +333,7 @@ public class RepositoryApiController implements RepositoryApi {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
         List<UUID> snapshotSourceDatasetIds =
             snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotRequestModel);
-        // TODO auth should be put into flight?
+        // TODO: auth should be put into flight
         List<UUID> unauthorized = getUnauthorizedSources(snapshotSourceDatasetIds, userReq);
         if (unauthorized.isEmpty()) {
             String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
@@ -458,21 +460,6 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     // -- jobs --
-    private ResponseEntity<JobModel> jobToResponse(JobModel job) {
-        if (job.getJobStatus() == JobModel.JobStatusEnum.RUNNING) {
-            return ResponseEntity
-                .status(HttpStatus.ACCEPTED)
-                .header("Location", String.format("/api/repository/v1/jobs/%s", job.getId()))
-                .body(job);
-        } else {
-            return ResponseEntity
-                .status(HttpStatus.OK)
-                .header("Location", String.format("/api/repository/v1/jobs/%s/result", job.getId()))
-                .body(job);
-        }
-    }
-
-
     @Override
     public ResponseEntity<List<JobModel>> enumerateJobs(
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,

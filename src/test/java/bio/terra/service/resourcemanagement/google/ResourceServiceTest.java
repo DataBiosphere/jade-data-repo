@@ -1,14 +1,10 @@
-package bio.terra.service.resourcemanagement;
+package bio.terra.service.resourcemanagement.google;
 
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.resourcemanagement.google.GoogleProjectRequest;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.resourcemanagement.google.GoogleResourceService;
 import com.google.api.client.util.Lists;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import org.junit.After;
@@ -40,7 +36,7 @@ import static org.hamcrest.Matchers.not;
 public class ResourceServiceTest {
 
     @Autowired private GoogleResourceConfiguration resourceConfiguration;
-    @Autowired private GoogleResourceService resourceService;
+    @Autowired private GoogleProjectService projectService;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private ConnectedTestConfiguration testConfig;
 
@@ -67,25 +63,21 @@ public class ResourceServiceTest {
         String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";
         List<String> stewardsGroupEmailList = Lists.newArrayList();
         stewardsGroupEmailList.add(stewardsGroupEmail);
-        Map<String, List<String>> roleToStewardMap = new HashMap();
+        Map<String, List<String>> roleToStewardMap = new HashMap<>();
         roleToStewardMap.put(role, stewardsGroupEmailList);
 
-        GoogleProjectRequest projectRequest = new GoogleProjectRequest()
-            .projectId(projectId)
-            .profileId(UUID.fromString(profile.getId()))
-            .serviceIds(DataLocationService.DATA_PROJECT_SERVICE_IDS)
-            .roleIdentityMapping(roleToStewardMap);
-        GoogleProjectResource projectResource = resourceService.getOrCreateProject(projectRequest);
+        GoogleProjectResource projectResource =
+            projectService.getOrCreateProject(projectId, profile, roleToStewardMap);
 
-        Project project = resourceService.getProject(projectId);
+        Project project = projectService.getProject(projectId);
         assertThat("the project is active",
             project.getLifecycleState(),
             equalTo("ACTIVE"));
 
         // TODO check to make sure a steward can complete a job in another test
 
-        resourceService.deleteProjectResource(projectResource.getRepositoryId());
-        project = resourceService.getProject(projectId);
+        projectService.deleteProjectResource(projectResource.getId());
+        project = projectService.getProject(projectId);
         assertThat("the project is not active after delete",
             project.getLifecycleState(),
             not(equalTo("ACTIVE")));

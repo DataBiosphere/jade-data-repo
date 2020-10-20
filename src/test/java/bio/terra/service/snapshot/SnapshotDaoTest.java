@@ -1,18 +1,22 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.common.Relationship;
-import bio.terra.common.category.Unit;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
-import bio.terra.service.dataset.Dataset;
+import bio.terra.common.Relationship;
 import bio.terra.common.Table;
-import bio.terra.model.SnapshotRequestModel;
+import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.ProfileFixtures;
+import bio.terra.common.fixtures.ResourceFixtures;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
-import bio.terra.service.resourcemanagement.ProfileDao;
+import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import org.junit.After;
 import org.junit.Before;
@@ -50,6 +54,9 @@ public class SnapshotDaoTest {
     private ProfileDao profileDao;
 
     @Autowired
+    private GoogleResourceDao resourceDao;
+
+    @Autowired
     private SnapshotService snapshotService;
 
     @Autowired
@@ -60,17 +67,26 @@ public class SnapshotDaoTest {
     private SnapshotRequestModel snapshotRequest;
     private UUID snapshotId;
     private UUID profileId;
+    private UUID projectId;
 
     @Before
     public void setup() throws Exception {
-        profileId = profileDao.createBillingProfile(ProfileFixtures.randomBillingProfile());
+        BillingProfileModel billingProfile =
+            profileDao.createBillingProfile(ProfileFixtures.randomBillingProfileRequest(), "hi@hi.hi");
+        profileId = UUID.fromString(billingProfile.getId());
+
+        GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
+        projectId = resourceDao.createProject(projectResource);
 
         DatasetRequestModel datasetRequest = jsonLoader.loadObject("snapshot-test-dataset.json",
             DatasetRequestModel.class);
         datasetRequest
             .name(datasetRequest.getName() + UUID.randomUUID().toString())
             .defaultProfileId(profileId.toString());
+
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        dataset.projectResourceId(projectId);
+
         String createFlightId = UUID.randomUUID().toString();
         datasetId = datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
@@ -88,12 +104,14 @@ public class SnapshotDaoTest {
     public void teardown() throws Exception {
         snapshotDao.delete(snapshotId);
         datasetDao.delete(datasetId);
+        resourceDao.deleteProject(projectId);
         profileDao.deleteBillingProfileById(profileId);
     }
 
     @Test(expected = MissingRowCountsException.class)
     public void testMissingRowCounts() throws Exception {
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+        snapshot.projectResourceId(projectId);
         snapshotDao.updateSnapshotTableRowCounts(snapshot, Collections.emptyMap());
     }
 
@@ -103,6 +121,8 @@ public class SnapshotDaoTest {
 
         String flightId = "happyInOutTest_flightId";
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+        snapshot.projectResourceId(projectId);
+
         snapshotId = snapshotDao.createAndLock(snapshot, flightId);
         snapshotDao.unlock(snapshotId, flightId);
         Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotId);
@@ -209,6 +229,7 @@ public class SnapshotDaoTest {
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
             String flightId = "snapshotEnumerateTest_flightId";
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+            snapshot.projectResourceId(projectId);
             snapshotId = snapshotDao.createAndLock(snapshot, flightId);
             snapshotDao.unlock(snapshotId, flightId);
             snapshotIds.add(snapshotId);

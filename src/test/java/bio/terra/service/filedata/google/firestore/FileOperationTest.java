@@ -29,7 +29,7 @@ import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationSelector;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,6 +37,7 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -100,7 +101,7 @@ public class FileOperationTest {
     @Autowired
     private DatasetDao datasetDao;
     @Autowired
-    private DataLocationService dataLocationService;
+    private ResourceService dataLocationService;
     @Autowired
     private BigQueryPdao bigQueryPdao;
 
@@ -158,6 +159,7 @@ public class FileOperationTest {
     private static String testPdfFile = "File Design Notes.pdf";
 
     @Test
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
     public void fileOperationsTest() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
@@ -165,8 +167,10 @@ public class FileOperationTest {
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
         // Change the data location selector, verify that we can still delete the file
+        // NOTE: the suppressed SpotBugs complaint is from the doReturn. It decides that no one
+        // uses the bucketForFile call.
         String newBucketName = "bucket-" + UUID.randomUUID().toString();
-        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
+        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any(), any());
         connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path reflects new bucket location",

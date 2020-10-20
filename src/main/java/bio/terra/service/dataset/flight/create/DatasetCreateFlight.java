@@ -12,8 +12,9 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.flight.VerifyAuthorizationStep;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.DataLocationService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.profile.ProfileService;
+import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -29,12 +30,12 @@ public class DatasetCreateFlight extends Flight {
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-        DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
+        ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
         IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
         ApplicationConfiguration appConfig = (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
-        GoogleResourceService resourceService = (GoogleResourceService) appContext.getBean("googleResourceService");
         ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
+        ProfileService profileService = (ProfileService) appContext.getBean("profileService");
 
         addStep(new VerifyAuthorizationStep(
             iamClient,
@@ -44,15 +45,22 @@ public class DatasetCreateFlight extends Flight {
 
         DatasetRequestModel datasetRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
-        addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
-
-        // TODO: create dataset data project step
-        //  right now the cloud project is created as part of the PrimaryDataStep below
-        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dataLocationService));
-
-        // The underlying service provides retries so we do not need to retry for IAM step
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
+        // Make sure this user is allowed to use the billing profile and that the underlying
+        // billing information remains valid.
+        addStep(new AuthorizeBillingProfileUseStep(profileService, datasetRequest.getDefaultProfileId(), userReq));
+
+        // Get or create the project where the dataset resources will be created
+        addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
+
+        // Created dataset metadata objects in postgres and lock the dataset
+        addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
+
+        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao));
+
+        // The underlying service provides retries so we do not need to retry for IAM step
         addStep(new CreateDatasetAuthzIamStep(iamClient, userReq));
 
         // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes. The max
@@ -62,7 +70,7 @@ public class DatasetCreateFlight extends Flight {
         addStep(new CreateDatasetAuthzPrimaryDataStep(bigQueryPdao, datasetService, configService), pdaoAclRetryRule);
 
         // The underlying service provides retries so we do not need to retry for BQ Job User step at this time
-        addStep(new CreateDatasetAuthzBqJobUserStep(iamClient, bigQueryPdao, datasetService, userReq, resourceService));
+        addStep(new CreateDatasetAuthzBqJobUserStep(datasetService, resourceService));
 
         addStep(new UnlockDatasetStep(datasetDao, false));
     }

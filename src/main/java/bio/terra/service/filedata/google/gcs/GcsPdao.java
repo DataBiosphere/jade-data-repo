@@ -12,7 +12,7 @@ import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.IamRole;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
@@ -25,7 +25,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -44,22 +43,19 @@ public class GcsPdao {
     private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
 
     private final GcsProjectFactory gcsProjectFactory;
-    private final DataLocationService dataLocationService;
+    private final ResourceService resourceService;
     private final FireStoreDao fileDao;
-    private final ApplicationContext applicationContext;
     private final ConfigurationService configurationService;
 
     @Autowired
     public GcsPdao(
         GcsProjectFactory gcsProjectFactory,
-        DataLocationService dataLocationService,
+        ResourceService resourceService,
         FireStoreDao fileDao,
-        ApplicationContext applicationContext,
         ConfigurationService configurationService) {
         this.gcsProjectFactory = gcsProjectFactory;
-        this.dataLocationService = dataLocationService;
+        this.resourceService = resourceService;
         this.fileDao = fileDao;
-        this.applicationContext = applicationContext;
         this.configurationService = configurationService;
     }
 
@@ -163,7 +159,7 @@ public class GcsPdao {
     // Consumer method for deleting GCS files driven from a scan over the firestore files
     public void deleteFile(FireStoreFile fireStoreFile) {
         if (fireStoreFile != null) {
-            GoogleBucketResource bucketResource = dataLocationService.lookupBucket(fireStoreFile.getBucketResourceId());
+            GoogleBucketResource bucketResource = resourceService.lookupBucket(fireStoreFile.getBucketResourceId());
             deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
         }
     }
@@ -273,7 +269,7 @@ public class GcsPdao {
                 // Cache the bucket resources to avoid repeated database lookups
                 GoogleBucketResource bucketForFile = bucketCache.get(file.getBucketResourceId());
                 if (bucketForFile == null) {
-                    bucketForFile = dataLocationService.lookupBucket(file.getBucketResourceId());
+                    bucketForFile = resourceService.lookupBucket(file.getBucketResourceId());
                     bucketCache.put(file.getBucketResourceId(), bucketForFile);
                 }
                 Storage storage = storageForBucket(bucketForFile);

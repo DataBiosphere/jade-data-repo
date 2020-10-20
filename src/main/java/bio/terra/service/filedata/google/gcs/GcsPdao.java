@@ -37,6 +37,7 @@ import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -269,7 +270,8 @@ public class GcsPdao {
             }
         }
 
-        Map<String, GoogleBucketResource> bucketCache = new ConcurrentHashMap<>();
+        // Cache buckets by bucket resource ID
+        final Map<String, GoogleBucketResource> bucketCache = new ConcurrentHashMap<>();
 
         int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
         List<List<String>> batches = ListUtils.partition(fileIds, batchSize);
@@ -285,31 +287,9 @@ public class GcsPdao {
             List<FSFile> files = fileDao.batchRetrieveById(dataset, batch, 0, true);
 
             try (Stream<FSFile> stream = files.stream()) {
-                List<Future<FSFile>> futures = stream.map(file -> executor.submit(() -> {
-                    // Cache the bucket resources to avoid repeated database lookups
-                    GoogleBucketResource bucketForFile = bucketCache.get(file.getBucketResourceId());
-                    if (bucketForFile == null) {
-                        bucketForFile = dataLocationService.lookupBucket(file.getBucketResourceId());
-                        bucketCache.put(file.getBucketResourceId(), bucketForFile);
-                    }
-                    Storage storage = storageForBucket(bucketForFile);
-                    URI gsUri = URI.create(file.getGspath());
-                    String bucketPath = StringUtils.removeStart(gsUri.getPath(), "/");
-                    BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
-                    switch (op) {
-                        case ACL_OP_CREATE:
-                            for (Acl acl : acls) {
-                                storage.createAcl(blobId, acl);
-                            }
-                            break;
-                        case ACL_OP_DELETE:
-                            for (Acl.Group group : groups) {
-                                storage.deleteAcl(blobId, group);
-                            }
-                            break;
-                    }
-                    return file;
-                })).collect(Collectors.toList());
+                List<Future<FSFile>> futures = stream
+                    .map(file -> executor.submit(performAclCommand(bucketCache, file, op, acls, groups)))
+                    .collect(Collectors.toList());
 
                 FutureUtils.waitFor(futures);
             }
@@ -320,5 +300,44 @@ public class GcsPdao {
             dataset.getId().toString(), // not a flight, so no job id
             this.getClass().getName(),
             "gcsPdao.performAclCommands");
+    }
+
+    /**
+     * Perform the ACL setting commands on a specific file.
+     */
+    private Callable<FSFile> performAclCommand(final Map<String, GoogleBucketResource> bucketCache,
+                                               final FSFile file,
+                                               final AclOp op,
+                                               final List<Acl> acls,
+                                               final List<Acl.Group> groups) {
+        return () -> {
+            // Cache the bucket resources to avoid repeated database lookups.
+            // Synchronizing this block since this gets called with a potentially high degree of concurrency.
+            // Minimal overhead to lock here since 99% of the time this will be a simple map lookup
+            final GoogleBucketResource bucketForFile;
+            synchronized (bucketCache) {
+                bucketForFile = bucketCache.computeIfAbsent(
+                    file.getBucketResourceId(),
+                    k -> dataLocationService.lookupBucket(file.getBucketResourceId())
+                );
+            }
+            final Storage storage = storageForBucket(bucketForFile);
+            final URI gsUri = URI.create(file.getGspath());
+            final String bucketPath = StringUtils.removeStart(gsUri.getPath(), "/");
+            final BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
+            switch (op) {
+                case ACL_OP_CREATE:
+                    for (Acl acl : acls) {
+                        storage.createAcl(blobId, acl);
+                    }
+                    break;
+                case ACL_OP_DELETE:
+                    for (Acl.Group group : groups) {
+                        storage.deleteAcl(blobId, group);
+                    }
+                    break;
+            }
+            return file;
+        };
     }
 }

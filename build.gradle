@@ -372,6 +372,7 @@ task testConnected(type: Test) {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
     outputs.upToDateWhen { false }
+    maxHeapSize = "4g"
 }
 
 task testIntegration(type: Test) {

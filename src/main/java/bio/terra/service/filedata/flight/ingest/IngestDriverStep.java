@@ -102,7 +102,7 @@ public class IngestDriverStep implements Step {
                 }
 
                 // Test for exceeding max failed loads; if so, wait for all RUNNINGs to finish
-                if (candidates.getFailedLoads() > maxFailedFileLoads) {
+                if (maxFailedFileLoads != -1 && candidates.getFailedLoads() > maxFailedFileLoads) {
                     waitForAll(context, loadId, scaledConcurrentFiles);
                     break;
                 }

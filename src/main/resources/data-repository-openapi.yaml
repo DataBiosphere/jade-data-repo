@@ -2310,7 +2310,7 @@ definitions:
       maxFailedFileLoads:
         type: integer
         default: 0
-        description: max number of failed file loads before stopping
+        description: max number of failed file loads before stopping. If -1, allow any number of errors.
       loadControlFile:
         type: string
         description: |-

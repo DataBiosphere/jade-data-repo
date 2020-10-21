@@ -9,6 +9,11 @@ on:
   pull_request:
     branches:
       - develop
+    paths:
+      - 'src'
+      - 'gradle**'
+      - 'build.gradle'
+      - '!**'
 jobs:
   test_connected:
     timeout-minutes: 180

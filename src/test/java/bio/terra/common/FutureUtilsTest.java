@@ -1,6 +1,7 @@
 package bio.terra.common;
 
 import bio.terra.common.category.Unit;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IterableUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -79,7 +80,7 @@ public class FutureUtilsTest {
     }
 
     @Test
-    public void testWaitForTaskAcrossTwoBatches() {
+    public void testWaitForTaskAcrossTwoBatches() throws InterruptedException {
         // Tests two batches of actions being submitted.  The second batch should be shorter (note the sleep).  Ensure
         // that it properly finishes before the first batch and that an exception doesn't cause the first batch to fail
 
@@ -130,8 +131,11 @@ public class FutureUtilsTest {
         }
 
         assertThatThrownBy(() -> FutureUtils.waitFor(batch2Futures));
-        // There should still be 3 services running
-        assertThat(executorService.getActiveCount()).isEqualTo(3);
+
+        // There should still be at least 3 services running (from the first batch)
+        assertThat(executorService.getActiveCount()).isGreaterThanOrEqualTo(3);
+        // Make sure that all tasks from the first batch are still running
+        assertThat(CollectionUtils.collect(batch1Futures, Future::isDone)).doesNotContain(true);
 
         final List<Integer> resolved1 = FutureUtils.waitFor(batch1Futures);
         assertThat(resolved1).containsAll(IntStream.range(0, 3).boxed().collect(Collectors.toList()));
@@ -206,7 +210,7 @@ public class FutureUtilsTest {
         final AtomicInteger counter = new AtomicInteger(0);
         final Callable<Integer> action = () -> {
             try {
-                TimeUnit.SECONDS.sleep(1);
+                TimeUnit.MILLISECONDS.sleep(100);
                 return counter.getAndIncrement();
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);

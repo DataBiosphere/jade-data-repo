@@ -50,8 +50,8 @@ public class DataRepoClient {
         restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
 
         headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON_UTF8));
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON));
     }
 
     // -- RepositoryController Client --

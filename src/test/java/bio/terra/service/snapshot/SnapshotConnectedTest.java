@@ -753,7 +753,7 @@ public class SnapshotConnectedTest {
 
     private EnumerateSnapshotModel enumerateTestSnapshots() throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/snapshots?offset=0&limit=1000"))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
@@ -766,7 +766,7 @@ public class SnapshotConnectedTest {
                                         SnapshotRequestModel snapshotRequest,
                                         DatasetSummaryModel datasetSummary) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + id))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();

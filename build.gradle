@@ -16,7 +16,7 @@ import io.swagger.codegen.DefaultGenerator
 
 buildscript {
     ext {
-        springBootVersion = '2.1.7.RELEASE'
+        springBootVersion = '2.3.4.RELEASE'
     }
     repositories {
         mavenCentral()
@@ -32,6 +32,7 @@ plugins {
   id "com.google.cloud.tools.jib" version "1.6.1"
   id 'org.liquibase.gradle' version '2.0.1'
   id 'antlr'
+  id 'com.github.spotbugs' version '4.5.1'
 }
 
 allprojects {
@@ -55,8 +56,8 @@ apply plugin: 'io.spring.dependency-management'
 apply plugin: 'antlr'
 
 apply plugin: 'checkstyle'
-apply plugin: 'findbugs'
 apply plugin: 'jacoco'
+apply plugin: 'com.github.spotbugs'
 
 apply plugin: 'com.srcclr.gradle'
 
@@ -83,11 +84,28 @@ if (hasProperty('buildScan')) {
     }
 }
 
-tasks.withType(FindBugs) {
+spotbugs {
+    effort = 'max'
+    // This makes the "html" reports come out in plain text so you can just open the file in IntelliJ
+    // and look at your bugs instead of having to switch to a browser.
+    extraArgs = [ '-emacs']
+}
+spotbugsMain {
     reports {
-        xml.enabled false
-        html.enabled true
-        html.stylesheet resources.text.fromFile('config/findbugs/plain.xsl')
+        html {
+            enabled = true
+            destination = file("$buildDir/reports/spotbugs/main.html")
+            excludeFilter = file("config/spotbugs/excludeFilter.xml")
+        }
+    }
+}
+spotbugsTest {
+    reports {
+        html {
+            enabled = true
+            destination = file("$buildDir/reports/spotbugs/test.html")
+            excludeFilter = file("config/spotbugs/excludeFilter.xml")
+        }
     }
 }
 
@@ -197,6 +215,8 @@ dependencies {
     testCompile 'com.google.code.findbugs:annotations:3.0.1'
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
+    // boot-starter-validation required for javax.validation.Valid references, @Valid tags
+    generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
     generatedCompile 'io.springfox:springfox-swagger2:2.7.0'
     generatedCompile 'io.springfox:springfox-swagger-ui:2.7.0'
 
@@ -291,13 +311,6 @@ sourceSets {
         checkstyleGenerated.enabled = false // Don't check generated code
         configFile file("config/checkstyle/checkstyle.xml")
     }
-    findbugs {
-        toolVersion '3.0.1'
-        ignoreFailures = false
-        excludeFilter = file("config/findbugs/excludeFilter.xml")
-        reportsDir = file("$project.buildDir/reports/findbugs")
-        effort = "max"
-    }
     jacoco {
         toolVersion '0.8.2'
     }
@@ -357,6 +370,7 @@ task testConnected(type: Test) {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
     outputs.upToDateWhen { false }
+    maxHeapSize = "2g"
 }
 
 task testIntegration(type: Test) {

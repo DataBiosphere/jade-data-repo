@@ -45,6 +45,9 @@ public class CreateSnapshot extends SimpleDataset {
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
+    // Be careful testing this at larger sizes
+    DataRepoUtils.setConfigParameter(repositoryApi, "LOAD_BULK_ARRAY_FILES_MAX", filesToLoad);
+
     // set up and start bulk load job of small local files
     BulkLoadArrayRequestModel arrayLoad =
         BulkLoadUtils.buildBulkLoadFileRequest100B(filesToLoad, billingProfileModel.getId());

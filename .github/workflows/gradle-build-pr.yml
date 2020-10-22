@@ -1,7 +1,7 @@
 name: Integration test and Connected tests
 env:
   K8_CLUSTER: "integration-master"
-  # This must be defined for the bash redirection
+  # This must be defined for the bash redirection  
   GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
   # This must be defined for the bash redirection
   GOOGLE_SA_CERT: 'jade-dev-account.pem'

@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
@@ -7,12 +8,14 @@ import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.FSDir;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSItem;
+import bio.terra.service.filedata.exception.DirectoryMetadataComputeException;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDataProject;
 import com.google.cloud.firestore.Firestore;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +26,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
@@ -50,18 +57,21 @@ public class FireStoreDao {
     private final FireStoreUtils fireStoreUtils;
     private final DataLocationService dataLocationService;
     private final ConfigurationService configurationService;
+    private final PerformanceLogger performanceLogger;
 
     @Autowired
     public FireStoreDao(FireStoreDirectoryDao directoryDao,
                         FireStoreFileDao fileDao,
                         FireStoreUtils fireStoreUtils,
                         DataLocationService dataLocationService,
-                        ConfigurationService configurationService) {
+                        ConfigurationService configurationService,
+                        PerformanceLogger performanceLogger) {
         this.directoryDao = directoryDao;
         this.fileDao = fileDao;
         this.fireStoreUtils = fireStoreUtils;
         this.dataLocationService = dataLocationService;
         this.configurationService = configurationService;
+        this.performanceLogger = performanceLogger;
     }
 
     public void createDirectoryEntry(Dataset dataset, FireStoreDirectoryEntry newEntry) throws InterruptedException {
@@ -165,7 +175,15 @@ public class FireStoreDao {
             // We batch the updates to firestore by collecting updated entries into this list,
             // and when we get enough, writing them out.
             List<FireStoreDirectoryEntry> updateBatch = new ArrayList<>();
+
+            String retrieveTimer = performanceLogger.timerStart();
             computeDirectory(firestore, snapshotId, topDir, updateBatch);
+            performanceLogger.timerEndAndLog(
+                retrieveTimer,
+                snapshotId, // not a flight, so no job id
+                this.getClass().getName(),
+                "fireStoreDao.computeDirectoryGetMetadata");
+
             // Write the last batch out
             directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
         }
@@ -408,24 +426,47 @@ public class FireStoreDao {
         String fullPath = fireStoreUtils.getFullPath(dirEntry.getPath(), dirEntry.getName());
         List<FireStoreDirectoryEntry> enumDir = directoryDao.enumerateDirectory(firestore, snapshotId, fullPath);
 
-        // Recurse to compute results from underlying directories
         List<FireStoreDirectoryEntry> enumComputed = new ArrayList<>();
-        for (FireStoreDirectoryEntry dirItem : enumDir) {
-            if (dirItem.getIsFileRef()) {
-                // Read the file metadata to get the size and checksum. We do a bit of a hack and copy
-                // the size and checksums into the in-memory dirItem. That way we only compute on the directory
-                // objects.
-                FireStoreFile file =
-                    fileDao.retrieveFileMetadata(firestore, dirItem.getDatasetId(), dirItem.getFileId());
 
-                dirItem
-                    .size(file.getSize())
-                    .checksumMd5(file.getChecksumMd5())
-                    .checksumCrc32c(file.getChecksumCrc32c());
+        // Recurse to compute results from underlying directories
+        try (Stream<FireStoreDirectoryEntry> stream = enumDir.stream()) {
+            enumComputed.addAll(stream
+                .filter(f -> !f.getIsFileRef())
+                .map(f -> {
+                    try {
+                        return computeDirectory(firestore, snapshotId, f, updateBatch);
+                    } catch (InterruptedException e) {
+                        throw new DirectoryMetadataComputeException("Error computing directory metadata", e);
+                    }
+                })
+                .collect(Collectors.toList())
+            );
+        }
 
-                enumComputed.add(dirItem);
-            } else {
-                enumComputed.add(computeDirectory(firestore, snapshotId, dirItem, updateBatch));
+        // Collect metadata for file objects in the directory
+        try (Stream<FireStoreDirectoryEntry> stream = enumDir.stream()) {
+            // Group FireStoreDirectoryEntry objects by dataset Id to process one dataset at a time
+            final Map<String, List<FireStoreDirectoryEntry>> fileRefsByDatasetId = stream
+                .filter(FireStoreDirectoryEntry::getIsFileRef)
+                .collect(Collectors.groupingBy(FireStoreDirectoryEntry::getDatasetId));
+
+            for (Map.Entry<String, List<FireStoreDirectoryEntry>> entry : fileRefsByDatasetId.entrySet()) {
+                // Retrieve the file metadata from Firestore
+                final List<FireStoreFile> fireStoreFiles =
+                    fileDao.batchRetrieveFileMetadata(firestore, entry.getKey(), entry.getValue());
+
+                final AtomicInteger index = new AtomicInteger(0);
+                enumComputed.addAll(
+                    CollectionUtils.collect(entry.getValue(), dirItem -> {
+                        final FireStoreFile file = fireStoreFiles.get(index.getAndIncrement());
+                        if (file == null) {
+                            throw new FileNotFoundException("File metadata was missing");
+                        }
+                        return dirItem
+                            .size(file.getSize())
+                            .checksumMd5(file.getChecksumMd5())
+                            .checksumCrc32c(file.getChecksumCrc32c());
+                    }));
             }
         }
 

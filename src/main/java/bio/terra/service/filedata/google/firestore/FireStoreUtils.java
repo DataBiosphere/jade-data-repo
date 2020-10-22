@@ -156,6 +156,16 @@ public class FireStoreUtils {
     private static final int NO_PROGRESS_MAX = 2;
     private static final int SLEEP_MILLISECONDS = 1000;
 
+    /**
+     * Perform the specified Firestore operation against a specified list of inputs in batch.
+     * @param inputs A list containing the inputs to the function to be applied in batch
+     * @param generator A generator that provides a future given an input from the inputs parameter
+     * @param <T> The class of the objects in the input list
+     * @param <V> The class of the objects that will result when the generated futures resolve
+     * @return A list of resolved futures resulting in having run the specified operation in batch. Note: the order of
+     * the list matches with the order of the input list objects
+     * @throws InterruptedException If a call to Firestore is interrupted
+     */
     <T, V> List<T> batchOperation(List<V> inputs, ApiFutureGenerator<T, V> generator) throws InterruptedException {
         int inputSize = inputs.size();
         // We drive the retry processing by which outputs have not been filled in,

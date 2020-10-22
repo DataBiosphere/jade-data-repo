@@ -37,7 +37,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.0.134-SNAPSHOT'
+    version '1.0.136-SNAPSHOT'
 }
 
 // skip subproject tasks by default when building jade-data-repo
@@ -94,8 +94,7 @@ spotbugsMain {
     reports {
         html {
             enabled = true
-            destination = file("$buildDir/reports/spotbugs/main.txt")
-            stylesheet = "plain.xsl"
+            destination = file("$buildDir/reports/spotbugs/main.html")
             excludeFilter = file("config/spotbugs/excludeFilter.xml")
         }
     }
@@ -104,8 +103,7 @@ spotbugsTest {
     reports {
         html {
             enabled = true
-            destination = file("$buildDir/reports/spotbugs/test.txt")
-            stylesheet = "plain.xsl"
+            destination = file("$buildDir/reports/spotbugs/test.html")
             excludeFilter = file("config/spotbugs/excludeFilter.xml")
         }
     }

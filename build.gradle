@@ -37,7 +37,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.0.136-SNAPSHOT'
+    version '1.0.137-SNAPSHOT'
 }
 
 // skip subproject tasks by default when building jade-data-repo

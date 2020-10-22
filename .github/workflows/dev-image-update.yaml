@@ -9,6 +9,15 @@ on:
   push:
     branches:
       - develop
+    paths:
+      - 'src'
+      - 'gradle**'
+      - '**.gradle'
+      - 'Dockerfile'
+      - 'datarepo-clienttests/**'
+      - '.github/workflows/dev-image-update.yaml'
+      - '.swagger-codegen-ignore'
+      - '!*'
 jobs:
   update_image:
     strategy:

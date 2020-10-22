@@ -9,6 +9,15 @@ on:
   pull_request:
     branches:
       - develop
+    paths:
+      - 'src'
+      - 'gradle**'
+      - '**.gradle'
+      - 'Dockerfile'
+      - 'datarepo-clienttests/**'
+      - '.github/workflows/gradle-build-pr.yml'
+      - '.swagger-codegen-ignore'
+      - '!*'
 jobs:
   test_connected:
     timeout-minutes: 180

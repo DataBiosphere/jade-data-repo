@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
@@ -30,7 +31,6 @@ import java.io.IOException;
 import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -283,34 +283,32 @@ public class DatasetDao {
      * @throws InvalidDatasetException if a row already exists with this dataset name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
+    public void createAndLock(Dataset dataset, String flightId) throws IOException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
-        Timestamp created_date = new Timestamp(dataset.getCreatedDate().toEpochMilli());
         String sql = "INSERT INTO dataset " +
-            "(name, default_profile_id, id, created_date, flightid, description, sharedlock) " +
-            "VALUES (:name, :default_profile_id, :id, :created_date, :flightid, :description, ARRAY[]::TEXT[]) ";
+            "(name, default_profile_id, id, flightid, description, sharedlock) " +
+            "VALUES (:name, :default_profile_id, :id, :flightid, :description, ARRAY[]::TEXT[]) ";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
             .addValue("default_profile_id", dataset.getDefaultProfileId())
             .addValue("id", dataset.getId())
-            .addValue("created_date", created_date)
             .addValue("flightid", flightId)
             .addValue("description", dataset.getDescription());
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
-            jdbcTemplate.update(sql, params);
+            jdbcTemplate.update(sql, params, keyHolder);
         } catch (DuplicateKeyException dkEx) {
             throw new InvalidDatasetException(
                 "Dataset name or id already exists: " + dataset.getName() + ", " + dataset.getId(), dkEx);
 
         }
-
+        dataset.createdDate(keyHolder.getCreatedDate());
         tableDao.createTables(dataset.getId(), dataset.getTables());
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
 
         logger.debug("end of createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
-        return dataset.getId();
     }
 
     /**

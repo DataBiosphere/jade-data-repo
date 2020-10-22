@@ -86,10 +86,8 @@ public class DatasetServiceTest {
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
         UUID datasetId = UUID.randomUUID();
-        Instant createdDate = Instant.now();
         dataset
-            .id(datasetId)
-            .createdDate(createdDate);
+            .id(datasetId);
         datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(datasetId, createFlightId);
         datasetIdList.add(datasetId);

@@ -220,11 +220,8 @@ public class SnapshotDaoTest {
             String flightId = "snapshotEnumerateTest_flightId";
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
             UUID snapshotId = UUID.randomUUID();
-            Instant createdDate = Instant.now(); // TODO Does this need to be set for timezone / format etc?
-            // Load Service uses Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT);
             snapshot
-                .id(snapshotId)
-                .createdDate(createdDate);
+                .id(snapshotId);
             snapshotDao.createAndLock(snapshot, flightId);
             snapshotDao.unlock(snapshotId, flightId);
             snapshotIds.add(snapshotId);

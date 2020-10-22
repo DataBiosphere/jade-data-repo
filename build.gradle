@@ -40,7 +40,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.0.134-SNAPSHOT'
+    version '1.0.137-SNAPSHOT'
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
     }
@@ -112,8 +112,7 @@ spotbugsMain {
     reports {
         html {
             enabled = true
-            destination = file("$buildDir/reports/spotbugs/main.txt")
-            stylesheet = "plain.xsl"
+            destination = file("$buildDir/reports/spotbugs/main.html")
             excludeFilter = file("config/spotbugs/excludeFilter.xml")
         }
     }
@@ -122,8 +121,7 @@ spotbugsTest {
     reports {
         html {
             enabled = true
-            destination = file("$buildDir/reports/spotbugs/test.txt")
-            stylesheet = "plain.xsl"
+            destination = file("$buildDir/reports/spotbugs/test.html")
             excludeFilter = file("config/spotbugs/excludeFilter.xml")
         }
     }
@@ -315,11 +313,11 @@ sourceSets {
         compileClasspath += generated.output
         runtimeClasspath += generated.output
     }
-//    checkstyle {
-//        toolVersion '7.8.1'
-//        checkstyleGenerated.enabled = false // Don't check generated code
-//        configFile file("config/checkstyle/checkstyle.xml")
-//    }
+    checkstyle {
+        toolVersion '7.8.1'
+        checkstyleGenerated.enabled = false // Don't check generated code
+        configFile file("config/checkstyle/checkstyle.xml")
+    }
     jacoco {
         toolVersion '0.8.2'
     }
@@ -381,6 +379,7 @@ task testConnected(type: Test) {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
     outputs.upToDateWhen { false }
+    maxHeapSize = "2g"
 }
 
 task testIntegration(type: Test) {

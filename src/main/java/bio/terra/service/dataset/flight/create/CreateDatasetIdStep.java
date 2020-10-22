@@ -33,8 +33,6 @@ public class CreateDatasetIdStep implements Step {
             UUID datasetId = UUID.randomUUID();
             workingMap.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
             return StepResult.getStepResultSuccess();
-        } catch (InvalidDatasetException idEx) {
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, idEx);
         } catch (Exception ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                 new InvalidDatasetException("Cannot create dataset: " + datasetRequest.getName(), ex));
@@ -43,7 +41,6 @@ public class CreateDatasetIdStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        logger.debug("Dataset creation failed during id creation.");
         return StepResult.getStepResultSuccess();
     }
 }

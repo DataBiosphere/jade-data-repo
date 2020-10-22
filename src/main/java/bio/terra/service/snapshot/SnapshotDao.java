@@ -139,7 +139,8 @@ public class SnapshotDao {
         try {
             jdbcTemplate.update(sql, params);
         } catch (DuplicateKeyException dkEx) {
-            throw new InvalidSnapshotException("Snapshot name already exists: " + snapshot.getName(), dkEx);
+            throw new InvalidSnapshotException(
+                "Snapshot name or id already exists: " + snapshot.getName() + ", " + snapshot.getId(), dkEx);
         }
 
         snapshotTableDao.createTables(snapshot.getId(), snapshot.getTables());

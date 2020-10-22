@@ -30,17 +30,14 @@ public class CreateSnapshotIdStep implements Step {
             UUID snapshotId = UUID.randomUUID();
             workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
             return StepResult.getStepResultSuccess();
-        } catch (InvalidSnapshotException isEx) {
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, isEx);
         } catch (Exception ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                new InvalidSnapshotException("Cannot create dataset: " + snapshotReq.getName(), ex));
+                new InvalidSnapshotException("Cannot create snapshot: " + snapshotReq.getName(), ex));
         }
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        logger.debug("Snapshot creation failed during id creation.");
         return StepResult.getStepResultSuccess();
     }
 

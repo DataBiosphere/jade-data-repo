@@ -300,7 +300,9 @@ public class DatasetDao {
         try {
             jdbcTemplate.update(sql, params);
         } catch (DuplicateKeyException dkEx) {
-            throw new InvalidDatasetException("Dataset name already exists: " + dataset.getName(), dkEx);
+            throw new InvalidDatasetException(
+                "Dataset name or id already exists: " + dataset.getName() + ", " + dataset.getId(), dkEx);
+
         }
 
         tableDao.createTables(dataset.getId(), dataset.getTables());

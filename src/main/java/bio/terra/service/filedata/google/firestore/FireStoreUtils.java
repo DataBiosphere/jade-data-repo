@@ -118,25 +118,21 @@ public class FireStoreUtils {
      * Our objects are small, so I think we can use the maximum batch size without
      * concern for using too much memory.
      */
-    void scanCollectionObjects(Firestore firestore,
+    <V> void scanCollectionObjects(Firestore firestore,
                                String collectionId,
                                int batchSize,
-                               InterruptibleConsumer<QueryDocumentSnapshot> func) throws InterruptedException {
+                               ApiFutureGenerator<V, QueryDocumentSnapshot> generator) throws InterruptedException {
         CollectionReference datasetCollection = firestore.collection(collectionId);
         try {
             int batchCount = 0;
-            int visited;
+            List<QueryDocumentSnapshot> documents;
             do {
-                visited = 0;
                 ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                documents = future.get().getDocuments();
                 batchCount++;
                 logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
-                for (QueryDocumentSnapshot document : documents) {
-                    func.accept(document);
-                    visited++;
-                }
-            } while (visited >= batchSize);
+                batchOperation(documents, generator);
+            } while (documents.size() > 0);
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("scanning collection - execution exception", ex);
         }

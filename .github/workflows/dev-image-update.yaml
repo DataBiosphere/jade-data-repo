@@ -12,7 +12,10 @@ on:
     paths:
       - 'src'
       - 'gradle**'
-      - 'build.gradle'
+      - '**.gradle'
+      - 'Dockerfile'
+      - '.github/workflows/dev-image-update.yaml'
+      - '.swagger-codegen-ignore'
       - '!**'
 jobs:
   update_image:

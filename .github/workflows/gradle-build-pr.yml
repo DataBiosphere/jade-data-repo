@@ -12,7 +12,10 @@ on:
     paths:
       - 'src'
       - 'gradle**'
-      - 'build.gradle'
+      - '**.gradle'
+      - 'Dockerfile'
+      - '.github/workflows/gradle-build-pr.yml'
+      - '.swagger-codegen-ignore'
       - '!**'
 jobs:
   test_connected:

@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
   title: Data Repository API
-  description: |
+  description: >
     This document defines the REST API for Data Repository.
     **Status: design in progress**
 
@@ -68,8 +68,7 @@ paths:
     get:
       tags:
         - unauthenticated
-      description: |
-        Returns the operational status of the service
+      description: Returns the operational status of the service
       operationId: serviceStatus
       responses:
         200:
@@ -98,7 +97,7 @@ paths:
     get:
       tags:
         - unauthenticated
-      description: |
+      description: >
         Requests that this instance of DR Manager shut down. In production, this must be configured to
         only be callable by Kubernetes.
       operationId: shutdownRequest
@@ -110,7 +109,7 @@ paths:
     get:
       tags:
         - resources
-      description: |
+      description: >
         Returns a list of all of the billing profiles
       operationId: enumerateProfiles
       parameters:
@@ -137,7 +136,7 @@ paths:
     post:
       tags:
         - resources
-      description: |
+      description: >
         Creates a new profile associated with a billing account
       operationId: createProfile
       requestBody:
@@ -252,7 +251,7 @@ paths:
     get:
       tags:
         - repository
-      description: |
+      description: >
         Returns a list of all of the snapshots the caller has access to
       operationId: enumerateSnapshots
       parameters:
@@ -719,7 +718,7 @@ paths:
     get:
       tags:
         - repository
-      description: |
+      description: >
         Returns a list of all of the datasets the caller has access to
       operationId: enumerateDatasets
       parameters:
@@ -1288,7 +1287,7 @@ paths:
     get:
       tags:
         - repository
-      description: |
+      description: >
         Returns whether the user is registered with terra
       operationId: user
       responses:
@@ -1365,7 +1364,7 @@ paths:
     post:
       tags:
         - repository
-      description: |-
+      description: >-
         Load many files into the dataset file system; async returns a BulkLoadResultModel
         Note that this endpoint is not a single transaction. Some files may be loaded and
         others may fail. Each file load is atomic; the file will either be loaded into the
@@ -1379,7 +1378,7 @@ paths:
           schema:
             type: string
       requestBody:
-        description: |-
+        description: >-
           Bulk file load request with file list in an external file. Load summary results
           are returned in the async response.
         content:
@@ -1434,7 +1433,7 @@ paths:
     get:
       tags:
         - repository
-      description: |-
+      description: >-
         Retrieve the results of a bulk file load. The results of each bulk load are stored
         in the dataset. They can be queried directly or retrieved with this paginated
         interface.
@@ -1508,10 +1507,7 @@ paths:
     delete:
       tags:
         - repository
-      description: |-
-        Delete results from the bulk file load table of the dataset.
-        If jobId is specified, then only the results for the loadTag plus that jobId are
-        deleted. Otherwise, all results associated with the loadTag are deleted.
+      description: Delete results from the bulk file load table of the dataset. If jobId is specified, then only the results for the loadTag plus that jobId are deleted. Otherwise, all results associated with the loadTag are deleted.
       operationId: bulkFileResultsDelete
       parameters:
         - name: id
@@ -1570,11 +1566,7 @@ paths:
     post:
       tags:
         - repository
-      description: |-
-        Load many files into the dataset file system; async returns a BulkLoadArrayResultModel
-        Note that this endpoint is not a single transaction. Some files may be loaded and
-        others may fail. Each file load is atomic; the file will either be loaded into the
-        dataset file system or it will not exist.
+      description: Load many files into the dataset file system; async returns a BulkLoadArrayResultModel Note that this endpoint is not a single transaction. Some files may be loaded and others may fail. Each file load is atomic; the file will either be loaded into the dataset file system or it will not exist.
       operationId: bulkFileLoadArray
       parameters:
         - name: id
@@ -1584,7 +1576,7 @@ paths:
           schema:
             type: string
       requestBody:
-        description: |-
+        description: >-
           Bulk file load request with file list in the body of the request and load
           results returned in the async response.
         content:
@@ -1695,7 +1687,7 @@ paths:
     delete:
       tags:
         - repository
-      description: |
+      description: >
         Hard delete of a file by id. The file is deleted even if it is in use by
         a dataset. Subsequent lookups will give not found errors.
       operationId: deleteFile
@@ -1815,7 +1807,7 @@ paths:
     get:
       tags:
         - repository
-      description: |
+      description: >
         Returns a list of all of the jobs the caller has access to
       operationId: enumerateJobs
       parameters:
@@ -1961,7 +1953,7 @@ paths:
     put:
       tags:
         - repository
-      description: |
+      description: >
         Enable or disable the named fault. Performing the put on a config that
         is not a fault is an error.
       operationId: setFault
@@ -2082,7 +2074,7 @@ paths:
             type: string
         - name: expand
           in: query
-          description: |-
+          description: >-
             If false and the object_id refers to a bundle, then the ContentsObject array contains only those objects directly contained in the bundle. That is, if the bundle contains other bundles, those other bundles are not recursively included in the result.
             If true and the object_id refers to a bundle, then the entire set of objects in the bundle is expanded. That is, if the bundle contains another bundles, then those other bundles are recursively expanded and included in the result. Recursion continues through the entire sub-tree of the bundle.
             If the object_id refers to a blob, then the query parameter is ignored.
@@ -2097,11 +2089,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/DRSObject'
         202:
-          description: |
+          description: >
             The operation is delayed and will continue asynchronously. The client should retry this same request after the delay specified by Retry-After header.
           headers:
             Retry-After:
-              description: |
+              description: >
                 Delay in seconds. The client should retry this same request after waiting for this duration. To simplify client response processing, this must be an integral relative time in seconds. This value SHOULD represent the minimum duration the client should wait before attempting the operation again with a reasonable expectation of success. When it is not feasible for the server to determine the actual expected delay, the server may return a brief, fixed value instead.
               schema:
                 type: integer
@@ -2168,11 +2160,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/DRSAccessURL'
         202:
-          description: |
+          description: >
             The operation is delayed and will continue asynchronously. The client should retry this same request after the delay specified by Retry-After header.
           headers:
             Retry-After:
-              description: |
+              description: >
                 Delay in seconds. The client should retry this same request after waiting for this duration. To simplify client response processing, this must be an integral relative time in seconds. This value SHOULD represent the minimum duration the client should wait before attempting the operation again with a reasonable expectation of success. When it is not feasible for the server to determine the actual expected delay, the server may return a brief, fixed value instead.
               schema:
                 type: integer
@@ -2215,14 +2207,14 @@ components:
       minLength: 1
       pattern: ^[a-zA-Z0-9][_a-zA-Z0-9]*$
       type: string
-      description: |
+      description: >
         Dataset, table, and column names follow this pattern. This should be used for the name of any object in the
         system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
         any extra columns the DR adds. For table names, this is shorter than what BigQuery allows.
     UniqueIdProperty:
       pattern: ^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}
       type: string
-      description: |
+      description: >
         Unique identifier for a dataset, snapshot, etc.
     BillingProfileRequestModel:
       required:
@@ -2241,7 +2233,7 @@ components:
           type: string
           description: either “direct” or the reseller of the sub-account that sends
             the bill (like “on_spend”)
-      description: |
+      description: >
         Describes a profile that references a billing account.
     BillingProfileModel:
       type: object
@@ -2272,7 +2264,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BillingProfileModel'
-      description: |
+      description: >
         The total number of billing profiles available and a page of profiles
     DatasetModel:
       type: object
@@ -2297,7 +2289,7 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
-      description: |
+      description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
       type: object
@@ -2314,7 +2306,7 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
-      description: |
+      description: >
         Summary of a dataset.
     DatasetRequestModel:
       required:
@@ -2332,7 +2324,7 @@ components:
           $ref: '#/components/schemas/UniqueIdProperty'
         schema:
           $ref: '#/components/schemas/DatasetSpecificationModel'
-      description: |
+      description: >
         Complete definition of a dataset without the id (used to create a dataset)
     EnumerateDatasetModel:
       type: object
@@ -2344,7 +2336,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DatasetSummaryModel'
-      description: |
+      description: >
         The total number of datasets available that match the filter criteria and a page of summaries
     ColumnModel:
       required:
@@ -2411,17 +2403,17 @@ components:
           $ref: '#/components/schemas/ObjectNameProperty'
         min:
           type: integer
-          description: |
+          description: >
             The smallest value to partition within the target column. Any rows with a value smaller than this will be unpartitioned.
           format: int64
         max:
           type: integer
-          description: |
+          description: >
             The largest value to partition within the target column. Any rows with a value larger than this will be unpartitioned.
           format: int64
         interval:
           type: integer
-          description: |
+          description: >
             The size to use when dividing the partitioning range into "buckets". (max - min) / (this value) cannot be larger than 4,000.
           format: int64
       description: Describes how an int partition should be configured.
@@ -2450,7 +2442,7 @@ components:
           $ref: '#/components/schemas/RelationshipTermModel'
         to:
           $ref: '#/components/schemas/RelationshipTermModel'
-      description: |
+      description: >
         One relationship between two tables. Captures a specific relationship between two tables. By naming the
         relationships, we can define assets.
     AssetTableModel:
@@ -2465,7 +2457,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ObjectNameProperty'
-      description: |
+      description: >
         Used in the asset definition to describe a table that is included in the asset. This is used to define
         the view of the asset table in the snapshot. Columns can be an empty array indicating that all columns
         should be included.
@@ -2558,7 +2550,7 @@ components:
         csv_null_marker:
           type: string
           default: ""
-      description: |
+      description: >
         Request to ingest data from a file in GCS into a table in a dataset.
         The ingest source must be readable by the DR manager.
         TODO: other input forms
@@ -2587,7 +2579,7 @@ components:
           type: integer
           description: number of bad rows skipped
           format: int64
-      description: |
+      description: >
         Response from performing an ingest.
     FileLoadModel:
       required:
@@ -2600,12 +2592,12 @@ components:
           description: gs URL of the source file to load
         target_path:
           type: string
-          description: |
+          description: >
             Full path within the dataset where the file should be placed.
             The path must start with /.
         mime_type:
           type: string
-          description: |-
+          description: >-
             A string providing the mime-type of the Data Object.
             For example, "application/json".
         profileId:
@@ -2615,7 +2607,7 @@ components:
         description:
           type: string
           description: A human readable description of the contents of the Data Object.
-      description: |
+      description: >
         Information needed to copy a file from a source bucket into the
         dataset bucket.
         Eventually, this will include attributes of the storage including
@@ -2634,13 +2626,13 @@ components:
           description: full path of the file in the dataset
         size:
           type: integer
-          description: |
+          description: >
             Always present for files - the file size in bytes
             Present for directories in snapshots - sum of sizes of objects in a directory
           format: int64
         checksums:
           type: array
-          description: |
+          description: >
             Always present for files - checksums; always includes crc32c. May include md5.
             Present for directories in snapshots - see DRS spec for algorithm for combining checksums of
             underlying directory contents.
@@ -2683,7 +2675,7 @@ components:
       properties:
         enumerated:
           type: boolean
-          description: |
+          description: >
             Indicates whether or not the directory has been enumerated. True means the directory has been enumerated.
             The contents property describes the contents. An empty array indicates and empty directory. False means
             the directory has not been enumerated. If the contents property is present, it should be ignored.
@@ -2695,7 +2687,7 @@ components:
       description: Directory in the data repository
     LoadTagModel:
       type: string
-      description: |
+      description: >
         client-specified tag for a data or file load. If no id is specified, we use the
         string form of the job create time as the tag.
     BulkLoadRequestModel:
@@ -2714,12 +2706,12 @@ components:
           description: max number of failed file loads before stopping
         loadControlFile:
           type: string
-          description: |-
+          description: >-
             gs:// path to a text file in a bucket. The file must be accessible to the DR
             Manager. Each line of the file is interpreted as the JSON form of one
             BulkLoadFileModel. For example, one line might look like
               '{ "sourcePath":"gs:/bucket/path/file", "targetPath":"/target/path/file" }'
-      description: |-
+      description: >-
         Body of a bulk file load request. This variant of a bulk load provides the set of
         files to be loaded in a file containing the JSON form of a BulkLoadFileModel.
         A summary of the load results is returned in the async response (BulkLoadResponseModel)
@@ -2745,7 +2737,7 @@ components:
           description: Array files to load
           items:
             $ref: '#/components/schemas/BulkLoadFileModel'
-      description: |-
+      description: >-
         Body of a bulk file load request. This variant of a bulk load provides the set of
         files to be loaded in the body of the request. Both the summary of the load and the
         per-file details of the bulk load returned in the async response (BulkLoadArrayResponseModel)
@@ -2763,12 +2755,12 @@ components:
           description: gs URL of the source file to load
         targetPath:
           type: string
-          description: |
+          description: >
             Full path within the dataset where the file should be placed.
             The path must start with /.
         mimeType:
           type: string
-          description: |-
+          description: >-
             A string providing the mime-type of the Data Object.
             For example, "application/json".
         description:
@@ -2812,7 +2804,7 @@ components:
           description: gs URL of the source file to load
         targetPath:
           type: string
-          description: |
+          description: >
             Full path within the dataset where the file should be placed.
             The path must start with /.
         state:
@@ -2835,7 +2827,7 @@ components:
           description: gs URL of the source file to load
         targetPath:
           type: string
-          description: |
+          description: >
             Full path within the dataset where the file should be placed.
             The path must start with /.
         state:
@@ -2881,7 +2873,7 @@ components:
             type: string
         profileId:
           $ref: '#/components/schemas/UniqueIdProperty'
-      description: |
+      description: >
         Request for creating a snapshot.
         For now, the API only supports snapshots defined as a single dataset asset and
         row ids for the root table of that asset. The snapshot has exactly the tables
@@ -2911,7 +2903,7 @@ components:
           $ref: '#/components/schemas/SnapshotRequestQueryModel'
         rowIdSpec:
           $ref: '#/components/schemas/SnapshotRequestRowIdModel'
-      description: |
+      description: >
         The contents specifies the source of the data (dataset and asset)
         and the rows to include (field and rootValues).
         TODO: field will move the asset object; it is here as a stepping stone
@@ -2927,7 +2919,7 @@ components:
           type: array
           items:
             type: string
-      description: |
+      description: >
         The datasource identifies the dataset and asset from which to source the data.
     SnapshotRequestQueryModel:
       required:
@@ -2939,7 +2931,7 @@ components:
           $ref: '#/components/schemas/ObjectNameProperty'
         query:
           type: string
-      description: |
+      description: >
         A specification of the query to go into a snapshot.
     SnapshotRequestRowIdModel:
       required:
@@ -2950,7 +2942,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotRequestRowIdTableModel'
-      description: |
+      description: >
         Identifies the list of tables + columns along with the row ids to be included in the snapshot
     SnapshotRequestRowIdTableModel:
       required:
@@ -2969,7 +2961,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UniqueIdProperty'
-      description: |
+      description: >
         A specification of a table, columns, and row ids to go into a snapshot.
     SnapshotSummaryModel:
       type: object
@@ -2986,7 +2978,7 @@ components:
           description: Date the snapshot was created
         profileId:
           $ref: '#/components/schemas/UniqueIdProperty'
-      description: |
+      description: >
         summary of snapshot
     EnumerateSnapshotModel:
       type: object
@@ -2998,7 +2990,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SnapshotSummaryModel'
-      description: |
+      description: >
         The total number of snapshots available that match the criteria and a page of summaries
     SnapshotModel:
       type: object
@@ -3030,7 +3022,7 @@ components:
         dataProject:
           type: string
           description: Project id of the snapshot data project
-      description: |
+      description: >
         SnapshotModel returns detailed data about an existing snapshot.
     SnapshotSourceModel:
       required:
@@ -3042,7 +3034,7 @@ components:
           $ref: '#/components/schemas/DatasetSummaryModel'
         asset:
           $ref: '#/components/schemas/ObjectNameProperty'
-      description: |
+      description: >
         SnapshotSourceModel returns data about the source for an existing snapshot
     JobModel:
       required:
@@ -3074,7 +3066,7 @@ components:
           type: string
           description: Timestamp when the flight was completed; not present if not
             complete
-      description: |
+      description: >
         Status of job
     ErrorModel:
       required:
@@ -3087,7 +3079,7 @@ components:
           type: array
           items:
             type: string
-      description: |
+      description: >
         Representation of an error that occurred while processing a request.
         Some errors provide error details. For example, validation of input may report several problems.
         Each of those are reported in a separate error detail.
@@ -3099,7 +3091,7 @@ components:
           enum:
             - deleted
             - not_found
-      description: |
+      description: >
         Returns the state of the object of the deletion
     PolicyMemberRequest:
       required:
@@ -3108,7 +3100,7 @@ components:
       properties:
         email:
           type: string
-      description: |
+      description: >
         email of user or group to add to policy
     PolicyModel:
       type: object
@@ -3119,7 +3111,7 @@ components:
           type: array
           items:
             type: string
-      description: |
+      description: >
         Describes a policy
     PolicyResponse:
       type: object
@@ -3128,7 +3120,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PolicyModel'
-      description: |
+      description: >
         email of user or group to add to policy
     DataDeletionRequest:
       required:
@@ -3148,7 +3140,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DataDeletionTableModel'
-      description: |
+      description: >
         a container holding a specification for how to delete tabular data in one or more tables
     DataDeletionTableModel:
       required:
@@ -3160,7 +3152,7 @@ components:
           description: the name of a table in the dataset
         gcsFileSpec:
           $ref: '#/components/schemas/DataDeletionGcsFileModel'
-      description: |
+      description: >
         a specification for how to delete tabular data in one table
     DataDeletionGcsFileModel:
       required:
@@ -3175,7 +3167,7 @@ components:
         path:
           type: string
           description: a gs://path/to/a/file that can include a wildcard (*)
-      description: |
+      description: >
         a specification of a gcs file containing row ids to delete
     UserStatusInfo:
       required:
@@ -3227,7 +3219,7 @@ components:
           $ref: '#/components/schemas/ConfigFaultModel'
         parameter:
           $ref: '#/components/schemas/ConfigParameterModel'
-      description: |
+      description: >
         There are three types of configurations: faults, parameters, and logging.
         Due to the way swagger works, we make a property for each type, but only
         the property that matches the type enumeration will be processed.
@@ -3236,13 +3228,13 @@ components:
       properties:
         enabled:
           type: boolean
-          description: |
+          description: >
             If the fault is enabled, then is in effect. Fault points cause insert
             faults. Typical usage is that faults are disabled on system start and explicitly
             enabled by test code or via the setFault endpoint.
         faultType:
           type: string
-          description: |
+          description: >
             A simple fault has no parameters. It is just enabled or disabled. This type of
             fault is typically used when the desired behavior of the fault is too complex
             for expression in the fault types and custom code is needed to get the right
@@ -3268,18 +3260,18 @@ components:
             forever
         rate:
           type: integer
-          description: |
+          description: >
             insert a fault rate percent of the time. If rate is 100, the
             fault will always be inserted regardless of rate.
         rateStyle:
           type: string
-          description: |
+          description: >
             fixed style means insert the fault; skip for rate-1; ...
             random style means randomly insert the fault with probability of 1:<rate>
           enum:
             - fixed
             - random
-      description: |
+      description: >
         Counted fault is used to insert a fixed number of faults. A "fault test" is one
         call to the fault manager for a named fault. The skipFor lets you get the system to
         a certain stable point where you want to begin inserting faults. Insert gives the
@@ -3295,7 +3287,7 @@ components:
       properties:
         value:
           type: string
-          description: |
+          description: >
             Configuration parameters are always passed as strings and converted within
             the service. That keeps the JSON simple. Sending in specific types doesn't
             help much, because there still might be a mismatch between the type passed in
@@ -3341,7 +3333,7 @@ components:
           description: The hex-string encoded checksum for the data
         type:
           type: string
-          description: |-
+          description: >-
             The digest method used to create the checksum. If left unspecified md5
             will be assumed.
 
@@ -3363,19 +3355,19 @@ components:
           description: An identifier unique to this `Object`.
         name:
           type: string
-          description: |-
+          description: >-
             A string that can be used to name an `Object`.
             This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_].
             See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
         self_uri:
           type: string
-          description: |-
+          description: >-
             A drs:// URI, as defined in the DRS documentation, that tells clients how to access this object.
             The intent of this field is to make DRS objects self-contained, and therefore easier for clients to store and pass around.
           example: drs://drs.example.org/314159
         size:
           type: integer
-          description: |-
+          description: >-
             For blobs, the blob size in bytes.
             For bundles, the cumulative size, in bytes, of items in the `contents` field.
           format: int64
@@ -3388,7 +3380,7 @@ components:
             timestamp in systems that do not support updates.
         version:
           type: string
-          description: |-
+          description: >-
             A string representing a version.
             (Some systems may use checksum, a RFC3339 timestamp, or an incrementing version number.)
         mime_type:
@@ -3398,7 +3390,7 @@ components:
         checksums:
           minItems: 1
           type: array
-          description: |-
+          description: >-
             The checksum of the `Object`. At least one checksum must be provided.
             For blobs, the checksum is computed over the bytes in the blob.
 
@@ -3419,14 +3411,14 @@ components:
         access_methods:
           minItems: 1
           type: array
-          description: |-
+          description: >-
             The list of access methods that can be used to fetch the `Object`.
             Required for single blobs; optional for bundles.
           items:
             $ref: '#/components/schemas/DRSAccessMethod'
         contents:
           type: array
-          description: |-
+          description: >-
             If not set, this `Object` is a single blob.
             If set, this `Object` is a bundle containing the listed `ContentsObject` s (some of which may be further nested).
           items:
@@ -3480,7 +3472,7 @@ components:
           $ref: '#/components/schemas/DRSAccessURL'
         access_id:
           type: string
-          description: |-
+          description: >-
             An arbitrary string to be passed to the `/access` path to get an `AccessURL`.
             This must be unique per object. Note that at least one of `access_url` and `access_id` must be provided.
         region:
@@ -3630,7 +3622,7 @@ components:
             profile: profile authorization
     authToken:
       type: apiKey
-      description: |
+      description: >
         A valid authorization token must be passed in the 'Authorization' header.
         Example syntax for using 'Authorization' header :
           Bearer: token_string

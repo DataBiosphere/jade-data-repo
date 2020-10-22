@@ -116,13 +116,13 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    /**
-     * Home redirection to swagger api documentation
-     */
-    @RequestMapping(value = "/")
-    public String index() {
-        System.out.println("swagger-ui.html");
-        return "redirect:swagger-ui.html";
-    }
+//    /**
+//     * Home redirection to swagger api documentation
+//     */
+//    @RequestMapping(value = "/")
+//    public String index() {
+//        System.out.println("swagger-ui.html");
+//        return "redirect:swagger-ui.html";
+//    }
 
 }

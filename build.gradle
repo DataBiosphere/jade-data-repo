@@ -11,12 +11,6 @@
  *   https://docs.gradle.org/current/userguide/java_plugin.html#sec:java_source_sets
  */
 
-//import io.swagger.codegen.config.CodegenConfigurator
-//import io.swagger.codegen.DefaultGenerator
-
-import org.openapitools.codegen.config.CodegenConfigurator
-import org.openapitools.codegen.DefaultGenerator
-
 buildscript {
     ext {
         springBootVersion = '2.3.4.RELEASE'
@@ -25,10 +19,9 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+//        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
         classpath('io.swagger:swagger-codegen:2.4.11')
         classpath('gradle.plugin.com.srcclr:gradle:3.1.0')
-        classpath "org.openapitools:openapi-generator-gradle-plugin:4.2.2"
     }
 }
 
@@ -37,35 +30,54 @@ plugins {
   id 'org.liquibase.gradle' version '2.0.1'
   id 'antlr'
   id 'com.github.spotbugs' version '4.5.1'
+  id "org.hidetake.swagger.generator" version "2.18.2"
+  id "org.springframework.boot" version "2.3.4.RELEASE"
+  id "idea"
+  id "java"
+  id "io.spring.dependency-management" version "1.0.10.RELEASE"
+  id "jacoco"
 }
 
 allprojects {
     group 'bio.terra'
     version '1.0.134-SNAPSHOT'
-}
+    ext {
+        resourceDir = "${rootDir}/src/main/resources/api"
+    }
 
-// skip subproject tasks by default when building jade-data-repo
-subprojects.each { s ->
-    s.tasks.all {
-        task -> task.enabled = (System.getenv("ENABLE_SUBPROJECT_TASKS") != null)
+    // specifying versions for dependencies, not adding the dependencies themselves (yet)
+    apply plugin: "io.spring.dependency-management"
+    dependencyManagement {
+        imports {
+            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+        dependencies {
+            dependency group: "io.swagger.core.v3", name: "swagger-annotations", version: "2.1.5"
+            dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.22"
+        }
     }
 }
 
+// skip subproject tasks by default when building jade-data-repo
+//subprojects.each { s ->
+//    s.tasks.all {
+//        task -> task.enabled = (System.getenv("ENABLE_SUBPROJECT_TASKS") != null)
+//    }
+//}
+
 sourceCompatibility = 1.8
 
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'org.springframework.boot'
-apply plugin: 'io.spring.dependency-management'
-apply plugin: 'antlr'
-
-apply plugin: 'checkstyle'
-apply plugin: 'jacoco'
+//apply plugin: 'java'
+//apply plugin: 'idea'
+//apply plugin: 'org.springframework.boot'
+//apply plugin: 'io.spring.dependency-management'
+//apply plugin: 'antlr'
+//
+////apply plugin: 'checkstyle'
+//apply plugin: 'jacoco'
 apply plugin: 'com.github.spotbugs'
 
 apply plugin: 'com.srcclr.gradle'
-
-apply plugin: 'org.openapi.generator'
 
 if (hasProperty('buildScan')) {
     buildScan {
@@ -153,11 +165,6 @@ configurations {
     runtimeClasspath
 }
 
-// Exclude the Spring logger, so everything will use SLF4J
-configurations.all {
-    exclude group: "commons-logging", module: "commons-logging"
-}
-
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
     compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
@@ -168,8 +175,6 @@ dependencies {
     compile 'com.google.cloud:google-cloud-storage:1.108.0'
     compile 'com.google.cloud:google-cloud-firestore:1.22.0'
     compile group: 'com.google.cloud', name: 'google-cloud-pubsub', version: '1.104.1'
-    compile 'io.springfox:springfox-swagger-ui:2.10.0'
-    compile 'io.springfox:springfox-swagger2:2.9.2'
     compile 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
     compile 'org.apache.commons:commons-lang3:3.9'
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
@@ -177,7 +182,11 @@ dependencies {
     compile 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
     compile 'org.postgresql:postgresql:42.2.8'           // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
-    compile "org.springframework.boot:spring-boot-starter-web:2.2.6.RELEASE"
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation group: "javax.validation", name: "validation-api"
+
+    implementation group: "io.swagger.core.v3", name: "swagger-annotations"
+    swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"
 
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-9435410-SNAP'
@@ -225,8 +234,10 @@ dependencies {
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     // boot-starter-validation required for javax.validation.Valid references, @Valid tags
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
-    generatedCompile 'io.springfox:springfox-swagger2:2.7.0'
-    generatedCompile 'io.springfox:springfox-swagger-ui:2.7.0'
+    implementation group: "org.webjars", name: "webjars-locator-core", version: "0.46"
+    runtimeOnly group: "org.webjars.npm", name: "swagger-ui-dist", version: "3.35.2"
+    generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"
+
 
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 }
@@ -240,49 +251,24 @@ def getGitHash = { ->
     return stdout.toString().trim()
 }
 
-def openapiSourceFile = 'src/main/resources/data-repository-openapi.yaml'
-def generatedOutputDir = 'src/generated/java'
-
-//task generateApi {
-//    // specify the task inputs and outputs so gradle knows what to rebuild based on what has changed
-//    inputs.file("$projectDir/$openapiSourceFile")
-//    outputs.dir("$projectDir/$generatedOutputDir")
-//    doLast {
-//        def config = new CodegenConfigurator()
-//        config.setInputSpec("file:///$projectDir/$openapiSourceFile")
-//        config.setOutputDir("$projectDir")
-//        config.setLang('spring')
-//        // These properties are not well documented. The only way I've found to figure them out is to
-//        // locally install the swagger-codegen tool and invoke it to get the specific help for the
-//        // spring boot options.
-//        config.setAdditionalProperties([
-//                'interfaceOnly' : 'true',                  // only generate the model and API interfaces
-//                'useTags'       : 'true',                  // organize the swagger ui page by tags
-//                'library'       : 'spring-boot',           // do spring-boot code generation
-//                'dateLibrary'   : 'java8',                 // do java8 code generation
-//                'apiPackage'    : 'bio.terra.controller',
-//                'modelPackage'  : 'bio.terra.model',
-//                'invokerPackage': 'bio.terra',
-//                'sourceFolder'  : generatedOutputDir
-//        ])
-//        new DefaultGenerator().opts(config.toClientOptInput()).generate()
-//    }
-//}
-
-task generateApi(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask){
-    generatorName = "spring"
-    inputSpec = "file:///$projectDir/$openapiSourceFile"
-    outputDir = "$projectDir"
-    apiPackage = "org.openapi.example.api"
-    invokerPackage = "bio.terra"
-    modelPackage = "bio.terra.model"
-    modelFilesConstrainedTo = [
-        "Error"
-    ]
-    configOptions = [
-        dateLibrary: "java8",
-        library: "spring-boot",
-    ]
+swaggerSources {
+    server {
+        inputFile = file("${resourceDir}/data-repository-openapi.yaml")
+        code {
+            language = "spring"
+            library = "spring-boot"
+            outputDir = file("${buildDir}/generated-src/swagger")
+            components = ["models", "apis"]
+            rawOptions = [
+                "--invoker-package", "bio.terra",
+                "--api-package", "bio.terra.controller",
+                "--model-package", "bio.terra.model",
+                "-D", "interfaceOnly=true," +
+                    "useTags=true," +
+                    "dateLibrary=java8"
+            ]
+        }
+    }
 }
 
 task generateVersionFile {
@@ -309,14 +295,13 @@ clean.doFirst {
     delete("${projectDir}/$generatedOutputDir")
 }
 
-def excludePattern = 'generated-src/antlr/main/bio/terra/grammar/'
+def excludePattern = 'generated-src/'
 def excludeGrammarPattern = '${buildDir}/' + excludePattern + '*'
 
 
-tasks.withType(Checkstyle) {
-    exclude excludeGrammarPattern
-    exclude "${buildDir}/generated-src/antlr/main/bio/terra/grammar/*"
-}
+//tasks.withType(Checkstyle) {
+//    exclude excludeGrammarPattern
+//}
 
 sourceSets {
     generated {
@@ -330,15 +315,17 @@ sourceSets {
         compileClasspath += generated.output
         runtimeClasspath += generated.output
     }
-    checkstyle {
-        toolVersion '7.8.1'
-        checkstyleGenerated.enabled = false // Don't check generated code
-        configFile file("config/checkstyle/checkstyle.xml")
-    }
+//    checkstyle {
+//        toolVersion '7.8.1'
+//        checkstyleGenerated.enabled = false // Don't check generated code
+//        configFile file("config/checkstyle/checkstyle.xml")
+//    }
     jacoco {
         toolVersion '0.8.2'
     }
 }
+
+sourceSets.main.java.srcDir "${buildDir}/generated-src/swagger"
 
 bootRun {
     classpath += sourceSets.generated.output
@@ -420,8 +407,8 @@ task testAll(type: Test) {
     outputs.upToDateWhen { false }
 }
 
-compileGeneratedJava.dependsOn generateApi
+compileGeneratedJava.dependsOn swaggerSources.server.code
 compileGeneratedJava.dependsOn generateGrammarSource
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava
-ideaModule.dependsOn generateApi
+ideaModule.dependsOn swaggerSources.server.code

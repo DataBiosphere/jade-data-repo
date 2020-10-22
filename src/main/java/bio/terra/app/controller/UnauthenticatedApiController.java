@@ -11,13 +11,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.availability.*;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
-import scala.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -37,7 +35,6 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     private final Environment env;
     private final ConfigurationService configurationService;
     private final DatasetDao datasetDao;
-    private final ApplicationAvailability availability;
 
     private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
     private static final String DEFAULT_GITHASH = "00000000";
@@ -53,8 +50,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         JobService jobService,
         Environment env,
         ConfigurationService configurationService,
-        DatasetDao datasetDao,
-        ApplicationAvailability applicationAvailability
+        DatasetDao datasetDao
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -63,7 +59,6 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         this.env = env;
         this.configurationService = configurationService;
         this.datasetDao = datasetDao;
-        this.availability = applicationAvailability;
 
         Properties properties = new Properties();
         try (InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties")) {

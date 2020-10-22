@@ -37,7 +37,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.0.134-SNAPSHOT'
+    version '1.0.136-SNAPSHOT'
 }
 
 // skip subproject tasks by default when building jade-data-repo
@@ -94,8 +94,7 @@ spotbugsMain {
     reports {
         html {
             enabled = true
-            destination = file("$buildDir/reports/spotbugs/main.txt")
-            stylesheet = "plain.xsl"
+            destination = file("$buildDir/reports/spotbugs/main.html")
             excludeFilter = file("config/spotbugs/excludeFilter.xml")
         }
     }
@@ -104,8 +103,7 @@ spotbugsTest {
     reports {
         html {
             enabled = true
-            destination = file("$buildDir/reports/spotbugs/test.txt")
-            stylesheet = "plain.xsl"
+            destination = file("$buildDir/reports/spotbugs/test.html")
             excludeFilter = file("config/spotbugs/excludeFilter.xml")
         }
     }
@@ -188,7 +186,7 @@ dependencies {
     } else {
         implementation 'bio.terra:stairway:0.0.21-SNAPSHOT'
     }
-
+ß
     // Forcing this due to vulnerability issues
     compile ('com.fasterxml.jackson.core:jackson-databind:2.11.0.rc1') {
         force = true
@@ -215,7 +213,7 @@ dependencies {
     testCompile "org.springframework.boot:spring-boot-starter-test"
     testCompile 'org.postgresql:postgresql:42.2.8'
     testCompile 'com.google.code.findbugs:annotations:3.0.1'
-
+ß
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     // boot-starter-validation required for javax.validation.Valid references, @Valid tags
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'

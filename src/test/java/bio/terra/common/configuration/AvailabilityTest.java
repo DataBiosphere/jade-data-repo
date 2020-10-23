@@ -34,14 +34,12 @@ public class AvailabilityTest {
     @Autowired
     private ApplicationAvailability applicationAvailability;
 
+    //Reference: https://www.baeldung.com/spring-liveness-readiness-probes
     @Test
     public void readinessState() throws Exception {
         assertThat("Readiness state should be ACCEPTING_TRAFFIC",
             applicationAvailability.getReadinessState(),
             equalTo(ReadinessState.ACCEPTING_TRAFFIC));
-        ResultActions result = mvc.perform(get("/actuator/health/liveness"));
-        result.andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("UP"));
         ResultActions readinessResult = mvc.perform(get("/actuator/health/readiness"));
         readinessResult.andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("UP"));
@@ -53,5 +51,26 @@ public class AvailabilityTest {
         mvc.perform(get("/actuator/health/readiness"))
            .andExpect(status().isServiceUnavailable())
            .andExpect(jsonPath("$.status").value("OUT_OF_SERVICE"));
+    }
+
+    @Test
+    public void livenessState() throws Exception {
+        assertThat("Liveness state should be CORRECT",
+            applicationAvailability.getLivenessState(),
+            equalTo(LivenessState.CORRECT));
+        ResultActions result = mvc.perform(get("/actuator/health/liveness"));
+        result.andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"));
+        ResultActions livenessResult = mvc.perform(get("/actuator/health/liveness"));
+        livenessResult.andExpect(status().isOk())
+            .andExpect(jsonPath("$.status").value("UP"));
+
+        AvailabilityChangeEvent.publish(context, LivenessState.BROKEN);
+        assertThat("Liveness state should be BROKEN",
+            applicationAvailability.getLivenessState(),
+            equalTo(LivenessState.BROKEN));
+        mvc.perform(get("/actuator/health/liveness"))
+            .andExpect(status().isServiceUnavailable())
+            .andExpect(jsonPath("$.status").value("DOWN"));
     }
 }

@@ -1,15 +1,22 @@
 package bio.terra.common.configuration;
 
-import bio.terra.common.category.*;
-import org.junit.*;
-import org.junit.experimental.categories.*;
-import org.junit.runner.*;
-import org.springframework.beans.factory.annotation.*;
-import org.springframework.boot.availability.*;
-import org.springframework.boot.test.autoconfigure.web.servlet.*;
-import org.springframework.boot.test.context.*;
-import org.springframework.test.context.junit4.*;
-import org.springframework.test.web.servlet.*;
+import bio.terra.common.category.Connected;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.availability.ReadinessState;
+import org.springframework.boot.availability.LivenessState;
+import org.springframework.boot.availability.ApplicationAvailability;
+import org.springframework.boot.availability.AvailabilityChangeEvent;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.context.ApplicationContext;
+import static org.junit.Assert.assertThat;
+import static org.hamcrest.CoreMatchers.equalTo;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -22,12 +29,16 @@ public class AvailabilityTest {
 
     @Autowired
     private MockMvc mvc;
+    @Autowired
+    private ApplicationContext context;
+    @Autowired
+    private ApplicationAvailability applicationAvailability;
 
     @Test
-    public void test() throws Exception {
-        /*ReadinessState state = applicationAvailability.getReadinessState();
-            assertThat(state)
-           .isEqualTo(ReadinessState.ACCEPTING_TRAFFIC);*/
+    public void readinessState() throws Exception {
+        assertThat("Readiness state should be ACCEPTING_TRAFFIC",
+            applicationAvailability.getReadinessState(),
+            equalTo(ReadinessState.ACCEPTING_TRAFFIC));
         ResultActions result = mvc.perform(get("/actuator/health/liveness"));
         result.andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("UP"));
@@ -35,11 +46,12 @@ public class AvailabilityTest {
         readinessResult.andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("UP"));
 
-        /*AvailabilityChangeEvent.publish(context, ReadinessState.REFUSING_TRAFFIC);
-            assertThat(applicationAvailability.getReadinessState())
-           .isEqualTo(ReadinessState.REFUSING_TRAFFIC);
-            mockMvc.perform(get("/actuator/health/readiness"))
+        AvailabilityChangeEvent.publish(context, ReadinessState.REFUSING_TRAFFIC);
+        assertThat("Readiness state should be REFUSING_TRAFFIC",
+            applicationAvailability.getReadinessState(),
+            equalTo(ReadinessState.REFUSING_TRAFFIC));
+        mvc.perform(get("/actuator/health/readiness"))
            .andExpect(status().isServiceUnavailable())
-           .andExpect(jsonPath("$.status").value("OUT_OF_SERVICE"));*/
+           .andExpect(jsonPath("$.status").value("OUT_OF_SERVICE"));
     }
 }

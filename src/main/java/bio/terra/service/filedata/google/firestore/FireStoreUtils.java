@@ -130,7 +130,9 @@ public class FireStoreUtils {
                 ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
                 documents = future.get().getDocuments();
                 batchCount++;
-                logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
+                if (!documents.isEmpty()) {
+                    logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
+                }
                 batchOperation(documents, generator);
             } while (documents.size() > 0);
         } catch (ExecutionException ex) {

@@ -19,6 +19,8 @@ import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
 
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
+
 public class DatasetDataDeleteFlight extends Flight {
 
     public DatasetDataDeleteFlight(FlightMap inputParameters, Object applicationContext) {
@@ -37,8 +39,7 @@ public class DatasetDataDeleteFlight extends Flight {
         // get data from inputs that steps need
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
 
-        RetryRuleRandomBackoff lockDatasetRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         addStep(new VerifyAuthorizationStep(
             iamClient,

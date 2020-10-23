@@ -24,6 +24,8 @@ import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.RetryRuleRandomBackoff;
 import org.springframework.context.ApplicationContext;
 
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
+
 /*
  * Required input parameters:
  * - DATASET_ID dataset we are loading into
@@ -79,8 +81,7 @@ public class FileIngestBulkFlight extends Flight {
             profileId = loadRequest.getProfileId();
         }
 
-        RetryRuleRandomBackoff createBucketRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff createBucketRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         RetryRuleExponentialBackoff driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
 

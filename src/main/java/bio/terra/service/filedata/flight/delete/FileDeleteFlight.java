@@ -19,6 +19,8 @@ import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
 
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
+
 public class FileDeleteFlight extends Flight {
 
     public FileDeleteFlight(FlightMap inputParameters, Object applicationContext) {
@@ -44,10 +46,8 @@ public class FileDeleteFlight extends Flight {
         //  We should NOT put code like that in the flight constructor.
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 
-        RetryRuleRandomBackoff fileSystemRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-        RetryRuleRandomBackoff lockDatasetRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff fileSystemRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+        RetryRuleRandomBackoff lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         // The flight plan:
         // 0. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted while this

@@ -16,6 +16,8 @@ import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
 
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
+
 /*
  * The flight is launched from the IngestDriverStep within one of the bulk load flights.
  * It performs a single file ingest into a dataset.
@@ -43,7 +45,7 @@ public class FileIngestWorkerFlight extends Flight {
         UUID datasetId = UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
         Dataset dataset = datasetService.retrieve(datasetId);
 
-        RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff fileSystemRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         // The flight plan:
         // 1. Generate the new file id and store it in the working map. We need to allocate the file id before any

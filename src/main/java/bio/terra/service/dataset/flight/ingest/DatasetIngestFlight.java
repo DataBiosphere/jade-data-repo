@@ -16,6 +16,8 @@ import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
 
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
+
 public class DatasetIngestFlight extends Flight {
 
     public DatasetIngestFlight(FlightMap inputParameters, Object applicationContext) {
@@ -34,8 +36,7 @@ public class DatasetIngestFlight extends Flight {
         // get data from inputs that steps need
         UUID datasetId = UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
 
-        RetryRuleRandomBackoff lockDatasetRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
         addStep(new IngestSetupStep(datasetService, configService));

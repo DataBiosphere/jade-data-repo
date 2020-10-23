@@ -16,11 +16,13 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.RetryRuleRandomBackoff;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
 
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 public class DatasetDeleteFlight extends Flight {
@@ -50,6 +52,7 @@ public class DatasetDeleteFlight extends Flight {
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         RetryRuleRandomBackoff lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+        RetryRuleExponentialBackoff primaryDataDeleteRetry = getDefaultExponentialBackoffRetryRule();
 
         addStep(new LockDatasetStep(datasetDao, datasetId, false, true),
             lockDatasetRetry);
@@ -60,7 +63,7 @@ public class DatasetDeleteFlight extends Flight {
             fileDao,
             datasetService,
             datasetId,
-            configService));
+            configService), primaryDataDeleteRetry);
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
         addStep(new UnlockDatasetStep(datasetDao, datasetId, false), lockDatasetRetry);

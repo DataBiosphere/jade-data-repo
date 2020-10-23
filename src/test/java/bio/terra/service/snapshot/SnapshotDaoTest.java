@@ -212,7 +212,7 @@ public class SnapshotDaoTest {
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
             String flightId = "snapshotEnumerateTest_flightId";
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-            UUID snapshotId = UUID.randomUUID();
+            snapshotId = UUID.randomUUID();
             snapshot.id(snapshotId);
             snapshotDao.createAndLock(snapshot, flightId);
             snapshotDao.unlock(snapshotId, flightId);

@@ -125,6 +125,7 @@ jobs:
           if git rev-parse --verify origin/version-update-${{ steps.read_property.outputs.LATEST_VERSION }}; then
             git merge origin/version-update-${{ steps.read_property.outputs.LATEST_VERSION }}
             git push
+            git pull
             git push origin --delete version-update-${{ steps.read_property.outputs.LATEST_VERSION }}
           else
             echo "Branch version-update-${{ steps.read_property.outputs.LATEST_VERSION }} not found."

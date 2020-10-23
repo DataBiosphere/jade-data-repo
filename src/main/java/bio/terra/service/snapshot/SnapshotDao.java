@@ -125,7 +125,7 @@ public class SnapshotDao {
      * @throws InvalidSnapshotException if a row already exists with this snapshot name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public UUID createAndLock(Snapshot snapshot, String flightId) {
+    public void createAndLock(Snapshot snapshot, String flightId) {
         logger.debug("createAndLock snapshot " + snapshot.getName());
 
         String sql = "INSERT INTO snapshot (name, description, profile_id, id, flightid) " +
@@ -147,8 +147,6 @@ public class SnapshotDao {
         for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
             createSnapshotSource(snapshotSource);
         }
-
-        return snapshot.getId(); // TODO should this return nothing now?
     }
 
     /**

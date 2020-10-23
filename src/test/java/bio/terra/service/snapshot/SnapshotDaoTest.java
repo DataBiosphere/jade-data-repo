@@ -24,7 +24,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -106,10 +105,7 @@ public class SnapshotDaoTest {
 
         String flightId = "happyInOutTest_flightId";
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-        Instant createdDate = Instant.now();
-        snapshot
-            .id(snapshotId)
-            .createdDate(createdDate);
+        snapshot.id(snapshotId);
         snapshotDao.createAndLock(snapshot, flightId);
         snapshotDao.unlock(snapshotId, flightId);
         Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotId);

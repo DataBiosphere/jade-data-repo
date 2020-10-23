@@ -50,7 +50,7 @@ public class AvailabilityTest {
             equalTo(ReadinessState.REFUSING_TRAFFIC));
         mvc.perform(get("/actuator/health/readiness"))
            .andExpect(status().isServiceUnavailable())
-           .andExpect(jsonPath("$.status").value("OUT_OF_SERVICE"));
+            .andExpect(jsonPath("$.status").value("OUT_OF_SERVICE"));
     }
 
     @Test

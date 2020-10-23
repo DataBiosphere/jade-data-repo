@@ -1,13 +1,13 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.exception.InvalidDatasetException;
-import bio.terra.service.dataset.DatasetUtils;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetJsonConversion;
+import bio.terra.service.dataset.DatasetUtils;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -17,7 +17,6 @@ import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
 import java.util.UUID;
 
 
@@ -40,10 +39,7 @@ public class CreateDatasetMetadataStep implements Step {
 
             FlightMap workingMap = context.getWorkingMap();
             UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-            Instant createdDate = Instant.now();
-            newDataset
-                .id(datasetId)
-                .createdDate(createdDate);
+            newDataset.id(datasetId);
 
             datasetDao.createAndLock(newDataset, context.getFlightId());
 

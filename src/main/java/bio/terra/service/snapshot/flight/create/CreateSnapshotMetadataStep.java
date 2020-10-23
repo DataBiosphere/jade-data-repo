@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
-import java.time.Instant;
 import java.util.UUID;
 
 public class CreateSnapshotMetadataStep implements Step {
@@ -45,10 +44,7 @@ public class CreateSnapshotMetadataStep implements Step {
 
             FlightMap workingMap = context.getWorkingMap();
             UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-            Instant createdDate = Instant.now();
-            snapshot
-                .id(snapshotId)
-                .createdDate(createdDate);
+            snapshot.id(snapshotId);
 
             snapshotDao.createAndLock(snapshot, context.getFlightId());
 

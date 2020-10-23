@@ -74,10 +74,7 @@ public class SnapshotDaoTest {
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
         datasetId = UUID.randomUUID();
-        Instant createdDate = Instant.now();
-        dataset
-            .id(datasetId)
-            .createdDate(createdDate);
+        dataset.id(datasetId);
         datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         dataset = datasetDao.retrieve(datasetId);
@@ -220,8 +217,7 @@ public class SnapshotDaoTest {
             String flightId = "snapshotEnumerateTest_flightId";
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
             UUID snapshotId = UUID.randomUUID();
-            snapshot
-                .id(snapshotId);
+            snapshot.id(snapshotId);
             snapshotDao.createAndLock(snapshot, flightId);
             snapshotDao.unlock(snapshotId, flightId);
             snapshotIds.add(snapshotId);

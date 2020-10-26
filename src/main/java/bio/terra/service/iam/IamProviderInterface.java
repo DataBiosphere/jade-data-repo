@@ -92,6 +92,10 @@ public interface IamProviderInterface {
                                        IamResourceType iamResourceType,
                                        UUID resourceId) throws InterruptedException;
 
+    Map<IamRole, String> retrievePolicyEmails(AuthenticatedUserRequest userReq,
+                                       IamResourceType iamResourceType,
+                                       UUID resourceId) throws InterruptedException;
+
     PolicyModel addPolicyMember(AuthenticatedUserRequest userReq,
                                 IamResourceType iamResourceType,
                                 UUID resourceId,

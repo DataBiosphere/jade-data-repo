@@ -40,7 +40,7 @@ plugins {
 
 allprojects {
   group 'bio.terra'
-  version '1.0.137-SNAPSHOT'
+  version '1.0.143-SNAPSHOT'
   ext {
     resourceDir = "${rootDir}/src/main/resources/api"
   }
@@ -191,8 +191,10 @@ dependencies {
     implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
     implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
   } else {
-    implementation 'bio.terra:stairway:0.0.21-SNAPSHOT'
+    implementation 'bio.terra:stairway:0.0.24-SNAPSHOT'
   }
+
+  implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
   // Forcing this due to vulnerability issues
   compile('com.fasterxml.jackson.core:jackson-databind:2.11.0.rc1') {

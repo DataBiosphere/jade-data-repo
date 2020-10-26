@@ -10,14 +10,15 @@ on:
     branches:
       - develop
     paths:
-      - 'src'
+      - '!*'
+      - 'src/**'
       - 'gradle**'
+      - 'gradle/**'
       - '**.gradle'
       - 'Dockerfile'
       - 'datarepo-clienttests/**'
       - '.github/workflows/gradle-build-pr.yml'
       - '.swagger-codegen-ignore'
-      - '!*'
 jobs:
   test_connected:
     timeout-minutes: 180
@@ -81,7 +82,7 @@ jobs:
         uses: broadinstitute/datarepo-actions@0.26.0
         with:
           actions_subcommand: 'k8_checknamespace'
-          k8_namespaces: 'integration-1,integration-2,integration-3, integration-6'
+          k8_namespaces: 'integration-1,integration-2,integration-3'
       - name: "Build docker container via Gradle"
         uses: broadinstitute/datarepo-actions@0.26.0
         with:

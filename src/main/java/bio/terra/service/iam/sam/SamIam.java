@@ -91,7 +91,8 @@ public class SamIam implements IamProviderInterface {
                                       String resourceId,
                                       IamAction action) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        boolean authorized = samResourceApi.resourceAction(iamResourceType.toString(), resourceId, action.toString());
+        boolean authorized =
+            samResourceApi.resourcePermissionV2(iamResourceType.toString(), resourceId, action.toString());
         logger.debug("authorized is " + authorized);
         return authorized;
     }

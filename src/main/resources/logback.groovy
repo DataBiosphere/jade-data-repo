@@ -16,6 +16,7 @@ appender("Console-Appender", ConsoleAppender) {
 
 // You can set different logging configuration. For example, uncommenting the next line
 // will set all loggers in the Stairway package to log at debug level:
+logger("bio.terra.stairway", DEBUG)
 logger("org.springframework", WARN)
 logger("liquibase.executor", WARN)
 logger("io.swagger.models.parameters.AbstractSerializableParameter", ERROR)

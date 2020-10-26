@@ -14,7 +14,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.RetryRuleRandomBackoff;
+import bio.terra.stairway.RetryRule;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
@@ -39,7 +39,7 @@ public class DatasetDataDeleteFlight extends Flight {
         // get data from inputs that steps need
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
 
-        RetryRuleRandomBackoff lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+        RetryRule lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         addStep(new VerifyAuthorizationStep(
             iamClient,

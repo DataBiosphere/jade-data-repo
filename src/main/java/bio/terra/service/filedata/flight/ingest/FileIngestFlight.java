@@ -19,7 +19,7 @@ import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.RetryRuleRandomBackoff;
+import bio.terra.stairway.RetryRule;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
@@ -53,10 +53,10 @@ public class FileIngestFlight extends Flight {
         FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
         String profileId = fileLoadModel.getProfileId();
 
-        RetryRuleRandomBackoff lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+        RetryRule lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
-        RetryRuleRandomBackoff fileSystemRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
-        RetryRuleRandomBackoff createBucketRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+        RetryRule fileSystemRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+        RetryRule createBucketRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         // The flight plan:
         // 0. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted while this

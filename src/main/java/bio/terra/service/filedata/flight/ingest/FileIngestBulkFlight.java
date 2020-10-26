@@ -20,8 +20,8 @@ import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
-import bio.terra.stairway.RetryRuleRandomBackoff;
 import org.springframework.context.ApplicationContext;
 
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
@@ -81,9 +81,8 @@ public class FileIngestBulkFlight extends Flight {
             profileId = loadRequest.getProfileId();
         }
 
-        RetryRuleRandomBackoff createBucketRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
-
-        RetryRuleExponentialBackoff driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
+        RetryRule createBucketRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+        RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
 
         // The flight plan:
         // 0. Verify authorization to do the ingest

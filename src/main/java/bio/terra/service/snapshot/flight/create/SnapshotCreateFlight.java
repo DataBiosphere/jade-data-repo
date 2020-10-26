@@ -19,7 +19,7 @@ import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.RetryRuleExponentialBackoff;
+import bio.terra.stairway.RetryRule;
 import org.springframework.context.ApplicationContext;
 
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
@@ -96,7 +96,7 @@ public class SnapshotCreateFlight extends Flight {
 
         // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes. The max
         // operation timeout is generous.
-        RetryRuleExponentialBackoff pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
+        RetryRule pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
 
         // Apply the IAM readers to the BQ dataset
         addStep(new SnapshotAuthzTabularAclStep(bigQueryPdao, snapshotService, configService), pdaoAclRetryRule);

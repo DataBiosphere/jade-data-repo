@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.snapshot.Snapshot;
@@ -8,7 +9,6 @@ import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.common.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -42,11 +42,13 @@ public class CreateSnapshotMetadataStep implements Step {
         try {
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotReq);
 
-            UUID snapshotId = snapshotDao.createAndLock(snapshot, context.getFlightId());
             FlightMap workingMap = context.getWorkingMap();
-            workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
+            UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+            snapshot.id(snapshotId);
 
-            SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(snapshot.getId());
+            snapshotDao.createAndLock(snapshot, context.getFlightId());
+
+            SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(snapshotId);
             SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);
 
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
@@ -62,7 +64,9 @@ public class CreateSnapshotMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         logger.debug("Snapshot creation failed. Deleting metadata.");
-        snapshotDao.deleteByName(snapshotReq.getName());
+        FlightMap workingMap = context.getWorkingMap();
+        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+        snapshotDao.delete(snapshotId);
         return StepResult.getStepResultSuccess();
     }
 

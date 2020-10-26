@@ -38,6 +38,8 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,11 +50,13 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -405,6 +409,16 @@ public class GoogleResourceService {
         enableIamPermissions(policyMap, dataProject);
     }
 
+    public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
+        throws InterruptedException {
+
+        Map<String, List<String>> policyMap = new HashMap<>();
+        List<String> emails = new ArrayList<>(CollectionUtils.collect(policyEmails, e -> "group:" + e));
+        policyMap.put(BQ_JOB_USER_ROLE, emails);
+
+        removeIamPermissions(policyMap, dataProject);
+    }
+
     public GoogleProjectResource getProjectResourceById(UUID id) {
         return resourceDao.retrieveProjectById(id);
     }
@@ -570,6 +584,55 @@ public class GoogleResourceService {
             }
         }
         throw new EnablePermissionsFailedException("Cannot enable iam permissions", lastException);
+    }
+
+    public void removeIamPermissions(Map<String, List<String>> userPermissions, String projectId)
+        throws InterruptedException {
+
+        GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
+
+        Exception lastException = null;
+        int retryWait = INITIAL_WAIT_SECONDS;
+        for (int i = 0; i < RETRIES; i++) {
+            try {
+                CloudResourceManager resourceManager = cloudResourceManager();
+                Policy policy = resourceManager.projects()
+                    .getIamPolicy(projectId, getIamPolicyRequest).execute();
+                final List<Binding> bindingsList = policy.getBindings();
+
+                // Remove members from the current policies
+                for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
+                    CollectionUtils.transform(bindingsList, b -> {
+                        if (Objects.equals(b.getRole(), entry.getKey())) {
+                            // Remove any deleted members explicitly
+                            b.setMembers(ListUtils.select(b.getMembers(), m -> !m.startsWith("deleted:")));
+                            // Remove the members that were passed in
+                            b.setMembers(ListUtils.subtract(b.getMembers(), entry.getValue()));
+                        }
+                        return b;
+                    });
+                }
+
+                // Remove any entries from the bindings list with no members
+                CollectionUtils.filter(bindingsList, b -> !b.getMembers().isEmpty());
+
+                policy.setBindings(bindingsList);
+                SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
+                resourceManager.projects()
+                    .setIamPolicy(projectId, setIamPolicyRequest).execute();
+                return;
+            } catch (IOException | GeneralSecurityException ex) {
+                logger.info("Failed to remove iam permissions. Retry " + i + " of " + RETRIES, ex);
+                lastException = ex;
+            }
+
+            TimeUnit.SECONDS.sleep(retryWait);
+            retryWait = retryWait + retryWait;
+            if (retryWait > MAX_WAIT_SECONDS) {
+                retryWait = MAX_WAIT_SECONDS;
+            }
+        }
+        throw new EnablePermissionsFailedException("Cannot remove iam permissions", lastException);
     }
 
     private void setupBilling(GoogleProjectResource project) {

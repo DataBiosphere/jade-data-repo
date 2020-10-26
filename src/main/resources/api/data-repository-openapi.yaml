@@ -68,15 +68,16 @@ paths:
     get:
       tags:
         - unauthenticated
-      description: Returns the operational status of the service
+      description: >
+        Returns the operational status of the service
       operationId: serviceStatus
       responses:
         200:
           description: service is fine
-          content: {}
+          content: { }
         500:
           description: service is broken
-          content: {}
+          content: { }
   /configuration:
     get:
       tags:
@@ -92,7 +93,7 @@ paths:
                 $ref: '#/components/schemas/RepositoryConfigurationModel'
         500:
           description: Config is unavailable
-          content: {}
+          content: { }
   /shutdown:
     get:
       tags:
@@ -104,7 +105,7 @@ paths:
       responses:
         204:
           description: DR Manager was shutdown successfully
-          content: {}
+          content: { }
   /api/resources/v1/profiles:
     get:
       tags:
@@ -956,7 +957,7 @@ paths:
     post:
       tags:
         - repository
-      description: Adds a member to the specified policy for the snapshot
+      description: Adds a member to the specified policy for the dataset
       operationId: addDatasetPolicyMember
       parameters:
         - name: id
@@ -976,7 +977,7 @@ paths:
               - custodian
               - ingester
       requestBody:
-        description: Snapshot to change the policy of
+        description: Dataset to change the policy of
         content:
           application/json:
             schema:
@@ -1002,7 +1003,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
         404:
-          description: Not found - snapshot id does not exist
+          description: Not found - dataset id does not exist
           content:
             application/json:
               schema:
@@ -1186,7 +1187,7 @@ paths:
     delete:
       tags:
         - repository
-      description: Remove an asset definiion from a dataset
+      description: Remove an asset definition from a dataset
       operationId: removeDatasetAssetSpecifications
       parameters:
         - name: id
@@ -1507,7 +1508,10 @@ paths:
     delete:
       tags:
         - repository
-      description: Delete results from the bulk file load table of the dataset. If jobId is specified, then only the results for the loadTag plus that jobId are deleted. Otherwise, all results associated with the loadTag are deleted.
+      description: >-
+        Delete results from the bulk file load table of the dataset.
+        If jobId is specified, then only the results for the loadTag plus that jobId are
+        deleted. Otherwise, all results associated with the loadTag are deleted.
       operationId: bulkFileResultsDelete
       parameters:
         - name: id
@@ -1566,7 +1570,11 @@ paths:
     post:
       tags:
         - repository
-      description: Load many files into the dataset file system; async returns a BulkLoadArrayResultModel Note that this endpoint is not a single transaction. Some files may be loaded and others may fail. Each file load is atomic; the file will either be loaded into the dataset file system or it will not exist.
+      description: >-
+        Load many files into the dataset file system; async returns a BulkLoadArrayResultModel
+        Note that this endpoint is not a single transaction. Some files may be loaded and
+        others may fail. Each file load is atomic; the file will either be loaded into the
+        dataset file system or it will not exist.
       operationId: bulkFileLoadArray
       parameters:
         - name: id
@@ -1902,7 +1910,7 @@ paths:
       responses:
         204:
           description: Job was deleted
-          content: {}
+          content: { }
   /api/repository/v1/jobs/{id}/result:
     get:
       tags:
@@ -1973,7 +1981,7 @@ paths:
       responses:
         204:
           description: fault was en/dis-abled successfully - no content
-          content: {}
+          content: { }
         400:
           description: configuration name is not a fault
           content:
@@ -2040,7 +2048,7 @@ paths:
       responses:
         204:
           description: configuration reset
-          content: {}
+          content: { }
   /ga4gh/drs/v1/service-info:
     get:
       tags:
@@ -2098,7 +2106,7 @@ paths:
               schema:
                 type: integer
                 format: int64
-          content: {}
+          content: { }
         400:
           description: The request is malformed.
           content:
@@ -2169,7 +2177,7 @@ paths:
               schema:
                 type: integer
                 format: int64
-          content: {}
+          content: { }
         400:
           description: The request is malformed.
           content:
@@ -3506,11 +3514,11 @@ components:
           description: Service description
         contact:
           type: object
-          properties: {}
+          properties: { }
           description: Maintainer contact info
         license:
           type: object
-          properties: {}
+          properties: { }
           description: License information for the exposed API
       description: Useful information about the running service.
     DRSContentsObject:

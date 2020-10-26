@@ -137,7 +137,7 @@ public class DatasetConnectedTest {
         ErrorModel errorModel =
             connectedOperations.createDatasetExpectError(datasetRequest, HttpStatus.BAD_REQUEST);
         assertThat("error message includes name conflict",
-            errorModel.getMessage(), containsString("Dataset name already exists"));
+            errorModel.getMessage(), containsString("Dataset name or id already exists"));
 
         // fetch the dataset and confirm the metadata still matches the original
         DatasetModel origModel = connectedOperations.getDataset(summaryModel.getId());

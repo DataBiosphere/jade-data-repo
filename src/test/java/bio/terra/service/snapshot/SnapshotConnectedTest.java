@@ -344,7 +344,7 @@ public class SnapshotConnectedTest {
         ErrorModel errorModel = handleCreateSnapshotFailureCase(response);
         assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
         assertThat("error message includes name conflict",
-            errorModel.getMessage(), containsString("Snapshot name already exists"));
+            errorModel.getMessage(), containsString("Snapshot name or id already exists"));
 
         // fetch the snapshot and confirm the metadata still matches the original
         SnapshotModel origModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);

@@ -23,6 +23,8 @@ import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
+import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
+import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +59,13 @@ public class SamIam implements IamProviderInterface {
         apiClient.setAccessToken(accessToken);
         apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java");  // only logs an error in sam
         return apiClient.setBasePath(samConfig.getBasePath());
+    }
+
+    private ApiClient getUnauthApiClient() {
+        ApiClient apiClient = new ApiClient();
+        apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java");  // only logs an error in sam
+        apiClient.setBasePath(samConfig.getBasePath());
+        return apiClient;
     }
 
     private ResourcesApi samResourcesApi(String accessToken) {
@@ -463,6 +472,12 @@ public class SamIam implements IamProviderInterface {
                 return new IamInternalServerErrorException(samEx);
             }
         }
+    }
+
+    @Override
+    public SystemStatus samStatus() throws ApiException {
+        StatusApi samApi = new StatusApi(getUnauthApiClient());
+        return samApi.getSystemStatus();
     }
 
 }

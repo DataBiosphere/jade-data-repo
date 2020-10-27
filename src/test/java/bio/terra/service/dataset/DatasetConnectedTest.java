@@ -133,10 +133,15 @@ public class DatasetConnectedTest {
         assertNull("dataset row is unlocked", exclusiveLock);
 
         // try to create the same dataset again and check that it fails
+        datasetRequest.description("Make sure nothing is getting overwritten");
         ErrorModel errorModel =
             connectedOperations.createDatasetExpectError(datasetRequest, HttpStatus.BAD_REQUEST);
         assertThat("error message includes name conflict",
-            errorModel.getMessage(), containsString("Dataset name already exists"));
+            errorModel.getMessage(), containsString("Dataset name or id already exists"));
+
+        // fetch the dataset and confirm the metadata still matches the original
+        DatasetModel origModel = connectedOperations.getDataset(summaryModel.getId());
+        assertEquals("fetched dataset remains unchanged", datasetModel, origModel);
 
         // delete the dataset and check that it succeeds
         connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());

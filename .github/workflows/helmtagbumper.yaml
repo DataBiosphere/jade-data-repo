@@ -61,7 +61,7 @@ jobs:
         with:
           status: ${{ job.status }}
           author_name: api_helm_bumper
-          only_mention_fail: smark,myessail
+          only_mention_fail: smark,fb,muscles
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

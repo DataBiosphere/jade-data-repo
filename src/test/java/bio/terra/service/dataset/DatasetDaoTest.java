@@ -64,7 +64,9 @@ public class DatasetDaoTest {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
-        UUID datasetId = datasetDao.createAndLock(dataset, createFlightId);
+        UUID datasetId = UUID.randomUUID();
+        dataset.id(datasetId);
+        datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         return datasetId;
     }

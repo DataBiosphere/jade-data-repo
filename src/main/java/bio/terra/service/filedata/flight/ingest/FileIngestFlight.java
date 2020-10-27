@@ -19,10 +19,12 @@ import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.RetryRuleRandomBackoff;
+import bio.terra.stairway.RetryRule;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
+
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 // The FileIngestFlight is specific to firestore. Another cloud or file system implementation
 // might be quite different and would need a different flight.
@@ -51,13 +53,10 @@ public class FileIngestFlight extends Flight {
         FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
         String profileId = fileLoadModel.getProfileId();
 
-        RetryRuleRandomBackoff lockDatasetRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRule lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
-        RetryRuleRandomBackoff fileSystemRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-        RetryRuleRandomBackoff createBucketRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRule fileSystemRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+        RetryRule createBucketRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         // The flight plan:
         // 0. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted while this

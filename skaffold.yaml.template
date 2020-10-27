@@ -17,19 +17,45 @@ deploy:
         - --install
         - --debug
     releases:
-    - name: TEMP-secrets
+    # create secrets
+    - name: TEMP-jade-create-secret-manager-secret
       chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/create-secret-manager-secret-0.0.6/create-secret-manager-secret-0.0.6.tgz
       version: 0.0.6
       namespace: TEMP
       remote: true
       valuesFiles:
-      - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/TEMPSecrets.yaml
-    - name: TEMP-jade
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-0.1.10/datarepo-0.1.10.tgz
-      version: 0.1.10
+      - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/create-secret-manager-secret.yaml
+    # gcp sqlproxy
+    - name: TEMP-jade-gcloud-sqlproxy
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/gcloud-sqlproxy-0.19.7/gcloud-sqlproxy-0.19.7.tgz
+      version: 0.19.7
+      namespace: TEMP
+      remote: true
+      valuesFiles:
+      - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/gcloud-sqlproxy.yaml
+    # datarepo-api
+    - name: TEMP-jade-datarepo-api
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-api-0.0.22/datarepo-api-0.0.22.tgz
+      version: 0.0.22
       namespace: TEMP
       remote: true
       values:
-        datarepo-api.imageName: gcr.io/broad-jade-dev/jade-data-repo
+        imageName: gcr.io/broad-jade-dev/jade-data-repo
       valuesFiles:
-      - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/TEMPDeployment.yaml
+      - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/datarepo-api.yaml
+    # datarepo-ui
+    - name: TEMP-jade-datarepo-ui
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-ui-0.0.12/datarepo-ui-0.0.12.tgz
+      version: 0.0.12
+      namespace: TEMP
+      remote: true
+      valuesFiles:
+      - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/datarepo-ui.yaml
+    # oidc-proxy
+    - name: TEMP-jade-oidc-proxy
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/oidc-proxy-0.0.13/oidc-proxy-0.0.13.tgz
+      version: 0.0.13
+      namespace: TEMP
+      remote: true
+      valuesFiles:
+      - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/oidc-proxy.yaml

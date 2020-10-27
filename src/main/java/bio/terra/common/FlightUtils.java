@@ -4,6 +4,8 @@ import bio.terra.model.ErrorModel;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRuleExponentialBackoff;
+import bio.terra.stairway.RetryRuleRandomBackoff;
 import com.google.cloud.bigquery.BigQueryException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -59,5 +61,13 @@ public final class FlightUtils {
             return true;
         }
         return false;
+    }
+
+    public static RetryRuleRandomBackoff getDefaultRandomBackoffRetryRule(final int maxConcurrency) {
+        return new RetryRuleRandomBackoff(500, maxConcurrency, 5);
+    }
+
+    public static RetryRuleExponentialBackoff getDefaultExponentialBackoffRetryRule() {
+        return new RetryRuleExponentialBackoff(2, 30, 600);
     }
 }

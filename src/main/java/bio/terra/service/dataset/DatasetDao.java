@@ -283,34 +283,32 @@ public class DatasetDao {
      * @throws InvalidDatasetException if a row already exists with this dataset name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
+    public void createAndLock(Dataset dataset, String flightId) throws IOException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
-            "(name, default_profile_id, flightid, description, sharedlock) " +
-            "VALUES (:name, :default_profile_id, :flightid, :description, ARRAY[]::TEXT[]) ";
+            "(name, default_profile_id, id, flightid, description, sharedlock) " +
+            "VALUES (:name, :default_profile_id, :id, :flightid, :description, ARRAY[]::TEXT[]) ";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
             .addValue("default_profile_id", dataset.getDefaultProfileId())
+            .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
             .addValue("description", dataset.getDescription());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
             jdbcTemplate.update(sql, params, keyHolder);
         } catch (DuplicateKeyException dkEx) {
-            throw new InvalidDatasetException("Dataset name already exists: " + dataset.getName(), dkEx);
+            throw new InvalidDatasetException(
+                "Dataset name or id already exists: " + dataset.getName() + ", " + dataset.getId(), dkEx);
+
         }
-
-        UUID datasetId = keyHolder.getId();
-        dataset.id(datasetId);
         dataset.createdDate(keyHolder.getCreatedDate());
-
         tableDao.createTables(dataset.getId(), dataset.getTables());
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
 
-        logger.debug("end of createAndLock datasetId: {} for flightId: {}", datasetId, flightId);
-        return datasetId;
+        logger.debug("end of createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
     }
 
     /**

@@ -37,7 +37,8 @@ public final class DataRepoUtils {
 
   private DataRepoUtils() {}
 
-  private static int maximumSecondsToWaitForJob = 500;
+  private static int maximumSecondsToWaitForJob =
+      Long.valueOf(TimeUnit.HOURS.toSeconds(2)).intValue();
   private static int secondsIntervalToPollJob = 5;
 
   private static Map<TestUserSpecification, ApiClient> apiClientsForTestUsers = new HashMap<>();

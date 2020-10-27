@@ -17,8 +17,10 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.RetryRuleExponentialBackoff;
+import bio.terra.stairway.RetryRule;
 import org.springframework.context.ApplicationContext;
+
+import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 
 public class DatasetCreateFlight extends Flight {
 
@@ -44,6 +46,7 @@ public class DatasetCreateFlight extends Flight {
 
         DatasetRequestModel datasetRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+        addStep(new CreateDatasetIdStep());
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
 
         // TODO: create dataset data project step
@@ -57,8 +60,7 @@ public class DatasetCreateFlight extends Flight {
 
         // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes. The max
         // operation timeout is generous.
-        RetryRuleExponentialBackoff pdaoAclRetryRule =
-            new RetryRuleExponentialBackoff(2, 30, 600);
+        RetryRule pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
         addStep(new CreateDatasetAuthzPrimaryDataStep(bigQueryPdao, datasetService, configService), pdaoAclRetryRule);
 
         // The underlying service provides retries so we do not need to retry for BQ Job User step at this time

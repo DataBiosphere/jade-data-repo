@@ -148,6 +148,9 @@ public class ConfigFaultCounted extends ConfigFault {
                 every = 100 / countedModel.getRate();
                 everyCounter = 0;
                 break;
+            default:
+                logger.error("Rate style is not one of the two defined cases: RANDOM or FIXED");
+                break;
         }
     }
 

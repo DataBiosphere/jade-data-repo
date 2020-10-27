@@ -13,6 +13,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "datarepo")
@@ -121,6 +126,21 @@ public class ApplicationConfiguration {
      * Time in seconds of auth cache timeout
      */
     private int authCacheTimeoutSeconds;
+
+    /**
+     * Certain operations can be spread to run asynchronously to gain a performance boost.  Instead of having
+     * each such task create its own threadpool, this property is used to create a globally accessible pool that should
+     * be used by all such operations.
+     *
+     * Note: this is different than than the flight threadpool.
+     */
+    private int numPerformanceThreads;
+
+    /**
+     * The maximum size of the queue before submitting threads get rejected.  Note: in all, you can submit:
+     * maxPerformanceThreadQueueSize + numPerformanceThreads before you get an exception
+     */
+    private int maxPerformanceThreadQueueSize;
 
 
     public String getUserEmail() {
@@ -307,6 +327,23 @@ public class ApplicationConfiguration {
         this.authCacheTimeoutSeconds = authCacheTimeoutSeconds;
     }
 
+    public int getNumPerformanceThreads() {
+        return numPerformanceThreads;
+    }
+
+    public void setNumPerformanceThreads(int numPerformanceThreads) {
+        this.numPerformanceThreads = numPerformanceThreads;
+    }
+
+    public int getMaxPerformanceThreadQueueSize() {
+        return maxPerformanceThreadQueueSize;
+    }
+
+    public void setMaxPerformanceThreadQueueSize(int maxPerformanceThreadQueueSize) {
+        this.maxPerformanceThreadQueueSize = maxPerformanceThreadQueueSize;
+    }
+
+
     @Bean("jdbcTemplate")
     public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(DataRepoJdbcConfiguration jdbcConfiguration) {
         return new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
@@ -318,6 +355,17 @@ public class ApplicationConfiguration {
             .registerModule(new ParameterNamesModule())
             .registerModule(new Jdk8Module())
             .registerModule(new JavaTimeModule());
+    }
+
+    @Bean("performanceThreadpool")
+    public ExecutorService performanceThreadpool() {
+        return new ThreadPoolExecutor(
+            getNumPerformanceThreads(),
+            getNumPerformanceThreads(),
+            0,
+            TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>(getMaxPerformanceThreadQueueSize())
+        );
     }
 
     // This is a "magic bean": It supplies a method that Spring calls after the application is setup,

@@ -64,15 +64,15 @@ jobs:
         with:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
-      - name: "Check and edit Helm definition for integration"
-        uses: broadinstitute/datarepo-actions@0.26.0
-        with:
-          actions_subcommand: 'deploytagupdate'
-          helm_env_prefix: 'integration-4,integration-5'
       - name: Trigger action to tag containers with semantic version
         uses: broadinstitute/workflow-dispatch@v1
         with:
           workflow: Alpha Nightly
+          token: ${{ secrets.WORKFLOW_DISPATCH }}
+      - name: Trigger action to tag update helm tag
+        uses: broadinstitute/workflow-dispatch@v1
+        with:
+          workflow: Update integration api helm image tag
           token: ${{ secrets.WORKFLOW_DISPATCH }}
       - name: Slack job status
         if: always()
@@ -80,7 +80,7 @@ jobs:
         with:
           status: ${{ job.status }}
           author_name: Integration Test
-          only_mention_fail: smark,jhert
+          only_mention_fail: smark,fb,muscles
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

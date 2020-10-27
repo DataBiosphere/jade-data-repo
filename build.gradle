@@ -219,6 +219,7 @@ dependencies {
   generatedCompile 'org.springframework.boot:spring-boot-starter-web'
   // boot-starter-validation required for javax.validation.Valid references, @Valid tags
   generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
+  implementation 'org.springframework.boot:spring-boot-starter-validation'
   implementation group: "org.webjars", name: "webjars-locator-core", version: "0.46"
   runtimeOnly group: "org.webjars.npm", name: "swagger-ui-dist", version: "3.35.2"
   generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"

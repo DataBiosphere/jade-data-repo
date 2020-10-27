@@ -115,20 +115,7 @@ jobs:
           body: |
             Update versions in perf env to reflect image tag ${{ steps.read_property.outputs.LATEST_VERSION }}.
             *Note: This PR was opened by the [test-runner-perf GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
-          labels: "broadbot,datarepo,automerge"
-      - name: "Merge datarepo-helm-definition pull request"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        run: |
-          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions
-          git checkout master
-          git config pull.rebase false
-          if git rev-parse --verify origin/version-update-${{ steps.read_property.outputs.LATEST_VERSION }}; then
-            git merge origin/version-update-${{ steps.read_property.outputs.LATEST_VERSION }}
-            git push
-          else
-            echo "Branch version-update-${{ steps.read_property.outputs.LATEST_VERSION }} not found."
-          fi
-          cd ${GITHUB_WORKSPACE}/${workingDir}
+          labels: "datarepo,automerge,version-update"
       - name: "Install Helmfile"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: broadinstitute/setup-helmfile@v0.5.0 #Forked from mamezou-tech/setup-helmfile

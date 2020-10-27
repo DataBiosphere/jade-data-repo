@@ -69,13 +69,18 @@ jobs:
         with:
           workflow: Alpha Nightly
           token: ${{ secrets.WORKFLOW_DISPATCH }}
+      - name: Trigger action to tag update helm tag
+        uses: broadinstitute/workflow-dispatch@v1
+        with:
+          workflow: Update integration api helm image tag
+          token: ${{ secrets.WORKFLOW_DISPATCH }}
       - name: Slack job status
         if: always()
         uses: broadinstitute/action-slack@v2
         with:
           status: ${{ job.status }}
           author_name: Integration Test
-          only_mention_fail: smark,jhert
+          only_mention_fail: smark,fb,muscles
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -51,7 +51,7 @@ jobs:
         id: create-pr
         with:
           token: ${{ secrets.TERRA_HELMFILE_TOKEN }}
-          path: terra-helmfile
+          path: datarepo-helm-definitions
           commit-message: "Datarepo api tag version update: ${{ steps.apiprevioustag.outputs.tag }}"
           committer: datarepo-bot <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>

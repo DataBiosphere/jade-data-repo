@@ -109,8 +109,11 @@ helm repo update
 continuous development of Kubernetes resources. Newer versions are incompatible
 with our development environments, so version 1.3.1 is installed instead.
 
+Download file:
+https://raw.githubusercontent.com/Homebrew/homebrew-core/5db9ede616f5d681fa9873b150416d6795e0e0e9/Formula/skaffold.rb
+
 ```
-brew install https://raw.githubusercontent.com/Homebrew/homebrew-core/5db9ede616f5d681fa9873b150416d6795e0e0e9/Formula/skaffold.rb
+brew install ~/YOUR/LOCAL/PATH/skaffold.rb
 brew pin skaffold
 ```
 

@@ -10,6 +10,14 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.cloudresourcemanager.CloudResourceManager;
+import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
+import com.google.api.services.cloudresourcemanager.model.Policy;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
@@ -22,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -100,6 +109,26 @@ public final class TestUtils {
         final Storage storage = StorageOptions.getDefaultInstance().getService();
         final String projectId = StorageOptions.getDefaultProjectId();
         return getBlobFromGsPath(storage, gsPath, projectId).getAcl();
+    }
+
+    public static Policy getPolicy(final String projectId) throws GeneralSecurityException, IOException {
+        HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+        JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+
+        GoogleCredential credential = GoogleCredential.getApplicationDefault();
+        if (credential.createScopedRequired()) {
+            credential = credential.createScoped(
+                Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+        }
+
+        CloudResourceManager resourceManager = new CloudResourceManager.Builder(httpTransport, jsonFactory, credential)
+            .setApplicationName("Terra Data Repo Test")
+            .build();
+
+        GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
+
+        return resourceManager.projects()
+            .getIamPolicy(projectId, getIamPolicyRequest).execute();
     }
 
     public static String getHttpPathString(IamResourceType iamResourceType) {

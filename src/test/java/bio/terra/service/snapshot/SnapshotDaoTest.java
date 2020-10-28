@@ -1,17 +1,19 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.common.category.Unit;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
-import bio.terra.service.dataset.Dataset;
+import bio.terra.common.Relationship;
 import bio.terra.common.Table;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.dataset.DatasetJsonConversion;
+import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.resourcemanagement.ProfileDao;
+import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,6 +25,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -67,12 +70,17 @@ public class SnapshotDaoTest {
         datasetRequest
             .name(datasetRequest.getName() + UUID.randomUUID().toString())
             .defaultProfileId(profileId.toString());
-        datasetId = datasetDao.create(DatasetJsonConversion.datasetRequestToDataset(datasetRequest));
+        dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        String createFlightId = UUID.randomUUID().toString();
+        datasetId = UUID.randomUUID();
+        dataset.id(datasetId);
+        datasetDao.createAndLock(dataset, createFlightId);
+        datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         dataset = datasetDao.retrieve(datasetId);
 
         snapshotRequest = jsonLoader.loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)
             .profileId(profileId.toString());
-        snapshotRequest.getContents().get(0).getSource().setDatasetName(dataset.getName());
+        snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
 
         // Populate the snapshotId with random; delete should quietly not find it.
         snapshotId = UUID.randomUUID();
@@ -85,12 +93,21 @@ public class SnapshotDaoTest {
         profileDao.deleteBillingProfileById(profileId);
     }
 
+    @Test(expected = MissingRowCountsException.class)
+    public void testMissingRowCounts() throws Exception {
+        Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+        snapshotDao.updateSnapshotTableRowCounts(snapshot, Collections.emptyMap());
+    }
+
     @Test
     public void happyInOutTest() throws Exception {
         snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID().toString());
 
+        String flightId = "happyInOutTest_flightId";
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-        snapshotId = snapshotDao.create(snapshot);
+        snapshot.id(snapshotId);
+        snapshotDao.createAndLock(snapshot, flightId);
+        snapshotDao.unlock(snapshotId, flightId);
         Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotId);
 
         assertThat("snapshot name set correctly",
@@ -103,7 +120,7 @@ public class SnapshotDaoTest {
 
         assertThat("correct number of tables created",
                 fromDB.getTables().size(),
-                equalTo(1));
+                equalTo(2));
 
         assertThat("correct number of sources created",
                 fromDB.getSnapshotSources().size(),
@@ -121,12 +138,24 @@ public class SnapshotDaoTest {
 
         assertThat("correct number of map tables",
                 source.getSnapshotMapTables().size(),
-                equalTo(1));
+                equalTo(2));
 
         // Verify map table
-        SnapshotMapTable mapTable = source.getSnapshotMapTables().get(0);
-        Table datasetTable = dataset.getTables().get(0);
-        Table snapshotTable = snapshot.getTables().get(0);
+        SnapshotMapTable mapTable = source.getSnapshotMapTables()
+            .stream()
+            .filter(t -> t.getFromTable().getName().equals("thetable"))
+            .findFirst()
+            .orElseThrow(AssertionError::new);
+        Table datasetTable = dataset.getTables()
+            .stream()
+            .filter(t -> t.getName().equals("thetable"))
+            .findFirst()
+            .orElseThrow(AssertionError::new);
+        Table snapshotTable = snapshot.getTables()
+            .stream()
+            .filter(t -> t.getName().equals("thetable"))
+            .findFirst()
+            .orElseThrow(AssertionError::new);
 
         assertThat("correct map table dataset table",
                 mapTable.getFromTable().getId(),
@@ -153,6 +182,21 @@ public class SnapshotDaoTest {
         assertThat("correct map column snapshot column",
                 mapColumn.getToColumn().getId(),
                 equalTo(snapshotColumn.getId()));
+
+        List<Relationship> relationships = fromDB.getRelationships();
+        assertThat("a relationship comes back", relationships.size(), equalTo(1));
+        Relationship relationship = relationships.get(0);
+        Table fromTable = relationship.getFromTable();
+        Column fromColumn = relationship.getFromColumn();
+        Table toTable = relationship.getToTable();
+        Column toColumn = relationship.getToColumn();
+        assertThat("from table name matches", fromTable.getName(), equalTo("thetable"));
+        assertThat("from column name matches", fromColumn.getName(), equalTo("thecolumn"));
+        assertThat("to table name matches", toTable.getName(), equalTo("anothertable"));
+        assertThat("to column name matches", toColumn.getName(), equalTo("anothercolumn"));
+        assertThat("relationship points to the snapshot table",
+            fromTable.getId(),
+            equalTo(snapshotTable.getId()));
     }
 
     @Test
@@ -166,8 +210,12 @@ public class SnapshotDaoTest {
                 // set the description to a random string so we can verify the sorting is working independently of the
                 // dataset name or created_date. add a suffix to filter on for the even snapshots
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
+            String flightId = "snapshotEnumerateTest_flightId";
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-            snapshotId = snapshotDao.create(snapshot);
+            snapshotId = UUID.randomUUID();
+            snapshot.id(snapshotId);
+            snapshotDao.createAndLock(snapshot, flightId);
+            snapshotDao.unlock(snapshotId, flightId);
             snapshotIds.add(snapshotId);
         }
 
@@ -259,7 +307,7 @@ public class SnapshotDaoTest {
             assertThat("correct snapshot id",
                     snapshotIds.get(index),
                     equalTo(summary.getId()));
-            assertThat("correct snapshot namee",
+            assertThat("correct snapshot name",
                     makeName(snapshotName, index),
                     equalTo(summary.getName()));
             index++;

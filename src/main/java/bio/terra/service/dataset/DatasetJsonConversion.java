@@ -1,9 +1,10 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.PdaoConstant;
+import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.common.Column;
 import bio.terra.model.*;
-import bio.terra.model.RelationshipTermModel.CardinalityEnum;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,10 +22,9 @@ public final class DatasetJsonConversion {
 
     public static Dataset datasetRequestToDataset(DatasetRequestModel datasetRequest) {
         Map<String, DatasetTable> tablesMap = new HashMap<>();
-        Map<String, DatasetRelationship> relationshipsMap = new HashMap<>();
+        Map<String, Relationship> relationshipsMap = new HashMap<>();
         List<AssetSpecification> assetSpecifications = new ArrayList<>();
         UUID defaultProfileId = UUID.fromString(datasetRequest.getDefaultProfileId());
-        List<UUID> additionalProfileIds = stringsToUUIDs(datasetRequest.getAdditionalProfileIds());
         DatasetSpecificationModel datasetSpecification = datasetRequest.getSchema();
         datasetSpecification.getTables().forEach(tableModel ->
                 tablesMap.put(tableModel.getName(), tableModelToTable(tableModel)));
@@ -35,14 +35,16 @@ public final class DatasetJsonConversion {
                             relationship.getName(),
                             relationshipModelToDatasetRelationship(relationship, tablesMap)));
         }
-        datasetSpecification.getAssets().forEach(asset ->
+        List<AssetModel> assets = datasetSpecification.getAssets();
+        if (assets != null) {
+            assets.forEach(asset ->
                 assetSpecifications.add(assetModelToAssetSpecification(asset, tablesMap, relationshipsMap)));
+        }
 
         return new Dataset(new DatasetSummary()
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
-                .defaultProfileId(defaultProfileId)
-                .additionalProfileIds(additionalProfileIds))
+                .defaultProfileId(defaultProfileId))
                 .tables(new ArrayList<>(tablesMap.values()))
                 .relationships(new ArrayList<>(relationshipsMap.values()))
                 .assetSpecifications(assetSpecifications);
@@ -54,8 +56,8 @@ public final class DatasetJsonConversion {
                 .name(dataset.getName())
                 .description(dataset.getDescription())
                 .createdDate(dataset.getCreatedDate().toString())
-                .defaultProfileId(dataset.getDefaultProfileId().toString())
-                .additionalProfileIds(uuidsToStrings(dataset.getAdditionalProfileIds()));
+                .defaultProfileId(dataset.getDefaultProfileId().toString());
+
     }
 
     public static DatasetModel populateDatasetModelFromDataset(Dataset dataset) {
@@ -64,7 +66,6 @@ public final class DatasetJsonConversion {
                 .name(dataset.getName())
                 .description(dataset.getDescription())
                 .defaultProfileId(dataset.getDefaultProfileId().toString())
-                .additionalProfileIds(uuidsToStrings(dataset.getAdditionalProfileIds()))
                 .createdDate(dataset.getCreatedDate().toString())
                 .schema(datasetSpecificationModelFromDatasetSchema(dataset));
     }
@@ -103,16 +104,64 @@ public final class DatasetJsonConversion {
             .collect(Collectors.toList());
         datasetTable.primaryKey(primaryKeyColumns);
 
-        return datasetTable.columns(columns);
+        BigQueryPartitionConfigV1 partitionConfig;
+        switch (tableModel.getPartitionMode()) {
+            case DATE:
+                String column = tableModel.getDatePartitionOptions().getColumn();
+                boolean useIngestDate = column.equals(PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
+                partitionConfig = useIngestDate ?
+                    BigQueryPartitionConfigV1.ingestDate() :
+                    BigQueryPartitionConfigV1.date(column);
+                break;
+            case INT:
+                IntPartitionOptionsModel options = tableModel.getIntPartitionOptions();
+                partitionConfig = BigQueryPartitionConfigV1.intRange(
+                    options.getColumn(), options.getMin(), options.getMax(), options.getInterval());
+                break;
+            default:
+                partitionConfig = BigQueryPartitionConfigV1.none();
+                break;
+        }
+
+        return datasetTable.bigQueryPartitionConfig(partitionConfig).columns(columns);
     }
 
     public static TableModel tableModelFromTable(DatasetTable datasetTable) {
+        BigQueryPartitionConfigV1 config = datasetTable.getBigQueryPartitionConfig();
+        TableModel.PartitionModeEnum partitionMode;
+        DatePartitionOptionsModel dateOptions = null;
+        IntPartitionOptionsModel intOptions = null;
+        switch (config.getMode()) {
+            case INGEST_DATE:
+                partitionMode = TableModel.PartitionModeEnum.DATE;
+                dateOptions = new DatePartitionOptionsModel().column(PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
+                break;
+            case DATE:
+                partitionMode = TableModel.PartitionModeEnum.DATE;
+                dateOptions = new DatePartitionOptionsModel().column(config.getColumnName());
+                break;
+            case INT_RANGE:
+                partitionMode = TableModel.PartitionModeEnum.INT;
+                intOptions = new IntPartitionOptionsModel()
+                    .column(config.getColumnName())
+                    .min(config.getIntMin())
+                    .max(config.getIntMax())
+                    .interval(config.getIntInterval());
+                break;
+            default:
+                partitionMode = TableModel.PartitionModeEnum.NONE;
+                break;
+        }
+
         return new TableModel()
             .name(datasetTable.getName())
             .primaryKey(datasetTable.getPrimaryKey()
                 .stream()
                 .map(Column::getName)
                 .collect(Collectors.toList()))
+            .partitionMode(partitionMode)
+            .datePartitionOptions(dateOptions)
+            .intPartitionOptions(intOptions)
             .columns(datasetTable.getColumns().stream()
                 .map(DatasetJsonConversion::columnModelFromDatasetColumn)
                 .collect(Collectors.toList()));
@@ -132,44 +181,40 @@ public final class DatasetJsonConversion {
                 .arrayOf(tableColumn.isArrayOf());
     }
 
-    public static DatasetRelationship relationshipModelToDatasetRelationship(
+    public static Relationship relationshipModelToDatasetRelationship(
             RelationshipModel relationshipModel,
             Map<String, DatasetTable> tables) {
         Table fromTable = tables.get(relationshipModel.getFrom().getTable());
         Table toTable = tables.get(relationshipModel.getTo().getTable());
-        return new DatasetRelationship()
+        return new Relationship()
                 .name(relationshipModel.getName())
                 .fromTable(fromTable)
                 .fromColumn(fromTable.getColumnsMap().get(relationshipModel.getFrom().getColumn()))
-                .fromCardinality(relationshipModel.getFrom().getCardinality())
                 .toTable(toTable)
-                .toColumn(toTable.getColumnsMap().get(relationshipModel.getTo().getColumn()))
-                .toCardinality(relationshipModel.getTo().getCardinality());
+                .toColumn(toTable.getColumnsMap().get(relationshipModel.getTo().getColumn()));
     }
 
-    public static RelationshipModel relationshipModelFromDatasetRelationship(DatasetRelationship datasetRel) {
+    public static RelationshipModel relationshipModelFromDatasetRelationship(Relationship datasetRel) {
         return new RelationshipModel()
                 .name(datasetRel.getName())
                 .from(relationshipTermModelFromColumn(
-                        datasetRel.getFromTable(), datasetRel.getFromColumn(), datasetRel.getFromCardinality()))
+                        datasetRel.getFromTable(), datasetRel.getFromColumn()))
                 .to(relationshipTermModelFromColumn(
-                        datasetRel.getToTable(), datasetRel.getToColumn(), datasetRel.getToCardinality()));
+                        datasetRel.getToTable(), datasetRel.getToColumn()));
     }
 
     protected static RelationshipTermModel relationshipTermModelFromColumn(
             Table table,
-            Column col,
-            CardinalityEnum cardinality) {
+            Column col) {
         return new RelationshipTermModel()
                 .table(table.getName())
-                .column(col.getName())
-                .cardinality(cardinality);
+                .column(col.getName());
     }
 
     public static AssetSpecification assetModelToAssetSpecification(
             AssetModel assetModel,
             Map<String, DatasetTable> tables,
-            Map<String, DatasetRelationship> relationships) {
+            Map<String, Relationship> relationships) {
         AssetSpecification spec = new AssetSpecification()
                 .name(assetModel.getName());
         spec.assetTables(processAssetTables(spec, assetModel, tables));
@@ -185,7 +230,7 @@ public final class DatasetJsonConversion {
         assetModel.getTables().forEach(tblMod -> {
             boolean processingRootTable = false;
             String tableName = tblMod.getName();
-            Table datasetTable = tables.get(tableName);
+            DatasetTable datasetTable = tables.get(tableName);
             //not sure if we need to set the id on the new table
             AssetTable newAssetTable = new AssetTable().datasetTable(datasetTable);
             if (assetModel.getRootTable().equals(tableName)) {
@@ -212,7 +257,7 @@ public final class DatasetJsonConversion {
 
     private static List<AssetRelationship> processAssetRelationships(
             List<String> assetRelationshipNames,
-            Map<String, DatasetRelationship> relationships) {
+            Map<String, Relationship> relationships) {
         return Collections.unmodifiableList(relationships.entrySet()
                 .stream()
                 .filter(map -> assetRelationshipNames.contains(map.getKey()))

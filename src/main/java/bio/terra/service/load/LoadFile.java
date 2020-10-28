@@ -1,21 +1,19 @@
 package bio.terra.service.load;
 
+import bio.terra.model.BulkLoadFileState;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.util.UUID;
 
 public class LoadFile {
-    public enum State {
-        NOT_TRIED,
-        SUCCEEDED,
-        FAILED
-    }
-
     private UUID loadId;
     private String sourcePath;
     private String targetPath;
-    private LoadFile.State state;
+    private String mimeType;
+    private String description;
+    private BulkLoadFileState state;
+    private String flightId;
     private String fileId;
     private String error;
 
@@ -46,12 +44,39 @@ public class LoadFile {
         return this;
     }
 
-    public State getState() {
+    public String getMimeType() {
+        return mimeType;
+    }
+
+    public LoadFile mimeType(String mimeType) {
+        this.mimeType = mimeType;
+        return this;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public LoadFile description(String description) {
+        this.description = description;
+        return this;
+    }
+
+    public BulkLoadFileState getState() {
         return state;
     }
 
-    public LoadFile state(State state) {
+    public LoadFile state(BulkLoadFileState state) {
         this.state = state;
+        return this;
+    }
+
+    public String getFlightId() {
+        return flightId;
+    }
+
+    public LoadFile flightId(String flightId) {
+        this.flightId = flightId;
         return this;
     }
 

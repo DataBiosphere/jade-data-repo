@@ -24,9 +24,9 @@ public class FireStoreDirectoryEntry {
     // fileref-only fields
     // FireStoreFile object in the files collection
     private String datasetId; // The pair (datasetId, fileId) are used to lookup the FireStoreFile in file collection.
+    private String loadTag;   // load tag of the load that made this entry
 
     // directory-only fields
-
     private String fileCreatedDate; // For files, we get the created date from the FireStoreFile object
 
     // snapshot directory-only fields - computed as part of snapshot filesystem creation;
@@ -80,6 +80,15 @@ public class FireStoreDirectoryEntry {
 
     public FireStoreDirectoryEntry datasetId(String datasetId) {
         this.datasetId = datasetId;
+        return this;
+    }
+
+    public String getLoadTag() {
+        return loadTag;
+    }
+
+    public FireStoreDirectoryEntry loadTag(String loadTag) {
+        this.loadTag = loadTag;
         return this;
     }
 

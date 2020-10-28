@@ -1,7 +1,6 @@
 package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
-import bio.terra.common.Table;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -10,14 +9,14 @@ import java.util.List;
 import java.util.Optional;
 
 public class AssetTable {
-    private Table datasetTable;
+    private DatasetTable datasetTable;
     private List<AssetColumn> columns = new ArrayList<>();
 
-    public Table getTable() {
+    public DatasetTable getTable() {
         return datasetTable;
     }
 
-    public AssetTable datasetTable(Table datasetTable) {
+    public AssetTable datasetTable(DatasetTable datasetTable) {
         this.datasetTable = datasetTable;
         return this;
     }

@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement;
 
 
+import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
@@ -41,12 +42,13 @@ public class ResourceServiceTest {
     @Autowired private GoogleResourceConfiguration resourceConfiguration;
     @Autowired private GoogleResourceService resourceService;
     @Autowired private ConnectedOperations connectedOperations;
+    @Autowired private ConnectedTestConfiguration testConfig;
 
     private BillingProfileModel profile;
 
     @Before
     public void setup() throws Exception {
-        profile = connectedOperations.createProfileForAccount(resourceConfiguration.getCoreBillingAccount());
+        profile = connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
     }
 
     @After
@@ -57,7 +59,7 @@ public class ResourceServiceTest {
     @Test
     // this test should be unignored whenever there are changes to the project creation or deletion code
     @Ignore
-    public void createAndDeleteProjectTest() {
+    public void createAndDeleteProjectTest() throws Exception {
         // the project id can't be more than 30 characters
         String projectId = ("test-" + UUID.randomUUID().toString()).substring(0, 30);
 

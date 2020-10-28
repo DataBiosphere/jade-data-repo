@@ -14,9 +14,9 @@ public class GoogleResourceConfiguration {
     private String applicationName;
     private long projectCreateTimeoutSeconds;
     private String projectId;
-    private String coreBillingAccount;
     private String parentResourceType;
     private String parentResourceId;
+    private String singleDataProjectId;
 
     public String getApplicationName() {
         return applicationName;
@@ -42,14 +42,6 @@ public class GoogleResourceConfiguration {
         this.projectId = projectId;
     }
 
-    public String getCoreBillingAccount() {
-        return coreBillingAccount;
-    }
-
-    public void setCoreBillingAccount(String coreBillingAccount) {
-        this.coreBillingAccount = coreBillingAccount;
-    }
-
     public String getParentResourceType() {
         return parentResourceType;
     }
@@ -64,6 +56,14 @@ public class GoogleResourceConfiguration {
 
     public void setParentResourceId(String parentResourceId) {
         this.parentResourceId = parentResourceId;
+    }
+
+    public String getSingleDataProjectId() {
+        return singleDataProjectId;
+    }
+
+    public void setSingleDataProjectId(String singleDataProjectId) {
+        this.singleDataProjectId = singleDataProjectId;
     }
 
     @Bean("firestore")

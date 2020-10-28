@@ -57,8 +57,8 @@
         "relationships": [
             {
                 "name": "donor_file",
-                "from": {"table": "donor", "column": "donor_id", "cardinality": "one"},
-                "to":   {"table": "file", "column": "donor_id", "cardinality": "many"}
+                "from": {"table": "donor", "column": "donor_id"},
+                "to":   {"table": "file", "column": "donor_id"}
             }
         ],
         "assets":        [

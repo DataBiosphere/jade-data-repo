@@ -1,0 +1,29 @@
+{
+  "name": "LoadSingleFile",
+  "description": "One user ingests several files of two different sizes (1KB, 10KB) concurrently, into two datasets.",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 3
+  },
+  "application": {},
+  "testScripts": [
+    {
+      "name": "IngestFile",
+      "parameters": ["gs://jade-testdata/fileloadprofiletest/1KBfile.txt"],
+      "numberOfUserJourneyThreadsToRun": 3,
+      "userJourneyThreadPoolSize": 2,
+      "expectedTimeForEach": 60,
+      "expectedTimeForEachUnit": "SECONDS"
+    },
+    {
+      "name": "IngestFile",
+      "parameters": ["gs://jade-testdata/fileloadprofiletest/10KBfile.txt"],
+      "numberOfUserJourneyThreadsToRun": 3,
+      "userJourneyThreadPoolSize": 2,
+      "expectedTimeForEach": 60,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json"]
+}

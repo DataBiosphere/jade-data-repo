@@ -12,8 +12,11 @@ public class JobBuilder {
     private FlightMap jobParameterMap;
 
     // constructor only takes required parameters
-    public JobBuilder(String description, Class<? extends Flight> flightClass, Object request,
-                      AuthenticatedUserRequest userReq, JobService jobServiceRef) {
+    public JobBuilder(String description,
+                      Class<? extends Flight> flightClass,
+                      Object request,
+                      AuthenticatedUserRequest userReq,
+                      JobService jobServiceRef) {
         this.jobServiceRef = jobServiceRef;
         this.flightClass = flightClass;
 
@@ -22,6 +25,7 @@ public class JobBuilder {
         jobParameterMap.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
         jobParameterMap.put(JobMapKeys.REQUEST.getKeyName(), request);
         jobParameterMap.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), userReq);
+        jobParameterMap.put(JobMapKeys.SUBJECT_ID.getKeyName(), userReq.getSubjectId());
     }
 
     // use addParameter method for optional parameter
@@ -33,11 +37,10 @@ public class JobBuilder {
 
         // check that keyName doesn't match one of the required parameter names
         // i.e. disallow overwriting one of the required parameters
-        boolean isParameterRequired = keyName.equals(JobMapKeys.DESCRIPTION.getKeyName())
-            || keyName.equals(JobMapKeys.FLIGHT_CLASS.getKeyName())
+        if (keyName.equals(JobMapKeys.DESCRIPTION.getKeyName())
             || keyName.equals(JobMapKeys.REQUEST.getKeyName())
-            || keyName.equals(JobMapKeys.AUTH_USER_INFO.getKeyName());
-        if (isParameterRequired) {
+            || keyName.equals(JobMapKeys.AUTH_USER_INFO.getKeyName())
+            || keyName.equals((JobMapKeys.SUBJECT_ID.getKeyName()))) {
             throw new InvalidJobParameterException(
                 "Required parameters can only be set by the constructor. (" + keyName + ")");
         }
@@ -50,16 +53,12 @@ public class JobBuilder {
 
     // submits this job to stairway and returns the jobId immediately
     public String submit() {
-        AuthenticatedUserRequest userReq = jobParameterMap.get(
-            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-        return jobServiceRef.submit(flightClass, jobParameterMap, userReq);
+        return jobServiceRef.submit(flightClass, jobParameterMap);
     }
 
     // submits this job to stairway, waits until it finishes, then returns an instance of the result class
     public <T> T submitAndWait(Class<T> resultClass) {
-        AuthenticatedUserRequest userReq = jobParameterMap.get(
-            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-        return jobServiceRef.submitAndWait(flightClass, jobParameterMap, userReq, resultClass);
+        return jobServiceRef.submitAndWait(flightClass, jobParameterMap, resultClass);
     }
 
 }

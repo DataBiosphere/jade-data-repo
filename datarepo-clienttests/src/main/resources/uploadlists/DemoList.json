@@ -1,0 +1,12 @@
+{
+  "name": "DemoList",
+  "description": "Demo upload list (MM)",
+  "uploaderServiceAccountFile": "jade-k8-sa.json",
+  "uploadScripts": [
+    {
+      "name": "SummariesToBigQueryJade",
+      "description": "Write the summary results to BigQuery with the Jade schema.",
+      "parameters": ["broad-jade-testrunnerresults", "test_runner_results"]
+    }
+  ]
+}

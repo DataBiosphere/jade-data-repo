@@ -1,0 +1,17 @@
+{
+  "name":"demo",
+  "description":"desc",
+  "contents":[
+    {
+      "datasetName": "IngestTest",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "sample_by_collection_date",
+        "rootValues": [
+          "2019-02-27",
+          "2020-02-29"
+        ]
+      }
+    }
+  ]
+}

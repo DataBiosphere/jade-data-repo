@@ -6,9 +6,9 @@ import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
-import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamBadRequestException;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.iam.exception.IamNotFoundException;
@@ -37,9 +37,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Component("iamService")
+@Component("iamProvider")
 // Use @Profile to select when there is more than one IamService
-public class SamIam implements IamService {
+public class SamIam implements IamProviderInterface {
     private final SamConfiguration samConfig;
     private final ConfigurationService configurationService;
 
@@ -49,7 +49,7 @@ public class SamIam implements IamService {
         this.configurationService = configurationService;
     }
 
-    private static Logger logger = LoggerFactory.getLogger(SamIam.class);
+    private static final Logger logger = LoggerFactory.getLogger(SamIam.class);
 
     private ApiClient getApiClient(String accessToken) {
         ApiClient apiClient = new ApiClient();
@@ -80,7 +80,7 @@ public class SamIam implements IamService {
     public boolean isAuthorized(AuthenticatedUserRequest userReq,
                                 IamResourceType iamResourceType,
                                 String resourceId,
-                                IamAction action) {
+                                IamAction action) throws InterruptedException {
 
         SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> isAuthorizedInner(userReq, iamResourceType, resourceId, action));
@@ -98,7 +98,7 @@ public class SamIam implements IamService {
 
     @Override
     public List<UUID> listAuthorizedResources(AuthenticatedUserRequest userReq,
-                                              IamResourceType iamResourceType) {
+                                              IamResourceType iamResourceType) throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> listAuthorizedResourcesInner(userReq, iamResourceType));
     }
@@ -116,16 +116,18 @@ public class SamIam implements IamService {
     }
 
     @Override
-    public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
+    public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws InterruptedException {
         deleteResource(userReq, IamResourceType.DATASET, datasetId.toString());
     }
 
     @Override
-    public void deleteSnapshotResource(AuthenticatedUserRequest userReq, UUID snapshotId) {
+    public void deleteSnapshotResource(AuthenticatedUserRequest userReq, UUID snapshotId) throws InterruptedException {
         deleteResource(userReq, IamResourceType.DATASNAPSHOT, snapshotId.toString());
     }
 
-    private void deleteResource(AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
+    private void deleteResource(AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
+        throws InterruptedException {
+
         SamRetry samRetry = new SamRetry(configurationService);
         samRetry.perform(() -> deleteResourceInner(userReq, iamResourceType, resourceId));
     }
@@ -140,25 +142,25 @@ public class SamIam implements IamService {
     }
 
     @Override
-    public List<String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
+    public Map<IamRole, String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
+        throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> createDatasetResourceInner(userReq, datasetId));
     }
 
-    private List<String> createDatasetResourceInner(AuthenticatedUserRequest userReq,
-                                                    UUID datasetId) throws ApiException {
+    private Map<IamRole, String> createDatasetResourceInner(AuthenticatedUserRequest userReq,
+                                                            UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
             IamRole.STEWARD.toString(),
-            createAccessPolicy(IamRole.STEWARD.toString(),
-                Collections.singletonList(samConfig.getStewardsGroupEmail())));
+            createAccessPolicyOne(IamRole.STEWARD, samConfig.getStewardsGroupEmail()));
         req.addPoliciesItem(
             IamRole.CUSTODIAN.toString(),
-            createAccessPolicy(IamRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
+            createAccessPolicyOne(IamRole.CUSTODIAN, userReq.getEmail()));
         req.addPoliciesItem(
             IamRole.INGESTER.toString(),
-            new AccessPolicyMembership().roles(Collections.singletonList(IamRole.INGESTER.toString())));
+            createAccessPolicy(IamRole.INGESTER, null));
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug(req.toString());
@@ -168,69 +170,78 @@ public class SamIam implements IamService {
 
         // we'll want all of these roles to have read access to the underlying data,
         // so we sync and return the emails for the policies that get created by SAM
-        ArrayList<String> rolePolicies = new ArrayList<>();
-        for (IamRole role :
-            Arrays.asList(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.INGESTER)) {
-            Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
-                IamResourceType.DATASET.toString(),
-                datasetId.toString(),
-                role.toString());
-            rolePolicies.add(getPolicyGroupEmailFromResponse(results));
+        Map<IamRole, String> policies = new HashMap<>();
+        for (IamRole role : Arrays.asList(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.INGESTER)) {
+            String policy = syncOnePolicy(userReq, IamResourceType.DATASET, datasetId, role);
+            policies.put(role, policy);
         }
-        return rolePolicies;
+
+        return policies;
     }
 
     @Override
-    public String createSnapshotResource(AuthenticatedUserRequest userReq,
-                                         UUID snapshotId,
-                                         List<String> readersList) {
+    public Map<IamRole, String> createSnapshotResource(
+        AuthenticatedUserRequest userReq,
+        UUID snapshotId,
+        List<String> readersList) throws InterruptedException {
+
         SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> createSnapshotResourceInner(userReq, snapshotId, readersList));
     }
 
-    private String createSnapshotResourceInner(AuthenticatedUserRequest userReq,
-                                               UUID snapshotId,
-                                               List<String> readersList) throws ApiException {
+    private Map<IamRole, String> createSnapshotResourceInner(AuthenticatedUserRequest userReq,
+                                                             UUID snapshotId,
+                                                             List<String> readersList) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
-
-        if (readersList == null) {
-            readersList = Collections.emptyList();
-        }
-
         req.setResourceId(snapshotId.toString());
         req.addPoliciesItem(
             IamRole.STEWARD.toString(),
-            createAccessPolicy(IamRole.STEWARD.toString(),
-                Collections.singletonList(samConfig.getStewardsGroupEmail())));
+            createAccessPolicyOne(IamRole.STEWARD, samConfig.getStewardsGroupEmail()));
         req.addPoliciesItem(
             IamRole.CUSTODIAN.toString(),
-            createAccessPolicy(IamRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
+            createAccessPolicyOne(IamRole.CUSTODIAN, userReq.getEmail()));
         req.addPoliciesItem(
             IamRole.READER.toString(),
-            createAccessPolicy(IamRole.READER.toString(), readersList));
+            createAccessPolicy(IamRole.READER, readersList));
         req.addPoliciesItem(
             IamRole.DISCOVERER.toString(),
-            new AccessPolicyMembership().roles(Collections.singletonList(IamRole.DISCOVERER.toString())));
+            createAccessPolicy(IamRole.DISCOVERER, null));
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        logger.debug(req.toString());
+        logger.debug("SAM request: " + req.toString());
 
         // create the resource in sam
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASNAPSHOT.toString(), req);
 
-        // sync the readers policy
-        // Map[WorkbenchEmail, Seq[SyncReportItem]]
+        // sync the policies for all roles that have read data action
+        Map<IamRole, String> policies = new HashMap<>();
+        String policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.READER);
+        policies.put(IamRole.READER, policy);
+        policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.CUSTODIAN);
+        policies.put(IamRole.CUSTODIAN, policy);
+        policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.STEWARD);
+        policies.put(IamRole.STEWARD, policy);
+        return policies;
+    }
+
+    private String syncOnePolicy(AuthenticatedUserRequest userReq,
+                                 IamResourceType resourceType,
+                                 UUID id,
+                                 IamRole role) throws ApiException {
         Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
-            IamResourceType.DATASNAPSHOT.toString(),
-            snapshotId.toString(),
-            IamRole.READER.toString());
-        return getPolicyGroupEmailFromResponse(results);
+            resourceType.toString(),
+            id.toString(),
+            role.toString());
+        String policyEmail = getPolicyGroupEmailFromResponse(results);
+        logger.debug("Policy Group Resource: {} Role: {} Email:  {} ",
+            resourceType.toString(), role.toString(), policyEmail);
+        return policyEmail;
     }
 
     @Override
     public List<PolicyModel> retrievePolicies(AuthenticatedUserRequest userReq,
                                               IamResourceType iamResourceType,
-                                              UUID resourceId) {
+                                              UUID resourceId) throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> retrievePoliciesInner(userReq, iamResourceType, resourceId));
     }
@@ -252,7 +263,7 @@ public class SamIam implements IamService {
                                        IamResourceType iamResourceType,
                                        UUID resourceId,
                                        String policyName,
-                                       String userEmail) {
+                                       String userEmail) throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(
             () -> addPolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
@@ -278,7 +289,7 @@ public class SamIam implements IamService {
                                           IamResourceType iamResourceType,
                                           UUID resourceId,
                                           String policyName,
-                                          String userEmail) {
+                                          String userEmail) throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(
             () -> deletePolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
@@ -316,10 +327,17 @@ public class SamIam implements IamService {
         }
     }
 
-    AccessPolicyMembership createAccessPolicy(String role, List<String> emails) {
-        return new AccessPolicyMembership()
-            .roles(Collections.singletonList(role))
-            .memberEmails(emails);
+    AccessPolicyMembership createAccessPolicyOne(IamRole role, String email) {
+        return createAccessPolicy(role, Collections.singletonList(email));
+    }
+
+    AccessPolicyMembership createAccessPolicy(IamRole role, List<String> emails) {
+        AccessPolicyMembership membership = new AccessPolicyMembership()
+            .roles(Collections.singletonList(role.toString()));
+        if (emails != null) {
+            membership.memberEmails(emails);
+        }
+        return membership;
     }
 
     // This is a work around for https://broadworkbench.atlassian.net/browse/AP-149
@@ -363,7 +381,7 @@ public class SamIam implements IamService {
         localVarHeaderParams.put("Content-Type", localVarContentType);
 
 
-        String[] localVarAuthNames = new String[] {"googleoauth"};
+        String[] localVarAuthNames = new String[]{"googleoauth"};
         okhttp3.Call localVarCall = localVarApiClient.buildCall(
             localVarPath,
             "POST",
@@ -380,6 +398,7 @@ public class SamIam implements IamService {
     /**
      * Syncing a policy with SAM results in a Google group being created that is tied to that policy. The response is an
      * object with one key that is the policy group email and a value that is a list of objects.
+     *
      * @param syncPolicyResponse map with one key that is an email
      * @return the policy group email
      */
@@ -393,26 +412,29 @@ public class SamIam implements IamService {
     /**
      * Converts a SAM-specific ApiException to a DataRepo-specific common exception, based on the HTTP status code.
      */
-    public static DataRepoException convertSAMExToDataRepoEx(ApiException samEx) {
+    public static DataRepoException convertSAMExToDataRepoEx(final ApiException samEx) {
         // TODO: add mapping based on HTTP status code
         // SAM uses com.google.api.client.http.HttpStatusCodes
         // DataRepo uses org.springframework.http.HttpStatus
 
+        logger.warn("SAM client exception code: {}", samEx.getCode());
+        logger.warn("SAM client exception message: {}", samEx.getMessage());
+        logger.warn("SAM client exception details: {}", samEx.getResponseBody());
         switch (samEx.getCode()) {
-            case HttpStatusCodes.STATUS_CODE_BAD_REQUEST : {
+            case HttpStatusCodes.STATUS_CODE_BAD_REQUEST: {
                 return new IamBadRequestException(samEx);
             }
-            case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED : {
+            case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED: {
                 return new IamUnauthorizedException(samEx);
             }
-            case HttpStatusCodes.STATUS_CODE_NOT_FOUND : {
+            case HttpStatusCodes.STATUS_CODE_NOT_FOUND: {
                 return new IamNotFoundException(samEx);
             }
-            case HttpStatusCodes.STATUS_CODE_SERVER_ERROR : {
+            case HttpStatusCodes.STATUS_CODE_SERVER_ERROR: {
                 return new IamInternalServerErrorException(samEx);
             }
             // note that SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
-            default : {
+            default: {
                 return new IamInternalServerErrorException(samEx);
             }
         }

@@ -22,7 +22,7 @@ public class DeleteFileMetadataStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         try {
             fileDao.deleteFileMetadata(dataset, fileId);
         } catch (FileSystemAbortTransactionException rex) {

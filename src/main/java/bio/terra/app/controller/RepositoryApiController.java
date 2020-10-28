@@ -5,13 +5,16 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.controller.RepositoryApi;
+import bio.terra.model.AssetModel;
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.FileLoadModel;
@@ -25,6 +28,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -37,10 +41,8 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.PolicyMemberValidator;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.SnapshotSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,11 +58,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Controller
 public class RepositoryApiController implements RepositoryApi {
@@ -80,6 +82,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final PolicyMemberValidator policyMemberValidator;
     private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
     private final ConfigurationService configurationService;
+    private final AssetModelValidator assetModelValidator;
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
@@ -99,7 +102,8 @@ public class RepositoryApiController implements RepositoryApi {
             FileService fileService,
             PolicyMemberValidator policyMemberValidator,
             AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
-            ConfigurationService configurationService
+            ConfigurationService configurationService,
+            AssetModelValidator assetModelValidator
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -115,6 +119,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.policyMemberValidator = policyMemberValidator;
         this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
         this.configurationService = configurationService;
+        this.assetModelValidator = assetModelValidator;
     }
 
     @InitBinder
@@ -123,6 +128,7 @@ public class RepositoryApiController implements RepositoryApi {
         binder.addValidators(snapshotRequestValidator);
         binder.addValidators(ingestRequestValidator);
         binder.addValidators(policyMemberValidator);
+        binder.addValidators(assetModelValidator);
     }
 
     @Override
@@ -141,34 +147,25 @@ public class RepositoryApiController implements RepositoryApi {
 
     // -- dataset --
     @Override
-    public ResponseEntity<DatasetSummaryModel> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequest) {
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            IamAction.CREATE_DATASET);
-        return new ResponseEntity<>(datasetService.createDataset(datasetRequest, getAuthenticatedInfo()),
-            HttpStatus.CREATED);
+    public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequest) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = datasetService.createDataset(datasetRequest, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
     public ResponseEntity<DatasetModel> retrieveDataset(@PathVariable("id") String id) {
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASET,
-            id,
-            IamAction.READ_DATASET);
-        return new ResponseEntity<>(datasetService.retrieveModel(UUID.fromString(id)), HttpStatus.OK);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id, IamAction.READ_DATASET);
+        return new ResponseEntity<>(datasetService.retrieveAvailableDatasetModel(UUID.fromString(id)), HttpStatus.OK);
     }
 
     @Override
-    public ResponseEntity<DeleteResponseModel> deleteDataset(@PathVariable("id") String id) {
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASET,
-            id,
-            IamAction.DELETE);
-        return new ResponseEntity<>(datasetService.delete(id, getAuthenticatedInfo()), HttpStatus.OK);
+    public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.DELETE);
+        String jobId = datasetService.delete(id, userReq);
+        // we can retrieve the job we just created
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
@@ -188,12 +185,26 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<JobModel> ingestDataset(@PathVariable("id") String id,
                                                   @Valid @RequestBody IngestRequestModel ingest) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(
-            userReq,
-            IamResourceType.DATASET,
-            id,
-            IamAction.INGEST_DATA);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.INGEST_DATA);
         String jobId = datasetService.ingestDataset(id, ingest, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    }
+
+    @Override
+    public ResponseEntity<JobModel> addDatasetAssetSpecifications(@PathVariable("id") String id,
+                                                  @Valid @RequestBody AssetModel asset) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.EDIT_DATASET);
+        String jobId = datasetService.addDatasetAssetSpecifications(id, asset, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    }
+
+    @Override
+    public ResponseEntity<JobModel> removeDatasetAssetSpecifications(@PathVariable("id") String id,
+                                                                     @PathVariable("assetId") String assetId) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.EDIT_DATASET);
+        String jobId = datasetService.removeDatasetAssetSpecifications(id, assetId, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
@@ -202,11 +213,7 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<JobModel> deleteFile(@PathVariable("id") String id,
                                                @PathVariable("fileid") String fileid) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(
-            userReq,
-            IamResourceType.DATASET,
-            id,
-            IamAction.UPDATE_DATA);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.UPDATE_DATA);
         String jobId = fileService.deleteFile(id, fileid, userReq);
         // we can retrieve the job we just created
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
@@ -216,13 +223,25 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<JobModel> ingestFile(@PathVariable("id") String id,
                                                @Valid @RequestBody FileLoadModel ingestFile) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(
-            userReq,
-            IamResourceType.DATASET,
-            id,
-            IamAction.INGEST_DATA);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.INGEST_DATA);
         String jobId = fileService.ingestFile(id, ingestFile, userReq);
         // we can retrieve the job we just created
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    }
+
+    @Override
+    public ResponseEntity<JobModel> bulkFileLoad(@PathVariable("id") String id,
+                                                 @Valid @RequestBody BulkLoadRequestModel bulkFileLoad) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = fileService.ingestBulkFile(id, bulkFileLoad, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    }
+
+    @Override
+    public ResponseEntity<JobModel> bulkFileLoadArray(@PathVariable("id") String id,
+                                                      @Valid @RequestBody BulkLoadArrayRequestModel bulkFileLoadArray) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = fileService.ingestBulkFileArray(id, bulkFileLoadArray, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
@@ -231,12 +250,7 @@ public class RepositoryApiController implements RepositoryApi {
         @PathVariable("id") String id,
         @PathVariable("fileid") String fileid,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
-
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASET,
-            id,
-            IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id, IamAction.READ_DATA);
         FileModel fileModel = fileService.lookupFile(id, fileid, depth);
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
@@ -247,11 +261,7 @@ public class RepositoryApiController implements RepositoryApi {
         @RequestParam(value = "path", required = true) String path,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASET,
-            id,
-            IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id, IamAction.READ_DATA);
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }
@@ -304,22 +314,25 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
     // -- snapshot --
+    private List<UUID> getUnauthorizedSources(
+        List<UUID> snapshotSourceDatasetIds, AuthenticatedUserRequest userReq) {
+        return snapshotSourceDatasetIds
+            .stream()
+            .filter(sourceId -> !iamService.isAuthorized(
+                userReq,
+                IamResourceType.DATASET,
+                sourceId.toString(),
+                IamAction.CREATE_DATASNAPSHOT))
+            .collect(Collectors.toList());
+    }
+
     @Override
     public ResponseEntity<JobModel> createSnapshot(@Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
-        List<SnapshotSource> sources = snapshot.getSnapshotSources();
-        List<SnapshotSource> unauthorized = new ArrayList();
-        sources.forEach(source -> {
-                if (!iamService.isAuthorized(
-                    userReq,
-                    IamResourceType.DATASET,
-                    source.getDataset().getId().toString(),
-                    IamAction.CREATE_DATASNAPSHOT)) {
-                    unauthorized.add(source);
-                }
-            }
-        );
+        List<UUID> snapshotSourceDatasetIds =
+            snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotRequestModel);
+        // TODO auth should be put into flight?
+        List<UUID> unauthorized = getUnauthorizedSources(snapshotSourceDatasetIds, userReq);
         if (unauthorized.isEmpty()) {
             String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
             // we can retrieve the job we just created
@@ -332,11 +345,7 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> deleteSnapshot(@PathVariable("id") String id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(
-            userReq,
-            IamResourceType.DATASNAPSHOT,
-            id,
-            IamAction.DELETE);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASNAPSHOT, id, IamAction.DELETE);
         String jobId = snapshotService.deleteSnapshot(UUID.fromString(id), userReq);
         // we can retrieve the job we just created
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
@@ -359,12 +368,8 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<SnapshotModel> retrieveSnapshot(@PathVariable("id") String id) {
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASNAPSHOT,
-            id,
-            IamAction.READ_DATA);
-        SnapshotModel snapshotModel = snapshotService.retrieveModel(UUID.fromString(id));
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
+        SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(UUID.fromString(id));
         return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
     }
 
@@ -374,11 +379,7 @@ public class RepositoryApiController implements RepositoryApi {
         @PathVariable("fileid") String fileid,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASNAPSHOT,
-            id,
-            IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
         FileModel fileModel = fileService.lookupSnapshotFile(id, fileid, depth);
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
@@ -389,11 +390,7 @@ public class RepositoryApiController implements RepositoryApi {
         @RequestParam(value = "path", required = true) String path,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATASNAPSHOT,
-            id,
-            IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }
@@ -419,12 +416,18 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
+    public ResponseEntity<JobModel> applyDatasetDataDeletion(
+        String id,
+        @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = datasetService.deleteTabularData(id, dataDeletionRequest, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    }
+
+    @Override
     public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(@PathVariable("id") String id) {
         PolicyResponse response = new PolicyResponse().policies(
-            iamService.retrievePolicies(
-                getAuthenticatedInfo(),
-                IamResourceType.DATASNAPSHOT,
-                UUID.fromString(id)));
+            iamService.retrievePolicies(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, UUID.fromString(id)));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -524,9 +527,8 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<Void> setFault(@PathVariable("name") String name,
-                                         @Valid @RequestParam(value = "enable", required = false, defaultValue = "true")
-                                             Boolean enable) {
-        configurationService.setFault(name, enable);
+                                         @Valid @RequestBody ConfigEnableModel configEnable) {
+        configurationService.setFault(name, configEnable.isEnabled());
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
@@ -546,4 +548,5 @@ public class RepositoryApiController implements RepositoryApi {
         }
 
     }
+
 }

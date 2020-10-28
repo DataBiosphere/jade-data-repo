@@ -131,6 +131,18 @@ paths:
           description: Config is unavailable
       security: []
 
+  '/shutdown':
+    get:
+      description: |
+        Requests that this instance of DR Manager shut down. In production, this must be configured to
+        only be callable by Kubernetes.
+      operationId: shutdownRequest
+      tags:
+        - unauthenticated
+      responses:
+        204:
+          description: DR Manager was shutdown successfully
+      security: []
 
   ## Resources interface
 
@@ -368,7 +380,7 @@ paths:
         - $ref: '#/parameters/Id'
       responses:
         202:
-          description: Job status of snapshot creation job & url for polling in the response header
+          description: Job status of snapshot deletion job & url for polling in the response header
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -376,7 +388,7 @@ paths:
               type: string
               description: url for the job polling
         200:
-          description: Redirect for snapshot successful creation
+          description: Redirect for snapshot successful deletion
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -604,7 +616,7 @@ paths:
             $ref: '#/definitions/EnumerateDatasetModel'
 
     post:
-      description: Create a new dataset
+      description: Create a new dataset asynchronously. The async result is DatasetSummaryModel.
       operationId: createDataset
       tags:
       - repository
@@ -617,10 +629,22 @@ paths:
         schema:
           $ref: '#/definitions/DatasetRequestModel'
       responses:
-        201:
-          description: Dataset created successfully and a summary is returned
+        202:
+          description: Job status of ingest job & url for polling in the response header
           schema:
-            $ref: '#/definitions/DatasetSummaryModel'
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for ingest complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
         400:
           description: Bad request - duplicate name, invalid name, badly formed schema
           schema:
@@ -665,9 +689,21 @@ paths:
       - $ref: '#/parameters/Id'
       responses:
         200:
-          description: Successful deletion
+          description: Redirect for dataset successful deletion
           schema:
-            $ref: '#/definitions/DeleteResponseModel'
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        202:
+          description: Job status of dataset deletion job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
         400:
           description: Bad request - invalid id, badly formed
           schema:
@@ -714,7 +750,7 @@ paths:
 
   '/api/repository/v1/datasets/{id}/policies/{policyName}/members':
     post:
-      description: Adds a member to the specified policy for the snapshot
+      description: Adds a member to the specified policy for the dataset
       operationId: addDatasetPolicyMember
       tags:
       - repository
@@ -723,7 +759,7 @@ paths:
       parameters:
       - in: body
         name: policyMember
-        description: Snapshot to change the policy of
+        description: Dataset to change the policy of
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
@@ -742,7 +778,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - snapshot id does not exist
+          description: Not found - dataset id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
@@ -824,6 +860,118 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
+  '/api/repository/v1/datasets/{id}/assets':
+    post:
+      description: Add an asset definiion to a dataset
+      operationId: addDatasetAssetSpecifications
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - in: body
+        name: assetModel
+        description: Asset definition to add to the dataset
+        schema:
+          $ref: '#/definitions/AssetModel'
+      responses:
+        202:
+          description: Job status of ingest job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for ingest complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid ingest request, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to add an asset to a dataset
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/datasets/{id}/assets/{assetid}':
+    delete:
+      description: Remove an asset definition from a dataset
+      operationId: removeDatasetAssetSpecifications
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/AssetId'
+      responses:
+        202:
+          description: Add new assets to a dataset
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for ingest complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid ingest request, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to remove an asset from a dataset
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/datasets/{id}/deletes':
+    post:
+      description: Applies deletes to primary tabular data in a dataset
+      operationId: applyDatasetDataDeletion
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - in: body
+        name: dataDeletionRequest
+        description: Description of the data in the dataset to delete
+        schema:
+          $ref: '#/definitions/DataDeletionRequest'
+      responses:
+        201:
+          description: Response
+          schema:
+            $ref: '#/definitions/JobModel'
+        400:
+          description: Bad request - invalid tableName, bad row ids, badly formed, etc.
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to delete data
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - dataset id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
   '/api/repository/v1/register/user':
     get:
       description: |
@@ -879,6 +1027,205 @@ paths:
             $ref: '#/definitions/ErrorModel'
         409:
           description: No idea if we will generate this error code
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/datasets/{id}/files/bulk':
+    post:
+      description: |-
+        Load many files into the dataset file system; async returns a BulkLoadResultModel
+        Note that this endpoint is not a single transaction. Some files may be loaded and
+        others may fail. Each file load is atomic; the file will either be loaded into the
+        dataset file system or it will not exist.
+      operationId: bulkFileLoad
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - in: body
+        name: bulkFileLoad
+        description: |-
+          Bulk file load request with file list in an external file. Load summary results
+          are returned in the async response.
+        schema:
+          $ref: '#/definitions/BulkLoadRequestModel'
+      responses:
+        202:
+          description: Job status of bulk load job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for bulk load complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid ingest request, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to ingest
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: Someone else is using the load tag
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/datasets/{id}/files/bulk/{loadtag}':
+    get:
+      description: |-
+        Retrieve the results of a bulk file load. The results of each bulk load are stored
+        in the dataset. They can be queried directly or retrieved with this paginated
+        interface.
+      operationId: bulkFileResultsGet
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/LoadTag'
+      - in: query
+        name: jobId
+        type: string
+        description: The job id associated with the load
+      - in: query
+        name: offset
+        type: integer
+        default: 0
+        description: The number of items to skip before starting to collect the result set.
+      - in: query
+        name: limit
+        type: integer
+        description: The numbers of items to return.
+        default: 10
+      responses:
+        202:
+          description: Job status of bulk load result retrieval
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for bulk load result retrieval complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to access bulk file results
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+    delete:
+      description: |-
+        Delete results from the bulk file load table of the dataset.
+        If jobId is specified, then only the results for the loadTag plus that jobId are
+        deleted. Otherwise, all results associated with the loadTag are deleted.
+      operationId: bulkFileResultsDelete
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/LoadTag'
+      - in: query
+        name: jobId
+        type: string
+        description: The job id associated with the load
+      responses:
+        202:
+          description: Job status of bulk load result deletion
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for bulk load result deletion complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to access bulk file results
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/datasets/{id}/files/bulk/array':
+    post:
+      description: |-
+        Load many files into the dataset file system; async returns a BulkLoadArrayResultModel
+        Note that this endpoint is not a single transaction. Some files may be loaded and
+        others may fail. Each file load is atomic; the file will either be loaded into the
+        dataset file system or it will not exist.
+      operationId: bulkFileLoadArray
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - in: body
+        name: bulkFileLoadArray
+        description: |-
+          Bulk file load request with file list in the body of the request and load
+          results returned in the async response.
+        schema:
+          $ref: '#/definitions/BulkLoadArrayRequestModel'
+      responses:
+        202:
+          description: Job status of bulk load job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for bulk load complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid ingest request, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to ingest
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: Someone else is using the load tag
           schema:
             $ref: '#/definitions/ErrorModel'
 
@@ -1109,15 +1456,15 @@ paths:
         - repository
       parameters:
         - name: name
-          description: name of the configuration to 
+          description: name of the configuration to
           required: true
           in: path
           type: string
-        - in: query
-          name: enable
+        - in: body
+          name: configEnable
           type: boolean
-          default: true
-          description: whether to enable (default) or disable the fault
+          schema:
+            $ref: '#/definitions/ConfigEnableModel'
       responses:
         204:
           description: fault was en/dis-abled successfully - no content
@@ -1383,6 +1730,12 @@ parameters:
     required: true
     type: string
     in: path
+  AssetId:
+    name: assetid
+    description: An asset id
+    required: true
+    type: string
+    in: path
 
 ##########################################################################################
 # DEFINITIONS
@@ -1393,7 +1746,7 @@ definitions:
 
   ObjectNameProperty:
     description: |
-      Table, column, and relationship names follow this pattern. This should be used for the name of any object in the
+      Dataset, table, and column names follow this pattern. This should be used for the name of any object in the
       system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
       any extra columns the DR adds. For table names, this is shorter than what BigQuery allows.
     type: string
@@ -1480,11 +1833,6 @@ definitions:
       dataProject:
         type: string
         description: Project id of the project where tabular data in BigQuery lives
-      additionalProfileIds:
-        type: array
-        description: Additional profile ids to be used for this dataset
-        items:
-          $ref: '#/definitions/UniqueIdProperty'
       defaultSnapshotId:
         type: string
         description: Id of the auto-generated default passthru snapshot
@@ -1509,11 +1857,6 @@ definitions:
       defaultProfileId:
         $ref: '#/definitions/UniqueIdProperty'
         description: This is the ID of the profile used for core dataset resources
-      additionalProfileIds:
-        type: array
-        description: Additional profile IDs to be used for this dataset
-        items:
-          $ref: '#/definitions/UniqueIdProperty'
       createdDate:
         type: string
         description: Date the dataset was created
@@ -1535,11 +1878,6 @@ definitions:
       defaultProfileId:
         $ref: '#/definitions/UniqueIdProperty'
         description: This is the ID of the profile used for core dataset resources
-      additionalProfileIds:
-        type: array
-        description: Additional profile IDs to be used for this dataset
-        items:
-          $ref: '#/definitions/UniqueIdProperty'
       schema:
         $ref: '#/definitions/DatasetSpecificationModel'
 
@@ -1555,7 +1893,6 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/DatasetSummaryModel'
-
 
   ## Schema Definitions ##
 
@@ -1589,43 +1926,88 @@ definitions:
     properties:
       name:
         $ref: '#/definitions/ObjectNameProperty'
-
       columns:
         type: array
         items:
           $ref: '#/definitions/ColumnModel'
-
       primaryKey:
         type: array
         items:
           $ref: '#/definitions/ObjectNameProperty'
+      partitionMode:
+        type: string
+        enum:
+          - none
+          - date
+          - int
+        default: none
+      datePartitionOptions:
+        $ref: '#/definitions/DatePartitionOptionsModel'
+      intPartitionOptions:
+        $ref: '#/definitions/IntPartitionOptionsModel'
+      rowCount:
+        type: integer
+
+  DatePartitionOptionsModel:
+    description: Describes how a date partition should be configured.
+    type: object
+    required:
+      - column
+    properties:
+      column:
+        description: >
+          The DATE or TIMESTAMP column in the table to partition on,
+          or 'datarepo_ingest_date' to partition by ingest time.
+        $ref: '#/definitions/ObjectNameProperty'
+
+  IntPartitionOptionsModel:
+    description: Describes how an int partition should be configured.
+    type: object
+    required:
+      - column
+      - min
+      - max
+      - interval
+    properties:
+      column:
+        description: >
+          The INT64 or INTEGER column in the table to partition on.
+        $ref: '#/definitions/ObjectNameProperty'
+      min:
+        description: >
+          The smallest value to partition within the target column.
+          Any rows with a value smaller than this will be unpartitioned.
+        type: integer
+        format: int64
+      max:
+        description: >
+          The largest value to partition within the target column.
+          Any rows with a value larger than this will be unpartitioned.
+        type: integer
+        format: int64
+      interval:
+        description: >
+          The size to use when dividing the partitioning range into "buckets".
+          (max - min) / (this value) cannot be larger than 4,000.
+        type: integer
+        format: int64
 
   RelationshipTermModel:
-    description: Describes a table, columns and cardinality for a relationship
+    description: Describes a table and columns for a relationship
     type: object
     required:
       - table
       - column
-      - cardinality
     properties:
       table:
         $ref: '#/definitions/ObjectNameProperty'
       column:
-        type: string
-      cardinality:
-        type: string
-        enum:
-          - one
-          - many
-          - zero_or_one
-          - one_or_many
-          - zero_or_many
+        $ref: '#/definitions/ObjectNameProperty'
 
   RelationshipModel:
     description: |
       One relationship between two tables. Captures a specific relationship between two tables. By naming the
-      relationships, we can define assets. It should allow us to use the cardinality of the relationships to form
-      proper views (INNER vs OUTER) and implement data validation.
+      relationships, we can define assets.
     type: object
     required:
       - name
@@ -1633,7 +2015,8 @@ definitions:
       - to
     properties:
       name:
-        $ref: '#/definitions/ObjectNameProperty'
+        type: string
+        minLength: 1
       from:
         $ref: '#/definitions/RelationshipTermModel'
       to:
@@ -1669,7 +2052,8 @@ definitions:
       - rootColumn
     properties:
       name:
-        $ref: '#/definitions/ObjectNameProperty'
+        type: string
+        minLength: 1
       tables:
         type: array
         items:
@@ -1688,7 +2072,6 @@ definitions:
     type: object
     required:
       - tables
-      - assets
     properties:
       tables:
         type: array
@@ -1714,7 +2097,6 @@ definitions:
       - table
       - path
       - format
-      - strategy
     properties:
       table:
         $ref: '#/definitions/ObjectNameProperty'
@@ -1727,11 +2109,6 @@ definitions:
         enum:
           - csv
           - json
-      strategy:
-        type: string
-        enum:
-          - upsert
-          - append
       load_tag:
         $ref: '#/definitions/LoadTagModel'
       max_bad_records:
@@ -1911,6 +2288,183 @@ definitions:
       client-specified tag for a data or file load. If no id is specified, we use the
       string form of the job create time as the tag.
 
+  BulkLoadRequestModel:
+    description: |-
+      Body of a bulk file load request. This variant of a bulk load provides the set of
+      files to be loaded in a file containing the JSON form of a BulkLoadFileModel.
+      A summary of the load results is returned in the async response (BulkLoadResponseModel)
+      Per-file details of a bulk load are always stored into the dataset tabular data store
+      and can be retrieved directly from there, or via the GET .../bulk/{loadTag}
+      They can be cleaned up with the DELETE .../bulk/{loadTag}
+    type: object
+    required:
+      - profileId
+      - loadTag
+      - loadControlFile
+    properties:
+      profileId:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: The profile id to use for these files
+      loadTag:
+        $ref: '#/definitions/LoadTagModel'
+      maxFailedFileLoads:
+        type: integer
+        default: 0
+        description: max number of failed file loads before stopping
+      loadControlFile:
+        type: string
+        description: |-
+          gs:// path to a text file in a bucket. The file must be accessible to the DR
+          Manager. Each line of the file is interpreted as the JSON form of one
+          BulkLoadFileModel. For example, one line might look like
+            '{ "sourcePath":"gs:/bucket/path/file", "targetPath":"/target/path/file" }'
+
+  BulkLoadArrayRequestModel:
+    description: |-
+      Body of a bulk file load request. This variant of a bulk load provides the set of
+      files to be loaded in the body of the request. Both the summary of the load and the
+      per-file details of the bulk load returned in the async response (BulkLoadArrayResponseModel)
+      Per-file details of a bulk load are also stored into the dataset tabular data store
+      and can be retrieved directly from there, or via the GET .../bulk/{loadTag}
+      They can be cleaned up with the DELETE .../bulk/{loadTag}
+    type: object
+    required:
+      - profileId
+      - loadTag
+      - loadArray
+    properties:
+      profileId:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: The profile id to use for these files
+      loadTag:
+        $ref: '#/definitions/LoadTagModel'
+      maxFailedFileLoads:
+        type: integer
+        default: 0
+        description: max number of failed file loads before stopping
+      loadArray:
+        type: array
+        description: Array files to load
+        items:
+          $ref: '#/definitions/BulkLoadFileModel'
+
+  BulkLoadFileModel:
+    description: Describes one file within a bulk file load
+    type: object
+    required:
+      - sourcePath
+      - targetPath
+    properties:
+      sourcePath:
+        type: string
+        description: gs URL of the source file to load
+      targetPath:
+        type: string
+        description: |
+          Full path within the dataset where the file should be placed.
+          The path must start with /.
+      mimeType:
+        type: string
+        description: |-
+          A string providing the mime-type of the Data Object.
+          For example, "application/json".
+      description:
+        type: string
+        description: |-
+          A human readable description of the contents of the Data Object.
+
+  BulkLoadResultModel:
+    description: |-
+      Returned when the bulk file load job finishes.
+    type: object
+    properties:
+      loadTag:
+        $ref: '#/definitions/LoadTagModel'
+      jobId:
+        type: string
+      totalFiles:
+        type: integer
+      succeededFiles:
+        type: integer
+      failedFiles:
+        type: integer
+      notTriedFiles:
+        type: integer
+
+  BulkLoadArrayResultModel:
+    description: |-
+      Returned when the bulk file load job finishes.
+    type: object
+    properties:
+      loadSummary:
+        $ref: '#/definitions/BulkLoadResultModel'
+      loadFileResults:
+        type: array
+        items:
+          $ref: '#/definitions/BulkLoadFileResultModel'
+
+  BulkLoadFileResultModel:
+    description: Describes the status result of one file within a bulk file load
+    type: object
+    required:
+      - sourcePath
+      - targetPath
+    properties:
+      sourcePath:
+        type: string
+        description: gs URL of the source file to load
+      targetPath:
+        type: string
+        description: |
+          Full path within the dataset where the file should be placed.
+          The path must start with /.
+      state:
+        $ref: '#/definitions/BulkLoadFileState'
+      fileId:
+        type: string
+        description: The fileId of the loaded file; non-null if state is SUCCEEDED
+      error:
+        type: string
+        description: The error message if state is FAILED
+
+  BulkLoadHistoryModel:
+    description: Describes metadata about a file during a bulk load
+    type: object
+    required:
+      - sourcePath
+      - targetPath
+    properties:
+      sourcePath:
+        type: string
+        description: gs URL of the source file to load
+      targetPath:
+        type: string
+        description: |
+          Full path within the dataset where the file should be placed.
+          The path must start with /.
+      state:
+        $ref: '#/definitions/BulkLoadFileState'
+      fileId:
+        type: string
+        description: The fileId of the loaded file; non-null if state is SUCCEEDED
+      checksumCRC:
+        type: string
+        description: The checksum crc of the loaded file; non-null if state is SUCCEEDED
+      checksumMD5:
+        type: string
+        description: The checksum mD5 of the loaded file; non-null if state is SUCCEEDED
+      error:
+        type: string
+        description: The error message if state is FAILED
+
+  BulkLoadFileState:
+    type: string
+    enum:
+      - succeeded
+      - failed
+      - not_tried
+      - running
+
   ## Snapshot Definitions ##
 
   SnapshotRequestModel:
@@ -1952,28 +2506,84 @@ definitions:
       TODO: field will move the asset object; it is here as a stepping stone
     type: object
     required:
-      - source
+      - datasetName
+      - mode
+    properties:
+      datasetName:
+        $ref: '#/definitions/ObjectNameProperty'
+      mode:
+        type: string
+        enum:
+          - byAsset
+          - byFullView
+          - byQuery
+          - byRowId
+      assetSpec:
+        $ref: '#/definitions/SnapshotRequestAssetModel'
+      querySpec:
+        $ref: '#/definitions/SnapshotRequestQueryModel'
+      rowIdSpec:
+        $ref: '#/definitions/SnapshotRequestRowIdModel'
+
+  SnapshotRequestAssetModel:
+    description: |
+      The datasource identifies the dataset and asset from which to source the data.
+    type: object
+    required:
+      - assetName
       - rootValues
     properties:
-      source:
-        $ref: '#/definitions/SnapshotRequestSourceModel'
+      assetName:
+        $ref: '#/definitions/ObjectNameProperty'
       rootValues:
         type: array
         items:
           type: string
 
-  SnapshotRequestSourceModel:
+  SnapshotRequestQueryModel:
     description: |
-      The datasource identifies the dataset and asset from which to source the data.
+      A specification of the query to go into a snapshot.
     type: object
     required:
-      - datasetName
-      - assetName
+    - assetName
+    - query
     properties:
-      datasetName:
-        $ref: '#/definitions/ObjectNameProperty'
       assetName:
         $ref: '#/definitions/ObjectNameProperty'
+      query:
+        type: string
+
+  SnapshotRequestRowIdModel:
+    description: |
+      Identifies the list of tables + columns along with the row ids to be included in the snapshot
+    type: object
+    required:
+      - tables
+    properties:
+      tables:
+        type: array
+        items:
+          $ref: '#/definitions/SnapshotRequestRowIdTableModel'
+
+  SnapshotRequestRowIdTableModel:
+    description: |
+      A specification of a table, columns, and row ids to go into a snapshot.
+    type: object
+    required:
+      - tableName
+      - columns
+      - rowIds
+    properties:
+      tableName:
+        $ref: '#/definitions/ObjectNameProperty'
+      columns:
+        type: array
+        items:
+          $ref: '#/definitions/ObjectNameProperty'
+      rowIds:
+        type: array
+        items:
+          $ref: '#/definitions/UniqueIdProperty'
 
   SnapshotSummaryModel:
     description: |
@@ -2030,6 +2640,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/TableModel'
+      relationships:
+        type: array
+        items:
+          $ref: '#/definitions/RelationshipModel'
       profileId:
         $ref: '#/definitions/UniqueIdProperty'
         description: The profile id of this snapshot
@@ -2141,6 +2755,56 @@ definitions:
         items:
           $ref: '#/definitions/PolicyModel'
 
+  DataDeletionRequest:
+    description: |
+      a container holding a specification for how to delete tabular data in one or more tables
+    type: object
+    required:
+    - specType
+    - deleteType
+    properties:
+      deleteType:
+        type: string
+        enum:
+        - soft
+      specType:
+        type: string
+        enum:
+        - gcsFile
+      tables:
+        type: array
+        items:
+          $ref: '#/definitions/DataDeletionTableModel'
+
+  DataDeletionTableModel:
+    description: |
+      a specification for how to delete tabular data in one table
+    type: object
+    required:
+      - tableName
+    properties:
+      tableName:
+        type: string
+        description: the name of a table in the dataset
+      gcsFileSpec:
+        $ref: '#/definitions/DataDeletionGcsFileModel'
+
+  DataDeletionGcsFileModel:
+    description: |
+      a specification of a gcs file containing row ids to delete
+    type: object
+    required:
+      - fileType
+      - path
+    properties:
+      fileType:
+        type: string
+        enum:
+          - csv
+      path:
+        type: string
+        description: a gs://path/to/a/file that can include a wildcard (*)
+
   UserStatusInfo:
     description: ''
     required:
@@ -2168,6 +2832,12 @@ definitions:
         type: array
         items:
           type: string
+      semVer:
+        description: the semantic version of the data repository
+        type: string
+      gitHash:
+        description: the git hash of the data repository
+        type: string
 
   ConfigModel:
     description: |
@@ -2192,6 +2862,7 @@ definitions:
   # TODO: add the other configuration types
   #      logging:
   #        $ref: '#/definitions/ConfigLoggingModel'
+
 
   ConfigFaultModel:
     description: Fault control parameters
@@ -2223,7 +2894,7 @@ definitions:
       Counted fault is used to insert a fixed number of faults. A "fault test" is one
       call to the fault manager for a named fault. The skipFor lets you get the system to
       a certain stable point where you want to begin inserting faults. Insert gives the
-      total number of faults to trigger. The rate gives the percentage of the time to 
+      total number of faults to trigger. The rate gives the percentage of the time to
       insert the fault. A value of 50 would insert the fault half
       the time. A value of 20 would insert the fault 20% of the time . The rateStyle
       describes whether the fault will be fixed or random. In our 20 example, if the rate style
@@ -2284,8 +2955,15 @@ definitions:
         items:
           $ref: '#/definitions/ConfigModel'
 
+  ConfigEnableModel:
+    description: Control whether a fault is enabled
+    properties:
+      enabled:
+        type: boolean
+        default: true
+        description: whether to enable (default) or disable the fault
 
-##########################################################################################
+  ##########################################################################################
 # DRS DEFINITIONS
 ##########################################################################################
   DRSChecksum:

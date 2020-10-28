@@ -1,0 +1,18 @@
+{
+  "name": "BasicUnauthenticated",
+  "description": "Two users check the service status repeatedly, concurrently. No authentication required.",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {},
+  "application": {},
+  "testScripts": [
+    {
+      "name": "ServiceStatus",
+      "numberOfUserJourneyThreadsToRun": 10,
+      "userJourneyThreadPoolSize": 2,
+      "expectedTimeForEach": 5,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["neville.json", "mcgonagall.json"]
+}

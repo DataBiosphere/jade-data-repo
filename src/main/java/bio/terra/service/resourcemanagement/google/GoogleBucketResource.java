@@ -1,35 +1,26 @@
 package bio.terra.service.resourcemanagement.google;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.UUID;
 
 public class GoogleBucketResource {
     private UUID resourceId;
-    private GoogleBucketRequest googleBucketRequest;
+    private String flightId;
+    private UUID profileId;
+    private GoogleProjectResource projectResource;
+    private String name;
+    private String region;
 
-    public GoogleBucketResource() {
-        this.googleBucketRequest = new GoogleBucketRequest();
-    }
+    // Default constructor for Jackson
+    public GoogleBucketResource() { }
 
+    // Construct from a request
     public GoogleBucketResource(GoogleBucketRequest googleBucketRequest) {
-        this.googleBucketRequest = googleBucketRequest;
-    }
-
-    public GoogleProjectResource getProjectResource() {
-        return googleBucketRequest.getGoogleProjectResource();
-    }
-
-    public GoogleBucketResource projectResource(GoogleProjectResource projectResource) {
-        googleBucketRequest.googleProjectResource(projectResource);
-        return this;
-    }
-
-    public UUID getProfileId() {
-        return googleBucketRequest.getProfileId();
-    }
-
-    public GoogleBucketResource profileId(UUID profileId) {
-        googleBucketRequest.profileId(profileId);
-        return this;
+        this.profileId = googleBucketRequest.getProfileId();
+        this.projectResource = googleBucketRequest.getGoogleProjectResource();
+        this.name = googleBucketRequest.getBucketName();
+        this.region = googleBucketRequest.getRegion();
     }
 
     public UUID getResourceId() {
@@ -41,21 +32,53 @@ public class GoogleBucketResource {
         return this;
     }
 
-    public String getName() {
-        return googleBucketRequest.getBucketName();
+    public String getFlightId() {
+        return flightId;
     }
 
-    public GoogleBucketResource name(String bucketName) {
-        googleBucketRequest.bucketName(bucketName);
+    public GoogleBucketResource flightId(String flightId) {
+        this.flightId = flightId;
+        return this;
+    }
+
+    public UUID getProfileId() {
+        return profileId;
+    }
+
+    public GoogleBucketResource profileId(UUID profileId) {
+        this.profileId = profileId;
+        return this;
+    }
+
+    public GoogleProjectResource getProjectResource() {
+        return projectResource;
+    }
+
+    public GoogleBucketResource projectResource(GoogleProjectResource projectResource) {
+        this.projectResource = projectResource;
+        return this;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public GoogleBucketResource name(String name) {
+        this.name = name;
         return this;
     }
 
     public String getRegion() {
-        return googleBucketRequest.getRegion();
+        return region;
     }
 
     public GoogleBucketResource region(String region) {
-        googleBucketRequest.region(region);
+        this.region = region;
         return this;
+    }
+
+    @JsonIgnore
+    public String projectIdForBucket() {
+        return getProjectResource().getGoogleProjectId();
     }
 }

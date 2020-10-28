@@ -1,11 +1,24 @@
 package bio.terra.common;
 
 import bio.terra.model.DRSAccessMethod;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.BigQueryProject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableResult;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stringtemplate.v4.ST;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,6 +33,7 @@ import static org.junit.Assert.fail;
 
 public final class TestUtils {
     private static Logger logger = LoggerFactory.getLogger(TestUtils.class);
+    private static ObjectMapper objectMapper = new ObjectMapper();
 
     private TestUtils() {}
 
@@ -76,5 +90,66 @@ public final class TestUtils {
 
         return httpPathString;
     }
+
+    public static BigQueryProject bigQueryProjectForDatasetName(DatasetDao datasetDao,
+                                                                DataLocationService dataLocationService,
+                                                                String datasetName) throws InterruptedException {
+        Dataset dataset = datasetDao.retrieveByName(datasetName);
+        DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
+        return BigQueryProject.get(dataProject.getGoogleProjectId());
+    }
+
+    private static final String selectFromBigQueryDatasetTemplate =
+        "SELECT <columns> FROM `<project>.<dataset>.<table>`";
+
+    /**
+     * Execute a SELECT query on BigQuery dataset.
+     * @param bigQueryPdao pass in from the calling test class
+     * @param datasetDao pass in from the calling test class
+     * @param dataLocationService pass in from the calling test class
+     * @param datasetName the name of the Data Repo dataset
+     * @param tableName the name of Data Repo table
+     * @param columns a comma-separated string of the columns to select (e.g. "name", "name, fileref")
+     * @return the BigQuery TableResult
+     */
+    public static TableResult selectFromBigQueryDataset(
+        BigQueryPdao bigQueryPdao, DatasetDao datasetDao, DataLocationService dataLocationService,
+        String datasetName, String tableName, String columns) throws Exception {
+
+        String bqDatasetName = bigQueryPdao.prefixName(datasetName);
+        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(
+            datasetDao, dataLocationService, datasetName);
+        String bigQueryProjectId = bigQueryProject.getProjectId();
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+        ST sqlTemplate = new ST(selectFromBigQueryDatasetTemplate);
+        sqlTemplate.add("columns", columns);
+        sqlTemplate.add("project", bigQueryProjectId);
+        sqlTemplate.add("dataset", bqDatasetName);
+        sqlTemplate.add("table", tableName);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
+        return bigQuery.query(queryConfig);
+    }
+
+    public static <T> T mapFromJson(String content, Class<T> valueType) throws IOException {
+        try {
+            return objectMapper.readValue(content, valueType);
+        } catch (IOException ex) {
+            logger.error("unable to map JSON response to " +
+                valueType.getName() + "JSON: " + content, ex);
+            throw ex;
+        }
+    }
+
+    public static String mapToJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException ex) {
+            logger.error("unable to map value to JSON. Value is: " + value, ex);
+        }
+        return null;
+    }
+
 }
 

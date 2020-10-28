@@ -1,7 +1,11 @@
 package bio.terra.common;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.dao.RecoverableDataAccessException;
 
 import java.sql.Array;
 import java.sql.Connection;
@@ -13,7 +17,8 @@ import java.util.UUID;
 
 public final class DaoUtils {
 
-    private DaoUtils() {}
+    private DaoUtils() {
+    }
 
     public static String orderByClause(String sort, String direction) {
         if (sort == null || sort.isEmpty() || direction == null || direction.isEmpty()) {
@@ -76,5 +81,14 @@ public final class DaoUtils {
             return null;
         }
         return Arrays.asList((String[]) sqlArray.getArray());
+    }
+
+    // Based on Exception returned, determine if we should attempt to retry an operation/stairway step
+    public static boolean retryQuery(DataAccessException dataAccessException) {
+        if (ExceptionUtils.hasCause(dataAccessException, RecoverableDataAccessException.class) ||
+            ExceptionUtils.hasCause(dataAccessException, TransientDataAccessException.class)) {
+            return true;
+        }
+        return false;
     }
 }

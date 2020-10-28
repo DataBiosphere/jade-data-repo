@@ -1,13 +1,19 @@
 package bio.terra.common;
 
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotSource;
-import bio.terra.service.snapshot.RowIdMatch;
-import bio.terra.service.dataset.Dataset;
 
 import java.util.List;
 
 /**
+ * TODO: removed this interface. What we have determined in our implementation experience is that
+ *  it really doesn't work to have an interface for this level. The details of what needs to be
+ *  in the flights are sensitive to the underlying implementation, so the real place where we
+ *  need to choose the back end is within the flights and not at this interface level. We have
+ *  gone around this interface as much as we have gone through it. We should remove it!
+ *
  * In the long term, we want to make the primary data store be pluggable, supporting different implementations.
  * This interface documents what that pluggable interface might look like. Of course, we never know until we
  * build another one.
@@ -40,7 +46,7 @@ public interface PrimaryDataAccess {
      *
      * @param dataset
      */
-    void createDataset(Dataset dataset);
+    void createDataset(Dataset dataset) throws InterruptedException;
 
     /**
      * Delete the dataset. All tables within the container and the container are deleted
@@ -48,7 +54,7 @@ public interface PrimaryDataAccess {
      * @param dataset
      * @return true if the dataset was deleted; false if it was not found; throw on other errors
      */
-    boolean deleteDataset(Dataset dataset);
+    boolean deleteDataset(Dataset dataset) throws InterruptedException;
 
     /**
      * Given inputs from one asset, compute the row ids from the input values. The
@@ -62,7 +68,7 @@ public interface PrimaryDataAccess {
      */
     RowIdMatch mapValuesToRows(Snapshot snapshot,
                                SnapshotSource source,
-                               List<String> inputValues);
+                               List<String> inputValues) throws InterruptedException;
 
     /**
      * Create the container, tables and views for a snapshot.
@@ -70,7 +76,7 @@ public interface PrimaryDataAccess {
      * @param snapshot
      * @param rowIds - row ids for the root table
      */
-    void createSnapshot(Snapshot snapshot, List<String> rowIds);
+    void createSnapshot(Snapshot snapshot, List<String> rowIds) throws InterruptedException;
 
     /**
      * Delete the snapshot. All tables within the container and the container are deleted
@@ -78,25 +84,14 @@ public interface PrimaryDataAccess {
      * @param snapshot
      * @return true if the snapshot was deleted; false if it was not found; throw on other errors
      */
-    boolean deleteSnapshot(Snapshot snapshot);
-
-
-    /**
-     * Add the google group for the snapshot readers to the BQ snapshot
-     *
-     * @param snapshot snapshot metadata
-     * @param readersEmail email address for readers group (as returned by SAM)
-     */
-    void addReaderGroupToSnapshot(Snapshot snapshot, String readersEmail);
-
-    void grantReadAccessToDataset(Dataset dataset, List<String> readerEmails);
+    boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException;
 
     /**
      * Checks to see if a dataset exists
      * @param dataset
      * @return true if the dataset exists, false otherwise
      */
-    boolean datasetExists(Dataset dataset);
+    boolean datasetExists(Dataset dataset) throws InterruptedException;
 
     /**
      * Checks to see if a table within a dataset exists
@@ -104,13 +99,13 @@ public interface PrimaryDataAccess {
      * @param tableName
      * @return true if the table exists, false otherwise
      */
-    boolean tableExists(Dataset dataset, String tableName);
+    boolean tableExists(Dataset dataset, String tableName) throws InterruptedException;
 
     /**
      * Checks to see if a snapshot exists
      * @param snapshot
      * @return true if the snapshot exists, false otherwise
      */
-    boolean snapshotExists(Snapshot snapshot);
+    boolean snapshotExists(Snapshot snapshot) throws InterruptedException;
 
 }

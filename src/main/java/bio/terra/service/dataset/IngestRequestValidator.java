@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.common.ValidationUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
@@ -22,9 +21,6 @@ public class IngestRequestValidator implements Validator {
         if (name == null) {
             errors.rejectValue("name", "TableNameMissing",
                 "Ingest requires a table name");
-        } else if (!ValidationUtils.isValidName(name)) {
-            errors.rejectValue("name", "TableNameInvalid",
-                "Invalid table name " + name);
         }
     }
 

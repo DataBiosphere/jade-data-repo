@@ -1,20 +1,20 @@
 package bio.terra.service.resourcemanagement;
 
-import bio.terra.service.iam.sam.SamConfiguration;
-import bio.terra.service.dataset.exception.InvalidDatasetException;
-import bio.terra.service.resourcemanagement.exception.DataProjectNotFoundException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetDataProjectSummary;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotDataProject;
-import bio.terra.service.snapshot.SnapshotDataProjectSummary;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.iam.sam.SamConfiguration;
+import bio.terra.service.resourcemanagement.exception.DataProjectNotFoundException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketRequest;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectRequest;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDataProject;
+import bio.terra.service.snapshot.SnapshotDataProjectSummary;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +74,7 @@ public class DataLocationService {
         return Collections.unmodifiableMap(policyMap);
     }
 
-    public GoogleProjectResource getProjectForFile(String profileId) {
+    public GoogleProjectResource getProjectForFile(String profileId) throws InterruptedException {
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
             .projectId(dataLocationSelector.projectIdForFile(profileId))
             .profileId(UUID.fromString(profileId))
@@ -82,20 +82,75 @@ public class DataLocationService {
         return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
-    public GoogleBucketResource getOrCreateBucketForFile(String profileId) {
+    /**
+     * Determine the bucket name for a profile, using the DataLocationSelector.
+     * @param profileId
+     * @return the bucket name
+     */
+    protected String getBucketName(String profileId) {
+        return dataLocationSelector.bucketForFile(profileId);
+    }
+
+    /**
+     * Fetch/create a project, then use that to fetch/create a bucket.
+     * The profileId is used to determine the project name.
+     * The flightId is used to lock the bucket metadata during possible creation.
+     * @param profileId
+     * @param flightId
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws CorruptMetadataException in two cases. 1) if the bucket already exists, but the metadata does not AND the
+     * application property allowReuseExistingBuckets=false. 2) if the metadata exists, but the bucket does not
+     */
+    public GoogleBucketResource getOrCreateBucketForFile(String profileId, String flightId)
+        throws InterruptedException {
+
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)
         GoogleProjectResource projectResource = getProjectForFile(profileId);
         BillingProfile profile = profileService.getProfileById(UUID.fromString(profileId));
         GoogleBucketRequest googleBucketRequest = new GoogleBucketRequest()
             .googleProjectResource(projectResource)
-            .bucketName(dataLocationSelector.bucketForFile(profileId))
+            .bucketName(getBucketName(profileId))
             .profileId(UUID.fromString(profileId))
             .region(profile.getGcsRegion());
-        return resourceService.getOrCreateBucket(googleBucketRequest);
+        return resourceService.getOrCreateBucket(googleBucketRequest, flightId);
     }
 
+    /**
+     * Fetch an existing bucket and check that the associated cloud resource exists.
+     * @param bucketResourceId
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
+     * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
+     */
     public GoogleBucketResource lookupBucket(String bucketResourceId) {
-        return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId));
+        return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId), true);
+    }
+
+    /**
+     * Fetch an existing bucket_resource metadata row.
+     * Note this method does not check for the existence of the underlying cloud resource.
+     * This method is intended for places where an existence check on the associated cloud resource might be too
+     * much overhead (e.g. DRS lookups). Most bucket lookups should use the lookupBucket method instead, which has
+     * additional overhead but will catch metadata corruption errors sooner.
+     * @param bucketResourceId
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
+     */
+    public GoogleBucketResource lookupBucketMetadata(String bucketResourceId) {
+        return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId), false);
+    }
+
+    /**
+     * Update the bucket_resource metadata table to match the state of the underlying cloud.
+     *    - If the bucket exists, then the metadata row should also exist and be unlocked.
+     *    - If the bucket does not exist, then the metadata row should not exist.
+     * If the metadata row is locked, then only the locking flight can unlock or delete the row.
+     * @param profileId
+     * @param flightId
+     */
+    public void updateBucketMetadata(String profileId, String flightId) {
+        String bucketName = getBucketName(profileId);
+        resourceService.updateBucketMetadata(bucketName, flightId);
     }
 
     /** Fetch existing SnapshotDataProject for the Snapshot.
@@ -103,7 +158,7 @@ public class DataLocationService {
      * @param snapshot
      * @return a populated and valid SnapshotDataProject
      */
-    public SnapshotDataProject getOrCreateProject(Snapshot snapshot) {
+    public SnapshotDataProject getOrCreateProject(Snapshot snapshot) throws InterruptedException {
         // check if for an existing SnapshotDataProject first, and return here if found one
         Optional<SnapshotDataProject> existingDataProject = getProject(snapshot);
         if (existingDataProject.isPresent()) {
@@ -184,7 +239,7 @@ public class DataLocationService {
      * @param dataset
      * @return a populated and valid DatasetDataProject
      */
-    public DatasetDataProject getOrCreateProject(Dataset dataset) {
+    public DatasetDataProject getOrCreateProject(Dataset dataset) throws InterruptedException {
         // check if for an existing DatasetDataProject first, and return here if found one
         Optional<DatasetDataProject> existingDataProject = getProject(dataset);
         if (existingDataProject.isPresent()) {

@@ -16,6 +16,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
+import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Acl;
 import org.apache.commons.collections4.CollectionUtils;
@@ -34,14 +35,21 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import static bio.terra.service.resourcemanagement.google.GoogleResourceService.BQ_JOB_USER_ROLE;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -69,20 +77,25 @@ public class DrsTest extends UsersBase {
     private String custodianToken;
     private SnapshotModel snapshotModel;
     private String datasetId;
-    private Map<IamRole, String> iamRoles;
+    private Map<IamRole, String> datasetIamRoles;
+    private Map<IamRole, String> snapshotIamRoles;
 
     @Before
     public void setup() throws Exception {
         super.setup();
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
+        String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
         snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
         datasetId = setupResult.getDatasetId();
+        AuthenticatedUserRequest authenticatedStewardRequest =
+            new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
         AuthenticatedUserRequest authenticatedCustodianRequest =
             new AuthenticatedUserRequest().email(custodian().getEmail()).token(Optional.of(custodianToken));
-        iamRoles = iamService.retrievePolicyEmails(authenticatedCustodianRequest,
+        datasetIamRoles = iamService.retrievePolicyEmails(authenticatedStewardRequest,
+            IamResourceType.DATASET, UUID.fromString(datasetId));
+        snapshotIamRoles = iamService.retrievePolicyEmails(authenticatedCustodianRequest,
             IamResourceType.DATASNAPSHOT, UUID.fromString(snapshotModel.getId()));
-        logger.info("IAM: {}", iamRoles);
         logger.info("setup complete");
     }
 
@@ -92,8 +105,14 @@ public class DrsTest extends UsersBase {
             dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
         } catch (Throwable e) {
             // Already ran if everything was successful so skipping
+            logger.info("Snapshot already deleted");
         }
-        dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+        try {
+            dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+        } catch (Throwable e) {
+            // Already ran if everything was successful so skipping
+            logger.info("Dataset already deleted");
+        }
     }
 
     @Test
@@ -114,6 +133,12 @@ public class DrsTest extends UsersBase {
         TestUtils.validateDrsAccessMethods(drsObjectFile.getAccessMethods());
         Map<String, List<Acl>> preDeleteAcls = TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
         validateContainsAcls(preDeleteAcls.values().iterator().next());
+        validateBQJobUserRolePresent(Arrays.asList(
+            datasetIamRoles.get(IamRole.STEWARD),
+            datasetIamRoles.get(IamRole.CUSTODIAN),
+            datasetIamRoles.get(IamRole.INGESTER),
+            snapshotIamRoles.get(IamRole.CUSTODIAN)
+        ));
 
         // We don't have a DRS URI for a directory, so we back into it by computing the parent path
         // and using the non-DRS interface to get that file. Then we use that to build the
@@ -138,6 +163,24 @@ public class DrsTest extends UsersBase {
 
         Map<String, List<Acl>> postDeleteAcls = TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
         validateDoesNotContainAcls(postDeleteAcls.values().iterator().next());
+        // Make sure that the snapshot role is removed
+        validateBQJobUserRoleNotPresent(Collections.singleton(snapshotIamRoles.get(IamRole.CUSTODIAN)));
+        // ...and that the dataset roles are still present
+        validateBQJobUserRolePresent(Arrays.asList(
+            datasetIamRoles.get(IamRole.STEWARD),
+            datasetIamRoles.get(IamRole.CUSTODIAN),
+            datasetIamRoles.get(IamRole.INGESTER)
+        ));
+
+        // Delete dataset and make sure that project level ACLs are reset
+        dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+
+        // Make sure that the dataset roles are now removed
+        validateBQJobUserRoleNotPresent(Arrays.asList(
+            datasetIamRoles.get(IamRole.STEWARD),
+            datasetIamRoles.get(IamRole.CUSTODIAN),
+            datasetIamRoles.get(IamRole.INGESTER)
+        ));
     }
 
     private void validateDrsObject(DRSObject drsObject, String drsObjectId) {
@@ -191,14 +234,12 @@ public class DrsTest extends UsersBase {
      */
     private void validateContainsAcls(List<Acl> acls) {
         final Collection<String> entities = CollectionUtils.collect(acls, a -> a.getEntity().toString());
-        logger.info("RAW: {}", acls);
-        logger.info("EMAILS: {}", entities);
         assertThat("Has custodian ACLs", entities, hasItem(String.format("group-%s",
-            iamRoles.get(IamRole.CUSTODIAN))));
+            snapshotIamRoles.get(IamRole.CUSTODIAN))));
         assertThat("Has steward ACLs", entities, hasItem(String.format("group-%s",
-            iamRoles.get(IamRole.STEWARD))));
+            snapshotIamRoles.get(IamRole.STEWARD))));
         assertThat("Has reader ACLs", entities, hasItem(String.format("group-%s",
-            iamRoles.get(IamRole.READER))));
+            snapshotIamRoles.get(IamRole.READER))));
     }
 
     /**
@@ -207,12 +248,42 @@ public class DrsTest extends UsersBase {
     private void validateDoesNotContainAcls(List<Acl> acls) {
         final Collection<String> entities = CollectionUtils.collect(acls, a -> a.getEntity().toString());
         assertThat("Doesn't have custodian ACLs", entities, not(hasItem(String.format("group-%s",
-            iamRoles.get(IamRole.CUSTODIAN)))));
+            snapshotIamRoles.get(IamRole.CUSTODIAN)))));
         assertThat("Doesn't have steward ACLs", entities, not(hasItem(String.format("group-%s",
-            iamRoles.get(IamRole.STEWARD)))));
+            snapshotIamRoles.get(IamRole.STEWARD)))));
         assertThat("Doesn't have reader ACLs", entities, not(hasItem(String.format("group-%s",
-            iamRoles.get(IamRole.READER)))));
+            snapshotIamRoles.get(IamRole.READER)))));
     }
 
+    /**
+     * Verify that the specified member emails all have the BQ job user role in the data project
+     */
+    private void validateBQJobUserRolePresent(Collection<String> members) throws GeneralSecurityException, IOException {
+        List<Binding> bindings = TestUtils.getPolicy(snapshotModel.getDataProject()).getBindings();
+        bindings.forEach(b -> {
+            if (Objects.equals(b.getRole(), BQ_JOB_USER_ROLE)) {
+                members.forEach(m ->
+                    assertThat("Member has BQ job user role",
+                        CollectionUtils.collect(b.getMembers(), e -> e.replaceAll("^group:", "")),
+                        hasItem(m)));
+            }
+        });
+    }
+
+    /**
+     * Verify that none of the specified member emails have the BQ job user role in the data project
+     */
+    private void validateBQJobUserRoleNotPresent(
+        Collection<String> members) throws GeneralSecurityException, IOException {
+        List<Binding> bindings = TestUtils.getPolicy(snapshotModel.getDataProject()).getBindings();
+        bindings.forEach(b -> {
+            if (Objects.equals(b.getRole(), BQ_JOB_USER_ROLE)) {
+                members.forEach(m ->
+                    assertThat("Member does not have BQ job user role",
+                        CollectionUtils.collect(b.getMembers(), e -> e.replaceAll("^group:", "")),
+                        not(contains(m))));
+            }
+        });
+    }
 
 }

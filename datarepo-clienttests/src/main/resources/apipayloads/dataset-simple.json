@@ -1,0 +1,26 @@
+{
+  "name":        "DatasetSimple",
+  "description": "Simple dataset definition",
+  "defaultProfileId": "",
+  "schema":      {
+    "tables":        [
+      {
+        "name": "vcf_file",
+        "columns": [
+          {
+            "name": "VCF_File_Name",
+            "datatype": "STRING"
+          },
+          {
+            "name": "Description",
+            "datatype": "STRING"
+          },
+          {
+            "name": "VCF_File_Ref",
+            "datatype": "FILEREF"
+          }
+        ]
+      }
+    ]
+  }
+}

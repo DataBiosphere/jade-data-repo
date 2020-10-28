@@ -31,39 +31,43 @@ public class IngestFileFileStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
-        FSFileInfo fsFileInfo = workingMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
-        String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+        Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
+        if (loadComplete == null || !loadComplete) {
+            FlightMap inputParameters = context.getInputParameters();
+            FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
 
-        FireStoreFile newFile = new FireStoreFile()
-            .fileId(fileId)
-            .mimeType(fileLoadModel.getMimeType())
-            .description(fileLoadModel.getDescription())
-            .bucketResourceId(fsFileInfo.getBucketResourceId())
-            .fileCreatedDate(fsFileInfo.getCreatedDate())
-            .gspath(fsFileInfo.getGspath())
-            .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
-            .checksumMd5(fsFileInfo.getChecksumMd5())
-            .size(fsFileInfo.getSize());
+            FSFileInfo fsFileInfo = workingMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
+            String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
 
-        try {
-            fileDao.createFileMetadata(dataset, newFile);
-            // Retrieve to build the complete FSItem
-            FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1, true);
-            workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
-        } catch (FileSystemAbortTransactionException rex) {
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
+            FireStoreFile newFile = new FireStoreFile()
+                .fileId(fileId)
+                .mimeType(fileLoadModel.getMimeType())
+                .description(fileLoadModel.getDescription())
+                .bucketResourceId(fsFileInfo.getBucketResourceId())
+                .fileCreatedDate(fsFileInfo.getCreatedDate())
+                .gspath(fsFileInfo.getGspath())
+                .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
+                .checksumMd5(fsFileInfo.getChecksumMd5())
+                .size(fsFileInfo.getSize())
+                .loadTag(fileLoadModel.getLoadTag());
+
+            try {
+                fileDao.createFileMetadata(dataset, newFile);
+                // Retrieve to build the complete FSItem
+                FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1, true);
+                workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
+            } catch (FileSystemAbortTransactionException rex) {
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
+            }
         }
 
         return StepResult.getStepResultSuccess();
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         String itemId = workingMap.get(FileMapKeys.FILE_ID, String.class);
         try {

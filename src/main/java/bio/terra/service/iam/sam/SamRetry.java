@@ -1,6 +1,7 @@
 package bio.terra.service.iam.sam;
 
 
+import bio.terra.common.exception.DataRepoException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
@@ -32,7 +33,7 @@ class SamRetry {
         this.operationTimeout = now().plusSeconds(operationTimeoutSeconds);
     }
 
-    <T> T perform(SamFunction<T> function) {
+    <T> T perform(SamFunction<T> function) throws InterruptedException {
         while (true) {
             try {
                 // Simulate a socket timeout for testing
@@ -43,7 +44,7 @@ class SamRetry {
                 return function.apply();
 
             } catch (ApiException ex) {
-                RuntimeException rex = SamIam.convertSAMExToDataRepoEx((ApiException) ex);
+                DataRepoException rex = SamIam.convertSAMExToDataRepoEx(ex);
                 if (!(rex instanceof IamInternalServerErrorException)) {
                     throw rex;
                 }
@@ -59,13 +60,8 @@ class SamRetry {
             }
 
             // Retry
-            try {
-                logger.info("SamRetry: sleeping " + retrySeconds + " seconds");
-                TimeUnit.SECONDS.sleep(retrySeconds);
-            } catch (InterruptedException iex) {
-                Thread.currentThread().interrupt();
-                throw new IamInternalServerErrorException("SamIam operation was interrupted");
-            }
+            logger.info("SamRetry: sleeping " + retrySeconds + " seconds");
+            TimeUnit.SECONDS.sleep(retrySeconds);
 
             retrySeconds = retrySeconds + retrySeconds;
             if (retrySeconds > retryMaxWait) {

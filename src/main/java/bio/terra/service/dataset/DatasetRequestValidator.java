@@ -1,8 +1,11 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DatePartitionOptionsModel;
+import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.DatasetRequestModel;
@@ -17,6 +20,7 @@ import javax.validation.constraints.NotNull;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.stream.Collectors.toList;
 
@@ -40,15 +44,28 @@ public class DatasetRequestValidator implements Validator {
     private static class SchemaValidationContext {
 
         private HashMap<String, HashSet<String>> tableColumnMap;
+        private HashMap<String, HashSet<String>> tableArrayColumns;
         private HashSet<String> relationshipNameSet;
 
         SchemaValidationContext() {
             tableColumnMap = new HashMap<>();
+            tableArrayColumns = new HashMap<>();
             relationshipNameSet = new HashSet<>();
         }
 
-        void addTable(String tableName, List<String> columnNames) {
-            tableColumnMap.put(tableName, new HashSet<>(columnNames));
+        void addTable(String tableName, List<ColumnModel> columns) {
+            HashSet<String> colNames = new HashSet<>();
+            HashSet<String> arrayCols = new HashSet<>();
+
+            for (ColumnModel col : columns) {
+                colNames.add(col.getName());
+                if (col.isArrayOf()) {
+                    arrayCols.add(col.getName());
+                }
+            }
+
+            tableColumnMap.put(tableName, colNames);
+            tableArrayColumns.put(tableName, arrayCols);
         }
 
         void addRelationship(String relationshipName) {
@@ -63,17 +80,89 @@ public class DatasetRequestValidator implements Validator {
             return isValidTable(tableName) && tableColumnMap.get(tableName).contains(columnName);
         }
 
+        boolean isArrayColumn(String tableName, String columnName) {
+            return isValidTableColumn(tableName, columnName) &&
+                tableArrayColumns.get(tableName).contains(columnName);
+        }
+
         boolean isValidRelationship(String relationshipName) {
             return relationshipNameSet.contains(relationshipName);
         }
     }
 
     private void validateDatasetName(String datasetName, Errors errors) {
+        // NOTE: We used to manually check the name against a pattern here, but the latest
+        // versions of Swagger codegen now auto-generate an equivalent check.
         if (datasetName == null) {
             errors.rejectValue("name", "DatasetNameMissing");
-        } else if (!ValidationUtils.isValidName(datasetName)) {
-            errors.rejectValue("name", "DatasetNameInvalid",
-                "Invalid dataset name " + datasetName);
+        }
+    }
+
+    private void validateDatePartitionOptions(DatePartitionOptionsModel options,
+                                              List<ColumnModel> columns, Errors errors) {
+        String targetColumn = options.getColumn();
+
+        if (targetColumn == null) {
+            errors.rejectValue("schema", "MissingDatePartitionColumnName");
+        } else if (!targetColumn.equals(PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS)) {
+            Optional<ColumnModel> matchingColumn =
+                columns.stream().filter(c -> targetColumn.equals(c.getName())).findFirst();
+
+            if (matchingColumn.isPresent()) {
+                String colType = matchingColumn.get().getDatatype();
+
+                if (!"DATE".equalsIgnoreCase(colType) && !"TIMESTAMP".equalsIgnoreCase(colType)) {
+                    errors.rejectValue("schema", "InvalidDatePartitionColumnType",
+                        "partitionColumn in datePartitionOptions must refer to a DATE or TIMESTAMP column");
+                }
+            } else {
+                errors.rejectValue("schema", "InvalidDatePartitionColumnName", "No such column: " + targetColumn);
+            }
+        }
+    }
+
+    private void validateIntPartitionOptions(IntPartitionOptionsModel options,
+                                             List<ColumnModel> columns, Errors errors) {
+        String targetColumn = options.getColumn();
+
+        if (targetColumn == null) {
+            errors.rejectValue("schema", "MissingIntPartitionColumnName");
+        } else {
+            Optional<ColumnModel> matchingColumn =
+                columns.stream().filter(c -> targetColumn.equals(c.getName())).findFirst();
+
+            if (matchingColumn.isPresent()) {
+                String colType = matchingColumn.get().getDatatype();
+
+                if (!"INTEGER".equalsIgnoreCase(colType) && !"INT64".equalsIgnoreCase(colType)) {
+                    errors.rejectValue("schema", "InvalidIntPartitionColumnType",
+                        "partitionColumn in intPartitionOptions must refer to an INTEGER or INT64 column");
+                }
+            } else {
+                errors.rejectValue("schema", "InvalidIntPartitionColumnName", "No such column: " + targetColumn);
+            }
+        }
+
+        Long min = options.getMin();
+        Long max = options.getMax();
+        Long interval = options.getInterval();
+
+        if (min == null || max == null || interval == null) {
+            errors.rejectValue("schema", "MissingIntPartitionOptions",
+                "intPartitionOptions must specify min, max, and interval");
+        } else {
+            if (max <= min) {
+                errors.rejectValue("schema", "InvalidIntPartitionRange",
+                    "Max partition value must be larger than min partition value");
+            }
+            if (interval <= 0) {
+                errors.rejectValue("schema", "InvalidIntPartitionInterval",
+                    "Partition interval must be >= 1");
+            }
+            if (max > min && interval > 0 && (max - min) / interval > 4000L) {
+                errors.rejectValue("schema", "TooManyIntPartitions",
+                    "Cannot configure more than 4K partitions through min, max, and interval");
+            }
         }
     }
 
@@ -98,7 +187,36 @@ public class DatasetRequestValidator implements Validator {
                     }
                 }
             }
-            context.addTable(tableName, columnNames);
+
+            context.addTable(tableName, columns);
+        }
+
+        TableModel.PartitionModeEnum mode = table.getPartitionMode();
+        DatePartitionOptionsModel dateOptions = table.getDatePartitionOptions();
+        IntPartitionOptionsModel intOptions = table.getIntPartitionOptions();
+
+        if (mode == TableModel.PartitionModeEnum.DATE) {
+            if (dateOptions == null) {
+                errors.rejectValue("schema", "MissingDatePartitionOptions",
+                    "datePartitionOptions must be specified when using 'date' partitionMode");
+            } else {
+                validateDatePartitionOptions(dateOptions, columns, errors);
+            }
+        } else if (dateOptions != null) {
+            errors.rejectValue("schema", "InvalidDatePartitionOptions",
+                "datePartitionOptions can only be specified when using 'date' partitionMode");
+        }
+
+        if (mode == TableModel.PartitionModeEnum.INT) {
+            if (intOptions == null) {
+                errors.rejectValue("schema", "MissingIntPartitionOptions",
+                    "intPartitionOptions must be specified when using 'int' partitionMode");
+            } else {
+                validateIntPartitionOptions(intOptions, columns, errors);
+            }
+        } else if (intOptions != null) {
+            errors.rejectValue("schema", "InvalidIntPartitionOptions",
+                "intPartitionOptions can only be specified when using 'int' partitionMode");
         }
     }
 
@@ -160,15 +278,21 @@ public class DatasetRequestValidator implements Validator {
     private void validateAsset(AssetModel asset, Errors errors, SchemaValidationContext context) {
         List<AssetTableModel> assetTables = asset.getTables();
 
+        String rootTable = asset.getRootTable();
+        String rootColumn = asset.getRootColumn();
+
         if (assetTables != null) {
             boolean hasRootTable = false;
             for (AssetTableModel assetTable : assetTables) {
                 validateAssetTable(assetTable, errors, context);
-                if (assetTable.getName().equals(asset.getRootTable())) {
-                    if (!context.isValidTableColumn(asset.getRootTable(), asset.getRootColumn())) {
+                if (assetTable.getName().equals(rootTable)) {
+                    if (!context.isValidTableColumn(rootTable, rootColumn)) {
                         errors.rejectValue("schema", "InvalidRootColumn",
-                            "Invalid root table column. Table: " + asset.getRootTable() +
-                                " Column: " + asset.getRootColumn());
+                            "Invalid root table column. Table: " + rootTable + " Column: " + rootColumn);
+                    } else if (context.isArrayColumn(rootTable, rootColumn)) {
+                        errors.rejectValue("schema", "InvalidArrayRootColumn",
+                            "Invalid use of array column as asset root. Table: " +
+                                rootTable + " Column: " + rootColumn);
                     }
                     hasRootTable = true;
                 }
@@ -213,9 +337,6 @@ public class DatasetRequestValidator implements Validator {
             List<String> assetNames = assets.stream().map(AssetModel::getName).collect(toList());
             if (ValidationUtils.hasDuplicates(assetNames)) {
                 errors.rejectValue("schema", "DuplicateAssetNames");
-            }
-            if (assets.size() == 0) {
-                errors.rejectValue("schema", "NoAssets");
             }
             assets.forEach((asset) -> validateAsset(asset, errors, context));
         }

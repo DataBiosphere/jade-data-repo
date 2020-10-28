@@ -114,17 +114,6 @@ public final class IngestUtils {
         return workingMap.get(IngestMapKeys.STAGING_TABLE_NAME, String.class);
     }
 
-    // refactor
-    public static void putOverlappingTableName(FlightContext context, String name) {
-        FlightMap workingMap = context.getWorkingMap();
-        workingMap.put(IngestMapKeys.OVERLAPPING_TABLE_NAME, name);
-    }
-
-    public static String getOverlappingTableName(FlightContext context) {
-        FlightMap workingMap = context.getWorkingMap();
-        return workingMap.get(IngestMapKeys.OVERLAPPING_TABLE_NAME, String.class);
-    }
-
     public static void putDatasetName(FlightContext context, String name) {
         FlightMap workingMap = context.getWorkingMap();
         workingMap.put(DatasetWorkingMapKeys.DATASET_NAME, name);

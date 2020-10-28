@@ -21,7 +21,7 @@ public class OneDataLocationSelector implements DataLocationSelector {
     }
 
     private String oneProject() {
-        return resourceConfiguration.getProjectId() + "-data";
+        return resourceConfiguration.getSingleDataProjectId();
     }
 
     @Override

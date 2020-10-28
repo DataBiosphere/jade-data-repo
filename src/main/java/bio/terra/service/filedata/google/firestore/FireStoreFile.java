@@ -17,6 +17,7 @@ public class FireStoreFile {
     private String mimeType;
     private String description;
     private String bucketResourceId;
+    private String loadTag;
     // fields filled in from FSFileInfo after the file ingest
     private String fileCreatedDate;
     private String gspath;
@@ -108,18 +109,28 @@ public class FireStoreFile {
         return this;
     }
 
+    public String getLoadTag() {
+        return loadTag;
+    }
+
+    public FireStoreFile loadTag(String loadTag) {
+        this.loadTag = loadTag;
+        return this;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this)
             .append("fileId", fileId)
+            .append("mimeType", mimeType)
+            .append("description", description)
+            .append("bucketResourceId", bucketResourceId)
+            .append("loadTag", loadTag)
             .append("fileCreatedDate", fileCreatedDate)
             .append("gspath", gspath)
             .append("checksumCrc32c", checksumCrc32c)
             .append("checksumMd5", checksumMd5)
             .append("size", size)
-            .append("mimeType", mimeType)
-            .append("description", description)
-            .append("bucketResourceId", bucketResourceId)
             .toString();
     }
 }

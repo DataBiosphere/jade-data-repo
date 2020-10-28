@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement;
 
+import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -8,12 +9,14 @@ import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -23,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -57,17 +59,28 @@ public class OneProjectPerProfileIdSelectorTest {
     @Autowired
     private ConnectedOperations connectedOperations;
 
+    @Autowired
+    private ConfigurationService configService;
+
+    @Autowired
+    private ConnectedTestConfiguration testConfig;
+
     @MockBean
-    private IamService iamService;
+    private IamProviderInterface iamService;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         connectedOperations.stubOutSamCalls(iamService);
     }
 
+    @After
+    public void tearDown() throws Exception {
+        connectedOperations.teardown();
+        configService.reset();
+    }
     @Test
     public void shouldGetCorrectIdForDataset() throws Exception {
-        String coreBillingAccountId = resourceConfiguration.getCoreBillingAccount();
+        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
         String profileName = ProfileFixtures.randomHex(16);
         BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(coreBillingAccountId)
@@ -75,7 +88,7 @@ public class OneProjectPerProfileIdSelectorTest {
         BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
 
         DatasetSummaryModel datasetSummaryModel =
-            connectedOperations.createDatasetWithFlight(profile, "dataset-minimal.json");
+            connectedOperations.createDataset(profile, "dataset-minimal.json");
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetSummaryModel.getId()));
 
         String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset);
@@ -85,7 +98,7 @@ public class OneProjectPerProfileIdSelectorTest {
 
     @Test
     public void shouldGetCorrectIdForDatasetWithSpecialChars() throws Exception {
-        String coreBillingAccountId = resourceConfiguration.getCoreBillingAccount();
+        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
         String namePrefix = "chars  ";
         String hexDigits = ProfileFixtures.randomHex(8);
         String profileName = namePrefix + hexDigits;
@@ -95,7 +108,7 @@ public class OneProjectPerProfileIdSelectorTest {
         BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
 
         DatasetSummaryModel datasetSummaryModel =
-            connectedOperations.createDatasetWithFlight(profile, "dataset-minimal.json");
+            connectedOperations.createDataset(profile, "dataset-minimal.json");
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetSummaryModel.getId()));
 
         String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset);
@@ -105,7 +118,7 @@ public class OneProjectPerProfileIdSelectorTest {
 
     @Test
     public void shouldGetCorrectIdForSnapshot() throws Exception {
-        String coreBillingAccountId = resourceConfiguration.getCoreBillingAccount();
+        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
         String profileName = ProfileFixtures.randomHex(16);
         BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(coreBillingAccountId)
@@ -113,11 +126,10 @@ public class OneProjectPerProfileIdSelectorTest {
         BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
 
         DatasetSummaryModel datasetSummaryModel =
-            connectedOperations.createDatasetWithFlight(profile, "snapshot-test-dataset.json");
+            connectedOperations.createDataset(profile, "snapshot-test-dataset.json");
 
-        MockHttpServletResponse response =
-            connectedOperations.launchCreateSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");
-        SnapshotSummaryModel snapshotSummaryModel = connectedOperations.handleCreateSnapshotSuccessCase(response);
+        SnapshotSummaryModel snapshotSummaryModel =
+            connectedOperations.createSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");
         SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummaryModel.getId());
         Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotModel.getId()));
 

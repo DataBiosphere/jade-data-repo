@@ -16,6 +16,9 @@ page at http://checkstyle.sourceforge.net/config.html -->
 
 <module name="Checker">
     <module name="SuppressWarningsFilter" />
+    <module name="SuppressionFilter">
+        <property name="file" value="config/checkstyle/checkstyle-suppressions.xml" />
+    </module>
     <module name="SuppressionCommentFilter">
     </module>
     <module name="TreeWalker">

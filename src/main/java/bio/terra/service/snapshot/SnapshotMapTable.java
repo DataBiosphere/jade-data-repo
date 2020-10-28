@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.common.Table;
+import bio.terra.service.dataset.DatasetTable;
 
 import java.util.Collections;
 import java.util.List;
@@ -8,8 +8,8 @@ import java.util.UUID;
 
 public class SnapshotMapTable {
     private UUID id;
-    private Table fromTable;
-    private Table toTable;
+    private DatasetTable fromTable;
+    private SnapshotTable toTable;
     private List<SnapshotMapColumn> snapshotMapColumns = Collections.emptyList();
 
     public UUID getId() {
@@ -21,20 +21,20 @@ public class SnapshotMapTable {
         return this;
     }
 
-    public Table getFromTable() {
+    public DatasetTable getFromTable() {
         return fromTable;
     }
 
-    public SnapshotMapTable fromTable(Table fromTable) {
+    public SnapshotMapTable fromTable(DatasetTable fromTable) {
         this.fromTable = fromTable;
         return this;
     }
 
-    public Table getToTable() {
+    public SnapshotTable getToTable() {
         return toTable;
     }
 
-    public SnapshotMapTable toTable(Table toTable) {
+    public SnapshotMapTable toTable(SnapshotTable toTable) {
         this.toTable = toTable;
         return this;
     }

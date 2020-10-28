@@ -1,0 +1,40 @@
+{
+  "name": "AllMeasurements",
+  "description": "List that includes an example of each type of measurement.",
+  "measurementCollectionScripts": [
+    {
+      "name": "CPUCoreUsageTimeMetric",
+      "description": "Kubernetes container CPU usage",
+      "saveRawDataPoints": false
+    },
+    {
+      "name": "MemoryUsedBytesMetric",
+      "description": "Kubernetes container memory usage",
+      "saveRawDataPoints": false
+    },
+    {
+      "name": "LoggerInterceptorHttpStatus",
+      "description": "LoggerInterceptor HTTP status code 500",
+      "parameters": [500],
+      "saveRawDataPoints": true
+    },
+    {
+      "name": "PerformanceLoggerElapsedTime",
+      "description": "PerformanceLogger enumerateProfiles timer elapsed time.",
+      "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"],
+      "saveRawDataPoints": true
+    },
+    {
+      "name": "PerformanceLoggerCount",
+      "description": "PerformanceLogger enumerateProfiles timer integer count.",
+      "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"],
+      "saveRawDataPoints": true
+    },
+    {
+      "name": "FlightCaughtExceptionLog",
+      "description": "Count the flight exceptions for BQ rate limit exceeded.",
+      "parameters": ["com.google.cloud.bigquery.BigQueryException: Job exceeded rate limits: Your table exceeded quota for table update operations."],
+      "saveRawDataPoints": true
+    }
+  ]
+}

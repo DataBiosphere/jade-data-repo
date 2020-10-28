@@ -106,6 +106,8 @@ public class ConfigFaultCounted extends ConfigFault {
                     break;
             }
         }
+
+        logger.info("Fault: NOT inserting fault " + getConfigEnum());
         return false;
     }
 
@@ -116,6 +118,7 @@ public class ConfigFaultCounted extends ConfigFault {
         } else {
             if (insertCounter < countedModel.getInsert()) {
                 insertCounter++;
+                logger.info("Fault: inserting fault " + getConfigEnum());
                 return true;
             } else {
                 doneInserting = true;
@@ -123,6 +126,8 @@ public class ConfigFaultCounted extends ConfigFault {
                     "; inserted " + insertCounter + " of " +  testCounter + " tests");
             }
         }
+
+        logger.info("Fault: NOT inserting fault " + getConfigEnum());
         return false;
     }
 
@@ -142,6 +147,9 @@ public class ConfigFaultCounted extends ConfigFault {
             case FIXED:
                 every = 100 / countedModel.getRate();
                 everyCounter = 0;
+                break;
+            default:
+                logger.error("Rate style is not one of the two defined cases: RANDOM or FIXED");
                 break;
         }
     }

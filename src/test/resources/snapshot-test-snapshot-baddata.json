@@ -3,16 +3,16 @@
   "description": "Test unmatched root values",
   "contents": [
     {
-      "source":
-      {
-        "datasetName": "snapshot_test_dataset",
-        "assetName": "theasset"
-      },
-      "rootValues": [
-        "Fred",
-        "Wilma",
-        "Rori"
-      ]
+      "datasetName": "snapshot_test_dataset",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "theasset",
+        "rootValues": [
+          "Fred",
+          "Wilma",
+          "Rori"
+        ]
+      }
     }
   ]
 }

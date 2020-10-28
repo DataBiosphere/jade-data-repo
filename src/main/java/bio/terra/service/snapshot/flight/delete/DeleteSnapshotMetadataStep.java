@@ -1,8 +1,8 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.stairway.FlightUtils;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.stairway.FlightContext;
@@ -28,7 +28,6 @@ public class DeleteSnapshotMetadataStep implements Step {
         Snapshot snapshot = null;
         boolean found = false;
         try {
-
             found = snapshotDao.delete(snapshotId);
         } catch (SnapshotNotFoundException ex) {
             found = false;

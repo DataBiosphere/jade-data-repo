@@ -43,24 +43,6 @@ Give your service account access to dev GCR:
 
     gsutil iam ch serviceAccount:[PROJECT_NUMBER]-compute@developer.gserviceaccount.com:objectViewer gs://artifacts.broad-jade-dev.appspot.com
 
-### Deploy to your Google project
-
-The deployment script expects a few environment variables to be set:
-- GOOGLE_CLOUD_PROJECT (broad-jade-initials)
-- ENVIRONMENT (dev)
-- SUFFIX (initials)
-
-So to deploy to my broad-jade-jh project, I would run:
-
-    GOOGLE_CLOUD_PROJECT=broad-jade-jh ENVIRONMENT=dev SUFFIX=jh ./ops/deploy.sh
-
-Again, this deployment script is set to pull secrets out of Vault, so it uses the ENVIRONMENT and SUFFIX variables in
-order to construct the right paths for lookups. Once you have deployed, you should have a set of pods and services
-running inside of Kubernetes that are exposed via a Load Balancer and is accessible to the web.
-
-It is useful to have the [jade-data-repo-ui](https://github.com/DataBiosphere/jade-data-repo-ui) repository checked out
-next to this one, as the deployment script will automatically deploy the UI if it sees the directory.
-
 ### Using cloud code and skaffold
 
 Once you have deployed to GKE, if you are developing on the API it might be useful to update the API container image
@@ -145,3 +127,69 @@ in a directory other than a git cloned workspace, run:
 `swagger-codegen generate -i path/to/data-repository-openapi.yaml -l spring -c path/to/config.json`
 
 Then copy the files you want into the source tree
+
+## skaffold
+To render your own local skaffold.yaml run the following with your initials
+```
+sed -e 's/TEMP/<initials>/g' skaffold.yaml.template > skaffold.yaml
+```
+Run a deployment you must set env var `IMAGE_TAG`
+```
+skaffold run
+```
+
+## Add new application property
+1. Locally, application properties are controlled by the values in the various application.properties files.
+    - `application.properties` contains the base/default values. A new property should be added here first.
+    ```
+    datarepo.gcs.allowReuseExistingBuckets=false
+    ```
+    - You can override the default value for connected and integration tests by adding a line to
+    `application-connectedtest.properties` and `application-integrationtest.properties`.
+    ```
+    datarepo.gcs.allowReuseExistingBuckets=true
+    ```
+2. Now that we use Helm, the properties also need to be added to the
+[base Data Repo charts](https://github.com/broadinstitute/datarepo-helm).
+    - Find the the [api-deployment.yaml](https://github.com/broadinstitute/datarepo-helm/blob/master/charts/datarepo-api/templates/api-deployment.yaml) file.
+    - Add a new property under the `env` section. The formatting below might be messed up, and the yaml is very picky
+    about spaces. So, copy/paste from another variable in the section instead of here.
+    ```
+            {{- if .Values.env.datarepoGcsAllowreuseexistingbuckets }}
+            - name: DATAREPO_GCS_ALLOWREUSEEXISTINGBUCKETS
+              value: {{ .Values.env.datarepoGcsAllowreuseexistingbuckets | quote }}
+            {{- end }}
+    ```
+    - Find the the [values.yaml](https://github.com/broadinstitute/datarepo-helm/blob/master/charts/datarepo-api/values.yaml) file.
+    - Add a new line under the `env` section.
+    ```
+      datarepoGcsAllowreuseexistingbuckets:
+    ```
+    - Release a new version of the chart. Talk to DevOps to do this.
+3. To override properties for specific environments (e.g. integration), modify the
+[environment-specific override Data Repo charts](https://github.com/broadinstitute/datarepo-helm-definitions).
+    - Find the [deployment.yaml](https://github.com/broadinstitute/datarepo-helm-definitions/blob/master/integration/integration-1/integration-1Deployment.yaml)
+    for the specific environment.
+    - Add a new line under the `env` section.
+    ```
+    datarepoGcsAllowreuseexistingbuckets: true
+    ```
+   - It's a good idea to test out changes on your developer-namespace before making a PR.
+   - Changes to integration, temp, or developer-namespace environments are good with regular PR approval (1 thumb for this repository).
+   - Changes to dev or prod need more eyes, and perhaps a group discussion to discuss possible side effects or failure modes.
+
+## Developer Notes
+### Proper Handling of InterruptedException
+Care must be taken with a handling of InterruptedException. Code running in stairway flights must expect to receive
+InterruptedException during waiting states when the pod is being shut down. It is important that exception be allowed to
+propagate up to the stairway layer, so that proper termination and re-queuing of the flight can be performed.
+
+On the other hand, code running outside of the stairway flight, where the exception can become the response to
+a REST API, should catch the InterruptedException and replace it with a meaningful exception. Otherwise the caller
+ gets a useless error message.
+
+## Deployments
+The deployments of Terra Data Repository are:
+- [Production](https://jade-terra.datarepo-prod.broadinstitute.org/)
+- [Development](https://jade.datarepo-dev.broadinstitute.org/)
+- [Development - swagger page](https://jade.datarepo-dev.broadinstitute.org/swagger-ui.html)

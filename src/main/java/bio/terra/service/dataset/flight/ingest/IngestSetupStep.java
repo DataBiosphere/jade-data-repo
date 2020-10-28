@@ -1,22 +1,20 @@
 package bio.terra.service.dataset.flight.ingest;
 
-import bio.terra.common.Column;
-import bio.terra.common.PdaoConstant;
-import bio.terra.common.Table;
-import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.tabulardata.google.BigQueryProject;
+import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightUtils;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import com.google.cloud.bigquery.Schema;
-import liquibase.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.util.concurrent.TimeUnit;
+
 
 /**
  * The setup step required to generate the staging file name.
@@ -39,16 +37,27 @@ import java.util.List;
  * and not the dataset object.
  */
 public class IngestSetupStep implements Step {
-    private DatasetService datasetService;
-    private BigQueryPdao bigQueryPdao;
+    private Logger logger = LoggerFactory.getLogger(IngestSetupStep.class);
 
-    public IngestSetupStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
+    private DatasetService datasetService;
+    private ConfigurationService configService;
+
+    public IngestSetupStep(DatasetService datasetService, ConfigurationService configService) {
         this.datasetService = datasetService;
-        this.bigQueryPdao = bigQueryPdao;
+        this.configService = configService;
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
+        if (configService.testInsertFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT)) {
+            logger.info("TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT");
+            while (!configService.testInsertFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                logger.info("Sleeping for CONTINUE FAULT");
+                TimeUnit.SECONDS.sleep(5);
+            }
+            logger.info("TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT");
+        }
+
         IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
         // We don't actually care about the output here since BQ takes the raw "gs://" string as input.
         // As long as parsing succeeds, we're good to move forward.
@@ -57,34 +66,9 @@ public class IngestSetupStep implements Step {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         IngestUtils.putDatasetName(context, dataset.getName());
 
-        Table targetTable = IngestUtils.getDatasetTable(context, dataset);
-        String baseName = PdaoConstant.PDAO_PREFIX + StringUtils.substring(targetTable.getName(), 0, 10);
-        String sgName = FlightUtils.randomizeNameInfix(baseName, "_st_");
+        DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
+        String sgName = DatasetUtils.generateAuxTableName(targetTable, "st");
         IngestUtils.putStagingTableName(context, sgName);
-
-        IngestRequestModel.StrategyEnum ingestStrategy = ingestRequestModel.getStrategy();
-
-        if (ingestStrategy == IngestRequestModel.StrategyEnum.UPSERT) {
-            List<Column> primaryKey = dataset
-                .getTableByName(targetTable.getName()).orElseThrow(IllegalStateException::new)
-                .getPrimaryKey();
-            if (primaryKey.size() < 1) {
-                throw new InvalidIngestStrategyException(
-                    "Cannot use ingestStrategy `upsert` on table with no primary key: " + targetTable.getName());
-            }
-
-            Schema overlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();
-            BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
-
-            String olName = FlightUtils.randomizeNameInfix(baseName, "_ol_");
-
-            IngestUtils.putOverlappingTableName(context, olName);
-            String overlappingTableName = IngestUtils.getOverlappingTableName(context);
-
-            bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()),
-                overlappingTableName,
-                overlappingTableSchema);
-        }
 
         return StepResult.getStepResultSuccess();
     }

@@ -4,6 +4,8 @@ import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
+import com.google.api.gax.rpc.DeadlineExceededException;
+import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreException;
@@ -17,27 +19,25 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
+import java.util.concurrent.TimeUnit;
 
 @Component
 public class FireStoreUtils {
 
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
 
-    <T> T transactionGet(String op, ApiFuture<T> transaction) {
+    <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {
         try {
             return transaction.get();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException(op + " - execution interrupted", ex);
         } catch (ExecutionException ex) {
             throw handleExecutionException(ex, op);
         }
     }
 
-    RuntimeException handleExecutionException(ExecutionException ex, String op) {
+    RuntimeException handleExecutionException(Throwable ex, String op) {
         // The ExecutionException wraps the underlying exception caught in the FireStore Future, so we need
         // to examine the properties of the cause to understand what to do.
         // Possible outcomes:
@@ -46,7 +46,7 @@ public class FireStoreUtils {
         // - RuntimeExceptions to expose other unexpected exceptions
         // - FileSystemExecutionException to wrap non-Runtime (oddball) exceptions
 
-        Throwable throwable = ex.getCause();
+        Throwable throwable = ex;
         while (throwable instanceof ExecutionException) {
             throwable = throwable.getCause();
         }
@@ -118,28 +118,23 @@ public class FireStoreUtils {
      * Our objects are small, so I think we can use the maximum batch size without
      * concern for using too much memory.
      */
-    void scanCollectionObjects(Firestore firestore,
+    <V> void scanCollectionObjects(Firestore firestore,
                                String collectionId,
                                int batchSize,
-                               Consumer<QueryDocumentSnapshot> func) {
+                               ApiFutureGenerator<V, QueryDocumentSnapshot> generator) throws InterruptedException {
         CollectionReference datasetCollection = firestore.collection(collectionId);
         try {
             int batchCount = 0;
-            int visited;
+            List<QueryDocumentSnapshot> documents;
             do {
-                visited = 0;
                 ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                documents = future.get().getDocuments();
                 batchCount++;
-                logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
-                for (QueryDocumentSnapshot document : documents) {
-                    func.accept(document);
-                    visited++;
+                if (!documents.isEmpty()) {
+                    logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
                 }
-            } while (visited >= batchSize);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("scanning collection - execution interrupted", ex);
+                batchOperation(documents, generator);
+            } while (documents.size() > 0);
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("scanning collection - execution exception", ex);
         }
@@ -154,6 +149,98 @@ public class FireStoreUtils {
         PureJavaCrc32C crc = new PureJavaCrc32C();
         crc.update(inputBytes, 0, inputBytes.length);
         return Long.toHexString(crc.getValue());
+    }
+
+    private static final int NO_PROGRESS_MAX = 2;
+    private static final int SLEEP_MILLISECONDS = 1000;
+
+    /**
+     * Perform the specified Firestore operation against a specified list of inputs in batch.
+     * @param inputs A list containing the inputs to the function to be applied in batch
+     * @param generator A generator that provides a future given an input from the inputs parameter
+     * @param <T> The class of the objects in the input list
+     * @param <V> The class of the objects that will result when the generated futures resolve
+     * @return A list of resolved futures resulting in having run the specified operation in batch. Note: the order of
+     * the list matches with the order of the input list objects
+     * @throws InterruptedException If a call to Firestore is interrupted
+     */
+    <T, V> List<T> batchOperation(List<V> inputs, ApiFutureGenerator<T, V> generator) throws InterruptedException {
+        int inputSize = inputs.size();
+        // We drive the retry processing by which outputs have not been filled in,
+        // so we initialize the outputs to be all null -> not filled in.
+        List<T> outputs = new ArrayList<>(inputSize);
+        for (int i = 0; i < inputSize; i++) {
+            outputs.add(null);
+        }
+
+        int noProgressCount = 0;
+        while (true) {
+            List<ApiFuture<T>> futures = new ArrayList<>(inputSize);
+
+            // generate a request for every not completed output
+            int requestCount = 0;
+            for (int i = 0; i < inputSize; i++) {
+                if (outputs.get(i) != null) {
+                    futures.add(null);
+                } else {
+                    futures.add(generator.accept(inputs.get(i)));
+                    requestCount++;
+                }
+            }
+            if (requestCount == 0) {
+                break;
+            }
+
+            // try to collect a response for every request we generated
+            int completeCount = 0;
+            for (int i = 0; i < inputSize; i++) {
+                ApiFuture<T> future = futures.get(i);
+                if (future != null) {
+                    try {
+                        outputs.set(i, future.get());
+                        completeCount++;
+                    } catch (DeadlineExceededException |
+                        UnavailableException |
+                        AbortedException |
+                        ExecutionException ex) {
+                        if (shouldRetry(ex)) {
+                            logger.warn("Retry-able error in firestore future get - input: " +
+                                inputs.get(i) + " message: " + ex.getMessage());
+                        } else
+                            throw new FileSystemExecutionException("batch operation failed", ex);
+                    }
+                }
+            }
+
+            // If we completed our requests we are done
+            if (completeCount == requestCount) {
+                break;
+            }
+
+            if (completeCount == 0) {
+                noProgressCount++;
+                if (noProgressCount > NO_PROGRESS_MAX) {
+                    throw new FileSystemExecutionException("batch operation failed. " +
+                        NO_PROGRESS_MAX + " tries with no progress.");
+                }
+            }
+            TimeUnit.MILLISECONDS.sleep(SLEEP_MILLISECONDS);
+        }
+
+        return outputs;
+    }
+
+    static boolean shouldRetry(Throwable throwable) {
+        if (throwable == null) {
+            return false; // Did not find a retry-able exception
+        }
+        if (throwable instanceof DeadlineExceededException ||
+            throwable instanceof UnavailableException ||
+            throwable instanceof AbortedException) {
+
+            return true;
+        }
+        return shouldRetry(throwable.getCause());
     }
 
 }

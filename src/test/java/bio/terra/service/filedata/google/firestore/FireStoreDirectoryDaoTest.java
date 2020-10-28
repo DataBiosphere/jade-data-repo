@@ -163,7 +163,7 @@ public class FireStoreDirectoryDaoTest {
         }
     }
 
-    private String retrieveDirectoryObjectId(String fullPath) {
+    private String retrieveDirectoryObjectId(String fullPath) throws InterruptedException {
         FireStoreDirectoryEntry entry = directoryDao.retrieveByPath(firestore, collectionId, fullPath);
         return entry.getFileId();
     }

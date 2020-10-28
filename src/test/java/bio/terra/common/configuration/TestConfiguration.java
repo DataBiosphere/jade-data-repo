@@ -17,6 +17,7 @@ public class TestConfiguration {
     private String ingestbucket;
     private List<User> users = new ArrayList<>();
     private String googleProjectId;
+    private String googleBillingAccountId;
 
     public static class User {
         private String role;
@@ -103,5 +104,13 @@ public class TestConfiguration {
 
     public void setGoogleProjectId(String googleProjectId) {
         this.googleProjectId = googleProjectId;
+    }
+
+    public String getGoogleBillingAccountId() {
+        return googleBillingAccountId;
+    }
+
+    public void setGoogleBillingAccountId(String googleBillingAccountId) {
+        this.googleBillingAccountId = googleBillingAccountId;
     }
 }

@@ -1,10 +1,12 @@
 package bio.terra.app.controller;
 
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.ConflictException;
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.exception.ServiceUnavailableException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.iam.sam.SamIam;
@@ -46,9 +48,21 @@ public class GlobalExceptionHandler {
         return buildErrorModel(ex, ex.getErrorDetails());
     }
 
+    @ExceptionHandler(ServiceUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorModel serviceUnavailableHandler(DataRepoException ex) {
+        return buildErrorModel(ex, ex.getErrorDetails());
+    }
+
     @ExceptionHandler(NotImplementedException.class)
     @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
     public ErrorModel notImplementedHandler(DataRepoException ex) {
+        return buildErrorModel(ex, ex.getErrorDetails());
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorModel conflictHandler(DataRepoException ex) {
         return buildErrorModel(ex, ex.getErrorDetails());
     }
 

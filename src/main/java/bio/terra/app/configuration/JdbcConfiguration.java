@@ -9,6 +9,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 
 import java.util.Properties;
 
@@ -20,6 +21,17 @@ public class JdbcConfiguration {
     private String username;
     private String password;
     private String changesetFile;
+    /**
+     * Maximum number of database connections in the connection pool; -1 means no limit
+     * The goal of these parameters is to prevent waiting for a database connection.
+     */
+    private int poolMaxTotal;
+
+    /**
+     * Maximum number of database connections to keep idle
+     */
+    private int poolMaxIdle;
+
 
     // Not a property
     private PoolingDataSource<PoolableConnection> dataSource;
@@ -40,6 +52,14 @@ public class JdbcConfiguration {
         return changesetFile;
     }
 
+    public int getPoolMaxTotal() {
+        return poolMaxTotal;
+    }
+
+    public int getPoolMaxIdle() {
+        return poolMaxIdle;
+    }
+
     // NOTE: even though the setters appear unused, the Spring infrastructure uses them to populate the properties.
     public void setUri(String uri) {
         this.uri = uri;
@@ -57,6 +77,14 @@ public class JdbcConfiguration {
         this.changesetFile = changesetFile;
     }
 
+    public void setPoolMaxTotal(int poolMaxTotal) {
+        this.poolMaxTotal = poolMaxTotal;
+    }
+
+    public void setPoolMaxIdle(int poolMaxIdle) {
+        this.poolMaxIdle = poolMaxIdle;
+    }
+
     // Main use of the configuration is this pooling data source object.
     public PoolingDataSource<PoolableConnection> getDataSource() {
         // Lazy allocation of the data source
@@ -67,17 +95,20 @@ public class JdbcConfiguration {
     }
 
     private void configureDataSource() {
-        Properties props = new Properties();
+        final Properties props = new Properties();
         props.setProperty("user", getUsername());
         props.setProperty("password", getPassword());
 
-        ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(getUri(), props);
+        final ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(getUri(), props);
 
-        PoolableConnectionFactory poolableConnectionFactory =
+        final PoolableConnectionFactory poolableConnectionFactory =
                 new PoolableConnectionFactory(connectionFactory, null);
 
-        ObjectPool<PoolableConnection> connectionPool =
-                new GenericObjectPool<>(poolableConnectionFactory);
+        final GenericObjectPoolConfig<PoolableConnection> config = new GenericObjectPoolConfig<>();
+        config.setMaxTotal(poolMaxTotal);
+        config.setMaxIdle(poolMaxIdle);
+        final ObjectPool<PoolableConnection> connectionPool =
+                new GenericObjectPool<>(poolableConnectionFactory, config);
 
         poolableConnectionFactory.setPool(connectionPool);
 

@@ -1,0 +1,16 @@
+[
+  { "name": "id",                             "mode": "REQUIRED", "type": "STRING" },
+  { "name": "testConfig_name",                "mode": "REQUIRED", "type": "STRING" },
+  { "name": "testConfig_description",         "mode": "NULLABLE", "type": "STRING" },
+  { "name": "server_name",                    "mode": "REQUIRED", "type": "STRING" },
+  { "name": "kubernetes_numberOfInitialPods", "mode": "NULLABLE", "type": "NUMERIC" },
+  { "name": "testUsers",                      "mode": "REPEATED", "type": "STRING" },
+  { "name": "startTime",                      "mode": "NULLABLE", "type": "TIMESTAMP" },
+  { "name": "startUserJourneyTime",           "mode": "NULLABLE", "type": "TIMESTAMP" },
+  { "name": "endUserJourneyTime",             "mode": "NULLABLE", "type": "TIMESTAMP" },
+  { "name": "endTime",                        "mode": "NULLABLE", "type": "TIMESTAMP" },
+  { "name": "outputDirectory",                "mode": "REQUIRED", "type": "STRING" },
+  { "name": "json_testConfiguration",         "mode": "REQUIRED", "type": "STRING" },
+  { "name": "json_testRun",                   "mode": "REQUIRED", "type": "STRING" },
+  { "name": "json_measurementCollection",     "mode": "NULLABLE", "type": "STRING" }
+]

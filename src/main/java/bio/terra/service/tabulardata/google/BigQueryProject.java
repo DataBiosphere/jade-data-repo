@@ -1,6 +1,7 @@
 package bio.terra.service.tabulardata.google;
 
 import bio.terra.common.exception.PdaoException;
+import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -16,6 +17,7 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,8 +100,17 @@ public final class BigQueryProject {
     }
 
     public void createTable(String datasetName, String tableName, Schema schema) {
+        createTable(datasetName, tableName, schema, BigQueryPartitionConfigV1.none());
+    }
+
+    public void createTable(String datasetName, String tableName, Schema schema,
+                            BigQueryPartitionConfigV1 partitionConfig) {
         TableId tableId = TableId.of(datasetName, tableName);
-        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        TableDefinition tableDefinition = StandardTableDefinition.newBuilder()
+            .setSchema(schema)
+            .setTimePartitioning(partitionConfig.asTimePartitioning())
+            .setRangePartitioning(partitionConfig.asRangePartitioning())
+            .build();
         TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
         bigQuery.create(tableInfo);
     }
@@ -117,8 +128,10 @@ public final class BigQueryProject {
     public void addDatasetAcls(String datasetId, List<Acl> acls) {
         Dataset dataset = bigQuery.getDataset(datasetId);
         List<Acl> beforeAcls = dataset.getAcl();
+        logger.debug("Before acl: " + StringUtils.join(beforeAcls, ", "));
         ArrayList<Acl> newAcls = new ArrayList<>(beforeAcls);
         newAcls.addAll(acls);
+        logger.debug("New acl: " + StringUtils.join(newAcls, ", "));
         updateDatasetAcls(dataset, newAcls);
     }
 
@@ -131,12 +144,10 @@ public final class BigQueryProject {
         }
     }
 
-    public TableResult query(String sql) {
+    public TableResult query(String sql) throws InterruptedException {
         try {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
             return bigQuery.query(queryConfig);
-        } catch (InterruptedException e) {
-            throw new IllegalStateException("Query unexpectedly interrupted", e);
         } catch (BigQueryException e) {
             throw new PdaoException("Failure executing query...\n" + sql, e);
         }

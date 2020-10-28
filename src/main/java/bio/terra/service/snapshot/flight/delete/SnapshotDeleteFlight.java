@@ -1,25 +1,27 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.service.snapshot.flight.LockSnapshotStep;
+import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
 
 public class SnapshotDeleteFlight extends Flight {
 
-    public SnapshotDeleteFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
-        super(inputParameters, applicationContext, userRequestInfo);
+    public SnapshotDeleteFlight(FlightMap inputParameters, Object applicationContext) {
+        super(inputParameters, applicationContext);
 
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
@@ -30,12 +32,14 @@ public class SnapshotDeleteFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         IamService iamClient = (IamService)appContext.getBean("iamService");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
+        ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
 
         UUID snapshotId = UUID.fromString(inputParameters.get(
             JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
+        addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
         // Delete access control first so Readers and Discoverers can no longer see snapshot
         // Google auto-magically removes the ACLs from files and BQ objects when SAM
         // deletes the snapshot group, so no ACL cleanup is needed beyond that.
@@ -48,7 +52,9 @@ public class SnapshotDeleteFlight extends Flight {
             dependencyDao,
             fileDao,
             snapshotId,
-            datasetService));
+            datasetService,
+            configService));
         addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
+        addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
     }
 }

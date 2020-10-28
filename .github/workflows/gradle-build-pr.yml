@@ -1,0 +1,118 @@
+name: Integration test and Connected tests
+env:
+  K8_CLUSTER: "integration-master"
+  # This must be defined for the bash redirection
+  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+  # This must be defined for the bash redirection
+  GOOGLE_SA_CERT: 'jade-dev-account.pem'
+on:
+  pull_request:
+    branches:
+      - develop
+    paths:
+      - '!*'
+      - 'src/**'
+      - 'gradle**'
+      - 'gradle/**'
+      - '**.gradle'
+      - 'Dockerfile'
+      - 'datarepo-clienttests/**'
+      - '.github/workflows/gradle-build-pr.yml'
+      - '.swagger-codegen-ignore'
+jobs:
+  test_connected:
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
+    runs-on: ${{ matrix.os }}
+    ## skips if pr label is 'skip-ci'
+    # run a local Postgres container in Docker for the basic check tests
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v2
+      - name: "Run Connected test via Gradle"
+        uses: broadinstitute/datarepo-actions@0.29.0
+        with:
+          actions_subcommand: 'gradleinttest'
+          pgport: ${{ job.services.postgres.ports[5432] }}
+          test_to_run: 'testConnected'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+  deploy_test_integration:
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
+    runs-on: ${{ matrix.os }}
+    ## skips if pr label is 'skip-ci'
+    # run a local Postgres container in Docker for the basic check tests
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v2
+      - name: "Whitelist Runner IP"
+        uses: broadinstitute/datarepo-actions@0.29.0
+        with:
+          actions_subcommand: 'gcp_whitelist'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+      - name: "Check for an availble namespace to deploy API to and set state lock"
+        uses: broadinstitute/datarepo-actions@0.29.0
+        with:
+          actions_subcommand: 'k8_checknamespace'
+          k8_namespaces: 'integration-1,integration-2,integration-3,integration-6'
+      - name: "Build docker container via Gradle"
+        uses: broadinstitute/datarepo-actions@0.29.0
+        with:
+          actions_subcommand: 'gradlebuild'
+      - name: "Deploy to cluster with Helm"
+        uses: broadinstitute/datarepo-actions@0.29.0
+        with:
+          actions_subcommand: 'helmdeploy'
+          helm_create_secret_manager_secret_version: '0.0.6'
+          helm_datarepo_api_chart_version: '0.0.22'
+          helm_datarepo_ui_chart_version: '0.0.12'
+          helm_gcloud_sqlproxy_chart_version: '0.19.7'
+          helm_oidc_proxy_chart_version: '0.0.13'
+      - name: "Run Test Runner smoke tests via Gradle"
+        uses: broadinstitute/datarepo-actions@0.29.0
+        with:
+          actions_subcommand: 'gradletestrunnersmoketest'
+      - name: "Run Integration test via Gradle"
+        uses: broadinstitute/datarepo-actions@0.29.0
+        with:
+          actions_subcommand: 'gradleinttest'
+          pgport: ${{ job.services.postgres.ports[5432] }}
+          test_to_run: 'testIntegration'
+      - name: "Clean state lock from used Namespace on API deploy"
+        if: always()
+        uses: broadinstitute/datarepo-actions@0.29.0
+        with:
+          actions_subcommand: 'k8_checknamespace_clean'
+      - name: "Clean whitelisted Runner IP"
+        if: always()
+        uses: broadinstitute/datarepo-actions@0.29.0
+        with:
+          actions_subcommand: 'gcp_whitelist_clean'

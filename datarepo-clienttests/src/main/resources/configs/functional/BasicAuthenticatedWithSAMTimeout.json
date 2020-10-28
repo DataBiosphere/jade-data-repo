@@ -1,0 +1,22 @@
+{
+  "name": "BasicAuthenticatedWithSAMTimeout",
+  "description": "Two users fetch the available profiles repeatedly, concurrently. SAM timeout fault enabled.",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {},
+  "application": {},
+  "disruptiveScript": {
+    "name": "EnableFaults",
+    "parameters": ["SAM_TIMEOUT_FAULT", "CREATE_ASSET_FAULT"]
+  },
+  "testScripts": [
+    {
+      "name": "EnumerateProfiles",
+      "numberOfUserJourneyThreadsToRun": 50,
+      "userJourneyThreadPoolSize": 2,
+      "expectedTimeForEach": 5,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json", "hermione.json"]
+}

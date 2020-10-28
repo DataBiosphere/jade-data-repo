@@ -6,7 +6,6 @@ import bio.terra.model.DRSError;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.service.filedata.DrsResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +20,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import static bio.terra.common.TestUtils.mapFromJson;
 
 /**
  * This class holds a Spring RestTemplate
@@ -36,20 +40,18 @@ public class DataRepoClient {
     @Autowired
     private AuthService authService;
 
-    private static Logger logger = LoggerFactory.getLogger(DataRepoClient.class);
-    private RestTemplate restTemplate;
-    private ObjectMapper objectMapper;
-    private HttpHeaders headers;
+    private static final Logger logger = LoggerFactory.getLogger(DataRepoClient.class);
+    private final RestTemplate restTemplate;
+    private final HttpHeaders headers;
 
     public DataRepoClient() {
         restTemplate = new RestTemplate();
         restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
         restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
-        objectMapper = new ObjectMapper();
 
         headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON_UTF8));
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON));
     }
 
     // -- RepositoryController Client --
@@ -88,37 +90,71 @@ public class DataRepoClient {
     public <T> DataRepoResponse<T> waitForResponse(TestConfiguration.User user,
                                                    DataRepoResponse<JobModel> jobModelResponse,
                                                    Class<T> responseClass) throws Exception {
-        final int initialSeconds = 1;
-        final int maxSeconds = 16;
 
-        try {
-            int count = 0;
-            int sleepSeconds = initialSeconds;
-            while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
-                String location = getLocationHeader(jobModelResponse);
-                logger.info("try #{} for {}", ++count, location);
+        // if the initial response is bad gateway, then the request probably never got delivered
+        if (jobModelResponse.getStatusCode() == HttpStatus.BAD_GATEWAY) {
+            throw new IllegalStateException("unexpected job status code: " + jobModelResponse.getStatusCode());
+        }
 
-                TimeUnit.SECONDS.sleep(sleepSeconds);
-                jobModelResponse = get(user, location, JobModel.class);
+        boolean keepGoing = true;
+        String location = getLocationHeader(jobModelResponse);
+        while (keepGoing) {
+            switch (jobModelResponse.getStatusCode()) {
+                case ACCEPTED: {
+                    jobModelResponse = waitForResponseUntilNot(user, location, HttpStatus.ACCEPTED);
+                    break;
+                }
 
-                int nextSeconds = 2 * sleepSeconds;
-                sleepSeconds = (nextSeconds > maxSeconds) ? maxSeconds : nextSeconds;
+                case BAD_GATEWAY:
+                    jobModelResponse = waitForResponseUntilNot(user, location, HttpStatus.BAD_GATEWAY);
+                    break;
+
+                default:
+                    keepGoing = false;
+                    break;
             }
-        } catch (InterruptedException ex) {
-            logger.info("interrupted ex: {}", ex.getMessage());
-            ex.printStackTrace();
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("unexpected interrupt waiting for response", ex);
         }
 
         if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
             throw new IllegalStateException("unexpected job status code: " + jobModelResponse.getStatusCode());
         }
 
-        String location = getLocationHeader(jobModelResponse);
-        DataRepoResponse<T> resultResponse = get(user, location, responseClass);
+        location = getLocationHeader(jobModelResponse);
+        return get(user, location, responseClass);
+    }
 
-        return resultResponse;
+    // poll for a response with a return status that is not specified status
+    private DataRepoResponse<JobModel> waitForResponseUntilNot(TestConfiguration.User user,
+                                                               String location,
+                                                               HttpStatus notStatus) throws Exception {
+        final int initialSeconds = 1;
+        final int maxSeconds = 16;
+        Instant overTime = Instant.now().plus(Duration.of(1, ChronoUnit.HOURS));
+
+        try {
+            int count = 0;
+            int sleepSeconds = initialSeconds;
+
+            while (true) {
+                logger.info("try #{} until not {} for {}", ++count, notStatus, location);
+                TimeUnit.SECONDS.sleep(sleepSeconds);
+                sleepSeconds = Math.min(2 * sleepSeconds, maxSeconds);
+
+                DataRepoResponse<JobModel> jobModelResponse = get(user, location, JobModel.class);
+                logger.info("Got response. status: " + jobModelResponse.getStatusCode()
+                    + " location: " + jobModelResponse.getLocationHeader().orElse("not present"));
+                if (jobModelResponse.getStatusCode() != notStatus) {
+                    return jobModelResponse;
+                }
+
+                if (Instant.now().isAfter(overTime)) {
+                    throw new IllegalStateException("we have waited too long for a response");
+                }
+            }
+        } catch (InterruptedException ex) {
+            logger.info("interrupted ex: " + ex.getMessage(), ex);
+            throw new IllegalStateException("unexpected interrupt waiting for response", ex);
+        }
     }
 
     private String getLocationHeader(DataRepoResponse<JobModel> jobModelResponse) {
@@ -146,10 +182,10 @@ public class DataRepoClient {
     // -- Common Client Code --
 
     private <S, T> ObjectOrErrorResponse<S, T> makeRequest(String path,
-                                                      HttpMethod method,
-                                                      HttpEntity entity,
-                                                      Class<T> responseClass,
-                                                      Class<S> errorClass) throws Exception {
+                                                           HttpMethod method,
+                                                           HttpEntity entity,
+                                                           Class<T> responseClass,
+                                                           Class<S> errorClass) throws Exception {
         logger.info("api request: method={} path={}", method.toString(), path);
 
         ResponseEntity<String> response = restTemplate.exchange(
@@ -166,14 +202,14 @@ public class DataRepoClient {
 
         if (response.getStatusCode().is2xxSuccessful()) {
             if (responseClass != null) {
-                T responseObject = objectMapper.readValue(response.getBody(), responseClass);
+                T responseObject = mapFromJson(response.getBody(), responseClass);
                 drResponse.setResponseObject(Optional.of(responseObject));
             } else {
                 drResponse.setResponseObject(Optional.empty());
             }
             drResponse.setErrorModel(Optional.empty());
         } else {
-            S errorObject = objectMapper.readValue(response.getBody(), errorClass);
+            S errorObject = mapFromJson(response.getBody(), errorClass);
             drResponse.setErrorModel(Optional.of(errorObject));
             drResponse.setResponseObject(Optional.empty());
         }
@@ -187,7 +223,5 @@ public class DataRepoClient {
         copy.set("From", user.getEmail());
         return copy;
     }
-
-
 
 }

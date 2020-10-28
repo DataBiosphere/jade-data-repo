@@ -1,0 +1,19 @@
+databaseChangeLog:
+  - changeSet:
+      id: datasetsharedlock
+      author: marikomedlock
+      changes:
+        - addColumn:
+            tableName: dataset
+            columns:
+              - column:
+                  name: sharedlock
+                  type: text[]
+                  defaultValue: {}
+        - sql:
+            comment: populate the sharedlock column with empty array
+            sql: UPDATE dataset SET sharedlock = '{}'
+        - addNotNullConstraint:
+            tableName: dataset
+            columnName: sharedlock
+

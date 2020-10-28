@@ -1,0 +1,14 @@
+{
+  "name": "localhost",
+  "description": "Server running locally. Supports launching the server in a separate process. Does not support modifying Kubernetes post-deployment.",
+  "datarepoUri": "http://localhost:8080/",
+  "samUri": "https://sam.dsde-dev.broadinstitute.org",
+  "samResourceIdForDatarepo": "broad-jade-dev",
+  "deploymentScript": {
+    "name": "LaunchLocalProcess",
+    "parameters": ["file:///Users/marikomedlock/Workspaces/jade-data-repo/"]
+  },
+  "testRunnerServiceAccountFile": "jade-k8-sa.json",
+  "skipDeployment": false,
+  "skipKubernetes": true
+}

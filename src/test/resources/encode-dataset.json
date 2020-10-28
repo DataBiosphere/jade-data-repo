@@ -184,93 +184,93 @@
         "relationships": [
             {
                 "name": "sample_parent_of",
-                "from": {"table": "biosample", "column": "id", "cardinality": "one"},
-                "to": {"table": "biosample_derivations", "column": "parent_id", "cardinality": "many"}
+                "from": {"table": "biosample", "column": "id"},
+                "to": {"table": "biosample_derivations", "column": "parent_id"}
             },
             {
                 "name": "sample_part_of",
-                "from": {"table": "biosample_derivations", "column": "part_id", "cardinality": "many"},
-                "to": {"table": "biosample", "column": "id", "cardinality": "one"}
+                "from": {"table": "biosample_derivations", "column": "part_id"},
+                "to": {"table": "biosample", "column": "id"}
             },
             {
                 "name": "sample_to_donor",
-                "from": {"table": "biosample", "column": "id", "cardinality": "one"},
-                "to": {"table": "biosample_donor", "column": "biosample_id", "cardinality": "many"}
+                "from": {"table": "biosample", "column": "id"},
+                "to": {"table": "biosample_donor", "column": "biosample_id"}
             },
             {
                 "name": "donor_from_sample",
-                "from": {"table": "biosample_donor", "column": "donor_id", "cardinality": "many"},
-                "to": {"table": "donor", "column": "id", "cardinality": "one"}
+                "from": {"table": "biosample_donor", "column": "donor_id"},
+                "to": {"table": "donor", "column": "id"}
             },
             {
                 "name": "sample_to_experiment",
-                "from": {"table": "biosample", "column": "id", "cardinality": "one"},
-                "to": {"table": "biosample_experiment", "column": "biosample_id", "cardinality": "many"}
+                "from": {"table": "biosample", "column": "id"},
+                "to": {"table": "biosample_experiment", "column": "biosample_id"}
             },
             {
                 "name": "experiment_from_sample",
-                "from": {"table": "biosample_experiment", "column": "experiment_id", "cardinality": "many"},
-                "to": {"table": "experiment", "column": "id", "cardinality": "one"}
+                "from": {"table": "biosample_experiment", "column": "experiment_id"},
+                "to": {"table": "experiment", "column": "id"}
             },
             {
                 "name": "assay_to_library",
-                "from": {"table": "assay", "column": "id", "cardinality": "one"},
-                "to": {"table": "assay_library", "column": "assay_id", "cardinality": "many"}
+                "from": {"table": "assay", "column": "id"},
+                "to": {"table": "assay_library", "column": "assay_id"}
             },
             {
                 "name": "library_from_assay",
-                "from": {"table": "assay_library", "column": "library_id", "cardinality": "many"},
-                "to": {"table": "library", "column": "id", "cardinality": "one"}
+                "from": {"table": "assay_library", "column": "library_id"},
+                "to": {"table": "library", "column": "id"}
             },
             {
                 "name": "sample_to_library",
-                "from": {"table": "biosample", "column": "id", "cardinality": "one"},
-                "to": {"table": "biosample_library", "column": "biosample_id", "cardinality": "many"}
+                "from": {"table": "biosample", "column": "id"},
+                "to": {"table": "biosample_library", "column": "biosample_id"}
             },
             {
                 "name": "library_from_sample",
-                "from": {"table": "biosample_library", "column": "library_id", "cardinality": "many"},
-                "to": {"table": "library", "column": "id", "cardinality": "one"}
+                "from": {"table": "biosample_library", "column": "library_id"},
+                "to": {"table": "library", "column": "id"}
             },
             {
                 "name": "experiment_to_file",
-                "from": {"table": "experiment", "column": "id", "cardinality": "one"},
-                "to": {"table": "experiment_file", "column": "experiment_id", "cardinality": "many"}
+                "from": {"table": "experiment", "column": "id"},
+                "to": {"table": "experiment_file", "column": "experiment_id"}
             },
             {
                 "name": "file_from_experiment",
-                "from": {"table": "experiment_file", "column": "file_id", "cardinality": "many"},
-                "to": {"table": "file", "column": "id", "cardinality": "one"}
+                "from": {"table": "experiment_file", "column": "file_id"},
+                "to": {"table": "file", "column": "id"}
             },
             {
                 "name": "experiment_to_library",
-                "from": {"table": "experiment", "column": "id", "cardinality": "one"},
-                "to": {"table": "experiment_library", "column": "experiment_id", "cardinality": "many"}
+                "from": {"table": "experiment", "column": "id"},
+                "to": {"table": "experiment_library", "column": "experiment_id"}
             },
             {
                 "name": "library_from_experiment",
-                "from": {"table": "experiment_library", "column": "library_id", "cardinality": "many"},
-                "to": {"table": "library", "column": "id", "cardinality": "one"}
+                "from": {"table": "experiment_library", "column": "library_id"},
+                "to": {"table": "library", "column": "id"}
             },
             {
                 "name": "assay_to_file",
-                "from": {"table": "assay", "column": "id", "cardinality": "one"},
-                "to": {"table": "assay_file", "column": "assay_id", "cardinality": "many"}
+                "from": {"table": "assay", "column": "id"},
+                "to": {"table": "assay_file", "column": "assay_id"}
             },
             {
                 "name": "file_from_assay",
-                "from": {"table": "assay_file", "column": "file_id", "cardinality": "many"},
-                "to": {"table": "file", "column": "id", "cardinality": "one"}
+                "from": {"table": "assay_file", "column": "file_id"},
+                "to": {"table": "file", "column": "id"}
             },
             {
                 "name": "file_to_read1",
-                "from": {"table": "file", "column": "id", "cardinality": "one"},
-                "to": {"table": "paired_files", "column": "read1_id", "cardinality": "many"}
+                "from": {"table": "file", "column": "id"},
+                "to": {"table": "paired_files", "column": "read1_id"}
             },
             {
                 "name": "read2_to_file",
-                "from": {"table": "paired_files", "column": "read2_id", "cardinality": "many"},
-                "to": {"table": "file", "column": "id", "cardinality": "one"}
+                "from": {"table": "paired_files", "column": "read2_id"},
+                "to": {"table": "file", "column": "id"}
             }
         ],
         "assets": [

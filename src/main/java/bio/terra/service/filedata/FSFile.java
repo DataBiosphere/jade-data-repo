@@ -12,6 +12,7 @@ public class FSFile extends FSItem {
     private String gspath;
     private String mimeType;
     private String bucketResourceId;
+    private String loadTag;
 
     public UUID getDatasetId() {
         return datasetId;
@@ -90,6 +91,15 @@ public class FSFile extends FSItem {
         return this;
     }
 
+    public String getLoadTag() {
+        return loadTag;
+    }
+
+    public FSFile loadTag(String loadTag) {
+        this.loadTag = loadTag;
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -100,9 +110,11 @@ public class FSFile extends FSItem {
 
         return new EqualsBuilder()
             .appendSuper(super.equals(o))
+            .append(datasetId, fsFile.datasetId)
             .append(gspath, fsFile.gspath)
             .append(mimeType, fsFile.mimeType)
             .append(bucketResourceId, fsFile.bucketResourceId)
+            .append(loadTag, fsFile.loadTag)
             .isEquals();
     }
 
@@ -110,18 +122,22 @@ public class FSFile extends FSItem {
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
             .appendSuper(super.hashCode())
+            .append(datasetId)
             .append(gspath)
             .append(mimeType)
             .append(bucketResourceId)
+            .append(loadTag)
             .toHashCode();
     }
 
     @Override
     public String toString() {
         return new ToStringBuilder(this)
+            .append("datasetId", datasetId)
             .append("gspath", gspath)
             .append("mimeType", mimeType)
             .append("bucketResourceId", bucketResourceId)
+            .append("loadTag", loadTag)
             .toString();
     }
 }

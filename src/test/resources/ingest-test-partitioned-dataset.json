@@ -1,0 +1,77 @@
+{
+  "name":        "IngestTest",
+  "description": "Dataset for testing ingest",
+  "schema":      {
+    "tables":        [
+      {
+        "name":    "participant",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "age", "datatype": "integer"},
+          {"name": "children", "datatype": "string", "array_of": true},
+          {"name": "donated", "datatype": "string", "array_of": true}
+        ],
+        "primaryKey": ["id"],
+        "partitionMode": "int",
+        "intPartitionOptions": {
+          "column": "age",
+          "min": 0,
+          "max": 120,
+          "interval": 1
+        }
+      },
+      {
+        "name":    "sample",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "participant_ids", "datatype": "string", "array_of": true},
+          {"name": "date_collected", "datatype": "date"},
+          {"name": "derived_from", "datatype": "string"}
+        ],
+        "primaryKey": ["id"],
+        "partitionMode": "date",
+        "datePartitionOptions": {
+          "column": "date_collected"
+        }
+      },
+      {
+        "name": "file",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "derived_from", "datatype": "string", "array_of": true}
+        ],
+        "partitionMode": "date",
+        "datePartitionOptions": {
+          "column": "datarepo_ingest_date"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "name": "sample_derived_from",
+        "from": {"table": "sample", "column": "derived_from"},
+        "to":   {"table": "sample", "column": "id"}
+      },
+      {
+        "name": "participant_samples",
+        "from": {"table": "participant", "column": "donated"},
+        "to":   {"table": "sample", "column": "id"}
+      },
+      {
+        "name": "sample_participants",
+        "from": {"table": "sample", "column": "participant_ids"},
+        "to":   {"table": "participant", "column": "id"}
+      },
+      {
+        "name": "participant_children",
+        "from": {"table": "participant", "column": "children"},
+        "to":   {"table": "participant", "column": "id"}
+      },
+      {
+        "name": "participant_files",
+        "from": {"table": "participant", "column": "donated"},
+        "to":   {"table": "file", "column": "derived_from"}
+      }
+    ]
+  }
+}

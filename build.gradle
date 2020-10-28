@@ -20,7 +20,6 @@ buildscript {
   }
   dependencies {
     classpath('io.swagger:swagger-codegen:2.4.11')
-    classpath('gradle.plugin.com.srcclr:gradle:3.1.0')
   }
 }
 
@@ -36,6 +35,7 @@ plugins {
   id "io.spring.dependency-management" version "1.0.10.RELEASE"
   id "jacoco"
   id "checkstyle"
+  id "com.srcclr.gradle" version "3.1.0"
 }
 
 allprojects {
@@ -59,10 +59,6 @@ allprojects {
 }
 
 sourceCompatibility = 1.8
-
-apply plugin: 'com.github.spotbugs'
-
-apply plugin: 'com.srcclr.gradle'
 
 if (hasProperty('buildScan')) {
   buildScan {

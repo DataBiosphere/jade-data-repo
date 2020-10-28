@@ -1,0 +1,5 @@
+{
+  "name": "jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com",
+  "jsonKeyFilename": "jade-dev-account.json",
+  "jsonKeyDirectoryPath": "/tmp"
+}

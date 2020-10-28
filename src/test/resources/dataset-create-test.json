@@ -25,13 +25,13 @@
     "relationships": [
       {
         "name": "participant_sample",
-        "from": {"table": "participant", "column": "id", "cardinality": "one"},
-        "to":   {"table": "sample", "column": "participant_id", "cardinality": "many"}
+        "from": {"table": "participant", "column": "id"},
+        "to":   {"table": "sample", "column": "participant_id"}
       },
       {
-        "name": "parent",
-        "from": {"table": "participant", "column": "id", "cardinality": "one"},
-        "to":   {"table": "participant", "column": "id", "cardinality": "many"}
+        "name": "parent_with_a_long_pointless_suffix_to_push_the_name_length_over_the_old_limit",
+        "from": {"table": "participant", "column": "id"},
+        "to":   {"table": "participant", "column": "id"}
       }
     ],
     "assets":        [
@@ -56,7 +56,8 @@
           {"name": "sample", "columns": []}
         ],
         "follow": [
-          "participant_sample", "parent"
+          "participant_sample",
+          "parent_with_a_long_pointless_suffix_to_push_the_name_length_over_the_old_limit"
         ]
       }
     ]

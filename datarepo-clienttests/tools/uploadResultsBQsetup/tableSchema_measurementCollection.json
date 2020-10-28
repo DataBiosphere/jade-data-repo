@@ -1,0 +1,12 @@
+[
+  { "name": "testRun_id",                     "mode": "REQUIRED", "type": "STRING" },
+  { "name": "description",                    "mode": "NULLABLE", "type": "STRING" },
+  { "name": "statistics_min",                 "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "statistics_max",                 "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "statistics_mean",                "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "statistics_standardDeviation",   "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "statistics_median",              "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "statistics_percentile95",        "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "statistics_percentile99",        "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "statistics_sum",                 "mode": "NULLABLE", "type": "FLOAT" }
+]

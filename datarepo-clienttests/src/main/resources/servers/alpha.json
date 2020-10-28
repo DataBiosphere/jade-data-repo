@@ -1,0 +1,16 @@
+{
+  "name": "alpha",
+  "description": "alpha env",
+  "datarepoUri": "https://data.alpha.envs-terra.bio/",
+  "samUri": "https://sam.dsde-alpha.broadinstitute.org",
+  "samResourceIdForDatarepo": "terra-datarepo-alpha",
+  "clusterName": "gke_terra-datarepo-alpha_us-central1_jade-master-us-central1",
+  "clusterShortName": "us-central1",
+  "region": "us-central1",
+  "project": "terra-datarepo-alpha",
+  "namespace": "terra-alpha",
+  "containerName": "datarepo-datarepo-api",
+  "testRunnerServiceAccountFile": "jade-k8-sa.json",
+  "skipDeployment": true,
+  "skipKubernetes": false
+}

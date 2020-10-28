@@ -1,0 +1,5 @@
+{
+  "name": "mcgonagall",
+  "userEmail": "mcgonagall.curator@test.firecloud.org",
+  "delegatorServiceAccountFile": "jade-k8-sa.json"
+}

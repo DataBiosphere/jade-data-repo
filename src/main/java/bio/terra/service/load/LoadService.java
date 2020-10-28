@@ -1,5 +1,11 @@
 package bio.terra.service.load;
 
+import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadFileResultModel;
+import bio.terra.model.BulkLoadFileState;
+import bio.terra.model.BulkLoadResultModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -11,6 +17,8 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.UUID;
 
 @Component
 public class LoadService {
@@ -21,16 +29,29 @@ public class LoadService {
         this.loadDao = loadDao;
     }
 
-    public void lockLoad(String loadTag, String flightId) {
-        loadDao.lockLoad(loadTag, flightId);
+    public UUID lockLoad(String loadTag, String flightId) throws InterruptedException {
+        Load load = loadDao.lockLoad(loadTag, flightId);
+        return load.getId();
     }
 
     public void unlockLoad(String loadTag, String flightId) {
         loadDao.unlockLoad(loadTag, flightId);
     }
 
+    public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {
+        loadDao.populateFiles(loadId, loadFileModelList);
+    }
+
+    public void cleanFiles(UUID loadId) {
+        loadDao.cleanFiles(loadId);
+    }
+
+    public List<LoadFile> findRunningLoads(UUID loadId) {
+        return loadDao.findLoadsByState(loadId, BulkLoadFileState.RUNNING, null);
+    }
+
     /**
-     * @param inputTag  may be null or blank
+     * @param inputTag may be null or blank
      * @return either valid inputTag or generated date-time tag.
      */
     public String computeLoadTag(String inputTag) {
@@ -51,5 +72,38 @@ public class LoadService {
             }
         }
         return loadTag;
+    }
+
+    // -- wrap the DAO interface in the service interface --
+    public LoadCandidates findCandidates(UUID loadId, int candidatesToFind) {
+        return loadDao.findCandidates(loadId, candidatesToFind);
+    }
+
+    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId, FSFileInfo fileInfo) {
+        loadDao.setLoadFileSucceeded(loadId, targetPath, fileId, fileInfo);
+    }
+
+    public void setLoadFileFailed(UUID loadId, String targetPath, String error) {
+        loadDao.setLoadFileFailed(loadId, targetPath, error);
+    }
+
+    public void setLoadFileRunning(UUID loadId, String targetPath, String flightId) {
+        loadDao.setLoadFileRunning(loadId, targetPath, flightId);
+    }
+
+    public void setLoadFileNotTried(UUID loadId, String targetPath) {
+        loadDao.setLoadFileNotTried(loadId, targetPath);
+    }
+
+    public BulkLoadResultModel makeBulkLoadResult(UUID loadId) {
+        return loadDao.makeBulkLoadResult(loadId);
+    }
+
+    public List<BulkLoadFileResultModel> makeBulkLoadFileArray(UUID loadId) {
+        return loadDao.makeBulkLoadFileArray(loadId);
+    }
+
+    public List<BulkLoadHistoryModel> makeLoadHistoryArray(UUID loadId, int chunkSize, int chunkNum) {
+        return loadDao.makeLoadHistoryArray(loadId, chunkSize, chunkNum);
     }
 }

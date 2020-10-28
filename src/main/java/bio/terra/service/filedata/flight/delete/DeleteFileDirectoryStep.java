@@ -2,7 +2,7 @@ package bio.terra.service.filedata.flight.delete;
 
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.stairway.FlightUtils;
+import bio.terra.common.FlightUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.stairway.FlightContext;
@@ -26,7 +26,7 @@ public class DeleteFileDirectoryStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         try {
             boolean found = fileDao.deleteDirectoryEntry(dataset, fileId);
             DeleteResponseModel.ObjectStateEnum stateEnum =

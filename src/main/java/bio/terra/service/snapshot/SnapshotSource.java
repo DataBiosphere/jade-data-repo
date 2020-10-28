@@ -1,10 +1,12 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.common.Table;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class SnapshotSource {
@@ -58,5 +60,18 @@ public class SnapshotSource {
     public SnapshotSource id(UUID id) {
         this.id = id;
         return this;
+    }
+
+    /**
+     * For this source, look up the source table that maps to the provided destination table name.
+     * @param tableName the name of the destination table
+     * @return an Optional that will be empty if no match is found for the table name
+     */
+    public Optional<Table> reverseTableLookup(String tableName) {
+        return getSnapshotMapTables()
+            .stream()
+            .filter(mapTable -> mapTable.getToTable().getName().equals(tableName))
+            .findFirst()
+            .map(SnapshotMapTable::getFromTable);
     }
 }

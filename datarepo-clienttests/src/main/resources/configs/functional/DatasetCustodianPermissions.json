@@ -1,0 +1,19 @@
+{
+  "name": "DatasetCustodianPermissions",
+  "description": "Check custodian permissions on a dataset.",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "isFunctional": true,
+  "kubernetes": {},
+  "application": {},
+  "testScripts": [
+    {
+      "name": "DatasetCustodianPermissions",
+      "numberOfUserJourneyThreadsToRun": 7,
+      "userJourneyThreadPoolSize": 1,
+      "expectedTimeForEach": 20,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json", "george.json", "harry.json", "hermione.json", "mcgonagall.json", "neville.json", "voldemort.json"]
+}

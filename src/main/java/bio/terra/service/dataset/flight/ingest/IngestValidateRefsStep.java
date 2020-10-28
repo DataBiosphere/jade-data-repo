@@ -16,11 +16,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IngestValidateRefsStep implements Step {
-    private static int MAX_ERROR_REF_IDS = 20;
+    private static final int MAX_ERROR_REF_IDS = 20;
 
-    private DatasetService datasetService;
-    private BigQueryPdao bigQueryPdao;
-    private FireStoreDao fileDao;
+    private final DatasetService datasetService;
+    private final BigQueryPdao bigQueryPdao;
+    private final FireStoreDao fileDao;
 
     public IngestValidateRefsStep(DatasetService datasetService,
                                   BigQueryPdao bigQueryPdao,
@@ -31,7 +31,7 @@ public class IngestValidateRefsStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         Table table = IngestUtils.getDatasetTable(context, dataset);
         String stagingTableName = IngestUtils.getStagingTableName(context);

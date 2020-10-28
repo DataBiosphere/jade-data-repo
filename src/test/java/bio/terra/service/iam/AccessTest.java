@@ -1,8 +1,9 @@
 package bio.terra.service.iam;
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
-import bio.terra.common.category.Integration;
+import bio.terra.common.category.OnDemand;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
@@ -18,16 +19,21 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.configuration.ConfigEnum;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.lang.StringUtils;
+import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -43,8 +49,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
@@ -56,7 +65,7 @@ import static org.junit.Assert.fail;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
-@Category(Integration.class)
+@Category(OnDemand.class)
 @SuppressFBWarnings(
     value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
     justification = "Spurious RCN check; related to Java 11")
@@ -65,7 +74,7 @@ public class AccessTest extends UsersBase {
 
     @Autowired private DataRepoFixtures dataRepoFixtures;
     @Autowired private AuthService authService;
-    @Autowired private IamService iamService;
+    @Autowired private IamProviderInterface iamService;
     @Autowired private TestConfiguration testConfiguration;
 
     private String discovererToken;
@@ -74,6 +83,7 @@ public class AccessTest extends UsersBase {
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
     private String profileId;
+    private List<String> snapshotIds;
 
     @Before
     public void setup() throws Exception {
@@ -81,9 +91,29 @@ public class AccessTest extends UsersBase {
         discovererToken = authService.getDirectAccessAuthToken(discoverer().getEmail());
         readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        datasetId = null;
+        snapshotIds = new ArrayList<>();
+    }
+
+    @After
+    public void teardown() throws Exception {
+        for (String snapshotId : snapshotIds) {
+            dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
+        }
+        if (datasetId != null) {
+            dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+        }
+    }
+
+    private void makeIngestTestDataset() throws Exception {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    }
+
+    private void makeAclTestDataset() throws Exception {
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        datasetId = datasetSummaryModel.getId();
     }
 
     private Storage getStorage(String token) {
@@ -93,15 +123,17 @@ public class AccessTest extends UsersBase {
 
     @Test
     public void checkShared() throws  Exception {
+        makeIngestTestDataset();
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+            "participant", "ingest-test/ingest-test-participant.json");
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
         request = dataRepoFixtures.buildSimpleIngest(
-            "sample", "ingest-test/ingest-test-sample.json", IngestRequestModel.StrategyEnum.APPEND);
+            "sample", "ingest-test/ingest-test-sample.json");
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+
         String datasetBqSnapshotName = "datarepo_" + dataset.getName();
 
         BigQuery custodianBigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), custodianToken);
@@ -168,20 +200,21 @@ public class AccessTest extends UsersBase {
 
     @Test
     public void fileAclTest() throws Exception {
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        makeAclTestDataset();
+
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
 
-        // Step 1. Ingest a file into the dataset
+        // Ingest a file into the dataset
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         FileModel fileModel = dataRepoFixtures.ingestFile(
             steward(),
             datasetSummaryModel.getId(),
             profileId,
-            gsPath + "/files/File%20Design%20Notes.pdf",
+            gsPath + "/files/File Design Notes.pdf",
             "/foo/bar");
 
-        // Step 2. Ingest one row into the study 'file' table with a reference to that ingested file
+        // Ingest one row into the study 'file' table with a reference to that ingested file
         String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileModel.getFileId());
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
         BlobInfo targetBlobInfo = BlobInfo
@@ -193,19 +226,18 @@ public class AccessTest extends UsersBase {
             writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
         }
 
-        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", targetPath, IngestRequestModel.StrategyEnum.APPEND);
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
             steward(), datasetSummaryModel.getId(), request);
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
-        // Step 3. Create a snapshot exposing the one row and grant read access to our reader.
+        // Create a snapshot exposing the one row and grant read access to our reader.
         SnapshotSummaryModel snapshotSummaryModel = dataRepoFixtures.createSnapshot(
             custodian(),
             datasetSummaryModel,
             "file-acl-test-snapshot.json");
-
+        snapshotIds.add(snapshotSummaryModel.getId());
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
 
         dataRepoFixtures.addSnapshotPolicyMember(
@@ -216,30 +248,29 @@ public class AccessTest extends UsersBase {
 
         AuthenticatedUserRequest authenticatedReaderRequest =
             new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
-        assertThat("correctly added reader", iamService.isAuthorized(
+        boolean authorized = iamService.isAuthorized(
             authenticatedReaderRequest,
             IamResourceType.DATASNAPSHOT,
             snapshotModel.getId(),
-            IamAction.READ_DATA), equalTo(true));
+            IamAction.READ_DATA);
+        assertTrue("correctly added reader", authorized);
 
-        // Step 4. Wait for SAM to sync the access change out to GCP.
-        //
-        // We make a BigQuery context for the reader in the test project. The reader doesn't have access
-        // to run queries in the dataset project.
-        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
-        BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
+        // The reader does not have permission to make queries in any project,
+        // so we have to use the custodian to look up the DRS id.
+        BigQuery bigQueryCustodian = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
+        BigQueryFixtures.hasAccess(bigQueryCustodian, snapshotModel.getDataProject(), snapshotModel.getName());
 
-        // Step 5. Read and validate the DRS URI from the file ref column in the 'file' table.
-        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryReader,
+        // Read and validate the DRS URI from the file ref column in the 'file' table.
+        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryCustodian,
             snapshotModel,
             "file",
             "file_ref");
 
-        // Step 6. Use DRS API to lookup the file by DRS ID (pulled out of the URI).
+        // Use DRS API to lookup the file by DRS ID (pulled out of the URI).
         DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
         String gsuri = TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods());
 
-        // Step 7. Try to read the file of the gs path as reader and discoverer
+        // Try to read the file of the gs path as reader and discoverer
         String[] strings = gsuri.split("/", 4);
 
         String bucketName = strings[2];
@@ -247,20 +278,107 @@ public class AccessTest extends UsersBase {
         BlobId blobId = BlobId.of(bucketName, blobName);
 
         Storage readerStorage = getStorage(readerToken);
-        assertTrue("Reader can read some bytes of the file", canReadBlob(readerStorage, blobId));
+        assertTrue("Reader can read some bytes of the file", canReadBlobRetry(readerStorage, blobId));
 
         Storage discovererStorage = getStorage(discovererToken);
         assertFalse("Discoverer can not read the file", canReadBlob(discovererStorage, blobId));
     }
 
-    private boolean canReadBlob(Storage storage, BlobId blobId) {
+    @Test
+    public void fileAclFaultTest() throws Exception {
+        try {
+            // Run the fileAclTest with the SNAPSHOT_GRANT_FILE_ACCESS_FAULT on
+            dataRepoFixtures.setFault(steward(), ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT.name(), true);
+            fileAclTest();
+        } finally {
+            dataRepoFixtures.resetConfig(steward());
+        }
+    }
+
+    @Test
+    public void checkCustodianPermissions() throws  Exception {
+        makeIngestTestDataset();
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json");
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+
+        request = dataRepoFixtures.buildSimpleIngest(
+            "sample", "ingest-test/ingest-test-sample.json");
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+
+        String datasetBqSnapshotName = PdaoConstant.PDAO_PREFIX + dataset.getName();
+
+        BigQuery custodianBigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), custodianToken);
+        try {
+            BigQueryFixtures.datasetExists(custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
+            fail("custodian shouldn't be able to access bq dataset before it is shared with them");
+        } catch (IllegalStateException e) {
+            assertThat("checking message for pdao exception error",
+                e.getMessage(),
+                equalTo("existence check failed for " + datasetBqSnapshotName));
+        }
+
+        dataRepoFixtures.addDatasetPolicyMember(
+            steward(),
+            datasetId,
+            IamRole.CUSTODIAN,
+            custodian().getEmail());
+        DataRepoResponse<EnumerateDatasetModel> enumDatasets = dataRepoFixtures.enumerateDatasetsRaw(custodian());
+        assertThat("Custodian is authorized to enumerate datasets",
+            enumDatasets.getStatusCode(),
+            equalTo(HttpStatus.OK));
+
+        boolean custodianHasAccess =
+            BigQueryFixtures.hasAccess(custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
+
+        assertTrue("custodian can access the bq snapshot after it has been shared",
+            custodianHasAccess);
+
+        // gets the "sample" table and makes a table ref to use in the query
+        String tableRef = BigQueryFixtures.makeTableRef(dataset, dataset.getSchema().getTables().get(1).getName());
+        String sql = String.format("SELECT * FROM %s LIMIT %s", tableRef, 1000);
+        TableResult results = BigQueryFixtures.query(sql, custodianBigQuery);
+        Assert.assertEquals(7, results.getTotalRows());
+    }
+
+    private boolean canReadBlob(Storage storage, BlobId blobId) throws Exception {
         try (ReadChannel reader = storage.reader(blobId)) {
             ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
             int bytesRead = reader.read(bytes);
             return (bytesRead > 0);
-        } catch (Exception e) {
-            e.printStackTrace(System.out);
-            return false;
+        } catch (Exception ex) {
+            logger.info("Caught exception", ex);
+        }
+        return false;
+    }
+
+    private static final int RETRY_INITIAL_INTERVAL_SECONDS = 2;
+    private static final int RETRY_MAX_INTERVAL_SECONDS = 30;
+    private static final int RETRY_MAX_SLEEP_SECONDS = 420;
+
+    private boolean canReadBlobRetry(Storage storage, BlobId blobId) throws Exception {
+        int sleptSeconds = 0;
+        int sleepSeconds = RETRY_INITIAL_INTERVAL_SECONDS;
+        while (true) {
+            try (ReadChannel reader = storage.reader(blobId)) {
+                ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
+                int bytesRead = reader.read(bytes);
+                return (bytesRead > 0);
+            } catch (Exception ex) {
+                logger.info("Caught IO exception: " + ex.getMessage());
+                if ((sleptSeconds < RETRY_MAX_SLEEP_SECONDS) &&
+                    StringUtils.contains(ex.getMessage(), "Forbidden")) {
+
+                    TimeUnit.SECONDS.sleep(sleepSeconds);
+                    sleptSeconds += sleepSeconds;
+                    logger.info("Slept " + sleepSeconds + " total slept " + sleptSeconds);
+                    sleepSeconds = Math.min(2 * sleepSeconds, RETRY_MAX_INTERVAL_SECONDS);
+                } else {
+                    throw ex;
+                }
+            }
         }
     }
 

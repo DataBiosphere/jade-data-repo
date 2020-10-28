@@ -1,0 +1,18 @@
+{
+    "name": "StagingSmokeTests",
+    "description": "Measurements collected by the staging smoke test run.",
+    "measurementCollectionScripts": [
+      {
+        "name": "LoggerInterceptorHttpStatus",
+        "description": "LoggerInterceptor HTTP status code 500",
+        "parameters": [500],
+        "saveRawDataPoints": true
+      },
+      {
+        "name": "FlightCaughtExceptionLog",
+        "description": "Count the flight exceptions for BQ rate limit exceeded.",
+        "parameters": ["com.google.cloud.bigquery.BigQueryException: Job exceeded rate limits: Your table exceeded quota for table update operations."],
+        "saveRawDataPoints": true
+      }
+    ]
+  }

@@ -1,0 +1,22 @@
+{
+  "name": "PodDeleteDuringBulkLoad",
+  "description": "One user ingests many files into one dataset while we delete a random pod",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "isFunctional": true,
+  "kubernetes": {
+    "numberOfInitialPods" : 3
+  },
+  "application": {},
+  "testScripts": [
+    {
+      "name": "PodDelete",
+      "parameters": [29],
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 1,
+      "expectedTimeForEach": 300,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["voldemort.json"]
+}

@@ -1,7 +1,6 @@
 package bio.terra.service.dataset;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 public class DatasetSummary {
@@ -9,7 +8,6 @@ public class DatasetSummary {
     private String name;
     private String description;
     private UUID defaultProfileId;
-    private List<UUID> additionalProfileIds;
     private Instant createdDate;
 
     public UUID getId() {
@@ -48,15 +46,6 @@ public class DatasetSummary {
         return this;
     }
 
-    public List<UUID> getAdditionalProfileIds() {
-        return additionalProfileIds;
-    }
-
-    public DatasetSummary additionalProfileIds(List<UUID> additionalProfileIds) {
-        this.additionalProfileIds = additionalProfileIds;
-        return this;
-    }
-
     public Instant getCreatedDate() {
         return createdDate;
     }
@@ -65,5 +54,4 @@ public class DatasetSummary {
         this.createdDate = createdDate;
         return this;
     }
-
 }

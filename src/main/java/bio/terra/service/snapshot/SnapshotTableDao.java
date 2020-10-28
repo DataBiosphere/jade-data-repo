@@ -19,7 +19,7 @@ public class SnapshotTableDao {
         "(name, parent_id) VALUES (:name, :parent_id)";
     private static final String sqlInsertColumn = "INSERT INTO snapshot_column " +
         "(table_id, name, type, array_of) VALUES (:table_id, :name, :type, :array_of)";
-    private static final String sqlSelectTable = "SELECT id, name FROM snapshot_table " +
+    private static final String sqlSelectTable = "SELECT id, name, row_count FROM snapshot_table " +
         "WHERE parent_id = :parent_id";
     private static final String sqlSelectColumn = "SELECT id, name, type, array_of FROM snapshot_column " +
         "WHERE table_id = :table_id";
@@ -64,7 +64,8 @@ public class SnapshotTableDao {
         return jdbcTemplate.query(sqlSelectTable, params, (rs, rowNum) -> {
             SnapshotTable table = new SnapshotTable()
                 .id(rs.getObject("id", UUID.class))
-                .name(rs.getString("name"));
+                .name(rs.getString("name"))
+                .rowCount(rs.getLong("row_count"));
             List<Column> columns = retrieveColumns(table);
             return table.columns(columns);
         });

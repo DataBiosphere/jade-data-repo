@@ -9,6 +9,7 @@ public interface Table {
     UUID getId();
     String getName();
     List<Column> getColumns();
+    Long getRowCount();
 
     default Optional<Column> getColumnById(UUID id) {
         for (Column tryColumn : getColumns()) {

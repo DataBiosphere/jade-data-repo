@@ -1,0 +1,86 @@
+name: Update devs api image
+env:
+  # This must be defined for the bash redirection
+  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+  # This must be defined for the bash redirection
+  GOOGLE_SA_CERT: 'jade-dev-account.pem'
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - develop
+    paths:
+      - '!*'
+      - 'src/**'
+      - 'gradle/**'
+      - 'gradle**'
+      - '**.gradle'
+      - 'Dockerfile'
+      - 'datarepo-clienttests/**'
+      - '.github/workflows/dev-image-update.yaml'
+      - '.swagger-codegen-ignore'
+jobs:
+  update_image:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: develop
+      - name: 'Checkout datarepo-helm-definitions repo'
+        uses: actions/checkout@v2
+        with:
+          repository: 'broadinstitute/datarepo-helm-definitions'
+          token: ${{ secrets.HELM_REPO_TOKEN }}
+          path: datarepo-helm-definitions
+      - name: "Bump the tag to a new version"
+        uses: broadinstitute/datarepo-actions@0.26.0
+        with:
+          actions_subcommand: 'bumper'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+          version_file_path: build.gradle
+          version_variable_name: version
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: "Publish to Artifactory"
+        uses: broadinstitute/gradle-command-action@v1
+        with:
+          arguments: ':datarepo-client:artifactoryPublish'
+        env:
+          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          ENABLE_SUBPROJECT_TASKS: true
+      - name: "Build new delevop docker image"
+        uses: broadinstitute/datarepo-actions@0.26.0
+        with:
+          actions_subcommand: 'gradlebuild'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+      - name: "Check and edit Helm definition for dev"
+        uses: broadinstitute/datarepo-actions@0.26.0
+        with:
+          actions_subcommand: 'deploytagupdate'
+          helm_env_prefix: dev
+      - name: Trigger action to tag containers with semantic version
+        uses: broadinstitute/workflow-dispatch@v1
+        with:
+          workflow: Alpha Nightly
+          token: ${{ secrets.WORKFLOW_DISPATCH }}
+      - name: Trigger action to tag update helm tag
+        uses: broadinstitute/workflow-dispatch@v1
+        with:
+          workflow: Update integration api helm image tag
+          token: ${{ secrets.WORKFLOW_DISPATCH }}
+      - name: Slack job status
+        if: always()
+        uses: broadinstitute/action-slack@v2
+        with:
+          status: ${{ job.status }}
+          author_name: Integration Test
+          only_mention_fail: smark,fb,muscles
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

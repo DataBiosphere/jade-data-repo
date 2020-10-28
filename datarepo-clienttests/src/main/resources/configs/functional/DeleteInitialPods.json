@@ -1,0 +1,37 @@
+{
+  "name": "DeleteInitialPods",
+  "description": "Two bulk file loads on two 2 different datasets, while incrementally deleting all initially created pods",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 3
+  },
+  "application": {
+    "maxStairwayThreads" : 120,
+    "loadConcurrentFiles": 80,
+    "loadDriverWaitSeconds": 1
+  },
+  "disruptiveScript": {
+    "name": "DeleteInitialPods",
+    "parameters": []
+  },
+  "testScripts": [
+    {
+      "name": "BulkLoad",
+      "parameters": [18],
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 1,
+      "expectedTimeForEach": 300,
+      "expectedTimeForEachUnit": "SECONDS"
+    },
+    {
+      "name": "BulkLoad",
+      "parameters": [20],
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 1,
+      "expectedTimeForEach": 300,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json"]
+}

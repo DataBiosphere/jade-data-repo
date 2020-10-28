@@ -1,0 +1,20 @@
+{
+  "name": "integration-2",
+  "description": "Integration testing environment",
+  "datarepoUri": "https://jade-2.datarepo-integration.broadinstitute.org",
+  "samUri": "https://sam.dsde-dev.broadinstitute.org",
+  "samResourceIdForDatarepo": "broad-jade-dev",
+  "clusterName": "gke_broad-jade-integration_us-central1_integration-master",
+  "clusterShortName": "integration-master",
+  "region": "us-central1",
+  "project": "broad-jade-integration",
+  "namespace": "integration-2",
+  "containerName": "integration-2-jade-datarepo-api",
+  "deploymentScript": {
+    "name": "ModularHelmChart",
+    "parameters": ["https://https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/integration/integration-2/datarepo-api.yaml"]
+  },
+  "testRunnerServiceAccountFile": "jade-k8-sa.json",
+  "skipDeployment": true,
+  "skipKubernetes": false
+}

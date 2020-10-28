@@ -1,0 +1,27 @@
+{
+  "name": "LookupSnapshot",
+  "description": "Run lookups on two different snapshots.",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 2
+  },
+  "application": {},
+  "testScripts": [
+    {
+      "name": "RetrieveSnapshot",
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 3,
+      "expectedTimeForEach": 20,
+      "expectedTimeForEachUnit": "SECONDS"
+    },
+    {
+      "name": "RetrieveSnapshot",
+      "numberOfUserJourneyThreadsToRun": 15,
+      "userJourneyThreadPoolSize": 3,
+      "expectedTimeForEach": 20,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json", "voldemort.json"]
+}

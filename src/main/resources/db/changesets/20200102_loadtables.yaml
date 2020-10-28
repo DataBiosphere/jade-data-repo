@@ -44,26 +44,42 @@ databaseChangeLog:
                     references: load(id)
                     deleteCascade: true
               - column:
-                  name: sourcePath
+                  name: source_path
                   type: text
                   constraints:
                     nullable: false
               - column:
-                  name: targetPath
+                  name: target_path
                   type: text
                   constraints:
                     nullable: false
+              - column:
+                  name: mime_type
+                  type: text
+              - column:
+                  name: description
+                  type: text
               - column:
                   name: state
                   type: text
-                  remarks: NOT_TRIED, SUCCEEDED, FAILED
+                  remarks: NOT_TRIED, SUCCEEDED, FAILED, RUNNING
               - column:
-                  name: fileId
+                  name: flight_id
+                  type: text
+                  remarks: flight id of flight running the file load
+              - column:
+                  name: file_id
                   type: text
                   remarks: if the state is SUCCEEDED, this column will contain the loaded file id
               - column:
                   name: error
                   type: text
                   remarks: if state is FAILED, this column will contain the error message
+
+        - addPrimaryKey:
+                tableName: load_file
+                columnNames: load_id, target_path
+                constraintName: pk_load_file
+
 
 

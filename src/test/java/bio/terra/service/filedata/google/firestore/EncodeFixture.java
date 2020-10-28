@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
@@ -7,18 +8,20 @@ import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamRole;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,8 +31,11 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.io.BufferedReader;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @ActiveProfiles({"google", "integrationtest"})
@@ -44,10 +50,28 @@ public class EncodeFixture {
     @Autowired private AuthService authService;
     @Autowired private TestConfiguration testConfiguration;
 
+    public static class SetupResult {
+        private String datasetId;
+        private SnapshotSummaryModel summaryModel;
+
+        public SetupResult(String datasetId, SnapshotSummaryModel summaryModel) {
+            this.datasetId = datasetId;
+            this.summaryModel = summaryModel;
+        }
+
+        public String getDatasetId() {
+            return datasetId;
+        }
+
+        public SnapshotSummaryModel getSummaryModel() {
+            return summaryModel;
+        }
+    }
+
+
     // Create dataset, load files and tables. Create and return snapshot.
     // Steward owns dataset; custodian is custodian on dataset; reader has access to the snapshot.
-    // TODO: add tearDownEncode
-    public SnapshotSummaryModel setupEncode(
+    public SetupResult setupEncode(
         TestConfiguration.User steward,
         TestConfiguration.User custodian,
         TestConfiguration.User reader) throws Exception {
@@ -55,7 +79,6 @@ public class EncodeFixture {
         DatasetSummaryModel datasetSummary = dataRepoFixtures.createDataset(steward, "encodefiletest-dataset.json");
         String datasetId = datasetSummary.getId();
 
-        // TODO: Fix use of IamService - see DR-494
         dataRepoFixtures.addDatasetPolicyMember(
             steward,
             datasetId,
@@ -69,11 +92,13 @@ public class EncodeFixture {
         String targetPath = loadFiles(datasetSummary.getId(), billingProfile.getId(), steward, stewardStorage);
 
         // Load the tables
-        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", targetPath, IngestRequestModel.StrategyEnum.APPEND);
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
         dataRepoFixtures.ingestJsonData(steward, datasetId, request);
-        request = dataRepoFixtures.buildSimpleIngest(
-            "donor", "encodetest/donor.json", IngestRequestModel.StrategyEnum.APPEND);
+
+        // Delete the targetPath file
+        deleteLoadFile(steward, targetPath);
+
+        request = dataRepoFixtures.buildSimpleIngest("donor", "encodetest/donor.json");
         dataRepoFixtures.ingestJsonData(steward, datasetId, request);
 
         // Delete the scratch blob
@@ -86,7 +111,7 @@ public class EncodeFixture {
         SnapshotSummaryModel snapshotSummary = dataRepoFixtures.createSnapshot(
             custodian, datasetSummary, "encodefiletest-snapshot.json");
 
-        // TODO: Fix use of IamService - see DR-494
+        // TODO: Fix use of IamProviderInterface - see DR-494
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian,
             snapshotSummary.getId(),
@@ -99,10 +124,10 @@ public class EncodeFixture {
         // TODO: Add dataProject to SnapshotSummaryModel?
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId());
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
-        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
 
-        return snapshotSummary;
+        return new SetupResult(datasetId, snapshotSummary);
     }
 
     private String loadFiles(
@@ -115,52 +140,73 @@ public class EncodeFixture {
         // Read one line at a time - unpack into pojo
         // Ingest the files, substituting the file ids
         // Generate JSON and write the line to scratch
-        String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
+        String rndSuffix = UUID.randomUUID().toString() + ".json";
+        String loadData = "scratch/lf_loaddata" + rndSuffix;
 
         // For a bigger test use encodetest/file.json (1000+ files)
         // For normal testing encodetest/file_small.json (10 files)
         Blob sourceBlob = storage.get(
             BlobId.of(testConfiguration.getIngestbucket(), "encodetest/file_small.json"));
 
-        BlobInfo targetBlobInfo = BlobInfo
-            .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
-            .build();
+        List<BulkLoadFileModel> loadArray = new ArrayList<>();
+        List<EncodeFileIn> inArray = new ArrayList<>();
 
-        try (WriteChannel writer = storage.writer(targetBlobInfo);
-             BufferedReader reader = new BufferedReader(Channels.newReader(sourceBlob.reader(), "UTF-8"))) {
-
+        try (BufferedReader reader = new BufferedReader(Channels.newReader(sourceBlob.reader(), "UTF-8"))) {
             String line = null;
             while ((line = reader.readLine()) != null) {
-                EncodeFileIn encodeFileIn = objectMapper.readValue(line, EncodeFileIn.class);
-
-                String bamFileId = null;
-                String bamiFileId = null;
+                EncodeFileIn encodeFileIn = TestUtils.mapFromJson(line, EncodeFileIn.class);
+                inArray.add(encodeFileIn);
 
                 if (encodeFileIn.getFile_gs_path() != null) {
-                    bamFileId = loadOneFile(user, datasetId, profileId, encodeFileIn.getFile_gs_path());
+                    loadArray.add(makeFileModel(encodeFileIn.getFile_gs_path()));
                 }
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {
-                    bamiFileId = loadOneFile(user, datasetId, profileId, encodeFileIn.getFile_index_gs_path());
+                    loadArray.add(makeFileModel(encodeFileIn.getFile_index_gs_path()));
                 }
-
-                EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);
-                String fileLine = objectMapper.writeValueAsString(encodeFileOut) + "\n";
-                writer.write(ByteBuffer.wrap(fileLine.getBytes("UTF-8")));
             }
         }
 
-        return targetPath;
+        BulkLoadArrayRequestModel loadRequest = new BulkLoadArrayRequestModel()
+            .loadArray(loadArray)
+            .maxFailedFileLoads(0)
+            .profileId(profileId)
+            .loadTag("encodeFixture");
+
+        BulkLoadArrayResultModel loadResult = dataRepoFixtures.bulkLoadArray(user, datasetId, loadRequest);
+
+        Map<String, BulkLoadFileResultModel> resultMap = new HashMap<>();
+        for (BulkLoadFileResultModel fileResult : loadResult.getLoadFileResults()) {
+            resultMap.put(fileResult.getSourcePath(), fileResult);
+        }
+
+        try (GcsChannelWriter writer = new GcsChannelWriter(storage, testConfiguration.getIngestbucket(), loadData)) {
+            for (EncodeFileIn encodeFileIn : inArray) {
+                BulkLoadFileResultModel resultModel = resultMap.get(encodeFileIn.getFile_gs_path());
+                String bamFileId = (resultModel == null) ? null : resultModel.getFileId();
+                resultModel = resultMap.get(encodeFileIn.getFile_index_gs_path());
+                String bamiFileId =  (resultModel == null) ? null : resultModel.getFileId();
+                EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);
+                String fileLine = TestUtils.mapToJson(encodeFileOut) + "\n";
+                writer.write(fileLine);
+            }
+        }
+
+        return loadData;
     }
 
-    private String loadOneFile(
-        TestConfiguration.User user,
-        String datasetId,
-        String profileId,
-        String gsPath) throws Exception {
-        String filePath = URI.create(gsPath).getPath();
-        FileModel fileModel = dataRepoFixtures.ingestFile(user, datasetId, profileId, gsPath, filePath);
-        return fileModel.getFileId();
+    public void deleteLoadFile(TestConfiguration.User user, String loadData) {
+        String userToken = authService.getDirectAccessAuthToken(user.getEmail());
+        Storage storage = dataRepoFixtures.getStorage(userToken);
+        Blob targetBlob = storage.get(
+            BlobId.of(testConfiguration.getIngestbucket(), loadData));
+        targetBlob.delete();
+    }
+
+    private BulkLoadFileModel makeFileModel(String gspath) {
+        return new BulkLoadFileModel()
+            .sourcePath(gspath)
+            .targetPath(URI.create(gspath).getPath());
     }
 
 }

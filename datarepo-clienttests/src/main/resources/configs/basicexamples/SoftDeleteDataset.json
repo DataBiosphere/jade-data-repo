@@ -1,0 +1,20 @@
+{
+  "name": "SoftDeleteDataset",
+  "description": "Load data into a dataset and then try to soft delete the same row 3 times.",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 3
+  },
+  "application": {},
+  "testScripts": [
+    {
+      "name": "SoftDeleteDataset",
+      "numberOfUserJourneyThreadsToRun": 3,
+      "userJourneyThreadPoolSize": 2,
+      "expectedTimeForEach": 60,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json"]
+}

@@ -32,8 +32,6 @@ public class AssetModelValidator implements Validator {
     private void validateAssetName(String assetName, Errors errors) {
         if (assetName == null) {
             errors.rejectValue("name", "AssetNameMissing");
-        } else if (!ValidationUtils.isValidName(assetName)) {
-            errors.rejectValue("name", "AssetNameInvalid");
         }
     }
 
@@ -45,11 +43,11 @@ public class AssetModelValidator implements Validator {
 
                 if (tableName != null && columns != null) {
                     if (ValidationUtils.hasDuplicates(columns)) {
-                        errors.rejectValue("schema", "DuplicateColumnNames");
+                        errors.rejectValue("columns", "DuplicateColumnNames");
                     }
                 }
             }
-            errors.rejectValue("schema", "NoRootTable");
+            //errors.rejectValue("rootTable", "NoRootTable"); // breaking here!
         }
     }
 

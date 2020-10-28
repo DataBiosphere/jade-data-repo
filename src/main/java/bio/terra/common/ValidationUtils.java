@@ -6,8 +6,6 @@ import java.util.regex.Pattern;
 
 public final class ValidationUtils {
 
-    private static final String VALID_NAME_REGEX = "[a-zA-Z0-9_]{1,63}";
-
     // pattern taken from https://stackoverflow.com/questions/8204680/java-regex-email
     private static final Pattern VALID_EMAIL_REGEX = Pattern.compile("[a-z0-9!#$%&'*+/=?^_`{|}~-]+" +
             "(?:.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?",
@@ -23,10 +21,6 @@ public final class ValidationUtils {
 
     public static <T> boolean hasDuplicates(List<T> list) {
         return !(list.size() == new HashSet(list).size());
-    }
-
-    public static boolean isValidName(String name) {
-        return Pattern.matches(VALID_NAME_REGEX, name);
     }
 
     public static boolean isValidDescription(String name) {

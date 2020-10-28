@@ -35,27 +35,16 @@ before_install:
   - gcloud auth configure-docker
   - gcloud components install kubectl
   - gcloud container clusters get-credentials $CLUSTER_NAME
+  - curl 'https://api.ipify.org?format=json'
 
 script:
   - set -e
   - psql -U postgres -f ./db/create-data-repo-db
   - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew jib
-  - kubectl --namespace data-repo --record deployments/api-deployment set image
-    deployments/api-deployment
-    "data-repo-api-container=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
+  - kubectl --namespace temp set image
+    deployment/temp-jade-datarepo-api
+    "temp-jade-datarepo-api=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
   - ./gradlew assemble
   - ./gradlew check --scan
   - ./gradlew testConnected --scan
   - ./gradlew testIntegration --scan
-
-deploy:
-  provider: script
-  script:
-    - gcloud config set project $DEV_PROJECT
-    - gcloud config set compute/zone $DEV_ZONE
-    - gcloud container clusters get-credentials $CLUSTER_NAME
-    - kubectl --record deployment.apps/data-repo-deployment set image
-      deployment.v1.apps/data-repo-deployment
-      "data-repo-api-container=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
-  on:
-    branch: develop

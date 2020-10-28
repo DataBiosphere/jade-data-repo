@@ -7,6 +7,7 @@ import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.service.resourcemanagement.exception.BucketLockFailureException;
 import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
@@ -50,10 +51,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -65,7 +64,7 @@ import java.util.stream.Collectors;
 public class GoogleResourceService {
     private static final Logger logger = LoggerFactory.getLogger(GoogleResourceService.class);
     private static final String ENABLED_FILTER = "state:ENABLED";
-    private static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
+    public static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
 
 
     private final GoogleResourceDao resourceDao;
@@ -401,22 +400,14 @@ public class GoogleResourceService {
 
     public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
-
-        Map<String, List<String>> policyMap = new HashMap<>();
-        List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
-        policyMap.put(BQ_JOB_USER_ROLE, emails);
-
-        enableIamPermissions(policyMap, dataProject);
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        enableIamPermissions(Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject);
     }
 
     public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
-
-        Map<String, List<String>> policyMap = new HashMap<>();
-        List<String> emails = new ArrayList<>(CollectionUtils.collect(policyEmails, e -> "group:" + e));
-        policyMap.put(BQ_JOB_USER_ROLE, emails);
-
-        removeIamPermissions(policyMap, dataProject);
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        removeIamPermissions(Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject);
     }
 
     public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -602,19 +593,16 @@ public class GoogleResourceService {
 
                 // Remove members from the current policies
                 for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
-                    CollectionUtils.transform(bindingsList, b -> {
+                    CollectionUtils.filter(bindingsList, b -> {
                         if (Objects.equals(b.getRole(), entry.getKey())) {
-                            // Remove any deleted members explicitly
-                            b.setMembers(ListUtils.select(b.getMembers(), m -> !m.startsWith("deleted:")));
                             // Remove the members that were passed in
                             b.setMembers(ListUtils.subtract(b.getMembers(), entry.getValue()));
+                            // Remove any entries from the bindings list with no members
+                            return !b.getMembers().isEmpty();
                         }
-                        return b;
+                        return true;
                     });
                 }
-
-                // Remove any entries from the bindings list with no members
-                CollectionUtils.filter(bindingsList, b -> !b.getMembers().isEmpty());
 
                 policy.setBindings(bindingsList);
                 SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);

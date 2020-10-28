@@ -4,15 +4,11 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 
-@Primary
-@Profile("!terra")
 @Component
 public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {
     private Logger logger = LoggerFactory.getLogger(LocalAuthenticatedUserRequestFactory.class);

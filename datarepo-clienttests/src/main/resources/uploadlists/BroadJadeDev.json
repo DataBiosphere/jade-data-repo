@@ -1,0 +1,17 @@
+{
+  "name": "BroadJadeDev",
+  "description": "Upload to the broad-jade-testrunnerresults project, dev bucket",
+  "uploaderServiceAccountFile": "jade-k8-sa.json",
+  "uploadScripts": [
+    {
+      "name": "CompressDirectoryToBucket",
+      "description": "Save the compressed results directory to a bucket.",
+      "parameters": ["gs://broad-jade-dev-testrunnerresults"]
+    },
+    {
+      "name": "SummariesToBigQueryJade",
+      "description": "Write the summary results to BigQuery with the Jade schema.",
+      "parameters": ["broad-jade-testrunnerresults", "test_runner_results"]
+    }
+  ]
+}

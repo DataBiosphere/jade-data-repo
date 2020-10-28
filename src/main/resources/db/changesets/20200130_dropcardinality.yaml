@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: relationship_drop_cardinality
+      author: danmoran
+      changes:
+        - dropColumn:
+            tableName: dataset_relationship
+            columns:
+              - column:
+                  name: from_cardinality
+                  type: varchar(32)
+              - column:
+                  name: to_cardinality
+                  type: varchar(32)

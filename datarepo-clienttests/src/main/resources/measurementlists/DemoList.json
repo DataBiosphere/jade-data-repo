@@ -1,0 +1,18 @@
+{
+  "name": "DemoList",
+  "description": "Demo measurement list (MM)",
+  "measurementCollectionScripts": [
+    {
+      "name": "PerformanceLoggerCount",
+      "description": "PerformanceLogger enumerateProfiles timer integer count.",
+      "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"],
+      "saveRawDataPoints": true
+    },
+    {
+      "name": "LoggerInterceptorHttpStatus",
+      "description": "LoggerInterceptor HTTP status code 500",
+      "parameters": [500],
+      "saveRawDataPoints": true
+    }
+  ]
+}

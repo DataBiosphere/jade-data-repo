@@ -1,5 +1,6 @@
 package bio.terra.app.controller;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -7,7 +8,6 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.ErrorModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -19,8 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.io.IOException;
 
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.equalTo;
@@ -52,13 +50,7 @@ public class ProfileTest {
 
     @Before
     public void setup() throws Exception {
-        billingProfileRequest = requestModel("billing-profile.json");
-    }
-
-    private BillingProfileRequestModel requestModel(String jsonResourceFileName) throws IOException {
-        ClassLoader classLoader = getClass().getClassLoader();
-        String datasetJsonStr = IOUtils.toString(classLoader.getResourceAsStream(jsonResourceFileName));
-        return objectMapper.readerFor(BillingProfileRequestModel.class).readValue(datasetJsonStr);
+        billingProfileRequest = jsonLoader.loadObject("billing-profile.json", BillingProfileRequestModel.class);
     }
 
     @Test
@@ -68,7 +60,7 @@ public class ProfileTest {
         String responseJson = mvc.perform(post("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer: faketoken")
-            .content(objectMapper.writeValueAsString(billingProfileRequest)))
+            .content(TestUtils.mapToJson(billingProfileRequest)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.profileName").value("Test billing account"))
             .andExpect(jsonPath("$.biller").value("direct"))
@@ -119,7 +111,7 @@ public class ProfileTest {
         String responseJson = mvc.perform(post("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer: faketoken")
-            .content(objectMapper.writeValueAsString(billingProfileRequest)))
+            .content(TestUtils.mapToJson(billingProfileRequest)))
             .andExpect(status().is4xxClientError())
             .andReturn().getResponse().getContentAsString();
         ErrorModel errors = objectMapper.readerFor(ErrorModel.class).readValue(responseJson);

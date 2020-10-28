@@ -1,0 +1,11 @@
+{
+  "name": "SnapshotSimple",
+  "description": "Simple snapshot definition",
+  "profileId": "",
+  "contents":[
+    {
+      "datasetName":"DatasetSimple",
+      "mode": "byFullView"
+    }
+  ]
+}

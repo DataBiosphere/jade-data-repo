@@ -60,11 +60,11 @@ public class IngestTest extends UsersBase {
     @After
     public void teardown() throws Exception {
         for (String snapshotId : createdSnapshotIds) {
-            dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
+            dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotId);
         }
 
         if (datasetId != null) {
-            dataRepoFixtures.deleteDataset(steward(), datasetId);
+            dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
         }
     }
 
@@ -72,7 +72,7 @@ public class IngestTest extends UsersBase {
     @Test
     public void ingestParticipants() throws Exception {
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+            "participant", "ingest-test/ingest-test-participant.json");
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
     }
@@ -80,7 +80,7 @@ public class IngestTest extends UsersBase {
     @Test
     public void ingestWildcardSuffix() throws Exception {
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant*", IngestRequestModel.StrategyEnum.APPEND);
+            "participant", "ingest-test/ingest-test-participant*");
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(7L));
     }
@@ -88,35 +88,25 @@ public class IngestTest extends UsersBase {
     @Test
     public void ingestWildcardMiddle() throws Exception {
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-p*t.json", IngestRequestModel.StrategyEnum.APPEND);
+            "participant", "ingest-test/ingest-test-p*t.json");
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
-    }
-
-    @Test
-    public void ingestUpdatedParticipants() throws Exception {
-        ingestParticipants();
-        IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-updated-participant.json", IngestRequestModel.StrategyEnum.UPSERT);
-        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-        // FIXME: Ideally we'd be able to assert on the # of rows added, updated, and left unchanged.
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
     }
 
     @Test
     public void ingestBuildSnapshot() throws Exception {
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+            "participant", "ingest-test/ingest-test-participant.json");
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
         ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "sample", "ingest-test/ingest-test-sample.json", IngestRequestModel.StrategyEnum.APPEND);
+            "sample", "ingest-test/ingest-test-sample.json");
         ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
 
         ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "file", "ingest-test/ingest-test-file.json", IngestRequestModel.StrategyEnum.APPEND);
+            "file", "ingest-test/ingest-test-file.json");
         ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
@@ -128,7 +118,7 @@ public class IngestTest extends UsersBase {
     @Test
     public void ingestUnauthorizedTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+            "participant", "ingest-test/ingest-test-participant.json");
         DataRepoResponse<JobModel> ingestCustResp = dataRepoFixtures.ingestJsonDataLaunch(
             custodian(), datasetId, request);
         assertThat("Custodian is not authorized to ingest data",
@@ -144,7 +134,7 @@ public class IngestTest extends UsersBase {
     @Test
     public void ingestAppendNoPkTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", "ingest-test/ingest-test-file.json", IngestRequestModel.StrategyEnum.APPEND);
+            "file", "ingest-test/ingest-test-file.json");
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
@@ -153,26 +143,8 @@ public class IngestTest extends UsersBase {
     }
 
     @Test
-    public void ingestUpsertNoPkTest() throws Exception {
-        IngestRequestModel requestOne = dataRepoFixtures.buildSimpleIngest(
-            "file", "ingest-test/ingest-test-file.json", IngestRequestModel.StrategyEnum.APPEND);
-        IngestResponseModel responseOne = dataRepoFixtures.ingestJsonData(steward(), datasetId, requestOne);
-        assertThat("correct file row count", responseOne.getRowCount(), equalTo(1L));
-
-        DataRepoResponse<JobModel> upsertJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
-            steward(), datasetId, requestOne.strategy(IngestRequestModel.StrategyEnum.UPSERT));
-        DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
-            steward(), upsertJobResponse, IngestResponseModel.class);
-        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
-        assertThat("failure is explained",
-            ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
-            containsString("no primary key"));
-    }
-
-    @Test
     public void ingestBadPathTest() throws Exception {
-        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", "totally-legit-file.json", IngestRequestModel.StrategyEnum.APPEND);
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", "totally-legit-file.json");
         DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
@@ -185,8 +157,7 @@ public class IngestTest extends UsersBase {
 
     @Test
     public void ingestEmptyPatternTest() throws Exception {
-        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", "prefix-matching-nothing/*", IngestRequestModel.StrategyEnum.APPEND);
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", "prefix-matching-nothing/*");
         DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
@@ -202,8 +173,7 @@ public class IngestTest extends UsersBase {
         IngestRequestModel request = new IngestRequestModel()
             .table("file")
             .format(IngestRequestModel.FormatEnum.JSON)
-            .path("gs://bucket*pattern/some-file.json")
-            .strategy(IngestRequestModel.StrategyEnum.APPEND);
+            .path("gs://bucket*pattern/some-file.json");
         DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
@@ -216,8 +186,7 @@ public class IngestTest extends UsersBase {
 
     @Test
     public void ingestBadMultiWildcardTest() throws Exception {
-        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", "ingest-prefix/*/ingest/suffix/*.json", IngestRequestModel.StrategyEnum.APPEND);
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", "ingest-prefix/*/ingest/suffix/*.json");
         DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
@@ -231,7 +200,7 @@ public class IngestTest extends UsersBase {
     @Test
     public void ingestSingleFileMalformedTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", "ingest-test/ingest-test-prtcpnt-malformed.json", IngestRequestModel.StrategyEnum.APPEND);
+            "file", "ingest-test/ingest-test-prtcpnt-malformed.json");
         DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
@@ -245,7 +214,7 @@ public class IngestTest extends UsersBase {
     @Test
     public void ingestWildcardMalformedTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", "ingest-test/ingest-test-p*.json", IngestRequestModel.StrategyEnum.APPEND);
+            "file", "ingest-test/ingest-test-p*.json");
         DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(

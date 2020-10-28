@@ -1,0 +1,22 @@
+[
+  { "name": "testRun_id",                     "mode": "REQUIRED", "type": "STRING" },
+  { "name": "name",                           "mode": "REQUIRED", "type": "STRING" },
+  { "name": "numberOfUserJourneyThreadsToRun","mode": "REQUIRED", "type": "NUMERIC" },
+  { "name": "userJourneyThreadPoolSize",      "mode": "REQUIRED", "type": "NUMERIC" },
+  { "name": "expectedTimeForEach",            "mode": "NULLABLE", "type": "NUMERIC" },
+  { "name": "expectedTimeForEachUnit",        "mode": "NULLABLE", "type": "STRING" },
+  { "name": "parameters",                     "mode": "REPEATED", "type": "STRING" },
+  { "name": "description",                    "mode": "NULLABLE", "type": "STRING" },
+  { "name": "elapsedTime_min",                "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "elapsedTime_max",                "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "elapsedTime_mean",               "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "elapsedTime_standardDeviation",  "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "elapsedTime_median",             "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "elapsedTime_percentile95",       "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "elapsedTime_percentile99",       "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "elapsedTime_sum",                "mode": "NULLABLE", "type": "FLOAT" },
+  { "name": "totalRun",                       "mode": "NULLABLE", "type": "NUMERIC" },
+  { "name": "numCompleted",                   "mode": "NULLABLE", "type": "NUMERIC" },
+  { "name": "numExceptionsThrown",            "mode": "NULLABLE", "type": "NUMERIC" },
+  { "name": "isFailure",                      "mode": "NULLABLE", "type": "BOOL" }
+]

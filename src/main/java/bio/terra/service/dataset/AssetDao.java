@@ -2,12 +2,17 @@ package bio.terra.service.dataset;
 
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
-import bio.terra.common.Table;
 import bio.terra.common.Column;
+import bio.terra.common.Relationship;
+import bio.terra.service.dataset.exception.InvalidAssetException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,7 +39,15 @@ public class AssetDao {
                 .collect(Collectors.toList());
     }
 
-    private UUID create(AssetSpecification assetSpecification, UUID datasetId) {
+    /**
+     * Create a new AssetSpecification. If you try to create an asset with the same name as an existing
+     * one for the same dataset, this method throws an InvalidAssetException.
+     * @param assetSpecification the AssetSpecification being created
+     * @param datasetId the ID of the dataset corresponding to the AssetSpecification being created
+     * @return
+     */
+    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public UUID create(AssetSpecification assetSpecification, UUID datasetId) {
         String sql = "INSERT INTO asset_specification (dataset_id, name, root_table_id, root_column_id) " +
                 "VALUES (:dataset_id, :name, :root_table_id, :root_column_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -43,7 +56,12 @@ public class AssetDao {
         params.addValue("root_table_id", assetSpecification.getRootTable().getTable().getId());
         params.addValue("root_column_id", assetSpecification.getRootColumn().getDatasetColumn().getId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
+        try {
+            jdbcTemplate.update(sql, params, keyHolder);
+        } catch (DuplicateKeyException e) {
+            throw new InvalidAssetException("Asset name already exists: " + assetSpecification.getName(), e);
+        }
+
         UUID assetSpecId = keyHolder.getId();
         assetSpecification.id(assetSpecId);
 
@@ -88,9 +106,9 @@ public class AssetDao {
 
     // also retrieves dependent objects
     public List<AssetSpecification> retrieveAssetSpecifications(Dataset dataset) {
-        Map<UUID, Table> allTables = dataset.getTablesById();
+        Map<UUID, DatasetTable> allTables = dataset.getTablesById();
         Map<UUID, Column> allColumns = dataset.getAllColumnsById();
-        Map<UUID, DatasetRelationship> allRelationships = dataset.getRelationshipsById();
+        Map<UUID, Relationship> allRelationships = dataset.getRelationshipsById();
 
         String sql = "SELECT id, name, root_table_id, root_column_id FROM asset_specification WHERE dataset_id = " +
                 ":datasetId";
@@ -118,7 +136,7 @@ public class AssetDao {
     private Collection<AssetTable> retrieveAssetTablesAndColumns(AssetSpecification spec,
                                                                  UUID rootTableId,
                                                                  UUID rootColumnId,
-                                                                 Map<UUID, Table> allTables,
+                                                                 Map<UUID, DatasetTable> allTables,
                                                                  Map<UUID, Column> allColumns) {
         Map<UUID, AssetTable> tables = new HashMap<>();
         String sql = "SELECT asset_column.id, asset_column.dataset_column_id, dataset_column.table_id " +
@@ -151,7 +169,7 @@ public class AssetDao {
 
     private List<AssetRelationship> retrieveAssetRelationships(
             UUID specId,
-            Map<UUID, DatasetRelationship> allRelationships) {
+            Map<UUID, Relationship> allRelationships) {
         String sql = "SELECT id, relationship_id FROM asset_relationship WHERE asset_id = :assetId";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("assetId", specId);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->
@@ -159,5 +177,12 @@ public class AssetDao {
                         .id(rs.getObject("id", UUID.class))
                         .datasetRelationship(allRelationships.get(
                                 rs.getObject("relationship_id", UUID.class))));
+    }
+
+    @Transactional
+    public boolean delete(UUID id) {
+        int rowsAffected = jdbcTemplate.update("DELETE FROM asset_specification WHERE id = :id ",
+            new MapSqlParameterSource().addValue("id", id));
+        return rowsAffected > 0;
     }
 }

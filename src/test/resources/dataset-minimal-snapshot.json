@@ -2,8 +2,16 @@
   "name":"demo",
   "description":"desc",
   "contents":[
-    { "source": {"datasetName":"Minimal", "assetName":"sample"},
-      "rootValues":["sample1","sample2"]
+    {
+      "datasetName":"Minimal",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "sample",
+        "rootValues": [
+          "sample1",
+          "sample2"
+        ]
+      }
     }
   ]
 }

@@ -1,10 +1,13 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.model.SnapshotRequestContentsModel;
-
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotRequestSourceModel;
 import bio.terra.common.ValidationUtils;
+import bio.terra.model.SnapshotRequestAssetModel;
+import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestQueryModel;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.SnapshotRequestRowIdTableModel;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -33,32 +36,78 @@ public class SnapshotRequestValidator implements Validator {
     private void validateSnapshotName(String snapshotName, Errors errors) {
         if (snapshotName == null) {
             errors.rejectValue("name", "SnapshotNameMissing");
-        } else if (!ValidationUtils.isValidName(snapshotName)) {
-            errors.rejectValue("name", "SnapshotNameInvalid");
         }
     }
 
-    private void validateSnapshotValues(List<SnapshotRequestContentsModel> contentsList, Errors errors) {
+    private void validateSnapshotContents(List<SnapshotRequestContentsModel> contentsList, Errors errors) {
         if (contentsList == null || contentsList.isEmpty()) {
             errors.rejectValue("contents", "SnapshotSourceListEmpty");
         } else {
             contentsList.forEach(contents -> {
-                List<String> rootValues = contents.getRootValues();
-                if (rootValues == null || rootValues.isEmpty()) {
-                    errors.rejectValue("contents", "SnapshotRootValuesListEmpty");
-                }
-                SnapshotRequestSourceModel source = contents.getSource();
-                String datasetName = source.getDatasetName();
-                String assetName = source.getAssetName();
+                String datasetName = contents.getDatasetName();
                 if (datasetName == null) {
                     errors.rejectValue("contents", "SnapshotDatasetNameMissing");
-                } else if (!ValidationUtils.isValidName(datasetName)) {
-                    errors.rejectValue("contents", "SnapshotDatasetNameInvalid");
                 }
-                if (assetName == null) {
-                    errors.rejectValue("contents", "SnapshotAssetNameMissing");
-                } else if (!ValidationUtils.isValidName(assetName)) {
-                    errors.rejectValue("contents", "SnapshotAssetNameInvalid");
+
+                switch (contents.getMode()) {
+                    case BYASSET:
+                        validateSnapshotAssetSpec(contents.getAssetSpec(), errors);
+                        break;
+                    case BYFULLVIEW:
+                        // no additional validation necessary
+                        break;
+                    case BYQUERY:
+                        validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
+                        break;
+                    case BYROWID:
+                        validateSnapshotRowIdSpec(contents.getRowIdSpec(), errors);
+                        break;
+                    default:
+                        errors.rejectValue("contents", "SnapshotContentsModeInvalid");
+                }
+            });
+        }
+    }
+
+    private void validateSnapshotAssetSpec(SnapshotRequestAssetModel assetModel, Errors errors) {
+        List<String> rootValues = assetModel.getRootValues();
+        if (rootValues == null || rootValues.isEmpty()) {
+            errors.rejectValue("contents", "SnapshotRootValuesListEmpty");
+        }
+        String assetName = assetModel.getAssetName();
+        if (assetName == null) {
+            errors.rejectValue("contents", "SnapshotAssetNameMissing");
+        }
+    }
+
+    private void validateSnapshotQuerySpec(SnapshotRequestQueryModel queryModel, Errors errors) {
+        String query = queryModel.getQuery();
+        if (query == null) {
+            errors.rejectValue("contents", "SnapshotQueryEmpty");
+        }
+        // TODO add addtional ANTLR validation?
+        String assetName = queryModel.getAssetName();
+        if (assetName == null) {
+            errors.rejectValue("contents", "SnapshotAssetNameMissing");
+        }
+    }
+
+    private void validateSnapshotRowIdSpec(SnapshotRequestRowIdModel rowIdSpec, Errors errors) {
+        List<SnapshotRequestRowIdTableModel> tables = rowIdSpec.getTables();
+        if (tables == null || tables.isEmpty()) {
+            errors.rejectValue("contents", "SnapshotTablesListEmpty");
+        } else {
+            tables.forEach(t -> {
+                if (StringUtils.isBlank(t.getTableName())) {
+                    errors.rejectValue("contents", "SnapshotTableNameMissing");
+                }
+                List<String> columns = t.getColumns();
+                if (columns == null || columns.isEmpty()) {
+                    errors.rejectValue("contents", "SnapshotTableColumnsMissing");
+                }
+                List<String> rowIds = t.getRowIds();
+                if (rowIds == null || rowIds.isEmpty()) {
+                    errors.rejectValue("contents", "SnapshotTableRowIdsMissing");
                 }
             });
         }
@@ -68,7 +117,14 @@ public class SnapshotRequestValidator implements Validator {
         if (description == null) {
             errors.rejectValue("description", "SnapshotDescriptionMissing");
         } else if (!ValidationUtils.isValidDescription(description)) {
-            errors.rejectValue("description", "SnapshotDescriptionTooLong");
+            errors.rejectValue("description", "SnapshotDescriptionTooLong",
+                "the snapshot description cannot be over 2048 characters");
+        }
+    }
+
+    private void validateSnapshotProfileId(String profileId, Errors errors) {
+        if (profileId == null) {
+            errors.rejectValue("profileId", "SnapshotMissingProfileId");
         }
     }
 
@@ -77,8 +133,9 @@ public class SnapshotRequestValidator implements Validator {
         if (target != null && target instanceof SnapshotRequestModel) {
             SnapshotRequestModel snapshotRequestModel = (SnapshotRequestModel) target;
             validateSnapshotName(snapshotRequestModel.getName(), errors);
+            validateSnapshotProfileId(snapshotRequestModel.getProfileId(), errors);
             validateSnapshotDescription(snapshotRequestModel.getDescription(), errors);
-            validateSnapshotValues(snapshotRequestModel.getContents(), errors);
+            validateSnapshotContents(snapshotRequestModel.getContents(), errors);
         }
     }
 }

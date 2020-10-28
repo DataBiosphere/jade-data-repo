@@ -1,10 +1,10 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.service.dataset.Dataset;
-import bio.terra.common.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.common.PdaoLoadStatistics;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.dataset.DatasetService;
@@ -22,9 +22,9 @@ public class IngestInsertIntoDatasetTableStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
-        Table targetTable = IngestUtils.getDatasetTable(context, dataset);
+        DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
         String stagingTableName = IngestUtils.getStagingTableName(context);
 
         IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);

@@ -1,3 +1,6 @@
+# skaffold
+skaffold.yaml
+
 # Compiled class file
 *.class
 
@@ -35,14 +38,24 @@ build/
 
 # generated source files
 src/generated/
+src/main/resources/version.properties
 .swagger-codegen/
 .swagger-codegen-ignore
+pom.xml
 
 # gradle files
 .gradle/
 .gradletasknamecache
+datarepo-client/gradle/
+datarepo-client/gradlew
+datarepo-client/gradlew.bat
 
 # Mac directory metadata
 .DS_Store
 
 *.pem
+
+# integration vars
+env_vars
+jade-dev-account.json
+jade-dev-account.pem

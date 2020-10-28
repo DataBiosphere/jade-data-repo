@@ -1,14 +1,17 @@
 package bio.terra.service.resourcemanagement.google;
 
-import bio.terra.service.iam.sam.SamConfiguration;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
-import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
-import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileService;
+import bio.terra.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
+import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -18,12 +21,12 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
+import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.cloudresourcemanager.model.Policy;
+import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
-import com.google.api.services.cloudresourcemanager.model.Project;
-import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
@@ -35,31 +38,41 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Component
 public class GoogleResourceService {
     private static final Logger logger = LoggerFactory.getLogger(GoogleResourceService.class);
     private static final String ENABLED_FILTER = "state:ENABLED";
+    private static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
+
 
     private final GoogleResourceDao resourceDao;
     private final ProfileService profileService;
     private final GoogleResourceConfiguration resourceConfiguration;
     private final GoogleBillingService billingService;
     private final GcsProjectFactory gcsProjectFactory;
-    private final SamConfiguration samConfiguration;
+    private final Environment springEnvironment;
+    private final ConfigurationService configService;
+
+    @Value("${datarepo.gcs.allowReuseExistingBuckets}") private boolean allowReuseExistingBuckets;
 
     @Autowired
     public GoogleResourceService(
@@ -68,44 +81,239 @@ public class GoogleResourceService {
         GoogleResourceConfiguration resourceConfiguration,
         GoogleBillingService billingService,
         GcsProjectFactory gcsProjectFactory,
-        SamConfiguration samConfiguration) {
+        Environment springEnvironment,
+        ConfigurationService configService) {
         this.resourceDao = resourceDao;
         this.profileService = profileService;
         this.resourceConfiguration = resourceConfiguration;
         this.billingService = billingService;
         this.gcsProjectFactory = gcsProjectFactory;
-        this.samConfiguration = samConfiguration;
+        this.springEnvironment = springEnvironment;
+        this.configService = configService;
     }
 
-    public GoogleBucketResource getBucketResourceById(UUID bucketResourceId) {
-        return resourceDao.retrieveBucketById(bucketResourceId);
-    }
+    /**
+     * Fetch an existing bucket_resource metadata row.
+     * Note this method checks for the existence of the underlying cloud resource, if checkCloudResourceExists=true.
+     * @param bucketResourceId
+     * @param checkCloudResourceExists true to do the existence check, false to skip it
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws GoogleResourceNotFoundException if no bucket_resource metadata row is found
+     * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
+     */
+    public GoogleBucketResource getBucketResourceById(UUID bucketResourceId, boolean checkCloudResourceExists) {
+        // fetch the bucket_resource metadata row
+        GoogleBucketResource bucketResource = resourceDao.retrieveBucketById(bucketResourceId);
 
-    public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest) {
-        // see if there is a bucket resource that matches the project and bucket name from the request
-        GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();
-        try {
-            Optional<GoogleBucketResource> possibleMatch = resourceDao.retrieveBucketsByProjectResource(projectResource)
-                .stream()
-                .filter(bucketResource -> bucketResource.getName().equals(bucketRequest.getBucketName()))
-                .findFirst();
-            if (possibleMatch.isPresent()) {
-                return possibleMatch.get();
+        if (checkCloudResourceExists) {
+            // throw an exception if the bucket does not already exist
+            Bucket bucket = getBucket(bucketResource.getName());
+            if (bucket == null) {
+                throw new CorruptMetadataException(
+                    "Bucket metadata exists, but bucket not found: " + bucketResource.getName());
             }
-        } catch (GoogleResourceNotFoundException e) {
-            logger.info("no bucket resource metadata found for project: {}", projectResource.getGoogleProjectId());
         }
 
-        // the bucket might already exist even though we don't have metadata for it
-        Bucket bucket = getBucket(bucketRequest.getBucketName()).orElseGet(() -> newBucket(bucketRequest));
+        return bucketResource;
+    }
+
+    /**
+     * Fetch/create a bucket cloud resource and the associated metadata in the bucket_resource table.
+     *
+     * On entry to this method, there are 9 states along 3 main dimensions:
+     * Google Bucket - exists or not
+     * DR Metadata record - exists or not
+     * DR Metadata lock state (only if record exists):
+     *  - not locked
+     *  - locked by this flight
+     *  - locked by another flight
+     * In addition, there is one case where it matters if we are reusing buckets or not.
+     *
+     * Itemizing the 9 cases:
+     * CASE 1: bucket exists, record exists, record is unlocked
+     *   The predominant case. We return the bucket resource
+     *
+     * CASE 2: bucket exists, record exists, locked by another flight
+     *   We have to wait until the other flight finishes creating the bucket. Throw BucketLockFailureException.
+     *   We expect the calling Step to retry on that exception.
+     *
+     * CASE 3: bucket exists, record exists, locked by us
+     *   This flight created the bucket, but failed before we could unlock it. So, we unlock and
+     *   return the bucket resource.
+     *
+     * CASE 4: bucket exists, no record exists, we are allowed to reuse buckets
+     *   This is a common case in development where we re-use the same cloud resources over and over during
+     *   testing rather than continually create and destroy them. In this case, we proceed with the
+     *   try-to-create-bucket-metadata algorithm.
+     *
+     * CASE 5: bucket exists, no record exists, we are not reusing buckets
+     *   This is the production mode and should not happen. It means we our metadata does not reflect the
+     *   actual cloud resources. Throw CorruptMetadataException
+     *
+     * CASE 6: no bucket exists, record exists, not locked
+     *   This should not happen. Throw CorruptMetadataException
+     *
+     * CASE 7: no bucket exists, record exists, locked by another flight
+     *   We have to wait until the other flight finishes creating the bucket. Throw BucketLockFailureException.
+     *   We expect the calling Step to retry on that exception.
+     *
+     * CASE 8: no bucket exists, record exists, locked by this flight
+     *   We must have failed after creating and locking the record, but before creating the bucket.
+     *   Proceed with the finish-trying-to-create-bucket algorithm
+     *
+     * CASE 9: no bucket exists, no record exists
+     *   Proceed with try-to-create-bucket algorithm
+     *
+     * The algorithm to create a bucket is like a miniature flight and we implement it as a set
+     * of methods that chain to make the whole algorithm:
+     *  1. createMetadataRecord: create and lock the metadata record; then
+     *  2. createCloudBucket: if the bucket does not exist, create it; then
+     *  3. createFinish: unlock the metadata record
+     * The algorithm may fail between any of those steps, so we may arrive in this method needing to
+     * do some or all of those steps.
+     *
+     * @param bucketRequest request for a new or existing bucket
+     * @param flightId flight making the request
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws CorruptMetadataException in CASE 5 and CASE 6
+     * @throws BucketLockFailureException in CASE 2 and CASE 7, and sometimes case 9
+     */
+    public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest, String flightId)
+        throws InterruptedException {
+
+        logger.info("application property allowReuseExistingBuckets = " + allowReuseExistingBuckets);
+        String bucketName = bucketRequest.getBucketName();
+
+        // Try to get the bucket record and the bucket object
+        GoogleBucketResource googleBucketResource = resourceDao.getBucket(bucketRequest);
+        Bucket bucket = getBucket(bucketRequest.getBucketName());
+
+        // Test all of the cases
+        if (bucket != null) {
+            if (googleBucketResource != null) {
+                String lockingFlightId = googleBucketResource.getFlightId();
+                if (lockingFlightId == null) {
+                    // CASE 1: everything exists and is unlocked
+                    return googleBucketResource;
+                }
+                if (!StringUtils.equals(lockingFlightId, flightId)) {
+                    // CASE 2: another flight is creating the bucket
+                    throw bucketLockException(flightId);
+                }
+                // CASE 3: we have the flight locked, but we did all of the creating.
+                return createFinish(bucket, flightId, googleBucketResource);
+            } else {
+                // bucket exists, but metadata record does not exist.
+                if (allowReuseExistingBuckets) {
+                    // CASE 4: go ahead and reuse the bucket
+                    return createMetadataRecord(bucketRequest, flightId);
+                } else {
+                    // CASE 5:
+                    throw new CorruptMetadataException(
+                        "Bucket already exists, metadata out of sync with cloud state: " + bucketName);
+                }
+            }
+        } else {
+            // bucket does not exist
+            if (googleBucketResource != null) {
+                String lockingFlightId = googleBucketResource.getFlightId();
+                if (lockingFlightId == null) {
+                    // CASE 6: no bucket, but the metadata record exists unlocked
+                    throw new CorruptMetadataException(
+                        "Bucket does not exist, metadata out of sync with cloud state: " + bucketName);
+                }
+                if (!StringUtils.equals(lockingFlightId, flightId)) {
+                    // CASE 7: another flight is creating the bucket
+                    throw bucketLockException(flightId);
+                }
+                // CASE 8: this flight has the metadata locked, but didn't finish creating the bucket
+                return createCloudBucket(bucketRequest, flightId, googleBucketResource);
+            } else {
+                // CASE 9: no bucket and no record
+                return createMetadataRecord(bucketRequest, flightId);
+            }
+        }
+    }
+
+    private BucketLockException bucketLockException(String flightId) {
+        return new BucketLockException("Bucket locked by flightId: " + flightId);
+    }
+
+    // Step 1 of creating a new bucket - create and lock the metadata record
+    private GoogleBucketResource createMetadataRecord(GoogleBucketRequest bucketRequest, String flightId)
+        throws InterruptedException {
+
+        // insert a new bucket_resource row and lock it
+        GoogleBucketResource googleBucketResource = resourceDao.createAndLockBucket(bucketRequest, flightId);
+        if (googleBucketResource == null) {
+            // We tried and failed to get the lock. So we ended up in CASE 2 after all.
+            throw bucketLockException(flightId);
+        }
+
+        // this fault is used by the ResourceLockTest
+        if (configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT)) {
+            logger.info("BUCKET_LOCK_CONFLICT_STOP_FAULT");
+            while (!configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                logger.info("Sleeping for CONTINUE FAULT");
+                TimeUnit.SECONDS.sleep(5);
+            }
+            logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
+        }
+
+        return createCloudBucket(bucketRequest, flightId, googleBucketResource);
+    }
+
+    // Step 2 of creating a new bucket
+    private GoogleBucketResource createCloudBucket(GoogleBucketRequest bucketRequest,
+                                                   String flightId,
+                                                   GoogleBucketResource googleBucketResource) {
+        // If the bucket doesn't exist, create it
+        Bucket bucket = getBucket(bucketRequest.getBucketName());
+        if (bucket == null) {
+            bucket = newBucket(bucketRequest);
+        }
+        return createFinish(bucket, flightId, googleBucketResource);
+    }
+
+    // Step 3 (last) of creating a new bucket
+    private GoogleBucketResource createFinish(Bucket bucket,
+                                              String flightId,
+                                              GoogleBucketResource googleBucketResource) {
+        resourceDao.unlockBucket(bucket.getName(), flightId);
         Acl.Entity owner = bucket.getOwner();
         logger.info("bucket is owned by '{}'", owner.toString());
         // TODO: ensure that the repository is the owner unless strictOwnership is false
-        GoogleBucketResource googleBucketResource = new GoogleBucketResource(bucketRequest);
-        UUID id = resourceDao.createBucket(googleBucketResource);
-        return googleBucketResource.resourceId(id);
+        //  Although that might be better done in the getBucket code where we also sanity check the
+        //  project the bucket is in.
+        return googleBucketResource;
     }
 
+    /**
+     * Update the bucket_resource metadata table to match the state of the underlying cloud.
+     *    - If the bucket exists, then the metadata row should also exist and be unlocked.
+     *    - If the bucket does not exist, then the metadata row should not exist.
+     * If the metadata row is locked, then only the locking flight can unlock or delete the row.
+     * @param bucketName
+     * @param flightId
+     */
+    public void updateBucketMetadata(String bucketName, String flightId) {
+        // check if the bucket already exists
+        Bucket existingBucket = getBucket(bucketName);
+        if (existingBucket != null) {
+            // bucket EXISTS. unlock the metadata row
+            resourceDao.unlockBucket(bucketName, flightId);
+        } else {
+            // bucket DOES NOT EXIST. delete the metadata row
+            resourceDao.deleteBucketMetadata(bucketName, flightId);
+        }
+    }
+
+    /**
+     * Create a new bucket cloud resource.
+     * Note this method does not create any associated metadata in the bucket_resource table.
+     * @param bucketRequest
+     * @return a reference to the bucket as a GCS Bucket object
+     */
     private Bucket newBucket(GoogleBucketRequest bucketRequest) {
         String bucketName = bucketRequest.getBucketName();
         GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();
@@ -122,7 +330,46 @@ public class GoogleResourceService {
         return gcsProject.getStorage().create(bucketInfo);
     }
 
-    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {
+    /**
+     * Fetch an existing bucket cloud resource.
+     * Note this method does not check any associated metadata in the bucket_resource table.
+     * @param bucketName
+     * @return a reference to the bucket as a GCS Bucket object, null if not found
+     */
+    private Bucket getBucket(String bucketName) {
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        try {
+            return storage.get(bucketName);
+        } catch (StorageException e) {
+            throw new GoogleResourceException("Could not check bucket existence", e);
+        }
+    }
+
+    /**
+     * Setter for allowReuseExistingBuckets property.
+     * This property should be set in application.properties (or the appropriate one for your environment).
+     * This setter should only be used by tests to programmatically modify the flag to test behavior without running
+     * with two different properties files.
+     * @param newValue
+     * @return this
+     */
+    public GoogleResourceService setAllowReuseExistingBuckets(boolean newValue) {
+        allowReuseExistingBuckets = newValue;
+        return this;
+    }
+
+    /**
+     * Getter for allowReuseExistingBuckets property.
+     * This property should be read from application.properties (or the appropriate one for your environment).
+     * This getter should only be used by tests to programmatically modify the flag to test behavior without running
+     * with two different properties files.
+     * @return boolean property value
+     */
+    public boolean getAllowReuseExistingBuckets() {
+        return allowReuseExistingBuckets;
+    }
+
+    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) throws InterruptedException {
         // Naive: this implements a 1-project-per-profile approach. If there is already a Google project for this
         // profile we will look up the project by id, otherwise we will generate one and look it up
         String googleProjectId = projectRequest.getProjectId();
@@ -140,12 +387,22 @@ public class GoogleResourceService {
                 .googleProjectId(googleProjectId)
                 .googleProjectNumber(existingProject.getProjectNumber().toString());
             enableServices(googleProjectResource);
-            enableIamPermissions(googleProjectResource);
+            enableIamPermissions(googleProjectResource.getRoleIdentityMapping(), googleProjectId);
             UUID id = resourceDao.createProject(googleProjectResource);
             return googleProjectResource.repositoryId(id);
         }
 
         return newProject(projectRequest, googleProjectId);
+    }
+
+    public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
+        throws InterruptedException {
+
+        Map<String, List<String>> policyMap = new HashMap<>();
+        List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        policyMap.put(BQ_JOB_USER_ROLE, emails);
+
+        enableIamPermissions(policyMap, dataProject);
     }
 
     public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -168,16 +425,9 @@ public class GoogleResourceService {
         }
     }
 
-    private Optional<Bucket> getBucket(String bucketName) {
-        Storage storage = StorageOptions.getDefaultInstance().getService();
-        try {
-            return Optional.ofNullable(storage.get(bucketName));
-        } catch (StorageException e) {
-            throw new GoogleResourceException("Could not check bucket existence", e);
-        }
-    }
+    private GoogleProjectResource newProject(GoogleProjectRequest projectRequest, String googleProjectId)
+        throws InterruptedException {
 
-    private GoogleProjectResource newProject(GoogleProjectRequest projectRequest, String googleProjectId) {
         BillingProfile profile = profileService.getProfileById(projectRequest.getProfileId());
         logger.info("creating a new project: {}", projectRequest.getProjectId());
         if (!profile.isAccessible()) {
@@ -212,10 +462,10 @@ public class GoogleResourceService {
                 .googleProjectNumber(googleProjectNumber);
             setupBilling(googleProjectResource);
             enableServices(googleProjectResource);
-            enableIamPermissions(googleProjectResource);
+            enableIamPermissions(googleProjectResource.getRoleIdentityMapping(), googleProjectId);
             UUID repositoryId = resourceDao.createProject(googleProjectResource);
             return googleProjectResource.repositoryId(repositoryId);
-        } catch (IOException | GeneralSecurityException | InterruptedException e) {
+        } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not create project", e);
         }
     }
@@ -238,7 +488,7 @@ public class GoogleResourceService {
         resourceDao.deleteProject(resourceId);
     }
 
-    private void enableServices(GoogleProjectResource projectResource) {
+    private void enableServices(GoogleProjectResource projectResource) throws InterruptedException {
         BatchEnableServicesRequest batchRequest = new BatchEnableServicesRequest()
             .setServiceIds(projectResource.getServiceIds());
         try {
@@ -273,35 +523,53 @@ public class GoogleResourceService {
                 long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
                 blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
             }
-        } catch (IOException | GeneralSecurityException | InterruptedException e) {
+        } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not enable services", e);
         }
     }
 
-    public void enableIamPermissions(GoogleProjectResource projectResource) {
-        Map<String, List<String>> userPermissions = projectResource.getRoleIdentityMapping();
+    private static final int RETRIES = 10;
+    private static final int MAX_WAIT_SECONDS = 30;
+    private static final int INITIAL_WAIT_SECONDS = 2;
+
+    public void enableIamPermissions(Map<String, List<String>> userPermissions, String projectId)
+        throws InterruptedException {
+
         GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
 
-        try {
-            CloudResourceManager resourceManager = cloudResourceManager();
-            Policy policy = resourceManager.projects()
-                .getIamPolicy(projectResource.getGoogleProjectId(), getIamPolicyRequest).execute();
-            List<Binding> bindingsList = policy.getBindings();
+        Exception lastException = null;
+        int retryWait = INITIAL_WAIT_SECONDS;
+        for (int i = 0; i < RETRIES; i++) {
+            try {
+                CloudResourceManager resourceManager = cloudResourceManager();
+                Policy policy = resourceManager.projects()
+                    .getIamPolicy(projectId, getIamPolicyRequest).execute();
+                List<Binding> bindingsList = policy.getBindings();
 
-            for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
-                Binding binding = new Binding()
-                    .setRole(entry.getKey())
-                    .setMembers(entry.getValue());
-                bindingsList.add(binding);
+                for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
+                    Binding binding = new Binding()
+                        .setRole(entry.getKey())
+                        .setMembers(entry.getValue());
+                    bindingsList.add(binding);
+                }
+
+                policy.setBindings(bindingsList);
+                SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
+                resourceManager.projects()
+                    .setIamPolicy(projectId, setIamPolicyRequest).execute();
+                return;
+            } catch (IOException | GeneralSecurityException ex) {
+                logger.info("Failed to enable iam permissions. Retry " + i + " of " + RETRIES, ex);
+                lastException = ex;
             }
 
-            policy.setBindings(bindingsList);
-            SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
-            resourceManager.projects()
-                .setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest).execute();
-        } catch (IOException | GeneralSecurityException ex) {
-            throw new EnablePermissionsFailedException("Cannot enable iam permissions", ex);
+            TimeUnit.SECONDS.sleep(retryWait);
+            retryWait = retryWait + retryWait;
+            if (retryWait > MAX_WAIT_SECONDS) {
+                retryWait = MAX_WAIT_SECONDS;
+            }
         }
+        throw new EnablePermissionsFailedException("Cannot enable iam permissions", lastException);
     }
 
     private void setupBilling(GoogleProjectResource project) {

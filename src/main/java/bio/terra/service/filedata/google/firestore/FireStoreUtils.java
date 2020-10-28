@@ -118,25 +118,23 @@ public class FireStoreUtils {
      * Our objects are small, so I think we can use the maximum batch size without
      * concern for using too much memory.
      */
-    void scanCollectionObjects(Firestore firestore,
+    <V> void scanCollectionObjects(Firestore firestore,
                                String collectionId,
                                int batchSize,
-                               InterruptibleConsumer<QueryDocumentSnapshot> func) throws InterruptedException {
+                               ApiFutureGenerator<V, QueryDocumentSnapshot> generator) throws InterruptedException {
         CollectionReference datasetCollection = firestore.collection(collectionId);
         try {
             int batchCount = 0;
-            int visited;
+            List<QueryDocumentSnapshot> documents;
             do {
-                visited = 0;
                 ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                documents = future.get().getDocuments();
                 batchCount++;
-                logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
-                for (QueryDocumentSnapshot document : documents) {
-                    func.accept(document);
-                    visited++;
+                if (!documents.isEmpty()) {
+                    logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
                 }
-            } while (visited >= batchSize);
+                batchOperation(documents, generator);
+            } while (documents.size() > 0);
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("scanning collection - execution exception", ex);
         }
@@ -156,6 +154,16 @@ public class FireStoreUtils {
     private static final int NO_PROGRESS_MAX = 2;
     private static final int SLEEP_MILLISECONDS = 1000;
 
+    /**
+     * Perform the specified Firestore operation against a specified list of inputs in batch.
+     * @param inputs A list containing the inputs to the function to be applied in batch
+     * @param generator A generator that provides a future given an input from the inputs parameter
+     * @param <T> The class of the objects in the input list
+     * @param <V> The class of the objects that will result when the generated futures resolve
+     * @return A list of resolved futures resulting in having run the specified operation in batch. Note: the order of
+     * the list matches with the order of the input list objects
+     * @throws InterruptedException If a call to Firestore is interrupted
+     */
     <T, V> List<T> batchOperation(List<V> inputs, ApiFutureGenerator<T, V> generator) throws InterruptedException {
         int inputSize = inputs.size();
         // We drive the retry processing by which outputs have not been filled in,

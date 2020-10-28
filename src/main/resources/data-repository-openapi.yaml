@@ -777,7 +777,7 @@ paths:
 
   '/api/repository/v1/datasets/{id}/policies/{policyName}/members':
     post:
-      description: Adds a member to the specified policy for the snapshot
+      description: Adds a member to the specified policy for the dataset
       operationId: addDatasetPolicyMember
       tags:
       - repository
@@ -786,7 +786,7 @@ paths:
       parameters:
       - in: body
         name: policyMember
-        description: Snapshot to change the policy of
+        description: Dataset to change the policy of
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
@@ -805,7 +805,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - snapshot id does not exist
+          description: Not found - dataset id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
@@ -930,7 +930,7 @@ paths:
 
   '/api/repository/v1/datasets/{id}/assets/{assetid}':
     delete:
-      description: Remove an asset definiion from a dataset
+      description: Remove an asset definition from a dataset
       operationId: removeDatasetAssetSpecifications
       tags:
       - repository

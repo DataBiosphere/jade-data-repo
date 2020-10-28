@@ -88,7 +88,9 @@ public class SnapshotDaoTest {
         dataset.projectResourceId(projectId);
 
         String createFlightId = UUID.randomUUID().toString();
-        datasetId = datasetDao.createAndLock(dataset, createFlightId);
+        datasetId = UUID.randomUUID();
+        dataset.id(datasetId);
+        datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         dataset = datasetDao.retrieve(datasetId);
 
@@ -120,42 +122,43 @@ public class SnapshotDaoTest {
         snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID().toString());
 
         String flightId = "happyInOutTest_flightId";
-        Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-        snapshot.projectResourceId(projectId);
+        Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest)
+            .projectResourceId(projectId)
+            .id(snapshotId);
+        snapshotDao.createAndLock(snapshot, flightId);
 
-        snapshotId = snapshotDao.createAndLock(snapshot, flightId);
         snapshotDao.unlock(snapshotId, flightId);
         Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotId);
 
         assertThat("snapshot name set correctly",
-                fromDB.getName(),
-                equalTo(snapshot.getName()));
+            fromDB.getName(),
+            equalTo(snapshot.getName()));
 
         assertThat("snapshot description set correctly",
-                fromDB.getDescription(),
-                equalTo(snapshot.getDescription()));
+            fromDB.getDescription(),
+            equalTo(snapshot.getDescription()));
 
         assertThat("correct number of tables created",
-                fromDB.getTables().size(),
-                equalTo(2));
+            fromDB.getTables().size(),
+            equalTo(2));
 
         assertThat("correct number of sources created",
-                fromDB.getSnapshotSources().size(),
-                equalTo(1));
+            fromDB.getSnapshotSources().size(),
+            equalTo(1));
 
         // verify source and map
         SnapshotSource source = fromDB.getSnapshotSources().get(0);
         assertThat("source points back to snapshot",
-                source.getSnapshot().getId(),
-                equalTo(snapshot.getId()));
+            source.getSnapshot().getId(),
+            equalTo(snapshot.getId()));
 
         assertThat("source points to the asset spec",
-                source.getAssetSpecification().getId(),
-                equalTo(dataset.getAssetSpecifications().get(0).getId()));
+            source.getAssetSpecification().getId(),
+            equalTo(dataset.getAssetSpecifications().get(0).getId()));
 
         assertThat("correct number of map tables",
-                source.getSnapshotMapTables().size(),
-                equalTo(2));
+            source.getSnapshotMapTables().size(),
+            equalTo(2));
 
         // Verify map table
         SnapshotMapTable mapTable = source.getSnapshotMapTables()
@@ -175,16 +178,16 @@ public class SnapshotDaoTest {
             .orElseThrow(AssertionError::new);
 
         assertThat("correct map table dataset table",
-                mapTable.getFromTable().getId(),
-                equalTo(datasetTable.getId()));
+            mapTable.getFromTable().getId(),
+            equalTo(datasetTable.getId()));
 
         assertThat("correct map table snapshot table",
-                mapTable.getToTable().getId(),
-                equalTo(snapshotTable.getId()));
+            mapTable.getToTable().getId(),
+            equalTo(snapshotTable.getId()));
 
         assertThat("correct number of map columns",
-                mapTable.getSnapshotMapColumns().size(),
-                equalTo(1));
+            mapTable.getSnapshotMapColumns().size(),
+            equalTo(1));
 
         // Verify map columns
         SnapshotMapColumn mapColumn = mapTable.getSnapshotMapColumns().get(0);
@@ -193,12 +196,12 @@ public class SnapshotDaoTest {
         Column snapshotColumn = snapshotTable.getColumns().get(0);
 
         assertThat("correct map column dataset column",
-                mapColumn.getFromColumn().getId(),
-                equalTo(datasetColumn.getId()));
+            mapColumn.getFromColumn().getId(),
+            equalTo(datasetColumn.getId()));
 
         assertThat("correct map column snapshot column",
-                mapColumn.getToColumn().getId(),
-                equalTo(snapshotColumn.getId()));
+            mapColumn.getToColumn().getId(),
+            equalTo(snapshotColumn.getId()));
 
         List<Relationship> relationships = fromDB.getRelationships();
         assertThat("a relationship comes back", relationships.size(), equalTo(1));
@@ -228,9 +231,12 @@ public class SnapshotDaoTest {
                 // dataset name or created_date. add a suffix to filter on for the even snapshots
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
             String flightId = "snapshotEnumerateTest_flightId";
-            Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-            snapshot.projectResourceId(projectId);
-            snapshotId = snapshotDao.createAndLock(snapshot, flightId);
+            snapshotId = UUID.randomUUID();
+            Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest)
+                .projectResourceId(projectId)
+                .id(snapshotId);
+            snapshotDao.createAndLock(snapshot, flightId);
+
             snapshotDao.unlock(snapshotId, flightId);
             snapshotIds.add(snapshotId);
         }
@@ -283,7 +289,7 @@ public class SnapshotDaoTest {
         String direction) {
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit, "name",
             direction, null, snapshotIds);
-        List<SnapshotSummary>  summaryList = summaryEnum.getItems();
+        List<SnapshotSummary> summaryList = summaryEnum.getItems();
         int index = (direction.equals("asc")) ? offset : snapshotIds.size() - offset - 1;
         for (SnapshotSummary summary : summaryList) {
             assertThat("correct id", snapshotIds.get(index), equalTo(summary.getId()));
@@ -321,11 +327,11 @@ public class SnapshotDaoTest {
         int index = offset;
         for (SnapshotSummary summary : summaryList) {
             assertThat("correct snapshot id",
-                    snapshotIds.get(index),
-                    equalTo(summary.getId()));
-            assertThat("correct snapshot namee",
-                    makeName(snapshotName, index),
-                    equalTo(summary.getName()));
+                snapshotIds.get(index),
+                equalTo(summary.getId()));
+            assertThat("correct snapshot name",
+                makeName(snapshotName, index),
+                equalTo(summary.getName()));
             index++;
         }
     }

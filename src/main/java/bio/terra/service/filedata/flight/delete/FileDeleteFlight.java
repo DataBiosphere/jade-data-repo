@@ -14,10 +14,12 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.RetryRuleRandomBackoff;
+import bio.terra.stairway.RetryRule;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
+
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 public class FileDeleteFlight extends Flight {
 
@@ -45,10 +47,8 @@ public class FileDeleteFlight extends Flight {
         //  ** Well, what we really should do is fix Stairway to throw the contained exception **
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 
-        RetryRuleRandomBackoff fileSystemRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-        RetryRuleRandomBackoff lockDatasetRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRule fileSystemRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+        RetryRule lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         // The flight plan:
         // 0. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted while this

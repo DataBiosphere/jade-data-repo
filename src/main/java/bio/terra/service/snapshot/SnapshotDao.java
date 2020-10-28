@@ -129,35 +129,29 @@ public class SnapshotDao {
      * @throws InvalidSnapshotException if a row already exists with this snapshot name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public UUID createAndLock(Snapshot snapshot, String flightId) {
+    public void createAndLock(Snapshot snapshot, String flightId) {
         logger.debug("createAndLock snapshot " + snapshot.getName());
 
-        String sql = "INSERT INTO snapshot (name, description, profile_id, project_resource_id, flightid) " +
-            "VALUES (:name, :description, :profile_id, :project_resource_id, :flightid) ";
+        String sql = "INSERT INTO snapshot (name, description, profile_id, project_resource_id, id, flightid) " +
+            "VALUES (:name, :description, :profile_id, :project_resource_id, :id, :flightid) ";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", snapshot.getName())
             .addValue("description", snapshot.getDescription())
             .addValue("profile_id", snapshot.getProfileId())
             .addValue("project_resource_id", snapshot.getProjectResourceId())
+            .addValue("id", snapshot.getId())
             .addValue("flightid", flightId);
-        DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
-            jdbcTemplate.update(sql, params, keyHolder);
+            jdbcTemplate.update(sql, params);
         } catch (DuplicateKeyException dkEx) {
-            throw new InvalidSnapshotException("Snapshot name already exists: " + snapshot.getName(), dkEx);
+            throw new InvalidSnapshotException(
+                "Snapshot name or id already exists: " + snapshot.getName() + ", " + snapshot.getId(), dkEx);
         }
 
-        UUID snapshotId = keyHolder.getId();
-        snapshot
-            .id(snapshotId)
-            .createdDate(keyHolder.getCreatedDate());
-
-        snapshotTableDao.createTables(snapshotId, snapshot.getTables());
+        snapshotTableDao.createTables(snapshot.getId(), snapshot.getTables());
         for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
             createSnapshotSource(snapshotSource);
         }
-
-        return snapshotId;
     }
 
     /**
@@ -196,17 +190,11 @@ public class SnapshotDao {
         snapshotRelationshipDao.createSnapshotRelationships(snapshotSource.getSnapshot());
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean delete(UUID id) {
         logger.debug("delete snapshot by id: " + id);
         int rowsAffected = jdbcTemplate.update("DELETE FROM snapshot WHERE id = :id",
                 new MapSqlParameterSource().addValue("id", id));
-        return rowsAffected > 0;
-    }
-
-    public boolean deleteByName(String snapshotName) {
-        logger.debug("delete snapshot by name: " + snapshotName);
-        int rowsAffected = jdbcTemplate.update("DELETE FROM snapshot WHERE name = :name",
-                new MapSqlParameterSource().addValue("name", snapshotName));
         return rowsAffected > 0;
     }
 

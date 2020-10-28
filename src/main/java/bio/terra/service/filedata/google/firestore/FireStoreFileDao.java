@@ -6,23 +6,26 @@ import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
+import com.google.api.core.SettableApiFuture;
 import com.google.api.gax.grpc.GrpcStatusCode;
 import com.google.api.gax.rpc.AbortedException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.Transaction;
+import com.google.cloud.firestore.WriteResult;
 import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -41,11 +44,15 @@ class FireStoreFileDao {
 
     private final FireStoreUtils fireStoreUtils;
     private final ConfigurationService configurationService;
+    private final ExecutorService executor;
 
     @Autowired
-    FireStoreFileDao(FireStoreUtils fireStoreUtils, ConfigurationService configurationService) {
+    FireStoreFileDao(FireStoreUtils fireStoreUtils,
+                     ConfigurationService configurationService,
+                     @Qualifier("performanceThreadpool") ExecutorService executor) {
         this.fireStoreUtils = fireStoreUtils;
         this.configurationService = configurationService;
+        this.executor = executor;
     }
 
     void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) throws InterruptedException {
@@ -118,6 +125,15 @@ class FireStoreFileDao {
         }
     }
 
+    /**
+     * Retrieve metadata from a list of directory entries.
+     * @param firestore A Firestore client
+     * @param datasetId The id of the dataset that the directory entries are associated with
+     * @param directoryEntries List of objects to retried metadata for
+     * @return A list of metadata object for the specified files.  Note: the order of the list matches with the order
+     * of the input list objects
+     * @throws InterruptedException If a call to Firestore is interrupted
+     */
     List<FireStoreFile> batchRetrieveFileMetadata(
         Firestore firestore,
         String datasetId,
@@ -168,18 +184,18 @@ class FireStoreFileDao {
             collectionId,
             DELETE_BATCH_SIZE,
             document -> {
-                FireStoreFile fireStoreFile = document.toObject(FireStoreFile.class);
-                func.accept(fireStoreFile);
-                doDelete(document);
+                SettableApiFuture<WriteResult> future = SettableApiFuture.create();
+                executor.execute(() -> {
+                    try {
+                        FireStoreFile fireStoreFile = document.toObject(FireStoreFile.class);
+                        func.accept(fireStoreFile);
+                        future.set(document.getReference().delete().get());
+                    } catch (final Exception e) {
+                        future.setException(e);
+                    }
+                });
+                return future;
             });
-    }
-
-    private void doDelete(QueryDocumentSnapshot document) throws InterruptedException {
-        try {
-            document.getReference().delete().get();
-        } catch (ExecutionException ex) {
-            throw fireStoreUtils.handleExecutionException(ex, "doDelete");
-        }
     }
 
     private String makeCollectionId(String datasetId) {

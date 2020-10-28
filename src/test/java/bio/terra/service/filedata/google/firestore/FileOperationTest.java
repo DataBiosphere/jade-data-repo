@@ -182,7 +182,7 @@ public class FileOperationTest {
         // lookup the file we just created
         String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/files/" + fileModel.getFileId();
         MvcResult result = mvc.perform(get(url))
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andReturn();
         MockHttpServletResponse response = result.getResponse();
         assertThat("Lookup file succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
@@ -199,7 +199,7 @@ public class FileOperationTest {
         url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/filesystem/objects";
         result = mvc.perform(get(url)
             .param("path", fileModel.getPath()))
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
             .andReturn();
         response = result.getResponse();
         assertThat("Lookup file by path succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));

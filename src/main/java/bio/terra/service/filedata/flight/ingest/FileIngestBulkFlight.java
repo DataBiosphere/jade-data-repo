@@ -24,11 +24,14 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
-import bio.terra.stairway.RetryRuleRandomBackoff;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
+
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
+
 
 /*
  * Required input parameters:
@@ -93,11 +96,8 @@ public class FileIngestBulkFlight extends Flight {
             profileId = loadRequest.getProfileId();
         }
 
-        RetryRuleRandomBackoff createBucketRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-        RetryRuleExponentialBackoff driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
-        RetryRuleRandomBackoff lockDatasetRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRule randomBackoffRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+        RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
 
         // The flight plan:
         // 0. Make sure this user is allowed to use the billing profile and that the underlying
@@ -122,10 +122,10 @@ public class FileIngestBulkFlight extends Flight {
         // 9. TODO: release the bulk load slot (DR-754) - may not need a step if we use the count of locked tags
         // 10. Unlock the load tag
         addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
-        addStep(new LockDatasetStep(datasetDao, datasetUuid, true), lockDatasetRetry);
+        addStep(new LockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
         addStep(new LoadLockStep(loadService));
-        addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), createBucketRetry);
-        addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), createBucketRetry);
+        addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
+        addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
 
         if (isArray) {
             addStep(new IngestPopulateFileStateFromArrayStep(loadService));
@@ -163,6 +163,6 @@ public class FileIngestBulkFlight extends Flight {
         addStep(new IngestCleanFileStateStep(loadService));
 
         addStep(new LoadUnlockStep(loadService));
-        addStep(new UnlockDatasetStep(datasetDao, datasetUuid, true), lockDatasetRetry);
+        addStep(new UnlockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
     }
 }

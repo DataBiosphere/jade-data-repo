@@ -53,6 +53,6 @@ public class IngestFileMakeBucketLinkStep implements Step {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
             }
         }
-      return StepResult.getStepResultSuccess();
+        return StepResult.getStepResultSuccess();
     }
 }

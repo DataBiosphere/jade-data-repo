@@ -1,13 +1,13 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.exception.InvalidDatasetException;
-import bio.terra.service.dataset.DatasetUtils;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetJsonConversion;
+import bio.terra.service.dataset.DatasetUtils;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -37,12 +37,11 @@ public class CreateDatasetMetadataStep implements Step {
         try {
             FlightMap workingMap = context.getWorkingMap();
             UUID projectResourceId = workingMap.get(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
-
-            Dataset newDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-            newDataset.projectResourceId(projectResourceId);
-            UUID datasetId = datasetDao.createAndLock(newDataset, context.getFlightId());
-
-            workingMap.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
+            UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+            Dataset newDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
+                .projectResourceId(projectResourceId)
+                .id(datasetId);
+            datasetDao.createAndLock(newDataset, context.getFlightId());
 
             DatasetSummaryModel datasetSummary =
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(newDataset.getDatasetSummary());
@@ -59,7 +58,9 @@ public class CreateDatasetMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         logger.debug("Dataset creation failed. Deleting metadata.");
-        datasetDao.deleteByNameAndFlight(datasetRequest.getName(), context.getFlightId());
+        FlightMap workingMap = context.getWorkingMap();
+        UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+        datasetDao.delete(datasetId);
         return StepResult.getStepResultSuccess();
     }
 }

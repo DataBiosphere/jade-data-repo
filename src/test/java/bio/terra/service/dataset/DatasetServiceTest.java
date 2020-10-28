@@ -91,8 +91,11 @@ public class DatasetServiceTest {
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         dataset.projectResourceId(projectId);
         String createFlightId = UUID.randomUUID().toString();
-        UUID datasetId = datasetDao.createAndLock(dataset, createFlightId);
-        datasetDao.unlockExclusive(dataset.getId(), createFlightId);
+        UUID datasetId = UUID.randomUUID();
+        dataset
+            .id(datasetId);
+        datasetDao.createAndLock(dataset, createFlightId);
+        datasetDao.unlockExclusive(datasetId, createFlightId);
         datasetIdList.add(datasetId);
         return datasetId;
     }

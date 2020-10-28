@@ -182,7 +182,7 @@ public class FireStoreDependencyDao {
              batch = queryIterator.getBatch()) {
 
             for (DocumentSnapshot docSnap : batch) {
-                logger.info("deleting: " + docSnap.toString());
+                logger.info("deleting: " + docSnap.getReference().getPath());
                 docSnap.getReference().delete();
             }
         }

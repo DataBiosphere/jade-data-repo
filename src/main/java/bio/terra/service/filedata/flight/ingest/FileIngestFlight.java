@@ -23,10 +23,12 @@ import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.RetryRuleRandomBackoff;
+import bio.terra.stairway.RetryRule;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
+
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 // The FileIngestFlight is specific to firestore. Another cloud or file system implementation
 // might be quite different and would need a different flight.
@@ -60,13 +62,7 @@ public class FileIngestFlight extends Flight {
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-        RetryRuleRandomBackoff lockDatasetRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-
-        RetryRuleRandomBackoff fileSystemRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-        RetryRuleRandomBackoff createBucketRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRule randomBackoffRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         // The flight plan:
         // 0. Make sure this user is allowed to use the billing profile and that the underlying
@@ -95,16 +91,16 @@ public class FileIngestFlight extends Flight {
         // 9. Unlock the load tag
         //10. Unlock the dataset
         addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
-        addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+        addStep(new LockDatasetStep(datasetDao, datasetId, true), randomBackoffRetry);
         addStep(new LoadLockStep(loadService));
         addStep(new IngestFileIdStep(configService));
-        addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
-        addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), createBucketRetry);
-        addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), createBucketRetry);
+        addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), randomBackoffRetry);
+        addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
+        addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
         addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
-        addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
+        addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
         addStep(new LoadUnlockStep(loadService));
-        addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, true), randomBackoffRetry);
     }
 
 }

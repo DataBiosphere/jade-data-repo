@@ -12,6 +12,7 @@ import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedExc
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
+import bio.terra.service.resourcemanagement.exception.RevokePermissionsFailedException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -407,7 +408,7 @@ public class GoogleResourceService {
     public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
         final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
-        removeIamPermissions(Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject);
+        revokeIamPermissions(Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject);
     }
 
     public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -577,7 +578,7 @@ public class GoogleResourceService {
         throw new EnablePermissionsFailedException("Cannot enable iam permissions", lastException);
     }
 
-    public void removeIamPermissions(Map<String, List<String>> userPermissions, String projectId)
+    public void revokeIamPermissions(Map<String, List<String>> userPermissions, String projectId)
         throws InterruptedException {
 
         GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
@@ -610,7 +611,7 @@ public class GoogleResourceService {
                     .setIamPolicy(projectId, setIamPolicyRequest).execute();
                 return;
             } catch (IOException | GeneralSecurityException ex) {
-                logger.info("Failed to remove iam permissions. Retry " + i + " of " + RETRIES, ex);
+                logger.info("Failed to revoke iam permissions. Retry " + i + " of " + RETRIES, ex);
                 lastException = ex;
             }
 
@@ -620,7 +621,7 @@ public class GoogleResourceService {
                 retryWait = MAX_WAIT_SECONDS;
             }
         }
-        throw new EnablePermissionsFailedException("Cannot remove iam permissions", lastException);
+        throw new RevokePermissionsFailedException("Cannot revoke iam permissions", lastException);
     }
 
     private void setupBilling(GoogleProjectResource project) {

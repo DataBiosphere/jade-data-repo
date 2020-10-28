@@ -44,9 +44,9 @@ public class SnapshotDeleteFlight extends Flight {
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
         addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
-        // Delete access control on objects that was explicitly added by data repo operations.  Do this before delete
+        // Delete access control on objects that were explicitly added by data repo operations.  Do this before delete
         // resource from SAM to ensure we can get the metadata needed to perform the operation
-        addStep(new DeleteSnapshotAuthzBqAcls(
+        addStep(new DeleteSnapshotAuthzBqAclsStep(
             iamClient,
             resourceService,
             dataLocationService,

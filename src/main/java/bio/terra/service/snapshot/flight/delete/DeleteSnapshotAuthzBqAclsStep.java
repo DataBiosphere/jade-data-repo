@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
-public class DeleteSnapshotAuthzBqAcls implements Step {
+public class DeleteSnapshotAuthzBqAclsStep implements Step {
     private final IamService sam;
     private final GoogleResourceService resourceService;
     private final DataLocationService dataLocationService;
@@ -28,14 +28,14 @@ public class DeleteSnapshotAuthzBqAcls implements Step {
     private final UUID snapshotId;
     private final AuthenticatedUserRequest userReq;
 
-    private static Logger logger = LoggerFactory.getLogger(DeleteSnapshotAuthzBqAcls.class);
+    private static final Logger logger = LoggerFactory.getLogger(DeleteSnapshotAuthzBqAclsStep.class);
 
-    public DeleteSnapshotAuthzBqAcls(IamService sam,
-                                     GoogleResourceService resourceService,
-                                     DataLocationService dataLocationService,
-                                     SnapshotService snapshotService,
-                                     UUID snapshotId,
-                                     AuthenticatedUserRequest userReq) {
+    public DeleteSnapshotAuthzBqAclsStep(IamService sam,
+                                         GoogleResourceService resourceService,
+                                         DataLocationService dataLocationService,
+                                         SnapshotService snapshotService,
+                                         UUID snapshotId,
+                                         AuthenticatedUserRequest userReq) {
         this.sam = sam;
         this.resourceService = resourceService;
         this.dataLocationService = dataLocationService;
@@ -65,7 +65,7 @@ public class DeleteSnapshotAuthzBqAcls implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // can't undo delete
-        logger.warn("Trying to undo clear ACLs for snapshot " + snapshotId.toString());
+        logger.warn("Trying to undo clear ACLs for snapshot {}", snapshotId);
         return StepResult.getStepResultSuccess();
     }
 

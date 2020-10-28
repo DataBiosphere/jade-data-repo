@@ -17,18 +17,18 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.UUID;
 
-public class DeleteDatasetAuthzBqAcls implements Step {
+public class DeleteDatasetAuthzBqAclsStep implements Step {
     private final IamService sam;
     private final DatasetService datasetService;
     private final GoogleResourceService resourceService;
     private final UUID datasetId;
     private final AuthenticatedUserRequest userReq;
 
-    public DeleteDatasetAuthzBqAcls(IamService sam,
-                                    DatasetService datasetService,
-                                    GoogleResourceService resourceService,
-                                    UUID datasetId,
-                                    AuthenticatedUserRequest userReq) {
+    public DeleteDatasetAuthzBqAclsStep(IamService sam,
+                                        DatasetService datasetService,
+                                        GoogleResourceService resourceService,
+                                        UUID datasetId,
+                                        AuthenticatedUserRequest userReq) {
         this.sam = sam;
         this.datasetService = datasetService;
         this.resourceService = resourceService;
@@ -36,7 +36,7 @@ public class DeleteDatasetAuthzBqAcls implements Step {
         this.userReq = userReq;
     }
 
-    private static Logger logger = LoggerFactory.getLogger(DeleteDatasetAuthzBqAcls.class);
+    private static final Logger logger = LoggerFactory.getLogger(DeleteDatasetAuthzBqAclsStep.class);
 
     @Override
     public StepResult doStep(FlightContext context) throws InterruptedException {
@@ -54,7 +54,7 @@ public class DeleteDatasetAuthzBqAcls implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // can't undo delete
-        logger.warn("Trying to undo clear ACLs for dataset " + datasetId.toString());
+        logger.warn("Trying to undo clear ACLs for dataset {}", datasetId);
         return StepResult.getStepResultSuccess();
     }
 }

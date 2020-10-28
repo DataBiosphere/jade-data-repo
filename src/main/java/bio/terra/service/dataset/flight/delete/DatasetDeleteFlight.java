@@ -65,10 +65,10 @@ public class DatasetDeleteFlight extends Flight {
             datasetService,
             datasetId,
             configService), primaryDataDeleteRetry);
-        // Delete access control on objects that was explicitly added by data repo operations.  Do this before delete
+        // Delete access control on objects that were explicitly added by data repo operations.  Do this before delete
         // resource from SAM to ensure we can get the metadata needed to perform the operation.  Also need to run
         // before metadata is deleted since it is required by the step.
-        addStep(new DeleteDatasetAuthzBqAcls(iamClient, datasetService, resourceService, datasetId, userReq));
+        addStep(new DeleteDatasetAuthzBqAclsStep(iamClient, datasetService, resourceService, datasetId, userReq));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
         addStep(new UnlockDatasetStep(datasetDao, datasetId, false), lockDatasetRetry);

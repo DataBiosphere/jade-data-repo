@@ -58,6 +58,13 @@ allprojects {
   }
 }
 
+// skip subproject tasks by default when building jade-data-repo
+subprojects.each { s ->
+  s.tasks.all {
+    task -> task.enabled = (System.getenv("ENABLE_SUBPROJECT_TASKS") != null)
+  }
+}
+
 sourceCompatibility = 1.8
 
 if (hasProperty('buildScan')) {

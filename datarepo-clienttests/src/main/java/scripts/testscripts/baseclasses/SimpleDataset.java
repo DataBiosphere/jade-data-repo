@@ -7,12 +7,13 @@ import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.JobModel;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.utils.DataRepoUtils;
 import scripts.utils.SAMUtils;
+
+import java.util.List;
 
 public class SimpleDataset extends runner.TestScript {
   private static final Logger logger = LoggerFactory.getLogger(SimpleDataset.class);
@@ -36,7 +37,8 @@ public class SimpleDataset extends runner.TestScript {
 
     // create a new profile
     billingProfileModel =
-        DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
+        DataRepoUtils.createProfile(
+            resourcesApi, repositoryApi, billingAccount, "profile-simple", true);
     logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
 
     // make the create dataset request and wait for the job to finish

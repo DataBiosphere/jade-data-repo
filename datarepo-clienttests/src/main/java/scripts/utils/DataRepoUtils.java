@@ -4,19 +4,7 @@ import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
-import bio.terra.datarepo.model.BillingProfileModel;
-import bio.terra.datarepo.model.BillingProfileRequestModel;
-import bio.terra.datarepo.model.ConfigEnableModel;
-import bio.terra.datarepo.model.ConfigGroupModel;
-import bio.terra.datarepo.model.ConfigModel;
-import bio.terra.datarepo.model.ConfigParameterModel;
-import bio.terra.datarepo.model.DatasetModel;
-import bio.terra.datarepo.model.DatasetRequestModel;
-import bio.terra.datarepo.model.DatasetSummaryModel;
-import bio.terra.datarepo.model.ErrorModel;
-import bio.terra.datarepo.model.JobModel;
-import bio.terra.datarepo.model.SnapshotRequestModel;
-import bio.terra.datarepo.model.TableModel;
+import bio.terra.datarepo.model.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -26,6 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -260,7 +249,11 @@ public final class DataRepoUtils {
    * @return the created billing profile model
    */
   public static BillingProfileModel createProfile(
-      ResourcesApi resourcesApi, String billingAccount, String profileName, boolean randomizeName)
+      ResourcesApi resourcesApi,
+      RepositoryApi repositoryApi,
+      String billingAccount,
+      String profileName,
+      boolean randomizeName)
       throws Exception {
     logger.debug("Creating a billing profile");
 
@@ -270,13 +263,20 @@ public final class DataRepoUtils {
 
     BillingProfileRequestModel createProfileRequest =
         new BillingProfileRequestModel()
+            .id(UUID.randomUUID().toString())
             .biller("direct")
             .billingAccountId(billingAccount)
-            .profileName(profileName);
+            .profileName(profileName)
+            .description(profileName + " created in TestRunner RunTests");
 
     // make the create request and wait for the job to finish
-    BillingProfileModel createProfileResponse = resourcesApi.createProfile(createProfileRequest);
-    return createProfileResponse;
+    JobModel jobModel = resourcesApi.createProfile(createProfileRequest);
+    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel);
+
+    BillingProfileModel billingProfile =
+        DataRepoUtils.expectJobSuccess(repositoryApi, jobModel, BillingProfileModel.class);
+
+    return billingProfile;
   }
 
   public static void setConfigParameter(RepositoryApi repositoryApi, String name, int value)

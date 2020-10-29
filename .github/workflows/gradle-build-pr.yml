@@ -73,7 +73,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions@${GITHUB_ACTION_VERSION}
+        uses: broadinstitute/datarepo-actions@0.30.0
         with:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}

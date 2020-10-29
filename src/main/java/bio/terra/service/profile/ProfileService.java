@@ -4,7 +4,6 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
@@ -17,7 +16,6 @@ import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccount
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -93,11 +91,16 @@ public class ProfileService {
     public EnumerateBillingProfileModel enumerateProfiles(Integer offset,
                                                           Integer limit,
                                                           AuthenticatedUserRequest user) {
+        /*
         List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
         if (resources.isEmpty()) {
             return new EnumerateBillingProfileModel().total(0);
         }
         return profileDao.enumerateBillingProfiles(offset, limit, resources);
+         */
+        // TODO: when we start using sam for the spin profile, removed this call
+        //  and replace it with the logic above.
+        return profileDao.enumerateAllBillingProfiles(offset, limit);
     }
 
     /**

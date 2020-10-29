@@ -106,18 +106,20 @@ public class GoogleResourceDao {
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public GoogleBucketResource createAndLockBucket(String bucketName,
+                                                    String region,
                                                     GoogleProjectResource projectResource,
                                                     String flightId) {
         // Put an end to serialization errors here. We only come through here if we really need to create
         // the bucket, so this is not on the path of most bucket lookups.
         jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE bucket_resource IN EXCLUSIVE MODE");
 
-        String sql = "INSERT INTO bucket_resource (project_resource_id, name, flightid) VALUES " +
-            "(:project_resource_id, :name, :flightid) " +
+        String sql = "INSERT INTO bucket_resource (project_resource_id, name, region, flightid) VALUES " +
+            "(:project_resource_id, :name, :region, :flightid) " +
             "ON CONFLICT ON CONSTRAINT bucket_resource_name_key DO NOTHING";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("project_resource_id", projectResource.getId())
             .addValue("name", bucketName)
+            .addValue("region", region)
             .addValue("flightid", flightId);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
 

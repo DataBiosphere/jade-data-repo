@@ -25,8 +25,8 @@ databaseChangeLog:
               will not find them. In fact, there is no path using just the metadata database to locate them,
               which is why this table is needed.
             sql: >
-              INSERT INTO dataset_bucket (dataset_id, bucket_resource_id)
-              SELECT dataset.id, bucket_resource.id
+              INSERT INTO dataset_bucket (dataset_id, bucket_resource_id, successful_ingests)
+              SELECT dataset.id, bucket_resource.id, 1
               FROM dataset, bucket_resource, project_resource
               WHERE dataset.default_profile_id = project_resource.profile_id
               AND bucket_resource.project_resource_id = project_resource.id

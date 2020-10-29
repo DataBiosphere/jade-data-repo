@@ -46,7 +46,14 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) throws InterruptedException {
-        Snapshot snapshot = snapshotService.retrieve(snapshotId);
+        //TODO: this probably should fail with a 404 before the flight is even attempted
+        final Snapshot snapshot;
+        try {
+            snapshot = snapshotService.retrieve(snapshotId);
+        } catch (SnapshotNotFoundException e) {
+            logger.warn("Snapshot {} metadata was not found.  Ignoring explicit ACL clear.", snapshotId);
+            return StepResult.getStepResultSuccess();
+        }
 
         SnapshotDataProject projectForSnapshot = dataLocationService.getProject(snapshot)
             .orElseThrow(() -> new SnapshotNotFoundException("Snapshot was not found"));

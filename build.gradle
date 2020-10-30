@@ -153,8 +153,8 @@ configurations.all {
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
     compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
-    compile 'com.google.apis:google-api-services-cloudbilling:v1-rev20200106-1.30.3'
-    compile 'com.google.apis:google-api-services-cloudresourcemanager:v1-rev549-1.25.0'
+    compile 'com.google.cloud:google-cloud-billing:1.1.6'
+    compile 'com.google.cloud:google-cloud-resourcemanager:0.118.2-alpha'
     compile 'com.google.apis:google-api-services-serviceusage:v1beta1-rev206-1.25.0'
     compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
     compile 'com.google.cloud:google-cloud-storage:1.108.0'

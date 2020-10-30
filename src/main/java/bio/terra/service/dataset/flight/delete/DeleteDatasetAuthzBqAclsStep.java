@@ -52,6 +52,7 @@ public class DeleteDatasetAuthzBqAclsStep implements Step {
             return StepResult.getStepResultSuccess();
         }
 
+        // These policy emails should not change since the dataset is locked by the flight
         Map<IamRole, String> policies = sam.retrievePolicyEmails(userReq, IamResourceType.DATASET, datasetId);
 
         // The underlying service provides retries so we do not need to retry this operation

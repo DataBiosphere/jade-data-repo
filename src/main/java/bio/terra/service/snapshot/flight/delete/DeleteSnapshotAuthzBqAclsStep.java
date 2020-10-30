@@ -58,6 +58,7 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
         SnapshotDataProject projectForSnapshot = dataLocationService.getProject(snapshot)
             .orElseThrow(() -> new SnapshotNotFoundException("Snapshot was not found"));
 
+        // These policy emails should not change since the snapshot is locked by the flight
         Map<IamRole, String> policyEmails = sam.retrievePolicyEmails(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
 
         // Remove the custodian's access to make queries in this project.

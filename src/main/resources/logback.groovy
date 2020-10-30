@@ -1,3 +1,5 @@
+import org.springframework.cloud.gcp.logging.StackdriverJsonLayout
+
 // LogBack Configuration File
 // This file controls how, where, and what gets logged.
 // For more information see: https://logback.qos.ch/manual/groovy.html
@@ -8,9 +10,18 @@ scan("30 seconds")
 def LOG_PATH = "logs"
 
 // Appender that sends to the console
-appender("Console-Appender", ConsoleAppender) {
+appender("Console-Standard", ConsoleAppender) {
     encoder(PatternLayoutEncoder) {
         pattern = "%date %-5level [%thread] %logger{36}: %message%n"
+    }
+}
+
+appender("Console-Stackdriver", ConsoleAppender) {
+    encoder(LayoutWrappingEncoder) {
+        layout(StackdriverJsonLayout) {
+            includeTraceId = true
+            includeSpanId = true
+        }
     }
 }
 
@@ -29,4 +40,4 @@ logger("bio.terra.service.tabulardata.google.BigQueryProject", DEBUG);
 */
 
 // root sets the default logging level and appenders
-root(INFO, ["Console-Appender"])
+root(INFO, [System.getenv().getOrDefault("TDR_LOG_APPENDER", "Console-Stackdriver")])

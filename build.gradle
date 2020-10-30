@@ -172,6 +172,8 @@ dependencies {
     compile "org.springframework.boot:spring-boot-starter-web:2.2.6.RELEASE"
 
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
+    compile 'org.springframework.cloud:spring-cloud-gcp-starter-logging:1.2.5.RELEASE'
+    compile "org.springframework.cloud:spring-cloud-starter-sleuth:2.2.5.RELEASE"
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-343dfff-SNAP'
     compile 'org.antlr:ST4:4.3'                          // String templating
     compile group: 'io.kubernetes', name: 'client-java', version: '8.0.2'

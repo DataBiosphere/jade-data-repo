@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component("iamProvider")
 // Use @Profile to select when there is more than one IamService
@@ -91,7 +92,8 @@ public class SamIam implements IamProviderInterface {
                                       String resourceId,
                                       IamAction action) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        boolean authorized = samResourceApi.resourceAction(iamResourceType.toString(), resourceId, action.toString());
+        boolean authorized =
+            samResourceApi.resourcePermissionV2(iamResourceType.toString(), resourceId, action.toString());
         logger.debug("authorized is " + authorized);
         return authorized;
     }
@@ -106,13 +108,13 @@ public class SamIam implements IamProviderInterface {
     private List<UUID> listAuthorizedResourcesInner(AuthenticatedUserRequest userReq,
                                                     IamResourceType iamResourceType) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        List<ResourceAndAccessPolicy> resources =
-            samResourceApi.listResourcesAndPolicies(iamResourceType.toString());
 
-        return resources
-            .stream()
-            .map(resource -> UUID.fromString(resource.getResourceId()))
-            .collect(Collectors.toList());
+        try (Stream<ResourceAndAccessPolicy> resultStream =
+                 samResourceApi.listResourcesAndPolicies(iamResourceType.toString()).stream()) {
+            return resultStream
+                .map(resource -> UUID.fromString(resource.getResourceId()))
+                .collect(Collectors.toList());
+        }
     }
 
     @Override
@@ -250,12 +252,35 @@ public class SamIam implements IamProviderInterface {
                                                     IamResourceType iamResourceType,
                                                     UUID resourceId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        List<AccessPolicyResponseEntry> results =
-            samResourceApi.listResourcePolicies(iamResourceType.toString(), resourceId.toString());
-        return results.stream().map(entry -> new PolicyModel()
-            .name(entry.getPolicyName())
-            .members(entry.getPolicy().getMemberEmails()))
-            .collect(Collectors.toList());
+        try (Stream<AccessPolicyResponseEntry> resultStream =
+                 samResourceApi.listResourcePolicies(iamResourceType.toString(), resourceId.toString()).stream()) {
+            return resultStream.map(entry -> new PolicyModel()
+                .name(entry.getPolicyName())
+                .members(entry.getPolicy().getMemberEmails()))
+                .collect(Collectors.toList());
+        }
+    }
+
+    @Override
+    public Map<IamRole, String> retrievePolicyEmails(AuthenticatedUserRequest userReq,
+                                                     IamResourceType iamResourceType,
+                                                     UUID resourceId) throws InterruptedException {
+        SamRetry samRetry = new SamRetry(configurationService);
+        return samRetry.perform(() -> retrievePolicyEmailsInner(userReq, iamResourceType, resourceId));
+    }
+
+    private Map<IamRole, String> retrievePolicyEmailsInner(AuthenticatedUserRequest userReq,
+                                                            IamResourceType iamResourceType,
+                                                            UUID resourceId) throws ApiException {
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+        try (Stream<AccessPolicyResponseEntry> resultStream =
+                 samResourceApi.listResourcePolicies(iamResourceType.toString(), resourceId.toString()).stream()) {
+            return resultStream
+                .collect(Collectors.toMap(
+                    a -> IamRole.fromValue(a.getPolicyName()),
+                    AccessPolicyResponseEntry::getEmail
+                ));
+        }
     }
 
     @Override

@@ -186,6 +186,16 @@ public class IamService {
         }
     }
 
+    public Map<IamRole, String> retrievePolicyEmails(AuthenticatedUserRequest userReq,
+                                              IamResourceType iamResourceType,
+                                              UUID resourceId) {
+        try {
+            return iamProvider.retrievePolicyEmails(userReq, iamResourceType, resourceId);
+        } catch (InterruptedException ex) {
+            throw new IamUnavailableException("service unavailable");
+        }
+    }
+
     public PolicyModel addPolicyMember(AuthenticatedUserRequest userReq,
                                 IamResourceType iamResourceType,
                                 UUID resourceId,

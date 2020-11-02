@@ -15,6 +15,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -113,5 +114,14 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    /**
+     * Home redirection to swagger api documentation
+     */
+    @RequestMapping(value = "/")
+    public String index() {
+        System.out.println("swagger-ui.html");
+        return "redirect:swagger-ui.html";
     }
 }

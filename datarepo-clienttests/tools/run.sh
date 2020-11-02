@@ -24,11 +24,11 @@ echo "Running spotless and spotbugs"
 ./gradlew spotlessCheck
 ./gradlew spotbugsMain
 
-#echo "Running test suite"
-#./gradlew runTest --args="suites/PRSmokeTests.json tmp/TestRunnerResults"
+echo "Running test suite"
+./gradlew runTest --args="suites/PRSmokeTests.json tmp/TestRunnerResults"
 
-#echo "Collecting measurements"
-#./gradlew collectMeasurements --args="PRSmokeTests.json tmp/TestRunnerResults"
+echo "Collecting measurements"
+./gradlew collectMeasurements --args="PRSmokeTests.json tmp/TestRunnerResults"
 
-#echo "Uploading results"
-#./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
+echo "Uploading results"
+./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"

@@ -119,26 +119,24 @@ public class FireStoreDependencyDao {
         CollectionReference depColl, String snapshotId, List<String> batch)
         throws InterruptedException {
 
-        List<ApiFuture<QuerySnapshot>> getFutures = new ArrayList<>();
         List<ApiFuture<WriteResult>> setFutures = new ArrayList<>();
 
         // Launch the lookups in parallel
-        for (String fileId : batch) {
-
-            // TODO do I need a retry here too?
-
-
-            Query query = depColl.whereEqualTo("fileId", fileId).whereEqualTo("snapshotId", snapshotId);
-            getFutures.add(query.get());
-        }
+        List<QuerySnapshot> querySnapshotList = fireStoreUtils.batchOperation(
+            batch,
+            fileId -> {
+                Query query = depColl.whereEqualTo("fileId", fileId)
+                    .whereEqualTo("snapshotId", snapshotId);
+                return query.get();
+            });
 
         try {
             // Scan the lookup results and launch the sets in parallel
             int index = 0;
-            for (ApiFuture<QuerySnapshot> future : getFutures) {
+            for (QuerySnapshot querySnapshot : querySnapshotList) {
                 String fileId = batch.get(index);
 
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                List<QueryDocumentSnapshot> documents = querySnapshot.getDocuments();
                 switch (documents.size()) {
                     case 0: {
                         // no dependency yet. Let's make one

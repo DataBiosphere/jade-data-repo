@@ -124,6 +124,10 @@ public class FireStoreDependencyDao {
 
         // Launch the lookups in parallel
         for (String fileId : batch) {
+
+            // TODO do I need a retry here too?
+
+
             Query query = depColl.whereEqualTo("fileId", fileId).whereEqualTo("snapshotId", snapshotId);
             getFutures.add(query.get());
         }

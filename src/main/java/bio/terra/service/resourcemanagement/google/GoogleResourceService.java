@@ -7,10 +7,12 @@ import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.service.resourcemanagement.exception.BucketLockFailureException;
 import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
+import bio.terra.service.resourcemanagement.exception.RevokePermissionsFailedException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -38,6 +40,8 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,9 +54,9 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -61,7 +65,7 @@ import java.util.stream.Collectors;
 public class GoogleResourceService {
     private static final Logger logger = LoggerFactory.getLogger(GoogleResourceService.class);
     private static final String ENABLED_FILTER = "state:ENABLED";
-    private static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
+    public static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
 
 
     private final GoogleResourceDao resourceDao;
@@ -397,12 +401,14 @@ public class GoogleResourceService {
 
     public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        enableIamPermissions(Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject);
+    }
 
-        Map<String, List<String>> policyMap = new HashMap<>();
-        List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
-        policyMap.put(BQ_JOB_USER_ROLE, emails);
-
-        enableIamPermissions(policyMap, dataProject);
+    public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
+        throws InterruptedException {
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        revokeIamPermissions(Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject);
     }
 
     public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -570,6 +576,52 @@ public class GoogleResourceService {
             }
         }
         throw new EnablePermissionsFailedException("Cannot enable iam permissions", lastException);
+    }
+
+    public void revokeIamPermissions(Map<String, List<String>> userPermissions, String projectId)
+        throws InterruptedException {
+
+        GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
+
+        Exception lastException = null;
+        int retryWait = INITIAL_WAIT_SECONDS;
+        for (int i = 0; i < RETRIES; i++) {
+            try {
+                CloudResourceManager resourceManager = cloudResourceManager();
+                Policy policy = resourceManager.projects()
+                    .getIamPolicy(projectId, getIamPolicyRequest).execute();
+                final List<Binding> bindingsList = policy.getBindings();
+
+                // Remove members from the current policies
+                for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
+                    CollectionUtils.filter(bindingsList, b -> {
+                        if (Objects.equals(b.getRole(), entry.getKey())) {
+                            // Remove the members that were passed in
+                            b.setMembers(ListUtils.subtract(b.getMembers(), entry.getValue()));
+                            // Remove any entries from the bindings list with no members
+                            return !b.getMembers().isEmpty();
+                        }
+                        return true;
+                    });
+                }
+
+                policy.setBindings(bindingsList);
+                SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
+                resourceManager.projects()
+                    .setIamPolicy(projectId, setIamPolicyRequest).execute();
+                return;
+            } catch (IOException | GeneralSecurityException ex) {
+                logger.info("Failed to revoke iam permissions. Retry " + i + " of " + RETRIES, ex);
+                lastException = ex;
+            }
+
+            TimeUnit.SECONDS.sleep(retryWait);
+            retryWait = retryWait + retryWait;
+            if (retryWait > MAX_WAIT_SECONDS) {
+                retryWait = MAX_WAIT_SECONDS;
+            }
+        }
+        throw new RevokePermissionsFailedException("Cannot revoke iam permissions", lastException);
     }
 
     private void setupBilling(GoogleProjectResource project) {

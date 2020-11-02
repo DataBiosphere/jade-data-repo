@@ -92,6 +92,10 @@ test {
     }
 }
 
+application {
+    mainClassName = 'common.commands.PrintHelp'
+}
+
 task(runTest, dependsOn: 'classes', type: JavaExec) {
     main = "common.commands.RunTest"
     classpath = sourceSets.main.runtimeClasspath

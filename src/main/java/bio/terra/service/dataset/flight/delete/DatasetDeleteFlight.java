@@ -12,6 +12,7 @@ import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.google.GoogleResourceService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
@@ -37,6 +38,7 @@ public class DatasetDeleteFlight extends Flight {
         SnapshotDao snapshotDao = (SnapshotDao)appContext.getBean("snapshotDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
+        GoogleResourceService resourceService = (GoogleResourceService) appContext.getBean("googleResourceService");
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         IamService iamClient = (IamService)appContext.getBean("iamService");
@@ -63,6 +65,10 @@ public class DatasetDeleteFlight extends Flight {
             datasetService,
             datasetId,
             configService), primaryDataDeleteRetry);
+        // Delete access control on objects that were explicitly added by data repo operations.  Do this before delete
+        // resource from SAM to ensure we can get the metadata needed to perform the operation.  Also need to run
+        // before metadata is deleted since it is required by the step.
+        addStep(new DeleteDatasetAuthzBqAclsStep(iamClient, datasetService, resourceService, datasetId, userReq));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
         addStep(new UnlockDatasetStep(datasetDao, datasetId, false), lockDatasetRetry);

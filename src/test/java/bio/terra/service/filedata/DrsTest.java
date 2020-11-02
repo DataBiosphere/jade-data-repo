@@ -3,7 +3,6 @@ package bio.terra.service.filedata;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
@@ -13,7 +12,14 @@ import bio.terra.model.DRSObject;
 import bio.terra.model.FileModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamRole;
+import bio.terra.service.iam.IamService;
+import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.storage.Acl;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
@@ -29,12 +35,26 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.security.GeneralSecurityException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
+import static bio.terra.service.resourcemanagement.google.GoogleResourceService.BQ_JOB_USER_ROLE;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -52,26 +72,47 @@ public class DrsTest extends UsersBase {
     @Autowired private DataRepoFixtures dataRepoFixtures;
     @Autowired private EncodeFixture encodeFixture;
     @Autowired private AuthService authService;
-    @Autowired private TestConfiguration testConfiguration;
+    @Autowired private IamService iamService;
 
     private String custodianToken;
     private SnapshotModel snapshotModel;
     private String datasetId;
+    private Map<IamRole, String> datasetIamRoles;
+    private Map<IamRole, String> snapshotIamRoles;
 
     @Before
     public void setup() throws Exception {
         super.setup();
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
+        String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
         snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
         datasetId = setupResult.getDatasetId();
+        AuthenticatedUserRequest authenticatedStewardRequest =
+            new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
+        AuthenticatedUserRequest authenticatedCustodianRequest =
+            new AuthenticatedUserRequest().email(custodian().getEmail()).token(Optional.of(custodianToken));
+        datasetIamRoles = iamService.retrievePolicyEmails(authenticatedStewardRequest,
+            IamResourceType.DATASET, UUID.fromString(datasetId));
+        snapshotIamRoles = iamService.retrievePolicyEmails(authenticatedCustodianRequest,
+            IamResourceType.DATASNAPSHOT, UUID.fromString(snapshotModel.getId()));
         logger.info("setup complete");
     }
 
     @After
     public void teardown() throws Exception {
-        dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
-        dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+        try {
+            dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
+        } catch (Throwable e) {
+            // Already ran if everything was successful so skipping
+            logger.info("Snapshot already deleted");
+        }
+        try {
+            dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+        } catch (Throwable e) {
+            // Already ran if everything was successful so skipping
+            logger.info("Dataset already deleted");
+        }
     }
 
     @Test
@@ -86,27 +127,60 @@ public class DrsTest extends UsersBase {
 
         // DRS lookup the file and validate
         logger.info("DRS Object Id - file: {}", drsObjectId);
-        DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
-        validateDrsObject(drsObject, drsObjectId);
-        assertNull("Contents of file is null", drsObject.getContents());
-        TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods());
+        final DRSObject drsObjectFile = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
+        validateDrsObject(drsObjectFile, drsObjectId);
+        assertNull("Contents of file is null", drsObjectFile.getContents());
+        TestUtils.validateDrsAccessMethods(drsObjectFile.getAccessMethods());
+        Map<String, List<Acl>> preDeleteAcls = TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
+        validateContainsAcls(preDeleteAcls.values().iterator().next());
+        validateBQJobUserRolePresent(Arrays.asList(
+            datasetIamRoles.get(IamRole.STEWARD),
+            datasetIamRoles.get(IamRole.CUSTODIAN),
+            datasetIamRoles.get(IamRole.INGESTER),
+            snapshotIamRoles.get(IamRole.CUSTODIAN)
+        ));
 
         // We don't have a DRS URI for a directory, so we back into it by computing the parent path
         // and using the non-DRS interface to get that file. Then we use that to build the
         // DRS object id of the directory. Only then do we get to do a directory lookup.
-        assertThat("One alias", drsObject.getAliases().size(), equalTo(1));
-        String filePath = drsObject.getAliases().get(0);
+        assertThat("One alias", drsObjectFile.getAliases().size(), equalTo(1));
+        String filePath = drsObjectFile.getAliases().get(0);
         String dirPath = StringUtils.prependIfMissing(getDirectoryPath(filePath), "/");
 
         FileModel fsObject = dataRepoFixtures.getSnapshotFileByName(steward(), snapshotModel.getId(), dirPath);
         String dirObjectId = "v1_" + snapshotModel.getId() + "_" + fsObject.getFileId();
 
-        drsObject = dataRepoFixtures.drsGetObject(reader(), dirObjectId);
+        final DRSObject drsObjectDirectory = dataRepoFixtures.drsGetObject(reader(), dirObjectId);
         logger.info("DRS Object Id - dir: {}", dirObjectId);
 
-        validateDrsObject(drsObject, dirObjectId);
-        assertNotNull("Contents of directory is not null", drsObject.getContents());
-        assertNull("Access method of directory is null", drsObject.getAccessMethods());
+        validateDrsObject(drsObjectDirectory, dirObjectId);
+        assertNotNull("Contents of directory is not null", drsObjectDirectory.getContents());
+        assertNull("Access method of directory is null", drsObjectDirectory.getAccessMethods());
+
+        // When all is done, delete the snapshot and ensure that there are fewer acls
+        dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
+
+
+        Map<String, List<Acl>> postDeleteAcls = TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
+        validateDoesNotContainAcls(postDeleteAcls.values().iterator().next());
+        // Make sure that the snapshot role is removed
+        validateBQJobUserRoleNotPresent(Collections.singleton(snapshotIamRoles.get(IamRole.CUSTODIAN)));
+        // ...and that the dataset roles are still present
+        validateBQJobUserRolePresent(Arrays.asList(
+            datasetIamRoles.get(IamRole.STEWARD),
+            datasetIamRoles.get(IamRole.CUSTODIAN),
+            datasetIamRoles.get(IamRole.INGESTER)
+        ));
+
+        // Delete dataset and make sure that project level ACLs are reset
+        dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+
+        // Make sure that the dataset roles are now removed
+        validateBQJobUserRoleNotPresent(Arrays.asList(
+            datasetIamRoles.get(IamRole.STEWARD),
+            datasetIamRoles.get(IamRole.CUSTODIAN),
+            datasetIamRoles.get(IamRole.INGESTER)
+        ));
     }
 
     private void validateDrsObject(DRSObject drsObject, String drsObjectId) {
@@ -153,6 +227,63 @@ public class DrsTest extends UsersBase {
         assertThat("Valid directory path", pathParts.length, greaterThan(1));
         int endIndex = pathParts.length - 1;
         return StringUtils.join(pathParts, '/', 0, endIndex);
+    }
+
+    /**
+     * Given a set of file ACLs, make sure that the expected policy ACLs are present
+     */
+    private void validateContainsAcls(List<Acl> acls) {
+        final Collection<String> entities = CollectionUtils.collect(acls, a -> a.getEntity().toString());
+        assertThat("Has custodian ACLs", entities, hasItem(String.format("group-%s",
+            snapshotIamRoles.get(IamRole.CUSTODIAN))));
+        assertThat("Has steward ACLs", entities, hasItem(String.format("group-%s",
+            snapshotIamRoles.get(IamRole.STEWARD))));
+        assertThat("Has reader ACLs", entities, hasItem(String.format("group-%s",
+            snapshotIamRoles.get(IamRole.READER))));
+    }
+
+    /**
+     * Given a set of file ACLs, make sure that the expected policy ACLs are present
+     */
+    private void validateDoesNotContainAcls(List<Acl> acls) {
+        final Collection<String> entities = CollectionUtils.collect(acls, a -> a.getEntity().toString());
+        assertThat("Doesn't have custodian ACLs", entities, not(hasItem(String.format("group-%s",
+            snapshotIamRoles.get(IamRole.CUSTODIAN)))));
+        assertThat("Doesn't have steward ACLs", entities, not(hasItem(String.format("group-%s",
+            snapshotIamRoles.get(IamRole.STEWARD)))));
+        assertThat("Doesn't have reader ACLs", entities, not(hasItem(String.format("group-%s",
+            snapshotIamRoles.get(IamRole.READER)))));
+    }
+
+    /**
+     * Verify that the specified member emails all have the BQ job user role in the data project
+     */
+    private void validateBQJobUserRolePresent(Collection<String> members) throws GeneralSecurityException, IOException {
+        List<Binding> bindings = TestUtils.getPolicy(snapshotModel.getDataProject()).getBindings();
+        bindings.forEach(b -> {
+            if (Objects.equals(b.getRole(), BQ_JOB_USER_ROLE)) {
+                members.forEach(m ->
+                    assertThat("Member has BQ job user role",
+                        CollectionUtils.collect(b.getMembers(), e -> e.replaceAll("^group:", "")),
+                        hasItem(m)));
+            }
+        });
+    }
+
+    /**
+     * Verify that none of the specified member emails have the BQ job user role in the data project
+     */
+    private void validateBQJobUserRoleNotPresent(
+        Collection<String> members) throws GeneralSecurityException, IOException {
+        List<Binding> bindings = TestUtils.getPolicy(snapshotModel.getDataProject()).getBindings();
+        bindings.forEach(b -> {
+            if (Objects.equals(b.getRole(), BQ_JOB_USER_ROLE)) {
+                members.forEach(m ->
+                    assertThat("Member does not have BQ job user role",
+                        CollectionUtils.collect(b.getMembers(), e -> e.replaceAll("^group:", "")),
+                        not(contains(m))));
+            }
+        });
     }
 
 }

@@ -280,7 +280,9 @@ task unpack(type: Copy) {
   into("build/dependency")
 }
 
+def generatedOutputDir = 'src/generated/java'
 clean.doFirst {
+  delete("${projectDir}/$generatedOutputDir")
   delete("${rootDir}/datarepo-client/build")
   delete("${rootDir}/datarepo-client/generated")
 }

@@ -32,6 +32,12 @@ public class StatusService {
     public RepositoryStatusModel getStatus() {
         RepositoryStatusModel statusModel = new RepositoryStatusModel();
 
+        if (configurationService.testInsertFault(ConfigEnum.LIVENESS_FAULT)) {
+            logger.info("LIVENESS_FAULT insertion - failing status response");
+            statusModel.setOk(false);
+            return statusModel;
+        }
+
         statusModel.putSystemsItem("Postgres", postgresStatus());
         statusModel.putSystemsItem("Sam", samStatus());
 
@@ -43,6 +49,15 @@ public class StatusService {
     }
 
     private RepositoryStatusModelSystems postgresStatus() {
+        // test by inserting fault
+        if (configurationService.testInsertFault(ConfigEnum.CRITICAL_SYSTEM_FAULT)) {
+            logger.info("CRITICAL_SYSTEM_FAULT inserted for test - setting postgres system status to failing");
+            return new RepositoryStatusModelSystems()
+                .ok(false)
+                .critical(true)
+                .message("CRITICAL_SYSTEM_FAULT inserted for test");
+        }
+
         Boolean dbStatus = false;
         String Msg;
         try {

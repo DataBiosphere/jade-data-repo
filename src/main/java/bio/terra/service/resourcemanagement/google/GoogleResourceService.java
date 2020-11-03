@@ -27,10 +27,10 @@ import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
-import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
-import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
-import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
-import com.google.api.services.serviceusage.v1beta1.model.Service;
+import com.google.api.services.serviceusage.v1.ServiceUsage;
+import com.google.api.services.serviceusage.v1.model.BatchEnableServicesRequest;
+import com.google.api.services.serviceusage.v1.model.ListServicesResponse;
+import com.google.api.services.serviceusage.v1.model.GoogleApiServiceusageV1Service;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
@@ -505,7 +505,7 @@ public class GoogleResourceService {
                 .stream()
                 .map(s -> String.format("%s/services/%s", projectNumberString, s))
                 .collect(Collectors.toList());
-            List<Service> serviceList = listServicesResponse.getServices();
+            List<GoogleApiServiceusageV1Service> serviceList = listServicesResponse.getServices();
             List<String> actualServiceNames = Collections.emptyList();
             if (serviceList != null) {
                 actualServiceNames = serviceList
@@ -639,16 +639,16 @@ public class GoogleResourceService {
             .build();
     }
 
-    private static com.google.api.services.serviceusage.v1beta1.model.Operation blockUntilServiceOperationComplete(
+    private static com.google.api.services.serviceusage.v1.model.Operation blockUntilServiceOperationComplete(
             ServiceUsage serviceUsage,
-            com.google.api.services.serviceusage.v1beta1.model.Operation operation,
+            com.google.api.services.serviceusage.v1.model.Operation operation,
             long timeoutSeconds) throws IOException, InterruptedException {
         long start = System.currentTimeMillis();
         final long pollInterval = 5 * 1000; // 5 seconds
         String opId = operation.getName();
 
         while (operation != null && (operation.getDone() == null || !operation.getDone())) {
-            com.google.api.services.serviceusage.v1beta1.model.Status error = operation.getError();
+            com.google.api.services.serviceusage.v1.model.Status error = operation.getError();
             if (error != null) {
                 throw new GoogleResourceException("Error while waiting for operation to complete" + error.getMessage());
             }

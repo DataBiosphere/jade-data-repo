@@ -120,7 +120,7 @@ public class FireStoreDependencyDao {
         CollectionReference depColl, String snapshotId, List<String> batch)
         throws InterruptedException {
 
-        // Launch the lookups in parallel
+        // Launch the lookups in parallel. Note Query.get() is returning an ApiFuture<QuerySnapshot>
         List<QuerySnapshot> querySnapshotList = fireStoreUtils.batchOperation(
             batch,
             fileId ->
@@ -185,10 +185,13 @@ public class FireStoreDependencyDao {
              batch != null;
              batch = queryIterator.getBatch()) {
 
-            for (DocumentSnapshot docSnap : batch) {
-                logger.info("deleting: " + docSnap.getReference().getPath());
-                docSnap.getReference().delete();
-            }
+            fireStoreUtils.batchOperation(
+                batch,
+                docSnap -> {
+                    logger.info("deleting: " + docSnap.getReference().getPath());
+                    return docSnap.getReference().delete();
+                }
+            );
         }
     }
 

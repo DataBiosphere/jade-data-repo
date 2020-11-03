@@ -78,7 +78,7 @@ public class GoogleBillingService implements BillingService {
      * the caller is allowed for that resource.
      *
      * from: https://cloud.google.com/billing/v1/how-tos/access-control
-     * from: https://googleapis.dev/java/google-cloud-billing/latest/com/google/cloud/billing/v1/CloudBillingClient.html#testIamPermissions-com.google.iam.v1.TestIamPermissionsRequest-
+     * from: https://bit.ly/2TM2RPz (TestIamPermissionsRequest sample code)
      *
      * In order to call projects.updateBillingInfo, the caller must have permissions billing.resourceAssociations.create
      * and resourcemanager.projects.createBillingAssignment on the billing account.

@@ -304,7 +304,7 @@ public class BucketResourceTest {
 
     private void setAllowReuseExistingBuckets(boolean allow) {
         ConfigModel model = configService.getConfig(ConfigEnum.ALLOW_REUSE_EXISTING_BUCKETS.name());
-        model.setParameter(new ConfigParameterModel().value(Boolean.toString(allow)));
+        model.setParameter(new ConfigParameterModel().value(String.valueOf(allow)));
         ConfigGroupModel configGroupModel = new ConfigGroupModel()
             .label("BucketResourceTest")
             .addGroupItem(model);

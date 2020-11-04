@@ -162,6 +162,7 @@ public class ProfileService {
     }
 
     public boolean deleteProfileMetadata(String profileId) {
+        // TODO: refused to delete if there are dependent datasets, snapshots or buckets
         UUID profileUuid = UUID.fromString(profileId);
         return profileDao.deleteBillingProfileById(profileUuid);
     }

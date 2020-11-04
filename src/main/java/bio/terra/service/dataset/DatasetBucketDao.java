@@ -17,6 +17,21 @@ import java.util.UUID;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
+/* A NOTE ON CONCURRENCY CONTROL FOR THE DATASET BUCKET TABLE
+ * The successful_ingest counter is a concurrency control mechanism to avoid locking the dataset-bucket row.
+ * The only important values are 0 or greater than 0. A row with a counter of 0 is equivalent to no row;
+ * that is, no files in the dataset are using the bucket. A value greater than 0 means the dataset is
+ * using the bucket.
+ *
+ * An ingest either creates the row with a value of 1 or it increments the value. The undo step always
+ * decrements the value. That allows parallel ingests. On failure, we do not worry about trying to
+ * removed the row.
+ *
+ * Another alternative would be to use locking, as we do with datasets. That would require adding
+ * id and flightid columns to the table. It would mean that if the row were locked, a second
+ * ingest would have to wait for the completion of the first ingest flight before it could begin.
+ * So I think this is a simpler way to go, at the cost of leaving rows in this table.
+ */
 @Repository
 public class DatasetBucketDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetBucketDao.class);

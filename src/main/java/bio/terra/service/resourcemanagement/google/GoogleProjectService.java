@@ -306,7 +306,7 @@ public class GoogleProjectService {
     // TODO: convert this to using the resource manager service interface instead of the api interface
     //  https://googleapis.dev/java/google-cloud-resourcemanager/latest/index.html
     //     ?com/google/cloud/resourcemanager/ResourceManager.html
-    //  And use GoogleCredentials instead of the deprecated class
+    //  And use GoogleCredentials instead of the deprecated class. (DR-1459)
     private CloudResourceManager cloudResourceManager() throws IOException, GeneralSecurityException {
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();

@@ -35,24 +35,24 @@ public class ResourceService {
 
     @Autowired
     public ResourceService(
-            DataLocationSelector dataLocationSelector,
-            GoogleProjectService projectService,
-            GoogleBucketService bucketService,
-            SamConfiguration samConfiguration) {
+        DataLocationSelector dataLocationSelector,
+        GoogleProjectService projectService,
+        GoogleBucketService bucketService,
+        SamConfiguration samConfiguration) {
         this.dataLocationSelector = dataLocationSelector;
         this.projectService = projectService;
         this.bucketService = bucketService;
         this.samConfiguration = samConfiguration;
     }
 
-     /**
+    /**
      * Fetch/create a project, then use that to fetch/create a bucket.
      *
      * @param billingProfile authorized profile for billing account information case we need to create a project
-     * @param flightId used to lock the bucket metadata during possible creation
+     * @param flightId       used to lock the bucket metadata during possible creation
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws CorruptMetadataException in two cases. 1) if the bucket already exists, but the metadata does not AND the
-     * application property allowReuseExistingBuckets=false. 2) if the metadata exists, but the bucket does not
+     *                                  application property allowReuseExistingBuckets=false. 2) if the metadata exists, but the bucket does not
      */
     public GoogleBucketResource getOrCreateBucketForFile(String datasetName,
                                                          BillingProfileModel billingProfile,
@@ -71,10 +71,11 @@ public class ResourceService {
 
     /**
      * Fetch an existing bucket and check that the associated cloud resource exists.
+     *
      * @param bucketResourceId our identifier for the bucket
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
-     * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
+     * @throws CorruptMetadataException        if the bucket_resource metadata row exists but the cloud resource does not
      */
     public GoogleBucketResource lookupBucket(String bucketResourceId) {
         return bucketService.getBucketResourceById(UUID.fromString(bucketResourceId), true);
@@ -86,6 +87,7 @@ public class ResourceService {
      * This method is intended for places where an existence check on the associated cloud resource might be too
      * much overhead (e.g. DRS lookups). Most bucket lookups should use the lookupBucket method instead, which has
      * additional overhead but will catch metadata corruption errors sooner.
+     *
      * @param bucketResourceId our identifier for the bucket
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
@@ -96,12 +98,13 @@ public class ResourceService {
 
     /**
      * Update the bucket_resource metadata table to match the state of the underlying cloud.
-     *    - If the bucket exists, then the metadata row should also exist and be unlocked.
-     *    - If the bucket does not exist, then the metadata row should not exist.
+     * - If the bucket exists, then the metadata row should also exist and be unlocked.
+     * - If the bucket does not exist, then the metadata row should not exist.
      * If the metadata row is locked, then only the locking flight can unlock or delete the row.
-     * @param datasetName name of the dataset that is storing files into the bucket
+     *
+     * @param datasetName    name of the dataset that is storing files into the bucket
      * @param billingProfile an authorized billing profile
-     * @param flightId flight doing the updating
+     * @param flightId       flight doing the updating
      */
     public void updateBucketMetadata(String datasetName, BillingProfileModel billingProfile, String flightId) {
         String bucketName = dataLocationSelector.bucketForFile(datasetName, billingProfile);
@@ -111,7 +114,8 @@ public class ResourceService {
 
     /**
      * Create a new project for a snapshot, if none exists already.
-     * @param snapshotName name of the snapshot
+     *
+     * @param snapshotName   name of the snapshot
      * @param billingProfile billing profile to pay for the project
      * @return project resource id
      */
@@ -128,7 +132,8 @@ public class ResourceService {
 
     /**
      * Create a new project for a dataset,  if none exists already.
-     * @param datasetName name of the dataset
+     *
+     * @param datasetName    name of the dataset
      * @param billingProfile billing profile to pay for the project
      * @return project resource id
      */
@@ -145,6 +150,7 @@ public class ResourceService {
 
     /**
      * Look up in existing project resource given its id
+     *
      * @param projectResourceId unique idea for the project
      * @return project resource
      */

@@ -6,40 +6,21 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BulkLoadFileState;
-import bio.terra.model.BulkLoadHistoryModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.IngestRequestModel;
-import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.*;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetJsonConversion;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.DatasetUtils;
+import bio.terra.service.dataset.*;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.JobInfo;
-import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.bigquery.*;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
@@ -54,18 +35,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -77,15 +52,24 @@ import static org.junit.Assert.assertThat;
 public class BigQueryPdaoTest {
     private static final Logger logger = LoggerFactory.getLogger(BigQueryPdaoTest.class);
 
-    @Autowired private JsonLoader jsonLoader;
-    @Autowired private ConnectedTestConfiguration testConfig;
-    @Autowired private BigQueryPdao bigQueryPdao;
-    @Autowired private DatasetDao datasetDao;
-    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
-    @Autowired private ConnectedOperations connectedOperations;
-    @Autowired private DatasetService datasetService;
-    @Autowired private ResourceService resourceService;
-    @Autowired private GoogleResourceDao resourceDao;
+    @Autowired
+    private JsonLoader jsonLoader;
+    @Autowired
+    private ConnectedTestConfiguration testConfig;
+    @Autowired
+    private BigQueryPdao bigQueryPdao;
+    @Autowired
+    private DatasetDao datasetDao;
+    @Autowired
+    private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired
+    private ConnectedOperations connectedOperations;
+    @Autowired
+    private DatasetService datasetService;
+    @Autowired
+    private ResourceService resourceService;
+    @Autowired
+    private GoogleResourceDao resourceDao;
 
     @MockBean
     private IamProviderInterface samService;
@@ -127,9 +111,9 @@ public class BigQueryPdaoTest {
             .defaultProfileId(profileModel.getId())
             .name(datasetName);
         UUID projectId = resourceService.getOrCreateDatasetProject(datasetName, profileModel);
-        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        dataset.projectResourceId(projectId);
-        dataset.projectResource(resourceService.getProjectResource(projectId));
+        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
+            .projectResourceId(projectId)
+            .projectResource(resourceService.getProjectResource(projectId));
 
         String createFlightId = UUID.randomUUID().toString();
         UUID datasetId = UUID.randomUUID();
@@ -180,7 +164,7 @@ public class BigQueryPdaoTest {
 
     @Test
     public void sanitizeErrorMsgTest() {
-        List<BulkLoadHistoryModel> loadHistoryArray =  new ArrayList<>();
+        List<BulkLoadHistoryModel> loadHistoryArray = new ArrayList<>();
         BulkLoadHistoryModel loadHistoryModel = new BulkLoadHistoryModel();
         loadHistoryModel.setSourcePath("gs://broad-dsp-storage/blahblah.fastq.gz");
         loadHistoryModel.setTargetPath("/target/path");
@@ -468,7 +452,7 @@ public class BigQueryPdaoTest {
 
     private static final String queryAllRowIdsTemplate =
         "SELECT " + PdaoConstant.PDAO_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<table>` " +
-        "WHERE id IN UNNEST([<ids:{id|'<id>'}; separator=\",\">])";
+            "WHERE id IN UNNEST([<ids:{id|'<id>'}; separator=\",\">])";
 
     private void softDeleteRows(BigQueryProject bq,
                                 String datasetName,

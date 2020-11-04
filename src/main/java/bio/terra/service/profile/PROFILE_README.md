@@ -36,8 +36,9 @@ The profile package contains the GoogleBillingUtils module that provides utility
 the Google Cloud Billing API. That code should eventually be refactored into a library where it can be
 shared across Terra components.
 
-For convenience the profile package uses the AuthenticatedUserRequest class it holds the user email and
-access token. That will have to be refactored when this is extracted from TDR.
+For convenience when running inside TDR, the profile package uses the AuthenticatedUserRequest class.
+It holds the user email and access token. When billing profile code is extracted from TDR,
+it may or may not want to continue using that class.
 
 The profile linking operations are the operations that might create a project:
  * create dataset

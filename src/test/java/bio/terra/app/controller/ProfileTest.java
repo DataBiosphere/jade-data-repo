@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Category(Unit.class)
 
 // This test no longer works, because the API performs authorization checks.
-// TODO: Replace this with a connected or integration test
+// TODO: Replace this with a connected or integration test (DR-1460)
 @Ignore
 public class ProfileTest {
 

@@ -61,37 +61,37 @@ public class StatusService {
         }
 
         Boolean dbStatus = false;
-        String Msg;
+        String msg;
         try {
             datasetDao.probeDatabase();
             dbStatus = true;
-            Msg = "Successfully queried database.";
+            msg = "Successfully queried database.";
         } catch (DataAccessException ex) {
-            Msg = "Failed to query database: " + ex.getMessage();
+            msg = "Failed to query database: " + ex.getMessage();
             logger.error("Failed to query database. Ex: {}", ex);
         }
         RepositoryStatusModelSystems databaseSystem = new RepositoryStatusModelSystems()
             .ok(dbStatus)
             .critical(true)
-            .message(Msg);
+            .message(msg);
         return databaseSystem;
     }
 
     private RepositoryStatusModelSystems samStatus() {
         Boolean samStatus = false;
-        String Msg;
+        String msg;
         try {
             SystemStatus samStatusModel = iamProviderInterface.samStatus();
             samStatus = samStatusModel.getOk();
-            Msg = samStatusModel.getSystems().toString();
+            msg = samStatusModel.getSystems().toString();
         } catch (Exception ex) {
             logger.error("Failed to complete sam status check. Ex: {}", ex);
-            Msg = ex.getMessage();
+            msg = ex.getMessage();
         }
         RepositoryStatusModelSystems samSystem = new RepositoryStatusModelSystems()
             .ok(samStatus)
             .critical(true)
-            .message(Msg);
+            .message(msg);
         return samSystem;
     }
 }

@@ -32,6 +32,7 @@ public class StatusService {
     public RepositoryStatusModel getStatus() {
         RepositoryStatusModel statusModel = new RepositoryStatusModel();
 
+        // Used by unit test: StatusTest
         if (configurationService.testInsertFault(ConfigEnum.LIVENESS_FAULT)) {
             logger.info("LIVENESS_FAULT insertion - failing status response");
             statusModel.setOk(false);
@@ -41,7 +42,8 @@ public class StatusService {
         statusModel.putSystemsItem("Postgres", postgresStatus());
         statusModel.putSystemsItem("Sam", samStatus());
 
-        // if critical system is down, then isOk = false
+        // if all critical systems are ok, then isOk = true
+        // if any one critical system is down, then isOk = false
         statusModel.setOk(statusModel.getSystems().values().stream()
             .noneMatch(sys -> sys.isCritical() && !sys.isOk()));
 
@@ -49,7 +51,7 @@ public class StatusService {
     }
 
     private RepositoryStatusModelSystems postgresStatus() {
-        // test by inserting fault
+        // Used by unit test: StatusTest
         if (configurationService.testInsertFault(ConfigEnum.CRITICAL_SYSTEM_FAULT)) {
             logger.info("CRITICAL_SYSTEM_FAULT inserted for test - setting postgres system status to failing");
             return new RepositoryStatusModelSystems()

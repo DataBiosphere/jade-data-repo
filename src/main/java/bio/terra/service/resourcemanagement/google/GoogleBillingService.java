@@ -1,11 +1,11 @@
 package bio.terra.service.resourcemanagement.google;
 
-import bio.terra.app.controller.exception.ApiException;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.BillingService;
 import bio.terra.service.resourcemanagement.exception.BillingServiceException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.rpc.ApiException;
 import com.google.api.resourcenames.ResourceName;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;

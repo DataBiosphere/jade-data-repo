@@ -2,9 +2,8 @@ package bio.terra.service.iam;
 
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
-import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
-import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 
 import java.util.List;
 import java.util.Map;
@@ -115,8 +114,8 @@ public interface IamProviderInterface {
     /**
      * Get Sam Status
      *
-     * @return SystemStatus model that includes status and message about sub-system statuses
+     * @return RepositoryStatusModelSystems model that includes status and message about sub-system statuses
      */
-    SystemStatus samStatus() throws ApiException;
+    RepositoryStatusModelSystems samStatus();
 
 }

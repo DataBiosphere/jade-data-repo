@@ -3,6 +3,7 @@ package bio.terra.service.iam.sam;
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
@@ -475,9 +476,21 @@ public class SamIam implements IamProviderInterface {
     }
 
     @Override
-    public SystemStatus samStatus() throws ApiException {
-        StatusApi samApi = new StatusApi(getUnauthApiClient());
-        return samApi.getSystemStatus();
+    public RepositoryStatusModelSystems samStatus() {
+        SamRetry samRetry = new SamRetry(configurationService);
+        try {
+            return samRetry.perform(() -> {
+                StatusApi samApi = new StatusApi(getUnauthApiClient());
+                SystemStatus status = samApi.getSystemStatus();
+                return new RepositoryStatusModelSystems()
+                    .ok(status.getOk())
+                    .message(status.getSystems().toString());
+            });
+        } catch (Exception ex) {
+            return new RepositoryStatusModelSystems()
+                .ok(false)
+                .message("Sam status check failed with Exception" + ex.toString());
+        }
     }
 
 }

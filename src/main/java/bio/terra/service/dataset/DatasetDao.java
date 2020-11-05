@@ -528,10 +528,11 @@ public class DatasetDao {
             return new RepositoryStatusModelSystems()
                 .ok(true);
         } catch (Exception ex) {
-            logger.error("Database status check failed", ex);
+            String errorMsg = "Database status check failed";
+            logger.error(errorMsg, ex);
             return new RepositoryStatusModelSystems()
                 .ok(false)
-                .message("Database status check failed with Exception: " + ex.toString());
+                .message(errorMsg + ": " + ex.toString());
         }
     }
 }

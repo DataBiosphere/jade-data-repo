@@ -487,10 +487,11 @@ public class SamIam implements IamProviderInterface {
                     .message(status.getSystems().toString());
             });
         } catch (Exception ex) {
-            logger.error("Sam status check failed with Exception {}", ex);
+            String errorMsg = "Sam status check failed";
+            logger.error(errorMsg, ex);
             return new RepositoryStatusModelSystems()
                 .ok(false)
-                .message("Sam status check failed with Exception" + ex.toString());
+                .message(errorMsg + ": " + ex.toString());
         }
     }
 

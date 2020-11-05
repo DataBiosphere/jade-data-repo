@@ -84,13 +84,13 @@ public class StatusService {
         }
 
         // if can successfully complete call without throwing exception, then system is up
-        datasetDao.probeDatabase();
+        boolean status = datasetDao.statusCheck();
         RepositoryStatusModelSystems databaseSystem = new RepositoryStatusModelSystems()
-            .ok(true)
+            .ok(status)
             .message("Successfully queried database.");
         return databaseSystem;
     }
-    
+
     private RepositoryStatusModelSystems samStatusInner() throws ApiException {
         SystemStatus samStatusModel = iamProviderInterface.samStatus();
 

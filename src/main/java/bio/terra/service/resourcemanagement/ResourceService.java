@@ -21,11 +21,14 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS;
+import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
+
 @Component
 public class ResourceService {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceService.class);
-    private static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
+    public static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
 
     private final DataLocationSelector dataLocationSelector;
     private final GoogleProjectService projectService;
@@ -51,8 +54,12 @@ public class ResourceService {
      * @param billingProfile authorized profile for billing account information case we need to create a project
      * @param flightId       used to lock the bucket metadata during possible creation
      * @return a reference to the bucket as a POJO GoogleBucketResource
-     * @throws CorruptMetadataException in two cases. 1) if the bucket already exists, but the metadata does not AND the
-     *                                  application property allowReuseExistingBuckets=false. 2) if the metadata exists, but the bucket does not
+     * @throws CorruptMetadataException in two cases.
+     * <ol>
+     *     <le>if the bucket already exists, but the metadata does not AND
+     *     the application property allowReuseExistingBuckets=false.</le>
+     *     <le>if the metadata exists, but the bucket does not</le>
+     * </ol>
      */
     public GoogleBucketResource getOrCreateBucketForFile(String datasetName,
                                                          BillingProfileModel billingProfile,
@@ -75,7 +82,7 @@ public class ResourceService {
      * @param bucketResourceId our identifier for the bucket
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
-     * @throws CorruptMetadataException        if the bucket_resource metadata row exists but the cloud resource does not
+     * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
      */
     public GoogleBucketResource lookupBucket(String bucketResourceId) {
         return bucketService.getBucketResourceById(UUID.fromString(bucketResourceId), true);
@@ -158,16 +165,24 @@ public class ResourceService {
         return projectService.getProjectResourceById(projectResourceId);
     }
 
-
-    public void grantPoliciesBqJobUser(String dataProjectId, Collection<String> policyEmails)
+    public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
-
-        Map<String, List<String>> policyMap = new HashMap<>();
-        List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
-        policyMap.put(BQ_JOB_USER_ROLE, emails);
-
-        projectService.enableIamPermissions(policyMap, dataProjectId);
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        projectService.updateIamPermissions(
+            Collections.singletonMap(BQ_JOB_USER_ROLE, emails),
+            dataProject,
+            ENABLE_PERMISSIONS);
     }
+
+    public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
+        throws InterruptedException {
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        projectService.updateIamPermissions(
+            Collections.singletonMap(BQ_JOB_USER_ROLE, emails),
+            dataProject,
+            REVOKE_PERMISSIONS);
+    }
+
 
     private Map<String, List<String>> getStewardPolicy() {
         // get steward emails and add to policy

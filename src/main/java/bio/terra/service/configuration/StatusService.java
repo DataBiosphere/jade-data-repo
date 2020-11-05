@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class StatusService {
 
-    private final Logger logger = LoggerFactory.getLogger(StatusService.class);
+    private static final Logger logger = LoggerFactory.getLogger(StatusService.class);
     private final ConfigurationService configurationService;
     private final DatasetDao datasetDao;
     private final IamProviderInterface iamProviderInterface;

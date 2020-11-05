@@ -10,8 +10,9 @@ import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.DataLocationService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.profile.ProfileService;
+import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -40,14 +41,23 @@ public class SnapshotCreateFlight extends Flight {
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
-        DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
-        GoogleResourceService resourceService =
-            (GoogleResourceService) appContext.getBean("googleResourceService");
+        ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
         PerformanceLogger performanceLogger = (PerformanceLogger) appContext.getBean("performanceLogger");
+        ProfileService profileService = (ProfileService) appContext.getBean("profileService");
 
         SnapshotRequestModel snapshotReq = inputParameters.get(
             JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
         String snapshotName = snapshotReq.getName();
+
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
+        // Make sure this user is allowed to use the billing profile and that the underlying
+        // billing information remains valid.
+        addStep(new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
+
+        // Get or create the project where the snapshot resources will be created
+        addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, snapshotReq));
 
         // create the snapshot metadata object in postgres and lock it
         // mint a snapshot id and put it in the working map
@@ -85,8 +95,6 @@ public class SnapshotCreateFlight extends Flight {
 
         // Create the IAM resource and readers for the snapshot
         // The IAM code contains retries, so we don't make a retry rule here.
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq));
 
         // Make the firestore file system for the snapshot
@@ -113,7 +121,6 @@ public class SnapshotCreateFlight extends Flight {
 
         addStep(new SnapshotAuthzBqJobUserStep(
             snapshotService,
-            dataLocationService,
             resourceService,
             snapshotName));
 

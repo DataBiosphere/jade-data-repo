@@ -14,7 +14,7 @@ import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.IamRole;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
@@ -28,7 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -52,9 +51,8 @@ public class GcsPdao {
     private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
 
     private final GcsProjectFactory gcsProjectFactory;
-    private final DataLocationService dataLocationService;
+    private final ResourceService resourceService;
     private final FireStoreDao fileDao;
-    private final ApplicationContext applicationContext;
     private final ConfigurationService configurationService;
     private final ExecutorService executor;
     private final PerformanceLogger performanceLogger;
@@ -62,16 +60,14 @@ public class GcsPdao {
     @Autowired
     public GcsPdao(
         GcsProjectFactory gcsProjectFactory,
-        DataLocationService dataLocationService,
+        ResourceService resourceService,
         FireStoreDao fileDao,
-        ApplicationContext applicationContext,
         ConfigurationService configurationService,
         @Qualifier("performanceThreadpool") ExecutorService executor,
         PerformanceLogger performanceLogger) {
         this.gcsProjectFactory = gcsProjectFactory;
-        this.dataLocationService = dataLocationService;
+        this.resourceService = resourceService;
         this.fileDao = fileDao;
-        this.applicationContext = applicationContext;
         this.configurationService = configurationService;
         this.executor = executor;
         this.performanceLogger = performanceLogger;
@@ -177,7 +173,7 @@ public class GcsPdao {
     // Consumer method for deleting GCS files driven from a scan over the firestore files
     public void deleteFile(FireStoreFile fireStoreFile) {
         if (fireStoreFile != null) {
-            GoogleBucketResource bucketResource = dataLocationService.lookupBucket(fireStoreFile.getBucketResourceId());
+            GoogleBucketResource bucketResource = resourceService.lookupBucket(fireStoreFile.getBucketResourceId());
             deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
         }
     }
@@ -318,7 +314,7 @@ public class GcsPdao {
             synchronized (bucketCache) {
                 bucketForFile = bucketCache.computeIfAbsent(
                     file.getBucketResourceId(),
-                    k -> dataLocationService.lookupBucket(file.getBucketResourceId())
+                    k -> resourceService.lookupBucket(file.getBucketResourceId())
                 );
             }
             final Storage storage = storageForBucket(bucketForFile);

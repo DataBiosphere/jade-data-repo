@@ -1,25 +1,28 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
-import bio.terra.service.resourcemanagement.google.GoogleBucketRequest;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.resourcemanagement.google.GoogleBucketService;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 
 public class BucketResourceLockTester implements Runnable {
-    private GoogleResourceService resourceService;
+    private final GoogleBucketService bucketService;
 
-    private GoogleBucketRequest bucketRequest;
-    private String flightId;
+    private final String bucketName;
+    private final String flightId;
+    private final GoogleProjectResource projectResource;
 
     private boolean gotLockException;
     private GoogleBucketResource bucketResource;
 
-    public BucketResourceLockTester(
-        GoogleResourceService resourceService, GoogleBucketRequest bucketRequest, String flightId) {
-        this.resourceService = resourceService;
-        this.bucketRequest = bucketRequest;
+    public BucketResourceLockTester(GoogleBucketService bucketService,
+                                    String bucketName,
+                                    GoogleProjectResource projectResource,
+                                    String flightId) {
+        this.bucketService = bucketService;
+        this.bucketName = bucketName;
+        this.projectResource = projectResource;
         this.flightId = flightId;
-
         this.gotLockException = false;
     }
 
@@ -27,7 +30,7 @@ public class BucketResourceLockTester implements Runnable {
     public void run() {
         try {
             // create the bucket and metadata
-            bucketResource = resourceService.getOrCreateBucket(bucketRequest, flightId);
+            bucketResource = bucketService.getOrCreateBucket(bucketName, projectResource, flightId);
         } catch (BucketLockException blEx) {
             gotLockException = true;
         } catch (InterruptedException e) {

@@ -13,7 +13,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -43,7 +43,7 @@ public class DrsService {
     private final FileService fileService;
     private final DrsIdService drsIdService;
     private final IamService samService;
-    private final DataLocationService locationService;
+    private final ResourceService resourceService;
     private final PerformanceLogger performanceLogger;
 
     @Autowired
@@ -51,13 +51,13 @@ public class DrsService {
                       FileService fileService,
                       DrsIdService drsIdService,
                       IamService samService,
-                      DataLocationService locationService,
+                      ResourceService resourceService,
                       PerformanceLogger performanceLogger) {
         this.snapshotService = snapshotService;
         this.fileService = fileService;
         this.drsIdService = drsIdService;
         this.samService = samService;
-        this.locationService = locationService;
+        this.resourceService = resourceService;
         this.performanceLogger = performanceLogger;
     }
 
@@ -129,7 +129,7 @@ public class DrsService {
     private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
         DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
-        GoogleBucketResource bucketResource = locationService.lookupBucketMetadata(fsFile.getBucketResourceId());
+        GoogleBucketResource bucketResource = resourceService.lookupBucketMetadata(fsFile.getBucketResourceId());
 
         DRSAccessURL gsAccessURL = new DRSAccessURL()
             .url(fsFile.getGspath());

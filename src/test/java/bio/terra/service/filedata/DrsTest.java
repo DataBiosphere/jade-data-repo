@@ -48,7 +48,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-import static bio.terra.service.resourcemanagement.google.GoogleResourceService.BQ_JOB_USER_ROLE;
+import static bio.terra.service.resourcemanagement.ResourceService.BQ_JOB_USER_ROLE;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;

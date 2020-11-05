@@ -12,16 +12,7 @@ public class GoogleBucketResource {
     private String name;
     private String region;
 
-    // Default constructor for Jackson
     public GoogleBucketResource() { }
-
-    // Construct from a request
-    public GoogleBucketResource(GoogleBucketRequest googleBucketRequest) {
-        this.profileId = googleBucketRequest.getProfileId();
-        this.projectResource = googleBucketRequest.getGoogleProjectResource();
-        this.name = googleBucketRequest.getBucketName();
-        this.region = googleBucketRequest.getRegion();
-    }
 
     public UUID getResourceId() {
         return resourceId;

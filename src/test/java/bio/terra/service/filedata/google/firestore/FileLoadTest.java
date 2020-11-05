@@ -80,7 +80,6 @@ public class FileLoadTest {
     @SpyBean
     private DataLocationSelector dataLocationSelector;
 
-    private String coreBillingAccountId;
     private BillingProfileModel profileModel;
     private DatasetSummaryModel datasetSummary;
 
@@ -90,7 +89,7 @@ public class FileLoadTest {
         connectedOperations.stubOutSamCalls(samService);
 
         // Retrieve billing info
-        coreBillingAccountId = testConfig.getGoogleBillingAccountId();
+        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
         datasetSummary = connectedOperations.createDataset(profileModel, "snapshot-test-dataset.json");
     }

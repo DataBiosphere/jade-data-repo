@@ -25,7 +25,9 @@ public enum IamAction {
     CREATE_DATASNAPSHOT,
     EDIT_DATASNAPSHOT,
     READ_DATA,
-    DISCOVER_DATA;
+    DISCOVER_DATA,
+    // billing profiles
+    PROFILE_LINK;
 
     @Override
     @JsonValue

@@ -4,7 +4,6 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.PdaoLoadStatistics;
-import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.exception.InvalidQueryException;
@@ -18,16 +17,12 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDataProject;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
-import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotDataProject;
 import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
@@ -89,37 +84,27 @@ import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
 
 @Component
 @Profile("google")
-public class BigQueryPdao implements PrimaryDataAccess {
+public class BigQueryPdao {
     private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
 
     private final String datarepoDnsName;
-    private final DataLocationService dataLocationService;
     private final BigQueryConfiguration bigQueryConfiguration;
-    private final DatasetService datasetService;
 
     @Autowired
-    public BigQueryPdao(
-        ApplicationConfiguration applicationConfiguration,
-        DataLocationService dataLocationService,
-        BigQueryConfiguration bigQueryConfiguration,
-        DatasetService datasetService) {
+    public BigQueryPdao(ApplicationConfiguration applicationConfiguration,
+                        BigQueryConfiguration bigQueryConfiguration) {
         this.datarepoDnsName = applicationConfiguration.getDnsName();
-        this.dataLocationService = dataLocationService;
-        this.datasetService = datasetService;
         this.bigQueryConfiguration = bigQueryConfiguration;
     }
 
     public BigQueryProject bigQueryProjectForDataset(Dataset dataset) throws InterruptedException {
-        DatasetDataProject projectForDataset = dataLocationService.getOrCreateProject(dataset);
-        return BigQueryProject.get(projectForDataset.getGoogleProjectId());
+        return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
     }
 
     private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) throws InterruptedException {
-        SnapshotDataProject projectForSnapshot = dataLocationService.getOrCreateProject(snapshot);
-        return BigQueryProject.get(projectForSnapshot.getGoogleProjectId());
+        return BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
     }
 
-    @Override
     public void createDataset(Dataset dataset) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         BigQuery bigQuery = bigQueryProject.getBigQuery();
@@ -288,7 +273,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.query(sqlTemplate.render());
     }
 
-    @Override
     public boolean deleteDataset(Dataset dataset) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         return bigQueryProject.deleteDataset(prefixName(dataset.getName()));
@@ -318,7 +302,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
     // - do the query
     // - truncate (even tidier...)
     // So if we need to make this work in the long term, we can take that approach.
-    @Override
     public RowIdMatch mapValuesToRows(Snapshot snapshot,
                                       SnapshotSource source,
                                       List<String> inputValues) throws InterruptedException {
@@ -393,7 +376,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` AS R " +
             "WHERE R." + PDAO_ROW_ID_COLUMN + " = T." + PDAO_ROW_ID_COLUMN;
 
-    @Override
     public void createSnapshot(Snapshot snapshot, List<String> rowIds) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         String projectId = bigQueryProject.getProjectId();
@@ -630,7 +612,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.addDatasetAcls(name, policyGroupAcls);
     }
 
-    @Override
     public boolean datasetExists(Dataset dataset) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String datasetName = prefixName(dataset.getName());
@@ -638,20 +619,17 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return bigQueryProject.datasetExists(datasetName);
     }
 
-    @Override
     public boolean tableExists(Dataset dataset, String tableName) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String datasetName = prefixName(dataset.getName());
         return bigQueryProject.tableExists(datasetName, tableName);
     }
 
-    @Override
     public boolean snapshotExists(Snapshot snapshot) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         return bigQueryProject.datasetExists(snapshot.getName());
     }
 
-    @Override
     public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         String projectId = bigQueryProject.getProjectId();

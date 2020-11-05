@@ -1,7 +1,10 @@
 package bio.terra.app.utils;
 
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.model.JobModel;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,4 +41,19 @@ public final class ControllerUtils {
     public static void validateEnumerateParams(Integer offset, Integer limit) {
         validateEnumerateParams(offset, limit, null, null);
     }
+
+    public static ResponseEntity<JobModel> jobToResponse(JobModel job) {
+        if (job.getJobStatus() == JobModel.JobStatusEnum.RUNNING) {
+            return ResponseEntity
+                .status(HttpStatus.ACCEPTED)
+                .header("Location", String.format("/api/repository/v1/jobs/%s", job.getId()))
+                .body(job);
+        } else {
+            return ResponseEntity
+                .status(HttpStatus.OK)
+                .header("Location", String.format("/api/repository/v1/jobs/%s/result", job.getId()))
+                .body(job);
+        }
+    }
+
 }

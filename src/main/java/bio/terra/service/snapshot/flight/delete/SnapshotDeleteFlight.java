@@ -7,8 +7,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.DataLocationService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
@@ -32,8 +31,7 @@ public class SnapshotDeleteFlight extends Flight {
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
-        DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
-        GoogleResourceService resourceService = (GoogleResourceService) appContext.getBean("googleResourceService");
+        ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
         IamService iamClient = (IamService)appContext.getBean("iamService");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
@@ -49,7 +47,6 @@ public class SnapshotDeleteFlight extends Flight {
         addStep(new DeleteSnapshotAuthzBqAclsStep(
             iamClient,
             resourceService,
-            dataLocationService,
             snapshotService,
             snapshotId,
             userReq));

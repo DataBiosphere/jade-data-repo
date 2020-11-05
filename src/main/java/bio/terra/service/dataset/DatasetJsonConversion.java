@@ -1,10 +1,21 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
-import bio.terra.common.Column;
-import bio.terra.model.*;
+import bio.terra.model.AssetModel;
+import bio.terra.model.AssetTableModel;
+import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSpecificationModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DatePartitionOptionsModel;
+import bio.terra.model.IntPartitionOptionsModel;
+import bio.terra.model.RelationshipModel;
+import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.TableModel;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,7 +78,8 @@ public final class DatasetJsonConversion {
                 .description(dataset.getDescription())
                 .defaultProfileId(dataset.getDefaultProfileId().toString())
                 .createdDate(dataset.getCreatedDate().toString())
-                .schema(datasetSpecificationModelFromDatasetSchema(dataset));
+                .schema(datasetSpecificationModelFromDatasetSchema(dataset))
+                .dataProject(dataset.getProjectResource().getGoogleProjectId());
     }
 
     public static DatasetSpecificationModel datasetSpecificationModelFromDatasetSchema(Dataset dataset) {

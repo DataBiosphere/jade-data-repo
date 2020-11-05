@@ -18,7 +18,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -31,17 +31,17 @@ import java.util.stream.Collectors;
 public class DatasetService {
     private final DatasetDao datasetDao;
     private final JobService jobService; // for handling flight response
-    private final DataLocationService dataLocationService;
+    private final ResourceService resourceService;
     private final LoadService loadService;
 
     @Autowired
     public DatasetService(DatasetDao datasetDao,
                           JobService jobService,
-                          DataLocationService dataLocationService,
+                          ResourceService resourceService,
                           LoadService loadService) {
         this.datasetDao = datasetDao;
         this.jobService = jobService;
-        this.dataLocationService = dataLocationService;
+        this.resourceService = resourceService;
         this.loadService = loadService;
     }
 
@@ -98,9 +98,7 @@ public class DatasetService {
      * @return a DatasetModel = API output-friendly representation of the Dataset
      */
     public DatasetModel retrieveModel(Dataset dataset) {
-        DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
-        return DatasetJsonConversion.populateDatasetModelFromDataset(dataset)
-            .dataProject(dataProject.getGoogleProjectId());
+        return DatasetJsonConversion.populateDatasetModelFromDataset(dataset);
     }
 
     public EnumerateDatasetModel enumerate(

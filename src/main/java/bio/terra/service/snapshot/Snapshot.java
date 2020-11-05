@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -22,6 +23,8 @@ public class Snapshot implements FSContainerInterface {
     private List<SnapshotTable> tables = Collections.emptyList();
     private List<SnapshotSource> snapshotSources = Collections.emptyList();
     private UUID profileId;
+    private UUID projectResourceId;
+    private GoogleProjectResource projectResource;
     private List<Relationship> relationships = Collections.emptyList();
 
     public UUID getId() {
@@ -93,6 +96,24 @@ public class Snapshot implements FSContainerInterface {
 
     public Snapshot profileId(UUID profileId) {
         this.profileId = profileId;
+        return this;
+    }
+
+    public UUID getProjectResourceId() {
+        return projectResourceId;
+    }
+
+    public Snapshot projectResourceId(UUID projectResourceId) {
+        this.projectResourceId = projectResourceId;
+        return this;
+    }
+
+    public GoogleProjectResource getProjectResource() {
+        return projectResource;
+    }
+
+    public Snapshot projectResource(GoogleProjectResource projectResource) {
+        this.projectResource = projectResource;
         return this;
     }
 

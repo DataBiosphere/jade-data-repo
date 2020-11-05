@@ -1,11 +1,12 @@
 package bio.terra.common.fixtures;
 
-import bio.terra.service.resourcemanagement.BillingProfile;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 
 public final class ProfileFixtures {
     private ProfileFixtures() {}
@@ -28,22 +29,26 @@ public final class ProfileFixtures {
         return String.join("-", groups).toUpperCase();
     }
 
-    public static BillingProfile billingProfileForAccount(final String accountId) {
-        return new BillingProfile()
+    public static BillingProfileModel billingProfileForAccount(final String accountId) {
+        return new BillingProfileModel()
+            .id(UUID.randomUUID().toString())
+            .billingAccountId(accountId)
+            .profileName("test profile")
             .biller("direct")
-            .name("test profile")
-            .billingAccountId(accountId);
+            .description("test profile description");
     }
 
-    public static BillingProfile randomBillingProfile() {
+    public static BillingProfileModel randomBillingProfile() {
         return billingProfileForAccount(randomBillingAccountId());
     }
 
-    public static BillingProfileRequestModel billingProfileRequest(final BillingProfile profile) {
+    public static BillingProfileRequestModel billingProfileRequest(final BillingProfileModel profile) {
         return new BillingProfileRequestModel()
+            .id(profile.getId())
             .biller(profile.getBiller())
-            .profileName(profile.getName())
-            .billingAccountId(profile.getBillingAccountId());
+            .profileName(profile.getProfileName())
+            .billingAccountId(profile.getBillingAccountId())
+            .description(profile.getDescription());
     }
 
     public static BillingProfileRequestModel randomBillingProfileRequest() {

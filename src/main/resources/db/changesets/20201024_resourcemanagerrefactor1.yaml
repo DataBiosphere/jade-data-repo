@@ -1,0 +1,86 @@
+databaseChangeLog:
+  - changeSet:
+      id: resource_manager_refactor_step1
+      # In step 1 we add all the new columns.
+      # In step 2 we moved the data from the old columns to the new columns.
+      # In step 3 we remove the old tables
+      author: dd
+      changes:
+        - addColumn:
+            tableName: billing_profile
+            columns:
+              - column:
+                  name: description
+                  type: text
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+              - column:
+                  name: created_by
+                  type: text
+
+        - addColumn:
+            tableName: snapshot
+            columns:
+              - column:
+                  name: project_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: true
+
+        - addColumn:
+            tableName: dataset
+            columns:
+              - column:
+                  name: project_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: true
+
+        - addColumn:
+            tableName: bucket_resource
+            columns:
+              - column:
+                  name: region
+                  type: text
+                  constraints:
+                    nullable: true
+
+        - createTable:
+            tableName: dataset_bucket
+            remarks: |
+              This table links datasets to the buckets they use. There can be more than one bucket in use
+              by a dataset, because there are different payers for the data in the dataset. There can be
+              more than one dataset sharing a bucket in the current project-per-billing-profile data location
+              selector. More than one ingest can attempt to create this row, so we do not error on duplicate
+              entries and we do not try to delete it. Instead, we maintain a successful_ingest counter.
+              If the counter is zero, then no files have ever been successfully ingested into this bucket for
+              this dataset. That is equivalent to no link between the dataset and the bucket.
+            columns:
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_dataset_bucket
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: bucket_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bucket_resource_dataset_bucket
+                    references: bucket_resource(id)
+                    deleteCascade: true
+              - column:
+                  name: successful_ingests
+                  type: int8
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            tableName: dataset_bucket
+            columnNames: dataset_id, bucket_resource_id
+            constraintName: pk_dataset_bucket

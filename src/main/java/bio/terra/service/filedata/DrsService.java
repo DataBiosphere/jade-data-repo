@@ -6,6 +6,7 @@ import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
+import bio.terra.model.SnapshotProjectModel;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
@@ -64,13 +65,13 @@ public class DrsService {
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
 
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
-        Snapshot snapshot = null;
+        SnapshotProjectModel snapshotProject = null;
         try {
             UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
             // We only look up DRS ids for unlocked snapshots.
             String retrieveTimer = performanceLogger.timerStart();
 
-            snapshot = snapshotService.retrieveAvailable(snapshotId);
+            snapshotProject = snapshotService.retrieveAvailableSnapshotProject(snapshotId);
 
             performanceLogger.timerEndAndLog(
                 retrieveTimer,
@@ -104,7 +105,7 @@ public class DrsService {
         try {
             String lookupTimer = performanceLogger.timerStart();
             fsObject = fileService.lookupSnapshotFSItem(
-                snapshot,
+                snapshotProject,
                 drsId.getFsObjectId(),
                 depth);
 

@@ -90,7 +90,7 @@ public class GoogleBillingService implements BillingService {
      */
     @Override
     public boolean canAccess(BillingProfile billingProfile) {
-        String accountId = "billingAccounts/" + billingProfile.getBillingAccountId();
+        String accountId = billingProfile.getBillingAccountId();
         ResourceName resource = BillingAccountName.of(accountId);
         List<String> permissions = Collections.singletonList("billing.resourceAssociations.create");
         TestIamPermissionsRequest permissionsRequest = TestIamPermissionsRequest.newBuilder()
@@ -101,7 +101,7 @@ public class GoogleBillingService implements BillingService {
             TestIamPermissionsResponse response = cloudbilling().testIamPermissions(permissionsRequest);
             return response.getPermissionsList().containsAll(permissions);
         } catch (ApiException e) {
-            String message = String.format("%s Error, Could not check permissions on: %s", e.getMessage(), accountId);
+            String message = String.format("ERROR: Could not check permissions on `%s`: %s", resource.toString(), e.getMessage());
             throw new BillingServiceException(message, e);
         }
     }

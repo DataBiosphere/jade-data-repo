@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.model.SnapshotProjectModel;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.common.MetadataEnumeration;
@@ -209,6 +210,16 @@ public class SnapshotDao {
     }
 
     /**
+     * This is a convenience wrapper that returns a snapshot project model only if it is NOT exclusively locked.
+     * This method is intended for user-facing API calls (e.g. from RepositoryApiController).
+     * @param snapshotId the snapshot id
+     * @return the SnapshotProjectModel object
+     */
+    public SnapshotProjectModel retrieveAvailableSnapshotProject(UUID snapshotId) {
+        return retrieveSnapshotProject(snapshotId, true);
+    }
+
+    /**
      * This is a convenience wrapper that returns a snapshot, regardless of whether it is exclusively locked.
      * Most places in the API code that are retrieving a snapshot will call this method.
      * @param snapshotId the snapshot id
@@ -237,6 +248,20 @@ public class SnapshotDao {
             throw new SnapshotNotFoundException("Snapshot not found - id: " + snapshotId);
         }
         return snapshot;
+    }
+
+    public SnapshotProjectModel retrieveSnapshotProject(UUID snapshotId, boolean onlyRetrieveAvailable) {
+        logger.debug("retrieve snapshot id: " + snapshotId);
+        String sql = "SELECT * FROM snapshot WHERE id = :id";
+        if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
+            sql += " AND flightid IS NULL";
+        }
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", snapshotId);
+        SnapshotProjectModel snapshotProject = retrieveSnapshotProject(sql, params);
+        if (snapshotProject == null) {
+            throw new SnapshotNotFoundException("Snapshot not found - id: " + snapshotId);
+        }
+        return snapshotProject;
     }
 
     public Snapshot retrieveSnapshotByName(String name) {
@@ -274,6 +299,20 @@ public class SnapshotDao {
                 snapshot.projectResource(resourceService.getProjectResource(snapshot.getProjectResourceId()));
             }
             return snapshot;
+        } catch (EmptyResultDataAccessException ex) {
+            return null;
+        }
+    }
+
+    private SnapshotProjectModel retrieveSnapshotProject(String sql, MapSqlParameterSource params) {
+        try {
+            SnapshotProjectModel snapshotProject = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
+                new SnapshotProjectModel()
+                    .id(rs.getString("id"))
+                    .name(rs.getString("name"))
+                    .dataProject(rs.getString("project_resource_id"))
+                    .profileId(rs.getString("profile_id")));
+            return snapshotProject;
         } catch (EmptyResultDataAccessException ex) {
             return null;
         }

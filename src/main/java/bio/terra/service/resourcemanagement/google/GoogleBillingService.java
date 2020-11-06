@@ -3,11 +3,9 @@ package bio.terra.service.resourcemanagement.google;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.BillingService;
 import bio.terra.service.resourcemanagement.exception.BillingServiceException;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.rpc.ApiException;
 import com.google.api.resourcenames.ResourceName;
-import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.billing.v1.BillingAccountName;
@@ -21,18 +19,17 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 @Service
 @Profile("google")
 public class GoogleBillingService implements BillingService {
 
-    private static CloudBillingClient cloudbilling() {
+    private static CloudBillingClient cloudBillingClient() {
         try {
             // Authentication is provided by the 'gcloud' tool when running locally
             // and by built-in service accounts when running on GAE, GCE, or GKE.
-            GoogleCredential credential = GoogleCredential.getApplicationDefault();
+            GoogleCredentials credentials = ServiceAccountCredentials.getApplicationDefault();
 
             // The createScopedRequired method returns true when running on GAE or a local developer
             // machine. In that case, the desired scopes must be passed in manually. When the code is
@@ -40,20 +37,9 @@ public class GoogleBillingService implements BillingService {
             // See https://developers.google.com/identity/protocols/application-default-credentials
             // for more information.
             List<String> scopes = Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
-            if (credential.createScopedRequired()) {
-                credential = credential.createScoped(scopes);
+            if (credentials.createScopedRequired()) {
+                credentials = credentials.createScoped(scopes);
             }
-
-            // This is the new mechanism to validate Google oauth2 credentials
-            // See https://stackoverflow.com/a/47799002 for more information.
-            GoogleCredentials credentials = ServiceAccountCredentials.newBuilder()
-                .setPrivateKey(credential.getServiceAccountPrivateKey())
-                .setPrivateKeyId(credential.getServiceAccountPrivateKeyId())
-                .setClientEmail(credential.getServiceAccountId())
-                .setScopes(scopes)
-                .setAccessToken(new AccessToken(credential.getAccessToken(),
-                    Date.from(new Date().toInstant().plusSeconds(60))))
-                .build();
 
             // Use these credentials for the CloudBillingClient
             CloudBillingSettings cloudBillingSettings =
@@ -98,10 +84,18 @@ public class GoogleBillingService implements BillingService {
             .addAllPermissions(permissions)
             .build();
         try {
-            TestIamPermissionsResponse response = cloudbilling().testIamPermissions(permissionsRequest);
-            return response.getPermissionsList().containsAll(permissions);
+            TestIamPermissionsResponse response = cloudBillingClient().testIamPermissions(permissionsRequest);
+            List<String> actualPermissions = response.getPermissionsList();
+            return actualPermissions != null && actualPermissions.equals(permissions);
         } catch (ApiException e) {
-            String message = String.format("ERROR: Could not check permissions on `%s`: %s", resource.toString(), e.getMessage());
+            int status = e.getStatusCode().getCode().getHttpStatusCode();
+            if (status == 400 || status == 404) {
+                // The billing account id is invalid or does not exist. This counts as inaccessible.
+                return false;
+            }
+            String message = String.format("ERROR: Could not check permissions on `%s`: %s",
+                resource.toString(),
+                e.getMessage());
             throw new BillingServiceException(message, e);
         }
     }
@@ -113,7 +107,7 @@ public class GoogleBillingService implements BillingService {
             .setBillingAccountName("billingAccounts/" + billingAccountId)
             .build();
         try {
-            ProjectBillingInfo billingResponse = cloudbilling()
+            ProjectBillingInfo billingResponse = cloudBillingClient()
                 .updateProjectBillingInfo("projects/" + projectId, content);
             return billingResponse.getBillingEnabled();
         } catch (ApiException e) {

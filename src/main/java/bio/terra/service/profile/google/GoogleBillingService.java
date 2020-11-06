@@ -75,8 +75,8 @@ public class GoogleBillingService {
      * @return true if the repository can act as a billing account *user* (viewer is not enough), false otherwise
      */
     public boolean canAccess(BillingProfileModel billingProfile) {
-        String accountId = billingProfile.getBillingAccountId();
-        ResourceName resource = BillingAccountName.of(accountId);
+        String billingAccountId = billingProfile.getBillingAccountId();
+        ResourceName resource = BillingAccountName.of(billingAccountId);
         List<String> permissions = Collections.singletonList("billing.resourceAssociations.create");
         TestIamPermissionsRequest permissionsRequest = TestIamPermissionsRequest.newBuilder()
             .setResource(resource.toString())
@@ -92,9 +92,7 @@ public class GoogleBillingService {
                 // The billing account id is invalid or does not exist. This counts as inaccessible.
                 return false;
             }
-            String message = String.format("ERROR: Could not check permissions on `%s`: %s",
-                resource.toString(),
-                e.getMessage());
+            String message = String.format("Could not check permissions on billing account '%s'", billingAccountId);
             throw new BillingServiceException(message, e);
         }
     }

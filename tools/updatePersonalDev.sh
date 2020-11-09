@@ -6,7 +6,9 @@
 # 1. Grabs latest running vesion from dev, sets it as $LATEST_VERSION
 # 2. Changes your api yaml to point to the latest version
 # 3. Question 1: Do you want to apply these changes? [y/n]
-#     With "y" response, it runs helmfile apply to the change
+#     With "y" response, ask a second Question:
+#        Do you want to delete the api pod first? (only do this if you expect to need to run migrations)
+#     then, proceeds to run helmfile apply to the change
 # 4. Question 2: Do you want to commit these changes to the datarepo-helm-definitions repo? [y/n]
 #     With "y" response, it will commit these changes to master
 
@@ -37,14 +39,22 @@ else
     echo "Do you want to apply these changes? [y/n]"
     read ans
     if [[ "$ans" == "y" ]]; then
+        echo "[INFO] Do you want to delete the api pod first? (only do this if you expect to need to run migrations) [y/n]"
+        read ans2
+        if [[ "$ans2" == "y" ]]; then
+            echo "[INFO] Deleteing api pod"
+            helm delete -n $NAMESPACE $NAMESPACE-jade-datarepo-api
+            sleep 5
+        fi
         echo "[INFO] Applying changes using helmfile apply"
         helmfile apply
+        echo "[INFO] $NAMESPACE dev env should be up to date to version $LATEST_VERSION. Please change gcloud console to confirm."
     else
         echo "[INFO] Changes not applied."
     fi
     echo "Do you want to commit these changes to the datarepo-helm-definitions repo? [y/n]"
-    read ans2
-    if [[ "$ans2" == "y" ]]; then
+    read ans3
+    if [[ "$ans3" == "y" ]]; then
         echo "[INFO] Commiting changes to datarepo-helm-definitions"
         git pull
         git status
@@ -53,8 +63,7 @@ else
         echo "[INFO] Latest changes should be pushed to datarepo-helm-definitions"
     else
         echo "[INFO] Changes not pushed to remote repo"
-    fi
-    echo "[INFO] $NAMESPACE dev env should be up to date to version $LATEST_VERSION. Please change gcloud console to confirm."
+    fi  
 fi
 
 cd ${CWD}

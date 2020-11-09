@@ -21,10 +21,10 @@ import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
-import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
-import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
-import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
-import com.google.api.services.serviceusage.v1beta1.model.Service;
+import com.google.api.services.serviceusage.v1.ServiceUsage;
+import com.google.api.services.serviceusage.v1.model.BatchEnableServicesRequest;
+import com.google.api.services.serviceusage.v1.model.ListServicesResponse;
+import com.google.api.services.serviceusage.v1.model.GoogleApiServiceusageV1Service;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
@@ -239,11 +239,11 @@ public class GoogleProjectService {
                 DATA_PROJECT_SERVICE_IDS.stream()
                     .map(s -> String.format("%s/services/%s", projectNumberString, s))
                     .collect(Collectors.toList());
-            List<Service> serviceList = listServicesResponse.getServices();
+            List<GoogleApiServiceusageV1Service> serviceList = listServicesResponse.getServices();
             List<String> actualServiceNames = Collections.emptyList();
             if (serviceList != null) {
                 actualServiceNames =
-                    serviceList.stream().map(Service::getName).collect(Collectors.toList());
+                    serviceList.stream().map(GoogleApiServiceusageV1Service::getName).collect(Collectors.toList());
             }
 
             if (actualServiceNames.containsAll(requiredServices)) {
@@ -404,9 +404,9 @@ public class GoogleProjectService {
             .build();
     }
 
-    private static com.google.api.services.serviceusage.v1beta1.model.Operation blockUntilServiceOperationComplete(
+    private static com.google.api.services.serviceusage.v1.model.Operation blockUntilServiceOperationComplete(
         ServiceUsage serviceUsage,
-        com.google.api.services.serviceusage.v1beta1.model.Operation operation,
+        com.google.api.services.serviceusage.v1.model.Operation operation,
         long timeoutSeconds)
         throws IOException, InterruptedException {
 
@@ -415,7 +415,7 @@ public class GoogleProjectService {
         String opId = operation.getName();
 
         while (operation != null && (operation.getDone() == null || !operation.getDone())) {
-            com.google.api.services.serviceusage.v1beta1.model.Status error = operation.getError();
+            com.google.api.services.serviceusage.v1.model.Status error = operation.getError();
             if (error != null) {
                 throw new GoogleResourceException(
                     "Error while waiting for operation to complete" + error.getMessage());

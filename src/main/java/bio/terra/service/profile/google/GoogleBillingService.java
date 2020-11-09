@@ -3,20 +3,21 @@ package bio.terra.service.profile.google;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.exception.BillingServiceException;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.googleapis.json.GoogleJsonResponseException;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
-import com.google.api.services.cloudbilling.Cloudbilling;
-import com.google.api.services.cloudbilling.model.ProjectBillingInfo;
-import com.google.api.services.cloudbilling.model.TestIamPermissionsRequest;
+import com.google.api.gax.core.FixedCredentialsProvider;
+import com.google.api.gax.rpc.ApiException;
+import com.google.api.resourcenames.ResourceName;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.cloud.billing.v1.BillingAccountName;
+import com.google.cloud.billing.v1.CloudBillingClient;
+import com.google.cloud.billing.v1.CloudBillingSettings;
+import com.google.cloud.billing.v1.ProjectBillingInfo;
+import com.google.iam.v1.TestIamPermissionsRequest;
+import com.google.iam.v1.TestIamPermissionsResponse;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,29 +25,31 @@ import java.util.List;
 @Profile("google")
 public class GoogleBillingService {
 
-    private static Cloudbilling cloudbilling() {
+    private static CloudBillingClient cloudBillingClient() {
         try {
             // Authentication is provided by the 'gcloud' tool when running locally
             // and by built-in service accounts when running on GAE, GCE, or GKE.
-            GoogleCredential credential = GoogleCredential.getApplicationDefault();
+            GoogleCredentials credentials = ServiceAccountCredentials.getApplicationDefault();
 
             // The createScopedRequired method returns true when running on GAE or a local developer
             // machine. In that case, the desired scopes must be passed in manually. When the code is
             // running in GCE, GKE or a Managed VM, the scopes are pulled from the GCE metadata server.
             // See https://developers.google.com/identity/protocols/application-default-credentials
             // for more information.
-            if (credential.createScopedRequired()) {
-                credential = credential.createScoped(
-                    Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+            List<String> scopes = Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
+            if (credentials.createScopedRequired()) {
+                credentials = credentials.createScoped(scopes);
             }
 
-            HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-            JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-            return new Cloudbilling.Builder(httpTransport, jsonFactory, credential)
-                .setApplicationName("jade-data-repository")
-                .build();
-        } catch (IOException | GeneralSecurityException e) {
-            String message = String.format("Could not build Cloudbilling instance: %s", e.getMessage());
+            // Use these credentials for the CloudBillingClient
+            CloudBillingSettings cloudBillingSettings =
+                CloudBillingSettings.newBuilder()
+                    .setCredentialsProvider(FixedCredentialsProvider.create(credentials))
+                    .build();
+
+            return CloudBillingClient.create(cloudBillingSettings);
+        } catch (IOException e) {
+            String message = String.format("Could not build Cloud Billing client instance: %s", e.getMessage());
             throw new BillingServiceException(message, e);
         }
     }
@@ -61,6 +64,7 @@ public class GoogleBillingService {
      * the caller is allowed for that resource.
      *
      * from: https://cloud.google.com/billing/v1/how-tos/access-control
+     * from: https://bit.ly/2TM2RPz (TestIamPermissionsRequest sample code)
      *
      * In order to call projects.updateBillingInfo, the caller must have permissions billing.resourceAssociations.create
      * and resourcemanager.projects.createBillingAssignment on the billing account.
@@ -71,24 +75,24 @@ public class GoogleBillingService {
      * @return true if the repository can act as a billing account *user* (viewer is not enough), false otherwise
      */
     public boolean canAccess(BillingProfileModel billingProfile) {
-        String accountId = "billingAccounts/" + billingProfile.getBillingAccountId();
+        String billingAccountId = billingProfile.getBillingAccountId();
+        ResourceName resource = BillingAccountName.of(billingAccountId);
         List<String> permissions = Collections.singletonList("billing.resourceAssociations.create");
-        TestIamPermissionsRequest permissionsRequest = new TestIamPermissionsRequest().setPermissions(permissions);
+        TestIamPermissionsRequest permissionsRequest = TestIamPermissionsRequest.newBuilder()
+            .setResource(resource.toString())
+            .addAllPermissions(permissions)
+            .build();
         try {
-            Cloudbilling.BillingAccounts.TestIamPermissions testIamPermissions =
-                cloudbilling().billingAccounts().testIamPermissions(accountId, permissionsRequest);
-            List<String> actualPermissions = testIamPermissions.execute().getPermissions();
+            TestIamPermissionsResponse response = cloudBillingClient().testIamPermissions(permissionsRequest);
+            List<String> actualPermissions = response.getPermissionsList();
             return actualPermissions != null && actualPermissions.equals(permissions);
-        } catch (GoogleJsonResponseException e) {
-            int status = e.getStatusCode();
+        } catch (ApiException e) {
+            int status = e.getStatusCode().getCode().getHttpStatusCode();
             if (status == 400 || status == 404) {
                 // The billing account id is invalid or does not exist. This counts as inaccessible.
                 return false;
             }
-            String message = String.format("%s Error, Could not check permissions on: %s", status, accountId);
-            throw new BillingServiceException(message, e);
-        } catch (IOException e) {
-            String message = String.format("Could not check permissions on: %s", accountId);
+            String message = String.format("Could not check permissions on billing account '%s'", billingAccountId);
             throw new BillingServiceException(message, e);
         }
     }
@@ -96,14 +100,14 @@ public class GoogleBillingService {
     public boolean assignProjectBilling(BillingProfileModel billingProfile, GoogleProjectResource project) {
         String billingAccountId = billingProfile.getBillingAccountId();
         String projectId = project.getGoogleProjectId();
-        ProjectBillingInfo content = new ProjectBillingInfo()
-            .setBillingAccountName("billingAccounts/" + billingAccountId);
+        ProjectBillingInfo content = ProjectBillingInfo.newBuilder()
+            .setBillingAccountName("billingAccounts/" + billingAccountId)
+            .build();
         try {
-            Cloudbilling.Projects.UpdateBillingInfo billingRequest = cloudbilling().projects()
-                .updateBillingInfo("projects/" + projectId, content);
-            ProjectBillingInfo billingResponse = billingRequest.execute();
+            ProjectBillingInfo billingResponse = cloudBillingClient()
+                .updateProjectBillingInfo("projects/" + projectId, content);
             return billingResponse.getBillingEnabled();
-        } catch (IOException e) {
+        } catch (ApiException e) {
             String message = String.format("Could not assign billing account '%s' to project: %s", billingAccountId,
                 projectId);
             throw new BillingServiceException(message, e);

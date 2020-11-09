@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# Updates personal dev environment
+# Requires yq and helmfile to be installed
+# Steps:
+# 1. Grabs latest running vesion from dev, sets it as $LATEST_VERSION
+# 2. Changes your api yaml to point to the latest version
+# 3. Question 1: Do you want to apply these changes? [y/n]
+#     With "y" response, it runs helmfile apply to the change
+# 4. Question 2: Do you want to commit these changes to the datarepo-helm-definitions repo? [y/n]
+#     With "y" response, it will commit these changes to master
+
 set -e
 
 CWD=${PWD}
@@ -24,7 +34,7 @@ else
     yq w -i datarepo-api.yaml image.tag $LATEST_VERSION
     echo "[INFO] Running helmfile diff (no changes made until helmfile apply is run)"
     helmfile diff
-    echo "Do you want to apply these changes to helm? [y/n]"
+    echo "Do you want to apply these changes? [y/n]"
     read ans
     if [[ "$ans" == "y" ]]; then
         echo "[INFO] Applying changes using helmfile apply"

@@ -3,10 +3,11 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
+import bio.terra.model.RepositoryStatusModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.job.JobService;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,7 +82,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     }
 
     @Override
-    public ResponseEntity<Void> serviceStatus() {
+    public ResponseEntity<RepositoryStatusModel> serviceStatus() {
         if (configurationService.testInsertFault(ConfigEnum.LIVENESS_FAULT)) {
             logger.info("LIVENESS_FAULT insertion - failing status response");
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);

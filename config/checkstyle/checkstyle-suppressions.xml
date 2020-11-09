@@ -5,4 +5,5 @@
 
 <suppressions>
     <suppress checks="[a-zA-Z0-9]*" files="[\\/]grammar[\\/]" />
+    <suppress checks="[a-zA-Z0-9]*" files="[\\/]generated-src[\\/]"/>
 </suppressions>

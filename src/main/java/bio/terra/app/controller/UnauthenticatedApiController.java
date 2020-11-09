@@ -4,9 +4,7 @@ import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
 import bio.terra.model.RepositoryStatusModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.configuration.StatusService;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -34,8 +32,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     private final Logger logger = LoggerFactory.getLogger(UnauthenticatedApiController.class);
     private final JobService jobService;
     private final Environment env;
-    private final ConfigurationService configurationService;
-    private final DatasetDao datasetDao;
+    private final StatusService statusService;
 
     private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
     private static final String DEFAULT_GITHASH = "00000000";
@@ -50,16 +47,14 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         OauthConfiguration oauthConfig,
         JobService jobService,
         Environment env,
-        ConfigurationService configurationService,
-        DatasetDao datasetDao
+        StatusService statusService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.oauthConfig = oauthConfig;
         this.jobService = jobService;
         this.env = env;
-        this.configurationService = configurationService;
-        this.datasetDao = datasetDao;
+        this.statusService = statusService;
 
         Properties properties = new Properties();
         try (InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties")) {
@@ -83,14 +78,9 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     @Override
     public ResponseEntity<RepositoryStatusModel> serviceStatus() {
-        if (configurationService.testInsertFault(ConfigEnum.LIVENESS_FAULT)) {
-            logger.info("LIVENESS_FAULT insertion - failing status response");
-            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
-        }
-        if (!datasetDao.statusCheck()) {
-            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
-        }
-        return new ResponseEntity<>(HttpStatus.OK);
+        RepositoryStatusModel repoStatus = statusService.getStatus();
+        HttpStatus httpStatus = repoStatus.isOk() ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;
+        return new ResponseEntity<>(repoStatus, httpStatus);
     }
 
     @Override

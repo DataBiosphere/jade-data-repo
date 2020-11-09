@@ -3,6 +3,7 @@ package bio.terra.service.iam.sam;
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
@@ -23,6 +24,8 @@ import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
+import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
+import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,6 +60,13 @@ public class SamIam implements IamProviderInterface {
         apiClient.setAccessToken(accessToken);
         apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java");  // only logs an error in sam
         return apiClient.setBasePath(samConfig.getBasePath());
+    }
+
+    private ApiClient getUnauthApiClient() {
+        ApiClient apiClient = new ApiClient();
+        apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java");  // only logs an error in sam
+        apiClient.setBasePath(samConfig.getBasePath());
+        return apiClient;
     }
 
     private ResourcesApi samResourcesApi(String accessToken) {
@@ -462,6 +472,26 @@ public class SamIam implements IamProviderInterface {
             default: {
                 return new IamInternalServerErrorException(samEx);
             }
+        }
+    }
+
+    @Override
+    public RepositoryStatusModelSystems samStatus() {
+        SamRetry samRetry = new SamRetry(configurationService);
+        try {
+            return samRetry.perform(() -> {
+                StatusApi samApi = new StatusApi(getUnauthApiClient());
+                SystemStatus status = samApi.getSystemStatus();
+                return new RepositoryStatusModelSystems()
+                    .ok(status.getOk())
+                    .message(status.getSystems().toString());
+            });
+        } catch (Exception ex) {
+            String errorMsg = "Sam status check failed";
+            logger.error(errorMsg, ex);
+            return new RepositoryStatusModelSystems()
+                .ok(false)
+                .message(errorMsg + ": " + ex.toString());
         }
     }
 

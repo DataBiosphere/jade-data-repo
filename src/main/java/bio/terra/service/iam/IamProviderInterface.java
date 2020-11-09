@@ -2,6 +2,7 @@ package bio.terra.service.iam;
 
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 
 import java.util.List;
@@ -109,4 +110,12 @@ public interface IamProviderInterface {
                                    String userEmail) throws InterruptedException;
 
     UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq);
+
+    /**
+     * Get Sam Status
+     *
+     * @return RepositoryStatusModelSystems model that includes status and message about sub-system statuses
+     */
+    RepositoryStatusModelSystems samStatus();
+
 }

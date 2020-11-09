@@ -69,6 +69,7 @@ public enum ConfigEnum {
     FIRESTORE_RETRIEVE_FAULT,
 
     LIVENESS_FAULT,
+    CRITICAL_SYSTEM_FAULT,
 
     // Faults to test the fault system
     UNIT_TEST_SIMPLE_FAULT,

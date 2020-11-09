@@ -110,9 +110,13 @@ paths:
         - unauthenticated
       responses:
         200:
-          description: service is fine
+          description: Service is functional
+          schema:
+            $ref: '#/definitions/RepositoryStatusModel'
         500:
-          description: service is broken
+          description: Service is broken
+          schema:
+            $ref: '#/definitions/RepositoryStatusModel'
       security: []
 
 
@@ -2862,6 +2866,26 @@ definitions:
       enabled:
         type: boolean
         description: true if the user is enabled in ldap
+
+  RepositoryStatusModel:
+    description: Returns the status of monitored subsystems.
+    type: object
+    required: [ok, systems]
+    properties:
+      ok:
+        type: boolean
+        description: status of this service
+      systems:
+        type: object
+        additionalProperties:
+          type: object
+          properties:
+            ok:
+              type: boolean
+            critical:
+              type: boolean
+            message:
+              type: string
 
   RepositoryConfigurationModel:
     properties:

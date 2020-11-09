@@ -23,11 +23,11 @@ import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECO
 /**
  * The IamProvider code is used both in flights and from the REST API. It needs to be able to throw
  * InterruptedException to be caught by Stairway as part of shutdown processing.
- *
+ * <p>
  * In the REST API controller, we cannot just specify `throws InterruptedException` (or any checked exception),
  * because the controller derives from the swagger-codegen interface definition. That definition does not allow for
  * any checked exceptions.
- *
+ * <p>
  * This IamService is a thin layer that calls the IamProviderInterface, but catches InterruptedExceptions and
  * converts them into a RuntimeException: IamUnavailableException. That throw will get processed by the global
  * exception handler and make the right error return to the caller.
@@ -54,12 +54,13 @@ public class IamService {
 
     /**
      * Is a user authorized to do an action on a resource.
+     *
      * @return true if authorized, false otherwise
      */
     public boolean isAuthorized(AuthenticatedUserRequest userReq,
-                         IamResourceType iamResourceType,
-                         String resourceId,
-                         IamAction action) {
+                                IamResourceType iamResourceType,
+                                String resourceId,
+                                IamAction action) {
         try {
             int timeoutSeconds = configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS);
             AuthenticatedUserRequest userReqNoId = userReq.reqId(null);
@@ -89,6 +90,7 @@ public class IamService {
      * This is a wrapper method around
      * {@link #isAuthorized(AuthenticatedUserRequest, IamResourceType, String, IamAction)} that throws
      * an exception instead of returning false when the user is NOT authorized to do the action on the resource.
+     *
      * @throws IamUnauthorizedException if NOT authorized
      */
     public void verifyAuthorization(AuthenticatedUserRequest userReq,
@@ -103,7 +105,8 @@ public class IamService {
 
     /**
      * List of the ids of the resources of iamResourceType that the user has any access to.
-     * @param userReq authenticated user
+     *
+     * @param userReq         authenticated user
      * @param iamResourceType resource type; e.g. dataset
      * @return List of ids in UUID form
      */
@@ -116,8 +119,28 @@ public class IamService {
     }
 
     /**
+     * If user has any action on a resource than we allow that user to list the resource,
+     * rather than have a specific action for listing. That is the Sam convention.
+     *
+     * @param userReq         authenticated user
+     * @param iamResourceType resource type
+     * @param resourceId      resource in question
+     * @return true if the user has any actions on that resource
+     */
+    public boolean hasActions(AuthenticatedUserRequest userReq,
+                              IamResourceType iamResourceType,
+                              String resourceId) {
+        try {
+            return iamProvider.hasActions(userReq, iamResourceType, resourceId);
+        } catch (InterruptedException ex) {
+            throw new IamUnavailableException("service unavailable");
+        }
+    }
+
+    /**
      * Delete a dataset IAM resource
-     * @param userReq authenticated user
+     *
+     * @param userReq   authenticated user
      * @param datasetId dataset to delete
      */
     public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
@@ -130,7 +153,8 @@ public class IamService {
 
     /**
      * Delete a snapshot IAM resource
-     * @param userReq authenticated user
+     *
+     * @param userReq    authenticated user
      * @param snapshotId snapshot to delete
      */
     public void deleteSnapshotResource(AuthenticatedUserRequest userReq, UUID snapshotId) {
@@ -144,7 +168,7 @@ public class IamService {
     /**
      * Create a dataset IAM resource
      *
-     * @param userReq authenticated user
+     * @param userReq   authenticated user
      * @param datasetId id of the dataset
      * @return List of policy group emails for the dataset policies
      */
@@ -159,8 +183,8 @@ public class IamService {
     /**
      * Create a snapshot IAM resource
      *
-     * @param userReq authenticated user
-     * @param snapshotId id of the snapshot
+     * @param userReq     authenticated user
+     * @param snapshotId  id of the snapshot
      * @param readersList list of emails of users to add as readers of the snapshot
      * @return Policy group map
      */
@@ -169,6 +193,24 @@ public class IamService {
                                                        List<String> readersList) {
         try {
             return iamProvider.createSnapshotResource(userReq, snapshotId, readersList);
+        } catch (InterruptedException ex) {
+            throw new IamUnavailableException("service unavailable");
+        }
+    }
+
+    // -- billing profile resource support --
+
+    public void createProfileResource(AuthenticatedUserRequest userReq, String profileId) {
+        try {
+            iamProvider.createProfileResource(userReq, profileId);
+        } catch (InterruptedException ex) {
+            throw new IamUnavailableException("service unavailable");
+        }
+    }
+
+    public void deleteProfileResource(AuthenticatedUserRequest userReq, String profileId) {
+        try {
+            iamProvider.deleteProfileResource(userReq, profileId);
         } catch (InterruptedException ex) {
             throw new IamUnavailableException("service unavailable");
         }
@@ -187,8 +229,8 @@ public class IamService {
     }
 
     public Map<IamRole, String> retrievePolicyEmails(AuthenticatedUserRequest userReq,
-                                              IamResourceType iamResourceType,
-                                              UUID resourceId) {
+                                                     IamResourceType iamResourceType,
+                                                     UUID resourceId) {
         try {
             return iamProvider.retrievePolicyEmails(userReq, iamResourceType, resourceId);
         } catch (InterruptedException ex) {
@@ -197,10 +239,10 @@ public class IamService {
     }
 
     public PolicyModel addPolicyMember(AuthenticatedUserRequest userReq,
-                                IamResourceType iamResourceType,
-                                UUID resourceId,
-                                String policyName,
-                                String userEmail) {
+                                       IamResourceType iamResourceType,
+                                       UUID resourceId,
+                                       String policyName,
+                                       String userEmail) {
         try {
             return iamProvider.addPolicyMember(userReq, iamResourceType, resourceId, policyName, userEmail);
         } catch (InterruptedException ex) {
@@ -209,10 +251,10 @@ public class IamService {
     }
 
     public PolicyModel deletePolicyMember(AuthenticatedUserRequest userReq,
-                                   IamResourceType iamResourceType,
-                                   UUID resourceId,
-                                   String policyName,
-                                   String userEmail) {
+                                          IamResourceType iamResourceType,
+                                          UUID resourceId,
+                                          String policyName,
+                                          String userEmail) {
         try {
             return iamProvider.deletePolicyMember(userReq, iamResourceType, resourceId, policyName, userEmail);
         } catch (InterruptedException ex) {

@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: resource_delete_marks
+      #
+      author: dd
+      changes:
+        - addColumn:
+            tableName: project_resource
+            columns:
+              - column:
+                  name: marked_for_delete
+                  type: boolean
+        - addColumn:
+            tableName: bucket_resource
+            columns:
+              - column:
+                  name: marked_for_delete
+                  type: boolean
+
+
+
+
+

@@ -67,11 +67,11 @@ public class GoogleBillingService {
      *
      * The second permission is specific to projects, so we will check for the first permission here.
      *
-     * @param billingProfile billing profile model to check
+     * @param billingAccountId
      * @return true if the repository can act as a billing account *user* (viewer is not enough), false otherwise
      */
-    public boolean canAccess(BillingProfileModel billingProfile) {
-        String accountId = "billingAccounts/" + billingProfile.getBillingAccountId();
+    public boolean canAccess(String billingAccountId) {
+        String accountId = "billingAccounts/" + billingAccountId;
         List<String> permissions = Collections.singletonList("billing.resourceAssociations.create");
         TestIamPermissionsRequest permissionsRequest = new TestIamPermissionsRequest().setPermissions(permissions);
         try {

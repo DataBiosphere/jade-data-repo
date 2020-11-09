@@ -74,6 +74,16 @@ public class GoogleProjectService {
         this.configService = configService;
     }
 
+    /**
+     * Note: the billing profile used here must be authorized via the
+     * profile service before attempting to use it here
+     *
+     * @param googleProjectId     google's id of the project
+     * @param billingProfile      previously authorized billing profile
+     * @param roleIdentityMapping permissions to set
+     * @return project resource object
+     * @throws InterruptedException if shutting down
+     */
     public GoogleProjectResource getOrCreateProject(
         String googleProjectId,
         BillingProfileModel billingProfile,
@@ -102,6 +112,20 @@ public class GoogleProjectService {
 
     public GoogleProjectResource getProjectResourceById(UUID id) {
         return resourceDao.retrieveProjectById(id);
+    }
+
+    public List<UUID> markUnusedProjectsForDelete(String profileId) {
+        return resourceDao.markUnusedProjectsForDelete(UUID.fromString(profileId));
+    }
+
+    public void deleteUnusedProjects(List<UUID> projectIdList) {
+        for (UUID projectId : projectIdList) {
+            deleteProjectResource(projectId);
+        }
+    }
+
+    public void deleteProjectMetadata(List<UUID> projectIdList) {
+        resourceDao.deleteProjectMetadata(projectIdList);
     }
 
     // package access for use in tests
@@ -192,9 +216,8 @@ public class GoogleProjectService {
                 .googleProjectNumber(googleProjectNumber);
 
         if (setBilling) {
-            if (billingService.canAccess(billingProfile)) {
-                billingService.assignProjectBilling(billingProfile, googleProjectResource);
-            }
+            // The billing profile has already been authorized so we do no further checking here
+            billingService.assignProjectBilling(billingProfile, googleProjectResource);
         }
         enableServices(googleProjectResource);
         updateIamPermissions(roleIdentityMapping, googleProjectId, PermissionOp.ENABLE_PERMISSIONS);
@@ -205,17 +228,21 @@ public class GoogleProjectService {
     }
 
     private void deleteGoogleProject(String projectId) {
-        try {
-            CloudResourceManager resourceManager = cloudResourceManager();
-            CloudResourceManager.Projects.Delete request = resourceManager.projects().delete(projectId);
-            // the response will be empty if the request is successful in the delete
-            request.execute();
-        } catch (IOException | GeneralSecurityException e) {
-            throw new GoogleResourceException("Could not delete project", e);
+        // Don't actually delete the project if we are reusing projects!
+        if (resourceConfiguration.getAllowReuseExistingProjects()) {
+            logger.info("Reusing projects: skipping delete of {}", projectId);
+        } else {
+            try {
+                CloudResourceManager resourceManager = cloudResourceManager();
+                CloudResourceManager.Projects.Delete request = resourceManager.projects().delete(projectId);
+                // the response will be empty if the request is successful in the delete
+                request.execute();
+            } catch (IOException | GeneralSecurityException e) {
+                throw new GoogleResourceException("Could not delete project", e);
+            }
         }
     }
 
-    // TODO: check dependencies before delete
     // package access for use in tests
     void deleteProjectResource(UUID resourceId) {
         GoogleProjectResource projectResource = resourceDao.retrieveProjectById(resourceId);

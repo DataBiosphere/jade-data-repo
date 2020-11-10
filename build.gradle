@@ -13,6 +13,11 @@
 
 import io.swagger.codegen.config.CodegenConfigurator
 import io.swagger.codegen.DefaultGenerator
+import io.swagger.codegen.v3.CodegenConfigLoader
+import io.swagger.codegen.v3.DefaultGenerator
+import io.swagger.codegen.v3.ClientOptInput
+import io.swagger.codegen.v3.ClientOpts
+import io.swagger.v3.parser.OpenAPIV3Parser
 
 buildscript {
     ext {
@@ -23,7 +28,7 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath('io.swagger:swagger-codegen:2.4.11')
+        classpath('io.swagger.codegen.v3:swagger-codegen-cli:3.0.22')
         classpath('gradle.plugin.com.srcclr:gradle:3.1.0')
     }
 }
@@ -243,24 +248,32 @@ task generateApi {
     inputs.file("$projectDir/$openapiSourceFile")
     outputs.dir("$projectDir/$generatedOutputDir")
     doLast {
-        def config = new CodegenConfigurator()
-        config.setInputSpec("file:///$projectDir/$openapiSourceFile")
-        config.setOutputDir("$projectDir")
-        config.setLang('spring')
+        def openAPI = new OpenAPIV3Parser().read("$projectDir/$openapiSourceFile", null, null)
+        def clientOpts = new ClientOptInput().openAPI(openAPI)
+        def codegenConfig = CodegenConfigLoader.forName('spring')
+        codegenConfig.setOutputDir("$projectDir/$generatedOutputDir")
+        clientOpts.setConfig(codegenConfig)
+        def clientOps = new ClientOpts()
+        //def config = new CodegenConfigurator()
+        //config.setInputSpec("file:///$projectDir/$openapiSourceFile")
+        //config.setOutputDir("$projectDir")
+        //config.setLang('spring')
         // These properties are not well documented. The only way I've found to figure them out is to
         // locally install the swagger-codegen tool and invoke it to get the specific help for the
         // spring boot options.
-        config.setAdditionalProperties([
+        clientOps.setProperties([
                 'interfaceOnly' : 'true',                  // only generate the model and API interfaces
                 'useTags'       : 'true',                  // organize the swagger ui page by tags
                 'library'       : 'spring-boot',           // do spring-boot code generation
-                'dateLibrary'   : 'java8',                 // do java8 code generation
+                'dateLibrary'   : 'java8',              // do java8 code generation
                 'apiPackage'    : 'bio.terra.controller',
                 'modelPackage'  : 'bio.terra.model',
                 'invokerPackage': 'bio.terra',
                 'sourceFolder'  : generatedOutputDir
         ])
-        new DefaultGenerator().opts(config.toClientOptInput()).generate()
+        clientOpts.setOpts(clientOps)
+        def generator = new DefaultGenerator().opts(clientOpts)
+        generator.generate()
     }
 }
 

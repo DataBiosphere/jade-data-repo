@@ -126,13 +126,13 @@ paths:
             set.
           schema:
             type: integer
-            #default: 0
+            default: 0
         - name: limit
           in: query
           description: The numbers of items to return.
           schema:
             type: integer
-            #default: 10
+            default: 10
       responses:
         200:
           description: List of billing profiles
@@ -304,13 +304,13 @@ paths:
             set.
           schema:
             type: integer
-            #default: 0
+            default: 0
         - name: limit
           in: query
           description: The numbers of items to return.
           schema:
             type: integer
-            #default: 10
+            default: 10
         - name: sort
           in: query
           description: The field to use for sorting.
@@ -522,7 +522,7 @@ paths:
             1..N expands that many subdirectories
           schema:
             type: integer
-            #default: 0
+            default: 0
       responses:
         200:
           description: File exists
@@ -579,7 +579,7 @@ paths:
             1..N expands that many subdirectories
           schema:
             type: integer
-            #default: 0
+            default: 0
       responses:
         200:
           description: File exists
@@ -771,13 +771,13 @@ paths:
             page
           schema:
             type: integer
-            #default: 0
+            default: 0
         - name: limit
           in: query
           description: The numbers datasets to retrieve and return.
           schema:
             type: integer
-            #default: 10
+            default: 10
         - name: sort
           in: query
           description: The field to use for sorting.
@@ -1505,13 +1505,13 @@ paths:
             set.
           schema:
             type: integer
-            #default: 0
+            default: 0
         - name: limit
           in: query
           description: The numbers of items to return.
           schema:
             type: integer
-            #default: 10
+            default: 10
       responses:
         200:
           description: Redirect for bulk load result retrieval complete
@@ -1702,7 +1702,7 @@ paths:
             1..N expands that many subdirectories
           schema:
             type: integer
-            #default: 0
+            default: 0
       responses:
         200:
           description: File exists
@@ -1821,7 +1821,7 @@ paths:
             1..N expands that many subdirectories
           schema:
             type: integer
-            #default: 0
+            default: 0
       responses:
         200:
           description: File exists
@@ -1867,13 +1867,13 @@ paths:
             set.
           schema:
             type: integer
-            #default: 0
+            default: 0
         - name: limit
           in: query
           description: The numbers of items to return.
           schema:
             type: integer
-            #default: 10
+            default: 10
       responses:
         200:
           description: List of jobs
@@ -2130,7 +2130,7 @@ paths:
             If the object_id refers to a blob, then the query parameter is ignored.
           schema:
             type: boolean
-            #default: false
+            default: false
       responses:
         200:
           description: The `Object` was found successfully.
@@ -3675,7 +3675,7 @@ components:
         1..N expands that many subdirectories
       schema:
         type: integer
-        #default: 0
+        default: 0
     LoadTag:
       name: loadtag
       in: path

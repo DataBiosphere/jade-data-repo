@@ -3258,14 +3258,19 @@ components:
           type: object
           additionalProperties:
             type: object
-            properties:
-              ok:
-                type: boolean
-              critical:
-                type: boolean
-              message:
-                type: string
+            $ref: '#/components/schemas/SystemStatusModel'
       description: Returns the status of monitored subsystems.
+    SystemStatusModel:
+      required:
+        - ok
+      type: object
+      properties:
+        ok:
+          type: boolean
+        critical:
+          type: boolean
+        message:
+          type: string
     RepositoryConfigurationModel:
       type: object
       properties:

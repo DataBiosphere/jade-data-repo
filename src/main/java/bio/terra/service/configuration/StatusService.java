@@ -1,7 +1,7 @@
 package bio.terra.service.configuration;
 
 import bio.terra.model.RepositoryStatusModel;
-import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.model.SystemStatusModel;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.IamProviderInterface;
 import org.slf4j.Logger;
@@ -49,11 +49,11 @@ public class StatusService {
         return statusModel;
     }
 
-    private RepositoryStatusModelSystems postgresStatus(Boolean isCritical) throws DataAccessException {
+    private SystemStatusModel postgresStatus(Boolean isCritical) throws DataAccessException {
         // Used by Unit test: StatusTest
         if (configurationService.testInsertFault(ConfigEnum.CRITICAL_SYSTEM_FAULT)) {
             logger.info("CRITICAL_SYSTEM_FAULT inserted for test - setting postgres system status to failing");
-            return new RepositoryStatusModelSystems()
+            return new SystemStatusModel()
                 .ok(false)
                 .critical(true)
                 .message("CRITICAL_SYSTEM_FAULT inserted for test");

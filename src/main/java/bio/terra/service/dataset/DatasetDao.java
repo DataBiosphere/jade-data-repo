@@ -1,6 +1,6 @@
 package bio.terra.service.dataset;
 
-import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.model.SystemStatusModel;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
@@ -536,18 +536,18 @@ public class DatasetDao {
      * Probe to see if can access database
      *  @return status and if failure, exception message in RepositoryStatusModelSystems model
      */
-    public RepositoryStatusModelSystems statusCheck() {
+    public SystemStatusModel statusCheck() {
         String sql = "SELECT count(1)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         jdbcTemplate.queryForObject(sql, params, Integer.class);
         try {
             jdbcTemplate.queryForObject(sql, params, Integer.class);
-            return new RepositoryStatusModelSystems()
+            return new SystemStatusModel()
                 .ok(true);
         } catch (Exception ex) {
             String errorMsg = "Database status check failed";
             logger.error(errorMsg, ex);
-            return new RepositoryStatusModelSystems()
+            return new SystemStatusModel()
                 .ok(false)
                 .message(errorMsg + ": " + ex.toString());
         }

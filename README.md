@@ -94,6 +94,11 @@ To have the code hot reload, enable automatic builds in intellij, go to:
 `Preferences -> Build, Execution, Deployment -> Compiler`
 and select `Build project automatically`
 
+Note: when running locally, it may be useful to not log in JSON but as traditional log message.  This can be enabled by
+setting the environment variable:
+`TDR_LOG_APPENDER=Console-Standard`
+(the default is "Console-Stackdriver")
+
 The swagger page is:
 https://local.broadinstitue.org:8080
 

@@ -33,7 +33,6 @@ import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
-import bio.terra.service.iam.sam.SamConfiguration;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
@@ -82,12 +81,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ConnectedOperations {
     private static final Logger logger = LoggerFactory.getLogger(ConnectedOperations.class);
 
-    private MockMvc mvc;
-    private JsonLoader jsonLoader;
-    private SamConfiguration samConfiguration;
-    private Storage storage = StorageOptions.getDefaultInstance().getService();
-    private ConnectedTestConfiguration testConfig;
-    private DatasetDaoUtils datasetDaoUtils;
+    private final MockMvc mvc;
+    private final JsonLoader jsonLoader;
+    private final Storage storage = StorageOptions.getDefaultInstance().getService();
+    private final ConnectedTestConfiguration testConfig;
 
     private boolean deleteOnTeardown;
     private List<String> createdSnapshotIds;
@@ -100,11 +97,9 @@ public class ConnectedOperations {
     @Autowired
     public ConnectedOperations(MockMvc mvc,
                                JsonLoader jsonLoader,
-                               SamConfiguration samConfiguration,
                                ConnectedTestConfiguration testConfig) {
         this.mvc = mvc;
         this.jsonLoader = jsonLoader;
-        this.samConfiguration = samConfiguration;
         this.testConfig = testConfig;
 
         createdSnapshotIds = new ArrayList<>();
@@ -194,20 +189,10 @@ public class ConnectedOperations {
             .content(TestUtils.mapToJson(profileRequestModel)))
             .andReturn();
 
-        MockHttpServletResponse response = result.getResponse();
-        String responseContent = response.getContentAsString();
-
-        if (response.getStatus() == HttpStatus.CREATED.value()) {
-            BillingProfileModel billingProfileModel =
-                TestUtils.mapFromJson(responseContent, BillingProfileModel.class);
-            addProfile(billingProfileModel.getId());
-            return billingProfileModel;
-        }
-        ErrorModel errorModel = TestUtils.mapFromJson(responseContent, ErrorModel.class);
-        List<String> errorDetail = errorModel.getErrorDetail();
-        String message = String.format("couldn't create profile: %s (%s)",
-            errorModel.getMessage(), String.join(", ", errorDetail));
-        throw new IllegalArgumentException(message);
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        BillingProfileModel billingProfileModel = handleSuccessCase(response, BillingProfileModel.class);
+        addProfile(billingProfileModel.getId());
+        return billingProfileModel;
     }
 
     public BillingProfileModel getProfileById(String profileId) throws Exception {
@@ -377,10 +362,10 @@ public class ConnectedOperations {
         return checkDeleteResponse(response);
     }
 
-    public void deleteTestProfile(String id) throws Exception {
-        mvc.perform(delete("/api/resources/v1/profiles/" + id)).andReturn();
-        // not checking the response -- it's possible other datasets are using this profile. if we spin up separate
-        // databases for these tests it would make it easier to do these types of checks
+    public boolean deleteTestProfile(String id) throws Exception {
+        MvcResult result = mvc.perform(delete("/api/resources/v1/profiles/" + id)).andReturn();
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return checkDeleteResponse(response);
     }
 
     public boolean deleteTestSnapshot(String id) throws Exception {
@@ -515,7 +500,7 @@ public class ConnectedOperations {
             .andReturn();
 
         TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
-        datasetDaoUtils = new DatasetDaoUtils();
+        DatasetDaoUtils datasetDaoUtils = new DatasetDaoUtils();
         String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
         if (retryType.equals(RetryType.lock)) {
             assertEquals("no shared locks after first call", 0, sharedLocks.length);

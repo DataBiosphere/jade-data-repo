@@ -1,9 +1,13 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.service.resourcemanagement.exception.ProfileNotFoundException;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.EnumerateBillingProfileModel;
+import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.profile.ProfileService;
+import bio.terra.service.profile.exception.ProfileNotFoundException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,9 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -37,12 +39,10 @@ public class ProfileDaoTest {
     @Autowired
     private ProfileService profileService;
 
-    private BillingProfile billingProfile;
     private ArrayList<UUID> profileIds;
 
     @Before
     public void setup() throws Exception {
-        billingProfile = ProfileFixtures.randomBillingProfile();
         profileIds = new ArrayList<>();
     }
 
@@ -54,39 +54,17 @@ public class ProfileDaoTest {
     }
 
     // keeps track of the profiles that are made so they can be cleaned up
-    private UUID makeProfile(BillingProfile profile) {
-        UUID profileId = profileDao.createBillingProfile(profile);
+    private UUID makeProfile() {
+        BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
+        BillingProfileModel billingProfileModel = profileDao.createBillingProfile(profileRequest, "me@me.me");
+        UUID profileId = UUID.fromString(billingProfileModel.getId());
         profileIds.add(profileId);
         return profileId;
     }
 
-    @Test
-    public void happyProfileInOutTest() throws Exception {
-        UUID profileId = makeProfile(billingProfile);
-        BillingProfile fromDB = profileDao.getBillingProfileById(profileId);
-        List<BillingProfile> byBillingAccountId =
-            profileDao.getBillingProfilesByAccount(billingProfile.getBillingAccountId());
-
-        assertThat("profile name set correctly",
-                fromDB.getName(),
-                equalTo(billingProfile.getName()));
-
-        assertThat("profile billing account id set correctly",
-                fromDB.getBillingAccountId(),
-                equalTo(billingProfile.getBillingAccountId()));
-
-        assertThat("profile biller set correctly",
-                fromDB.getBiller(),
-                equalTo(billingProfile.getBiller()));
-
-        assertThat("able to lookup by account id",
-            byBillingAccountId.stream().map(BillingProfile::getId).collect(Collectors.toList()),
-            contains(equalTo(profileId)));
-    }
-
     @Test(expected = ProfileNotFoundException.class)
     public void profileDeleteTest() {
-        UUID profileId = makeProfile(billingProfile);
+        UUID profileId = makeProfile();
         boolean deleted = profileDao.deleteBillingProfileById(profileId);
         assertThat("able to delete", deleted, equalTo(true));
         profileDao.getBillingProfileById(profileId);
@@ -95,33 +73,39 @@ public class ProfileDaoTest {
     @Test
     public void profileEnumerateTest() throws Exception {
         Map<UUID, String> profileIdToAccountId = new HashMap<>();
+        List<UUID> accessibleProfileId = new ArrayList<>();
         for (int i = 0; i < 6; i++) {
-            BillingProfile enumProfile = ProfileFixtures.randomBillingProfile();
-            UUID enumProfileId = makeProfile(enumProfile);
+            UUID enumProfileId = makeProfile();
+            BillingProfileModel enumProfile = profileDao.getBillingProfileById(enumProfileId);
             profileIdToAccountId.put(enumProfileId, enumProfile.getBillingAccountId());
+            accessibleProfileId.add(enumProfileId);
         }
 
-        MetadataEnumeration<BillingProfile> profileEnumeration = profileDao.enumerateBillingProfiles(0, 1);
+        EnumerateBillingProfileModel profileEnumeration =
+            profileDao.enumerateBillingProfiles(0, 1, accessibleProfileId);
         int total = profileEnumeration.getTotal();
-        testOneEnumerateRange(profileIdToAccountId, 0, total);
-        testOneEnumerateRange(profileIdToAccountId, 0, total + 10);
-        testOneEnumerateRange(profileIdToAccountId, 1, total - 3);
-        testOneEnumerateRange(profileIdToAccountId, total - 3, total + 3);
-        testOneEnumerateRange(profileIdToAccountId, total, 1);
+        testOneEnumerateRange(profileIdToAccountId, accessibleProfileId, 0, total);
+        testOneEnumerateRange(profileIdToAccountId, accessibleProfileId, 0, total + 10);
+        testOneEnumerateRange(profileIdToAccountId, accessibleProfileId, 1, total - 3);
+        testOneEnumerateRange(profileIdToAccountId, accessibleProfileId, total - 3, total + 3);
+        testOneEnumerateRange(profileIdToAccountId, accessibleProfileId, total, 1);
     }
 
-    private void testOneEnumerateRange(Map<UUID, String> profileIdToAccountId, int offset, int limit) {
-        MetadataEnumeration<BillingProfile> profileMetadataEnumeration =
-            profileDao.enumerateBillingProfiles(offset, limit);
+    private void testOneEnumerateRange(Map<UUID, String> profileIdToAccountId,
+                                       List<UUID> accessibleProfileId,
+                                       int offset,
+                                       int limit) {
+        EnumerateBillingProfileModel profileMetadataEnumeration =
+            profileDao.enumerateBillingProfiles(offset, limit, accessibleProfileId);
 
         // We expect the snapshots to be returned in their created order
-        List<BillingProfile> profiles = profileMetadataEnumeration.getItems();
+        List<BillingProfileModel> profiles = profileMetadataEnumeration.getItems();
         int total = profileMetadataEnumeration.getTotal();
         int expected = Math.min(total - offset, limit);
         assertThat("received expected number of profiles", profiles.size(), equalTo(expected));
 
-        for (BillingProfile profile : profiles) {
-            UUID profileId = profile.getId();
+        for (BillingProfileModel profile : profiles) {
+            UUID profileId = UUID.fromString(profile.getId());
             if (profileIdToAccountId.containsKey(profileId)) {
                 assertThat("account id matches profile id",
                     profile.getBillingAccountId(),

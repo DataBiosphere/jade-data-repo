@@ -1,21 +1,11 @@
 package bio.terra.service.resourcemanagement;
 
-import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -28,8 +18,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -45,25 +33,10 @@ public class OneProjectPerProfileIdSelectorTest {
     private GoogleResourceConfiguration resourceConfiguration;
 
     @Autowired
-    private ProfileService profileService;
-
-    @Autowired
-    private DatasetService datasetService;
-
-    @Autowired
-    private SnapshotService snapshotService;
-
-    @Autowired
     private OneProjectPerProfileIdSelector oneProjectPerProfileIdSelector;
 
     @Autowired
     private ConnectedOperations connectedOperations;
-
-    @Autowired
-    private ConfigurationService configService;
-
-    @Autowired
-    private ConnectedTestConfiguration testConfig;
 
     @MockBean
     private IamProviderInterface iamService;
@@ -76,67 +49,52 @@ public class OneProjectPerProfileIdSelectorTest {
     @After
     public void tearDown() throws Exception {
         connectedOperations.teardown();
-        configService.reset();
     }
     @Test
     public void shouldGetCorrectIdForDataset() throws Exception {
-        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
-        String profileName = ProfileFixtures.randomHex(16);
-        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest()
-            .billingAccountId(coreBillingAccountId)
-            .profileName(profileName);
-        BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
-
-        DatasetSummaryModel datasetSummaryModel =
-            connectedOperations.createDataset(profile, "dataset-minimal.json");
-        Dataset dataset = datasetService.retrieve(UUID.fromString(datasetSummaryModel.getId()));
-
-        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset);
-        String expectedProfileId = resourceConfiguration.getProjectId() + "-" + profileName;
+        String datasetName = "adataset";
+        BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
+        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(datasetName, billingProfile);
+        String expectedProfileId = resourceConfiguration.getProjectId() + "-" + billingProfile.getProfileName();
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
     }
 
     @Test
     public void shouldGetCorrectIdForDatasetWithSpecialChars() throws Exception {
-        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
-        String namePrefix = "chars  ";
-        String hexDigits = ProfileFixtures.randomHex(8);
-        String profileName = namePrefix + hexDigits;
-        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest()
-            .billingAccountId(coreBillingAccountId)
-            .profileName(profileName);
-        BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
-
-        DatasetSummaryModel datasetSummaryModel =
-            connectedOperations.createDataset(profile, "dataset-minimal.json");
-        Dataset dataset = datasetService.retrieve(UUID.fromString(datasetSummaryModel.getId()));
-
-        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset);
-        String expectedProfileId = resourceConfiguration.getProjectId() + "-" + "chars--" + hexDigits;
+        String datasetName = "adataset";
+        String oddProfileName = "abc & 123";
+        BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile().profileName(oddProfileName);
+        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(datasetName, billingProfile);
+        String expectedProfileId = resourceConfiguration.getProjectId() + "-abc---123";
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
     }
 
     @Test
     public void shouldGetCorrectIdForSnapshot() throws Exception {
-        String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
-        String profileName = ProfileFixtures.randomHex(16);
-        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest()
-            .billingAccountId(coreBillingAccountId)
-            .profileName(profileName);
-        BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
+        String snapshotName = "asnapshot";
+        BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
+        String projectId = oneProjectPerProfileIdSelector.projectIdForSnapshot(snapshotName, billingProfile);
+        String expectedProfileId = resourceConfiguration.getProjectId() + "-" + billingProfile.getProfileName();
+        assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
+    }
 
-        DatasetSummaryModel datasetSummaryModel =
-            connectedOperations.createDataset(profile, "snapshot-test-dataset.json");
+    @Test
+    public void shouldGetCorrectIdForFile() throws Exception {
+        String datasetName = "adataset";
+        BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
+        String projectId = oneProjectPerProfileIdSelector.projectIdForFile(datasetName, billingProfile);
+        String expectedProfileId = resourceConfiguration.getProjectId() + "-" + billingProfile.getProfileName();
+        assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
+    }
 
-        SnapshotSummaryModel snapshotSummaryModel =
-            connectedOperations.createSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");
-        SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummaryModel.getId());
-        Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotModel.getId()));
-
-        // TODO: we can test this once configuring firestore is programatic
-
-        String projectId = oneProjectPerProfileIdSelector.projectIdForSnapshot(snapshot);
-        String expectedProfileId = resourceConfiguration.getProjectId() + "-" + profileName;
+    @Test
+    public void shouldGetCorrectIdForBucket() throws Exception {
+        String datasetName = "adataset";
+        BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
+        String projectId = oneProjectPerProfileIdSelector.bucketForFile(datasetName, billingProfile);
+        String expectedProfileId = resourceConfiguration.getProjectId()
+            + "-" + billingProfile.getProfileName()
+            + "-bucket";
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
     }
 }

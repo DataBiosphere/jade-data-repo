@@ -31,7 +31,6 @@ import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
-import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
@@ -59,21 +58,18 @@ public class SnapshotService {
     private final FireStoreDependencyDao dependencyDao;
     private final BigQueryPdao bigQueryPdao;
     private final SnapshotDao snapshotDao;
-    private final DataLocationService dataLocationService;
 
     @Autowired
     public SnapshotService(JobService jobService,
                            DatasetService datasetService,
                            FireStoreDependencyDao dependencyDao,
                            BigQueryPdao bigQueryPdao,
-                           SnapshotDao snapshotDao,
-                           DataLocationService dataLocationService) {
+                           SnapshotDao snapshotDao) {
         this.jobService = jobService;
         this.datasetService = datasetService;
         this.dependencyDao = dependencyDao;
         this.bigQueryPdao = bigQueryPdao;
         this.snapshotDao = snapshotDao;
-        this.dataLocationService = dataLocationService;
     }
 
     /**
@@ -167,8 +163,7 @@ public class SnapshotService {
      */
     public SnapshotModel retrieveAvailableSnapshotModel(UUID id) {
         Snapshot snapshot = retrieveAvailable(id);
-        SnapshotDataProject dataProject = dataLocationService.getProjectOrThrow(snapshot);
-        return populateSnapshotModelFromSnapshot(snapshot).dataProject(dataProject.getGoogleProjectId());
+        return populateSnapshotModelFromSnapshot(snapshot);
     }
 
     /** Fetch existing Snapshot object using the id.
@@ -489,7 +484,9 @@ public class SnapshotService {
                 .relationships(snapshot.getRelationships()
                         .stream()
                         .map(this::makeRelationshipModelFromRelationship)
-                        .collect(Collectors.toList()));
+                        .collect(Collectors.toList()))
+                .dataProject(snapshot.getProjectResource().getGoogleProjectId());
+
     }
 
     private RelationshipModel makeRelationshipModelFromRelationship(Relationship relationship) {

@@ -1,17 +1,18 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamService;
+import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -30,6 +31,7 @@ public class SnapshotDeleteFlight extends Flight {
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
+        ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
         IamService iamClient = (IamService)appContext.getBean("iamService");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
@@ -40,8 +42,16 @@ public class SnapshotDeleteFlight extends Flight {
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
         addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
+        // Delete access control on objects that were explicitly added by data repo operations.  Do this before delete
+        // resource from SAM to ensure we can get the metadata needed to perform the operation
+        addStep(new DeleteSnapshotAuthzBqAclsStep(
+            iamClient,
+            resourceService,
+            snapshotService,
+            snapshotId,
+            userReq));
         // Delete access control first so Readers and Discoverers can no longer see snapshot
-        // Google auto-magically removes the ACLs from files and BQ objects when SAM
+        // Google auto-magically removes the ACLs from BQ objects when SAM
         // deletes the snapshot group, so no ACL cleanup is needed beyond that.
         addStep(new DeleteSnapshotAuthzResource(iamClient, snapshotId, userReq));
         // Must delete primary data before metadata; it relies on being able to retrieve the

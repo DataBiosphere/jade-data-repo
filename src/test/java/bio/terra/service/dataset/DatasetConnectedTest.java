@@ -23,7 +23,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
@@ -63,9 +63,9 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -77,16 +77,26 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class DatasetConnectedTest {
-    @Autowired private MockMvc mvc;
-    @Autowired private JsonLoader jsonLoader;
-    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
-    @Autowired private ConnectedOperations connectedOperations;
-    @Autowired private BigQueryPdao bigQueryPdao;
-    @Autowired private DataLocationService dataLocationService;
-    @Autowired private DatasetDao datasetDao;
-    @Autowired private ConfigurationService configService;
-    @Autowired private ConnectedTestConfiguration testConfig;
-    @MockBean private IamProviderInterface samService;
+    @Autowired
+    private MockMvc mvc;
+    @Autowired
+    private JsonLoader jsonLoader;
+    @Autowired
+    private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired
+    private ConnectedOperations connectedOperations;
+    @Autowired
+    private BigQueryPdao bigQueryPdao;
+    @Autowired
+    private ResourceService dataLocationService;
+    @Autowired
+    private DatasetDao datasetDao;
+    @Autowired
+    private ConfigurationService configService;
+    @Autowired
+    private ConnectedTestConfiguration testConfig;
+    @MockBean
+    private IamProviderInterface samService;
 
     private BillingProfileModel billingProfile;
     private DatasetRequestModel datasetRequest;

@@ -1,26 +1,24 @@
 package bio.terra.service.resourcemanagement.google;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public class GoogleProjectResource {
-    private UUID profileId;
-    private String googleProjectId;
-    private List<String> serviceIds;
-    private Map<String, List<String>> roleIdentityMapping;
-    private UUID repositoryId;
-    private String googleProjectNumber;
+    private UUID id;                       // id of the project resource in the datarepo metadata
+    private UUID profileId;                // id of the associated billing profile
+    private String googleProjectId;        // google's name of the project
+    private String googleProjectNumber;    // google's id of the project
 
     // Default constructor for JSON serdes
     public GoogleProjectResource() {
     }
 
-    public GoogleProjectResource(GoogleProjectRequest googleProjectRequest) {
-        this.profileId = googleProjectRequest.getProfileId();
-        this.googleProjectId = googleProjectRequest.getProjectId();
-        this.serviceIds = googleProjectRequest.getServiceIds();
-        this.roleIdentityMapping = googleProjectRequest.getRoleIdentityMapping();
+    public UUID getId() {
+        return id;
+    }
+
+    public GoogleProjectResource id(UUID id) {
+        this.id = id;
+        return this;
     }
 
     public UUID getProfileId() {
@@ -38,33 +36,6 @@ public class GoogleProjectResource {
 
     public GoogleProjectResource googleProjectId(String googleProjectId) {
         this.googleProjectId = googleProjectId;
-        return this;
-    }
-
-    public List<String> getServiceIds() {
-        return serviceIds;
-    }
-
-    public GoogleProjectResource serviceIds(List<String> serviceIds) {
-        this.serviceIds = serviceIds;
-        return this;
-    }
-
-    public Map<String, List<String>> getRoleIdentityMapping() {
-        return roleIdentityMapping;
-    }
-
-    public GoogleProjectResource roleIdentityMapping(Map<String, List<String>> roleIdentityMapping) {
-        this.roleIdentityMapping = roleIdentityMapping;
-        return this;
-    }
-
-    public UUID getRepositoryId() {
-        return repositoryId;
-    }
-
-    public GoogleProjectResource repositoryId(UUID repositoryId) {
-        this.repositoryId = repositoryId;
         return this;
     }
 

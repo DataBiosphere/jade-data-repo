@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -260,7 +261,11 @@ public final class DataRepoUtils {
    * @return the created billing profile model
    */
   public static BillingProfileModel createProfile(
-      ResourcesApi resourcesApi, String billingAccount, String profileName, boolean randomizeName)
+      ResourcesApi resourcesApi,
+      RepositoryApi repositoryApi,
+      String billingAccount,
+      String profileName,
+      boolean randomizeName)
       throws Exception {
     logger.debug("Creating a billing profile");
 
@@ -270,13 +275,20 @@ public final class DataRepoUtils {
 
     BillingProfileRequestModel createProfileRequest =
         new BillingProfileRequestModel()
+            .id(UUID.randomUUID().toString())
             .biller("direct")
             .billingAccountId(billingAccount)
-            .profileName(profileName);
+            .profileName(profileName)
+            .description(profileName + " created in TestRunner RunTests");
 
     // make the create request and wait for the job to finish
-    BillingProfileModel createProfileResponse = resourcesApi.createProfile(createProfileRequest);
-    return createProfileResponse;
+    JobModel jobModel = resourcesApi.createProfile(createProfileRequest);
+    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel);
+
+    BillingProfileModel billingProfile =
+        DataRepoUtils.expectJobSuccess(repositoryApi, jobModel, BillingProfileModel.class);
+
+    return billingProfile;
   }
 
   public static void setConfigParameter(RepositoryApi repositoryApi, String name, int value)

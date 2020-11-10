@@ -36,7 +36,8 @@ public class SimpleDataset extends runner.TestScript {
 
     // create a new profile
     billingProfileModel =
-        DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
+        DataRepoUtils.createProfile(
+            resourcesApi, repositoryApi, billingAccount, "profile-simple", true);
     logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
 
     // make the create dataset request and wait for the job to finish

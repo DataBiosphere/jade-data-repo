@@ -3,28 +3,42 @@ package bio.terra.common;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.cloudresourcemanager.CloudResourceManager;
+import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
+import com.google.api.services.cloudresourcemanager.model.Policy;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.storage.Acl;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
+import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
+import static bio.terra.service.filedata.google.gcs.GcsPdao.getBlobFromGsPath;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -75,6 +89,47 @@ public final class TestUtils {
         return gsuri;
     }
 
+    public static Map<String, List<Acl>> readDrsGCSAcls(List<DRSAccessMethod> accessMethods) {
+        assertThat("Two access methods", accessMethods.size(), equalTo(2));
+        for (DRSAccessMethod accessMethod : accessMethods) {
+            if (accessMethod.getType() == DRSAccessMethod.TypeEnum.GS) {
+                return Collections.singletonMap(
+                    accessMethod.getAccessUrl().getUrl(),
+                    readGCSAcls(accessMethod.getAccessUrl().getUrl())
+                );
+            } else {
+                fail("Invalid access method");
+            }
+        }
+        return Collections.emptyMap();
+    }
+
+    public static List<Acl> readGCSAcls(String gsPath) {
+        final Storage storage = StorageOptions.getDefaultInstance().getService();
+        final String projectId = StorageOptions.getDefaultProjectId();
+        return getBlobFromGsPath(storage, gsPath, projectId).getAcl();
+    }
+
+    public static Policy getPolicy(final String projectId) throws GeneralSecurityException, IOException {
+        HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+        JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+
+        GoogleCredential credential = GoogleCredential.getApplicationDefault();
+        if (credential.createScopedRequired()) {
+            credential = credential.createScoped(
+                Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+        }
+
+        CloudResourceManager resourceManager = new CloudResourceManager.Builder(httpTransport, jsonFactory, credential)
+            .setApplicationName("Terra Data Repo Test")
+            .build();
+
+        GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
+
+        return resourceManager.projects()
+            .getIamPolicy(projectId, getIamPolicyRequest).execute();
+    }
+
     public static String getHttpPathString(IamResourceType iamResourceType) {
         String httpPathString = null;
         switch (iamResourceType) {
@@ -92,11 +147,9 @@ public final class TestUtils {
     }
 
     public static BigQueryProject bigQueryProjectForDatasetName(DatasetDao datasetDao,
-                                                                DataLocationService dataLocationService,
                                                                 String datasetName) throws InterruptedException {
         Dataset dataset = datasetDao.retrieveByName(datasetName);
-        DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
-        return BigQueryProject.get(dataProject.getGoogleProjectId());
+        return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
     }
 
     private static final String selectFromBigQueryDatasetTemplate =
@@ -113,12 +166,11 @@ public final class TestUtils {
      * @return the BigQuery TableResult
      */
     public static TableResult selectFromBigQueryDataset(
-        BigQueryPdao bigQueryPdao, DatasetDao datasetDao, DataLocationService dataLocationService,
+        BigQueryPdao bigQueryPdao, DatasetDao datasetDao, ResourceService dataLocationService,
         String datasetName, String tableName, String columns) throws Exception {
 
         String bqDatasetName = bigQueryPdao.prefixName(datasetName);
-        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetName);
+        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetDao, datasetName);
         String bigQueryProjectId = bigQueryProject.getProjectId();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 

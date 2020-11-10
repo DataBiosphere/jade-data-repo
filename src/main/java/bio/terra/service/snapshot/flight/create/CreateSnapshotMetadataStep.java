@@ -26,7 +26,7 @@ public class CreateSnapshotMetadataStep implements Step {
     private final SnapshotService snapshotService;
     private final SnapshotRequestModel snapshotReq;
 
-    private static Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
 
     public CreateSnapshotMetadataStep(
         SnapshotDao snapshotDao,
@@ -40,12 +40,13 @@ public class CreateSnapshotMetadataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotReq);
-
             FlightMap workingMap = context.getWorkingMap();
+            // fill in the ideas that we made in previous steps
+            UUID projectResourceId = workingMap.get(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
             UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-            snapshot.id(snapshotId);
-
+            Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotReq)
+                .id(snapshotId)
+                .projectResourceId(projectResourceId);
             snapshotDao.createAndLock(snapshot, context.getFlightId());
 
             SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(snapshotId);

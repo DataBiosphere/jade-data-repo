@@ -110,9 +110,13 @@ paths:
         - unauthenticated
       responses:
         200:
-          description: service is fine
+          description: Service is functional
+          schema:
+            $ref: '#/definitions/RepositoryStatusModel'
         500:
-          description: service is broken
+          description: Service is broken
+          schema:
+            $ref: '#/definitions/RepositoryStatusModel'
       security: []
 
 
@@ -149,7 +153,8 @@ paths:
   '/api/resources/v1/profiles':
     post:
       description: |
-        Creates a new profile associated with a billing account
+        Creates a new profile associated with a billing account. This is asynchronous.
+        The final return is of type definitions/BillingProfileModel.
       operationId: createProfile
       tags:
         - resources
@@ -161,10 +166,22 @@ paths:
         schema:
           $ref: '#/definitions/BillingProfileRequestModel'
       responses:
-        201:
-          description: Successfully created the new profile associated with the billing account
+        202:
+          description: Job status of profile creation job & url for polling in the response header
           schema:
-            $ref: '#/definitions/BillingProfileModel'
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for profile successful creation
+          schema:
+           $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
         400:
           description: Bad request - see error message
           schema:
@@ -225,17 +242,31 @@ paths:
             $ref: '#/definitions/ErrorModel'
 
     delete: ## delete
-      description: Delete a billing profile by id
+      description: |
+        Delete a billing profile by id. This is asynchronous.
+        The final return is of type definitions/DeleteResponseModel.
       operationId: deleteProfile
       tags:
       - resources
       parameters:
       - $ref: '#/parameters/Id'
       responses:
-        200:
-          description: Successful deletion
+        202:
+          description: Job status of profile delete job & url for polling in the response header
           schema:
-            $ref: '#/definitions/DeleteResponseModel'
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for profile delete result
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
         400:
           description: Bad request - invalid id, badly formed
           schema:
@@ -245,7 +276,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - profile id does not exist
+          description: Not found - profile does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
         409:
@@ -1760,45 +1791,59 @@ definitions:
     type: string
     pattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}' ## eg:957117a6-79fd-4f2c-a63c-f6dc84a94d9c
 
-
-
   ## Billing ##
   BillingProfileRequestModel:
-    description: |
-      Describes a profile that references a billing account.
     type: object
     required:
+      - id
       - billingAccountId
       - profileName
       - biller
     properties:
+      id:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: |
+          Client-provided UUID used to identify this billing profile. Must be unique across all
+          billing profiles in this data repository.
       billingAccountId:
         type: string
         description: unique identifier of the billing account from Google
       profileName:
         type: string
-        description: display name to be used for the profile
+        description: display name to be used for the profile;
       biller:
         type: string
         description: either “direct” or the reseller of the sub-account that sends the bill (like “on_spend”)
+      description:
+        type: string
+        description: Free text that describes the profile
 
   BillingProfileModel:
     type: object
     properties:
       id:
         $ref: '#/definitions/UniqueIdProperty'
+        description: |
+          Client-provided UUID used to identify this billing profile. Must be unique across all
+          billing profiles in this data repository.
       billingAccountId:
         type: string
         description: unique identifier of the billing account from Google
       profileName:
         type: string
-        description: display name to be used for the profile
+        description: display name to be used for the profile;
       biller:
         type: string
         description: either “direct” or the reseller of the sub-account that sends the bill (like “on_spend”)
-      accessible:
-        type: boolean
-        description: true if the repository SA is a billing account user on this billing account, false o/w
+      description:
+        type: string
+        description: Free text that describes the profile
+      createdDate:
+        type: string
+        description: Date the profile was created
+      createdBy:
+        type: string
+        description: Identity of the user who originally created the profile
 
   EnumerateBillingProfileModel:
     description: |
@@ -2821,6 +2866,26 @@ definitions:
       enabled:
         type: boolean
         description: true if the user is enabled in ldap
+
+  RepositoryStatusModel:
+    description: Returns the status of monitored subsystems.
+    type: object
+    required: [ok, systems]
+    properties:
+      ok:
+        type: boolean
+        description: status of this service
+      systems:
+        type: object
+        additionalProperties:
+          type: object
+          properties:
+            ok:
+              type: boolean
+            critical:
+              type: boolean
+            message:
+              type: string
 
   RepositoryConfigurationModel:
     properties:

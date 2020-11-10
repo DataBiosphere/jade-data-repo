@@ -11,8 +11,6 @@
  *   https://docs.gradle.org/current/userguide/java_plugin.html#sec:java_source_sets
  */
 
-import io.swagger.codegen.config.CodegenConfigurator
-import io.swagger.codegen.DefaultGenerator
 import io.swagger.codegen.v3.CodegenConfigLoader
 import io.swagger.codegen.v3.DefaultGenerator
 import io.swagger.codegen.v3.ClientOptInput
@@ -249,30 +247,27 @@ task generateApi {
     outputs.dir("$projectDir/$generatedOutputDir")
     doLast {
         def openAPI = new OpenAPIV3Parser().read("$projectDir/$openapiSourceFile", null, null)
-        def clientOpts = new ClientOptInput().openAPI(openAPI)
+        def clientOptInput = new ClientOptInput().openAPI(openAPI)
         def codegenConfig = CodegenConfigLoader.forName('spring')
         codegenConfig.setOutputDir("$projectDir/$generatedOutputDir")
-        clientOpts.setConfig(codegenConfig)
-        def clientOps = new ClientOpts()
-        //def config = new CodegenConfigurator()
-        //config.setInputSpec("file:///$projectDir/$openapiSourceFile")
-        //config.setOutputDir("$projectDir")
-        //config.setLang('spring')
+        clientOptInput.setConfig(codegenConfig)
+
         // These properties are not well documented. The only way I've found to figure them out is to
         // locally install the swagger-codegen tool and invoke it to get the specific help for the
         // spring boot options.
-        clientOps.setProperties([
+        def clientOpts = new ClientOpts()
+        clientOpts.setProperties([
                 'interfaceOnly' : 'true',                  // only generate the model and API interfaces
                 'useTags'       : 'true',                  // organize the swagger ui page by tags
                 'library'       : 'spring-boot',           // do spring-boot code generation
-                'dateLibrary'   : 'java8',              // do java8 code generation
+                'dateLibrary'   : 'java8',                 // do java8 code generation
                 'apiPackage'    : 'bio.terra.controller',
                 'modelPackage'  : 'bio.terra.model',
                 'invokerPackage': 'bio.terra',
                 'sourceFolder'  : generatedOutputDir
         ])
-        clientOpts.setOpts(clientOps)
-        def generator = new DefaultGenerator().opts(clientOpts)
+        clientOptInput.setOpts(clientOpts)
+        def generator = new DefaultGenerator().opts(clientOptInput)
         generator.generate()
     }
 }

@@ -6,6 +6,7 @@ env:
   # This must be defined for the bash redirection
   GOOGLE_SA_CERT: 'jade-dev-account.pem'
 on:
+  workflow_dispatch: {}
   pull_request:
     branches:
       - develop

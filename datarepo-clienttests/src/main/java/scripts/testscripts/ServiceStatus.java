@@ -18,8 +18,9 @@ public class ServiceStatus extends runner.TestScript {
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
+    unauthenticatedApi.serviceStatus();
 
-    int httpStatus = unauthenticatedApi.serviceStatusWithHttpInfo().getStatusCode();
+    int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
     logger.debug("Service status: {}", httpStatus);
   }
 }

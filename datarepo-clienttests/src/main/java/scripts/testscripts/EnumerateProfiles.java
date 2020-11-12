@@ -2,7 +2,6 @@ package scripts.testscripts;
 
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.client.ApiResponse;
 import bio.terra.datarepo.model.EnumerateBillingProfileModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

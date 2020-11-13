@@ -130,7 +130,8 @@ public class DrsTest extends UsersBase {
         final DRSObject drsObjectFile = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
         validateDrsObject(drsObjectFile, drsObjectId);
         assertNull("Contents of file is null", drsObjectFile.getContents());
-        TestUtils.validateDrsAccessMethods(drsObjectFile.getAccessMethods());
+        TestUtils.validateDrsAccessMethods(drsObjectFile.getAccessMethods(),
+            authService.getDirectAccessAuthToken(steward().getEmail()));
         Map<String, List<Acl>> preDeleteAcls = TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
         validateContainsAcls(preDeleteAcls.values().iterator().next());
         validateBQJobUserRolePresent(Arrays.asList(

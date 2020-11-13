@@ -226,8 +226,8 @@ public class DrsService {
             String gsBucket = GcsPdao.extractBucketFromPath(gspath);
             String gsPath = GcsPdao.extractFilePathInBucket(gspath, gsBucket);
             String encodedPath = URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString())
-                // Google uses %20 instead of + to encode spaces.
-                // Original + characters should already have been converted to %2B
+                // Google does not recognize the + characters that are produced from spaces by the URLEncoder.encode
+                // method. As a result, these must be converted to %2B.
                 .replaceAll("\\+", "%20");
             return String.format("https://www.googleapis.com/storage/v1/b/%s/o/%s?alt=media", gsBucket, encodedPath);
         } catch (UnsupportedEncodingException ex) {

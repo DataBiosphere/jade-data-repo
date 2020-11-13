@@ -24,6 +24,11 @@ import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
@@ -67,7 +72,8 @@ public final class TestUtils {
         return false;
     }
 
-    public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods) {
+    public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods,
+                                                  String token) throws IOException {
         assertThat("Two access methods", accessMethods.size(), equalTo(2));
 
         String gsuri = StringUtils.EMPTY;
@@ -76,10 +82,27 @@ public final class TestUtils {
         for (DRSAccessMethod accessMethod : accessMethods) {
             if (accessMethod.getType() == DRSAccessMethod.TypeEnum.GS) {
                 assertFalse("have not seen GS yet", gotGs);
-                gotGs = true;
                 gsuri = accessMethod.getAccessUrl().getUrl();
+
+                // Make sure we can actually read the file
+                final Storage storage = StorageOptions.getDefaultInstance().getService();
+                final String projectId = StorageOptions.getDefaultProjectId();
+                getBlobFromGsPath(storage, gsuri, projectId);
+                gotGs = true;
             } else if (accessMethod.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
                 assertFalse("have not seen HTTPS yet", gotHttps);
+                // Make sure that the HTTP url is valid and accessible
+                try (CloseableHttpClient client = HttpClients.createDefault()) {
+                    HttpUriRequest request = new HttpHead(accessMethod.getAccessUrl().getUrl());
+                    request.setHeader("Authorization", String.format("Bearer %s", token));
+                    try (
+                        CloseableHttpResponse response = client.execute(request);
+                    ) {
+                        assertThat("Drs Https Uri is accessible",
+                            response.getStatusLine().getStatusCode(),
+                            equalTo(200));
+                    }
+                }
                 gotHttps = true;
             } else {
                 fail("Invalid access method");

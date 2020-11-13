@@ -84,6 +84,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     private String stewardToken;
     private String datasetId;
+    private String profileId;
     private List<String> snapshotIds;
 
     @Before
@@ -91,6 +92,7 @@ public class DatasetIntegrationTest extends UsersBase {
         super.setup();
         stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         dataRepoFixtures.resetConfig(steward());
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
         datasetId = null;
         snapshotIds = new LinkedList<>();
     }
@@ -105,11 +107,16 @@ public class DatasetIntegrationTest extends UsersBase {
         if (datasetId != null) {
             dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
         }
+
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfileLog(steward(), profileId);
+        }
     }
 
     @Test
     public void datasetHappyPath() throws Exception {
-        DatasetSummaryModel summaryModel = dataRepoFixtures.createDataset(steward(), "it-dataset-omop.json");
+        DatasetSummaryModel summaryModel =
+            dataRepoFixtures.createDataset(steward(), profileId, "it-dataset-omop.json");
         datasetId = summaryModel.getId();
 
         logger.info("dataset id is " + summaryModel.getId());
@@ -153,8 +160,8 @@ public class DatasetIntegrationTest extends UsersBase {
 
     @Test
     public void datasetUnauthorizedPermissionsTest() throws Exception {
-        dataRepoFixtures.createDatasetError(custodian(), "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
-        dataRepoFixtures.createDatasetError(reader(), "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
+        dataRepoFixtures.createDatasetError(custodian(), profileId, "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
+        dataRepoFixtures.createDatasetError(reader(), profileId, "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
 
         EnumerateDatasetModel enumDatasetsResp = dataRepoFixtures.enumerateDatasets(reader());
         List<DatasetSummaryModel> items = enumDatasetsResp.getItems();
@@ -170,7 +177,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
         DatasetSummaryModel summaryModel = null;
 
-        summaryModel = dataRepoFixtures.createDataset(steward(), "dataset-minimal.json");
+        summaryModel = dataRepoFixtures.createDataset(steward(), profileId, "dataset-minimal.json");
         datasetId = summaryModel.getId();
 
         DataRepoResponse<DatasetModel> getDatasetResp =
@@ -223,7 +230,8 @@ public class DatasetIntegrationTest extends UsersBase {
     @Test
     public void testAssetCreationUndo() throws Exception {
         // create a dataset
-        DatasetSummaryModel summaryModel = dataRepoFixtures.createDataset(steward(), "it-dataset-omop.json");
+        DatasetSummaryModel summaryModel =
+            dataRepoFixtures.createDataset(steward(), profileId, "it-dataset-omop.json");
         datasetId = summaryModel.getId();
         DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
         List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
@@ -345,6 +353,7 @@ public class DatasetIntegrationTest extends UsersBase {
         SnapshotSummaryModel snapshotSummaryAll =
             dataRepoFixtures.createSnapshotWithRequest(steward(),
                 dataset.getName(),
+                profileId,
                 requestModelAll);
         snapshotIds.add(snapshotSummaryAll.getId());
         SnapshotModel snapshotAll = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId());
@@ -380,6 +389,7 @@ public class DatasetIntegrationTest extends UsersBase {
         SnapshotSummaryModel snapshotSummaryLess =
             dataRepoFixtures.createSnapshotWithRequest(steward(),
                 dataset.getName(),
+                profileId,
                 requestModelLess);
         snapshotIds.add(snapshotSummaryLess.getId());
 
@@ -437,7 +447,8 @@ public class DatasetIntegrationTest extends UsersBase {
     }
 
     private String ingestedDataset() throws Exception {
-        DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
+        DatasetSummaryModel datasetSummaryModel =
+            dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
         String datasetId = datasetSummaryModel.getId();
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");

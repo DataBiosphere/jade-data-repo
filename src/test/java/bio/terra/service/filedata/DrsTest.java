@@ -76,6 +76,7 @@ public class DrsTest extends UsersBase {
 
     private String custodianToken;
     private SnapshotModel snapshotModel;
+    private String profileId;
     private String datasetId;
     private Map<IamRole, String> datasetIamRoles;
     private Map<IamRole, String> snapshotIamRoles;
@@ -87,6 +88,7 @@ public class DrsTest extends UsersBase {
         String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
         snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
+        profileId = setupResult.getProfileId();
         datasetId = setupResult.getDatasetId();
         AuthenticatedUserRequest authenticatedStewardRequest =
             new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
@@ -112,6 +114,9 @@ public class DrsTest extends UsersBase {
         } catch (Throwable e) {
             // Already ran if everything was successful so skipping
             logger.info("Dataset already deleted");
+        }
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfileLog(steward(), profileId);
         }
     }
 

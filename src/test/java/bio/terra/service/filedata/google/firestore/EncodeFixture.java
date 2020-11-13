@@ -51,16 +51,22 @@ public class EncodeFixture {
     @Autowired private TestConfiguration testConfiguration;
 
     public static class SetupResult {
-        private String datasetId;
-        private SnapshotSummaryModel summaryModel;
+        private final String profileId;
+        private final String datasetId;
+        private final SnapshotSummaryModel summaryModel;
 
-        public SetupResult(String datasetId, SnapshotSummaryModel summaryModel) {
+        public SetupResult(String profileId, String datasetId, SnapshotSummaryModel summaryModel) {
+            this.profileId = profileId;
             this.datasetId = datasetId;
             this.summaryModel = summaryModel;
         }
 
         public String getDatasetId() {
             return datasetId;
+        }
+
+        public String getProfileId() {
+            return profileId;
         }
 
         public SnapshotSummaryModel getSummaryModel() {
@@ -76,7 +82,9 @@ public class EncodeFixture {
         TestConfiguration.User custodian,
         TestConfiguration.User reader) throws Exception {
 
-        DatasetSummaryModel datasetSummary = dataRepoFixtures.createDataset(steward, "encodefiletest-dataset.json");
+        String profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+        DatasetSummaryModel datasetSummary =
+            dataRepoFixtures.createDataset(steward, profileId, "encodefiletest-dataset.json");
         String datasetId = datasetSummary.getId();
 
         dataRepoFixtures.addDatasetPolicyMember(
@@ -109,7 +117,7 @@ public class EncodeFixture {
 
         // At this point, we have files and tabular data. Let's make a data snapshot!
         SnapshotSummaryModel snapshotSummary = dataRepoFixtures.createSnapshot(
-            custodian, datasetSummary, "encodefiletest-snapshot.json");
+            custodian, datasetSummary.getName(), profileId, "encodefiletest-snapshot.json");
 
         // TODO: Fix use of IamProviderInterface - see DR-494
         dataRepoFixtures.addSnapshotPolicyMember(
@@ -127,7 +135,7 @@ public class EncodeFixture {
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
 
-        return new SetupResult(datasetId, snapshotSummary);
+        return new SetupResult(profileId, datasetId, snapshotSummary);
     }
 
     private String loadFiles(

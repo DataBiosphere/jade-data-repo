@@ -1,7 +1,6 @@
 databaseChangeLog:
   - changeSet:
       id: resource_delete_marks
-      #
       author: dd
       changes:
         - addColumn:
@@ -10,12 +9,14 @@ databaseChangeLog:
               - column:
                   name: marked_for_delete
                   type: boolean
+                  defaultValueBoolean: false
         - addColumn:
             tableName: bucket_resource
             columns:
               - column:
                   name: marked_for_delete
                   type: boolean
+                  defaultValueBoolean: false
 
 
 

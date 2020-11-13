@@ -255,7 +255,6 @@ public class SamIam implements IamProviderInterface {
         return policyEmail;
     }
 
-
     @Override
     public void createProfileResource(AuthenticatedUserRequest userReq, String profileId) throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
@@ -264,10 +263,13 @@ public class SamIam implements IamProviderInterface {
 
     private Void createProfileResourceInner(AuthenticatedUserRequest userReq, String profileId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
-        req.setResourceId(profileId.toString());
+        req.setResourceId(profileId);
         req.addPoliciesItem(
             IamRole.OWNER.toString(),
             createAccessPolicyOne(IamRole.OWNER, userReq.getEmail()));
+        req.addPoliciesItem(
+            IamRole.USER.toString(),
+            createAccessPolicy(IamRole.USER, null));
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug("SAM request: " + req.toString());
@@ -342,6 +344,8 @@ public class SamIam implements IamProviderInterface {
                                              String policyName,
                                              String userEmail) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+        logger.debug("addUserPolicy resourceType {} resourceId {} policyName {} userEmail {}",
+            iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
         samResourceApi.addUserToPolicy(iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
 
         AccessPolicyMembership result =

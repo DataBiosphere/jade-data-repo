@@ -28,10 +28,13 @@ public class GoogleResourceDao {
     private final String defaultRegion;
 
     private static final String sqlProjectRetrieve = "SELECT id, google_project_id, google_project_number, profile_id" +
-        " FROM project_resource WHERE marked_for_delete = false";
-    private static final String sqlProjectRetrieveById = sqlProjectRetrieve + " AND id = :id";
+        " FROM project_resource";
+    private static final String sqlProjectRetrieveById = sqlProjectRetrieve +
+        " WHERE marked_for_delete = false AND id = :id";
     private static final String sqlProjectRetrieveByProjectId = sqlProjectRetrieve +
-        " AND google_project_id = :google_project_id";
+        " WHERE marked_for_delete = false AND google_project_id = :google_project_id";
+    private static final String sqlProjectRetrieveByIdForDelete = sqlProjectRetrieve +
+        " WHERE marked_for_delete = true AND id = :id";
 
     private static final String sqlBucketRetrieve =
         "SELECT p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
@@ -43,7 +46,7 @@ public class GoogleResourceDao {
 
     // Given a profile id, compute the count of all references to projects associated with the profile
     private static final String sqlProfileProjectRefs =
-        "SELECT project_id, dscnt + sncnt + bkcnt AS refcnt FROM " +
+        "SELECT pid, dscnt + sncnt + bkcnt AS refcnt FROM " +
             " (SELECT" +
             "  project_resource.id AS pid," +
             "  (SELECT COUNT(*) FROM dataset WHERE dataset.project_resource_id = project_resource.id) AS dscnt," +
@@ -114,6 +117,11 @@ public class GoogleResourceDao {
             new MapSqlParameterSource().addValue("google_project_id", googleProjectId);
         return retrieveProjectBy(sqlProjectRetrieveByProjectId, params);
     }
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public GoogleProjectResource retrieveProjectByIdForDelete(UUID id) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+        return retrieveProjectBy(sqlProjectRetrieveByIdForDelete, params);
+    }
 
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void deleteProject(UUID id) {
@@ -132,7 +140,7 @@ public class GoogleResourceDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("profile_id", profileId);
         List<ProjectRefs> projectRefs = jdbcTemplate.query(sqlProfileProjectRefs, params,
             (rs, rowNum) -> new ProjectRefs()
-                .projectId(rs.getObject("project_id", UUID.class))
+                .projectId(rs.getObject("pid", UUID.class))
                 .refCount(rs.getLong("refcnt")));
 
         // If the profile is in use by any project, we bail here.
@@ -186,7 +194,7 @@ public class GoogleResourceDao {
 
     private List<GoogleProjectResource> retrieveProjectListBy(String sql, MapSqlParameterSource params) {
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> new GoogleProjectResource()
-            .id(rs.getObject("profile_id", UUID.class))
+            .id(rs.getObject("id", UUID.class))
             .profileId(rs.getObject("profile_id", UUID.class))
             .googleProjectId(rs.getString("google_project_id"))
             .googleProjectNumber(rs.getString("google_project_number")));

@@ -62,7 +62,6 @@ public class FileTest extends UsersBase {
     @Autowired
     private TestConfiguration testConfiguration;
 
-    private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
     private String profileId;
 
@@ -70,9 +69,9 @@ public class FileTest extends UsersBase {
     public void setup() throws Exception {
         super.setup();
         profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        DatasetSummaryModel datasetSummaryModel =
+            dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
-        logger.info("created dataset " + datasetId);
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
     }
@@ -81,6 +80,9 @@ public class FileTest extends UsersBase {
     public void tearDown() throws Exception {
         if (datasetId != null) {
             dataRepoFixtures.deleteDataset(steward(), datasetId);
+        }
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfile(steward(), profileId);
         }
     }
 

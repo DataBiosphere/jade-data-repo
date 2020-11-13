@@ -107,12 +107,12 @@ public class AccessTest extends UsersBase {
     }
 
     private void makeIngestTestDataset() throws Exception {
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
     }
 
     private void makeAclTestDataset() throws Exception {
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
     }
 
@@ -164,7 +164,11 @@ public class AccessTest extends UsersBase {
             equalTo(true));
 
         SnapshotSummaryModel snapshotSummaryModel =
-            dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-snapshot.json");
+            dataRepoFixtures.createSnapshot(
+                custodian(),
+                datasetSummaryModel.getName(),
+                profileId,
+                "ingest-test-snapshot.json");
 
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
         BigQuery bigQuery = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
@@ -235,7 +239,8 @@ public class AccessTest extends UsersBase {
         // Create a snapshot exposing the one row and grant read access to our reader.
         SnapshotSummaryModel snapshotSummaryModel = dataRepoFixtures.createSnapshot(
             custodian(),
-            datasetSummaryModel,
+            datasetSummaryModel.getName(),
+            profileId,
             "file-acl-test-snapshot.json");
         snapshotIds.add(snapshotSummaryModel.getId());
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());

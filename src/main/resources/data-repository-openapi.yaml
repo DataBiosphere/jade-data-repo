@@ -72,9 +72,9 @@ produces:
 ##########################################################################################
 security:
   - googleoauth:
-    - openid
-    - email
-    - profile
+      - openid
+      - email
+      - profile
 
 securityDefinitions:
   googleoauth:
@@ -155,12 +155,12 @@ paths:
       tags:
         - resources
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - in: body
-        name: billingProfileRequest
-        schema:
-          $ref: '#/definitions/BillingProfileRequestModel'
+        - in: body
+          name: billingProfileRequest
+          schema:
+            $ref: '#/definitions/BillingProfileRequestModel'
       responses:
         202:
           description: Job status of profile creation job & url for polling in the response header
@@ -173,7 +173,7 @@ paths:
         200:
           description: Redirect for profile successful creation
           schema:
-           $ref: '#/definitions/JobModel'
+            $ref: '#/definitions/JobModel'
           headers:
             location:
               type: string
@@ -192,18 +192,18 @@ paths:
         Returns a list of all of the billing profiles
       operationId: enumerateProfiles
       tags:
-      - resources
+        - resources
       parameters:
-      - in: query
-        name: offset
-        type: integer
-        default: 0
-        description: The number of items to skip before starting to collect the result set.
-      - in: query
-        name: limit
-        type: integer
-        description: The numbers of items to return.
-        default: 10
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          type: integer
+          description: The numbers of items to return.
+          default: 10
       responses:
         200:
           description: List of billing profiles
@@ -216,9 +216,9 @@ paths:
       description: Retrieve a billing profile by id
       operationId: retrieveProfile
       tags:
-      - resources
+        - resources
       parameters:
-      - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Id'
       responses:
         200:
           description: Billing profile
@@ -243,9 +243,9 @@ paths:
         The final return is of type definitions/DeleteResponseModel.
       operationId: deleteProfile
       tags:
-      - resources
+        - resources
       parameters:
-      - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Id'
       responses:
         202:
           description: Job status of profile delete job & url for polling in the response header
@@ -280,6 +280,39 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
+  '/api/resources/v1/profiles/{id}/policies/{policyName}/members':
+    post:
+      description: Adds a member to the specified policy for the snapshot
+      operationId: addProfilePolicyMember
+      tags:
+        - resources
+      consumes:
+        - application/json
+      parameters:
+        - in: body
+          name: policyMember
+          description:
+          schema:
+            $ref: '#/definitions/PolicyMemberRequest'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/ProfilePolicyName'
+      responses:
+        201:
+          description: PolicyResponse
+          schema:
+            $ref: '#/definitions/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed, or email not found
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to update policies
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - profile id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
 
   ## Repository Interface
 
@@ -289,39 +322,39 @@ paths:
         Returns a list of all of the snapshots the caller has access to
       operationId: enumerateSnapshots
       tags:
-      - repository
+        - repository
       parameters:
-      - in: query
-        name: offset
-        type: integer
-        default: 0
-        description: The number of items to skip before starting to collect the result set.
-      - in: query
-        name: limit
-        type: integer
-        description: The numbers of items to return.
-        default: 10
-      - in: query
-        name: sort
-        type: string
-        default: created_date
-        enum:
-        - name
-        - description
-        - created_date
-        description: The field to use for sorting.
-      - in: query
-        name: direction
-        type: string
-        default: desc
-        enum:
-        - asc
-        - desc
-        description: The direction to sort.
-      - in: query
-        name: filter
-        type: string
-        description: Filter the results where this string is a case insensitive match in the name or description.
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          type: integer
+          description: The numbers of items to return.
+          default: 10
+        - in: query
+          name: sort
+          type: string
+          default: created_date
+          enum:
+            - name
+            - description
+            - created_date
+          description: The field to use for sorting.
+        - in: query
+          name: direction
+          type: string
+          default: desc
+          enum:
+            - asc
+            - desc
+          description: The direction to sort.
+        - in: query
+          name: filter
+          type: string
+          description: Filter the results where this string is a case insensitive match in the name or description.
       responses:
         200:
           description: List of snapshots
@@ -332,15 +365,15 @@ paths:
       description: Create a new snapshot
       operationId: createSnapshot
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - in: body
-        name: snapshot
-        description: Snapshot to create
-        schema:
-          $ref: '#/definitions/SnapshotRequestModel'
+        - in: body
+          name: snapshot
+          description: Snapshot to create
+          schema:
+            $ref: '#/definitions/SnapshotRequestModel'
       responses:
         202:
           description: Job status of snapshot creation job & url for polling in the response header
@@ -377,7 +410,7 @@ paths:
       description: Retrieve a snapshot by id
       operationId: retrieveSnapshot
       tags:
-      - repository
+        - repository
       parameters:
         - $ref: '#/parameters/Id'
       responses:
@@ -402,7 +435,7 @@ paths:
       description: Delete a snapshot by id
       operationId: deleteSnapshot
       tags:
-      - repository
+        - repository
       parameters:
         - $ref: '#/parameters/Id'
       responses:
@@ -508,9 +541,9 @@ paths:
       description: Retrieve the read and discover policies for the snapshot
       operationId: retrieveSnapshotPolicies
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Id'
       responses:
         200:
           description: Policy
@@ -535,17 +568,17 @@ paths:
       description: Adds a member to the specified policy for the snapshot
       operationId: addSnapshotPolicyMember
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - in: body
-        name: policyMember
-        description: Snapshot to change the policy of
-        schema:
-          $ref: '#/definitions/PolicyMemberRequest'
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/SnapshotPolicyName'
+        - in: body
+          name: policyMember
+          description: Snapshot to change the policy of
+          schema:
+            $ref: '#/definitions/PolicyMemberRequest'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/SnapshotPolicyName'
       responses:
         201:
           description: PolicyResponse
@@ -564,21 +597,20 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-
   '/api/repository/v1/snapshots/{id}/policies/{policyName}/members/{memberEmail}':
     delete:  ## retrieve
       description: Adds a member to the specified policy for the snapshot
       operationId: deleteSnapshotPolicyMember
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/SnapshotPolicyName'
-      - name: memberEmail
-        description: The email of the user to remove
-        required: true
-        in: path
-        type: string
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/SnapshotPolicyName'
+        - name: memberEmail
+          description: The email of the user to remove
+          required: true
+          in: path
+          type: string
       responses:
         200:
           description: PolicyResponse
@@ -603,39 +635,39 @@ paths:
         Returns a list of all of the datasets the caller has access to
       operationId: enumerateDatasets
       tags:
-      - repository
+        - repository
       parameters:
-      - in: query
-        name: offset
-        type: integer
-        default: 0
-        description: The number of datasets to skip before when retrieving the next page
-      - in: query
-        name: limit
-        type: integer
-        description: The numbers datasets to retrieve and return.
-        default: 10
-      - in: query
-        name: sort
-        type: string
-        default: created_date
-        enum:
-        - name
-        - description
-        - created_date
-        description: The field to use for sorting.
-      - in: query
-        name: direction
-        type: string
-        default: desc
-        enum:
-        - asc
-        - desc
-        description: The direction to sort.
-      - in: query
-        name: filter
-        type: string
-        description: Filter the results where this string is a case insensitive match in the name or description.
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+          description: The number of datasets to skip before when retrieving the next page
+        - in: query
+          name: limit
+          type: integer
+          description: The numbers datasets to retrieve and return.
+          default: 10
+        - in: query
+          name: sort
+          type: string
+          default: created_date
+          enum:
+            - name
+            - description
+            - created_date
+          description: The field to use for sorting.
+        - in: query
+          name: direction
+          type: string
+          default: desc
+          enum:
+            - asc
+            - desc
+          description: The direction to sort.
+        - in: query
+          name: filter
+          type: string
+          description: Filter the results where this string is a case insensitive match in the name or description.
       responses:
         200:
           description: List of datasets
@@ -646,15 +678,15 @@ paths:
       description: Create a new dataset asynchronously. The async result is DatasetSummaryModel.
       operationId: createDataset
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - in: body
-        name: dataset
-        description: Dataset to create
-        schema:
-          $ref: '#/definitions/DatasetRequestModel'
+        - in: body
+          name: dataset
+          description: Dataset to create
+          schema:
+            $ref: '#/definitions/DatasetRequestModel'
       responses:
         202:
           description: Job status of ingest job & url for polling in the response header
@@ -686,9 +718,9 @@ paths:
       description: Retrieve a dataset by id
       operationId: retrieveDataset
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Id'
       responses:
         200:
           description: Dataset
@@ -711,9 +743,9 @@ paths:
       description: Delete a dataset by id
       operationId: deleteDataset
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Id'
       responses:
         200:
           description: Redirect for dataset successful deletion
@@ -753,9 +785,9 @@ paths:
       description: Retrieve the read and discover policies for the snapshot
       operationId: retrieveDatasetPolicies
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Id'
       responses:
         200:
           description: Policy
@@ -780,17 +812,17 @@ paths:
       description: Adds a member to the specified policy for the dataset
       operationId: addDatasetPolicyMember
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - in: body
-        name: policyMember
-        description: Dataset to change the policy of
-        schema:
-          $ref: '#/definitions/PolicyMemberRequest'
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/DatasetPolicyName'
+        - in: body
+          name: policyMember
+          description: Dataset to change the policy of
+          schema:
+            $ref: '#/definitions/PolicyMemberRequest'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/DatasetPolicyName'
       responses:
         201:
           description: PolicyResponse
@@ -815,15 +847,15 @@ paths:
       description: Removes the member from the specified policy for the snapshot
       operationId: deleteDatasetPolicyMember
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/DatasetPolicyName'
-      - name: memberEmail
-        description: The email of the user to remove
-        required: true
-        in: path
-        type: string
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/DatasetPolicyName'
+        - name: memberEmail
+          description: The email of the user to remove
+          required: true
+          in: path
+          type: string
       responses:
         200:
           description: PolicyResponse
@@ -847,16 +879,16 @@ paths:
       description: Ingest data into a dataset table
       operationId: ingestDataset
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - $ref: '#/parameters/Id'
-      - in: body
-        name: ingest
-        description: Ingest request
-        schema:
-          $ref: '#/definitions/IngestRequestModel'
+        - $ref: '#/parameters/Id'
+        - in: body
+          name: ingest
+          description: Ingest request
+          schema:
+            $ref: '#/definitions/IngestRequestModel'
       responses:
         202:
           description: Job status of ingest job & url for polling in the response header
@@ -892,16 +924,16 @@ paths:
       description: Add an asset definiion to a dataset
       operationId: addDatasetAssetSpecifications
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - $ref: '#/parameters/Id'
-      - in: body
-        name: assetModel
-        description: Asset definition to add to the dataset
-        schema:
-          $ref: '#/definitions/AssetModel'
+        - $ref: '#/parameters/Id'
+        - in: body
+          name: assetModel
+          description: Asset definition to add to the dataset
+          schema:
+            $ref: '#/definitions/AssetModel'
       responses:
         202:
           description: Job status of ingest job & url for polling in the response header
@@ -933,12 +965,12 @@ paths:
       description: Remove an asset definition from a dataset
       operationId: removeDatasetAssetSpecifications
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/AssetId'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/AssetId'
       responses:
         202:
           description: Add new assets to a dataset
@@ -970,16 +1002,16 @@ paths:
       description: Applies deletes to primary tabular data in a dataset
       operationId: applyDatasetDataDeletion
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - $ref: '#/parameters/Id'
-      - in: body
-        name: dataDeletionRequest
-        description: Description of the data in the dataset to delete
-        schema:
-          $ref: '#/definitions/DataDeletionRequest'
+        - $ref: '#/parameters/Id'
+        - in: body
+          name: dataDeletionRequest
+          description: Description of the data in the dataset to delete
+          schema:
+            $ref: '#/definitions/DataDeletionRequest'
       responses:
         201:
           description: Response
@@ -1005,7 +1037,7 @@ paths:
         Returns whether the user is registered with terra
       operationId: user
       tags:
-      - repository
+        - repository
       responses:
         200:
           description: User Info
@@ -1017,16 +1049,16 @@ paths:
       description: Ingest one file into the dataset file system; async returns a FileModel
       operationId: ingestFile
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - $ref: '#/parameters/Id'
-      - in: body
-        name: ingestFile
-        description: Ingest file request
-        schema:
-          $ref: '#/definitions/FileLoadModel'
+        - $ref: '#/parameters/Id'
+        - in: body
+          name: ingestFile
+          description: Ingest file request
+          schema:
+            $ref: '#/definitions/FileLoadModel'
       responses:
         202:
           description: Job status of ingest job & url for polling in the response header
@@ -1066,18 +1098,18 @@ paths:
         dataset file system or it will not exist.
       operationId: bulkFileLoad
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - $ref: '#/parameters/Id'
-      - in: body
-        name: bulkFileLoad
-        description: |-
-          Bulk file load request with file list in an external file. Load summary results
-          are returned in the async response.
-        schema:
-          $ref: '#/definitions/BulkLoadRequestModel'
+        - $ref: '#/parameters/Id'
+        - in: body
+          name: bulkFileLoad
+          description: |-
+            Bulk file load request with file list in an external file. Load summary results
+            are returned in the async response.
+          schema:
+            $ref: '#/definitions/BulkLoadRequestModel'
       responses:
         202:
           description: Job status of bulk load job & url for polling in the response header
@@ -1116,26 +1148,26 @@ paths:
         interface.
       operationId: bulkFileResultsGet
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/LoadTag'
-      - in: query
-        name: jobId
-        type: string
-        description: The job id associated with the load
-      - in: query
-        name: offset
-        type: integer
-        default: 0
-        description: The number of items to skip before starting to collect the result set.
-      - in: query
-        name: limit
-        type: integer
-        description: The numbers of items to return.
-        default: 10
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/LoadTag'
+        - in: query
+          name: jobId
+          type: string
+          description: The job id associated with the load
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          type: integer
+          description: The numbers of items to return.
+          default: 10
       responses:
         202:
           description: Job status of bulk load result retrieval
@@ -1169,16 +1201,16 @@ paths:
         deleted. Otherwise, all results associated with the loadTag are deleted.
       operationId: bulkFileResultsDelete
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/LoadTag'
-      - in: query
-        name: jobId
-        type: string
-        description: The job id associated with the load
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/LoadTag'
+        - in: query
+          name: jobId
+          type: string
+          description: The job id associated with the load
       responses:
         202:
           description: Job status of bulk load result deletion
@@ -1214,18 +1246,18 @@ paths:
         dataset file system or it will not exist.
       operationId: bulkFileLoadArray
       tags:
-      - repository
+        - repository
       consumes:
-      - application/json
+        - application/json
       parameters:
-      - $ref: '#/parameters/Id'
-      - in: body
-        name: bulkFileLoadArray
-        description: |-
-          Bulk file load request with file list in the body of the request and load
-          results returned in the async response.
-        schema:
-          $ref: '#/definitions/BulkLoadArrayRequestModel'
+        - $ref: '#/parameters/Id'
+        - in: body
+          name: bulkFileLoadArray
+          description: |-
+            Bulk file load request with file list in the body of the request and load
+            results returned in the async response.
+          schema:
+            $ref: '#/definitions/BulkLoadArrayRequestModel'
       responses:
         202:
           description: Job status of bulk load job & url for polling in the response header
@@ -1261,11 +1293,11 @@ paths:
       description: Lookup metadata for one file
       operationId: lookupFileById
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/FileId'
-      - $ref: '#/parameters/Depth'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/FileId'
+        - $ref: '#/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -1294,10 +1326,10 @@ paths:
         a dataset. Subsequent lookups will give not found errors.
       operationId: deleteFile
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/FileId'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/FileId'
       responses:
         202:
           description: Job status of snapshot creation job & url for polling in the response header
@@ -1333,11 +1365,11 @@ paths:
       description: Lookup metadata for one file
       operationId: lookupFileByPath
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/Path'
-      - $ref: '#/parameters/Depth'
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Path'
+        - $ref: '#/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -1367,18 +1399,18 @@ paths:
         Returns a list of all of the jobs the caller has access to
       operationId: enumerateJobs
       tags:
-      - repository
+        - repository
       parameters:
-      - in: query
-        name: offset
-        type: integer
-        default: 0
-        description: The number of items to skip before starting to collect the result set.
-      - in: query
-        name: limit
-        type: integer
-        description: The numbers of items to return.
-        default: 10
+        - in: query
+          name: offset
+          type: integer
+          default: 0
+          description: The number of items to skip before starting to collect the result set.
+        - in: query
+          name: limit
+          type: integer
+          description: The numbers of items to return.
+          default: 10
       responses:
         200:
           description: List of jobs
@@ -1392,9 +1424,9 @@ paths:
       description: Retrieve a job's status by id
       operationId: retrieveJob
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Id'
       responses:
         202:
           description: Job status
@@ -1428,9 +1460,9 @@ paths:
       description: Delete the job and data associated with it
       operationId: deleteJob
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Id'
       responses:
         204:
           description: Job was deleted
@@ -1441,16 +1473,16 @@ paths:
       description: Retrieve a job's result by id
       operationId: retrieveJobResult
       tags:
-      - repository
+        - repository
       parameters:
-      - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Id'
       responses: ## successful responses return the type of model specified by the job
         default:
           description: Successful responses return the type of model specified by the job; otherwise, ErrorModel
           schema:
             type: object
 
-# -- Configuration Control Endpoints --
+  # -- Configuration Control Endpoints --
 
   '/api/repository/v1/configs/{name}':
     get:
@@ -1550,9 +1582,9 @@ paths:
         204:
           description: configuration reset
 
-##########################################################################################
-# DRS PATHS
-##########################################################################################
+  ##########################################################################################
+  # DRS PATHS
+  ##########################################################################################
 
   '/ga4gh/drs/v1/service-info':
     get:
@@ -1729,9 +1761,18 @@ parameters:
     required: true
     type: string
     enum:
-    - steward
-    - custodian
-    - ingester
+      - steward
+      - custodian
+      - ingester
+  ProfilePolicyName:
+    name: policyName
+    in: path
+    description: The relevant policy
+    required: true
+    type: string
+    enum:
+      - owner
+      - user
   FileId:
     name: fileid
     description: A file id
@@ -1907,9 +1948,9 @@ definitions:
       Complete definition of a dataset without the id (used to create a dataset)
     type: object
     required:
-    - name
-    - defaultProfileId
-    - schema
+      - name
+      - defaultProfileId
+      - schema
     properties:
       name:
         $ref: '#/definitions/ObjectNameProperty'
@@ -2082,10 +2123,10 @@ definitions:
 
   AssetModel:
     description: One asset in the data model. The table list identifies the tables in the asset.
-          The rootTable and rootColumn indicate which value will be used as the unique identifier.
-          The list of relationships provides the instructions for how to connect the tables.
-          Asset tables have to be connected in a relationship hierarchy. So there cannot be
-          two paths to the same table from the root.
+      The rootTable and rootColumn indicate which value will be used as the unique identifier.
+      The list of relationships provides the instructions for how to connect the tables.
+      Asset tables have to be connected in a relationship hierarchy. So there cannot be
+      two paths to the same table from the root.
     required:
       - name
       - tables
@@ -2586,8 +2627,8 @@ definitions:
       A specification of the query to go into a snapshot.
     type: object
     required:
-    - assetName
-    - query
+      - assetName
+      - query
     properties:
       assetName:
         $ref: '#/definitions/ObjectNameProperty'
@@ -2710,9 +2751,9 @@ definitions:
       Status of job
     type: object
     required:
-    - id
-    - job_status
-    - status_code
+      - id
+      - job_status
+      - status_code
     properties:
       id:
         $ref: '#/definitions/UniqueIdProperty'
@@ -2801,17 +2842,17 @@ definitions:
       a container holding a specification for how to delete tabular data in one or more tables
     type: object
     required:
-    - specType
-    - deleteType
+      - specType
+      - deleteType
     properties:
       deleteType:
         type: string
         enum:
-        - soft
+          - soft
       specType:
         type: string
         enum:
-        - gcsFile
+          - gcsFile
       tables:
         type: array
         items:
@@ -2849,9 +2890,9 @@ definitions:
   UserStatusInfo:
     description: ''
     required:
-    - userSubjectId
-    - userEmail
-    - enabled
+      - userSubjectId
+      - userEmail
+      - enabled
     properties:
       userSubjectId:
         type: string
@@ -3005,8 +3046,8 @@ definitions:
         description: whether to enable (default) or disable the fault
 
   ##########################################################################################
-# DRS DEFINITIONS
-##########################################################################################
+  # DRS DEFINITIONS
+  ##########################################################################################
   DRSChecksum:
     type: object
     required:
@@ -3165,14 +3206,14 @@ definitions:
       type:
         type: string
         enum:
-        - s3
-        - gs
-        - ftp
-        - gsiftp
-        - globus
-        - htsget
-        - https
-        - file
+          - s3
+          - gs
+          - ftp
+          - gsiftp
+          - globus
+          - htsget
+          - https
+          - file
         description: >-
           Type of the access method.
       access_url:

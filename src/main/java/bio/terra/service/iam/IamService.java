@@ -70,7 +70,7 @@ public class IamService {
             if (authorizedCacheValue != null) { // check if it's in the cache
                 // check if it's still in the alloted time
                 if (Instant.now().isBefore(authorizedCacheValue.getTimeout())) {
-                    logger.info("Using the cache!");
+                    logger.debug("Using the cache!");
                     return authorizedCacheValue.isAuthorized();
                 }
                 authorizedMap.remove(authorizedCacheKey); // if timed out, remove it

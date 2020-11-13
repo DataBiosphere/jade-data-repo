@@ -3,6 +3,8 @@ package bio.terra.service.profile;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.EnumerateBillingProfileModel;
+import bio.terra.model.PolicyMemberRequest;
+import bio.terra.model.PolicyModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
@@ -150,7 +152,7 @@ public class ProfileService {
         iamService.verifyAuthorization(user,
             IamResourceType.SPEND_PROFILE,
             profileId.toString(),
-            IamAction.PROFILE_LINK);
+            IamAction.LINK);
         BillingProfileModel profileModel = profileDao.getBillingProfileById(profileId);
 
         // TODO: check bill account usable and validate delegation path
@@ -163,6 +165,18 @@ public class ProfileService {
         }
 
         return profileModel;
+    }
+
+    public PolicyModel addProfilePolicyMember(String profileId,
+                                              String policyName,
+                                              PolicyMemberRequest policyMember,
+                                              AuthenticatedUserRequest user) {
+        return iamService.addPolicyMember(
+            user,
+            IamResourceType.SPEND_PROFILE,
+            UUID.fromString(profileId),
+            policyName,
+            policyMember.getEmail());
     }
 
     // -- methods invoked from billing profile flights --

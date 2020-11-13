@@ -245,9 +245,8 @@ public class GoogleProjectService {
 
     // package access for use in tests
     void deleteProjectResource(UUID resourceId) {
-        GoogleProjectResource projectResource = resourceDao.retrieveProjectById(resourceId);
+        GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(resourceId);
         deleteGoogleProject(projectResource.getGoogleProjectId());
-        resourceDao.deleteProject(resourceId);
     }
 
     private void enableServices(GoogleProjectResource projectResource) throws InterruptedException {

@@ -6,6 +6,9 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.PolicyMemberRequest;
+import bio.terra.model.PolicyModel;
+import bio.terra.model.PolicyResponse;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import bio.terra.service.job.JobService;
@@ -16,10 +19,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.Collections;
 import java.util.Optional;
 
 import static bio.terra.app.utils.ControllerUtils.jobToResponse;
@@ -95,5 +100,16 @@ public class ProfileApiController implements ResourcesApi {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
         BillingProfileModel profileModel = profileService.getProfileById(id, user);
         return new ResponseEntity<>(profileModel, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> addProfilePolicyMember(
+        @PathVariable("id") String id,
+        @PathVariable("policyName") String policyName,
+        @Valid @RequestBody PolicyMemberRequest policyMember) {
+        AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
+        PolicyModel policy = profileService.addProfilePolicyMember(id, policyName, policyMember, user);
+        PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

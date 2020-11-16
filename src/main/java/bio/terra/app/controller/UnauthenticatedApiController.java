@@ -2,8 +2,8 @@ package bio.terra.app.controller;
 
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
-import bio.terra.model.RepositoryStatusModel;
 import bio.terra.model.RepositoryConfigurationModel;
+import bio.terra.model.RepositoryStatusModel;
 import bio.terra.service.configuration.StatusService;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;

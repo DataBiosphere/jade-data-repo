@@ -30,8 +30,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
@@ -121,29 +119,22 @@ public class GcsPdao {
             // From poking around I think it is a standard POSIX milliseconds since Jan 1, 1970.
             Instant createTime = Instant.ofEpochMilli(targetBlob.getCreateTime());
 
-            URI gspath = new URI("gs",
-                bucketResource.getName(),
-                "/" + targetPath,
-                null,
-                null);
+            String gspath = String.format("gs://%s/%s", bucketResource.getName(), targetPath);
 
-            FSFileInfo fsFileInfo = new FSFileInfo()
+            return new FSFileInfo()
                 .fileId(fileId)
                 .createdDate(createTime.toString())
-                .gspath(gspath.toString())
+                .gspath(gspath)
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
                 .checksumMd5(checksumMd5)
                 .size(targetBlob.getSize())
                 .bucketResourceId(bucketResource.getResourceId().toString());
 
-            return fsFileInfo;
         } catch (StorageException ex) {
             // For now, we assume that the storage exception is caused by bad input (the file copy exception
             // derives from BadRequestException). I think there are several cases here. We might need to retry
             // for flaky google case or we might need to bail out if access is denied.
             throw new PdaoFileCopyException("File ingest failed", ex);
-        } catch (URISyntaxException ex) {
-            throw new PdaoException("Bad URI of our own making", ex);
         }
     }
 
@@ -163,8 +154,7 @@ public class GcsPdao {
 
     public boolean deleteFileByGspath(String inGspath, GoogleBucketResource bucketResource) {
         if (inGspath != null) {
-            URI uri = URI.create(inGspath);
-            String bucketPath = StringUtils.removeStart(uri.getPath(), "/");
+            String bucketPath = extractFilePathInBucket(inGspath, bucketResource.getName());
             return deleteWorker(bucketResource, bucketPath);
         }
         return false;
@@ -318,8 +308,7 @@ public class GcsPdao {
                 );
             }
             final Storage storage = storageForBucket(bucketForFile);
-            final URI gsUri = URI.create(file.getGspath());
-            final String bucketPath = StringUtils.removeStart(gsUri.getPath(), "/");
+            final String bucketPath = extractFilePathInBucket(file.getGspath(), bucketForFile.getName());
             final BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
             switch (op) {
                 case ACL_OP_CREATE:
@@ -335,5 +324,25 @@ public class GcsPdao {
             }
             return file;
         };
+    }
+
+    /**
+     * Extract the bucket from a gs path.
+     */
+    public static String extractBucketFromPath(final String path) {
+        if (!path.startsWith("gs://") && StringUtils.countMatches(path, ',') < 3) {
+            throw new PdaoException(String.format("Bad GS path %s", path));
+        }
+        // Given a string that looks like "gs://some bucket/pat1/path2" (format verified above), this will extract
+        // "some bucket" and return
+        return path.substring(5).split("/")[0];
+    }
+
+    /**
+     * Extract the path portion (everything after the bucket name and it's trailing slash) of a gs path.
+     */
+    public static String extractFilePathInBucket(final String path,
+                                                 final String bucketName) {
+        return StringUtils.removeStart(path, String.format("gs://%s/", bucketName));
     }
 }

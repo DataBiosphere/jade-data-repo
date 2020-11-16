@@ -9,6 +9,7 @@ import bio.terra.model.DRSObject;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
@@ -25,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -223,10 +223,12 @@ public class DrsService {
 
     private String makeHttpsFromGs(String gspath) {
         try {
-            URI gsuri = URI.create(gspath);
-            String gsBucket = gsuri.getAuthority();
-            String gsPath = StringUtils.removeStart(gsuri.getPath(), "/");
-            String encodedPath = URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString());
+            String gsBucket = GcsPdao.extractBucketFromPath(gspath);
+            String gsPath = GcsPdao.extractFilePathInBucket(gspath, gsBucket);
+            String encodedPath = URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString())
+                // Google does not recognize the + characters that are produced from spaces by the URLEncoder.encode
+                // method. As a result, these must be converted to %2B.
+                .replaceAll("\\+", "%20");
             return String.format("https://www.googleapis.com/storage/v1/b/%s/o/%s?alt=media", gsBucket, encodedPath);
         } catch (UnsupportedEncodingException ex) {
             throw new InvalidDrsIdException("Failed to urlencode file path", ex);

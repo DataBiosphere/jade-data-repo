@@ -17,6 +17,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
+import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
@@ -83,6 +84,13 @@ public class EncodeFixture {
         TestConfiguration.User reader) throws Exception {
 
         String profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+        dataRepoFixtures.addPolicyMember(
+            steward,
+            profileId,
+            IamRole.USER,
+            custodian.getEmail(),
+            IamResourceType.SPEND_PROFILE);
+
         DatasetSummaryModel datasetSummary =
             dataRepoFixtures.createDataset(steward, profileId, "encodefiletest-dataset.json");
         String datasetId = datasetSummary.getId();

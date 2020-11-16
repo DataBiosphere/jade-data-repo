@@ -291,6 +291,7 @@ task unpack(type: Copy) {
 
 def generatedOutputDir = 'src/generated/java'
 
+// TODO: we can remove lines 297 & 298 after everyone has run the latest version of the code on their local environments
 clean.doFirst {
     delete("${projectDir}/$generatedOutputDir")
     delete("${rootDir}/datarepo-client/build")

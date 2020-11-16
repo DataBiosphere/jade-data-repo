@@ -54,7 +54,6 @@ dependencies {
     compile "org.slf4j:slf4j-api:${slf4j}"
     compile "org.hamcrest:hamcrest:${hamcrest}"
     compile "org.apache.commons:commons-math3:${apacheMath}"
-    compile "io.swagger.core.v3:swagger-annotations:${swaggerAnnotations}"
 
     compile "com.google.api-client:google-api-client:${googleApi}"
     compile "com.google.oauth-client:google-oauth-client-jetty:${googleApi}"
@@ -75,6 +74,7 @@ dependencies {
         compile "org.glassfish.jersey.inject:jersey-hk2:${jersey}"
     } else {
         implementation "bio.terra:datarepo-client:${datarepoClient}"
+        compile "io.swagger.core.v3:swagger-annotations:${swaggerAnnotations}"
     }
 
     implementation "org.broadinstitute.dsde.workbench:sam-client_2.12:${samClient}"

@@ -17,6 +17,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
@@ -79,6 +80,13 @@ public class FileTest extends UsersBase {
     public void setup() throws Exception {
         super.setup();
         profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        dataRepoFixtures.addPolicyMember(
+            steward(),
+            profileId,
+            IamRole.USER,
+            custodian().getEmail(),
+            IamResourceType.SPEND_PROFILE);
+
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
         snapshotId = null;

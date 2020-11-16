@@ -77,7 +77,8 @@ public class LaunchLocalProcess extends DeploymentScript {
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
     // call the unauthenticated status endpoint
     try {
-      int httpStatus = unauthenticatedApi.serviceStatusWithHttpInfo().getStatusCode();
+      unauthenticatedApi.serviceStatus();
+      int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
       statusRequestOK = HttpStatusCodes.isSuccess(httpStatus);
     } catch (Exception ex) {
       statusRequestOK = false;
@@ -117,7 +118,8 @@ public class LaunchLocalProcess extends DeploymentScript {
     while (pollCtr >= 0) {
       // call the unauthenticated status endpoint
       try {
-        int httpStatus = unauthenticatedApi.serviceStatusWithHttpInfo().getStatusCode();
+        unauthenticatedApi.serviceStatus();
+        int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
         logger.debug("Service status: {}", httpStatus);
         if (HttpStatusCodes.isSuccess(httpStatus)) {
           break;
@@ -158,7 +160,8 @@ public class LaunchLocalProcess extends DeploymentScript {
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
     // call the unauthenticated status endpoint
     try {
-      int httpStatus = unauthenticatedApi.serviceStatusWithHttpInfo().getStatusCode();
+      unauthenticatedApi.serviceStatus();
+      int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
       statusRequestOK = HttpStatusCodes.isSuccess(httpStatus);
     } catch (Exception ex) {
       statusRequestOK = false;

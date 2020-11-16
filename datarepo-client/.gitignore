@@ -1,3 +1,4 @@
+generated
 *.class
 
 # Mobile Tools for Java (J2ME)
@@ -18,4 +19,4 @@ hs_err_pid*
 **/target
 target
 .gradle
-build
+ **/build

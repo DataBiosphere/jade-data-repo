@@ -28,7 +28,7 @@ jobs:
         with:
           ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "Import Vault perf secrets"
-        uses: hashicorp/vault-action@v2.0.1
+        uses: hashicorp/vault-action@v2.1.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -45,7 +45,7 @@ jobs:
 
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.0.1
+        uses: hashicorp/vault-action@v2.1.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle

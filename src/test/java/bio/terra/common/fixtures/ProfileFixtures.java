@@ -3,6 +3,7 @@ package bio.terra.common.fixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -10,6 +11,7 @@ import java.util.UUID;
 
 public final class ProfileFixtures {
     private ProfileFixtures() {}
+    private static SecureRandom randomGenerator = new SecureRandom();
 
     public static String randomHex(int n) {
         Random r = new Random();
@@ -33,7 +35,7 @@ public final class ProfileFixtures {
         return new BillingProfileModel()
             .id(UUID.randomUUID().toString())
             .billingAccountId(accountId)
-            .profileName("test profile")
+            .profileName(randomizeName("test-profile"))
             .biller("direct")
             .description("test profile description");
     }
@@ -54,4 +56,10 @@ public final class ProfileFixtures {
     public static BillingProfileRequestModel randomBillingProfileRequest() {
         return billingProfileRequest(randomBillingProfile());
     }
+
+    public static String randomizeName(String baseName) {
+        long suffix = randomGenerator.nextLong();
+        return baseName + Long.toUnsignedString(suffix);
+    }
+
 }

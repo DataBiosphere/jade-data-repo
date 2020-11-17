@@ -85,7 +85,8 @@ public class DatasetBucketDao {
         datasetBucketLinkUpdate(sqlDecrementCount, datasetId, bucketResourceId);
     }
 
-    private boolean datasetBucketLinkExists(UUID datasetId, UUID bucketResourceId) {
+    // public for testing purposes
+    public boolean datasetBucketLinkExists(UUID datasetId, UUID bucketResourceId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("dataset_id", datasetId)
             .addValue("bucket_resource_id", bucketResourceId);

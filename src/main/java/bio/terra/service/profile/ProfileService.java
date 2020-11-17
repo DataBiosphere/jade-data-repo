@@ -169,6 +169,11 @@ public class ProfileService {
      * @return the profile model associated with the profile id
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
+        // when someone is trying to create a dataset or snapshot or load a dataset
+        // do nothing in here to check whether anybody is still allowed to use this billing account
+        // can be any user which is authorized to use this billing profile
+        // get owners of billing profile from sam, then loop through the users to check if they have access
+        // original owner might get revoked but still exist in sam
         if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
             iamService.verifyAuthorization(user,
                 IamResourceType.SPEND_PROFILE,
@@ -254,11 +259,17 @@ public class ProfileService {
         // TODO: check bill account usable and creator has link access
         //  For now we just make sure that the billing account is accessible to the
         //  TDR service account.
+
+        // used during the creation of the billing profile
+        // need to make sure this user has billing resource create on the billing account
+        // they need to have the billing resource permission on the billing account
+        // like the canAccess check in the Google Billing Service but instead of using the service account
+        // credentials uses the user credentials
+
         String billingAccountId = request.getBillingAccountId();
-        if (!billingService.canAccess(billingAccountId)) {
-            throw new InaccessibleBillingAccountException("The repository needs access to billing account "
-                + billingAccountId + " to perform the requested operation");
-        }
+        GoogleBillingService.verifyAccess(user, billingAccountId);
+
+        // check with Doug Voet that this is a reasonable thing to do
     }
 
     // -- profile upgrade --

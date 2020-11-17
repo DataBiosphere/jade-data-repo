@@ -73,7 +73,7 @@ public class SnapshotDao {
      * @throws SnapshotLockException if the snapshot is locked by another flight
      * @throws SnapshotNotFoundException if the snapshot does not exist
      */
-    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void lock(UUID snapshotId, String flightId) {
         if (flightId == null) {
             throw new SnapshotLockException("Locking flight id cannot be null");
@@ -109,7 +109,7 @@ public class SnapshotDao {
      * @param flightId flight id that wants to unlock the snapshot
      * @return true if a snapshot was unlocked, false otherwise
      */
-    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean unlock(UUID snapshotId, String flightId) {
         // update the snapshot entry to remove the flightid IF it is currently set to this flightid
         String sql = "UPDATE snapshot SET flightid = NULL " +
@@ -205,6 +205,7 @@ public class SnapshotDao {
      * @param snapshotId the snapshot id
      * @return the Snapshot object
      */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public Snapshot retrieveAvailableSnapshot(UUID snapshotId) {
         return retrieveSnapshot(snapshotId, true);
     }
@@ -225,6 +226,7 @@ public class SnapshotDao {
      * @param snapshotId the snapshot id
      * @return the Snapshot object
      */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public Snapshot retrieveSnapshot(UUID snapshotId) {
         return retrieveSnapshot(snapshotId, false);
     }
@@ -236,6 +238,7 @@ public class SnapshotDao {
      *                              false to include all snapshots
      * @return the Snapshot object
      */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public Snapshot retrieveSnapshot(UUID snapshotId, boolean onlyRetrieveAvailable) {
         logger.debug("retrieve snapshot id: " + snapshotId);
         String sql = "SELECT * FROM snapshot WHERE id = :id";
@@ -378,6 +381,7 @@ public class SnapshotDao {
      * @param accessibleSnapshotIds list of snapshots ids that caller has access to (fetched from IAM service)
      * @return a list of dataset summary objects
      */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public MetadataEnumeration<SnapshotSummary> retrieveSnapshots(
         int offset,
         int limit,

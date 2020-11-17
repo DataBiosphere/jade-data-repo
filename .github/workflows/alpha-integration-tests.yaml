@@ -30,7 +30,7 @@ jobs:
     - name: "Checkout code"
       uses: actions/checkout@v2
     - name: "Import Vault alpha secrets"
-      uses: hashicorp/vault-action@v2.0.1
+      uses: hashicorp/vault-action@v2.1.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle
@@ -56,7 +56,7 @@ jobs:
         echo ${OK_BINDINGS} | jq '.' > policy.json
         gcloud projects set-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} policy.json
     - name: "Import Vault dev secrets"
-      uses: hashicorp/vault-action@v2.0.1
+      uses: hashicorp/vault-action@v2.1.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
         method: approle

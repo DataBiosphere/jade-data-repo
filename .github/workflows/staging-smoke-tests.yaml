@@ -77,7 +77,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Notify Jade Slack"
         if: always()
-        uses: broadinstitute/action-slack@v2
+        uses: broadinstitute/action-slack@v3.8.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

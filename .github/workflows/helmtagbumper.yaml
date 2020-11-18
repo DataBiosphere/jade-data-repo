@@ -63,7 +63,7 @@ jobs:
           labels: "datarepo,automerge,version-update"
       - name: Slack job status
         if: always()
-        uses: broadinstitute/action-slack@v2
+        uses: broadinstitute/action-slack@v3.8.0
         with:
           status: ${{ job.status }}
           author_name: api_helm_bumper

@@ -17,6 +17,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
@@ -62,17 +63,26 @@ public class SnapshotTest extends UsersBase {
     @Autowired
     private AuthService authService;
 
-    private static Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
+    private String profileId;
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
-    private List<String> createdSnapshotIds = new ArrayList<>();
+    private final List<String> createdSnapshotIds = new ArrayList<>();
     private String stewardToken;
 
     @Before
     public void setup() throws Exception {
         super.setup();
         stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        dataRepoFixtures.addPolicyMember(
+            steward(),
+            profileId,
+            IamRole.USER,
+            custodian().getEmail(),
+            IamResourceType.SPEND_PROFILE);
+
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
@@ -95,20 +105,32 @@ public class SnapshotTest extends UsersBase {
                 ex.printStackTrace();
             }
         });
-        dataRepoFixtures.deleteDataset(steward(), datasetId);
-    }
 
+        if (datasetId != null) {
+            dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+        }
+
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfileLog(steward(), profileId);
+        }
+    }
 
     @Test
     public void snapshotUnauthorizedPermissionsTest() throws Exception {
+        SnapshotRequestModel requestModel =
+            jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
+
         DataRepoResponse<JobModel> createSnapLaunchResp =
-            dataRepoFixtures.createSnapshotLaunch(reader(), datasetSummaryModel, "ingest-test-snapshot.json");
+            dataRepoFixtures.createSnapshotRaw(reader(), datasetSummaryModel.getName(), profileId, requestModel);
         assertThat("Reader is not authorized to create a dataSnapshot",
             createSnapLaunchResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         SnapshotSummaryModel snapshotSummary =
-            dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-snapshot.json");
+            dataRepoFixtures.createSnapshot(custodian(),
+                datasetSummaryModel.getName(),
+                profileId,
+                "ingest-test-snapshot.json");
         createdSnapshotIds.add(snapshotSummary.getId());
 
         DataRepoResponse<JobModel> deleteSnapResp =
@@ -174,6 +196,7 @@ public class SnapshotTest extends UsersBase {
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshotWithRequest(steward(),
                 dataset.getName(),
+                profileId,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
@@ -203,6 +226,7 @@ public class SnapshotTest extends UsersBase {
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshotWithRequest(steward(),
                 datasetName,
+                profileId,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
@@ -221,6 +245,7 @@ public class SnapshotTest extends UsersBase {
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshotWithRequest(steward(),
                 datasetName,
+                profileId,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());

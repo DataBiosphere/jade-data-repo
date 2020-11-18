@@ -128,6 +128,22 @@ public class SamIam implements IamProviderInterface {
     }
 
     @Override
+    public boolean hasActions(AuthenticatedUserRequest userReq,
+                              IamResourceType iamResourceType,
+                              String resourceId) throws InterruptedException {
+        SamRetry samRetry = new SamRetry(configurationService);
+        return samRetry.perform(() -> hasActionsInner(userReq, iamResourceType, resourceId));
+    }
+
+    private boolean hasActionsInner(AuthenticatedUserRequest userReq,
+                                    IamResourceType iamResourceType,
+                                    String resourceId) throws ApiException {
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+        List<String> actionList = samResourceApi.resourceActions(iamResourceType.toString(), resourceId);
+        return (actionList.size() > 0);
+    }
+
+    @Override
     public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws InterruptedException {
         deleteResource(userReq, IamResourceType.DATASET, datasetId.toString());
     }
@@ -144,13 +160,12 @@ public class SamIam implements IamProviderInterface {
         samRetry.perform(() -> deleteResourceInner(userReq, iamResourceType, resourceId));
     }
 
-    // Return useless boolean to match the SamFunction signature for retry
-    private boolean deleteResourceInner(AuthenticatedUserRequest userReq,
-                                        IamResourceType iamResourceType,
-                                        String resourceId) throws ApiException {
+    private Void deleteResourceInner(AuthenticatedUserRequest userReq,
+                                     IamResourceType iamResourceType,
+                                     String resourceId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         samResourceApi.deleteResource(iamResourceType.toString(), resourceId);
-        return true;
+        return null;
     }
 
     @Override
@@ -251,6 +266,35 @@ public class SamIam implements IamProviderInterface {
     }
 
     @Override
+    public void createProfileResource(AuthenticatedUserRequest userReq, String profileId) throws InterruptedException {
+        SamRetry samRetry = new SamRetry(configurationService);
+        samRetry.perform(() -> createProfileResourceInner(userReq, profileId));
+    }
+
+    private Void createProfileResourceInner(AuthenticatedUserRequest userReq, String profileId) throws ApiException {
+        CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
+        req.setResourceId(profileId);
+        req.addPoliciesItem(
+            IamRole.OWNER.toString(),
+            createAccessPolicyOne(IamRole.OWNER, userReq.getEmail()));
+        req.addPoliciesItem(
+            IamRole.USER.toString(),
+            createAccessPolicy(IamRole.USER, null));
+
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+        logger.debug("SAM request: " + req.toString());
+
+        createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.SPEND_PROFILE.toString(), req);
+        return null;
+    }
+
+    @Override
+    public void deleteProfileResource(AuthenticatedUserRequest userReq, String profileId)
+        throws InterruptedException {
+        deleteResource(userReq, IamResourceType.SPEND_PROFILE, profileId.toString());
+    }
+
+    @Override
     public List<PolicyModel> retrievePolicies(AuthenticatedUserRequest userReq,
                                               IamResourceType iamResourceType,
                                               UUID resourceId) throws InterruptedException {
@@ -280,8 +324,8 @@ public class SamIam implements IamProviderInterface {
     }
 
     private Map<IamRole, String> retrievePolicyEmailsInner(AuthenticatedUserRequest userReq,
-                                                            IamResourceType iamResourceType,
-                                                            UUID resourceId) throws ApiException {
+                                                           IamResourceType iamResourceType,
+                                                           UUID resourceId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         try (Stream<AccessPolicyResponseEntry> resultStream =
                  samResourceApi.listResourcePolicies(iamResourceType.toString(), resourceId.toString()).stream()) {
@@ -310,6 +354,8 @@ public class SamIam implements IamProviderInterface {
                                              String policyName,
                                              String userEmail) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+        logger.debug("addUserPolicy resourceType {} resourceId {} policyName {} userEmail {}",
+            iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
         samResourceApi.addUserToPolicy(iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
 
         AccessPolicyMembership result =

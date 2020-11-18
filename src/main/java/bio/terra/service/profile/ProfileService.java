@@ -3,7 +3,11 @@ package bio.terra.service.profile;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.EnumerateBillingProfileModel;
+import bio.terra.model.PolicyMemberRequest;
+import bio.terra.model.PolicyModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamAction;
+import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
@@ -16,6 +20,7 @@ import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccount
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -73,6 +78,8 @@ public class ProfileService {
      * @return jobId of the submitted stairway job
      */
     public String deleteProfile(String id, AuthenticatedUserRequest user) {
+        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
+
         String description = String.format("Delete billing profile id '%s'", id);
         return jobService
             .newJob(description, ProfileDeleteFlight.class, null, user)
@@ -91,34 +98,44 @@ public class ProfileService {
     public EnumerateBillingProfileModel enumerateProfiles(Integer offset,
                                                           Integer limit,
                                                           AuthenticatedUserRequest user) {
-        /*
         List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
         if (resources.isEmpty()) {
             return new EnumerateBillingProfileModel().total(0);
         }
         return profileDao.enumerateBillingProfiles(offset, limit, resources);
-         */
-        // TODO: when we start using sam for the spin profile, removed this call
-        //  and replace it with the logic above.
-        return profileDao.enumerateAllBillingProfiles(offset, limit);
     }
 
     /**
-     * Lookup a billing profile by the profile id.
+     * Lookup a billing profile by the profile id with auth check. Supports the REST API
+     *
+     * @param id the unique idea of this billing profile
+     * @param user authenticated user
+     * @return On success, the billing profile model
+     * @throws ProfileNotFoundException when the profile is not found
+     * @throws IamUnauthorizedException when the caller does not have access to the billing profile
+     */
+    public BillingProfileModel getProfileById(String id, AuthenticatedUserRequest user) {
+        if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id)) {
+            throw new IamUnauthorizedException("unauthorized");
+        }
+
+        return getProfileByIdNoCheck(id);
+    }
+
+    /**
+     * Lookup a billing profile by the profile id with no auth check. Used for internal references.
      *
      * @param id the unique idea of this billing profile
      * @return On success, the billing profile model
      * @throws ProfileNotFoundException when the profile is not found
-     * @throws IamUnauthorizedException when the caller does not have  access to the billing profile
      */
-    public BillingProfileModel getProfileById(String id, AuthenticatedUserRequest user) {
-        // TODO: and authorization check
+    public BillingProfileModel getProfileByIdNoCheck(String id) {
         UUID profileId = UUID.fromString(id);
         return profileDao.getBillingProfileById(profileId);
     }
 
 
-    // The idea is to use this called from create snapshot and created asset to validate that the
+    // The idea is to use this call from create snapshot and create asset to validate that the
     // billing account is usable by the calling user
 
     /**
@@ -132,29 +149,37 @@ public class ProfileService {
      * @return the profile model associated with the profile id
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
-/*
-        TODO: add this in when we have the new resource in Sam
-
         iamService.verifyAuthorization(user,
             IamResourceType.SPEND_PROFILE,
             profileId.toString(),
-            IamAction.PROFILE_LINK);
- */
+            IamAction.LINK);
         BillingProfileModel profileModel = profileDao.getBillingProfileById(profileId);
 
         // TODO: check bill account usable and validate delegation path
         //  For now we just make sure that the building account is accessible to the
         //  TDR service account.
-        if (!billingService.canAccess(profileModel)) {
+        String billingAccountId = profileModel.getBillingAccountId();
+        if (!billingService.canAccess(billingAccountId)) {
             throw new InaccessibleBillingAccountException("The repository needs access to billing account "
-                + profileModel.getBillingAccountId() + " to perform the requested operation");
+                + billingAccountId + " to perform the requested operation");
         }
 
         return profileModel;
     }
 
+    public PolicyModel addProfilePolicyMember(String profileId,
+                                              String policyName,
+                                              PolicyMemberRequest policyMember,
+                                              AuthenticatedUserRequest user) {
+        return iamService.addPolicyMember(
+            user,
+            IamResourceType.SPEND_PROFILE,
+            UUID.fromString(profileId),
+            policyName,
+            policyMember.getEmail());
+    }
 
-    // -- methods invoked from create billing profile flight --
+    // -- methods invoked from billing profile flights --
 
     public BillingProfileModel createProfileMetadata(BillingProfileRequestModel profileRequest,
                                                      AuthenticatedUserRequest user) {
@@ -162,21 +187,29 @@ public class ProfileService {
     }
 
     public boolean deleteProfileMetadata(String profileId) {
-        // TODO: refused to delete if there are dependent datasets, snapshots or buckets
+        // TODO: refuse to delete if there are dependent projects
         UUID profileUuid = UUID.fromString(profileId);
         return profileDao.deleteBillingProfileById(profileUuid);
     }
 
     public void createProfileIamResource(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
-        // TODO: implement the call when we have the resource type
+        iamService.createProfileResource(user, request.getId());
     }
 
-    public void deleteProfileIamResource(String profileId) {
-        // TODO: implement the call when we have the resource type
+    public void deleteProfileIamResource(String profileId, AuthenticatedUserRequest user) {
+        iamService.deleteProfileResource(user, profileId);
     }
 
+    // Verify access to the billing account during billing profile creation
     public void verifyAccount(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
-        // TODO: implement the call when we have the resource type
+        // TODO: check bill account usable and creator has link access
+        //  For now we just make sure that the billing account is accessible to the
+        //  TDR service account.
+        String billingAccountId = request.getBillingAccountId();
+        if (!billingService.canAccess(billingAccountId)) {
+            throw new InaccessibleBillingAccountException("The repository needs access to billing account "
+                + billingAccountId + " to perform the requested operation");
+        }
     }
 
 }

@@ -94,34 +94,6 @@ public class ProfileDao {
             .total(total);
     }
 
-    // TODO: Remove this method when we implement actual profile resources in Sam.
-    //  We need to support an unauthenticated enumeration in the interim :(
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public EnumerateBillingProfileModel enumerateAllBillingProfiles(
-        int offset,
-        int limit) {
-
-        final String sqlHackList = "SELECT " + sqlSelectList
-            + " FROM billing_profile"
-            + " OFFSET :offset LIMIT :limit";
-        final String sqlTotal = "SELECT count(id) AS total"
-            + " FROM billing_profile";
-
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("offset", offset)
-            .addValue("limit", limit);
-
-        List<BillingProfileModel> profiles = jdbcTemplate.query(sqlHackList, params, new BillingProfileMapper());
-        Integer total = jdbcTemplate.queryForObject(sqlTotal, params, Integer.class);
-        if (total == null) {
-            throw new CorruptMetadataException("Impossible null value from count");
-        }
-
-        return new EnumerateBillingProfileModel()
-            .items(profiles)
-            .total(total);
-    }
-
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public BillingProfileModel getBillingProfileById(UUID id) {
         try {

@@ -123,7 +123,7 @@ public class ResourceService {
      * Create a new project for a snapshot, if none exists already.
      *
      * @param snapshotName   name of the snapshot
-     * @param billingProfile billing profile to pay for the project
+     * @param billingProfile authorized billing profile to pay for the project
      * @return project resource id
      */
     public UUID getOrCreateSnapshotProject(String snapshotName, BillingProfileModel billingProfile)
@@ -141,7 +141,7 @@ public class ResourceService {
      * Create a new project for a dataset,  if none exists already.
      *
      * @param datasetName    name of the dataset
-     * @param billingProfile billing profile to pay for the project
+     * @param billingProfile authorized billing profile to pay for the project
      * @return project resource id
      */
     public UUID getOrCreateDatasetProject(String datasetName,
@@ -190,6 +190,18 @@ public class ResourceService {
         Map<String, List<String>> policyMap = new HashMap<>();
         policyMap.put(BQ_JOB_USER_ROLE, Collections.singletonList(stewardsGroupEmail));
         return Collections.unmodifiableMap(policyMap);
+    }
+
+    public List<UUID> markUnusedProjectsForDelete(String profileId) {
+        return projectService.markUnusedProjectsForDelete(profileId);
+    }
+
+    public void deleteUnusedProjects(List<UUID> projectIdList) {
+        projectService.deleteUnusedProjects(projectIdList);
+    }
+
+    public void deleteProjectMetadata(List<UUID> projectIdList) {
+        projectService.deleteProjectMetadata(projectIdList);
     }
 
 }

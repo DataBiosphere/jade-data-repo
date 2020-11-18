@@ -135,6 +135,14 @@ public class ConnectedOperations {
                 -> createdSnapshotIds.stream().map(UUID::fromString).collect(Collectors.toList()));
         doNothing().when(samService).deleteSnapshotResource(any(), any());
         doNothing().when(samService).deleteDatasetResource(any(), any());
+
+        // Mock the billing profile calls
+        when(samService.listAuthorizedResources(any(), eq(IamResourceType.SPEND_PROFILE)))
+            .thenAnswer((Answer<List<UUID>>) invocation
+                -> createdProfileIds.stream().map(UUID::fromString).collect(Collectors.toList()));
+
+        doNothing().when(samService).createProfileResource(any(), any());
+        doNothing().when(samService).deleteProfileResource(any(), any());
     }
 
     /**

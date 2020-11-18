@@ -2,13 +2,13 @@ package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
+import bio.terra.service.profile.exception.ProfileInUseException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class GoogleResourceDao {
@@ -28,16 +29,58 @@ public class GoogleResourceDao {
 
     private static final String sqlProjectRetrieve = "SELECT id, google_project_id, google_project_number, profile_id" +
         " FROM project_resource";
-    private static final String sqlProjectRetrieveById = sqlProjectRetrieve + " WHERE id = :id";
+    private static final String sqlProjectRetrieveById = sqlProjectRetrieve +
+        " WHERE marked_for_delete = false AND id = :id";
     private static final String sqlProjectRetrieveByProjectId = sqlProjectRetrieve +
-        " WHERE google_project_id = :google_project_id";
+        " WHERE marked_for_delete = false AND google_project_id = :google_project_id";
+    private static final String sqlProjectRetrieveByIdForDelete = sqlProjectRetrieve +
+        " WHERE marked_for_delete = true AND id = :id";
 
     private static final String sqlBucketRetrieve =
         "SELECT p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
             " b.id AS bucket_resource_id, name, region, flightid" +
-            " FROM bucket_resource b JOIN project_resource p ON b.project_resource_id = p.id ";
-    private static final String sqlBucketRetrievedById = sqlBucketRetrieve + " WHERE b.id = :id";
-    private static final String sqlBucketRetrievedByName = sqlBucketRetrieve + " WHERE b.name = :name";
+            " FROM bucket_resource b JOIN project_resource p ON b.project_resource_id = p.id " +
+            " WHERE b.marked_for_delete = false";
+    private static final String sqlBucketRetrievedById = sqlBucketRetrieve + " AND b.id = :id";
+    private static final String sqlBucketRetrievedByName = sqlBucketRetrieve + " AND b.name = :name";
+
+    // Given a profile id, compute the count of all references to projects associated with the profile
+    private static final String sqlProfileProjectRefs =
+        "SELECT pid, dscnt + sncnt + bkcnt AS refcnt FROM " +
+            " (SELECT" +
+            "  project_resource.id AS pid," +
+            "  (SELECT COUNT(*) FROM dataset WHERE dataset.project_resource_id = project_resource.id) AS dscnt," +
+            "  (SELECT COUNT(*) FROM snapshot WHERE snapshot.project_resource_id = project_resource.id) AS sncnt," +
+            "  (SELECT count(*) FROM bucket_resource, dataset_bucket" +
+            "    WHERE bucket_resource.project_resource_id = project_resource.id" +
+            "    AND bucket_resource.id = dataset_bucket.bucket_resource_id" +
+            "    AND dataset_bucket.successful_ingests > 0) AS bkcnt" +
+            " FROM project_resource" +
+            " WHERE project_resource.profile_id = :profile_id) AS X";
+
+    // Class for collecting results from the above query
+    private static class ProjectRefs {
+        private UUID projectId;
+        private long refCount;
+
+        public UUID getProjectId() {
+            return projectId;
+        }
+
+        public ProjectRefs projectId(UUID projectId) {
+            this.projectId = projectId;
+            return this;
+        }
+
+        public long getRefCount() {
+            return refCount;
+        }
+
+        public ProjectRefs refCount(long refCount) {
+            this.refCount = refCount;
+            return this;
+        }
+    }
 
     @Autowired
     public GoogleResourceDao(NamedParameterJdbcTemplate jdbcTemplate,
@@ -74,7 +117,13 @@ public class GoogleResourceDao {
             new MapSqlParameterSource().addValue("google_project_id", googleProjectId);
         return retrieveProjectBy(sqlProjectRetrieveByProjectId, params);
     }
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public GoogleProjectResource retrieveProjectByIdForDelete(UUID id) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+        return retrieveProjectBy(sqlProjectRetrieveByIdForDelete, params);
+    }
 
+    // NOTE: This method is currently only used from tests
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void deleteProject(UUID id) {
         String sql = "DELETE FROM project_resource WHERE id = :id";
@@ -83,17 +132,73 @@ public class GoogleResourceDao {
         logger.info("Project resource {} was {}", id, (rowsAffected > 0 ? "deleted" : "not found"));
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public List<UUID> markUnusedProjectsForDelete(UUID profileId) {
+        // Collect all projects related to the incoming profile and compute the number of references
+        // on those projects. Note that so long as we use the one project profile data location selector
+        // there will never be more than one project. The code will support the case where that relationship
+        // is different.
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("profile_id", profileId);
+        List<ProjectRefs> projectRefs = jdbcTemplate.query(sqlProfileProjectRefs, params,
+            (rs, rowNum) -> new ProjectRefs()
+                .projectId(rs.getObject("pid", UUID.class))
+                .refCount(rs.getLong("refcnt")));
+
+        // If the profile is in use by any project, we bail here.
+        if (0 < projectRefs.stream().mapToLong(ProjectRefs::getRefCount).sum()) {
+            throw new ProfileInUseException("Profile is in use and cannot be deleted");
+        }
+
+        // Common variables for marking projects and buckets for delete.
+        List<UUID> projectIds = projectRefs.stream().map(ProjectRefs::getProjectId).collect(Collectors.toList());
+        if (projectIds.size() > 0) {
+            MapSqlParameterSource markParams = new MapSqlParameterSource().addValue("project_ids", projectIds);
+
+            final String sqlMarkProjects = "UPDATE project_resource SET marked_for_delete = true" +
+                " WHERE id IN (:project_ids)";
+            jdbcTemplate.update(sqlMarkProjects, markParams);
+
+            final String sqlMarkBuckets = "UPDATE bucket_resource SET marked_for_delete = true" +
+                " WHERE project_resource_id IN (:project_ids)";
+            jdbcTemplate.update(sqlMarkBuckets, markParams);
+        }
+
+        return projectIds;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public void deleteProjectMetadata(List<UUID> projectIds) {
+        if (projectIds.size() > 0) {
+            MapSqlParameterSource markParams = new MapSqlParameterSource().addValue("project_ids", projectIds);
+
+            // Delete the buckets
+            final String sqlMarkBuckets = "DELETE FROM bucket_resource WHERE project_resource_id IN (:project_ids)";
+            jdbcTemplate.update(sqlMarkBuckets, markParams);
+
+            // Delete the projects
+            final String sqlMarkProjects = "DELETE FROM project_resource WHERE id IN (:project_ids)";
+            jdbcTemplate.update(sqlMarkProjects, markParams);
+        }
+    }
+
     private GoogleProjectResource retrieveProjectBy(String sql, MapSqlParameterSource params) {
-        try {
-            return jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
-                new GoogleProjectResource()
-                    .googleProjectId(rs.getString("google_project_id"))
-                    .googleProjectNumber(rs.getString("google_project_number"))
-                    .id(rs.getObject("id", UUID.class))
-                    .profileId(rs.getObject("profile_id", UUID.class)));
-        } catch (EmptyResultDataAccessException ex) {
+        List<GoogleProjectResource> projectList = retrieveProjectListBy(sql, params);
+        if (projectList.size() == 0) {
             throw new GoogleResourceNotFoundException("Project not found");
         }
+        if (projectList.size() > 1) {
+            throw new CorruptMetadataException("Found more than one result for project resource: " +
+                projectList.get(0).getGoogleProjectId());
+        }
+        return projectList.get(0);
+    }
+
+    private List<GoogleProjectResource> retrieveProjectListBy(String sql, MapSqlParameterSource params) {
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> new GoogleProjectResource()
+            .id(rs.getObject("id", UUID.class))
+            .profileId(rs.getObject("profile_id", UUID.class))
+            .googleProjectId(rs.getString("google_project_id"))
+            .googleProjectNumber(rs.getString("google_project_number")));
     }
 
     // -- bucket resource methods --
@@ -207,7 +312,7 @@ public class GoogleResourceDao {
      * locked by the provided flight.
      *
      * @param bucketName name of bucket to delete
-     * @param flightId flight trying to do the delete
+     * @param flightId   flight trying to do the delete
      * @return true if a row is deleted, false otherwise
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

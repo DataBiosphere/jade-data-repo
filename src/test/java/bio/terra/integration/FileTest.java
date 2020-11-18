@@ -17,6 +17,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
@@ -79,7 +80,14 @@ public class FileTest extends UsersBase {
     public void setup() throws Exception {
         super.setup();
         profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        dataRepoFixtures.addPolicyMember(
+            steward(),
+            profileId,
+            IamRole.USER,
+            custodian().getEmail(),
+            IamResourceType.SPEND_PROFILE);
+
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
         snapshotId = null;
         fileIds = new ArrayList<>();
@@ -102,6 +110,9 @@ public class FileTest extends UsersBase {
                 }
             });
             dataRepoFixtures.deleteDataset(steward(), datasetId);
+        }
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfile(steward(), profileId);
         }
     }
 
@@ -291,7 +302,8 @@ public class FileTest extends UsersBase {
         // Create a snapshot exposing the one row and grant read access to our reader.
         SnapshotSummaryModel snapshotSummaryModel = dataRepoFixtures.createSnapshot(
             custodian(),
-            datasetSummaryModel,
+            datasetSummaryModel.getName(),
+            profileId,
             "file-acl-test-snapshot.json");
         snapshotId = snapshotSummaryModel.getId();
 

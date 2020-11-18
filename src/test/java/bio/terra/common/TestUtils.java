@@ -3,7 +3,6 @@ package bio.terra.common;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
@@ -151,22 +150,6 @@ public final class TestUtils {
 
         return resourceManager.projects()
             .getIamPolicy(projectId, getIamPolicyRequest).execute();
-    }
-
-    public static String getHttpPathString(IamResourceType iamResourceType) {
-        String httpPathString = null;
-        switch (iamResourceType) {
-            case DATASET:
-                httpPathString = "datasets";
-                break;
-            case DATASNAPSHOT:
-                httpPathString = "snapshots";
-                break;
-            default:
-                httpPathString = null;
-        }
-
-        return httpPathString;
     }
 
     public static BigQueryProject bigQueryProjectForDatasetName(DatasetDao datasetDao,

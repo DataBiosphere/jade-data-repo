@@ -120,7 +120,7 @@ public class GoogleProjectService {
 
     public void deleteUnusedProjects(List<UUID> projectIdList) {
         for (UUID projectId : projectIdList) {
-            deleteProjectResource(projectId);
+            deleteGoogleProject(projectId);
         }
     }
 
@@ -227,14 +227,14 @@ public class GoogleProjectService {
         return googleProjectResource;
     }
 
-    private void deleteGoogleProject(String projectId) {
+    private void deleteGoogleProject(String googleProjectId) {
         // Don't actually delete the project if we are reusing projects!
         if (resourceConfiguration.getAllowReuseExistingProjects()) {
-            logger.info("Reusing projects: skipping delete of {}", projectId);
+            logger.info("Reusing projects: skipping delete of {}", googleProjectId);
         } else {
             try {
                 CloudResourceManager resourceManager = cloudResourceManager();
-                CloudResourceManager.Projects.Delete request = resourceManager.projects().delete(projectId);
+                CloudResourceManager.Projects.Delete request = resourceManager.projects().delete(googleProjectId);
                 // the response will be empty if the request is successful in the delete
                 request.execute();
             } catch (IOException | GeneralSecurityException e) {
@@ -244,8 +244,8 @@ public class GoogleProjectService {
     }
 
     // package access for use in tests
-    void deleteProjectResource(UUID resourceId) {
-        GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(resourceId);
+    void deleteGoogleProject(UUID metadataProjectId) {
+        GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(metadataProjectId);
         deleteGoogleProject(projectResource.getGoogleProjectId());
     }
 

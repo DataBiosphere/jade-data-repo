@@ -2,14 +2,13 @@ package bio.terra.service.resourcemanagement.google;
 
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.common.category.Connected;
+import bio.terra.common.category.OnDemand;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import com.google.api.client.util.Lists;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -32,7 +31,7 @@ import static org.hamcrest.Matchers.not;
 @AutoConfigureMockMvc
 @SpringBootTest
 @ActiveProfiles({"google", "connectedtest"})
-@Category(Connected.class)
+@Category(OnDemand.class)
 public class ResourceServiceTest {
 
     @Autowired private GoogleResourceConfiguration resourceConfiguration;
@@ -53,8 +52,6 @@ public class ResourceServiceTest {
     }
 
     @Test
-    // this test should be unignored whenever there are changes to the project creation or deletion code
-    @Ignore
     public void createAndDeleteProjectTest() throws Exception {
         // the project id can't be more than 30 characters
         String projectId = ("test-" + UUID.randomUUID().toString()).substring(0, 30);
@@ -76,7 +73,7 @@ public class ResourceServiceTest {
 
         // TODO check to make sure a steward can complete a job in another test
 
-        projectService.deleteProjectResource(projectResource.getId());
+        projectService.deleteGoogleProject(projectResource.getId());
         project = projectService.getProject(projectId);
         assertThat("the project is not active after delete",
             project.getLifecycleState(),

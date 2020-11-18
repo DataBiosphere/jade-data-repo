@@ -123,6 +123,7 @@ public class GoogleResourceDao {
         return retrieveProjectBy(sqlProjectRetrieveByIdForDelete, params);
     }
 
+    // NOTE: This method is currently only used from tests
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void deleteProject(UUID id) {
         String sql = "DELETE FROM project_resource WHERE id = :id";

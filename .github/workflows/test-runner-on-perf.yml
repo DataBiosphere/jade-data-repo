@@ -103,7 +103,7 @@ jobs:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "Create datarepo-helm-definition pull request with updated perf image tag"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
+        uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
         with:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions

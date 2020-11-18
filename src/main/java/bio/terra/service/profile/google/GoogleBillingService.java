@@ -38,6 +38,7 @@ public class GoogleBillingService {
             GoogleCredentials credentials = null;
             GoogleCredentials serviceAccountCredentials = ServiceAccountCredentials.getApplicationDefault();
 
+            //  If no user, use system credentials, otherwise impersonate user and mint new token
             if (user == null) {
                 // Authentication is provided by the 'gcloud' tool when running locally
                 // and by built-in service accounts when running on GAE, GCE, or GKE.

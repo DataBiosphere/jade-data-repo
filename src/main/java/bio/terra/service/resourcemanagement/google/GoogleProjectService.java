@@ -152,6 +152,7 @@ public class GoogleProjectService {
                 .setName(requestedProjectId)
                 .setProjectId(requestedProjectId)
                 .setParent(parentResource);
+        logger.info("creating project with request: {}", requestBody);
         try {
             // kick off a project create request and poll until it is done
             CloudResourceManager resourceManager = cloudResourceManager();

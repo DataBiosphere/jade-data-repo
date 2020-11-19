@@ -149,7 +149,7 @@ public class ProfileService {
      * @return the profile model associated with the profile id
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
-        // TODO: Add this back in once we have way to authorize w/ exisisiting billing profiles
+        // TODO: Add this back in once we have way to authorize w/ existing billing profiles
         /*iamService.verifyAuthorization(user,
             IamResourceType.SPEND_PROFILE,
             profileId.toString(),

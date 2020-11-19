@@ -149,10 +149,11 @@ public class ProfileService {
      * @return the profile model associated with the profile id
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
-        iamService.verifyAuthorization(user,
+        // TODO: Add this back in once we have way to authorize w/ exisisiting billing profiles
+        /*iamService.verifyAuthorization(user,
             IamResourceType.SPEND_PROFILE,
             profileId.toString(),
-            IamAction.LINK);
+            IamAction.LINK);*/
         BillingProfileModel profileModel = profileDao.getBillingProfileById(profileId);
 
         // TODO: check bill account usable and validate delegation path

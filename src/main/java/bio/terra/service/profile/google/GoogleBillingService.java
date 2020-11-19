@@ -7,8 +7,8 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.rpc.ApiException;
 import com.google.api.resourcenames.ResourceName;
+import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.billing.v1.BillingAccountName;
 import com.google.cloud.billing.v1.CloudBillingClient;
@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -38,7 +39,7 @@ public class GoogleBillingService {
             GoogleCredentials credentials = null;
             GoogleCredentials serviceAccountCredentials = ServiceAccountCredentials.getApplicationDefault();
 
-            //  If no user, use system credentials, otherwise impersonate user and mint new token
+            //  If no user, use system credentials, otherwise use user credentials instead
             if (user == null) {
                 // Authentication is provided by the 'gcloud' tool when running locally
                 // and by built-in service accounts when running on GAE, GCE, or GKE.
@@ -53,13 +54,9 @@ public class GoogleBillingService {
                     credentials = credentials.createScoped(scopes);
                 }
             } else {
-                credentials = ImpersonatedCredentials.newBuilder()
-                    .setSourceCredentials(serviceAccountCredentials)
-                    .setTargetPrincipal(user.getEmail())
-                    .setScopes(scopes)
-                    .setDelegates(null)
-                    .setLifetime(300)
-                    .build();
+                Date soon = Date.from(new Date().toInstant().plusSeconds(300));
+                AccessToken accessToken = new AccessToken(user.getRequiredToken(), soon);
+                credentials = GoogleCredentials.create(accessToken);
             }
 
             CloudBillingSettings cloudBillingSettings =

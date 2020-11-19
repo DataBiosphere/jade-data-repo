@@ -31,8 +31,8 @@ logger("org.springframework", WARN)
 logger("liquibase.executor", WARN)
 logger("io.swagger.models.parameters.AbstractSerializableParameter", ERROR)
 
-/*
 // enable the next 4 lines to see acl and policies
+/*
 logger("bio.terra.service.dataset.flight.create.CreateDatasetAuthzIamStep", DEBUG);
 logger("bio.terra.service.dataset.flight.create.CreateDatasetAuthzPrimaryDataStep", DEBUG);
 logger("bio.terra.service.iam.sam.SamIam", DEBUG);

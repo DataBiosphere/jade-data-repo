@@ -28,7 +28,7 @@ public class CreateProfileAuthzIamStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) throws InterruptedException {
-        profileService.deleteProfileIamResource(request.getId());
+        profileService.deleteProfileIamResource(request.getId(), user);
         return StepResult.getStepResultSuccess();
     }
 }

@@ -8,7 +8,6 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath("io.swagger:swagger-codegen:${swagger}")
         // This is for the artifactory plugin
         classpath group: 'com.jfrog.artifactory', name: 'com.jfrog.artifactory.gradle.plugin', version: '4.13.0', ext: 'pom'
     }
@@ -18,6 +17,7 @@ plugins {
     id 'java-library'
     id 'maven-publish'
     id 'com.jfrog.artifactory' version '4.13.0'
+    id 'org.hidetake.swagger.generator'
 }
 
 sourceCompatibility = 1.8
@@ -61,43 +61,44 @@ dependencies {
     compile group: 'org.glassfish.jersey.media', name: 'jersey-media-multipart', version: "${jersey}"
     compile "org.glassfish.jersey.inject:jersey-hk2:${jersey}"
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: "${jackson}"
+    implementation group: "io.swagger.core.v3", name: "swagger-annotations"
+    swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
 }
 
 // -- Swagger Client Generation --
-import io.swagger.codegen.config.CodegenConfigurator
-import io.swagger.codegen.DefaultGenerator
+
 def openapiSourceFile = "$projectDir/../src/main/resources/data-repository-openapi.yaml"
 def openapiTargetFolder = 'src/main/java'
 
-task generateApi {
-    // Get the openapi file from the parent source directory
-    inputs.file("$openapiSourceFile")
-    outputs.dir("$projectDir/$openapiTargetFolder")
-    doLast {
-        def config = new CodegenConfigurator()
-        config.setInputSpec("file:///$openapiSourceFile")
-        config.setOutputDir("$projectDir")
-        config.setLang('java')
-        // These properties are not well documented. The only way I've found to figure them out is to
-        // locally install the swagger-codegen tool and invoke it to get the specific help for the
-        // spring boot options.
-        config.setAdditionalProperties([
-            'interfaceOnly' : 'true',                  // only generate the model and API interfaces
-            'library'       : 'jersey2',               // do jersey code generation so we use Jackson JSON
-            'dateLibrary'   : 'java8',                 // do java8 code generation
-            'apiPackage'    : 'bio.terra.datarepo.api',
-            'modelPackage'  : 'bio.terra.datarepo.model',
-            'invokerPackage': 'bio.terra.datarepo.client',
-            'sourceFolder'  : openapiTargetFolder
-        ])
-        new DefaultGenerator().opts(config.toClientOptInput()).generate()
+swaggerSources {
+    client {
+        inputFile = file("${resourceDir}/data-repository-openapi.yaml")
+        code {
+            language = "java"
+            library = "jersey2"
+            outputDir = file("$projectDir/generated")
+            rawOptions = [
+                "--model-package", "bio.terra.datarepo.model",
+                "--api-package", "bio.terra.datarepo.api",
+                "--invoker-package", "bio.terra.datarepo.client",
+                "--group-id", "bio.terra.datarepo",
+                "--artifact-version", "${version}",
+                "--ignore-file-override", "${projectDir}/.swagger-codegen-ignore",
+                "-D", "apiTests=false," +
+                    "apiDocs=false," +
+                    "modelTests=false," +
+                    "modelDocs=false," +
+                    "dateLibrary=java8"
+            ]
+        }
     }
 }
 
-compileJava.dependsOn generateApi
+sourceSets.main.java.srcDir "generated/src/main/java"
+compileJava.dependsOn swaggerSources.client.code
 
 publishing {
     publications {

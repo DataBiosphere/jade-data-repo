@@ -47,7 +47,7 @@ jobs:
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-6/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: Create pull request
-        uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
+        uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
         id: create-pr
         with:
           token: ${{ secrets.TERRA_HELMFILE_TOKEN }}
@@ -63,7 +63,7 @@ jobs:
           labels: "datarepo,automerge,version-update"
       - name: Slack job status
         if: always()
-        uses: broadinstitute/action-slack@v2
+        uses: broadinstitute/action-slack@v3.8.0
         with:
           status: ${{ job.status }}
           author_name: api_helm_bumper

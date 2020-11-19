@@ -2,7 +2,6 @@ package bio.terra.service.filedata.google.gcs;
 
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.FutureUtils;
-import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoInvalidUriException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
@@ -24,6 +23,8 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,9 @@ import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 @Component
 public class GcsPdao {
     private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
+
+    private static final String GS_PROTOCOL = "gs://";
+    private static final String GS_BUCKET_PATTERN = "[a-z0-9_.\\-]{3,222}";
 
     private final GcsProjectFactory gcsProjectFactory;
     private final ResourceService resourceService;
@@ -194,10 +198,21 @@ public class GcsPdao {
         fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, policies);
     }
 
-    private static final String GS_PROTOCOL = "gs://";
-    private static final String GS_BUCKET_PATTERN = "[a-z0-9_.\\-]{3,222}";
-
     public static Blob getBlobFromGsPath(Storage storage, String gspath, String targetProjectId) {
+        GcsLocator locator = getGcsLocatorFromGsPath(gspath);
+
+        // Provide the project of the destination of the file copy to pay if the
+        // source bucket is requester pays.
+        Blob sourceBlob = storage.get(BlobId.of(locator.getBucket(), locator.getPath()),
+            Storage.BlobGetOption.userProject(targetProjectId));
+        if (sourceBlob == null) {
+            throw new PdaoSourceFileNotFoundException("Source file not found: '" + gspath + "'");
+        }
+
+        return sourceBlob;
+    }
+
+    public static GcsLocator getGcsLocatorFromGsPath(String gspath) {
         if (!StringUtils.startsWith(gspath, GS_PROTOCOL)) {
             throw new PdaoInvalidUriException("Path is not a gs path: '" + gspath + "'");
         }
@@ -228,15 +243,7 @@ public class GcsPdao {
             throw new PdaoInvalidUriException("Missing object name in gs path: '" + gspath + "'");
         }
 
-        // Provide the project of the destination of the file copy to pay if the
-        // source bucket is requester pays.
-        Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath),
-            Storage.BlobGetOption.userProject(targetProjectId));
-        if (sourceBlob == null) {
-            throw new PdaoSourceFileNotFoundException("Source file not found: '" + gspath + "'");
-        }
-
-        return sourceBlob;
+        return new GcsLocator(sourceBucket, sourcePath);
     }
 
     private void fileAclOp(AclOp op, Dataset dataset, List<String> fileIds, Map<IamRole, String> policies)
@@ -327,22 +334,56 @@ public class GcsPdao {
     }
 
     /**
-     * Extract the bucket from a gs path.
+     * Extract the path portion (everything after the bucket name and it's trailing slash) of a gs path.
      */
-    public static String extractBucketFromPath(final String path) {
-        if (!path.startsWith("gs://") && StringUtils.countMatches(path, ',') < 3) {
-            throw new PdaoException(String.format("Bad GS path %s", path));
-        }
-        // Given a string that looks like "gs://some bucket/pat1/path2" (format verified above), this will extract
-        // "some bucket" and return
-        return path.substring(5).split("/")[0];
+    private static String extractFilePathInBucket(final String path, final String bucketName) {
+        return StringUtils.removeStart(path, String.format("gs://%s/", bucketName));
     }
 
     /**
-     * Extract the path portion (everything after the bucket name and it's trailing slash) of a gs path.
+     * Represents a way to access objects in GCS buckets.
      */
-    public static String extractFilePathInBucket(final String path,
-                                                 final String bucketName) {
-        return StringUtils.removeStart(path, String.format("gs://%s/", bucketName));
+    public static class GcsLocator {
+        private final String bucket;
+        private final String path;
+
+        public GcsLocator(final String bucket, final String path) {
+            this.bucket = bucket;
+            this.path = path;
+        }
+
+        public String getBucket() {
+            return bucket;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            GcsLocator locator = (GcsLocator) o;
+
+            return new EqualsBuilder()
+                .append(bucket, locator.bucket)
+                .append(path, locator.path)
+                .isEquals();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder(17, 37)
+                .append(bucket)
+                .append(path)
+                .toHashCode();
+        }
     }
 }

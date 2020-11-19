@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -36,25 +37,25 @@ public class GoogleBillingService {
         try {
             List<String> scopes = Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
 
-            GoogleCredentials credentials = null;
+            // Authentication is provided by the 'gcloud' tool when running locally
+            // and by built-in service accounts when running on GAE, GCE, or GKE.
             GoogleCredentials serviceAccountCredentials = ServiceAccountCredentials.getApplicationDefault();
 
             //  If no user, use system credentials, otherwise use user credentials instead
+            final GoogleCredentials credentials;
             if (user == null) {
-                // Authentication is provided by the 'gcloud' tool when running locally
-                // and by built-in service accounts when running on GAE, GCE, or GKE.
-                credentials = serviceAccountCredentials;
-
                 // The createScopedRequired method returns true when running on GAE or a local developer
                 // machine. In that case, the desired scopes must be passed in manually. When the code is
                 // running in GCE, GKE or a Managed VM, the scopes are pulled from the GCE metadata server.
                 // See https://developers.google.com/identity/protocols/application-default-credentials
                 // for more information.
-                if (credentials.createScopedRequired()) {
-                    credentials = credentials.createScoped(scopes);
+                if (serviceAccountCredentials.createScopedRequired()) {
+                    credentials = serviceAccountCredentials.createScoped(scopes);
+                } else {
+                    credentials = serviceAccountCredentials;
                 }
             } else {
-                Date soon = Date.from(new Date().toInstant().plusSeconds(300));
+                Date soon = Date.from(Instant.now().plusSeconds(300));
                 AccessToken accessToken = new AccessToken(user.getRequiredToken(), soon);
                 credentials = GoogleCredentials.create(accessToken);
             }

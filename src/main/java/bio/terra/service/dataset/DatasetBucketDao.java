@@ -88,8 +88,7 @@ public class DatasetBucketDao {
         datasetBucketLinkUpdate(sqlDecrementCount, datasetId, bucketResourceId);
     }
 
-    // public for testing purposes
-    public boolean datasetBucketLinkExists(UUID datasetId, UUID bucketResourceId) {
+    boolean datasetBucketLinkExists(UUID datasetId, UUID bucketResourceId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("dataset_id", datasetId)
             .addValue("bucket_resource_id", bucketResourceId);
@@ -100,8 +99,8 @@ public class DatasetBucketDao {
         return (count == 1);
     }
 
-    // Used for testing
-    public int datasetBucketSuccessfulIngestCount(UUID datasetId, UUID bucketResourceId) {
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    int datasetBucketSuccessfulIngestCount(UUID datasetId, UUID bucketResourceId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("dataset_id", datasetId)
             .addValue("bucket_resource_id", bucketResourceId);

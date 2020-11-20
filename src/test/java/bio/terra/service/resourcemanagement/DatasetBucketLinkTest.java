@@ -8,13 +8,10 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import org.junit.After;
 import org.junit.Before;
@@ -24,7 +21,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -53,25 +49,10 @@ public class DatasetBucketLinkTest {
     private DatasetDao datasetDao;
 
     @Autowired
-    private DatasetBucketDao datasetBucketDao;
-
-    @Autowired
     private ProfileDao profileDao;
 
     @Autowired
     private GoogleResourceDao resourceDao;
-
-    @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
-
-    @Autowired
-    private ResourceService resourceService;
-
-    @Autowired
-    private GoogleProjectService googleProjectService;
-
-    @Autowired
-    private GoogleBucketService googleBucketService;
 
     @Autowired
     private OneProjectPerProfileIdSelector oneProjectPerProfileIdSelector;
@@ -105,20 +86,6 @@ public class DatasetBucketLinkTest {
         projectResource2.id(projectId2);
         projects.add(projectResource2);
 
-    }
-
-    private Dataset createDataset(BillingProfileModel billingProfile, UUID projectId) throws IOException {
-        Dataset dataset;
-        DatasetRequestModel datasetRequest1 = jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
-        datasetRequest1.name(datasetRequest1.getName() + UUID.randomUUID().toString())
-            .defaultProfileId(billingProfile.getId());
-        dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest1);
-        dataset.projectResourceId(projectId);
-        String createFlightId1 = UUID.randomUUID().toString();
-        dataset.id(UUID.randomUUID());
-        datasetDao.createAndLock(dataset, createFlightId1);
-        datasetDao.unlockExclusive(dataset.getId(), createFlightId1);
-        return dataset;
     }
 
     @After
@@ -163,5 +130,19 @@ public class DatasetBucketLinkTest {
         logger.info("Bucket 1: {}; Bucket 2: {}", bucketName1, bucketName2);
 
         assertEquals("Buckets should be named the same", bucketName1, bucketName2);
+    }
+
+    private Dataset createDataset(BillingProfileModel billingProfile, UUID projectId) throws IOException {
+        Dataset dataset;
+        DatasetRequestModel datasetRequest1 = jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
+        datasetRequest1.name(datasetRequest1.getName() + UUID.randomUUID().toString())
+            .defaultProfileId(billingProfile.getId());
+        dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest1);
+        dataset.projectResourceId(projectId);
+        String createFlightId1 = UUID.randomUUID().toString();
+        dataset.id(UUID.randomUUID());
+        datasetDao.createAndLock(dataset, createFlightId1);
+        datasetDao.unlockExclusive(dataset.getId(), createFlightId1);
+        return dataset;
     }
 }

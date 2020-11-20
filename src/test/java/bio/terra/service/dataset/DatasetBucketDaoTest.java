@@ -10,8 +10,6 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.OneDataLocationSelector;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.BucketResourceUtils;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
@@ -25,7 +23,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.UUID;
@@ -33,11 +30,16 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class DatasetBucketDaoTest {
+    private static final Logger logger = LoggerFactory.getLogger(DatasetBucketDaoTest.class);
+
     @Autowired
     private JsonLoader jsonLoader;
 
@@ -54,19 +56,10 @@ public class DatasetBucketDaoTest {
     private GoogleResourceDao resourceDao;
 
     @Autowired
-    private NamedParameterJdbcTemplate jdbcTemplate;
-
-    @Autowired
-    private ResourceService resourceService;
-
-    @Autowired
     private ConfigurationService configurationService;
 
     @Autowired
     private GoogleBucketService googleBucketService;
-
-    @Autowired
-    private OneDataLocationSelector oneDataLocationSelector;
 
     @Autowired
     private GcsConfiguration gcsConfiguration;
@@ -95,36 +88,28 @@ public class DatasetBucketDaoTest {
 
     @After
     public void teardown() {
-        datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResourceId);
-        datasetDao.delete(datasetId);
-        resourceDao.deleteProject(projectId);
-        profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
+        try {
+            datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResourceId);
+        } catch (Exception ex) {
+            logger.error("[CLEANUP] Unable to delete dataset  bucket link {}", bucketResourceId);
+        }
+        try {
+            datasetDao.delete(datasetId);
+        } catch (Exception ex) {
+            logger.error("[CLEANUP] Unable to delete dataset {}", datasetId);
+        }
+        try {
+            resourceDao.deleteProject(projectId);
+        } catch (Exception ex) {
+            logger.error("[CLEANUP] Unable to delete entry in database for project {}", projectId);
+        }
+        try {
+            profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
+        } catch (Exception ex) {
+            logger.error("[CLEANUP] Unable to billing profile {}", billingProfile.getId());
+        }
         bucketResourceUtils.setAllowReuseExistingBuckets(configurationService, false);
     }
-
-    private UUID createDataset(String datasetFile) throws Exception {
-        DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
-        String newName = datasetRequest.getName() + UUID.randomUUID().toString();
-        datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
-        dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        dataset.projectResourceId(projectId);
-        String createFlightId = UUID.randomUUID().toString();
-        UUID datasetId = UUID.randomUUID();
-        dataset.id(datasetId);
-        datasetDao.createAndLock(dataset, createFlightId);
-        datasetDao.unlockExclusive(dataset.getId(), createFlightId);
-        return datasetId;
-    }
-
-    private UUID createBucket() throws InterruptedException {
-        String ingestFileFlightId = UUID.randomUUID().toString();
-        bucketForFile = googleBucketService.getOrCreateBucket(
-            gcsConfiguration.getBucket(),
-            projectResource,
-            ingestFileFlightId);
-        return bucketForFile.getResourceId();
-    }
-
 
     @Test
     public void TestDatasetBucketLink() throws Exception {
@@ -230,5 +215,29 @@ public class DatasetBucketDaoTest {
 
         // this should fail -> no requires real dataset and bucket to link
         datasetBucketDao.createDatasetBucketLink(datasetId, randomBucketResourceId);
+    }
+
+
+    private UUID createDataset(String datasetFile) throws Exception {
+        DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
+        String newName = datasetRequest.getName() + UUID.randomUUID().toString();
+        datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
+        dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        dataset.projectResourceId(projectId);
+        String createFlightId = UUID.randomUUID().toString();
+        UUID datasetId = UUID.randomUUID();
+        dataset.id(datasetId);
+        datasetDao.createAndLock(dataset, createFlightId);
+        datasetDao.unlockExclusive(dataset.getId(), createFlightId);
+        return datasetId;
+    }
+
+    private UUID createBucket() throws InterruptedException {
+        String ingestFileFlightId = UUID.randomUUID().toString();
+        bucketForFile = googleBucketService.getOrCreateBucket(
+            gcsConfiguration.getBucket(),
+            projectResource,
+            ingestFileFlightId);
+        return bucketForFile.getResourceId();
     }
 }

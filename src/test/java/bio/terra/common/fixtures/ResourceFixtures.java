@@ -2,6 +2,7 @@ package bio.terra.common.fixtures;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,11 +24,7 @@ public final class ResourceFixtures {
     public static String shuffleString(String input) {
         List<String> newProjectNum = Arrays.asList(input.split(""));
         Collections.shuffle(newProjectNum);
-        String shuffled = "";
-        for (String let : newProjectNum) {
-            shuffled = shuffled.concat(let);
-        }
-        return shuffled;
+        return StringUtils.join(newProjectNum, "");
     }
 
 }

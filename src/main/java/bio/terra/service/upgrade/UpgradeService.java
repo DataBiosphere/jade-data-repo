@@ -1,8 +1,12 @@
 package bio.terra.service.upgrade;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.UpgradeModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamAction;
+import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.upgrade.exception.InvalidCustomNameException;
 import bio.terra.service.upgrade.flight.UpgradeProfileFlight;
@@ -28,17 +32,31 @@ public class UpgradeService {
     }
 
     private final JobService jobService;
+    private final ApplicationConfiguration appConfig;
+    private final IamService iamService;
 
     @Autowired
-    public UpgradeService(JobService jobService) {
+    public UpgradeService(JobService jobService, ApplicationConfiguration appConfig, IamService iamService) {
         this.jobService = jobService;
+        this.appConfig = appConfig;
+        this.iamService = iamService;
     }
 
     public String upgrade(UpgradeModel request, AuthenticatedUserRequest user) {
+        // Make sure the user is a steward by checking for list jobs action
+        iamService.verifyAuthorization(
+            user,
+            IamResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            IamAction.LIST_JOBS);
+
         if (request.getUpgradeType() != UpgradeModel.UpgradeTypeEnum.CUSTOM) {
             throw new NotImplementedException("Upgrade type is not implemented: " + request.getUpgradeType().name());
         }
 
+        // Note: in order to allow for an extensible endpoint, we do not require that customName is filled in.
+        // That means it could be null here. We could do a separate null check, but the valueOf also does the
+        // check and throws the NPE.
         CustomFlight customFlight;
         try {
             customFlight = CustomFlight.valueOf(request.getCustomName());

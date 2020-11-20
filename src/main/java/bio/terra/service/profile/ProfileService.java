@@ -42,6 +42,7 @@ public class ProfileService {
     private final GoogleBillingService billingService;
     private final SamConfiguration samConfig;
 
+
     @Autowired
     public ProfileService(ProfileDao profileDao,
                           IamService iamService,
@@ -86,7 +87,7 @@ public class ProfileService {
      *     that is, no snapshots, dataset, or buckets referencing the profile</le>
      * </ul>
      *
-     * @param id   the unique id of the bill profile
+     * @param id the unique id of the bill profile
      * @param user the user attempting the delete
      * @return jobId of the submitted stairway job
      */
@@ -104,8 +105,8 @@ public class ProfileService {
      * Enumerate the profiles that are visible to the requesting user
      *
      * @param offset start of the range of profiles to return for this request
-     * @param limit  maximum number of profiles to return in this request
-     * @param user   user on whose behalf we are making this request
+     * @param limit maximum number of profiles to return in this request
+     * @param user user on whose behalf we are making this request
      * @return enumeration profile containing the list and total
      */
     public EnumerateBillingProfileModel enumerateProfiles(Integer offset,
@@ -121,7 +122,7 @@ public class ProfileService {
     /**
      * Lookup a billing profile by the profile id with auth check. Supports the REST API
      *
-     * @param id   the unique idea of this billing profile
+     * @param id the unique idea of this billing profile
      * @param user authenticated user
      * @return On success, the billing profile model
      * @throws ProfileNotFoundException when the profile is not found
@@ -158,7 +159,7 @@ public class ProfileService {
      * having "create link" permission on the billing account.
      *
      * @param profileId the profile id to attempt to authorize
-     * @param user      the user attempting associate some object with the profile
+     * @param user the user attempting associate some object with the profile
      * @return the profile model associated with the profile id
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
@@ -231,10 +232,19 @@ public class ProfileService {
     // This code generates sam resources for any billing profile it does not have one. It sets the
     // stewards group as the owner of the billing profile.
     //
-    // We assume this is being run as a Steward and that the Steward has access to any billing
+    // In the current state, no billing profiles have sam resources, so the resources list will be empty.
+    // When we upgrade a billing profile, we give stewards owner role. Since we run this
+    // as a steward, we will be able to see any profiles we have already converted.
+    //
+    // The hole here is if someone gets in and creates a billing profile with a resource before
+    // we run the upgrade. We would not retrieve that one here. However, Sam would not let us create
+    // the resource in the step below. We would log an error, but otherwise, things would work.
+
     public UpgradeResponseModel upgradeProfileResources(UpgradeModel request, AuthenticatedUserRequest user) {
+
         Instant startTime = Instant.now();
         List<BillingProfileModel> profiles = profileDao.getOldBillingProfiles();
+
         List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
         Set<String> profileResourceSet;
         if (resources == null) {

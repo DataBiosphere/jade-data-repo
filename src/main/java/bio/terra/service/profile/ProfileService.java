@@ -5,11 +5,14 @@ import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
+import bio.terra.model.UpgradeModel;
+import bio.terra.model.UpgradeResponseModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
+import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.profile.flight.ProfileMapKeys;
@@ -17,29 +20,39 @@ import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 public class ProfileService {
+    private static final Logger logger = LoggerFactory.getLogger(ProfileService.class);
 
     private final ProfileDao profileDao;
     private final IamService iamService;
     private final JobService jobService;
     private final GoogleBillingService billingService;
+    private final SamConfiguration samConfig;
 
     @Autowired
     public ProfileService(ProfileDao profileDao,
                           IamService iamService,
                           JobService jobService,
-                          GoogleBillingService billingService) {
+                          GoogleBillingService billingService,
+                          SamConfiguration samConfig) {
         this.profileDao = profileDao;
         this.iamService = iamService;
         this.jobService = jobService;
         this.billingService = billingService;
+        this.samConfig = samConfig;
     }
 
     /**
@@ -108,7 +121,7 @@ public class ProfileService {
     /**
      * Lookup a billing profile by the profile id with auth check. Supports the REST API
      *
-     * @param id the unique idea of this billing profile
+     * @param id   the unique idea of this billing profile
      * @param user authenticated user
      * @return On success, the billing profile model
      * @throws ProfileNotFoundException when the profile is not found
@@ -145,7 +158,7 @@ public class ProfileService {
      * having "create link" permission on the billing account.
      *
      * @param profileId the profile id to attempt to authorize
-     * @param user the user attempting associate some object with the profile
+     * @param user      the user attempting associate some object with the profile
      * @return the profile model associated with the profile id
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
@@ -212,4 +225,47 @@ public class ProfileService {
         }
     }
 
+    // -- profile upgrade --
+
+    // Billing profiles prior to the introduction of this service did not have sam resources behind them.
+    // This code generates sam resources for any billing profile it does not have one. It sets the
+    // stewards group as the owner of the billing profile.
+    //
+    // We assume this is being run as a Steward and that the Steward has access to any billing
+    public UpgradeResponseModel upgradeProfileResources(UpgradeModel request, AuthenticatedUserRequest user) {
+        Instant startTime = Instant.now();
+        List<BillingProfileModel> profiles = profileDao.getOldBillingProfiles();
+        List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
+        Set<String> profileResourceSet;
+        if (resources == null) {
+            profileResourceSet = Collections.EMPTY_SET;
+        } else {
+            profileResourceSet = resources.stream().map(r -> toString()).collect(Collectors.toSet());
+        }
+
+        for (BillingProfileModel profile : profiles) {
+            String profileId = profile.getId();
+            if (!profileResourceSet.contains(profileId)) {
+                try {
+                    // No Sam profile, so let's make one and make stewards owner
+                    logger.info("Creating profile resource for {} ({})", profile.getProfileName(), profileId);
+                    iamService.createProfileResource(user, profile.getId());
+                    logger.info("Adding steward owners for {} ({})", profile.getProfileName(), profileId);
+                    iamService.addPolicyMember(
+                        user,
+                        IamResourceType.SPEND_PROFILE,
+                        UUID.fromString(profileId),
+                        "owner", //IamRole.OWNER.name(),
+                        samConfig.getStewardsGroupEmail());
+                } catch (Exception ex) {
+                    logger.error("IAM failure during upgrade", ex);
+                }
+            }
+        }
+
+        return new UpgradeResponseModel()
+            .upgradeName(request.getUpgradeName())
+            .startTime(startTime.toString())
+            .endTime(Instant.now().toString());
+    }
 }

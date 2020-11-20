@@ -2126,6 +2126,62 @@ paths:
         204:
           description: configuration reset
           content: {}
+
+  /api/repository/v1/upgrade:
+    post:
+      tags:
+        - repository
+      description: >-
+        Extensible endpoint for triggering upgrade tasks in the data repository.
+        The asynchronous result is UpgradeResponseModel
+      operationId: upgrade
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpgradeModel'
+        required: true
+      responses:
+        200:
+          description: Redirect for upgrade complete
+          headers:
+            location:
+              description: url for the job result
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        202:
+          description: Job status of upgrade job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        400:
+          description: Bad request - invalid upgrade request, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to upgrade
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+      x-codegen-request-body-name: upgrade
+
+##############################################################################
+## DRS STANDARD ENDPOINTS
+##############################################################################
   /ga4gh/drs/v1/service-info:
     get:
       tags:
@@ -3438,6 +3494,48 @@ components:
           description: whether to enable (default) or disable the fault
           default: true
       description: Control whether a fault is enabled
+
+    UpgradeModel:
+      required:
+        - upgradeName
+        - upgradeType
+      type: object
+      properties:
+        upgradeName:
+          type: string
+          description: Unique name for the upgrade
+        upgradeType:
+          type: string
+          description: Enumeration to allow different kinds upgrades
+          enum:
+            - custom
+        customName:
+          type: string
+          description: >-
+            Name of custom upgrade to launch. Only used when upgradeType is custom.
+        customArgs:
+          description: >-
+            Array of string arguments to the custom upgrade. Only used when upgradeType is custom.
+          type: array
+          items:
+            type: string
+
+    UpgradeResponseModel:
+      type: object
+      properties:
+        upgradeName:
+          type: string
+          description: Unique name for the upgrade
+        startTime:
+          type: string
+          description: Timestamp the upgrade was started
+        endTime:
+          type: string
+          description: Timestamp the upgrade completed
+
+    ##############################################################################
+    ## DRS STANDARD MODELS
+    ##############################################################################
     DRSChecksum:
       required:
         - checksum

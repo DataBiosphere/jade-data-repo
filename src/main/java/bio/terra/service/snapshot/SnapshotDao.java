@@ -216,6 +216,7 @@ public class SnapshotDao {
      * @param snapshotId the snapshot id
      * @return the SnapshotProjectModel object
      */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public SnapshotProjectModel retrieveAvailableSnapshotProject(UUID snapshotId) {
         return retrieveSnapshotProject(snapshotId, true);
     }
@@ -253,6 +254,7 @@ public class SnapshotDao {
         return snapshot;
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public SnapshotProjectModel retrieveSnapshotProject(UUID snapshotId, boolean onlyRetrieveAvailable) {
         logger.debug("retrieve snapshot id: " + snapshotId);
         String sql = "SELECT * FROM snapshot WHERE id = :id";
@@ -267,6 +269,7 @@ public class SnapshotDao {
         return snapshotProject;
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public Snapshot retrieveSnapshotByName(String name) {
         String sql = "SELECT * FROM snapshot WHERE name = :name";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
@@ -420,6 +423,7 @@ public class SnapshotDao {
             .total(total);
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public SnapshotSummary retrieveSummaryById(UUID id) {
         logger.debug("retrieve snapshot summary for id: " + id);
         try {
@@ -431,6 +435,7 @@ public class SnapshotDao {
         }
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public SnapshotSummary retrieveSummaryByName(String name) {
         logger.debug("retrieve snapshot summary for name: " + name);
         try {
@@ -442,6 +447,7 @@ public class SnapshotDao {
         }
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public List<SnapshotSummary> retrieveSnapshotsForDataset(UUID datasetId) {
         try {
             String sql = "SELECT snapshot.id, name, description, created_date, profile_id FROM snapshot " +

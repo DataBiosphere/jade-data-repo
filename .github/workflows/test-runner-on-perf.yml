@@ -71,12 +71,12 @@ jobs:
           fi
       - name: "Whitelist Runner IP"
         run: |
-          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \
+          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --project ${GOOGLE_CLOUD_PROJECT} --zone ${GOOGLE_ZONE} --format json | \
             jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
             RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
             NEW_IPS=$(printf '%s\n' $CUR_IPS $RUNNER_IP | jq -s -r 'add | unique | join(",")')
           for i in {1..5}; do
-            if gcloud container clusters update ${K8_CLUSTER} \
+            if gcloud container clusters update ${K8_CLUSTER} --project ${GOOGLE_CLOUD_PROJECT} --zone ${GOOGLE_ZONE} \
               --enable-master-authorized-networks \
               --master-authorized-networks ${NEW_IPS}; then
               echo "Successful whitelist"
@@ -167,13 +167,13 @@ jobs:
         if: always()
         run: |
           # export the original IP list so it can be restored during cleanup
-          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \
+          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --project ${GOOGLE_CLOUD_PROJECT} --zone ${GOOGLE_ZONE} --format json | \
             jq -r '[ .masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock ]')
           RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
           RUNNER_IP=$(echo ${RUNNER_IP}| jq -r '.[0]')
           RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -r --arg RUNNER_IP "$RUNNER_IP" '. - [ $RUNNER_IP ] | unique | join(",")')
           # restore the original list of authorized IPs if they exist
-          gcloud container clusters update ${K8_CLUSTER} \
+          gcloud container clusters update ${K8_CLUSTER} --project ${GOOGLE_CLOUD_PROJECT} --zone ${GOOGLE_ZONE} \
             --enable-master-authorized-networks \
             --master-authorized-networks ${RESTORE_IPS}
       - name: "Notify Jade Slack"

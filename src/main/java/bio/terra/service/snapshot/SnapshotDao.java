@@ -217,7 +217,7 @@ public class SnapshotDao {
      * @return the SnapshotProjectModel object
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
-    public SnapshotProjectModel retrieveAvailableSnapshotProject(UUID snapshotId) {
+    public SnapshotProject retrieveAvailableSnapshotProject(UUID snapshotId) {
         return retrieveSnapshotProject(snapshotId, true);
     }
 
@@ -310,10 +310,10 @@ public class SnapshotDao {
         }
     }
 
-    private SnapshotProjectModel retrieveSnapshotProject(String sql, MapSqlParameterSource params) {
+    private SnapshotProject retrieveSnapshotProject(String sql, MapSqlParameterSource params) {
         try {
-            SnapshotProjectModel snapshotProject = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
-                new SnapshotProjectModel()
+            SnapshotProject snapshotProject = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
+                new SnapshotProject()
                     .id(rs.getString("id"))
                     .name(rs.getString("name"))
                     .dataProject(rs.getString("project_resource_id"))

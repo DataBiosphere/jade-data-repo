@@ -12,7 +12,7 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotProjectModel;
+import bio.terra.model.SnapshotProject;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -187,7 +187,7 @@ public class SnapshotService {
      * @param id in UUID format
      * @return a Snapshot object
      */
-    public SnapshotProjectModel retrieveAvailableSnapshotProject(UUID id) {
+    public SnapshotProject retrieveAvailableSnapshotProject(UUID id) {
         return snapshotDao.retrieveAvailableSnapshotProject(id);
     }
 

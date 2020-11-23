@@ -8,7 +8,7 @@ import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.FileModelType;
-import bio.terra.model.SnapshotProjectModel;
+import bio.terra.model.SnapshotProject;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -178,7 +178,7 @@ public class FileService {
     public FileModel lookupSnapshotFile(String snapshotId, String fileId, int depth) {
         try {
             // note: this method only returns snapshots that are NOT exclusively locked
-            SnapshotProjectModel snapshot = snapshotService.retrieveAvailableSnapshotProject(UUID.fromString(snapshotId));
+            SnapshotProject snapshot = snapshotService.retrieveAvailableSnapshotProject(UUID.fromString(snapshotId));
             return fileModelFromFSItem(lookupSnapshotFSItem(snapshot, fileId, depth));
         } catch (InterruptedException ex) {
             throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
@@ -195,7 +195,7 @@ public class FileService {
         return fileModelFromFSItem(fsItem);
     }
 
-    FSItem lookupSnapshotFSItem(SnapshotProjectModel snapshot, String fileId, int depth) throws InterruptedException {
+    FSItem lookupSnapshotFSItem(SnapshotProject snapshot, String fileId, int depth) throws InterruptedException {
         return fileDao.retrieveBySnapshotAndId(snapshot, fileId, depth, true);
     }
 

@@ -1,7 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.app.logging.PerformanceLogger;
-import bio.terra.model.SnapshotProjectModel;
+import bio.terra.model.SnapshotProject;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -224,7 +224,7 @@ public class FireStoreDao {
     }
 
 
-    public FSItem retrieveBySnapshotAndId(SnapshotProjectModel snapshot,
+    public FSItem retrieveBySnapshotAndId(SnapshotProject snapshot,
                                           String fileId,
                                           int enumerateDepth,
                                           boolean throwOnNotFound) throws InterruptedException {

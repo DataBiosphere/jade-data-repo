@@ -6,7 +6,7 @@ import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
-import bio.terra.model.SnapshotProjectModel;
+import bio.terra.model.SnapshotProject;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
@@ -17,7 +17,6 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.apache.commons.lang3.StringUtils;
@@ -65,7 +64,7 @@ public class DrsService {
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
 
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
-        SnapshotProjectModel snapshotProject = null;
+        SnapshotProject snapshotProject = null;
         try {
             UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
             // We only look up DRS ids for unlocked snapshots.

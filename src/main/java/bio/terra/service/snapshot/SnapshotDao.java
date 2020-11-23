@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.model.SnapshotProjectModel;
+import bio.terra.model.SnapshotProject;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.common.MetadataEnumeration;
@@ -255,14 +255,14 @@ public class SnapshotDao {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
-    public SnapshotProjectModel retrieveSnapshotProject(UUID snapshotId, boolean onlyRetrieveAvailable) {
+    public SnapshotProject retrieveSnapshotProject(UUID snapshotId, boolean onlyRetrieveAvailable) {
         logger.debug("retrieve snapshot id: " + snapshotId);
         String sql = "SELECT * FROM snapshot WHERE id = :id";
         if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
             sql += " AND flightid IS NULL";
         }
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", snapshotId);
-        SnapshotProjectModel snapshotProject = retrieveSnapshotProject(sql, params);
+        SnapshotProject snapshotProject = retrieveSnapshotProject(sql, params);
         if (snapshotProject == null) {
             throw new SnapshotNotFoundException("Snapshot not found - id: " + snapshotId);
         }

@@ -78,7 +78,7 @@ public class ProfileService {
      * @return jobId of the submitted stairway job
      */
     public String deleteProfile(String id, AuthenticatedUserRequest user) {
-        //TODO ADD BACK
+        // TODO: add back once spend profile fully implemented
         //iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
 
         String description = String.format("Delete billing profile id '%s'", id);
@@ -99,7 +99,7 @@ public class ProfileService {
     public EnumerateBillingProfileModel enumerateProfiles(Integer offset,
                                                           Integer limit,
                                                           AuthenticatedUserRequest user) {
-        //TODO add back
+        // TODO: add back once spend profile fully implemented
         //List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
         //if (resources.isEmpty()) {
         return new EnumerateBillingProfileModel().total(0);
@@ -175,7 +175,9 @@ public class ProfileService {
                                               String policyName,
                                               PolicyMemberRequest policyMember,
                                               AuthenticatedUserRequest user) {
-        return new PolicyModel();/*iamService.addPolicyMember(
+        return new PolicyModel();
+        // TODO: add back once spend profile fully implemented
+        /*iamService.addPolicyMember(
             user,
             IamResourceType.SPEND_PROFILE,
             UUID.fromString(profileId),
@@ -197,10 +199,12 @@ public class ProfileService {
     }
 
     public void createProfileIamResource(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
+        // TODO: add back once spend profile fully implemented
         //iamService.createProfileResource(user, request.getId());
     }
 
     public void deleteProfileIamResource(String profileId, AuthenticatedUserRequest user) {
+        // TODO: add back once spend profile fully implemented
         //iamService.deleteProfileResource(user, profileId);
     }
 

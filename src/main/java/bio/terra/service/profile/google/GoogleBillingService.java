@@ -42,6 +42,7 @@ public class GoogleBillingService {
             GoogleCredentials serviceAccountCredentials = ServiceAccountCredentials.getApplicationDefault();
 
             //  If no user, use system credentials, otherwise use user credentials instead
+            final String credentialName;
             final GoogleCredentials credentials;
             if (user == null) {
                 // The createScopedRequired method returns true when running on GAE or a local developer
@@ -49,12 +50,14 @@ public class GoogleBillingService {
                 // running in GCE, GKE or a Managed VM, the scopes are pulled from the GCE metadata server.
                 // See https://developers.google.com/identity/protocols/application-default-credentials
                 // for more information.
+                credentialName = "service account";
                 if (serviceAccountCredentials.createScopedRequired()) {
                     credentials = serviceAccountCredentials.createScoped(scopes);
                 } else {
                     credentials = serviceAccountCredentials;
                 }
             } else {
+                credentialName = user.getEmail();
                 Date soon = Date.from(Instant.now().plusSeconds(300));
                 AccessToken accessToken = new AccessToken(user.getRequiredToken(), soon);
                 credentials = GoogleCredentials.create(accessToken);
@@ -64,7 +67,7 @@ public class GoogleBillingService {
                 CloudBillingSettings.newBuilder()
                     .setCredentialsProvider(FixedCredentialsProvider.create(credentials))
                     .build();
-            logger.info("creating cloudbillingsettings with credentials");
+            logger.info(String.format("Creating CloudBillingSettings with credentials: %s", credentialName));
 
             return CloudBillingClient.create(cloudBillingSettings);
         } catch (IOException e) {
@@ -85,6 +88,7 @@ public class GoogleBillingService {
             .addAllPermissions(permissions)
             .build();
         try {
+            logger.info(String.format("Testing IAM permission on billing account '%s'", billingAccountId));
             TestIamPermissionsResponse response = cloudBillingClient(user).testIamPermissions(permissionsRequest);
             List<String> actualPermissions = response.getPermissionsList();
             return actualPermissions != null && actualPermissions.equals(permissions);

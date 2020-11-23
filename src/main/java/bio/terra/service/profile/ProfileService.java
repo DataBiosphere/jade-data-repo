@@ -209,7 +209,7 @@ public class ProfileService {
     public void createProfileIamResource(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
         // TODO: add back once spend profile fully implemented
         /*
-        //iamService.createProfileResource(user, request.getId());
+        iamService.createProfileResource(user, request.getId());
          */
     }
 

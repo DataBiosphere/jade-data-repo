@@ -283,7 +283,7 @@ public class FileTest extends UsersBase {
             steward(), datasetId, profileId, gsPath + "/files/file with space and #hash%percent+plus.txt", filePath);
         String fileId = fileModel.getFileId();
 
-        int numRows = 10;
+        int numRows = 1000;
         String json = IntStream.range(0, numRows)
             .mapToObj(i -> String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId))
             .collect(Collectors.joining("\n"));

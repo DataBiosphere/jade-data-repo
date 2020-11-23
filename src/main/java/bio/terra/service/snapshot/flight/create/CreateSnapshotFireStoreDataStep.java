@@ -16,10 +16,14 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CreateSnapshotFireStoreDataStep implements Step {
+    private static final Logger logger = LoggerFactory.getLogger(CreateSnapshotFireStoreDataStep.class);
 
     private final BigQueryPdao bigQueryPdao;
     private final SnapshotService snapshotService;
@@ -72,6 +76,11 @@ public class CreateSnapshotFireStoreDataStep implements Step {
                             mapTable.getFromTable().getName(),
                             mapTable.getFromTable().getId().toString(),
                             mapColumn.getFromColumn());
+                        List<String> uniqueRefIds = refIds.stream().distinct().collect(Collectors.toList());
+                        if (refIds.size() != uniqueRefIds.size()) {
+                            logger.info("some files are repeated. {} unique values across {} total file references",
+                                uniqueRefIds.size(), refIds.size());
+                        }
                         performanceLogger.timerEndAndLog(
                             bigQueryTimer,
                             context.getFlightId(),
@@ -91,7 +100,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
                             refIds.size());
 
                         String addDependenciesTimer = performanceLogger.timerStart();
-                        dependencyDao.storeSnapshotFileDependencies(dataset, snapshot.getId().toString(), refIds);
+                        dependencyDao.storeSnapshotFileDependencies(dataset, snapshot.getId().toString(), uniqueRefIds);
                         performanceLogger.timerEndAndLog(
                             addDependenciesTimer,
                             context.getFlightId(),

@@ -5,6 +5,7 @@ env:
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   IT_JADE_API_URL: https://data.alpha.envs-terra.bio
+  TDR_LOG_APPENDER: Console-Standard
   PGHOST: 127.0.0.1
   PGPASSWORD: postgres
   DB_DATAREPO_URI: "jdbc:postgresql://${PGHOST}:5432/datarepo"

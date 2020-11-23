@@ -224,7 +224,7 @@ public class FireStoreDao {
     }
 
 
-    public FSItem retrieveBySnapshotandId(SnapshotProjectModel snapshot,
+    public FSItem retrieveBySnapshotAndId(SnapshotProjectModel snapshot,
                                           String fileId,
                                           int enumerateDepth,
                                           boolean throwOnNotFound) throws InterruptedException {

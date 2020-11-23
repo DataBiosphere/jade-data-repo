@@ -196,7 +196,7 @@ public class FileService {
     }
 
     FSItem lookupSnapshotFSItem(SnapshotProjectModel snapshot, String fileId, int depth) throws InterruptedException {
-        return fileDao.retrieveBySnapshotandId(snapshot, fileId, depth, true);
+        return fileDao.retrieveBySnapshotAndId(snapshot, fileId, depth, true);
     }
 
     FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth) throws InterruptedException {

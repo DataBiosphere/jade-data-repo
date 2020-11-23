@@ -5,6 +5,7 @@ public enum JobMapKeys {
     // parameters for all flight types
     DESCRIPTION("description"),
     REQUEST("request"),
+    REVERT_TO("revert_to"),
     RESPONSE("response"),
     STATUS_CODE("status_code"),
     AUTH_USER_INFO("auth_user_info"),

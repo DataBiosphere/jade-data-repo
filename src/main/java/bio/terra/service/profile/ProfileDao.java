@@ -74,6 +74,33 @@ public class ProfileDao {
             .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public BillingProfileModel updateBillingProfileById(BillingProfileRequestModel profileRequest) {
+        String sql = "UPDATE billing_profile "
+            + "SET name = :name, biller = :biller, billing_account_id = :billing_account_id, "
+            + "description = :description "
+            + "WHERE id = :id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("id", UUID.fromString(profileRequest.getId()))
+            .addValue("name", profileRequest.getProfileName())
+            .addValue("biller", profileRequest.getBiller())
+            .addValue("billing_account_id", profileRequest.getBillingAccountId())
+            .addValue("description", profileRequest.getDescription());
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
+        jdbcTemplate.update(sql, params, keyHolder);
+
+        return new BillingProfileModel()
+            .id(keyHolder.getId().toString())
+            .profileName(keyHolder.getString("name"))
+            .biller(keyHolder.getString("biller"))
+            .billingAccountId(keyHolder.getString("billing_account_id"))
+            .description(keyHolder.getString("description"))
+            .createdBy(keyHolder.getString("created_by"))
+            .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
+    }
+
+
+
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public EnumerateBillingProfileModel enumerateBillingProfiles(
         int offset,

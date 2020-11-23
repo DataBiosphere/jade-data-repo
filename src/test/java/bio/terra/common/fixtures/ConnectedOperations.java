@@ -211,6 +211,19 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(result.getResponse().getContentAsString(), BillingProfileModel.class);
     }
 
+    public BillingProfileModel updateProfile(BillingProfileRequestModel profileRequestModel) throws Exception {
+        MvcResult result = mvc.perform(put("/api/resources/v1/profiles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(profileRequestModel)))
+            .andReturn();
+
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        BillingProfileModel billingProfileModel = handleSuccessCase(response, BillingProfileModel.class);
+
+        System.out.println("update profile: " + result.getResponse().getStatus() + " " + result.getResponse().getErrorMessage());
+        return billingProfileModel;
+    }
+
     public SnapshotSummaryModel createSnapshot(DatasetSummaryModel datasetSummaryModel,
                                                String resourcePath,
                                                String infix) throws Exception {

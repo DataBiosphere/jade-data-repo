@@ -3,6 +3,7 @@ package bio.terra.service.iam;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 
 import java.util.List;
@@ -114,6 +115,15 @@ public interface IamProviderInterface {
      * @param profileId id of the snapshot
      */
     void createProfileResource(AuthenticatedUserRequest userReq, String profileId) throws InterruptedException;
+
+    /**
+     * Update a spend profile IAM resource
+     *
+     * @param userReq   authenticated user
+     * @param billingProfileRequestModel updated billing profile
+     */
+    void updateProfileResource(AuthenticatedUserRequest userReq, BillingProfileRequestModel billingProfileRequestModel)
+        throws InterruptedException;
 
     /**
      * Delete a spend profile IAM resource

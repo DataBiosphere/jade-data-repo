@@ -1,7 +1,9 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
@@ -460,5 +462,12 @@ public class GoogleProjectService {
             operation = request.execute();
         }
         return operation;
+    }
+
+
+    public void updateBillingProfile(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
+
+        logger.info("TODO: GoogleProjectService.updateBillingProfile");
+        //billingService.assignProjectBilling(billingProfile, googleProjectResource);
     }
 }

@@ -38,7 +38,7 @@ dependencies {
 
         datarepoClient = "1.0.155-SNAPSHOT"
         samClient = "0.1-9435410-SNAP"
-        testRunner = "0.0.1-20201118.155017-42"
+        testRunner = "0.0.1-20201123.170830-43"
     }
 
     compileOnly "com.google.code.findbugs:annotations:${findbugsAnnotations}"

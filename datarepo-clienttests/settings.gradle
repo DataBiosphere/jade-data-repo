@@ -1,2 +1,23 @@
-rootProject.name = 'datarepo-clienttests'
+pluginManagement {
+    repositories {
+        resolutionStrategy {
+            eachPlugin {
+                if (requested.id.namespace == "bio.terra") {
+                    if (requested.id.id == "bio.terra.test-runner-plugin" || requested.id.id == "bio.terra.test-runner-echo-plugin") {
+                        useModule("bio.terra:terra-test-runner:" + requested.version)
+                    }
+                }
+            }
+        }
+        // Uncomment the flatDir block below to use a local copy of the Test Runner library
+        flatDir {
+            dirs '/Users/marikomedlock/Workspaces/terra-test-runner/build/libs'
+        }
+//        maven {
+//            url "https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot-local/"
+//        }
+        gradlePluginPortal()
+    }
+}
 
+rootProject.name = 'datarepo-clienttests'

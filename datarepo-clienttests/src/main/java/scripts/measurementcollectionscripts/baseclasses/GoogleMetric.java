@@ -1,6 +1,8 @@
 package scripts.measurementcollectionscripts.baseclasses;
 
-import collector.MeasurementCollectionScript;
+import bio.terra.testrunner.collector.MeasurementCollectionScript;
+import bio.terra.testrunner.common.BasicStatistics;
+import bio.terra.testrunner.common.utils.MetricsUtils;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -13,8 +15,6 @@ import com.google.monitoring.v3.Point;
 import com.google.monitoring.v3.ProjectName;
 import com.google.monitoring.v3.TimeInterval;
 import com.google.monitoring.v3.TimeSeries;
-import common.BasicStatistics;
-import common.utils.MetricsUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;

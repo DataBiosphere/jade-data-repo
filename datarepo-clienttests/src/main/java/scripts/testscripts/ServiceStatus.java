@@ -2,12 +2,13 @@ package scripts.testscripts;
 
 import bio.terra.datarepo.api.UnauthenticatedApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.testrunner.runner.TestScript;
+import bio.terra.testrunner.runner.config.TestUserSpecification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.TestUserSpecification;
 import scripts.utils.DataRepoUtils;
 
-public class ServiceStatus extends runner.TestScript {
+public class ServiceStatus extends TestScript {
   private static final Logger logger = LoggerFactory.getLogger(ServiceStatus.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */

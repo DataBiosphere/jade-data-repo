@@ -1,6 +1,8 @@
 package scripts.measurementcollectionscripts.baseclasses;
 
-import collector.MeasurementCollectionScript;
+import bio.terra.testrunner.collector.MeasurementCollectionScript;
+import bio.terra.testrunner.common.BasicStatistics;
+import bio.terra.testrunner.common.utils.LogsUtils;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.Version;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -10,8 +12,6 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.cloud.logging.v2.LoggingClient;
 import com.google.logging.v2.LogEntry;
 import com.google.logging.v2.ProjectName;
-import common.BasicStatistics;
-import common.utils.LogsUtils;
 import java.io.File;
 import java.io.IOException;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;

@@ -2,8 +2,11 @@ package scripts.deploymentscripts;
 
 import bio.terra.datarepo.api.UnauthenticatedApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.testrunner.common.utils.ProcessUtils;
+import bio.terra.testrunner.runner.DeploymentScript;
+import bio.terra.testrunner.runner.config.ApplicationSpecification;
+import bio.terra.testrunner.runner.config.ServerSpecification;
 import com.google.api.client.http.HttpStatusCodes;
-import common.utils.ProcessUtils;
 import java.io.File;
 import java.net.URL;
 import java.nio.file.Paths;
@@ -14,9 +17,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.DeploymentScript;
-import runner.config.ApplicationSpecification;
-import runner.config.ServerSpecification;
 
 public class LaunchLocalProcess extends DeploymentScript {
   private static final Logger logger = LoggerFactory.getLogger(LaunchLocalProcess.class);

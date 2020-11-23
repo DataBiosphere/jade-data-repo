@@ -1,13 +1,19 @@
 package scripts.uploadscripts;
 
-import collector.MeasurementCollectionScript;
-import collector.MeasurementCollector;
+import bio.terra.testrunner.collector.MeasurementCollectionScript;
+import bio.terra.testrunner.collector.MeasurementCollector;
+import bio.terra.testrunner.common.utils.BigQueryUtils;
+import bio.terra.testrunner.runner.TestRunner;
+import bio.terra.testrunner.runner.TestScriptResult;
+import bio.terra.testrunner.runner.config.ServiceAccountSpecification;
+import bio.terra.testrunner.runner.config.TestConfiguration;
+import bio.terra.testrunner.runner.config.TestScriptSpecification;
+import bio.terra.testrunner.uploader.UploadScript;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.TableId;
-import common.utils.BigQueryUtils;
 import java.nio.file.Path;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -17,12 +23,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.TestRunner;
-import runner.TestScriptResult;
-import runner.config.ServiceAccountSpecification;
-import runner.config.TestConfiguration;
-import runner.config.TestScriptSpecification;
-import uploader.UploadScript;
 
 public class SummariesToBigQueryJade extends UploadScript {
   private static final Logger logger = LoggerFactory.getLogger(SummariesToBigQueryJade.class);

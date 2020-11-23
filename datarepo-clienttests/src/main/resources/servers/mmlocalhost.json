@@ -9,6 +9,6 @@
     "parameters": ["file:///Users/marikomedlock/Workspaces/jade-data-repo/"]
   },
   "testRunnerServiceAccountFile": "jade-k8-sa.json",
-  "skipDeployment": false,
+  "skipDeployment": true,
   "skipKubernetes": true
 }

@@ -3,9 +3,9 @@ package scripts.testscripts;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.DatasetModel;
+import bio.terra.testrunner.runner.config.TestUserSpecification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
 import scripts.utils.DataRepoUtils;
 

@@ -1,12 +1,12 @@
 package scripts.disruptivescripts;
 
-import common.utils.KubernetesClientUtils;
+import bio.terra.testrunner.common.utils.KubernetesClientUtils;
+import bio.terra.testrunner.runner.DisruptiveScript;
+import bio.terra.testrunner.runner.config.TestUserSpecification;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.DisruptiveScript;
-import runner.config.TestUserSpecification;
 
 public class RandomPodDelete extends DisruptiveScript {
   private static final Logger logger = LoggerFactory.getLogger(RandomPodDelete.class);

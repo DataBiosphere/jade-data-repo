@@ -2,11 +2,11 @@ package scripts.disruptivescripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.testrunner.runner.DisruptiveScript;
+import bio.terra.testrunner.runner.config.TestUserSpecification;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.DisruptiveScript;
-import runner.config.TestUserSpecification;
 import scripts.utils.DataRepoUtils;
 
 public class EnableFaults extends DisruptiveScript {

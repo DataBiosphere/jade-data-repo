@@ -8,13 +8,13 @@ import bio.terra.datarepo.model.BulkLoadFileResultModel;
 import bio.terra.datarepo.model.BulkLoadResultModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.JobModel;
+import bio.terra.testrunner.common.utils.FileUtils;
+import bio.terra.testrunner.common.utils.StorageUtils;
+import bio.terra.testrunner.runner.config.ServiceAccountSpecification;
 import com.google.cloud.storage.BlobId;
-import common.utils.FileUtils;
-import common.utils.StorageUtils;
 import java.nio.charset.StandardCharsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.ServiceAccountSpecification;
 
 public class BulkLoadUtils {
   private static final Logger logger = LoggerFactory.getLogger(BulkLoadUtils.class);

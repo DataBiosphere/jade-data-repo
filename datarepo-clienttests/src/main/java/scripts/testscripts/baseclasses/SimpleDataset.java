@@ -7,14 +7,15 @@ import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.JobModel;
+import bio.terra.testrunner.runner.TestScript;
+import bio.terra.testrunner.runner.config.TestUserSpecification;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.TestUserSpecification;
 import scripts.utils.DataRepoUtils;
 import scripts.utils.SAMUtils;
 
-public class SimpleDataset extends runner.TestScript {
+public class SimpleDataset extends TestScript {
   private static final Logger logger = LoggerFactory.getLogger(SimpleDataset.class);
 
   protected TestUserSpecification datasetCreator;

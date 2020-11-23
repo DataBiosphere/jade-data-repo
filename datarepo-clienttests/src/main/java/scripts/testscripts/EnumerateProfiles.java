@@ -3,12 +3,13 @@ package scripts.testscripts;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.EnumerateBillingProfileModel;
+import bio.terra.testrunner.runner.TestScript;
+import bio.terra.testrunner.runner.config.TestUserSpecification;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.TestUserSpecification;
 import scripts.utils.DataRepoUtils;
 
-public class EnumerateProfiles extends runner.TestScript {
+public class EnumerateProfiles extends TestScript {
 
   private static final Logger logger = LoggerFactory.getLogger(EnumerateProfiles.class);
 

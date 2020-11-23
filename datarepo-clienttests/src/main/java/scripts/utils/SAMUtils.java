@@ -1,8 +1,10 @@
 package scripts.utils;
 
+import bio.terra.testrunner.common.utils.AuthenticationUtils;
+import bio.terra.testrunner.runner.config.ServerSpecification;
+import bio.terra.testrunner.runner.config.TestUserSpecification;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import common.utils.AuthenticationUtils;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,8 +18,6 @@ import org.broadinstitute.dsde.workbench.client.sam.api.VersionApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.SamVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.ServerSpecification;
-import runner.config.TestUserSpecification;
 
 public class SAMUtils {
   private static final Logger logger = LoggerFactory.getLogger(SAMUtils.class);

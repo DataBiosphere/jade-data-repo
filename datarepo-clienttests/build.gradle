@@ -1,28 +1,24 @@
-import org.gradle.api.tasks.JavaExec
-
 plugins {
-    id 'java'
-    id 'application'
-    id "com.google.cloud.tools.jib" version "1.6.1"
-    id 'com.diffplug.gradle.spotless' version '3.27.2'
-    id 'com.github.spotbugs' version '4.0.0'
+    id "com.diffplug.gradle.spotless" version "3.27.2"
+    id "com.github.spotbugs" version "4.0.0"
+
+    // Terra Test Runner Plugin
+    id "bio.terra.test-runner-plugin" version "0.0.1-SNAPSHOT"
 }
 
 repositories {
     mavenCentral()
     maven {
-        url 'https://broadinstitute.jfrog.io/broadinstitute/libs-release-local/'
+        url "https://broadinstitute.jfrog.io/broadinstitute/libs-release-local/"
     }
     maven {
-        url 'https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot-local/'
+        url "https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot-local/"
     }
 }
 
 dependencies {
     ext {
-        junit = "5.4.2"
         findbugsAnnotations = "3.0.1"
-
         jackson = "2.10.2"
         kubernetesClient = "8.0.2"
         logback = "1.2.3"
@@ -42,12 +38,10 @@ dependencies {
 
         datarepoClient = "1.0.155-SNAPSHOT"
         samClient = "0.1-9435410-SNAP"
+        testRunner = "0.0.1-20201118.155017-42"
     }
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:${junit}")
-    testRuntime("org.junit.jupiter:junit-jupiter-engine:${junit}")
     compileOnly "com.google.code.findbugs:annotations:${findbugsAnnotations}"
-
     compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${jackson}"
     compile "io.kubernetes:client-java:${kubernetesClient}"
     compile "ch.qos.logback:logback-classic:${logback}"
@@ -64,6 +58,10 @@ dependencies {
     compile "com.google.cloud:google-cloud-monitoring:${googleMonitoring}"
     compile "com.google.cloud:google-cloud-logging:${googleLogging}"
 
+    // SAM client library
+    implementation "org.broadinstitute.dsde.workbench:sam-client_2.12:${samClient}"
+
+    // Data Repo client library
     // Gradle project property "datarepoclientjar" overrides the fetch from Maven
     if (project.hasProperty("datarepoclientjar")) {
         implementation files(project.findProperty("datarepoclientjar"))
@@ -77,59 +75,25 @@ dependencies {
         compile "io.swagger.core.v3:swagger-annotations:${swaggerAnnotations}"
     }
 
-    implementation "org.broadinstitute.dsde.workbench:sam-client_2.12:${samClient}"
-}
-
-group 'bio.terra'
-version '1.0-SNAPSHOT'
-sourceCompatibility = 1.8
-
-test {
-    useJUnitPlatform()
-
-    testLogging {
-        showStandardStreams = true
+    // Terra Test Runner library
+    // Gradle project property "testrunnerjar" overrides the fetch from Maven
+    if (project.hasProperty("testrunnerjar")) {
+        implementation files(project.findProperty("testrunnerjar"))
+    } else {
+        implementation "bio.terra:terra-test-runner:${testRunner}"
     }
 }
 
-application {
-    mainClassName = 'common.commands.PrintHelp'
-}
-
-task(runTest, dependsOn: 'classes', type: JavaExec) {
-    main = "common.commands.RunTest"
-    classpath = sourceSets.main.runtimeClasspath
-}
-task(lockNamespace, dependsOn: 'classes', type: JavaExec) {
-    main = "common.commands.LockNamespace"
-    classpath = sourceSets.main.runtimeClasspath
-}
-task(unlockNamespace, dependsOn: 'classes', type: JavaExec) {
-    main = "common.commands.UnlockNamespace"
-    classpath = sourceSets.main.runtimeClasspath
-}
-task(lockAndRunTest, dependsOn: 'classes', type: JavaExec) {
-    main = "common.commands.LockAndRunTest"
-    classpath = sourceSets.main.runtimeClasspath
-}
-task(collectMeasurements, dependsOn: 'classes', type: JavaExec) {
-    main = "common.commands.CollectMeasurements"
-    classpath = sourceSets.main.runtimeClasspath
-}
-task(uploadResults, dependsOn: 'classes', type: JavaExec) {
-    main = "common.commands.UploadResults"
-    classpath = sourceSets.main.runtimeClasspath
-}
-task(printHelp, dependsOn: 'classes', type: JavaExec) {
-    main = "common.commands.PrintHelp"
-    classpath = sourceSets.main.runtimeClasspath
-}
+group "bio.terra"
+version "1.0-SNAPSHOT"
+sourceCompatibility = 1.8
 
 spotless {
     java {
         googleJavaFormat()
     }
 }
+compileJava.dependsOn tasks.spotlessApply
 
 spotbugs {
     effort = 'max'
@@ -155,5 +119,3 @@ spotbugsTest {
         }
     }
 }
-
-compileJava.dependsOn tasks.spotlessApply

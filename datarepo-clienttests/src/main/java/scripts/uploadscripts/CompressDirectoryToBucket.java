@@ -1,11 +1,14 @@
 package scripts.uploadscripts;
 
+import bio.terra.testrunner.common.utils.FileUtils;
+import bio.terra.testrunner.common.utils.StorageUtils;
+import bio.terra.testrunner.runner.TestRunner;
+import bio.terra.testrunner.runner.config.ServiceAccountSpecification;
+import bio.terra.testrunner.uploader.UploadScript;
 import com.google.api.client.util.ByteStreams;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
-import common.utils.FileUtils;
-import common.utils.StorageUtils;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.channels.Channels;
@@ -13,9 +16,6 @@ import java.nio.file.Path;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.TestRunner;
-import runner.config.ServiceAccountSpecification;
-import uploader.UploadScript;
 
 public class CompressDirectoryToBucket extends UploadScript {
   private static final Logger logger = LoggerFactory.getLogger(CompressDirectoryToBucket.class);

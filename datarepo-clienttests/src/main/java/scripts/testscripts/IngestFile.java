@@ -7,13 +7,13 @@ import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
 import bio.terra.datarepo.model.BulkLoadFileResultModel;
 import bio.terra.datarepo.model.JobModel;
-import common.utils.FileUtils;
+import bio.terra.testrunner.common.utils.FileUtils;
+import bio.terra.testrunner.runner.config.TestUserSpecification;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
 import scripts.utils.DataRepoUtils;
 

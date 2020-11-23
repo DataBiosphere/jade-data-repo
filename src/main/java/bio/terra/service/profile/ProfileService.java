@@ -78,7 +78,8 @@ public class ProfileService {
      * @return jobId of the submitted stairway job
      */
     public String deleteProfile(String id, AuthenticatedUserRequest user) {
-        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
+        //TODO ADD BACK
+        //iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
 
         String description = String.format("Delete billing profile id '%s'", id);
         return jobService
@@ -98,11 +99,12 @@ public class ProfileService {
     public EnumerateBillingProfileModel enumerateProfiles(Integer offset,
                                                           Integer limit,
                                                           AuthenticatedUserRequest user) {
-        List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
-        if (resources.isEmpty()) {
-            return new EnumerateBillingProfileModel().total(0);
-        }
-        return profileDao.enumerateBillingProfiles(offset, limit, resources);
+        //TODO add back
+        //List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
+        //if (resources.isEmpty()) {
+        return new EnumerateBillingProfileModel().total(0);
+        //}
+        //return profileDao.enumerateBillingProfiles(offset, limit, resources);
     }
 
     /**
@@ -115,9 +117,10 @@ public class ProfileService {
      * @throws IamUnauthorizedException when the caller does not have access to the billing profile
      */
     public BillingProfileModel getProfileById(String id, AuthenticatedUserRequest user) {
-        if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id)) {
+        //TODO add back
+        /*if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id)) {
             throw new IamUnauthorizedException("unauthorized");
-        }
+        }*/
 
         return getProfileByIdNoCheck(id);
     }
@@ -172,12 +175,12 @@ public class ProfileService {
                                               String policyName,
                                               PolicyMemberRequest policyMember,
                                               AuthenticatedUserRequest user) {
-        return iamService.addPolicyMember(
+        return new PolicyModel();/*iamService.addPolicyMember(
             user,
             IamResourceType.SPEND_PROFILE,
             UUID.fromString(profileId),
             policyName,
-            policyMember.getEmail());
+            policyMember.getEmail());*/
     }
 
     // -- methods invoked from billing profile flights --

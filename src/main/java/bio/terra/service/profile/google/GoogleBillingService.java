@@ -67,7 +67,7 @@ public class GoogleBillingService {
                 CloudBillingSettings.newBuilder()
                     .setCredentialsProvider(FixedCredentialsProvider.create(credentials))
                     .build();
-            logger.info(String.format("Creating CloudBillingSettings with credentials: %s", credentialName));
+            logger.info("Creating CloudBillingSettings with credentials: {}", credentialName);
 
             return CloudBillingClient.create(cloudBillingSettings);
         } catch (IOException e) {
@@ -88,7 +88,7 @@ public class GoogleBillingService {
             .addAllPermissions(permissions)
             .build();
         try {
-            logger.info(String.format("Testing IAM permission on billing account '%s'", billingAccountId));
+            logger.info("Testing IAM permission on billing account: {}", billingAccountId);
             TestIamPermissionsResponse response = cloudBillingClient(user).testIamPermissions(permissionsRequest);
             List<String> actualPermissions = response.getPermissionsList();
             return actualPermissions != null && actualPermissions.equals(permissions);

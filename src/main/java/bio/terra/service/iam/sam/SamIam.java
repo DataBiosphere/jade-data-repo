@@ -274,9 +274,14 @@ public class SamIam implements IamProviderInterface {
     private Void createProfileResourceInner(AuthenticatedUserRequest userReq, String profileId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(profileId);
+
+        // TEMPORARY FOR DEBUGGING: Include the stewards as owners so we can see what's going on
+        List<String> ownerList = Arrays.asList(userReq.getEmail(), samConfig.getStewardsGroupEmail());
         req.addPoliciesItem(
             IamRole.OWNER.toString(),
-            createAccessPolicyOne(IamRole.OWNER, userReq.getEmail()));
+            createAccessPolicy(IamRole.OWNER, ownerList));
+//            createAccessPolicyOne(IamRole.OWNER, userReq.getEmail()));
+
         req.addPoliciesItem(
             IamRole.USER.toString(),
             createAccessPolicy(IamRole.USER, null));

@@ -1,5 +1,7 @@
 package bio.terra.service.profile;
 
+import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.common.ValidationUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.EnumerateBillingProfileModel;
@@ -177,6 +179,30 @@ public class ProfileService {
             UUID.fromString(profileId),
             policyName,
             policyMember.getEmail());
+    }
+
+    public PolicyModel deleteProfilePolicyMember(String profileId,
+                                                 String policyName,
+                                                 String memberEmail,
+                                                 AuthenticatedUserRequest user) {
+        // member email can't be null since it is part of the URL
+        if (!ValidationUtils.isValidEmail(memberEmail)) {
+            throw new ValidationException("InvalidMemberEmail");
+        }
+
+        return iamService.deletePolicyMember(
+            user,
+            IamResourceType.SPEND_PROFILE,
+            UUID.fromString(profileId),
+            policyName,
+            memberEmail);
+    }
+
+    public List<PolicyModel> retrieveProfilePolicies(String profileId, AuthenticatedUserRequest user) {
+        return iamService.retrievePolicies(
+            user,
+            IamResourceType.SPEND_PROFILE,
+            UUID.fromString(profileId));
     }
 
     // -- methods invoked from billing profile flights --

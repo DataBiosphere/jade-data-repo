@@ -6,6 +6,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import common.utils.FileUtils;
 import common.utils.StorageUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.channels.Channels;
@@ -45,6 +46,9 @@ public class CompressDirectoryToBucket extends UploadScript {
    * Upload the test results saved to the given directory. Results may include Test Runner
    * client-side output and any relevant measurements collected.
    */
+  @SuppressFBWarnings(
+      value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+      justification = "Spurious RCN check; related to Java 11")
   public void uploadResults(
       Path outputDirectory, ServiceAccountSpecification uploaderServiceAccount) throws Exception {
     // archive file path will be: outputDirectory parent directory + test run id + .tar.gz

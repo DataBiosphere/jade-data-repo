@@ -21,6 +21,8 @@ import bio.terra.datarepo.model.ErrorModel;
 import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.PolicyMemberRequest;
 import bio.terra.datarepo.model.PolicyResponse;
+import bio.terra.datarepo.model.SnapshotRequestModel;
+import bio.terra.datarepo.model.SnapshotSummaryModel;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
@@ -133,7 +135,6 @@ public class DataRepoWrap {
 
   public PolicyResponse addProfilePolicyMember(
       String profileId, String policyName, String userEmail) {
-
     PolicyMemberRequest addRequest = new PolicyMemberRequest().email(userEmail);
     return apiCallThrow(
         () -> resourcesApi.addProfilePolicyMember(addRequest, profileId, policyName));
@@ -199,6 +200,11 @@ public class DataRepoWrap {
 
   // -- dataset --
 
+  public PolicyResponse addDatasetPolicyMember(String id, String policyName, String userEmail) {
+    PolicyMemberRequest addRequest = new PolicyMemberRequest().email(userEmail);
+    return apiCallThrow(() -> resourcesApi.addProfilePolicyMember(addRequest, id, policyName));
+  }
+
   public DatasetSummaryModel createDataset(
       String profileId, String apipayloadFilename, boolean randomizeName) throws Exception {
 
@@ -233,6 +239,46 @@ public class DataRepoWrap {
 
   public WrapFuture<DeleteResponseModel> deleteDatasetFuture(String id) throws Exception {
     JobModel jobResponse = apiCallThrow(() -> repositoryApi.deleteDataset(id));
+
+    return new WrapFuture<>(jobResponse.getId(), repositoryApi, DeleteResponseModel.class);
+  }
+
+  // -- snapshot --
+
+  public SnapshotSummaryModel createSnapshot(
+      String profileId, String apipayloadFilename, boolean randomizeName) throws Exception {
+
+    WrapFuture<SnapshotSummaryModel> wrapFuture =
+        createSnapshotFuture(profileId, apipayloadFilename, randomizeName);
+
+    return wrapFuture.get();
+  }
+
+  public WrapFuture<SnapshotSummaryModel> createSnapshotFuture(
+      String profileId, String apipayloadFilename, boolean randomizeName) throws Exception {
+    // use Jackson to map the stream contents to a SnapshotRequestModel object
+    InputStream SnapshotRequestFile =
+        FileUtils.getResourceFileHandle("apipayloads/" + apipayloadFilename);
+    SnapshotRequestModel createSnapshotRequest =
+        objectMapper.readValue(SnapshotRequestFile, SnapshotRequestModel.class);
+    createSnapshotRequest.profileId(profileId);
+
+    if (randomizeName) {
+      createSnapshotRequest.setName(FileUtils.randomizeName(createSnapshotRequest.getName()));
+    }
+
+    JobModel jobResponse = apiCallThrow(() -> repositoryApi.createSnapshot(createSnapshotRequest));
+
+    return new WrapFuture<>(jobResponse.getId(), repositoryApi, SnapshotSummaryModel.class);
+  }
+
+  public DeleteResponseModel deleteSnapshot(String id) throws Exception {
+    WrapFuture<DeleteResponseModel> wrapFuture = deleteSnapshotFuture(id);
+    return wrapFuture.get();
+  }
+
+  public WrapFuture<DeleteResponseModel> deleteSnapshotFuture(String id) throws Exception {
+    JobModel jobResponse = apiCallThrow(() -> repositoryApi.deleteSnapshot(id));
 
     return new WrapFuture<>(jobResponse.getId(), repositoryApi, DeleteResponseModel.class);
   }

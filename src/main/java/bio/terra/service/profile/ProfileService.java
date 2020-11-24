@@ -6,8 +6,6 @@ import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
@@ -20,7 +18,6 @@ import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccount
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -78,7 +75,10 @@ public class ProfileService {
      * @return jobId of the submitted stairway job
      */
     public String deleteProfile(String id, AuthenticatedUserRequest user) {
+        // TODO: add back once spend profile fully implemented
+        /*
         iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
+        */
 
         String description = String.format("Delete billing profile id '%s'", id);
         return jobService
@@ -98,11 +98,15 @@ public class ProfileService {
     public EnumerateBillingProfileModel enumerateProfiles(Integer offset,
                                                           Integer limit,
                                                           AuthenticatedUserRequest user) {
+        // TODO: add back once spend profile fully implemented
+        /*
         List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
         if (resources.isEmpty()) {
             return new EnumerateBillingProfileModel().total(0);
         }
         return profileDao.enumerateBillingProfiles(offset, limit, resources);
+        */
+        return new EnumerateBillingProfileModel().total(0);
     }
 
     /**
@@ -115,9 +119,12 @@ public class ProfileService {
      * @throws IamUnauthorizedException when the caller does not have access to the billing profile
      */
     public BillingProfileModel getProfileById(String id, AuthenticatedUserRequest user) {
+        // TODO: add back once spend profile fully implemented
+        /*
         if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id)) {
             throw new IamUnauthorizedException("unauthorized");
         }
+        */
 
         return getProfileByIdNoCheck(id);
     }
@@ -150,10 +157,12 @@ public class ProfileService {
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
         // TODO: Add this back in once we have way to authorize w/ existing billing profiles
-        /*iamService.verifyAuthorization(user,
+        /*
+        iamService.verifyAuthorization(user,
             IamResourceType.SPEND_PROFILE,
             profileId.toString(),
-            IamAction.LINK);*/
+            IamAction.LINK);
+        */
         BillingProfileModel profileModel = profileDao.getBillingProfileById(profileId);
 
         // TODO: check bill account usable and validate delegation path
@@ -172,12 +181,16 @@ public class ProfileService {
                                               String policyName,
                                               PolicyMemberRequest policyMember,
                                               AuthenticatedUserRequest user) {
-        return iamService.addPolicyMember(
+        return new PolicyModel();
+        // TODO: add back once spend profile fully implemented
+        /*
+        iamService.addPolicyMember(
             user,
             IamResourceType.SPEND_PROFILE,
             UUID.fromString(profileId),
             policyName,
             policyMember.getEmail());
+        */
     }
 
     // -- methods invoked from billing profile flights --
@@ -194,11 +207,17 @@ public class ProfileService {
     }
 
     public void createProfileIamResource(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
+        // TODO: add back once spend profile fully implemented
+        /*
         iamService.createProfileResource(user, request.getId());
+         */
     }
 
     public void deleteProfileIamResource(String profileId, AuthenticatedUserRequest user) {
+        // TODO: add back once spend profile fully implemented
+        /*
         iamService.deleteProfileResource(user, profileId);
+        */
     }
 
     // Verify access to the billing account during billing profile creation

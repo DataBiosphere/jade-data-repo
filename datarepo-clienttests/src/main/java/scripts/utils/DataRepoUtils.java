@@ -56,6 +56,17 @@ public final class DataRepoUtils {
    */
   public static ApiClient getClientForTestUser(
       TestUserSpecification testUser, ServerSpecification server) throws IOException {
+    if (server.datarepoUri == null || server.datarepoUri.isEmpty()) {
+      throw new IllegalArgumentException("Data Repo URI cannot be empty");
+    }
+
+    // if no test user is specified, then return a client object without an access token set
+    // this is useful if the caller wants to make ONLY unauthenticated calls
+    if (testUser == null) {
+      ApiClient apiClient = new ApiClient();
+      apiClient.setBasePath(server.datarepoUri);
+    }
+
     // refresh the user token
     GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
     AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);

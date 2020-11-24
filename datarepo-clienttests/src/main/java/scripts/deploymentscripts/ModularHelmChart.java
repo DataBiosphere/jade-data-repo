@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scripts.utils.DataRepoUtils;
 
 public class ModularHelmChart extends DeploymentScript {
   private static final Logger logger = LoggerFactory.getLogger(ModularHelmChart.class);
@@ -185,8 +186,7 @@ public class ModularHelmChart extends DeploymentScript {
 
     // then wait for the datarepo-api deployment to respond successfully to a status request
     logger.debug("Waiting for the datarepo-api to respond successfully to a status request");
-    ApiClient apiClient = new ApiClient();
-    apiClient.setBasePath(serverSpecification.datarepoUri);
+    ApiClient apiClient = DataRepoUtils.getClientForTestUser(null, serverSpecification);
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
     while (pollCtr >= 0) {
       // call the unauthenticated status endpoint

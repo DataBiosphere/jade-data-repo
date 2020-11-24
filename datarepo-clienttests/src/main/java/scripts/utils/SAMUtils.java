@@ -38,6 +38,10 @@ public class SAMUtils {
    */
   public static ApiClient getClientForTestUser(
       TestUserSpecification testUser, ServerSpecification server) throws IOException {
+    if (server.samUri == null || server.samUri.isEmpty()) {
+      throw new IllegalArgumentException("SAM URI cannot be empty");
+    }
+
     // refresh the user token
     GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
     AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
@@ -83,6 +87,10 @@ public class SAMUtils {
    */
   public static boolean isDataRepoSteward(ApiClient apiClient, String datarepoResourceId)
       throws ApiException {
+    if (datarepoResourceId == null || datarepoResourceId.isEmpty()) {
+      throw new IllegalArgumentException("Data Repo resource id in SAM cannot be empty");
+    }
+
     ResourcesApi resourcesApi = new ResourcesApi(apiClient);
     return resourcesApi.resourceAction("datarepo", datarepoResourceId, "create_dataset");
   }

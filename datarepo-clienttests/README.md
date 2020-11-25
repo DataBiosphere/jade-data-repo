@@ -4,6 +4,12 @@ This Gradle project contains Test Runner tests written with the Data Repository 
 The Test Runner library [GitHub repository](https://github.com/DataBiosphere/terra-test-runner) has documentation for
 how to write and execute tests.
 
+#### SA keys from Vault
+Run the render-configs.sh script before running tests.
+
+Each service account JSON files in the resources/serviceaccounts directory of this project specifies a default file
+path for the client secret file. This default path should match where the render-configs.sh script puts the secret.
+
 #### Run against a local server
 There are localhost.json server specification files in the resources/server directory. These files contain a filepath to
 the top-level directory of the jade-data-repo Git repository. Executing a test against this server, will start a local

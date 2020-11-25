@@ -40,7 +40,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.0.166-SNAPSHOT'
+    version '1.0.167-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"

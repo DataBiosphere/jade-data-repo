@@ -24,10 +24,10 @@ jobs:
           LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Latest Version: $LATEST_VERSION"
           echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
-      - name: "Checkout current branch"
+      - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_VERSION }} branch"
         uses: actions/checkout@v2
-       # with:
-       #   ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
+        with:
+          ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "Import Vault perf secrets"
         uses: hashicorp/vault-action@v2.1.0
         with:

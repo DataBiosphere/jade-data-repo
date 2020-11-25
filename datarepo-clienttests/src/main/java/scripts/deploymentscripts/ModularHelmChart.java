@@ -84,9 +84,9 @@ public class ModularHelmChart extends DeploymentScript {
     ArrayList<String> deleteCmdArgs = new ArrayList<>();
     deleteCmdArgs.add("namespace");
     deleteCmdArgs.add("delete");
-    deleteCmdArgs.add(serverSpecification.namespace + "-jade-datarepo-api");
+    deleteCmdArgs.add(serverSpecification.cluster.namespace + "-jade-datarepo-api");
     deleteCmdArgs.add("--namespace");
-    deleteCmdArgs.add(serverSpecification.namespace);
+    deleteCmdArgs.add(serverSpecification.cluster.namespace);
     Process helmDeleteProc = ProcessUtils.executeCommand("helm", deleteCmdArgs);
     List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmDeleteProc);
     for (String cmdOutputLine : cmdOutputLines) {
@@ -98,7 +98,7 @@ public class ModularHelmChart extends DeploymentScript {
     ArrayList<String> listCmdArgs = new ArrayList<>();
     listCmdArgs.add("ls");
     listCmdArgs.add("--namespace");
-    listCmdArgs.add(serverSpecification.namespace);
+    listCmdArgs.add(serverSpecification.cluster.namespace);
     Process helmListProc = ProcessUtils.executeCommand("helm", listCmdArgs);
     cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmListProc);
     for (String cmdOutputLine : cmdOutputLines) {
@@ -111,11 +111,11 @@ public class ModularHelmChart extends DeploymentScript {
     ArrayList<String> installCmdArgs = new ArrayList<>();
     installCmdArgs.add("namespace");
     installCmdArgs.add("upgrade");
-    installCmdArgs.add(serverSpecification.namespace + "-jade-datarepo-api");
+    installCmdArgs.add(serverSpecification.cluster.namespace + "-jade-datarepo-api");
     installCmdArgs.add("datarepo-helm/datarepo-api");
     installCmdArgs.add("--install");
     installCmdArgs.add("--namespace");
-    installCmdArgs.add(serverSpecification.namespace);
+    installCmdArgs.add(serverSpecification.cluster.namespace);
     installCmdArgs.add("-f");
     installCmdArgs.add(modifiedApiYamlFile.getAbsolutePath());
     Process helmUpgradeProc = ProcessUtils.executeCommand("helm", installCmdArgs);
@@ -160,7 +160,7 @@ public class ModularHelmChart extends DeploymentScript {
       ArrayList<String> listCmdArgs = new ArrayList<>();
       listCmdArgs.add("ls");
       listCmdArgs.add("--namespace");
-      listCmdArgs.add(serverSpecification.namespace);
+      listCmdArgs.add(serverSpecification.cluster.namespace);
       Process helmListProc = ProcessUtils.executeCommand("helm", listCmdArgs);
       List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmListProc);
       for (String cmdOutputLine : cmdOutputLines) {
@@ -168,7 +168,8 @@ public class ModularHelmChart extends DeploymentScript {
       }
 
       for (String cmdOutputLine : cmdOutputLines) {
-        if (cmdOutputLine.startsWith(serverSpecification.namespace + "-jade-datarepo-api")) {
+        if (cmdOutputLine.startsWith(
+            serverSpecification.cluster.namespace + "-jade-datarepo-api")) {
           if (cmdOutputLine.contains("deployed")) {
             foundHelmStatusDeployed = true;
             break;

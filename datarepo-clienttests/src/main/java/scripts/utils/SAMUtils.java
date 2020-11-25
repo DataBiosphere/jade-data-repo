@@ -42,6 +42,13 @@ public class SAMUtils {
       throw new IllegalArgumentException("SAM URI cannot be empty");
     }
 
+    // if no test user is specified, then return a client object without an access token set
+    // this is useful if the caller wants to make ONLY unauthenticated calls
+    if (testUser == null) {
+      ApiClient apiClient = new ApiClient();
+      apiClient.setBasePath(server.samUri);
+    }
+
     // refresh the user token
     GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
     AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);

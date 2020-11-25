@@ -11,7 +11,7 @@ pluginManagement {
         }
         // To use a local copy of the Test Runner library, uncomment the flatDir block and comment out the maven block
 //        flatDir {
-//            dirs '/Users/marikomedlock/Workspaces/terra-test-runner/build/libs'
+//            dirs "/Users/marikomedlock/Workspaces/terra-test-runner/build/libs"
 //        }
         maven {
             url "https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot-local/"

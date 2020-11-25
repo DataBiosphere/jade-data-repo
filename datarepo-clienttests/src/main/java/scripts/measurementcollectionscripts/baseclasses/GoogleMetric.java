@@ -48,7 +48,11 @@ public class GoogleMetric extends MeasurementCollectionScript<TimeSeries> {
         MetricsUtils.getClientForServiceAccount(server.testRunnerServiceAccount);
     MetricServiceClient.ListTimeSeriesPagedResponse response =
         MetricsUtils.requestTimeSeriesDataPoints(
-            metricServiceClient, ProjectName.of(server.project), filter, interval, aggregation);
+            metricServiceClient,
+            ProjectName.of(server.cluster.project),
+            filter,
+            interval,
+            aggregation);
 
     // iterate through all log entries returned, keeping either the whole entry or just the numeric
     // value

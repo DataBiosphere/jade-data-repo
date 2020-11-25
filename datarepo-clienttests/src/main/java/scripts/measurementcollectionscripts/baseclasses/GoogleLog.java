@@ -42,7 +42,8 @@ public class GoogleLog extends MeasurementCollectionScript<LogEntry> {
     LoggingClient loggingClient =
         LogsUtils.getClientForServiceAccount(server.testRunnerServiceAccount);
     LoggingClient.ListLogEntriesPagedResponse response =
-        LogsUtils.requestLogEntries(loggingClient, ProjectName.of(server.project), filter, null);
+        LogsUtils.requestLogEntries(
+            loggingClient, ProjectName.of(server.cluster.project), filter, null);
 
     // iterate through all log entries returned, keeping either the whole entry or just the numeric
     // value

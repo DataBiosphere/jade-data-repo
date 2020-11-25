@@ -257,7 +257,7 @@ public class SnapshotDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public SnapshotProject retrieveSnapshotProject(UUID snapshotId, boolean onlyRetrieveAvailable) {
         logger.debug("retrieve snapshot id: " + snapshotId);
-        String sql = "SELECT id, name, description, created_date, profile_id FROM snapshot WHERE id = :id";
+        String sql = "SELECT id, name, description, created_date, profile_id, project_resource_id FROM snapshot WHERE id = :id";
         if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
             sql += " AND flightid IS NULL";
         }

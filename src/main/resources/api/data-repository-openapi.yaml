@@ -2051,7 +2051,7 @@ paths:
             type: string
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/ConfigEnableModel'
         required: false
@@ -2092,7 +2092,7 @@ paths:
       operationId: setConfigList
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/ConfigGroupModel'
         required: false

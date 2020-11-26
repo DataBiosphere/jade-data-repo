@@ -228,9 +228,9 @@ public class FireStoreDao {
                                           String fileId,
                                           int enumerateDepth,
                                           boolean throwOnNotFound) throws InterruptedException {
-        String projectId = snapshot.getDataProject();
+        String projectName = snapshot.getDataProject();
         String datasetId = snapshot.getId();
-        Firestore firestore = FireStoreProject.get(projectId).getFirestore();
+        Firestore firestore = FireStoreProject.get(projectName).getFirestore();
 
         FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveById(firestore, datasetId, fileId);
         return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fileId);

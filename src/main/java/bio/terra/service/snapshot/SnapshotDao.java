@@ -13,6 +13,7 @@ import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -211,10 +212,10 @@ public class SnapshotDao {
     }
 
     /**
-     * This is a convenience wrapper that returns a snapshot project model only if it is NOT exclusively locked.
+     * This is a convenience wrapper that returns a snapshot project only if it is NOT exclusively locked.
      * This method is intended for user-facing API calls (e.g. from RepositoryApiController).
      * @param snapshotId the snapshot id
-     * @return the SnapshotProjectModel object
+     * @return the SnapshotProject object
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public SnapshotProject retrieveAvailableSnapshotProject(UUID snapshotId) {
@@ -257,7 +258,9 @@ public class SnapshotDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public SnapshotProject retrieveSnapshotProject(UUID snapshotId, boolean onlyRetrieveAvailable) {
         logger.debug("retrieve snapshot id: " + snapshotId);
-        String sql = "SELECT id, name, description, created_date, profile_id, project_resource_id FROM snapshot WHERE id = :id";
+        String sql = "SELECT snapshot.id, name, snapshot.profile_id, google_project_id FROM snapshot " +
+            "JOIN project_resource ON snapshot.project_resource_id = project_resource.id " +
+            "WHERE snapshot.id = :id";
         if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
             sql += " AND flightid IS NULL";
         }
@@ -316,7 +319,7 @@ public class SnapshotDao {
                 new SnapshotProject()
                     .id(rs.getString("id"))
                     .name(rs.getString("name"))
-                    .dataProject(rs.getString("project_resource_id"))
+                    .dataProject(rs.getString("google_project_id"))
                     .profileId(rs.getString("profile_id")));
             return snapshotProject;
         } catch (EmptyResultDataAccessException ex) {

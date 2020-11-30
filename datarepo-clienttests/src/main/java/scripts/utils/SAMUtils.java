@@ -50,7 +50,9 @@ public class SAMUtils {
     }
 
     // refresh the user token
-    GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
+    GoogleCredentials userCredential =
+        AuthenticationUtils.getDelegatedUserCredential(
+            testUser, AuthenticationUtils.userLoginScopes);
     AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
 
     // first check if there is already a cached ApiClient for this test user

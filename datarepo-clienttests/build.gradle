@@ -99,7 +99,6 @@ application {
 task(runTest, dependsOn: 'classes', type: JavaExec) {
     main = "common.commands.RunTest"
     classpath = sourceSets.main.runtimeClasspath
-    jvmArgs = ["-Djdk.tls.client.protocols=TLSv1.2"]
 }
 task(lockNamespace, dependsOn: 'classes', type: JavaExec) {
     main = "common.commands.LockNamespace"

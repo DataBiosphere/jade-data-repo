@@ -24,7 +24,7 @@ dependencies {
         findbugsAnnotations = "3.0.1"
 
         jackson = "2.10.2"
-        kubernetesClient = "8.0.2"
+        kubernetesClient = "10.0.0"
         logback = "1.2.3"
         slf4j = "1.7.25"
         hamcrest = "2.1"
@@ -99,6 +99,7 @@ application {
 task(runTest, dependsOn: 'classes', type: JavaExec) {
     main = "common.commands.RunTest"
     classpath = sourceSets.main.runtimeClasspath
+    jvmArgs = ["-Djdk.tls.client.protocols=TLSv1.2"]
 }
 task(lockNamespace, dependsOn: 'classes', type: JavaExec) {
     main = "common.commands.LockNamespace"

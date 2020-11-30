@@ -5,7 +5,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.gson.reflect.TypeToken;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
-import io.kubernetes.client.openapi.ApiResponse;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
@@ -151,7 +150,6 @@ public final class KubernetesClientUtils {
     // build the client object from the config
     logger.debug("Building the client objects from the config");
     ApiClient client = ClientBuilder.kubeconfig(kubeConfig).build();
-    client.setDebugging(true);
 
     // set the global default client to the one created above because the CoreV1Api and AppsV1Api
     // constructors get the client object from the global configuration
@@ -196,18 +194,10 @@ public final class KubernetesClientUtils {
           getKubernetesClientAppsObject()
               .listDeploymentForAllNamespaces(null, null, null, null, null, null, null, null, null);
     } else {
-      //      list =
-      //          getKubernetesClientAppsObject()
-      //              .listNamespacedDeployment(
-      //                  namespace, null, null, null, null, null, null, null, null, null);
-      ApiResponse<V1DeploymentList> listApiResponse =
+      list =
           getKubernetesClientAppsObject()
-              .listNamespacedDeploymentWithHttpInfo(
+              .listNamespacedDeployment(
                   namespace, null, null, null, null, null, null, null, null, null);
-      System.out.println(
-          "listNamespacedDeployment HTTP status code: " + listApiResponse.getStatusCode());
-
-      list = listApiResponse.getData();
     }
     return list.getItems();
   }
@@ -322,6 +312,7 @@ public final class KubernetesClientUtils {
       numPods = getApiPodCount(deployment);
       // 2 - does the number of pods in the "ready" state matches the replica count
       numRunningPods = getApiReadyPods(deployment);
+      logger.debug("numPods: {}, numRunningPods: {}", numPods, numRunningPods);
       pollCtr--;
     }
 
@@ -380,6 +371,7 @@ public final class KubernetesClientUtils {
                 pod ->
                     deploymentComponentLabel.equals(
                             pod.getMetadata().getLabels().get(componentLabel))
+                        && pod.getStatus().getContainerStatuses() != null
                         && pod.getStatus().getContainerStatuses().get(0).getReady())
             .count();
     return apiPodCount;

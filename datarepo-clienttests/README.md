@@ -41,6 +41,9 @@ Jump to sections below:
   * [Debug a test configuration or script](#Debug-a-test-configuration-or-script)
   * [Linters](#Linters)
 * [Troubleshooting](#Troubleshooting)
+  * [IP Whitelist](#IP-Whitelist)
+  * [Gradle version](#Gradle-version)
+  * [Java version](#Java-version)
 
 ## Terminology
 This testing infrastructure aims to separate the test from the system configuration that it runs in. This is so that
@@ -410,7 +413,7 @@ cat build/reports/spotbugs/main.txt
 
 ## Troubleshooting
 
-#### IP Whitelist / VPN
+#### IP Whitelist
 Check that your IP address is included on the IP whitelist for the cluster you're testing against. The easiest way to
 do this is to connect to the Non-Split Broad VPN, because the VPN IP addresses are already included on the IP whitelist
 for the Jade dev cluster.
@@ -428,7 +431,7 @@ The best solution is to upgrade to Java version >=11.0.7.
 * [AdoptOpenJDK downloads](https://adoptopenjdk.net/archive.html?variant=openjdk11&jvmVariant=hotspot)
 * [jenv tool for managing different Java versions](https://www.jenv.be/)
 
-A workaround solution is to define the following JVM argument to the runTest and lockAndRunTest task blocks in build.gradle.
+A workaround solution is to define the following JVM argument to the `runTest` and `lockAndRunTest` task blocks in build.gradle.
 ```
 task(runTest, dependsOn: 'classes', type: JavaExec) {
     main = "common.commands.RunTest"

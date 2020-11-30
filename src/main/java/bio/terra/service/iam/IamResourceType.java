@@ -5,20 +5,31 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import org.apache.commons.lang3.StringUtils;
 
 public enum IamResourceType {
-    DATAREPO,
-    DATASET,
-    DATASNAPSHOT;
+    DATAREPO("datarepo"),
+    DATASET("dataset"),
+    DATASNAPSHOT("datasnapshot"),
+    SPEND_PROFILE("spend-profile");
+
+    private final String samResourceName;
+
+    IamResourceType(String samResourceName) {
+        this.samResourceName = samResourceName;
+    }
+
+    public String getSamResourceName() {
+        return samResourceName;
+    }
 
     @Override
     @JsonValue
     public String toString() {
-        return StringUtils.lowerCase(name());
+        return samResourceName;
     }
 
     @JsonCreator
     static IamResourceType fromValue(String text) {
         for (IamResourceType b : IamResourceType.values()) {
-            if (b.name().equals(StringUtils.upperCase(text))) {
+            if (StringUtils.equalsIgnoreCase(b.getSamResourceName(), text)) {
                 return b;
             }
         }

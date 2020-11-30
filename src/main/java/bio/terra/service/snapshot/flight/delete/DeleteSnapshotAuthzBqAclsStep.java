@@ -4,10 +4,8 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.resourcemanagement.DataLocationService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotDataProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightContext;
@@ -22,8 +20,7 @@ import java.util.UUID;
 
 public class DeleteSnapshotAuthzBqAclsStep implements Step {
     private final IamService sam;
-    private final GoogleResourceService resourceService;
-    private final DataLocationService dataLocationService;
+    private final ResourceService resourceService;
     private final SnapshotService snapshotService;
     private final UUID snapshotId;
     private final AuthenticatedUserRequest userReq;
@@ -31,14 +28,12 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
     private static final Logger logger = LoggerFactory.getLogger(DeleteSnapshotAuthzBqAclsStep.class);
 
     public DeleteSnapshotAuthzBqAclsStep(IamService sam,
-                                         GoogleResourceService resourceService,
-                                         DataLocationService dataLocationService,
+                                         ResourceService resourceService,
                                          SnapshotService snapshotService,
                                          UUID snapshotId,
                                          AuthenticatedUserRequest userReq) {
         this.sam = sam;
         this.resourceService = resourceService;
-        this.dataLocationService = dataLocationService;
         this.snapshotService = snapshotService;
         this.snapshotId = snapshotId;
         this.userReq = userReq;
@@ -55,16 +50,13 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
             return StepResult.getStepResultSuccess();
         }
 
-        SnapshotDataProject projectForSnapshot = dataLocationService.getProject(snapshot)
-            .orElseThrow(() -> new SnapshotNotFoundException("Snapshot was not found"));
-
         // These policy emails should not change since the snapshot is locked by the flight
         Map<IamRole, String> policyEmails = sam.retrievePolicyEmails(userReq, IamResourceType.DATASNAPSHOT, snapshotId);
 
         // Remove the custodian's access to make queries in this project.
         // The underlying service provides retries so we do not need to retry this operation
         resourceService.revokePoliciesBqJobUser(
-            projectForSnapshot.getGoogleProjectId(),
+            snapshot.getProjectResource().getGoogleProjectId(),
             Collections.singletonList(policyEmails.get(IamRole.CUSTODIAN)));
 
         return StepResult.getStepResultSuccess();

@@ -12,337 +12,341 @@
  */
 
 buildscript {
-  ext {
-    springBootVersion = '2.3.4.RELEASE'
-  }
-  repositories {
-    mavenCentral()
-  }
-  dependencies {
-    classpath('io.swagger:swagger-codegen:2.4.11')
-  }
+    ext {
+        springBootVersion = '2.3.4.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath('io.swagger:swagger-codegen:2.4.11')
+    }
 }
 
 plugins {
-  id "com.google.cloud.tools.jib" version "1.6.1"
-  id 'org.liquibase.gradle' version '2.0.1'
-  id 'antlr'
-  id 'com.github.spotbugs' version '4.5.1'
-  id "org.hidetake.swagger.generator" version "2.18.2"
-  id "org.springframework.boot" version "2.3.4.RELEASE"
-  id "idea"
-  id "java"
-  id "io.spring.dependency-management" version "1.0.10.RELEASE"
-//  id "jacoco"
-  id "checkstyle"
-  id "com.srcclr.gradle" version "3.1.0"
+    id "com.google.cloud.tools.jib" version "1.6.1"
+    id 'org.liquibase.gradle' version '2.0.1'
+    id 'antlr'
+    id 'com.github.spotbugs' version '4.5.1'
+    id "org.hidetake.swagger.generator" version "2.18.2"
+    id "org.springframework.boot" version "2.3.4.RELEASE"
+    id "idea"
+    id "java"
+    id "io.spring.dependency-management" version "1.0.10.RELEASE"
+    id "jacoco"
+    id "checkstyle"
+    id "com.srcclr.gradle" version "3.1.0"
 }
 
 allprojects {
-  group 'bio.terra'
-  version '1.0.148-SNAPSHOT'
-  ext {
-    resourceDir = "${rootDir}/src/main/resources/api"
-  }
+    group 'bio.terra'
+    version '1.0.168-SNAPSHOT'
 
-  // specifying versions for dependencies, not adding the dependencies themselves (yet)
-  apply plugin: "io.spring.dependency-management"
-  dependencyManagement {
-    imports {
-      mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+    ext {
+        resourceDir = "${rootDir}/src/main/resources/api"
     }
-    dependencies {
-      dependency group: "io.swagger.core.v3", name: "swagger-annotations", version: "2.1.5"
-      dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.22"
+
+    // specifying versions for dependencies, not adding the dependencies themselves (yet)
+    apply plugin: "io.spring.dependency-management"
+    dependencyManagement {
+        imports {
+            mavenBom org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES
+        }
+        dependencies {
+            dependency group: "io.swagger.core.v3", name: "swagger-annotations", version: "2.1.5"
+            dependency group: "io.swagger.codegen.v3", name: "swagger-codegen-cli", version: "3.0.22"
+        }
     }
-  }
 }
 
 // skip subproject tasks by default when building jade-data-repo
 subprojects.each { s ->
-  s.tasks.all {
-    task -> task.enabled = (System.getenv("ENABLE_SUBPROJECT_TASKS") != null)
-  }
+    s.tasks.all {
+        task -> task.enabled = (System.getenv("ENABLE_SUBPROJECT_TASKS") != null)
+    }
 }
 
 sourceCompatibility = 1.8
 
 if (hasProperty('buildScan')) {
-  buildScan {
-    termsOfServiceUrl = 'https://gradle.com/terms-of-service'
-    termsOfServiceAgree = 'yes'
-    def project = ""; def cluster = ""; def nschunk = "";
-    if (System.getenv("NAMESPACEINUSE")) {
-      project = "broad-jade-integration"
-      cluster = "integration-master"
-      def ns = System.getenv("NAMESPACEINUSE")
-      nschunk = "%0Aresource.labels.namespace_name%3D%22${ns}%22%0Alabels.k8s-pod%2Fcomponent%3D%22${ns}-jade-datarepo-api%22"
-    } else {
-      project = System.getenv("GOOGLE_CLOUD_PROJECT")
-      cluster = "jade-master-us-central1"
-      nschunk = ""
+    buildScan {
+        termsOfServiceUrl = 'https://gradle.com/terms-of-service'
+        termsOfServiceAgree = 'yes'
+        def project = ""; def cluster = ""; def nschunk = "";
+        if (System.getenv("NAMESPACEINUSE")) {
+            project = "broad-jade-integration"
+            cluster = "integration-master"
+            def ns = System.getenv("NAMESPACEINUSE")
+            nschunk = "%0Aresource.labels.namespace_name%3D%22${ns}%22%0Alabels.k8s-pod%2Fcomponent%3D%22${ns}-jade-datarepo-api%22"
+        } else {
+            project = System.getenv("GOOGLE_CLOUD_PROJECT")
+            cluster = "jade-master-us-central1"
+            nschunk = ""
+        }
+        def startTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
+        buildFinished { ->
+            def endTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
+            link "Jump to StackDriver Logs 🔗 ", "https://console.cloud.google.com/logs/viewer?interval=CUSTOM&project=${project}&folder&organizationId&minLogLevel=0&expandAll=false&customFacets=&limitCustomFacetWidth=true&scrollTimestamp=${startTest}&dateRangeStart=${startTest}&dateRangeEnd=${endTest}&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22${project}%22%0Aresource.labels.location%3D%22us-central1%22%0Aresource.labels.cluster_name%3D%22${cluster}%22${nschunk}"
+        }
     }
-    def startTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
-    buildFinished { ->
-      def endTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
-      link "Jump to StackDriver Logs 🔗 ", "https://console.cloud.google.com/logs/viewer?interval=CUSTOM&project=${project}&folder&organizationId&minLogLevel=0&expandAll=false&customFacets=&limitCustomFacetWidth=true&scrollTimestamp=${startTest}&dateRangeStart=${startTest}&dateRangeEnd=${endTest}&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22${project}%22%0Aresource.labels.location%3D%22us-central1%22%0Aresource.labels.cluster_name%3D%22${cluster}%22${nschunk}"
-    }
-  }
 }
 
 spotbugs {
-  effort = 'max'
-  // This makes the "html" reports come out in plain text so you can just open the file in IntelliJ
-  // and look at your bugs instead of having to switch to a browser.
-  extraArgs = ['-emacs']
+    effort = 'max'
+    // This makes the "html" reports come out in plain text so you can just open the file in IntelliJ
+    // and look at your bugs instead of having to switch to a browser.
+    extraArgs = ['-emacs']
 }
 spotbugsMain {
-  reports {
-    html {
-      enabled = true
-      destination = file("$buildDir/reports/spotbugs/main.html")
-      excludeFilter = file("config/spotbugs/excludeFilter.xml")
+    reports {
+        html {
+            enabled = true
+            destination = file("$buildDir/reports/spotbugs/main.html")
+            excludeFilter = file("config/spotbugs/excludeFilter.xml")
+        }
     }
-  }
 }
 spotbugsTest {
-  reports {
-    html {
-      enabled = true
-      destination = file("$buildDir/reports/spotbugs/test.html")
-      excludeFilter = file("config/spotbugs/excludeFilter.xml")
+    reports {
+        html {
+            enabled = true
+            destination = file("$buildDir/reports/spotbugs/test.html")
+            excludeFilter = file("config/spotbugs/excludeFilter.xml")
+        }
     }
-  }
 }
 
-//tasks.withType(JacocoReport) {
-//  reports {
-//    xml.enabled false
-//    csv.enabled false
-//    html.destination file("${buildDir}/jacocoHtml")
-//  }
-//}
-//
-//jacocoTestCoverageVerification {
-//  violationRules {
-//    rule {
-//      limit {
-//        counter = 'BRANCH'
-//        value = 'COVEREDRATIO'
-//        minimum = 0.2
-//      }
-//    }
-//  }
-//}
-//check.dependsOn jacocoTestCoverageVerification
+tasks.withType(JacocoReport) {
+    reports {
+        xml.enabled false
+        csv.enabled false
+        html.destination file("${buildDir}/jacocoHtml")
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.1
+            }
+        }
+    }
+}
+check.dependsOn jacocoTestCoverageVerification
 
 repositories {
-  mavenCentral()
-  maven {
-    url 'https://broadinstitute.jfrog.io/broadinstitute/libs-release-local/'
-  }
-  maven {
-    url 'https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot-local/'
-  }
+    mavenCentral()
+    maven {
+        url 'https://broadinstitute.jfrog.io/broadinstitute/libs-release-local/'
+    }
+    maven {
+        url 'https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot-local/'
+    }
 }
 
 configurations {
-  generatedCompile
-  runtimeClasspath
+    generatedCompile
+    runtimeClasspath
 }
 
 dependencies {
-  // TODO: Unpack the "starter" and include just what we use
-  compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
-  compile 'com.google.apis:google-api-services-cloudbilling:v1-rev20200106-1.30.3'
-  compile 'com.google.apis:google-api-services-cloudresourcemanager:v1-rev549-1.25.0'
-  compile 'com.google.apis:google-api-services-serviceusage:v1beta1-rev206-1.25.0'
-  compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
-  compile 'com.google.cloud:google-cloud-storage:1.108.0'
-  compile 'com.google.cloud:google-cloud-firestore:1.22.0'
-  compile group: 'com.google.cloud', name: 'google-cloud-pubsub', version: '1.104.1'
-  compile 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
-  compile 'org.apache.commons:commons-lang3:3.9'
-  compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-  compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
-  compile 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
-  compile 'org.postgresql:postgresql:42.2.8'           // Postgres jdbc driver
-  compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
-  implementation "org.springframework.boot:spring-boot-starter-web"
-  implementation group: "javax.validation", name: "validation-api"
+    // TODO: Unpack the "starter" and include just what we use
+    compile 'com.google.cloud:google-cloud-billing:1.1.6'
+    compile 'com.google.cloud:google-cloud-resourcemanager:0.118.2-alpha'
+    compile 'com.google.apis:google-api-services-serviceusage:v1-rev20201021-1.30.10'
+    compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
+    compile 'com.google.cloud:google-cloud-storage:1.108.0'
+    compile 'com.google.cloud:google-cloud-firestore:1.22.0'
+    compile group: 'com.google.cloud', name: 'google-cloud-pubsub', version: '1.104.1'
+    compile 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
+    compile 'org.apache.commons:commons-lang3:3.9'
+    compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
+    compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
+    compile 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
+    compile 'org.postgresql:postgresql:42.2.8'           // Postgres jdbc driver
+    compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation group: "javax.validation", name: "validation-api"
 
-  implementation group: "io.swagger.core.v3", name: "swagger-annotations"
-  swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"
+    implementation group: "io.swagger.core.v3", name: "swagger-annotations"
+    swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"
 
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
+    compile 'org.springframework.cloud:spring-cloud-gcp-starter-logging:1.2.5.RELEASE'
+    compile "org.springframework.cloud:spring-cloud-starter-sleuth:2.2.5.RELEASE"
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-343dfff-SNAP'
     compile 'org.antlr:ST4:4.3'                          // String templating
     compile group: 'io.kubernetes', name: 'client-java', version: '8.0.2'
 
-  // This allows you to build with a local Stairway JAR file, instead of the one from the repository
-  // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
-  // Or define the environment variable ORG_GRADLE_PROJECT_stairwayjar
-  if (project.hasProperty("stairwayjar")) {
-    implementation files(project.ext.get("stairwayjar"))
-    implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-    implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
-  } else {
-    implementation 'bio.terra:stairway:0.0.24-SNAPSHOT'
-  }
+    compile 'io.springfox:springfox-swagger-ui:2.10.0'
+    compile 'io.springfox:springfox-swagger2:2.9.2'
 
-  implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    // This allows you to build with a local Stairway JAR file, instead of the one from the repository
+    // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
+    // Or define the environment variable ORG_GRADLE_PROJECT_stairwayjar
+    if (project.hasProperty("stairwayjar")) {
+        implementation files(project.ext.get("stairwayjar"))
+        implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
+        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
+    } else {
+        implementation 'bio.terra:stairway:0.0.24-SNAPSHOT'
+    }
 
-  // Forcing this due to vulnerability issues
-  compile('com.fasterxml.jackson.core:jackson-databind:2.11.0.rc1') {
-    force = true
-  }
-  compile('com.fasterxml.jackson.core:jackson-core:2.10.2') {
-    force = true
-  }
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
-  antlr "org.antlr:antlr4:4.8"
+    // Forcing this due to vulnerability issues
+    compile ('com.fasterxml.jackson.core:jackson-databind:2.11.0.rc1') {
+        force = true
+    }
+    compile ('com.fasterxml.jackson.core:jackson-core:2.10.2') {
+        force = true
+    }
 
-  // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
-  // but the groovy config is... well... groovy.
-  runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
+    antlr "org.antlr:antlr4:4.8"
 
-  // Findbugs annotations, so we can selectively suppress findbugs findings
-  compileOnly 'com.google.code.findbugs:annotations:3.0.1'
+    // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
+    // but the groovy config is... well... groovy.
+    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
 
-  liquibaseRuntime 'org.liquibase:liquibase-core:3.8.0'
-  liquibaseRuntime 'org.postgresql:postgresql:42.2.7'
-  liquibaseRuntime 'ch.qos.logback:logback-classic:1.2.3'
+    // Findbugs annotations, so we can selectively suppress findbugs findings
+    compileOnly 'com.google.code.findbugs:annotations:3.0.1'
 
-  testCompile group: 'junit', name: 'junit', version: '4.12'
-  testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-  testCompile "org.springframework.boot:spring-boot-starter-test"
-  testCompile 'org.postgresql:postgresql:42.2.8'
-  testCompile 'com.google.code.findbugs:annotations:3.0.1'
+    liquibaseRuntime 'org.liquibase:liquibase-core:3.8.0'
+    liquibaseRuntime 'org.postgresql:postgresql:42.2.7'
+    liquibaseRuntime 'ch.qos.logback:logback-classic:1.2.3'
 
-  generatedCompile 'org.springframework.boot:spring-boot-starter-web'
-  // boot-starter-validation required for javax.validation.Valid references, @Valid tags
-  generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
-  implementation 'org.springframework.boot:spring-boot-starter-validation'
-  implementation group: "org.webjars", name: "webjars-locator-core", version: "0.46"
-  runtimeOnly group: "org.webjars.npm", name: "swagger-ui-dist", version: "3.35.2"
-  generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
+    testCompile "org.springframework.boot:spring-boot-starter-test"
+    testCompile 'org.postgresql:postgresql:42.2.8'
+    testCompile 'com.google.code.findbugs:annotations:3.0.1'
 
+    generatedCompile 'org.springframework.boot:spring-boot-starter-web'
+    // boot-starter-validation required for javax.validation.Valid references, @Valid tags
+    generatedCompile 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation group: "org.webjars", name: "webjars-locator-core", version: "0.46"
+    runtimeOnly group: "org.webjars.npm", name: "swagger-ui-dist", version: "3.35.2"
+    generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"
 
-  annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 }
 
 def getGitHash = { ->
-  def stdout = new ByteArrayOutputStream()
-  exec {
-    commandLine 'git', 'rev-parse', '--short', 'HEAD'
-    standardOutput = stdout
-  }
-  return stdout.toString().trim()
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
 }
 
 swaggerSources {
-  server {
-    inputFile = file("${resourceDir}/data-repository-openapi.yaml")
-    code {
-      language = "spring"
-      library = "spring-boot"
-      outputDir = file("${buildDir}/generated-src/swagger")
-      components = ["models", "apis"]
-      rawOptions = [
-        "--invoker-package", "bio.terra",
-        "--api-package", "bio.terra.controller",
-        "--model-package", "bio.terra.model",
-        "-D", "interfaceOnly=true," +
-          "useTags=true," +
-          "dateLibrary=java8"
-      ]
+    server {
+        inputFile = file("${resourceDir}/data-repository-openapi.yaml")
+        code {
+            language = "spring"
+            library = "spring-boot"
+            outputDir = file("${buildDir}/generated-src/swagger")
+            components = ["models", "apis"]
+            rawOptions = [
+                "--invoker-package", "bio.terra",
+                "--api-package", "bio.terra.controller",
+                "--model-package", "bio.terra.model",
+                "-D", "interfaceOnly=true," +
+                    "useTags=true," +
+                    "dateLibrary=java8"
+            ]
+        }
     }
-  }
 }
 
 task generateVersionFile {
-  def properties = new Properties()
-  def versionFile = file "src/main/resources/version.properties"
-  properties.setProperty("semVer", project.version)
-  properties.setProperty("gitHash", getGitHash())
-  Writer writer = new FileWriter(versionFile, false)
-  properties.store(writer, "DO NOT EDIT. Autogenerated by build.gradle.")
-  writer.close()
+    def properties = new Properties()
+    def versionFile = file "src/main/resources/version.properties"
+    properties.setProperty("semVer", project.version)
+    properties.setProperty("gitHash", getGitHash())
+    Writer writer = new FileWriter(versionFile, false)
+    properties.store(writer, "DO NOT EDIT. Autogenerated by build.gradle.")
+    writer.close()
 }
 
 generateGrammarSource {
-  arguments += ["-visitor", "-long-messages"]
+    arguments += ["-visitor", "-long-messages"]
 }
 
 task unpack(type: Copy) {
-  dependsOn bootJar
-  from(zipTree(tasks.bootJar.outputs.files.singleFile))
-  into("build/dependency")
+    dependsOn bootJar
+    from(zipTree(tasks.bootJar.outputs.files.singleFile))
+    into("build/dependency")
 }
 
 def generatedOutputDir = 'src/generated/java'
 clean.doFirst {
-  delete("${projectDir}/$generatedOutputDir")
-  delete("${rootDir}/datarepo-client/build")
-  delete("${rootDir}/datarepo-client/generated")
+    delete("${projectDir}/$generatedOutputDir")
+    delete("${rootDir}/datarepo-client/build")
+    delete("${rootDir}/datarepo-client/generated")
 }
 
 sourceSets {
-  generated {
-    compileClasspath = configurations.generatedCompile
-  }
-  main {
-    compileClasspath += generated.output
-    runtimeClasspath += generated.output
-  }
-  test {
-    compileClasspath += generated.output
-    runtimeClasspath += generated.output
-  }
-  checkstyle {
-    toolVersion '7.8.1'
-    checkstyleGenerated.enabled = false // Don't check generated code
-    configFile file("config/checkstyle/checkstyle.xml")
-  }
-//  jacoco {
-//    toolVersion '0.8.2'
-//  }
+    generated {
+        compileClasspath = configurations.generatedCompile
+    }
+    main {
+        compileClasspath += generated.output
+        runtimeClasspath += generated.output
+    }
+    test {
+        compileClasspath += generated.output
+        runtimeClasspath += generated.output
+    }
+    checkstyle {
+        toolVersion '7.8.1'
+        checkstyleGenerated.enabled = false // Don't check generated code
+        configFile file("config/checkstyle/checkstyle.xml")
+    }
+    jacoco {
+        toolVersion '0.8.2'
+    }
 }
 
 sourceSets.main.java.srcDir "${buildDir}/generated-src/swagger"
 
 bootRun {
-  classpath += sourceSets.generated.output
+    classpath += sourceSets.generated.output
 }
 
 jar {
-  from sourceSets.generated.output
+    from sourceSets.generated.output
 }
 
 jib {
-  extraDirectories.paths = ['build/gen-expanded']
-  to {
-    image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())
-  }
+    extraDirectories.paths = ['build/gen-expanded']
+    to {
+        image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())
+    }
 }
 // jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories
 // setting above will ensure that the generated classes end up in the right place when jib builds.
 task setupGeneratedDir(type: Copy) {
-  from file('build/classes/java/generated')
-  into file('build/gen-expanded/app/classes')
+    from file('build/classes/java/generated')
+    into file('build/gen-expanded/app/classes')
 }
 tasks.jib.dependsOn setupGeneratedDir
 
 liquibase {
-  activities {
-    datarepo {
-      changeLogFile project.ext.dbDatarepoChangesetFile
-      url project.ext.dbDatarepoUri
-      username project.ext.dbDatarepoUsername
-      password project.ext.dbDatarepoPassword
-      logLevel 'debug'
+    activities {
+        datarepo {
+            changeLogFile project.ext.dbDatarepoChangesetFile
+            url project.ext.dbDatarepoUri
+            username project.ext.dbDatarepoUsername
+            password project.ext.dbDatarepoPassword
+            logLevel 'debug'
+        }
     }
-  }
 }
 
 
@@ -351,45 +355,45 @@ liquibase {
 // There are separate tasks for running just the unit tests and just the connected tests.
 // connected tests and running all of the tests.
 test {
-  useJUnit {
-    includeCategories 'bio.terra.common.category.Unit'
-  }
-  outputs.upToDateWhen { false }
+    useJUnit {
+        includeCategories 'bio.terra.common.category.Unit'
+    }
+    outputs.upToDateWhen { false }
 }
 
 task testConnected(type: Test) {
-  useJUnit {
-    includeCategories 'bio.terra.common.category.Connected'
-  }
-  testLogging {
-    events = ["passed", "failed", "skipped", "started", "standard_out"]
-  }
-  outputs.upToDateWhen { false }
-  maxHeapSize = "2g"
+    useJUnit {
+        includeCategories 'bio.terra.common.category.Connected'
+    }
+    testLogging {
+        events = ["passed", "failed", "skipped", "started", "standard_out"]
+    }
+    outputs.upToDateWhen { false }
+    maxHeapSize = "2g"
 }
 
 task testIntegration(type: Test) {
-  useJUnit {
-    includeCategories 'bio.terra.common.category.Integration'
-  }
-  testLogging {
-    events = ["passed", "failed", "skipped", "started", "standard_out"]
-  }
-  outputs.upToDateWhen { false }
+    useJUnit {
+        includeCategories 'bio.terra.common.category.Integration'
+    }
+    testLogging {
+        events = ["passed", "failed", "skipped", "started", "standard_out"]
+    }
+    outputs.upToDateWhen { false }
 }
 
 task testUnit(type: Test) {
-  useJUnit {
-    includeCategories 'bio.terra.common.category.Unit'
-  }
-  outputs.upToDateWhen { false }
+    useJUnit {
+        includeCategories 'bio.terra.common.category.Unit'
+    }
+    outputs.upToDateWhen { false }
 }
 
 task testAll(type: Test) {
-  useJUnit {
-    includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
-  }
-  outputs.upToDateWhen { false }
+    useJUnit {
+        includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
+    }
+    outputs.upToDateWhen { false }
 }
 
 compileGeneratedJava.dependsOn swaggerSources.server.code

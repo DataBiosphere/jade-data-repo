@@ -25,7 +25,12 @@ repositories {
 }
 
 dependencies {
+    ext {
+        swagger = "1.5.22"
+    }
+
     // Swagger deps, versions controlled by dependencyManagement in root project
+    implementation group: "io.swagger", name: "swagger-annotations", version: "${swagger}"
     implementation group: "org.glassfish.jersey.core", name: "jersey-client"
     implementation group: "org.glassfish.jersey.media", name: "jersey-media-json-jackson"
     implementation group: "org.glassfish.jersey.media", name: "jersey-media-multipart"
@@ -89,3 +94,20 @@ artifactory {
     }
 }
 
+clean {
+    // clean up all of the swagger codegen crud
+    delete ".gradle/"
+    delete ".swagger-codegen-ignore"
+    delete ".swagger-codegen/"
+    delete ".travis.yml"
+    delete "README.md"
+    delete "build.sbt"
+    delete "docs/"
+    delete "git_push.sh"
+    delete "gradle.properties"
+    delete "gradle/"
+    delete "gradlew"
+    delete "gradlew.bat"
+    delete "pom.xml"
+    delete "src/"
+}

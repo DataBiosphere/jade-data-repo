@@ -48,7 +48,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-import static bio.terra.service.resourcemanagement.google.GoogleResourceService.BQ_JOB_USER_ROLE;
+import static bio.terra.service.resourcemanagement.ResourceService.BQ_JOB_USER_ROLE;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
@@ -76,6 +76,7 @@ public class DrsTest extends UsersBase {
 
     private String custodianToken;
     private SnapshotModel snapshotModel;
+    private String profileId;
     private String datasetId;
     private Map<IamRole, String> datasetIamRoles;
     private Map<IamRole, String> snapshotIamRoles;
@@ -87,6 +88,7 @@ public class DrsTest extends UsersBase {
         String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
         snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
+        profileId = setupResult.getProfileId();
         datasetId = setupResult.getDatasetId();
         AuthenticatedUserRequest authenticatedStewardRequest =
             new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
@@ -113,6 +115,9 @@ public class DrsTest extends UsersBase {
             // Already ran if everything was successful so skipping
             logger.info("Dataset already deleted");
         }
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfileLog(steward(), profileId);
+        }
     }
 
     @Test
@@ -130,7 +135,8 @@ public class DrsTest extends UsersBase {
         final DRSObject drsObjectFile = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
         validateDrsObject(drsObjectFile, drsObjectId);
         assertNull("Contents of file is null", drsObjectFile.getContents());
-        TestUtils.validateDrsAccessMethods(drsObjectFile.getAccessMethods());
+        TestUtils.validateDrsAccessMethods(drsObjectFile.getAccessMethods(),
+            authService.getDirectAccessAuthToken(steward().getEmail()));
         Map<String, List<Acl>> preDeleteAcls = TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
         validateContainsAcls(preDeleteAcls.values().iterator().next());
         validateBQJobUserRolePresent(Arrays.asList(

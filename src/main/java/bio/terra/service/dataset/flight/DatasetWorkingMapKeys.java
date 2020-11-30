@@ -8,4 +8,6 @@ public final class DatasetWorkingMapKeys {
     public static final String DATASET_NAME = "datasetName";
     public static final String ASSET_NAME_COLLISION = "assetNameCollision";
     public static final String POLICY_EMAILS = "policyEmails";
+    public static final String PROJECT_RESOURCE_ID = "projectResourceId";
+
 }

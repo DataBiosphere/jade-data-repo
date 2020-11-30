@@ -19,6 +19,8 @@ public final class DatasetFixtures {
     private DatasetFixtures() {
     }
 
+    // TODO: everything below this line is used in exactly one place and it can be replaced with
+    //  the method we use for other JSON tests: reading a resource file.
     public static DatasetSummaryModel buildMinimalDatasetSummary() {
         return new DatasetSummaryModel()
             .id("Minimal")

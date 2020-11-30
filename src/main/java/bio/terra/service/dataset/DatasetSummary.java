@@ -8,6 +8,7 @@ public class DatasetSummary {
     private String name;
     private String description;
     private UUID defaultProfileId;
+    private UUID projectResourceId;
     private Instant createdDate;
 
     public UUID getId() {
@@ -43,6 +44,15 @@ public class DatasetSummary {
 
     public DatasetSummary defaultProfileId(UUID defaultProfileId) {
         this.defaultProfileId = defaultProfileId;
+        return this;
+    }
+
+    public UUID getProjectResourceId() {
+        return projectResourceId;
+    }
+
+    public DatasetSummary projectResourceId(UUID projectResourceId) {
+        this.projectResourceId = projectResourceId;
         return this;
     }
 

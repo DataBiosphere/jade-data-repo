@@ -9,7 +9,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -22,13 +22,13 @@ import java.util.UUID;
 public class DeleteDatasetAuthzBqAclsStep implements Step {
     private final IamService sam;
     private final DatasetService datasetService;
-    private final GoogleResourceService resourceService;
+    private final ResourceService resourceService;
     private final UUID datasetId;
     private final AuthenticatedUserRequest userReq;
 
     public DeleteDatasetAuthzBqAclsStep(IamService sam,
                                         DatasetService datasetService,
-                                        GoogleResourceService resourceService,
+                                        ResourceService resourceService,
                                         UUID datasetId,
                                         AuthenticatedUserRequest userReq) {
         this.sam = sam;

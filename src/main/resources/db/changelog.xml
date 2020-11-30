@@ -30,4 +30,8 @@
     <include file="changesets/20200529_datasetuniqueasset.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200712_snapshotrelationships.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200717_allowlongsnapshotrelnames.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20201024_resourcemanagerrefactor1.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20201024_resourcemanagerrefactor2.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20201024_resourcemanagerrefactor3.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20201106_resourcedeletemarks.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

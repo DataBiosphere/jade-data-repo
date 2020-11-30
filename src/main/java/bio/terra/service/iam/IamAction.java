@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import org.apache.commons.lang3.StringUtils;
 
+// NOTE: these action enums must have exactly the same text as the Sam action name.
 public enum IamAction {
     // common
     CREATE,
@@ -25,7 +26,9 @@ public enum IamAction {
     CREATE_DATASNAPSHOT,
     EDIT_DATASNAPSHOT,
     READ_DATA,
-    DISCOVER_DATA;
+    DISCOVER_DATA,
+    // billing profiles
+    LINK;
 
     @Override
     @JsonValue

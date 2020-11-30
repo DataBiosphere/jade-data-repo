@@ -71,7 +71,9 @@ public class ConfigParameter<T> extends ConfigBase {
         } else if (originalValue instanceof Double) {
             currentValue = (T)Double.valueOf(newValue);
         } else if (originalValue instanceof Float) {
-            currentValue = (T)Float.valueOf(newValue);
+            currentValue = (T) Float.valueOf(newValue);
+        } else if (originalValue instanceof Boolean) {
+            currentValue = (T) Boolean.valueOf(newValue);
         } else {
             throw new UnsupportedConfigDatatypeException("Unsupported datatype: " +
                 originalValue.getClass().getSimpleName());

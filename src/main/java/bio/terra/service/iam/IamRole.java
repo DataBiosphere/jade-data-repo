@@ -10,7 +10,9 @@ public enum IamRole {
     CUSTODIAN,
     INGESTER,
     READER,
-    DISCOVERER;
+    DISCOVERER,
+    OWNER,
+    USER;
 
     @Override
     @JsonValue
@@ -21,7 +23,7 @@ public enum IamRole {
     @JsonCreator
     public static IamRole fromValue(String text) {
         for (IamRole b : IamRole.values()) {
-            if (String.valueOf(b.name()).equals(StringUtils.upperCase(text))) {
+            if (StringUtils.equalsIgnoreCase(b.name(), text)) {
                 return b;
             }
         }

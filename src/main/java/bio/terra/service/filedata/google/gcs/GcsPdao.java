@@ -2,7 +2,6 @@ package bio.terra.service.filedata.google.gcs;
 
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.FutureUtils;
-import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoInvalidUriException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
@@ -14,7 +13,7 @@ import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.IamRole;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
@@ -24,15 +23,14 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.LinkedList;
 import java.util.List;
@@ -51,10 +49,12 @@ import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 public class GcsPdao {
     private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
 
+    private static final String GS_PROTOCOL = "gs://";
+    private static final String GS_BUCKET_PATTERN = "[a-z0-9_.\\-]{3,222}";
+
     private final GcsProjectFactory gcsProjectFactory;
-    private final DataLocationService dataLocationService;
+    private final ResourceService resourceService;
     private final FireStoreDao fileDao;
-    private final ApplicationContext applicationContext;
     private final ConfigurationService configurationService;
     private final ExecutorService executor;
     private final PerformanceLogger performanceLogger;
@@ -62,16 +62,14 @@ public class GcsPdao {
     @Autowired
     public GcsPdao(
         GcsProjectFactory gcsProjectFactory,
-        DataLocationService dataLocationService,
+        ResourceService resourceService,
         FireStoreDao fileDao,
-        ApplicationContext applicationContext,
         ConfigurationService configurationService,
         @Qualifier("performanceThreadpool") ExecutorService executor,
         PerformanceLogger performanceLogger) {
         this.gcsProjectFactory = gcsProjectFactory;
-        this.dataLocationService = dataLocationService;
+        this.resourceService = resourceService;
         this.fileDao = fileDao;
-        this.applicationContext = applicationContext;
         this.configurationService = configurationService;
         this.executor = executor;
         this.performanceLogger = performanceLogger;
@@ -125,29 +123,22 @@ public class GcsPdao {
             // From poking around I think it is a standard POSIX milliseconds since Jan 1, 1970.
             Instant createTime = Instant.ofEpochMilli(targetBlob.getCreateTime());
 
-            URI gspath = new URI("gs",
-                bucketResource.getName(),
-                "/" + targetPath,
-                null,
-                null);
+            String gspath = String.format("gs://%s/%s", bucketResource.getName(), targetPath);
 
-            FSFileInfo fsFileInfo = new FSFileInfo()
+            return new FSFileInfo()
                 .fileId(fileId)
                 .createdDate(createTime.toString())
-                .gspath(gspath.toString())
+                .gspath(gspath)
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
                 .checksumMd5(checksumMd5)
                 .size(targetBlob.getSize())
                 .bucketResourceId(bucketResource.getResourceId().toString());
 
-            return fsFileInfo;
         } catch (StorageException ex) {
             // For now, we assume that the storage exception is caused by bad input (the file copy exception
             // derives from BadRequestException). I think there are several cases here. We might need to retry
             // for flaky google case or we might need to bail out if access is denied.
             throw new PdaoFileCopyException("File ingest failed", ex);
-        } catch (URISyntaxException ex) {
-            throw new PdaoException("Bad URI of our own making", ex);
         }
     }
 
@@ -167,8 +158,7 @@ public class GcsPdao {
 
     public boolean deleteFileByGspath(String inGspath, GoogleBucketResource bucketResource) {
         if (inGspath != null) {
-            URI uri = URI.create(inGspath);
-            String bucketPath = StringUtils.removeStart(uri.getPath(), "/");
+            String bucketPath = extractFilePathInBucket(inGspath, bucketResource.getName());
             return deleteWorker(bucketResource, bucketPath);
         }
         return false;
@@ -177,7 +167,7 @@ public class GcsPdao {
     // Consumer method for deleting GCS files driven from a scan over the firestore files
     public void deleteFile(FireStoreFile fireStoreFile) {
         if (fireStoreFile != null) {
-            GoogleBucketResource bucketResource = dataLocationService.lookupBucket(fireStoreFile.getBucketResourceId());
+            GoogleBucketResource bucketResource = resourceService.lookupBucket(fireStoreFile.getBucketResourceId());
             deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
         }
     }
@@ -208,10 +198,21 @@ public class GcsPdao {
         fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, policies);
     }
 
-    private static final String GS_PROTOCOL = "gs://";
-    private static final String GS_BUCKET_PATTERN = "[a-z0-9_.\\-]{3,222}";
-
     public static Blob getBlobFromGsPath(Storage storage, String gspath, String targetProjectId) {
+        GcsLocator locator = getGcsLocatorFromGsPath(gspath);
+
+        // Provide the project of the destination of the file copy to pay if the
+        // source bucket is requester pays.
+        Blob sourceBlob = storage.get(BlobId.of(locator.getBucket(), locator.getPath()),
+            Storage.BlobGetOption.userProject(targetProjectId));
+        if (sourceBlob == null) {
+            throw new PdaoSourceFileNotFoundException("Source file not found: '" + gspath + "'");
+        }
+
+        return sourceBlob;
+    }
+
+    public static GcsLocator getGcsLocatorFromGsPath(String gspath) {
         if (!StringUtils.startsWith(gspath, GS_PROTOCOL)) {
             throw new PdaoInvalidUriException("Path is not a gs path: '" + gspath + "'");
         }
@@ -242,15 +243,7 @@ public class GcsPdao {
             throw new PdaoInvalidUriException("Missing object name in gs path: '" + gspath + "'");
         }
 
-        // Provide the project of the destination of the file copy to pay if the
-        // source bucket is requester pays.
-        Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath),
-            Storage.BlobGetOption.userProject(targetProjectId));
-        if (sourceBlob == null) {
-            throw new PdaoSourceFileNotFoundException("Source file not found: '" + gspath + "'");
-        }
-
-        return sourceBlob;
+        return new GcsLocator(sourceBucket, sourcePath);
     }
 
     private void fileAclOp(AclOp op, Dataset dataset, List<String> fileIds, Map<IamRole, String> policies)
@@ -288,6 +281,7 @@ public class GcsPdao {
 
             try (Stream<FSFile> stream = files.stream()) {
                 List<Future<FSFile>> futures = stream
+                    .distinct()
                     .map(file -> executor.submit(performAclCommand(bucketCache, file, op, acls, groups)))
                     .collect(Collectors.toList());
 
@@ -318,12 +312,11 @@ public class GcsPdao {
             synchronized (bucketCache) {
                 bucketForFile = bucketCache.computeIfAbsent(
                     file.getBucketResourceId(),
-                    k -> dataLocationService.lookupBucket(file.getBucketResourceId())
+                    k -> resourceService.lookupBucket(file.getBucketResourceId())
                 );
             }
             final Storage storage = storageForBucket(bucketForFile);
-            final URI gsUri = URI.create(file.getGspath());
-            final String bucketPath = StringUtils.removeStart(gsUri.getPath(), "/");
+            final String bucketPath = extractFilePathInBucket(file.getGspath(), bucketForFile.getName());
             final BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
             switch (op) {
                 case ACL_OP_CREATE:
@@ -339,5 +332,59 @@ public class GcsPdao {
             }
             return file;
         };
+    }
+
+    /**
+     * Extract the path portion (everything after the bucket name and it's trailing slash) of a gs path.
+     */
+    private static String extractFilePathInBucket(final String path, final String bucketName) {
+        return StringUtils.removeStart(path, String.format("gs://%s/", bucketName));
+    }
+
+    /**
+     * Represents a way to access objects in GCS buckets.
+     */
+    public static class GcsLocator {
+        private final String bucket;
+        private final String path;
+
+        public GcsLocator(final String bucket, final String path) {
+            this.bucket = bucket;
+            this.path = path;
+        }
+
+        public String getBucket() {
+            return bucket;
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            GcsLocator locator = (GcsLocator) o;
+
+            return new EqualsBuilder()
+                .append(bucket, locator.bucket)
+                .append(path, locator.path)
+                .isEquals();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder(17, 37)
+                .append(bucket)
+                .append(path)
+                .toHashCode();
+        }
     }
 }

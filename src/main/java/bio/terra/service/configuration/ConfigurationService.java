@@ -8,7 +8,9 @@ import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import bio.terra.service.configuration.exception.DuplicateConfigNameException;
+import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.iam.sam.SamConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static bio.terra.service.configuration.ConfigEnum.ALLOW_REUSE_EXISTING_BUCKETS;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
@@ -37,10 +40,11 @@ import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_UNLOCK_FATA
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIEVE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE;
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.LIVENESS_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.CRITICAL_SYSTEM_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_FILES;
@@ -69,14 +73,20 @@ public class ConfigurationService {
 
     private final ApplicationConfiguration appConfiguration;
     private final SamConfiguration samConfiguration;
+    private final GcsConfiguration gcsConfiguration;
+    private final GoogleResourceConfiguration googleResourceConfiguration;
 
     private Map<ConfigEnum, ConfigBase> configuration = new HashMap<>();
 
     @Autowired
     public ConfigurationService(SamConfiguration samConfiguration,
+                                GcsConfiguration gcsConfiguration,
+                                GoogleResourceConfiguration googleResourceConfiguration,
                                 ApplicationConfiguration appConfiguration) {
         this.appConfiguration = appConfiguration;
         this.samConfiguration = samConfiguration;
+        this.gcsConfiguration = gcsConfiguration;
+        this.googleResourceConfiguration = googleResourceConfiguration;
         setConfiguration();
     }
 
@@ -218,6 +228,7 @@ public class ConfigurationService {
         addParameter(FIRESTORE_QUERY_BATCH_SIZE, appConfiguration.getFirestoreQueryBatchSize());
         addParameter(AUTH_CACHE_SIZE, appConfiguration.getAuthCacheSize());
         addParameter(AUTH_CACHE_TIMEOUT_SECONDS, appConfiguration.getAuthCacheTimeoutSeconds());
+        addParameter(ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.getAllowReuseExistingBuckets());
 
         // -- Faults --
         addFaultSimple(CREATE_ASSET_FAULT);
@@ -274,7 +285,10 @@ public class ConfigurationService {
         addFaultCounted(SNAPSHOT_GRANT_FILE_ACCESS_FAULT, 0, 3, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
 
         addFaultCounted(FIRESTORE_RETRIEVE_FAULT, 0, 11, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+
+        // Faults inserted into /status endpoint
         addFaultCounted(LIVENESS_FAULT, 0, 50, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        addFaultSimple(CRITICAL_SYSTEM_FAULT);
     }
 
 }

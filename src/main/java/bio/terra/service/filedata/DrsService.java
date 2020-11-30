@@ -9,11 +9,12 @@ import bio.terra.model.DRSObject;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -25,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -43,7 +43,7 @@ public class DrsService {
     private final FileService fileService;
     private final DrsIdService drsIdService;
     private final IamService samService;
-    private final DataLocationService locationService;
+    private final ResourceService resourceService;
     private final PerformanceLogger performanceLogger;
 
     @Autowired
@@ -51,13 +51,13 @@ public class DrsService {
                       FileService fileService,
                       DrsIdService drsIdService,
                       IamService samService,
-                      DataLocationService locationService,
+                      ResourceService resourceService,
                       PerformanceLogger performanceLogger) {
         this.snapshotService = snapshotService;
         this.fileService = fileService;
         this.drsIdService = drsIdService;
         this.samService = samService;
-        this.locationService = locationService;
+        this.resourceService = resourceService;
         this.performanceLogger = performanceLogger;
     }
 
@@ -129,7 +129,7 @@ public class DrsService {
     private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
         DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
-        GoogleBucketResource bucketResource = locationService.lookupBucketMetadata(fsFile.getBucketResourceId());
+        GoogleBucketResource bucketResource = resourceService.lookupBucketMetadata(fsFile.getBucketResourceId());
 
         DRSAccessURL gsAccessURL = new DRSAccessURL()
             .url(fsFile.getGspath());
@@ -223,10 +223,13 @@ public class DrsService {
 
     private String makeHttpsFromGs(String gspath) {
         try {
-            URI gsuri = URI.create(gspath);
-            String gsBucket = gsuri.getAuthority();
-            String gsPath = StringUtils.removeStart(gsuri.getPath(), "/");
-            String encodedPath = URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString());
+            GcsPdao.GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(gspath);
+            String gsBucket = locator.getBucket();
+            String gsPath = locator.getPath();
+            String encodedPath = URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString())
+                // Google does not recognize the + characters that are produced from spaces by the URLEncoder.encode
+                // method. As a result, these must be converted to %2B.
+                .replaceAll("\\+", "%20");
             return String.format("https://www.googleapis.com/storage/v1/b/%s/o/%s?alt=media", gsBucket, encodedPath);
         } catch (UnsupportedEncodingException ex) {
             throw new InvalidDrsIdException("Failed to urlencode file path", ex);

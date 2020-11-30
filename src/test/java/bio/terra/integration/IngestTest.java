@@ -7,6 +7,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import org.junit.After;
 import org.junit.Before;
@@ -47,12 +48,21 @@ public class IngestTest extends UsersBase {
 
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
-    private List<String> createdSnapshotIds = new ArrayList<>();
+    private String profileId;
+    private final List<String> createdSnapshotIds = new ArrayList<>();
 
     @Before
     public void setup() throws Exception {
         super.setup();
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        dataRepoFixtures.addPolicyMember(
+            steward(),
+            profileId,
+            IamRole.USER,
+            custodian().getEmail(),
+            IamResourceType.SPEND_PROFILE);
+
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     }
@@ -111,7 +121,11 @@ public class IngestTest extends UsersBase {
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
         SnapshotSummaryModel snapshotSummary =
-            dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-snapshot.json");
+            dataRepoFixtures.createSnapshot(
+                custodian(),
+                datasetSummaryModel.getName(),
+                profileId,
+                "ingest-test-snapshot.json");
         createdSnapshotIds.add(snapshotSummary.getId());
     }
 

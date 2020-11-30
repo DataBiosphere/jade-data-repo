@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;
@@ -19,6 +20,7 @@ public class Dataset implements FSContainerInterface {
     private List<DatasetTable> tables = Collections.emptyList();
     private List<Relationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
+    private GoogleProjectResource projectResource;
 
     public Dataset() {
         datasetSummary = new DatasetSummary();
@@ -148,4 +150,21 @@ public class Dataset implements FSContainerInterface {
         return this;
     }
 
+    public UUID getProjectResourceId() {
+        return datasetSummary.getProjectResourceId();
+    }
+
+    public Dataset projectResourceId(UUID projectResourceId) {
+        datasetSummary.projectResourceId(projectResourceId);
+        return this;
+    }
+
+    public GoogleProjectResource getProjectResource() {
+        return projectResource;
+    }
+
+    public Dataset projectResource(GoogleProjectResource projectResource) {
+        this.projectResource = projectResource;
+        return this;
+    }
 }

@@ -87,6 +87,20 @@ public class DataRepoClient {
         return makeDataRepoRequest(path, HttpMethod.DELETE, entity, responseClass);
     }
 
+    public <T> DataRepoResponse<T> waitForResponseLog(TestConfiguration.User user,
+                                                   DataRepoResponse<JobModel> jobModelResponse,
+                                                   Class<T> responseClass) throws Exception {
+        DataRepoResponse<T> response = waitForResponse(user, jobModelResponse, responseClass);
+        // if not successful, log the response
+        if (!response.getStatusCode().is2xxSuccessful()) {
+            logger.error("operation failed - waiting for " + responseClass.getName());
+            if (response.getErrorObject().isPresent()) {
+                logger.error("error object: " + response.getErrorObject().get());
+            }
+        }
+        return response;
+    }
+
     public <T> DataRepoResponse<T> waitForResponse(TestConfiguration.User user,
                                                    DataRepoResponse<JobModel> jobModelResponse,
                                                    Class<T> responseClass) throws Exception {

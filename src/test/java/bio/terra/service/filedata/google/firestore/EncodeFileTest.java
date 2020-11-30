@@ -19,11 +19,10 @@ import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.SnapshotDataProject;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
@@ -90,7 +89,7 @@ public class EncodeFileTest {
     @Autowired
     private ConnectedTestConfiguration testConfig;
     @Autowired
-    private DataLocationService dataLocationService;
+    private ResourceService dataLocationService;
     @Autowired
     private SnapshotDao snapshotDao;
     @Autowired
@@ -457,12 +456,12 @@ public class EncodeFileTest {
 
     private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) throws InterruptedException {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
-        SnapshotDataProject dataProject = dataLocationService.getOrCreateProject(snapshot);
-        BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
+        String googleProjectId = snapshot.getProjectResource().getGoogleProjectId();
+        BigQueryProject bigQueryProject = BigQueryProject.get(googleProjectId);
 
         StringBuilder builder = new StringBuilder()
             .append("SELECT file_ref FROM `")
-            .append(dataProject.getGoogleProjectId())
+            .append(googleProjectId)
             .append('.')
             .append(snapshot.getName())
             .append(".file` AS T")

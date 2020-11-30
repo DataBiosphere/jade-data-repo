@@ -1,15 +1,14 @@
 package bio.terra.service.resourcemanagement;
 
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.snapshot.Snapshot;
+import bio.terra.model.BillingProfileModel;
 
 public interface DataLocationSelector {
 
-    String projectIdForDataset(Dataset dataset);
+    String projectIdForDataset(String datasetName, BillingProfileModel billingProfile);
 
-    String projectIdForSnapshot(Snapshot snapshot);
+    String projectIdForSnapshot(String snapshotName, BillingProfileModel billingProfile);
 
-    String projectIdForFile(String fileProfileId);
+    String projectIdForFile(String datasetName, BillingProfileModel billingProfile);
 
-    String bucketForFile(String fileProfileId);
+    String bucketForFile(String datasetName, BillingProfileModel billingProfile);
 }

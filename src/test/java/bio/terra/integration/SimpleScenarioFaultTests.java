@@ -11,6 +11,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import org.junit.After;
 import org.junit.Before;
@@ -51,12 +52,20 @@ public class SimpleScenarioFaultTests extends UsersBase {
     @Autowired
     private TestConfiguration testConfig;
 
+    private String profileId;
     private String datasetId;
     private String snapshotId;
 
     @Before
     public void setup() throws Exception {
         super.setup();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        dataRepoFixtures.addPolicyMember(
+            steward(),
+            profileId,
+            IamRole.USER,
+            custodian().getEmail(),
+            IamResourceType.SPEND_PROFILE);
     }
 
     // This is belts and suspenders, since we try to do these deletes in the scenario.
@@ -71,6 +80,10 @@ public class SimpleScenarioFaultTests extends UsersBase {
 
         if (datasetId != null) {
             dataRepoFixtures.deleteDataset(steward(), datasetId);
+        }
+
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfileLog(steward(), profileId);
         }
     }
 
@@ -144,10 +157,11 @@ public class SimpleScenarioFaultTests extends UsersBase {
     }
 
     private void simpleScenario() throws Exception {
-        // TODO: Since dataset creation and add policy is sync, it doesn't survive the fault. So for now, turn it off
+        // TODO: Since add policy is sync, it doesn't survive the fault. So for now, turn it off
         //  for those operations.
         dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", false);
-        DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
+        DatasetSummaryModel datasetSummaryModel =
+            dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
         dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", true);
@@ -168,7 +182,11 @@ public class SimpleScenarioFaultTests extends UsersBase {
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
         SnapshotSummaryModel snapshotSummary =
-            dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-snapshot.json");
+            dataRepoFixtures.createSnapshot(
+                custodian(),
+                datasetSummaryModel.getName(),
+                profileId,
+                "ingest-test-snapshot.json");
         snapshotId = snapshotSummary.getId();
 
         // TODO: ditto from above

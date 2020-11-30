@@ -1,5 +1,7 @@
 package bio.terra.integration;
 
+import bio.terra.common.TestUtils;
+import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.Names;
@@ -7,12 +9,15 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadResultModel;
+import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
@@ -40,6 +45,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -54,6 +61,9 @@ public class FileTest extends UsersBase {
     private static Logger logger = LoggerFactory.getLogger(FileTest.class);
 
     @Autowired
+    private AuthService authService;
+
+    @Autowired
     private DataRepoFixtures dataRepoFixtures;
 
     @Autowired
@@ -64,14 +74,25 @@ public class FileTest extends UsersBase {
 
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
+    private String snapshotId;
+    private List<String> fileIds;
     private String profileId;
 
     @Before
     public void setup() throws Exception {
         super.setup();
         profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        dataRepoFixtures.addPolicyMember(
+            steward(),
+            profileId,
+            IamRole.USER,
+            custodian().getEmail(),
+            IamResourceType.SPEND_PROFILE);
+
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
+        snapshotId = null;
+        fileIds = new ArrayList<>();
         logger.info("created dataset " + datasetId);
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
@@ -79,8 +100,21 @@ public class FileTest extends UsersBase {
 
     @After
     public void tearDown() throws Exception {
+        if (snapshotId != null) {
+            dataRepoFixtures.deleteSnapshot(steward(), snapshotId);
+        }
         if (datasetId != null) {
+            fileIds.forEach(f -> {
+                try {
+                    dataRepoFixtures.deleteFile(steward(), datasetId, f);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
             dataRepoFixtures.deleteDataset(steward(), datasetId);
+        }
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfile(steward(), profileId);
         }
     }
 
@@ -239,4 +273,53 @@ public class FileTest extends UsersBase {
         // validates success
         dataRepoFixtures.deleteFile(steward(), datasetId, fileId);
     }
+
+    @Test
+    public void fileUncommonNameTest() throws Exception {
+        String gsPath = "gs://" + testConfiguration.getIngestbucket();
+        String filePath = "/foo/bar";
+
+        FileModel fileModel = dataRepoFixtures.ingestFile(
+            steward(), datasetId, profileId, gsPath + "/files/file with space and #hash%percent+plus.txt", filePath);
+        String fileId = fileModel.getFileId();
+
+        int numRows = 1000;
+        String json = IntStream.range(0, numRows)
+            .mapToObj(i -> String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId))
+            .collect(Collectors.joining("\n"));
+
+        String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
+        BlobInfo targetBlobInfo = BlobInfo
+            .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
+            .build();
+
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        try (WriteChannel writer = storage.writer(targetBlobInfo)) {
+            writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
+        }
+
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
+        IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
+            steward(), datasetId, request);
+
+        assertThat("right number of rows were  ingested", ingestResponseModel.getRowCount(), equalTo((long) numRows));
+
+        // Create a snapshot exposing the one row and grant read access to our reader.
+        SnapshotSummaryModel snapshotSummaryModel = dataRepoFixtures.createSnapshot(
+            custodian(),
+            datasetSummaryModel.getName(),
+            profileId,
+            "file-acl-test-snapshot.json");
+        snapshotId = snapshotSummaryModel.getId();
+
+        // Use DRS API to lookup the file by DRS ID
+        String drsObjectId = String.format("v1_%s_%s", snapshotId, fileId);
+        DRSObject drsObject = dataRepoFixtures.drsGetObject(steward(), drsObjectId);
+
+        logger.info("Drs Object: {}", drsObject);
+
+        TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods(),
+            authService.getDirectAccessAuthToken(steward().getEmail()));
+    }
+
 }

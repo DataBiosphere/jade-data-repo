@@ -26,6 +26,7 @@ public enum ConfigEnum {
     FIRESTORE_QUERY_BATCH_SIZE,
     AUTH_CACHE_TIMEOUT_SECONDS,
     AUTH_CACHE_SIZE,
+    ALLOW_REUSE_EXISTING_BUCKETS,
 
     // -- faults --
     SAM_TIMEOUT_FAULT,
@@ -68,6 +69,7 @@ public enum ConfigEnum {
     FIRESTORE_RETRIEVE_FAULT,
 
     LIVENESS_FAULT,
+    CRITICAL_SYSTEM_FAULT,
 
     // Faults to test the fault system
     UNIT_TEST_SIMPLE_FAULT,

@@ -12,7 +12,7 @@ import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
@@ -38,7 +38,7 @@ public class DatasetDeleteFlight extends Flight {
         SnapshotDao snapshotDao = (SnapshotDao)appContext.getBean("snapshotDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
-        GoogleResourceService resourceService = (GoogleResourceService) appContext.getBean("googleResourceService");
+        ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         IamService iamClient = (IamService)appContext.getBean("iamService");

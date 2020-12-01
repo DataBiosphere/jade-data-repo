@@ -272,11 +272,16 @@ public class SamIam implements IamProviderInterface {
     }
 
     private Void createProfileResourceInner(AuthenticatedUserRequest userReq, String profileId) throws ApiException {
+        // TODO: For now we continue to give stewards access to all profiles. That is consistent with
+        //  the current behavior. When we do the migration to the new permission model we should remove
+        //  this and replace it with the admin group or similar.
+        List<String> ownerList = Arrays.asList(userReq.getEmail(), samConfig.getStewardsGroupEmail());
+
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(profileId);
         req.addPoliciesItem(
             IamRole.OWNER.toString(),
-            createAccessPolicyOne(IamRole.OWNER, userReq.getEmail()));
+            createAccessPolicy(IamRole.OWNER, ownerList));
         req.addPoliciesItem(
             IamRole.USER.toString(),
             createAccessPolicy(IamRole.USER, null));

@@ -8,8 +8,9 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.UpgradeModel;
 import bio.terra.model.UpgradeResponseModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.exception.IamNotFoundException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.service.job.JobService;
@@ -91,11 +92,9 @@ public class ProfileService {
      * @return jobId of the submitted stairway job
      */
     public String deleteProfile(String id, AuthenticatedUserRequest user) {
-        // TODO: add back once spend profile fully implemented
         /*
         iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
         */
-
         String description = String.format("Delete billing profile id '%s'", id);
         return jobService
             .newJob(description, ProfileDeleteFlight.class, null, user)
@@ -197,12 +196,19 @@ public class ProfileService {
                                               String policyName,
                                               PolicyMemberRequest policyMember,
                                               AuthenticatedUserRequest user) {
-        return iamService.addPolicyMember(
-            user,
-            IamResourceType.SPEND_PROFILE,
-            UUID.fromString(profileId),
-            policyName,
-            policyMember.getEmail());
+        // TODO: their may may not be a resource behind this profile. Therefore we
+        //  eat any not found exception called that a success. Move when we enable authorization.
+        try {
+            return iamService.addPolicyMember(
+                user,
+                IamResourceType.SPEND_PROFILE,
+                UUID.fromString(profileId),
+                policyName,
+                policyMember.getEmail());
+        } catch (IamNotFoundException ex) {
+            logger.warn("Ignoring not found exception", ex);
+        }
+        return new PolicyModel();
     }
 
     // -- methods invoked from billing profile flights --
@@ -223,7 +229,13 @@ public class ProfileService {
     }
 
     public void deleteProfileIamResource(String profileId, AuthenticatedUserRequest user) {
-        iamService.deleteProfileResource(user, profileId);
+        // TODO: their may may not be a resource behind this profile. Therefore we
+        //  eat any not found exception called that a success. Move when we enable authorization.
+        try {
+            iamService.deleteProfileResource(user, profileId);
+        } catch (IamNotFoundException ex) {
+            logger.warn("Ignoring not found exception", ex);
+        }
     }
 
     // Verify access to the billing account during billing profile creation
@@ -269,16 +281,9 @@ public class ProfileService {
             String profileId = profile.getId();
             if (!profileResourceSet.contains(profileId)) {
                 try {
-                    // No Sam profile, so let's make one and make stewards owner
+                    // No Sam profile, so let's make one - stewards are automatically added as owner
                     logger.info("Creating profile resource for {} ({})", profile.getProfileName(), profileId);
                     iamService.createProfileResource(user, profile.getId());
-                    logger.info("Adding steward owners for {} ({})", profile.getProfileName(), profileId);
-                    iamService.addPolicyMember(
-                        user,
-                        IamResourceType.SPEND_PROFILE,
-                        UUID.fromString(profileId),
-                        "owner", //IamRole.OWNER.name(),
-                        samConfig.getStewardsGroupEmail());
                 } catch (Exception ex) {
                     logger.error("IAM failure during upgrade", ex);
                 }

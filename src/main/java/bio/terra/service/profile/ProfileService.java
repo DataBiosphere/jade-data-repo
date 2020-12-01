@@ -19,6 +19,8 @@ import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -27,6 +29,7 @@ import java.util.UUID;
 
 @Component
 public class ProfileService {
+    private static final Logger logger = LoggerFactory.getLogger(ProfileService.class);
 
     private final ProfileDao profileDao;
     private final IamService iamService;
@@ -151,6 +154,7 @@ public class ProfileService {
      * @return the profile model associated with the profile id
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
+        logger.info("Verify authorization for link id={} user={}", profileId, user.getEmail());
         iamService.verifyAuthorization(user,
             IamResourceType.SPEND_PROFILE,
             profileId.toString(),
@@ -173,6 +177,7 @@ public class ProfileService {
                                               String policyName,
                                               PolicyMemberRequest policyMember,
                                               AuthenticatedUserRequest user) {
+        logger.info("id={} policy={} email={} authuser={}", profileId, policyName, policyMember.getEmail(), user.getEmail());
         return iamService.addPolicyMember(
             user,
             IamResourceType.SPEND_PROFILE,
@@ -185,6 +190,7 @@ public class ProfileService {
                                                  String policyName,
                                                  String memberEmail,
                                                  AuthenticatedUserRequest user) {
+        logger.info("id={} policy={} email={} authuser={}", profileId, policyName, memberEmail, user.getEmail());
         // member email can't be null since it is part of the URL
         if (!ValidationUtils.isValidEmail(memberEmail)) {
             throw new ValidationException("InvalidMemberEmail");

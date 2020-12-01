@@ -275,8 +275,8 @@ public class SamIam implements IamProviderInterface {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(profileId);
 
-        // TEMPORARY FOR DEBUGGING: Include the stewards as owners so we can see what's going on
-        List<String> ownerList = Arrays.asList(userReq.getEmail(), samConfig.getStewardsGroupEmail());
+        // TEMPORARY FOR DEBUGGING: Include me as owner2 so we can see what's going on
+        List<String> ownerList = Arrays.asList(userReq.getEmail(), "dd.datarepo@gmail.com");
         req.addPoliciesItem(
             IamRole.OWNER.toString(),
             createAccessPolicy(IamRole.OWNER, ownerList));
@@ -511,6 +511,10 @@ public class SamIam implements IamProviderInterface {
                 return new IamBadRequestException(samEx);
             }
             case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED: {
+                return new IamUnauthorizedException(samEx);
+            }
+            case HttpStatusCodes.STATUS_CODE_FORBIDDEN: {
+                // TODO: This is the wrong exception. See https://broadworkbench.atlassian.net/browse/DR-1482
                 return new IamUnauthorizedException(samEx);
             }
             case HttpStatusCodes.STATUS_CODE_NOT_FOUND: {

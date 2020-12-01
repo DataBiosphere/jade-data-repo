@@ -244,7 +244,11 @@ public class IamService {
                                        String policyName,
                                        String userEmail) {
         try {
-            return iamProvider.addPolicyMember(userReq, iamResourceType, resourceId, policyName, userEmail);
+            PolicyModel policy =
+                iamProvider.addPolicyMember(userReq, iamResourceType, resourceId, policyName, userEmail);
+            // Invalidate the cache
+            authorizedMap.clear();
+            return policy;
         } catch (InterruptedException ex) {
             throw new IamUnavailableException("service unavailable");
         }
@@ -256,7 +260,11 @@ public class IamService {
                                           String policyName,
                                           String userEmail) {
         try {
-            return iamProvider.deletePolicyMember(userReq, iamResourceType, resourceId, policyName, userEmail);
+            PolicyModel policy =
+                iamProvider.deletePolicyMember(userReq, iamResourceType, resourceId, policyName, userEmail);
+            // Invalidate the cache
+            authorizedMap.clear();
+            return policy;
         } catch (InterruptedException ex) {
             throw new IamUnavailableException("service unavailable");
         }

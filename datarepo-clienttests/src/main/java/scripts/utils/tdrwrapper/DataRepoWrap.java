@@ -2,8 +2,7 @@ package scripts.utils.tdrwrapper;
 
 // This class wraps the TDR client, providing these features:
 // 1. Raw ApiExceptions are mapped to specific DataRepoClient exceptions based on the http error
-// status.
-//    Those exceptions have the ErrorModel deserialized.
+// status. Those exceptions have the ErrorModel deserialized.
 // 2. Futures for waiting for and retrieving results of async calls.
 // 3. Methods that automatically wait.
 
@@ -27,6 +26,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
 import common.utils.FileUtils;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,11 +46,6 @@ import scripts.utils.tdrwrapper.exception.DataRepoNotImplementedClientException;
 import scripts.utils.tdrwrapper.exception.DataRepoServiceUnavailableClientException;
 import scripts.utils.tdrwrapper.exception.DataRepoUnauthorizedClientException;
 import scripts.utils.tdrwrapper.exception.DataRepoUnknownClientException;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.List;
-import java.util.UUID;
 
 public class DataRepoWrap {
   private static final Logger logger = LoggerFactory.getLogger(DataRepoWrap.class);
@@ -202,7 +200,7 @@ public class DataRepoWrap {
 
   public PolicyResponse addDatasetPolicyMember(String id, String policyName, String userEmail) {
     PolicyMemberRequest addRequest = new PolicyMemberRequest().email(userEmail);
-    return apiCallThrow(() -> resourcesApi.addProfilePolicyMember(addRequest, id, policyName));
+    return apiCallThrow(() -> repositoryApi.addDatasetPolicyMember(id, policyName, addRequest));
   }
 
   public DatasetSummaryModel createDataset(
@@ -246,22 +244,25 @@ public class DataRepoWrap {
   // -- snapshot --
 
   public SnapshotSummaryModel createSnapshot(
-      String profileId, String apipayloadFilename, boolean randomizeName) throws Exception {
+      String profileId, String apipayloadFilename, String datasetName, boolean randomizeName)
+      throws Exception {
 
     WrapFuture<SnapshotSummaryModel> wrapFuture =
-        createSnapshotFuture(profileId, apipayloadFilename, randomizeName);
+        createSnapshotFuture(profileId, apipayloadFilename, datasetName, randomizeName);
 
     return wrapFuture.get();
   }
 
   public WrapFuture<SnapshotSummaryModel> createSnapshotFuture(
-      String profileId, String apipayloadFilename, boolean randomizeName) throws Exception {
+      String profileId, String apipayloadFilename, String datasetName, boolean randomizeName)
+      throws Exception {
     // use Jackson to map the stream contents to a SnapshotRequestModel object
     InputStream SnapshotRequestFile =
         FileUtils.getResourceFileHandle("apipayloads/" + apipayloadFilename);
     SnapshotRequestModel createSnapshotRequest =
         objectMapper.readValue(SnapshotRequestFile, SnapshotRequestModel.class);
     createSnapshotRequest.profileId(profileId);
+    createSnapshotRequest.getContents().get(0).setDatasetName(datasetName);
 
     if (randomizeName) {
       createSnapshotRequest.setName(FileUtils.randomizeName(createSnapshotRequest.getName()));

@@ -193,7 +193,10 @@ public class Migrate {
             startReadOnlyTransaction(connection);
             try {
                 DeploymentRow row = getDeploymentRow(connection);
-                assert (row != null);
+                if (row == null) {
+                    // This happens if we have manually clear the deployment lock by deleting the row
+                    return WaitState.RETRY_MIGRATE;
+                }
                 if (row.getLockingPodName() == null) {
                     logger.info("Deployment unlocked - continuing");
                     if (StringUtils.equals(row.getId(), deploymentUid)) {

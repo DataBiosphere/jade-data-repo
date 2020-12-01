@@ -39,14 +39,19 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       // owner1 creates the profile and grants ownerUser2 and userUser the "user" role
       profile = ownerUser1Api.createProfile(billingAccount, "profile_permission_test", true);
       String profileId = profile.getId();
+      logger.info("ProfileId: {}", profileId);
+
       ownerUser1Api.addProfilePolicyMember(profileId, "user", ownerUser2.userEmail);
       ownerUser1Api.addProfilePolicyMember(profileId, "user", userUser.userEmail);
+      dumpPolicies(ownerUser1Api, profileId);
 
       // owner2 creates a dataset and grants userUser the "custodian" role
       dataset = ownerUser2Api.createDataset(profileId, "dataset-simple.json", true);
       ownerUser2Api.addDatasetPolicyMember(dataset.getId(), "custodian", userUser.userEmail);
+
       // user creates a snapshot
-      snapshot = userUserApi.createSnapshot(dataset.getId(), "snapshot-simple.json", true);
+      snapshot =
+          userUserApi.createSnapshot(profileId, "snapshot-simple.json", dataset.getName(), true);
 
       // attempt to delete profile should fail due to dataset and snapshot dependency
       tryDeleteProfile(ownerUser1Api, profileId, false);
@@ -69,7 +74,7 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       throw e;
     } finally {
       if (snapshot != null) {
-        ownerUser2Api.deleteSnapshot(snapshot.getId());
+        userUserApi.deleteSnapshot(snapshot.getId());
       }
       if (dataset != null) {
         ownerUser2Api.deleteDataset(dataset.getId());

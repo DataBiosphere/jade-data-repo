@@ -1,10 +1,10 @@
 package scripts.testscripts.baseclasses;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.EnumerateBillingProfileModel;
+import bio.terra.datarepo.model.PolicyModel;
+import bio.terra.datarepo.model.PolicyResponse;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -107,40 +107,48 @@ public class BillingProfileUsers extends runner.TestScript {
     } catch (DataRepoNotFoundClientException | DataRepoUnauthorizedClientException ex) {
       retrievePolicySuccess = false;
     }
-    logger.info("Role {} retievePolicies {}", role, retrievePolicySuccess);
+    logger.info("Role {} retrievePolicies {}", role, retrievePolicySuccess);
 
     switch (role) {
       case NONE:
         // all operations should fail
-        assertThat(
-            "NONE all operations should fail",
-            !(foundEnumeration
-                || retrieveSuccess
-                || datasetSuccess
-                || addUserSuccess
-                || deleteUserSuccess
-                || retrievePolicySuccess));
+        if (foundEnumeration
+            || retrieveSuccess
+            || datasetSuccess
+            || addUserSuccess
+            || deleteUserSuccess
+            || retrievePolicySuccess) {
+          throw new IllegalStateException("NONE all operations should fail; some were successful");
+        }
         break;
 
       case USER:
-        assertThat(
-            "USER operations that should succeed",
-            (foundEnumeration && retrieveSuccess && datasetSuccess));
-        assertThat(
-            "USER operations that should fail",
-            !(addUserSuccess || deleteUserSuccess || retrievePolicySuccess));
+        if (!(foundEnumeration && retrieveSuccess && datasetSuccess)) {
+          throw new IllegalStateException("Some USER operations that should succeed failed");
+        }
+        if (addUserSuccess || deleteUserSuccess || retrievePolicySuccess) {
+          throw new IllegalStateException("some USER operations that should fail succeeded");
+        }
         break;
 
       case OWNER:
-        assertThat(
-            "OWNER all operations should succeed",
-            (foundEnumeration
-                && retrieveSuccess
-                && datasetSuccess
-                && addUserSuccess
-                && deleteUserSuccess
-                && retrievePolicySuccess));
+        if (!(foundEnumeration
+            && retrieveSuccess
+            && datasetSuccess
+            && addUserSuccess
+            && deleteUserSuccess
+            && retrievePolicySuccess)) {
+          throw new IllegalStateException("OWNER all operations should succeed; some failed");
+        }
         break;
+    }
+  }
+
+  protected void dumpPolicies(DataRepoWrap wrap, String profileId) {
+    PolicyResponse policies = wrap.retrieveProfilePolicies(profileId);
+    for (PolicyModel policy : policies.getPolicies()) {
+      logger.info(
+          "Policy {} members {}", policy.getName(), StringUtils.join(policy.getMembers(), ", "));
     }
   }
 }

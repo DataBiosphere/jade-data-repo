@@ -144,7 +144,11 @@ public class GoogleResourceDao {
                 .refCount(rs.getLong("refcnt")));
 
         // If the profile is in use by any project, we bail here.
-        if (0 < projectRefs.stream().mapToLong(ProjectRefs::getRefCount).sum()) {
+        long totalRefs = projectRefs.stream().mapToLong(ProjectRefs::getRefCount).sum();
+        logger.info("Profile {} has {} projects with the total of {} references",
+            profileId, projectRefs.size(), totalRefs);
+
+        if (0 < totalRefs) {
             throw new ProfileInUseException("Profile is in use and cannot be deleted");
         }
 

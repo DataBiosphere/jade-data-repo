@@ -76,11 +76,6 @@ public class MeasurementCollector {
     ObjectWriter objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
     logger.info(objectWriter.writeValueAsString(summaries));
 
-    //    if (measurementList.measurementCollectionScripts.size() != 0) {
-    //      throw new RuntimeException(
-    //          "mariko force test failure to test gh action (MeasurementCollector)");
-    //    }
-
     // write the measurement summaries to a file
     File measurementSummariesFile =
         FileUtils.createNewFile(outputDirectory.resolve(measurementSummariesFileName).toFile());

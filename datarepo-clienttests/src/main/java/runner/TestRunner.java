@@ -442,9 +442,6 @@ public class TestRunner {
         "Kubernetes: Setting the initial number of pods in the API deployment replica set to {}",
         config.kubernetes.numberOfInitialPods);
     KubernetesClientUtils.changeReplicaSetSizeAndWait(config.kubernetes.numberOfInitialPods);
-    //    if (config.kubernetes.numberOfInitialPods != 0) {
-    //      throw new RuntimeException("mariko force test failure to test gh action (TestRunner)");
-    //    }
   }
 
   private static final String renderedConfigFileName = "RENDERED_testConfiguration.json";

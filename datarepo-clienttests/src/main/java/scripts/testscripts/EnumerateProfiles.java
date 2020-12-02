@@ -22,9 +22,6 @@ public class EnumerateProfiles extends runner.TestScript {
     try {
       TimeUnit.SECONDS.sleep(60);
       ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-      if (!apiClient.isDebugging()) {
-        throw new RuntimeException("mariko force test failure to test gh action (test script)");
-      }
       ResourcesApi resourcesApi = new ResourcesApi(apiClient);
       EnumerateBillingProfileModel profiles = resourcesApi.enumerateProfiles(0, 10);
 

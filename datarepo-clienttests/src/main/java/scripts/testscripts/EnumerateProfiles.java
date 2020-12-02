@@ -20,7 +20,6 @@ public class EnumerateProfiles extends runner.TestScript {
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
     try {
-      TimeUnit.SECONDS.sleep(60);
       ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
       ResourcesApi resourcesApi = new ResourcesApi(apiClient);
       EnumerateBillingProfileModel profiles = resourcesApi.enumerateProfiles(0, 10);

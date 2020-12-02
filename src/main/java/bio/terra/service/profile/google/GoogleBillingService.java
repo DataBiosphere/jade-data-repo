@@ -87,7 +87,28 @@ public class GoogleBillingService {
         return cloudBillingClient(null);
     }
 
-    public boolean verifyAccess(AuthenticatedUserRequest user, String billingAccountId) {
+    /**
+     * Checks to see if a user has access to the billing account for this profile.
+     *
+     * from: https://developers.google.com/apis-explorer/#p/cloudbilling/v1/
+     *
+     * cloudbilling.billingAccounts.testIamPermissions	Tests the access control policy for a billing account. This
+     * method takes the resource and a set of permissions as input and returns the subset of the input permissions that
+     * the caller is allowed for that resource.
+     *
+     * from: https://cloud.google.com/billing/v1/how-tos/access-control
+     * from: https://bit.ly/2TM2RPz (TestIamPermissionsRequest sample code)
+     *
+     * In order to call projects.updateBillingInfo, the caller must have permissions billing.resourceAssociations.create
+     * and resourcemanager.projects.createBillingAssignment on the billing account.
+     *
+     * The second permission is specific to projects, so we will check for the first permission here.
+     *
+     * @param user
+     * @param billingAccountId
+     * @return true if a user can act as a billing account *user* (viewer is not enough), false otherwise
+     */
+    public boolean canAccess(AuthenticatedUserRequest user, String billingAccountId) {
         ResourceName resource = BillingAccountName.of(billingAccountId);
         List<String> permissions = Collections.singletonList("billing.resourceAssociations.create");
         TestIamPermissionsRequest permissionsRequest = TestIamPermissionsRequest.newBuilder()
@@ -113,67 +134,10 @@ public class GoogleBillingService {
     /**
      * Checks to see if the account the repository is running as has access to the billing account for this profile.
      *
-     * from: https://developers.google.com/apis-explorer/#p/cloudbilling/v1/
-     *
-     * cloudbilling.billingAccounts.testIamPermissions	Tests the access control policy for a billing account. This
-     * method takes the resource and a set of permissions as input and returns the subset of the input permissions that
-     * the caller is allowed for that resource.
-     *
-     * from: https://cloud.google.com/billing/v1/how-tos/access-control
-     * from: https://bit.ly/2TM2RPz (TestIamPermissionsRequest sample code)
-     *
-     * In order to call projects.updateBillingInfo, the caller must have permissions billing.resourceAssociations.create
-     * and resourcemanager.projects.createBillingAssignment on the billing account.
-     *
-     * The second permission is specific to projects, so we will check for the first permission here.
-     *
-     * @param billingAccountId
-     * @return true if the repository can act as a billing account *user* (viewer is not enough), false otherwise
+     * See {@link GoogleBillingService#canAccess(AuthenticatedUserRequest, String) } for more details.
      */
-    public boolean canAccess(String billingAccountId) {
-        ResourceName resource = BillingAccountName.of(billingAccountId);
-        List<String> permissions = Collections.singletonList("billing.resourceAssociations.create");
-        TestIamPermissionsRequest permissionsRequest = TestIamPermissionsRequest.newBuilder()
-            .setResource(resource.toString())
-            .addAllPermissions(permissions)
-            .build();
-        try (CloudBillingClient client = cloudBillingClient()) {
-            TestIamPermissionsResponse response = client.testIamPermissions(permissionsRequest);
-            List<String> actualPermissions = response.getPermissionsList();
-            return actualPermissions != null && actualPermissions.equals(permissions);
-        } catch (ApiException e) {
-            int status = e.getStatusCode().getCode().getHttpStatusCode();
-            if (status == 400 || status == 404) {
-                // The billing account id is invalid or does not exist. This counts as inaccessible.
-                return false;
-            }
-            String message = String.format("Could not check permissions on billing account '%s'", billingAccountId);
-            throw new BillingServiceException(message, e);
-        }
-    }
-
-    public static boolean verifyAccess(AuthenticatedUserRequest user, String billingAccountId) {
-        ResourceName resource = BillingAccountName.of(billingAccountId);
-        List<String> permissions = Collections.singletonList("billing.resourceAssociations.create");
-        TestIamPermissionsRequest permissionsRequest = TestIamPermissionsRequest.newBuilder()
-            .setResource(resource.toString())
-            .addAllPermissions(permissions)
-            .build();
-        try {
-
-            TestIamPermissionsResponse response = cloudBillingClient(user)
-                .testIamPermissions(permissionsRequest);
-            List<String> actualPermissions = response.getPermissionsList();
-            return actualPermissions != null && actualPermissions.equals(permissions);
-        } catch (ApiException e) {
-            int status = e.getStatusCode().getCode().getHttpStatusCode();
-            if (status == 400 || status == 404) {
-                // The billing account id is invalid or does not exist. This counts as inaccessible.
-                return false;
-            }
-            String message = String.format("Could not check permissions on billing account '%s'", billingAccountId);
-            throw new BillingServiceException(message, e);
-        }
+    public boolean repositoryCanAccess(String billingAccountId) {
+        return canAccess(null, billingAccountId);
     }
 
     public boolean assignProjectBilling(BillingProfileModel billingProfile, GoogleProjectResource project) {

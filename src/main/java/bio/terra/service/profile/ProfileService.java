@@ -186,7 +186,7 @@ public class ProfileService {
         //  For now we just make sure that the building account is accessible to the
         //  TDR service account.
         String billingAccountId = profileModel.getBillingAccountId();
-        if (!billingService.canAccess(billingAccountId)) {
+        if (!billingService.repositoryCanAccess(billingAccountId)) {
             throw new InaccessibleBillingAccountException("The repository needs access to billing account "
                 + billingAccountId + " to perform the requested operation");
         }
@@ -267,7 +267,7 @@ public class ProfileService {
         // credentials uses the user credentials
 
         String billingAccountId = request.getBillingAccountId();
-        if (!billingService.verifyAccess(user, billingAccountId)) {
+        if (!billingService.canAccess(user, billingAccountId)) {
             throw new InaccessibleBillingAccountException("The repository needs access to billing account "
                 + billingAccountId + " to perform the requested operation");
         }

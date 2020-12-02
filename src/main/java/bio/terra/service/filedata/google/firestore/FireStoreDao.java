@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.app.logging.PerformanceLogger;
-import bio.terra.model.SnapshotProject;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -12,6 +11,7 @@ import bio.terra.service.filedata.exception.DirectoryMetadataComputeException;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotProject;
 import com.google.cloud.firestore.Firestore;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -229,7 +229,7 @@ public class FireStoreDao {
                                           int enumerateDepth,
                                           boolean throwOnNotFound) throws InterruptedException {
         String projectName = snapshot.getDataProject();
-        String datasetId = snapshot.getId();
+        String datasetId = snapshot.getId().toString();
         Firestore firestore = FireStoreProject.get(projectName).getFirestore();
 
         FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveById(firestore, datasetId, fileId);

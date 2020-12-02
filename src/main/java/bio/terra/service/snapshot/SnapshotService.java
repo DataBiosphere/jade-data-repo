@@ -153,7 +153,8 @@ public class SnapshotService {
         return makeSummaryModelFromSummary(snapshotSummary);
     }
 
-    /** Convenience wrapper around fetching an existing Snapshot object and converting it to a Model object.
+    /**
+     * Convenience wrapper around fetching an existing Snapshot object and converting it to a Model object.
      * Unlike the Snapshot object, the Model object includes a reference to the associated cloud project.
      *
      * Note that this method will only return a snapshot if it is NOT exclusively locked.
@@ -167,7 +168,8 @@ public class SnapshotService {
         return populateSnapshotModelFromSnapshot(snapshot);
     }
 
-    /** Fetch existing Snapshot object using the id.
+    /**
+     * Fetch existing Snapshot object using the id.
      * @param id in UUID format
      * @return a Snapshot object
      */
@@ -175,7 +177,8 @@ public class SnapshotService {
         return snapshotDao.retrieveSnapshot(id);
     }
 
-    /** Fetch existing Snapshot object that is NOT exclusively locked.
+    /**
+     * Fetch existing Snapshot object that is NOT exclusively locked.
      * @param id in UUID format
      * @return a Snapshot object
      */
@@ -183,7 +186,8 @@ public class SnapshotService {
         return snapshotDao.retrieveAvailableSnapshot(id);
     }
 
-    /** Fetch existing Snapshot object that is NOT exclusively locked.
+    /**
+     * Fetch existing Snapshot object that is NOT exclusively locked.
      * @param id in UUID format
      * @return a Snapshot object
      */
@@ -191,7 +195,8 @@ public class SnapshotService {
         return snapshotDao.retrieveAvailableSnapshotProject(id);
     }
 
-    /** Fetch existing Snapshot object using the name.
+    /**
+     * Fetch existing Snapshot object using the name.
      * @param name
      * @return a Snapshot object
      */

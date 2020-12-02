@@ -25,9 +25,9 @@ public class EnumerateProfiles extends runner.TestScript {
       ResourcesApi resourcesApi = new ResourcesApi(apiClient);
       EnumerateBillingProfileModel profiles = resourcesApi.enumerateProfiles(0, 10);
 
-      if (apiClient != null) {
-        throw new RuntimeException("mariko force test failure to test gh action");
-      }
+//      if (apiClient != null) {
+//        throw new RuntimeException("mariko force test failure to test gh action");
+//      }
 
       int httpStatus = resourcesApi.getApiClient().getStatusCode();
       logger.debug(

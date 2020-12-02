@@ -179,7 +179,7 @@ dependencies {
     compile "org.springframework.cloud:spring-cloud-starter-sleuth:2.2.5.RELEASE"
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-343dfff-SNAP'
     compile 'org.antlr:ST4:4.3'                          // String templating
-    compile group: 'io.kubernetes', name: 'client-java', version: '8.0.2'
+    compile group: 'io.kubernetes', name: 'client-java', version: '10.0.0'
 
     compile 'io.springfox:springfox-swagger-ui:2.10.0'
     compile 'io.springfox:springfox-swagger2:2.9.2'

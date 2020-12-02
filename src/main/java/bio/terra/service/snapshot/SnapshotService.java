@@ -12,7 +12,6 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotProject;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;

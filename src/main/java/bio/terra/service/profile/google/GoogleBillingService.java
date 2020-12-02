@@ -36,8 +36,6 @@ public class GoogleBillingService {
 
     private static CloudBillingClient cloudBillingClient(AuthenticatedUserRequest user) {
         try {
-            List<String> scopes = Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
-
             // Authentication is provided by the 'gcloud' tool when running locally
             // and by built-in service accounts when running on GAE, GCE, or GKE.
             GoogleCredentials serviceAccountCredentials = ServiceAccountCredentials.getApplicationDefault();
@@ -47,6 +45,7 @@ public class GoogleBillingService {
             // running in GCE, GKE or a Managed VM, the scopes are pulled from the GCE metadata server.
             // See https://developers.google.com/identity/protocols/application-default-credentials
             // for more information.
+            List<String> scopes = Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
             if (serviceAccountCredentials.createScopedRequired()) {
                 serviceAccountCredentials = serviceAccountCredentials.createScoped(scopes);
             }

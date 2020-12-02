@@ -267,7 +267,10 @@ public class ProfileService {
         // credentials uses the user credentials
 
         String billingAccountId = request.getBillingAccountId();
-        GoogleBillingService.verifyAccess(user, billingAccountId);
+        if (!billingService.verifyAccess(user, billingAccountId)) {
+            throw new InaccessibleBillingAccountException("The repository needs access to billing account "
+                + billingAccountId + " to perform the requested operation");
+        }
 
         // check with Doug Voet that this is a reasonable thing to do
     }

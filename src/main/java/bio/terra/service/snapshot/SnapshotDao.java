@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.model.SnapshotProject;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.common.MetadataEnumeration;
@@ -316,10 +315,10 @@ public class SnapshotDao {
         try {
             SnapshotProject snapshotProject = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
                 new SnapshotProject()
-                    .id(rs.getString("id"))
+                    .id(rs.getObject("id", UUID.class))
                     .name(rs.getString("name"))
-                    .dataProject(rs.getString("google_project_id"))
-                    .profileId(rs.getString("profile_id")));
+                    .profileId(rs.getObject("profile_id", UUID.class))
+                    .dataProject(rs.getString("google_project_id")));
             return snapshotProject;
         } catch (EmptyResultDataAccessException ex) {
             return null;

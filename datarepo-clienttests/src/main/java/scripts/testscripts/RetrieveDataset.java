@@ -21,7 +21,7 @@ public class RetrieveDataset extends SimpleDataset {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
     DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetSummaryModel.getId());
-    logger.debug(
+    logger.info(
         "Successfully retrieved dataset: name = {}, data project = {}",
         datasetModel.getName(),
         datasetModel.getDataProject());

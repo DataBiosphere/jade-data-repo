@@ -147,12 +147,12 @@ skaffold run
 1. Locally, application properties are controlled by the values in the various application.properties files.
     - `application.properties` contains the base/default values. A new property should be added here first.
     ```
-    datarepo.gcs.allowReuseExistingBuckets=false
+    google.allowReuseExistingBuckets=false
     ```
     - You can override the default value for connected and integration tests by adding a line to
     `application-connectedtest.properties` and `application-integrationtest.properties`.
     ```
-    datarepo.gcs.allowReuseExistingBuckets=true
+    google.allowReuseExistingBuckets=true
     ```
 2. Now that we use Helm, the properties also need to be added to the
 [base Data Repo charts](https://github.com/broadinstitute/datarepo-helm).
@@ -160,15 +160,15 @@ skaffold run
     - Add a new property under the `env` section. The formatting below might be messed up, and the yaml is very picky
     about spaces. So, copy/paste from another variable in the section instead of here.
     ```
-            {{- if .Values.env.datarepoGcsAllowreuseexistingbuckets }}
-            - name: DATAREPO_GCS_ALLOWREUSEEXISTINGBUCKETS
-              value: {{ .Values.env.datarepoGcsAllowreuseexistingbuckets | quote }}
+            {{- if .Values.env.googleAllowreuseexistingbuckets }}
+            - name: GOOGLE_ALLOWREUSEEXISTINGBUCKETS
+              value: {{ .Values.env.googleAllowreuseexistingbuckets | quote }}
             {{- end }}
     ```
     - Find the the [values.yaml](https://github.com/broadinstitute/datarepo-helm/blob/master/charts/datarepo-api/values.yaml) file.
     - Add a new line under the `env` section.
     ```
-      datarepoGcsAllowreuseexistingbuckets:
+      googleAllowreuseexistingbuckets:
     ```
     - Release a new version of the chart. Talk to DevOps to do this.
 3. To override properties for specific environments (e.g. integration), modify the
@@ -177,7 +177,7 @@ skaffold run
     for the specific environment.
     - Add a new line under the `env` section.
     ```
-    datarepoGcsAllowreuseexistingbuckets: true
+    googleAllowreuseexistingbuckets: true
     ```
    - It's a good idea to test out changes on your developer-namespace before making a PR.
    - Changes to integration, temp, or developer-namespace environments are good with regular PR approval (1 thumb for this repository).

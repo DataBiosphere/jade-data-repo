@@ -46,8 +46,8 @@ public class BatchOperationTest {
     @Test(expected = FileSystemExecutionException.class)
     public void batchFailureTest() throws Exception {
         // make sure batch operation works with some retries
-        // 15 retries should fail entirely twice through and give up
-        FakeApiFuture.initialize(15);
+        // 25 retries should fail entirely four times through and give up
+        FakeApiFuture.initialize(25);
         List<String> inputs = makeInputs(5);
         fireStoreUtils.batchOperation(inputs, input -> new FakeApiFuture());
     }

@@ -101,9 +101,8 @@ public class GoogleProjectService {
         // billing account.
         // In production, it is hazardous to use projects that exist since we do not know where they
         // came from, what resources they contain, who is paying for them.
-        // TODO: change the boolean when we have plumbed in the allowReuseExistingProjects flag.
         Project existingProject = getProject(googleProjectId);
-        if (existingProject != null) { // TODO: && resourceConfiguration.getAllowReuseExistingProjects()) {
+        if (existingProject != null && resourceConfiguration.getAllowReuseExistingProjects()) {
             return initializeProject(existingProject, billingProfile, roleIdentityMapping, false);
         }
 
@@ -285,7 +284,12 @@ public class GoogleProjectService {
                 blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
             }
         } catch (IOException | GeneralSecurityException e) {
-            throw new GoogleResourceException("Could not enable services", e);
+            // In development we are reusing projects. The TDR service account may not have permission to
+            // properly enable the services on a developer's project. In those cases, we do not want to
+            // error on failure. That result in issues down the line if we require enabling new services.
+            if (!resourceConfiguration.getAllowReuseExistingProjects()) {
+                throw new GoogleResourceException("Could not enable services", e);
+            }
         }
     }
 

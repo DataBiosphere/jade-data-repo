@@ -4,9 +4,6 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.ConfigGroupModel;
-import bio.terra.model.ConfigModel;
-import bio.terra.model.ConfigParameterModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
@@ -66,6 +63,7 @@ public class BucketResourceTest {
     @Autowired private ConnectedTestConfiguration testConfig;
     @MockBean private IamProviderInterface samService;
 
+    private BucketResourceUtils bucketResourceUtils = new BucketResourceUtils();
     private BillingProfileModel profile;
     private Storage storage;
     private List<String> bucketNames;
@@ -73,7 +71,8 @@ public class BucketResourceTest {
     private GoogleProjectResource projectResource;
     @Before
     public void setup() throws Exception {
-        logger.info("property allowReuseExistingBuckets = " + getAllowReuseExistingBuckets());
+        logger.info("property allowReuseExistingBuckets = {}",
+            bucketResourceUtils.getAllowReuseExistingBuckets(configService));
 
         profile = connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
         connectedOperations.stubOutSamCalls(samService);
@@ -160,7 +159,8 @@ public class BucketResourceTest {
     // this is testing one case of corrupt metadata (i.e. state of the cloud does not match state of the metadata)
     // bucket cloud resource exists, but the corresponding bucket_resource metadata row does not
     public void bucketExistsBeforeMetadataTest() throws Exception {
-        logger.info("app property allowReuseExistingBuckets = " + getAllowReuseExistingBuckets());
+        logger.info("property allowReuseExistingBuckets = {}",
+            bucketResourceUtils.getAllowReuseExistingBuckets(configService));
 
         String bucketName = "testbucket_bucketexistsbeforemetadatatest";
         String flightIdA = "bucketExistsBeforeMetadataTestA";
@@ -185,7 +185,7 @@ public class BucketResourceTest {
 
         // set application property allowReuseExistingBuckets=false
         // try to create bucket again, check fails with corrupt metadata exception
-        setAllowReuseExistingBuckets(false);
+        bucketResourceUtils.setAllowReuseExistingBuckets(configService, false);
         String flightIdB = "bucketExistsBeforeMetadataTestB";
         boolean caughtCorruptMetadataException = false;
         try {
@@ -197,7 +197,7 @@ public class BucketResourceTest {
 
         // set application property allowReuseExistingBuckets=true
         // try to create bucket again, check succeeds
-        setAllowReuseExistingBuckets(true);
+        bucketResourceUtils.setAllowReuseExistingBuckets(configService, true);
         String flightIdC = "bucketExistsBeforeMetadataTestC";
         bucketResource = bucketService.getOrCreateBucket(bucketName, projectResource, flightIdC);
 
@@ -213,7 +213,8 @@ public class BucketResourceTest {
     // this is testing one case of corrupt metadata (i.e. state of the cloud does not match state of the metadata)
     // bucket_resource metadata row exists, but the corresponding bucket cloud resource does not
     public void noBucketButMetadataExistsTest() throws Exception {
-        logger.info("property allowReuseExistingBuckets = " + getAllowReuseExistingBuckets());
+        logger.info("property allowReuseExistingBuckets = {}",
+            bucketResourceUtils.getAllowReuseExistingBuckets(configService));
 
         String bucketName = "testbucket_nobucketbutmetadataexiststest";
         String flightIdA = "noBucketButMetadataExistsTestA";
@@ -296,19 +297,6 @@ public class BucketResourceTest {
                 resourceConfiguration.getSingleDataProjectId(),
                 profile,
                 roleToStewardMap);
-    }
-
-    private boolean getAllowReuseExistingBuckets() {
-        return configService.getParameterValue(ConfigEnum.ALLOW_REUSE_EXISTING_BUCKETS);
-    }
-
-    private void setAllowReuseExistingBuckets(boolean allow) {
-        ConfigModel model = configService.getConfig(ConfigEnum.ALLOW_REUSE_EXISTING_BUCKETS.name());
-        model.setParameter(new ConfigParameterModel().value(String.valueOf(allow)));
-        ConfigGroupModel configGroupModel = new ConfigGroupModel()
-            .label("BucketResourceTest")
-            .addGroupItem(model);
-        configService.setConfig(configGroupModel);
     }
 
 }

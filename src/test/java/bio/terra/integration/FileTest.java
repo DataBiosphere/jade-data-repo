@@ -45,6 +45,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -281,7 +283,10 @@ public class FileTest extends UsersBase {
             steward(), datasetId, profileId, gsPath + "/files/file with space and #hash%percent+plus.txt", filePath);
         String fileId = fileModel.getFileId();
 
-        String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId);
+        int numRows = 1000;
+        String json = IntStream.range(0, numRows)
+            .mapToObj(i -> String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId))
+            .collect(Collectors.joining("\n"));
 
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
         BlobInfo targetBlobInfo = BlobInfo
@@ -297,7 +302,7 @@ public class FileTest extends UsersBase {
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
             steward(), datasetId, request);
 
-        assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
+        assertThat("right number of rows were  ingested", ingestResponseModel.getRowCount(), equalTo((long) numRows));
 
         // Create a snapshot exposing the one row and grant read access to our reader.
         SnapshotSummaryModel snapshotSummaryModel = dataRepoFixtures.createSnapshot(

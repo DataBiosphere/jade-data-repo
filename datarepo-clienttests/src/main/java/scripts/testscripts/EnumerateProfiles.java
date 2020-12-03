@@ -3,7 +3,6 @@ package scripts.testscripts;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.EnumerateBillingProfileModel;
-import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -20,7 +19,6 @@ public class EnumerateProfiles extends runner.TestScript {
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
     try {
-      TimeUnit.SECONDS.sleep(60);
       ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
       ResourcesApi resourcesApi = new ResourcesApi(apiClient);
       EnumerateBillingProfileModel profiles = resourcesApi.enumerateProfiles(0, 10);

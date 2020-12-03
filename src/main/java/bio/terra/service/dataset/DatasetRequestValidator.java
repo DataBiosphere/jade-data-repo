@@ -90,6 +90,14 @@ public class DatasetRequestValidator implements Validator {
         }
     }
 
+    private void validateDatasetName(String datasetName, Errors errors) {
+        // NOTE: We used to manually check the name against a pattern here, but the latest
+        // versions of Swagger codegen now auto-generate an equivalent check.
+        if (datasetName == null) {
+            errors.rejectValue("name", "DatasetNameMissing");
+        }
+    }
+
     private void validateDatePartitionOptions(DatePartitionOptionsModel options,
                                               List<ColumnModel> columns, Errors errors) {
         String targetColumn = options.getColumn();
@@ -336,8 +344,9 @@ public class DatasetRequestValidator implements Validator {
 
     @Override
     public void validate(@NotNull Object target, Errors errors) {
-        if (target instanceof DatasetRequestModel) {
+        if (target != null && target instanceof DatasetRequestModel) {
             DatasetRequestModel datasetRequest = (DatasetRequestModel) target;
+            validateDatasetName(datasetRequest.getName(), errors);
             DatasetSpecificationModel schema = datasetRequest.getSchema();
             if (schema != null) {
                 validateSchema(schema, errors);

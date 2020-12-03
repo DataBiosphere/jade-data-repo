@@ -12,20 +12,15 @@ import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
-import bio.terra.service.iam.IamService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.Matcher;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -36,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.fixtures.DatasetFixtures.buildAsset;
@@ -51,8 +45,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -68,22 +60,6 @@ public class DatasetValidationsTest {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @MockBean private IamService mockIamService;
-
-    // Mock MVC doesn't populate the fields used to build this.
-    @MockBean
-    private AuthenticatedUserRequestFactory mockAuthenticatedUserRequestFactory;
-
-    @Before
-    public void setup() {
-        AuthenticatedUserRequest fakeAuthentication = new AuthenticatedUserRequest();
-        fakeAuthentication
-            .token(Optional.of("fake-token"))
-            .email("fake@email.com")
-            .subjectId("fakeID123");
-        when(mockAuthenticatedUserRequestFactory.from(any())).thenReturn(fakeAuthentication);
-    }
 
     private ErrorModel expectBadDatasetCreateRequest(DatasetRequestModel datasetRequest) throws Exception {
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
@@ -334,7 +310,7 @@ public class DatasetValidationsTest {
     @Test
     public void testDatasetNameMissing() throws Exception {
         ErrorModel errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(null));
-        checkValidationErrorModel(errorModel, new String[]{"NotNull"});
+        checkValidationErrorModel(errorModel, new String[]{"NotNull", "DatasetNameMissing"});
     }
 
     @Test

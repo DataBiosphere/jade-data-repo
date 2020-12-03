@@ -115,4 +115,5 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         System.out.println("swagger-ui.html");
         return "redirect:swagger-ui.html";
     }
+
 }

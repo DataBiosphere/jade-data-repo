@@ -25,10 +25,6 @@ public class UpgradeService {
         CustomFlight(Class<? extends Flight> flightClass) {
             this.flightClass = flightClass;
         }
-
-        public Class<? extends Flight> getFlightClass() {
-            return flightClass;
-        }
     }
 
     private final JobService jobService;
@@ -57,7 +53,7 @@ public class UpgradeService {
         // Note: in order to allow for an extensible endpoint, we do not require that customName is filled in.
         // That means it could be null here. We could do a separate null check, but the valueOf also does the
         // check and throws the NPE.
-        CustomFlight customFlight;
+        final CustomFlight customFlight;
         try {
             customFlight = CustomFlight.valueOf(request.getCustomName());
         } catch (NullPointerException ex) {
@@ -68,7 +64,7 @@ public class UpgradeService {
         }
 
         return jobService
-            .newJob(request.getCustomName(), customFlight.getFlightClass(), request, user)
+            .newJob(request.getCustomName(), customFlight.flightClass, request, user)
             .submit();
     }
 }

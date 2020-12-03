@@ -274,7 +274,7 @@ public class SamIam implements IamProviderInterface {
     private Void createProfileResourceInner(AuthenticatedUserRequest userReq, String profileId) throws ApiException {
         // TODO: For now we continue to give stewards access to all profiles. That is consistent with
         //  the current behavior. When we do the migration to the new permission model we should remove
-        //  this and replace it with the admin group or similar.
+        //  this and replace it with the admin group or similar. See DR-663
         List<String> ownerList = Arrays.asList(userReq.getEmail(), samConfig.getStewardsGroupEmail());
 
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
@@ -511,6 +511,10 @@ public class SamIam implements IamProviderInterface {
                 return new IamBadRequestException(samEx);
             }
             case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED: {
+                return new IamUnauthorizedException(samEx);
+            }
+            case HttpStatusCodes.STATUS_CODE_FORBIDDEN: {
+                // TODO: This is the wrong exception. See https://broadworkbench.atlassian.net/browse/DR-1482
                 return new IamUnauthorizedException(samEx);
             }
             case HttpStatusCodes.STATUS_CODE_NOT_FOUND: {

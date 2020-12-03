@@ -20,13 +20,13 @@ import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
+import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -197,7 +197,8 @@ public class ProfileService {
                                               PolicyMemberRequest policyMember,
                                               AuthenticatedUserRequest user) {
         // TODO: their may may not be a resource behind this profile. Therefore we
-        //  eat any not found exception called that a success. Move when we enable authorization.
+        //  eat any unauthorize/forbidden exception called that a success.
+        //  Remove when we enable authorization.
         try {
             return iamService.addPolicyMember(
                 user,
@@ -205,10 +206,16 @@ public class ProfileService {
                 UUID.fromString(profileId),
                 policyName,
                 policyMember.getEmail());
-        } catch (IamNotFoundException ex) {
-            logger.warn("Ignoring not found exception", ex);
+        } catch (IamUnauthorizedException ex) {
+            if (ex.getCause() instanceof ApiException) {
+                ApiException samEx = (ApiException) ex.getCause();
+                if (samEx.getCode() == 403) {
+                    logger.warn("Ignoring not found exception", ex);
+                    return new PolicyModel();
+                }
+            }
+            throw ex;
         }
-        return new PolicyModel();
     }
 
     // -- methods invoked from billing profile flights --
@@ -270,12 +277,7 @@ public class ProfileService {
         List<BillingProfileModel> profiles = profileDao.getOldBillingProfiles();
 
         List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
-        Set<String> profileResourceSet;
-        if (resources == null) {
-            profileResourceSet = Collections.EMPTY_SET;
-        } else {
-            profileResourceSet = resources.stream().map(r -> toString()).collect(Collectors.toSet());
-        }
+        Set<String> profileResourceSet = resources.stream().map(r -> toString()).collect(Collectors.toSet());
 
         for (BillingProfileModel profile : profiles) {
             String profileId = profile.getId();

@@ -41,7 +41,7 @@ public class ProfileDao {
         + " FROM billing_profile"
         + " WHERE id in (:idlist)";
 
-    private static final String sqlListOld = "SELECT " + sqlSelectList
+    private static final String sqlListAll = "SELECT " + sqlSelectList
         + " FROM billing_profile";
 
     @Autowired
@@ -121,7 +121,7 @@ public class ProfileDao {
      */
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public List<BillingProfileModel> getOldBillingProfiles() {
-        return jdbcTemplate.query(sqlListOld, new BillingProfileMapper());
+        return jdbcTemplate.query(sqlListAll, new BillingProfileMapper());
     }
 
     private static class BillingProfileMapper implements RowMapper<BillingProfileModel> {

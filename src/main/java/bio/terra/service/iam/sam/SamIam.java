@@ -11,6 +11,7 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.exception.IamBadRequestException;
+import bio.terra.service.iam.exception.IamConflictException;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.iam.exception.IamNotFoundException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
@@ -519,6 +520,9 @@ public class SamIam implements IamProviderInterface {
             }
             case HttpStatusCodes.STATUS_CODE_NOT_FOUND: {
                 return new IamNotFoundException(samEx);
+            }
+            case HttpStatusCodes.STATUS_CODE_CONFLICT: {
+                return new IamConflictException(samEx);
             }
             case HttpStatusCodes.STATUS_CODE_SERVER_ERROR: {
                 return new IamInternalServerErrorException(samEx);

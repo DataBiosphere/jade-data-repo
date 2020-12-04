@@ -1,5 +1,6 @@
 package bio.terra.service.profile;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.EnumerateBillingProfileModel;
@@ -8,11 +9,11 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.UpgradeModel;
 import bio.terra.model.UpgradeResponseModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamNotFoundException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
-import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.profile.flight.ProfileMapKeys;
@@ -40,7 +41,7 @@ public class ProfileService {
     private final IamService iamService;
     private final JobService jobService;
     private final GoogleBillingService billingService;
-    private final SamConfiguration samConfig;
+    private final ApplicationConfiguration applicationConfiguration;
 
 
     @Autowired
@@ -48,12 +49,12 @@ public class ProfileService {
                           IamService iamService,
                           JobService jobService,
                           GoogleBillingService billingService,
-                          SamConfiguration samConfig) {
+                          ApplicationConfiguration applicationConfiguration) {
         this.profileDao = profileDao;
         this.iamService = iamService;
         this.jobService = jobService;
         this.billingService = billingService;
-        this.samConfig = samConfig;
+        this.applicationConfiguration = applicationConfiguration;
     }
 
     /**
@@ -92,9 +93,9 @@ public class ProfileService {
      * @return jobId of the submitted stairway job
      */
     public String deleteProfile(String id, AuthenticatedUserRequest user) {
-        /*
-        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
-        */
+        if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
+            iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
+        }
         String description = String.format("Delete billing profile id '%s'", id);
         return jobService
             .newJob(description, ProfileDeleteFlight.class, null, user)
@@ -113,14 +114,13 @@ public class ProfileService {
     public EnumerateBillingProfileModel enumerateProfiles(Integer offset,
                                                           Integer limit,
                                                           AuthenticatedUserRequest user) {
-        // TODO: add back once spend profile fully implemented
-        /*
-        List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
-        if (resources.isEmpty()) {
-            return new EnumerateBillingProfileModel().total(0);
+        if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
+            List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
+            if (resources.isEmpty()) {
+                return new EnumerateBillingProfileModel().total(0);
+            }
+            return profileDao.enumerateBillingProfiles(offset, limit, resources);
         }
-        return profileDao.enumerateBillingProfiles(offset, limit, resources);
-        */
         return new EnumerateBillingProfileModel().total(0);
     }
 
@@ -134,13 +134,11 @@ public class ProfileService {
      * @throws IamUnauthorizedException when the caller does not have access to the billing profile
      */
     public BillingProfileModel getProfileById(String id, AuthenticatedUserRequest user) {
-        // TODO: add back once spend profile fully implemented
-        /*
-        if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id)) {
-            throw new IamUnauthorizedException("unauthorized");
+        if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
+            if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id)) {
+                throw new IamUnauthorizedException("unauthorized");
+            }
         }
-        */
-
         return getProfileByIdNoCheck(id);
     }
 
@@ -171,13 +169,12 @@ public class ProfileService {
      * @return the profile model associated with the profile id
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
-        // TODO: Add this back in once we have way to authorize w/ existing billing profiles
-        /*
-        iamService.verifyAuthorization(user,
-            IamResourceType.SPEND_PROFILE,
-            profileId.toString(),
-            IamAction.LINK);
-        */
+        if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
+            iamService.verifyAuthorization(user,
+                IamResourceType.SPEND_PROFILE,
+                profileId.toString(),
+                IamAction.LINK);
+        }
         BillingProfileModel profileModel = profileDao.getBillingProfileById(profileId);
 
         // TODO: check bill account usable and validate delegation path
@@ -207,11 +204,15 @@ public class ProfileService {
                 policyName,
                 policyMember.getEmail());
         } catch (IamUnauthorizedException ex) {
-            if (ex.getCause() instanceof ApiException) {
-                ApiException samEx = (ApiException) ex.getCause();
-                if (samEx.getCode() == 403) {
-                    logger.warn("Ignoring not found exception", ex);
-                    return new PolicyModel();
+            // TODO: If we are not enforcing authorization then we allow there to be a missing profile
+            //  sam resource. Remove during clean up.
+            if (!applicationConfiguration.isEnforceBillingProfileAuthorization()) {
+                if (ex.getCause() instanceof ApiException) {
+                    ApiException samEx = (ApiException) ex.getCause();
+                    if (samEx.getCode() == 403) {
+                        logger.warn("Ignoring not found exception", ex);
+                        return new PolicyModel();
+                    }
                 }
             }
             throw ex;
@@ -237,11 +238,14 @@ public class ProfileService {
 
     public void deleteProfileIamResource(String profileId, AuthenticatedUserRequest user) {
         // TODO: their may may not be a resource behind this profile. Therefore we
-        //  eat any not found exception called that a success. Move when we enable authorization.
+        //  eat any not found exception called that a success. Remove when we enable authorization.
         try {
             iamService.deleteProfileResource(user, profileId);
         } catch (IamNotFoundException ex) {
-            logger.warn("Ignoring not found exception", ex);
+            if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
+                throw ex;
+            }
+            logger.warn("Ignoring billing profile not found exception", ex);
         }
     }
 

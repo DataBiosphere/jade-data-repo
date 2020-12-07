@@ -14,7 +14,6 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamNotFoundException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
-import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.profile.flight.ProfileMapKeys;

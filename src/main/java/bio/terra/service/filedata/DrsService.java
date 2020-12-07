@@ -16,7 +16,7 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.apache.commons.lang3.StringUtils;
@@ -64,13 +64,13 @@ public class DrsService {
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
 
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
-        Snapshot snapshot = null;
+        SnapshotProject snapshotProject = null;
         try {
             UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
             // We only look up DRS ids for unlocked snapshots.
             String retrieveTimer = performanceLogger.timerStart();
 
-            snapshot = snapshotService.retrieveAvailable(snapshotId);
+            snapshotProject = snapshotService.retrieveAvailableSnapshotProject(snapshotId);
 
             performanceLogger.timerEndAndLog(
                 retrieveTimer,
@@ -104,7 +104,7 @@ public class DrsService {
         try {
             String lookupTimer = performanceLogger.timerStart();
             fsObject = fileService.lookupSnapshotFSItem(
-                snapshot,
+                snapshotProject,
                 drsId.getFsObjectId(),
                 depth);
 

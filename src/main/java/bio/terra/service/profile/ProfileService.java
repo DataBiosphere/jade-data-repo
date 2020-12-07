@@ -14,6 +14,7 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamNotFoundException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
+import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.profile.flight.ProfileMapKeys;
@@ -42,7 +43,6 @@ public class ProfileService {
     private final JobService jobService;
     private final GoogleBillingService billingService;
     private final ApplicationConfiguration applicationConfiguration;
-
 
     @Autowired
     public ProfileService(ProfileDao profileDao,
@@ -96,6 +96,7 @@ public class ProfileService {
         if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
             iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
         }
+
         String description = String.format("Delete billing profile id '%s'", id);
         return jobService
             .newJob(description, ProfileDeleteFlight.class, null, user)

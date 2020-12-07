@@ -41,6 +41,8 @@ public class ProfileDao {
         + " FROM billing_profile"
         + " WHERE id in (:idlist)";
 
+    private static final String sqlListAll = "SELECT " + sqlSelectList
+        + " FROM billing_profile";
 
     @Autowired
     public ProfileDao(NamedParameterJdbcTemplate jdbcTemplate) {
@@ -110,6 +112,16 @@ public class ProfileDao {
         int rowsAffected = jdbcTemplate.update("DELETE FROM billing_profile WHERE id = :id",
             new MapSqlParameterSource().addValue("id", id));
         return rowsAffected > 0;
+    }
+
+    /**
+     * This method is made for use by upgrade, where we need to find all of the old billing profiles
+     * without regard to visibility.
+     * @return list of billing profile models
+     */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<BillingProfileModel> getOldBillingProfiles() {
+        return jdbcTemplate.query(sqlListAll, new BillingProfileMapper());
     }
 
     private static class BillingProfileMapper implements RowMapper<BillingProfileModel> {

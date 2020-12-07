@@ -151,7 +151,7 @@ public class FireStoreUtils {
         return Long.toHexString(crc.getValue());
     }
 
-    private static final int NO_PROGRESS_MAX = 2;
+    private static final int NO_PROGRESS_MAX = 4;
     private static final int SLEEP_MILLISECONDS = 1000;
 
     /**

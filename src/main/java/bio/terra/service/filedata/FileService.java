@@ -25,6 +25,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -177,7 +178,7 @@ public class FileService {
     public FileModel lookupSnapshotFile(String snapshotId, String fileId, int depth) {
         try {
             // note: this method only returns snapshots that are NOT exclusively locked
-            Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
+            SnapshotProject snapshot = snapshotService.retrieveAvailableSnapshotProject(UUID.fromString(snapshotId));
             return fileModelFromFSItem(lookupSnapshotFSItem(snapshot, fileId, depth));
         } catch (InterruptedException ex) {
             throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
@@ -194,8 +195,8 @@ public class FileService {
         return fileModelFromFSItem(fsItem);
     }
 
-    FSItem lookupSnapshotFSItem(Snapshot snapshot, String fileId, int depth) throws InterruptedException {
-        return fileDao.retrieveById(snapshot, fileId, depth, true);
+    FSItem lookupSnapshotFSItem(SnapshotProject snapshot, String fileId, int depth) throws InterruptedException {
+        return fileDao.retrieveBySnapshotAndId(snapshot, fileId, depth, true);
     }
 
     FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth) throws InterruptedException {

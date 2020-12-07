@@ -6,6 +6,7 @@ env:
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
+  TDR_LOG_APPENDER: Console-Standard
 on:
   workflow_dispatch: {}
   schedule:
@@ -28,7 +29,7 @@ jobs:
         with:
           ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "Import Vault perf secrets"
-        uses: hashicorp/vault-action@v2.0.1
+        uses: hashicorp/vault-action@v2.1.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -45,7 +46,7 @@ jobs:
 
           ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
       - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.0.1
+        uses: hashicorp/vault-action@v2.1.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
@@ -103,7 +104,7 @@ jobs:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "Create datarepo-helm-definition pull request with updated perf image tag"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
+        uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
         with:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
@@ -118,7 +119,7 @@ jobs:
           labels: "datarepo,automerge,version-update"
       - name: "Install Helmfile"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/setup-helmfile@v0.5.0 #Forked from mamezou-tech/setup-helmfile
+        uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
       - name: "Use helmfile to apply image tag update to Perf yaml"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         run: |
@@ -177,7 +178,7 @@ jobs:
             --master-authorized-networks ${RESTORE_IPS}
       - name: "Notify Jade Slack"
         if: always()
-        uses: broadinstitute/action-slack@v2
+        uses: broadinstitute/action-slack@v3.8.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
@@ -188,7 +189,7 @@ jobs:
           text: "Perf tests"
       - name: "Notify QA Slack"
         if: ${{ github.event_name != 'workflow_dispatch' && always() }}
-        uses: broadinstitute/action-slack@v2
+        uses: broadinstitute/action-slack@v3.8.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -101,9 +101,8 @@ public class GoogleProjectService {
         // billing account.
         // In production, it is hazardous to use projects that exist since we do not know where they
         // came from, what resources they contain, who is paying for them.
-        // TODO: change the boolean when we have plumbed in the allowReuseExistingProjects flag.
         Project existingProject = getProject(googleProjectId);
-        if (existingProject != null) { // TODO: && resourceConfiguration.getAllowReuseExistingProjects()) {
+        if (existingProject != null && resourceConfiguration.getAllowReuseExistingProjects()) {
             return initializeProject(existingProject, billingProfile, roleIdentityMapping, false);
         }
 
@@ -176,6 +175,7 @@ public class GoogleProjectService {
                 .setName(requestedProjectId)
                 .setProjectId(requestedProjectId)
                 .setParent(parentResource);
+        logger.info("creating project with request: {}", requestBody);
         try {
             // kick off a project create request and poll until it is done
             CloudResourceManager resourceManager = cloudResourceManager();
@@ -227,14 +227,14 @@ public class GoogleProjectService {
         return googleProjectResource;
     }
 
-    private void deleteGoogleProject(String projectId) {
+    private void deleteGoogleProject(String googleProjectId) {
         // Don't actually delete the project if we are reusing projects!
         if (resourceConfiguration.getAllowReuseExistingProjects()) {
-            logger.info("Reusing projects: skipping delete of {}", projectId);
+            logger.info("Reusing projects: skipping delete of {}", googleProjectId);
         } else {
             try {
                 CloudResourceManager resourceManager = cloudResourceManager();
-                CloudResourceManager.Projects.Delete request = resourceManager.projects().delete(projectId);
+                CloudResourceManager.Projects.Delete request = resourceManager.projects().delete(googleProjectId);
                 // the response will be empty if the request is successful in the delete
                 request.execute();
             } catch (IOException | GeneralSecurityException e) {
@@ -284,7 +284,12 @@ public class GoogleProjectService {
                 blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
             }
         } catch (IOException | GeneralSecurityException e) {
-            throw new GoogleResourceException("Could not enable services", e);
+            // In development we are reusing projects. The TDR service account may not have permission to
+            // properly enable the services on a developer's project. In those cases, we do not want to
+            // error on failure. That result in issues down the line if we require enabling new services.
+            if (!resourceConfiguration.getAllowReuseExistingProjects()) {
+                throw new GoogleResourceException("Could not enable services", e);
+            }
         }
     }
 

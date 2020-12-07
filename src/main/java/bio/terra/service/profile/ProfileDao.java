@@ -43,6 +43,8 @@ public class ProfileDao {
         + " FROM billing_profile"
         + " WHERE id in (:idlist)";
 
+    private static final String SQL_LIST_ALL = "SELECT " + SQL_SELECT_LIST
+        + " FROM billing_profile";
 
     @Autowired
     public ProfileDao(NamedParameterJdbcTemplate jdbcTemplate) {
@@ -118,6 +120,16 @@ public class ProfileDao {
             // handle a case of some active references.
             throw new ProfileInUseException("Profile is in use and cannot be deleted", ex);
         }
+    }
+
+    /**
+     * This method is made for use by upgrade, where we need to find all of the old billing profiles
+     * without regard to visibility.
+     * @return list of billing profile models
+     */
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<BillingProfileModel> getOldBillingProfiles() {
+        return jdbcTemplate.query(SQL_LIST_ALL, new BillingProfileMapper());
     }
 
     private static class BillingProfileMapper implements RowMapper<BillingProfileModel> {

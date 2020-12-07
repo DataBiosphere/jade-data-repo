@@ -35,8 +35,8 @@ deploy:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/gcloud-sqlproxy.yaml
     # datarepo-api
     - name: TEMP-jade-datarepo-api
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-api-0.0.22/datarepo-api-0.0.22.tgz
-      version: 0.0.22
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-api-0.0.23/datarepo-api-0.0.23.tgz
+      version: 0.0.23
       namespace: TEMP
       remote: true
       values:
@@ -53,8 +53,8 @@ deploy:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/datarepo-ui.yaml
     # oidc-proxy
     - name: TEMP-jade-oidc-proxy
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/oidc-proxy-0.0.13/oidc-proxy-0.0.13.tgz
-      version: 0.0.13
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/oidc-proxy-0.0.14/oidc-proxy-0.0.14.tgz
+      version: 0.0.14
       namespace: TEMP
       remote: true
       valuesFiles:

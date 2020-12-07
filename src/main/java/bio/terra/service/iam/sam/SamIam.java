@@ -11,6 +11,7 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.exception.IamBadRequestException;
+import bio.terra.service.iam.exception.IamConflictException;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.iam.exception.IamNotFoundException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
@@ -272,16 +273,16 @@ public class SamIam implements IamProviderInterface {
     }
 
     private Void createProfileResourceInner(AuthenticatedUserRequest userReq, String profileId) throws ApiException {
+        // TODO: For now we continue to give stewards access to all profiles. That is consistent with
+        //  the current behavior. When we do the migration to the new permission model we should remove
+        //  this and replace it with the admin group or similar. See DR-663
+        List<String> ownerList = Arrays.asList(userReq.getEmail(), samConfig.getStewardsGroupEmail());
+
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(profileId);
-
-        // TEMPORARY FOR DEBUGGING: Include me as owner2 so we can see what's going on
-        List<String> ownerList = Arrays.asList(userReq.getEmail(), "dd.datarepo@gmail.com");
         req.addPoliciesItem(
             IamRole.OWNER.toString(),
             createAccessPolicy(IamRole.OWNER, ownerList));
-//            createAccessPolicyOne(IamRole.OWNER, userReq.getEmail()));
-
         req.addPoliciesItem(
             IamRole.USER.toString(),
             createAccessPolicy(IamRole.USER, null));
@@ -519,6 +520,9 @@ public class SamIam implements IamProviderInterface {
             }
             case HttpStatusCodes.STATUS_CODE_NOT_FOUND: {
                 return new IamNotFoundException(samEx);
+            }
+            case HttpStatusCodes.STATUS_CODE_CONFLICT: {
+                return new IamConflictException(samEx);
             }
             case HttpStatusCodes.STATUS_CODE_SERVER_ERROR: {
                 return new IamInternalServerErrorException(samEx);

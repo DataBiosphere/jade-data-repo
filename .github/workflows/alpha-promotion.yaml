@@ -3,8 +3,7 @@ on:
   schedule:
     - cron: '30 2 * * *' # run at 2:30 AM UTC
 env:
-  chartVersion: 0.1.19
-
+  chartVersion: 0.1.29
 jobs:
   alpha_promotion:
     strategy:
@@ -41,7 +40,7 @@ jobs:
         with:
           args: yq r terra-helmfile/versions.yaml releases.datarepo
       - name: Create pull request
-        uses: broadinstitute/create-pull-request@v3 # forked from peter-evans/create-pull-request
+        uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
         id: create-pr
         with:
           token: ${{ secrets.TERRA_HELMFILE_TOKEN }}

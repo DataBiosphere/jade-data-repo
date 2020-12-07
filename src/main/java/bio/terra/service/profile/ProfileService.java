@@ -1,5 +1,6 @@
 package bio.terra.service.profile;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.BillingProfileModel;
@@ -35,16 +36,19 @@ public class ProfileService {
     private final IamService iamService;
     private final JobService jobService;
     private final GoogleBillingService billingService;
+    private final ApplicationConfiguration applicationConfiguration;
 
     @Autowired
     public ProfileService(ProfileDao profileDao,
                           IamService iamService,
                           JobService jobService,
-                          GoogleBillingService billingService) {
+                          GoogleBillingService billingService,
+                          ApplicationConfiguration applicationConfiguration) {
         this.profileDao = profileDao;
         this.iamService = iamService;
         this.jobService = jobService;
         this.billingService = billingService;
+        this.applicationConfiguration = applicationConfiguration;
     }
 
     /**
@@ -78,7 +82,7 @@ public class ProfileService {
      *     that is, no snapshots, dataset, or buckets referencing the profile</le>
      * </ul>
      *
-     * @param id   the unique id of the bill profile
+     * @param id the unique id of the bill profile
      * @param user the user attempting the delete
      * @return jobId of the submitted stairway job
      */
@@ -96,8 +100,8 @@ public class ProfileService {
      * Enumerate the profiles that are visible to the requesting user
      *
      * @param offset start of the range of profiles to return for this request
-     * @param limit  maximum number of profiles to return in this request
-     * @param user   user on whose behalf we are making this request
+     * @param limit maximum number of profiles to return in this request
+     * @param user user on whose behalf we are making this request
      * @return enumeration profile containing the list and total
      */
     public EnumerateBillingProfileModel enumerateProfiles(Integer offset,
@@ -123,7 +127,6 @@ public class ProfileService {
         if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id)) {
             throw new IamUnauthorizedException("unauthorized");
         }
-
         return getProfileByIdNoCheck(id);
     }
 
@@ -177,7 +180,6 @@ public class ProfileService {
                                               String policyName,
                                               PolicyMemberRequest policyMember,
                                               AuthenticatedUserRequest user) {
-        logger.info("id={} policy={} email={} authuser={}", profileId, policyName, policyMember.getEmail(), user.getEmail());
         return iamService.addPolicyMember(
             user,
             IamResourceType.SPEND_PROFILE,
@@ -243,5 +245,4 @@ public class ProfileService {
                 + billingAccountId + " to perform the requested operation");
         }
     }
-
 }

@@ -89,32 +89,33 @@ public class CreateSnapshotFireStoreDataStep implements Step {
                             refIds.size());
                     }
                 }
-
-                if (numFilesSeen != uniqueRefIds.size()) {
-                    logger.info("some files are repeated. {} unique values across {} total file references",
-                        uniqueRefIds.size(), numFilesSeen);
-                }
-                List<String> uniqueRefIdsAsList = new ArrayList<>(uniqueRefIds);
-                Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
-
-                String addFilesTimer = performanceLogger.timerStart();
-                fileDao.addFilesToSnapshot(dataset, snapshot, uniqueRefIdsAsList);
-                performanceLogger.timerEndAndLog(
-                    addFilesTimer,
-                    context.getFlightId(),
-                    this.getClass().getName(),
-                    "fileDao.addFilesToSnapshot",
-                    uniqueRefIds.size());
-
-                String addDependenciesTimer = performanceLogger.timerStart();
-                dependencyDao.storeSnapshotFileDependencies(dataset, snapshot.getId().toString(), uniqueRefIdsAsList);
-                performanceLogger.timerEndAndLog(
-                    addDependenciesTimer,
-                    context.getFlightId(),
-                    this.getClass().getName(),
-                    "dependencyDao.storeSnapshotFileDependencies",
-                    uniqueRefIds.size());
             }
+
+            if (numFilesSeen != uniqueRefIds.size()) {
+                logger.info("some files are repeated. {} unique values across {} total file references",
+                    uniqueRefIds.size(), numFilesSeen);
+            }
+
+            List<String> uniqueRefIdsAsList = new ArrayList<>(uniqueRefIds);
+            Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
+
+            String addFilesTimer = performanceLogger.timerStart();
+            fileDao.addFilesToSnapshot(dataset, snapshot, uniqueRefIdsAsList);
+            performanceLogger.timerEndAndLog(
+                addFilesTimer,
+                context.getFlightId(),
+                this.getClass().getName(),
+                "fileDao.addFilesToSnapshot",
+                uniqueRefIds.size());
+
+            String addDependenciesTimer = performanceLogger.timerStart();
+            dependencyDao.storeSnapshotFileDependencies(dataset, snapshot.getId().toString(), uniqueRefIdsAsList);
+            performanceLogger.timerEndAndLog(
+                addDependenciesTimer,
+                context.getFlightId(),
+                this.getClass().getName(),
+                "dependencyDao.storeSnapshotFileDependencies",
+                uniqueRefIds.size());
         }
 
         return StepResult.getStepResultSuccess();

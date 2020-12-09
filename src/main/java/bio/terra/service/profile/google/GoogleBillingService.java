@@ -8,6 +8,7 @@ import com.google.api.gax.rpc.ApiException;
 import com.google.api.resourcenames.ResourceName;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.cloud.billing.v1.BillingAccount;
 import com.google.cloud.billing.v1.BillingAccountName;
 import com.google.cloud.billing.v1.CloudBillingClient;
 import com.google.cloud.billing.v1.CloudBillingSettings;
@@ -109,6 +110,15 @@ public class GoogleBillingService {
         } catch (ApiException e) {
             String message = String.format("Could not assign billing account '%s' to project: %s", billingAccountId,
                 projectId);
+            throw new BillingServiceException(message, e);
+        }
+    }
+
+    public BillingAccount getProjectBilling(String projectId) {
+        try {
+            return cloudBillingClient().getBillingAccount("projects/" + projectId);
+        } catch (ApiException e) {
+            String message = String.format("Could not retrieve billing account to project: %s", projectId);
             throw new BillingServiceException(message, e);
         }
     }

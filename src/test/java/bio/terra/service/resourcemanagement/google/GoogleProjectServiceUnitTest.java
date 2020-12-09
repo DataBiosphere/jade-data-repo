@@ -28,13 +28,16 @@ import static org.junit.Assert.assertThat;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
-public class GoogleResourceDaoTest {
+public class GoogleProjectServiceUnitTest {
 
     @Autowired
     private ProfileDao profileDao;
 
     @Autowired
     private GoogleResourceDao googleResourceDao;
+
+    @Autowired
+    private GoogleProjectService googleProjectService;
 
     private BillingProfileModel billingProfile;
     private List<GoogleProjectResource> projects;

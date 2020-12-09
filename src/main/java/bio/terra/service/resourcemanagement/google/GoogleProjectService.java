@@ -1,9 +1,7 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
@@ -464,10 +462,32 @@ public class GoogleProjectService {
         return operation;
     }
 
+    public void updateProjectsBillingAccount(BillingProfileModel billingProfileModel) {
+        List<GoogleProjectResource> projects = resourceDao
+            .retrieveProjectsByBillingProfileId(UUID.fromString(billingProfileModel.getId()));
 
-    public void updateBillingProfile(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
+        if (projects.size() == 0) {
+            logger.info("No projects attached to billing profile so nothing to update.");
+        }
 
-        logger.info("TODO: GoogleProjectService.updateBillingProfile");
-        //billingService.assignProjectBilling(billingProfile, googleProjectResource);
+        projects.stream().forEach(project -> {
+            logger.info("Updating billing profile id {} in google project {}",
+                billingProfileModel.getBillingAccountId(), project.getGoogleProjectId());
+            updateBillingProfile(
+                project.getGoogleProjectNumber(), project.getGoogleProjectId(), billingProfileModel);
+        });
+    }
+
+    public void updateBillingProfile(String googleProjectNumber,
+                                     String googleProjectId,
+                                     BillingProfileModel billingProfile) {
+        GoogleProjectResource googleProjectResource =
+            new GoogleProjectResource()
+                .profileId(UUID.fromString(billingProfile.getId()))
+                .googleProjectId(googleProjectId)
+                .googleProjectNumber(googleProjectNumber);
+
+        // The billing profile has already been authorized so we do no further checking here
+        billingService.assignProjectBilling(billingProfile, googleProjectResource);
     }
 }

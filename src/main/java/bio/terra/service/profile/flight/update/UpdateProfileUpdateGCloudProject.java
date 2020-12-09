@@ -1,10 +1,7 @@
 package bio.terra.service.profile.flight.update;
 
-import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -13,22 +10,12 @@ import bio.terra.stairway.StepResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class UpdateProfileUpdateGCloudProject implements Step {
     private static final Logger logger = LoggerFactory.getLogger(UpdateProfileUpdateGCloudProject.class);
-    private final ProfileService profileService;
     private final GoogleProjectService googleProjectService;
-    private final BillingProfileRequestModel request;
-    private final AuthenticatedUserRequest user;
 
-    public UpdateProfileUpdateGCloudProject(ProfileService profileService,
-                                            GoogleProjectService projectService,
-                                            BillingProfileRequestModel request,
-                                            AuthenticatedUserRequest user) {
-        this.profileService = profileService;
+    public UpdateProfileUpdateGCloudProject(GoogleProjectService projectService) {
         this.googleProjectService = projectService;
-        this.request = request;
-        this.user = user;
     }
 
     @Override
@@ -37,23 +24,27 @@ public class UpdateProfileUpdateGCloudProject implements Step {
         FlightMap workingMap = context.getWorkingMap();
         BillingProfileModel existingBillingProfileModel =
             workingMap.get(JobMapKeys.REVERT_TO.getKeyName(), BillingProfileModel.class);
+        BillingProfileModel newBillingProfileModel =
+            workingMap.get(JobMapKeys.RESPONSE.getKeyName(), BillingProfileModel.class);
         // maybe I should check the actual google project billing account instead?
         // This is an okay start
-        if (existingBillingProfileModel.getBillingAccountId() != request.getBillingAccountId()) {
-            logger.info("Updating billing profile id {} in google project", request.getBillingAccountId());
-            profileService.verifyAccount(request, user);
-            // use GoogleProjectService new method to update billing account
-            // should this also live in profileService?
-            googleProjectService.updateBillingProfile(request, user);
+        if (existingBillingProfileModel.getBillingAccountId() != newBillingProfileModel.getBillingAccountId()) {
+            googleProjectService.updateProjectsBillingAccount(newBillingProfileModel);
         } else {
-            logger.info("Billing profile id already set to {}", request.getBillingAccountId());
+            logger.info("Billing profile id already set to {}", newBillingProfileModel.getBillingAccountId());
         }
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) throws InterruptedException {
-        //TODO: Revert project id change
+        // We'll go ahead and update every project, even if it wasn't changed in "do" step.
+        FlightMap workingMap = context.getWorkingMap();
+        BillingProfileModel existingBillingProfileModel =
+            workingMap.get(JobMapKeys.REVERT_TO.getKeyName(), BillingProfileModel.class);
+
+        googleProjectService.updateProjectsBillingAccount(existingBillingProfileModel);
+
         return StepResult.getStepResultSuccess();
     }
 }

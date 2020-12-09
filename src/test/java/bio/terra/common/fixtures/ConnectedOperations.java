@@ -220,7 +220,8 @@ public class ConnectedOperations {
         MockHttpServletResponse response = validateJobModelAndWait(result);
         BillingProfileModel billingProfileModel = handleSuccessCase(response, BillingProfileModel.class);
 
-        System.out.println("update profile: " + result.getResponse().getStatus() + " " + result.getResponse().getErrorMessage());
+        System.out.println("update profile: " + result.getResponse().getStatus() + " " +
+            result.getResponse().getErrorMessage());
         return billingProfileModel;
     }
 

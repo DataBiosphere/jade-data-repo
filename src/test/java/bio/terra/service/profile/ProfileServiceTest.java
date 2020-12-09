@@ -4,7 +4,6 @@ package bio.terra.service.profile;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
@@ -125,7 +124,6 @@ public class ProfileServiceTest {
         // probably should create new "BillingProfileUpdateRequestModel" that just allow changes to billing account id
         // and description?
 
-        // This just submits the update profile job
         BillingProfileModel newModel = connectedOperations.updateProfile(updatedRequest);
         logger.info("Updated model: {}", newModel.toString());
         assertThat("Billing account should be equal to the newBillingAccountId",

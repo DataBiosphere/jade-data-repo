@@ -5,7 +5,7 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.load.LoadDao;
@@ -114,12 +114,10 @@ public class ProfileServiceTest {
         System.out.println("Retrieve Profile: " + model.getProfileName());
 
         // ==========THING TESTED FOR THIS PR=============
-        BillingProfileRequestModel updatedRequest = new BillingProfileRequestModel()
+        BillingProfileUpdateModel updatedRequest = new BillingProfileUpdateModel()
             .billingAccountId(newBillingAccountId)
-            .biller("direct")
-            .description("updated profile")
-            .id(profile.getId())
-            .profileName(profile.getProfileName() + "-updated");
+            .description("updated profile description")
+            .id(profile.getId());
         // TODO: Can the profile name change? Since we create a project that is tied between the two, I don't think so.
         // probably should create new "BillingProfileUpdateRequestModel" that just allow changes to billing account id
         // and description?

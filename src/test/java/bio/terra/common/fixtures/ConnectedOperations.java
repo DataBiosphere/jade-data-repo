@@ -4,6 +4,7 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadRequestModel;
@@ -211,7 +212,7 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(result.getResponse().getContentAsString(), BillingProfileModel.class);
     }
 
-    public BillingProfileModel updateProfile(BillingProfileRequestModel profileRequestModel) throws Exception {
+    public BillingProfileModel updateProfile(BillingProfileUpdateModel profileRequestModel) throws Exception {
         MvcResult result = mvc.perform(put("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(profileRequestModel)))

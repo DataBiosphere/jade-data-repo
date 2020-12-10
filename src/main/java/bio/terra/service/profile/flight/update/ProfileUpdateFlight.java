@@ -4,7 +4,6 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -18,11 +17,9 @@ public class ProfileUpdateFlight extends Flight {
         ProfileService profileService = (ProfileService) appContext.getBean("profileService");
         GoogleProjectService googleProjectService =
             (GoogleProjectService) appContext.getBean("googleProjectService");
-        GoogleResourceDao googleResourceDao =
-            (GoogleResourceDao) appContext.getBean("googleResourceDao");
 
-        bio.terra.model.BillingProfileRequestModel request =
-            inputParameters.get(JobMapKeys.REQUEST.getKeyName(), bio.terra.model.BillingProfileRequestModel.class);
+        bio.terra.model.BillingProfileUpdateModel request =
+            inputParameters.get(JobMapKeys.REQUEST.getKeyName(), bio.terra.model.BillingProfileUpdateModel.class);
 
         AuthenticatedUserRequest user = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
@@ -30,7 +27,7 @@ public class ProfileUpdateFlight extends Flight {
         //update billing account id metadata
         addStep(new UpdateProfileMetadataStep(profileService, request, user));
         // Make sure valid account before changing in gcloud project
-        addStep(new UpdateProfileVerifyAccountStep(profileService, request, user));
+        addStep(new UpdateProfileVerifyAccountStep(profileService, user));
         // Update billing profile in gcloud project
         addStep(new UpdateProfileUpdateGCloudProject(googleProjectService));
     }

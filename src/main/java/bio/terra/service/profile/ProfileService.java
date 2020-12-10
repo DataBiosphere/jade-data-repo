@@ -3,6 +3,7 @@ package bio.terra.service.profile;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
@@ -96,7 +97,7 @@ public class ProfileService {
      * @param user the user attempting the delete
      * @return jobId of the submitted stairway job
      */
-    public String updateProfile(BillingProfileRequestModel billingProfileRequest,
+    public String updateProfile(BillingProfileUpdateModel billingProfileRequest,
                                 AuthenticatedUserRequest user) {
         // TODO: Make sure SAM check is right - UPDATE_BILLING_ACCOUNT is the newly added action for billing profile
         // or should I be updating the SAM profile? Update_metadata action?
@@ -106,7 +107,7 @@ public class ProfileService {
          */
 
 
-        String description = String.format("Create billing profile '%s'", billingProfileRequest.getProfileName());
+        String description = String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
         logger.info("[UPDATE PROFILE]: {}", description);
         return jobService
             .newJob(description, ProfileUpdateFlight.class, billingProfileRequest, user)
@@ -260,7 +261,7 @@ public class ProfileService {
         return profileDao.createBillingProfile(profileRequest, user.getEmail());
     }
 
-    public BillingProfileModel updateProfileMetadata(BillingProfileRequestModel profileRequest) {
+    public BillingProfileModel updateProfileMetadata(BillingProfileUpdateModel profileRequest) {
         return profileDao.updateBillingProfileById(profileRequest);
     }
 
@@ -288,11 +289,10 @@ public class ProfileService {
     }
 
     // Verify access to the billing account during billing profile creation
-    public void verifyAccount(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
+    public void verifyAccount(String billingAccountId, AuthenticatedUserRequest user) {
         // TODO: check bill account usable and creator has link access
         //  For now we just make sure that the billing account is accessible to the
         //  TDR service account.
-        String billingAccountId = request.getBillingAccountId();
         if (!billingService.canAccess(billingAccountId)) {
             throw new InaccessibleBillingAccountException("The repository needs access to billing account "
                 + billingAccountId + " to perform the requested operation");

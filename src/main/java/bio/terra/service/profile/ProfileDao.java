@@ -4,6 +4,7 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.EnumerateBillingProfileModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,15 +76,12 @@ public class ProfileDao {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public BillingProfileModel updateBillingProfileById(BillingProfileRequestModel profileRequest) {
+    public BillingProfileModel updateBillingProfileById(BillingProfileUpdateModel profileRequest) {
         String sql = "UPDATE billing_profile "
-            + "SET name = :name, biller = :biller, billing_account_id = :billing_account_id, "
-            + "description = :description "
+            + "SET billing_account_id = :billing_account_id, description = :description "
             + "WHERE id = :id";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("id", UUID.fromString(profileRequest.getId()))
-            .addValue("name", profileRequest.getProfileName())
-            .addValue("biller", profileRequest.getBiller())
             .addValue("billing_account_id", profileRequest.getBillingAccountId())
             .addValue("description", profileRequest.getDescription());
         DaoKeyHolder keyHolder = new DaoKeyHolder();

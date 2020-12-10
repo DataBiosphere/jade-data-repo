@@ -201,7 +201,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BillingProfileRequestModel'
+              $ref: '#/components/schemas/BillingProfileUpdateModel'
         required: true
       responses:
         200:
@@ -2438,6 +2438,19 @@ components:
           type: string
           description: either “direct” or the reseller of the sub-account that sends
             the bill (like “on_spend”)
+        description:
+          type: string
+          description: Free text that describes the profile
+    BillingProfileUpdateModel:
+      required:
+        - id
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        billingAccountId:
+          type: string
+          description: unique identifier of the billing account from Google
         description:
           type: string
           description: Free text that describes the profile

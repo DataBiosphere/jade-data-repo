@@ -4,6 +4,7 @@ import bio.terra.app.utils.ControllerUtils;
 import bio.terra.controller.ResourcesApi;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
@@ -86,7 +87,7 @@ public class ProfileApiController implements ResourcesApi {
 
     @Override
     public ResponseEntity<JobModel> updateProfile(
-        @Valid @RequestBody BillingProfileRequestModel billingProfileRequest) {
+        @Valid @RequestBody  BillingProfileUpdateModel billingProfileRequest) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
         String jobId = profileService.updateProfile(billingProfileRequest, user);
         return jobToResponse(jobService.retrieveJob(jobId, user));

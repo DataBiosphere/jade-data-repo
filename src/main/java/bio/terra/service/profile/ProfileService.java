@@ -88,13 +88,9 @@ public class ProfileService {
      *     <le>The caller must have billing.resourceAssociation.create permission on the google billing account</le>
      *     <le>The google billing account must be enabled</le>
      * </ul>
-     * <p>
-     * The billing profile name does not need to be unique across all billing profiles.
-     * The billing profile id needs to be a valid and existing profile
-     * </p>
      *
      * @param  billingProfileRequest request with changes to billing profile
-     * @param user the user attempting the delete
+     * @param user the user attempting to update the billing profile
      * @return jobId of the submitted stairway job
      */
     public String updateProfile(BillingProfileUpdateModel billingProfileRequest,
@@ -103,7 +99,6 @@ public class ProfileService {
             IamAction.UPDATE_BILLING_ACCOUNT);
 
         String description = String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
-        logger.info("[UPDATE PROFILE]: {}", description);
         return jobService
             .newJob(description, ProfileUpdateFlight.class, billingProfileRequest, user)
             .submit();

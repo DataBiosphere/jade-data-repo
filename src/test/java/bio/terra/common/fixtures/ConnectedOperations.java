@@ -219,11 +219,7 @@ public class ConnectedOperations {
             .andReturn();
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        BillingProfileModel billingProfileModel = handleSuccessCase(response, BillingProfileModel.class);
-
-        System.out.println("update profile: " + result.getResponse().getStatus() + " " +
-            result.getResponse().getErrorMessage());
-        return billingProfileModel;
+        return handleSuccessCase(response, BillingProfileModel.class);
     }
 
     public SnapshotSummaryModel createSnapshot(DatasetSummaryModel datasetSummaryModel,

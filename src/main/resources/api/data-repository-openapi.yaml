@@ -195,7 +195,7 @@ paths:
         - resources
       description: >
         Update a billing profile by id. This is asynchronous.
-        The final return is of type definitions/UpdateResponseModel.
+        The final return is of type definitions/BillingProfileModel.
       operationId: updateProfile
       requestBody:
         content:
@@ -241,12 +241,6 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
         404:
           description: Not found - profile does not exist
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
-        409:
-          description: Profile in use by at least one dataset
           content:
             application/json:
               schema:
@@ -2450,7 +2444,7 @@ components:
           $ref: '#/components/schemas/UniqueIdProperty'
         billingAccountId:
           type: string
-          description: unique identifier of the billing account from Google
+          description: Unique identifier of the billing account from Google
         description:
           type: string
           description: Free text that describes the profile

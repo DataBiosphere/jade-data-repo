@@ -6,21 +6,16 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileUpdateModel;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.load.LoadDao;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.google.BucketResourceUtils;
-import bio.terra.service.resourcemanagement.google.GoogleBucketService;
+import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import com.google.api.client.util.Lists;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageOptions;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -33,10 +28,10 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -51,33 +46,24 @@ public class ProfileServiceTest {
     private final Logger logger = LoggerFactory.getLogger(ProfileServiceTest.class);
 
     @Autowired
-    private LoadDao loadDao;
-    @Autowired
-    private ConfigurationService configService;
-    @Autowired
-    private GoogleResourceConfiguration resourceConfiguration;
-    @Autowired
-    private GoogleBucketService bucketService;
-    @Autowired
-    private GoogleProjectService projectService;
+    private GoogleBillingService googleBillingService;
     @Autowired
     private ConnectedOperations connectedOperations;
     @Autowired
-    private GoogleResourceDao resourceDao;
+    private GoogleResourceDao googleResourceDao;
     @Autowired
-    private ResourceService resourceService;
-    @Autowired
-    private ProfileService profileService;
+    private ProfileDao profileDao;
     @Autowired
     private ConnectedTestConfiguration testConfig;
+    @Autowired
+    private GoogleProjectService googleProjectService;
+    @Autowired
+    private GoogleResourceConfiguration resourceConfiguration;
     @MockBean
     private IamProviderInterface samService;
 
-    private BucketResourceUtils bucketResourceUtils = new BucketResourceUtils();
+
     private BillingProfileModel profile;
-    private Storage storage;
-    private List<String> bucketNames;
-    private boolean allowReuseExistingBuckets;
     private GoogleProjectResource projectResource;
     private String oldBillingAccountId;
     private String newBillingAccountId;
@@ -85,50 +71,46 @@ public class ProfileServiceTest {
 
     @Before
     public void setup() throws Exception {
-        System.out.println("================== SETUP ===================");
         oldBillingAccountId = testConfig.getGoogleBillingAccountId();
         newBillingAccountId = testConfig.getSecondGoogleBillingAccountId();
 
         profile = connectedOperations.createProfileForAccount(oldBillingAccountId);
         connectedOperations.stubOutSamCalls(samService);
-        storage = StorageOptions.getDefaultInstance().getService();
-        bucketNames = new ArrayList<>();
 
-        // get or created project in which to do the bucket work
         projectResource = buildProjectResource();
-        System.out.println("================== TEST ===================");
     }
 
     @After
     public void teardown() throws Exception {
-        logger.info("================== CLEANUP ===================");
+        googleBillingService.assignProjectBilling(profile, projectResource);
+        googleResourceDao.deleteProject(projectResource.getId());
+        profileDao.deleteBillingProfileById(UUID.fromString(profile.getId()));
         // Connected operations resets the configuration
         connectedOperations.teardown();
     }
 
+    // TODO: Add back once we can create a new google project to test with
+    // Test for DR-1404 - Updates the billing account on google project
+    @Ignore
     @Test
-    // create and delete the bucket, checking that the metadata and cloud state match what is expected
-    public void createAndUpdateProfileTest() throws Exception {
+    public void updateProfileTest() throws Exception {
         System.out.println("profile: " + profile.getProfileName());
         BillingProfileModel model = connectedOperations.getProfileById(profile.getId());
+        assertThat("BEFORE UPDATE: Billing account should be equal to the oldBillingAccountId",
+            model.getBillingAccountId(),
+            equalTo(oldBillingAccountId));
         System.out.println("Retrieve Profile: " + model.getProfileName());
 
-        // ==========THING TESTED FOR THIS PR=============
         BillingProfileUpdateModel updatedRequest = new BillingProfileUpdateModel()
             .billingAccountId(newBillingAccountId)
             .description("updated profile description")
             .id(profile.getId());
-        // TODO: Can the profile name change? Since we create a project that is tied between the two, I don't think so.
-        // probably should create new "BillingProfileUpdateRequestModel" that just allow changes to billing account id
-        // and description?
 
         BillingProfileModel newModel = connectedOperations.updateProfile(updatedRequest);
         logger.info("Updated model: {}", newModel.toString());
-        assertThat("Billing account should be equal to the newBillingAccountId",
+        assertThat("AFTER UPDATEBilling account should be equal to the newBillingAccountId",
             newModel.getBillingAccountId(),
             equalTo(newBillingAccountId));
-
-        // ==========THING TESTED FOR THIS PR=============
     }
 
     private GoogleProjectResource buildProjectResource() throws Exception {
@@ -140,7 +122,7 @@ public class ProfileServiceTest {
         roleToStewardMap.put(role, stewardsGroupEmailList);
 
         // create project metadata
-        return projectService.getOrCreateProject(
+        return googleProjectService.getOrCreateProject(
             resourceConfiguration.getSingleDataProjectId(),
             profile,
             roleToStewardMap);

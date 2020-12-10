@@ -31,7 +31,6 @@ public enum IamAction {
     UPDATE_BILLING_ACCOUNT,
     LINK;
 
-
     @Override
     @JsonValue
     public String toString() {

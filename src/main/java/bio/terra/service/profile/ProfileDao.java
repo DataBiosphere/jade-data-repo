@@ -97,8 +97,6 @@ public class ProfileDao {
             .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
     }
 
-
-
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public EnumerateBillingProfileModel enumerateBillingProfiles(
         int offset,

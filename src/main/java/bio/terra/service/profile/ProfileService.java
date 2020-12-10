@@ -158,6 +158,7 @@ public class ProfileService {
             IamResourceType.SPEND_PROFILE,
             profileId.toString(),
             IamAction.LINK);
+
         BillingProfileModel profileModel = profileDao.getBillingProfileById(profileId);
 
         // TODO: check bill account usable and validate delegation path

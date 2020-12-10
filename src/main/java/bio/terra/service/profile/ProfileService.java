@@ -1,6 +1,5 @@
 package bio.terra.service.profile;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.BillingProfileModel;
@@ -36,19 +35,16 @@ public class ProfileService {
     private final IamService iamService;
     private final JobService jobService;
     private final GoogleBillingService billingService;
-    private final ApplicationConfiguration applicationConfiguration;
 
     @Autowired
     public ProfileService(ProfileDao profileDao,
                           IamService iamService,
                           JobService jobService,
-                          GoogleBillingService billingService,
-                          ApplicationConfiguration applicationConfiguration) {
+                          GoogleBillingService billingService) {
         this.profileDao = profileDao;
         this.iamService = iamService;
         this.jobService = jobService;
         this.billingService = billingService;
-        this.applicationConfiguration = applicationConfiguration;
     }
 
     /**

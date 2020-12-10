@@ -73,7 +73,7 @@ public class ResourceServiceTest {
 
         // TODO check to make sure a steward can complete a job in another test
 
-        projectService.deleteGoogleProject(projectResource.getId());
+        projectService.deleteProjectResource(projectResource.getId());
         project = projectService.getProject(projectId);
         assertThat("the project is not active after delete",
             project.getLifecycleState(),

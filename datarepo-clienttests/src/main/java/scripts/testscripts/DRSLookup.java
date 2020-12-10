@@ -21,6 +21,7 @@ import common.utils.BigQueryUtils;
 import common.utils.FileUtils;
 import common.utils.StorageUtils;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +43,13 @@ public class DRSLookup extends SimpleDataset {
 
   private static List<BlobId> scratchFiles = new ArrayList<>();
   private String dirObjectId;
+
+  private int K = 1;
+
+  public void setParameters(List<String> parameters) {
+      K = Integer.parseInt(parameters.get(0));
+      logger.debug("Repeated DRS Lookups (default is 1): {}", K);
+  }
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // create the profile and dataset
@@ -156,12 +164,15 @@ public class DRSLookup extends SimpleDataset {
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
-    DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
-    logger.debug(
-        "Successfully retrieved drs object: {}, with id: {} and data project: {}",
-        object.getName(),
-        dirObjectId,
-        snapshotModel.getDataProject());
+    for (int i = 0; i < K; i++) {
+          DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
+          logger.debug(
+              "Successfully retrieved drs object: {}, with id: {} and data project: {}",
+              object.getName(),
+              dirObjectId,
+              snapshotModel.getDataProject());
+      }
+
   }
 
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {

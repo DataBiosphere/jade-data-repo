@@ -99,13 +99,8 @@ public class ProfileService {
      */
     public String updateProfile(BillingProfileUpdateModel billingProfileRequest,
                                 AuthenticatedUserRequest user) {
-        // TODO: Make sure SAM check is right - UPDATE_BILLING_ACCOUNT is the newly added action for billing profile
-        // or should I be updating the SAM profile? Update_metadata action?
-        // TODO: add back once spend profile fully implemented
-        /*
-        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.UPDATE_BILLING_ACCOUNT);
-         */
-
+        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, billingProfileRequest.getId(),
+            IamAction.UPDATE_BILLING_ACCOUNT);
 
         String description = String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
         logger.info("[UPDATE PROFILE]: {}", description);

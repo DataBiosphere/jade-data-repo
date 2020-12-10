@@ -28,7 +28,9 @@ public enum IamAction {
     READ_DATA,
     DISCOVER_DATA,
     // billing profiles
+    UPDATE_BILLING_ACCOUNT,
     LINK;
+
 
     @Override
     @JsonValue

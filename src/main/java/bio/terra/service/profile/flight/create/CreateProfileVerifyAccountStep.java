@@ -29,6 +29,7 @@ public class CreateProfileVerifyAccountStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) throws InterruptedException {
+        // Verify account has no side effects to clean up
         return StepResult.getStepResultSuccess();
     }
 }

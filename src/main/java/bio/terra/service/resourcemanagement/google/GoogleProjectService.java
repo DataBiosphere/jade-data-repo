@@ -468,6 +468,7 @@ public class GoogleProjectService {
 
         if (projects.size() == 0) {
             logger.info("No projects attached to billing profile so nothing to update.");
+            return;
         }
 
         projects.stream().forEach(project -> {

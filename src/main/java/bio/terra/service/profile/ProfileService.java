@@ -274,10 +274,6 @@ public class ProfileService {
         iamService.createProfileResource(user, request.getId());
     }
 
-    public void updateProfileIamResource(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
-        iamService.updateProfileResource(user, request);
-    }
-
     public void deleteProfileIamResource(String profileId, AuthenticatedUserRequest user) {
         // TODO: their may may not be a resource behind this profile. Therefore we
         //  eat any not found exception called that a success. Remove when we enable authorization.

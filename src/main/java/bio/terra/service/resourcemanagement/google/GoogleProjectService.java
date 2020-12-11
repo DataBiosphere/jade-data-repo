@@ -166,8 +166,7 @@ public class GoogleProjectService {
         Map<String, List<String>> roleIdentityMapping)
         throws InterruptedException {
 
-        // Ensure that the project Id is valid
-        validateProjectId(requestedProjectId);
+        ensureValidProjectId(requestedProjectId);
 
         // projects created by service accounts must live under a parent resource (either a folder or an
         // organization)
@@ -200,16 +199,6 @@ public class GoogleProjectService {
         } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not create project", e);
         }
-    }
-
-    @VisibleForTesting
-    static void validateProjectId(final String projectId) {
-        Preconditions.checkArgument(
-            projectId.matches("[a-z][a-z0-9-]{5,29}(?<!-)$"),
-            String.format("The project ID \"%s\" must be a unique string of 6 to 30 lowercase letters, digits, " +
-                "or hyphens. It must start with a letter, and cannot have a trailing hyphen. You cannot change a " +
-                "project ID once it has been created. You cannot re-use a project ID that is in use, or one that " +
-                "has been used for a deleted project.", projectId));
     }
 
     // Common project initialization for new projects, in the case where we are reusing
@@ -475,5 +464,17 @@ public class GoogleProjectService {
             operation = request.execute();
         }
         return operation;
+    }
+
+    @VisibleForTesting
+    static void ensureValidProjectId(final String projectId) {
+        Preconditions.checkNotNull(projectId, "Project Id must not be null");
+
+        Preconditions.checkArgument(
+            projectId.matches("^[a-z][a-z0-9-]{5,29}(?<!-)$"),
+            String.format("The project ID \"%s\" must be a unique string of 6 to 30 lowercase letters, digits, " +
+                "or hyphens. It must start with a letter, and cannot have a trailing hyphen. You cannot change a " +
+                "project ID once it has been created. You cannot re-use a project ID that is in use, or one that " +
+                "has been used for a deleted project.", projectId));
     }
 }

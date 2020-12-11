@@ -15,11 +15,16 @@ public class GoogleProjectServiceTest {
     @Test
     public void testVerifyProjectId() {
         // Should pass
-        GoogleProjectService.validateProjectId("abc1234-567");
+        GoogleProjectService.ensureValidProjectId("abc1234-567");
         // All below should fail
 
         assertThatThrownBy(
-            () -> GoogleProjectService.validateProjectId("abc1234_567"),
+            () -> GoogleProjectService.ensureValidProjectId(null),
+            "Can't be null")
+                .hasMessage("Project Id must not be null");
+
+        assertThatThrownBy(
+            () -> GoogleProjectService.ensureValidProjectId("abc1234_567"),
             "Can only contain letters, numbers, and hyphens")
                 .hasMessage(
                     "The project ID \"abc1234_567\" must be a unique string of 6 to 30 lowercase letters, digits, " +
@@ -28,28 +33,30 @@ public class GoogleProjectServiceTest {
                     "has been used for a deleted project.");
 
         assertThatThrownBy(
-            () -> GoogleProjectService.validateProjectId("aBc1234-567"),
+            () -> GoogleProjectService.ensureValidProjectId("aBc1234-567"),
             "Can't have uppercase letters");
 
         assertThatThrownBy(
-            () -> GoogleProjectService.validateProjectId("1bc1234-567"),
+            () -> GoogleProjectService.ensureValidProjectId("1bc1234-567"),
             "Can't start with anything but a letter");
         assertThatThrownBy(
-            () -> GoogleProjectService.validateProjectId("-bc1234-567"),
+            () -> GoogleProjectService.ensureValidProjectId("-bc1234-567"),
             "Can't start with anything but a letter");
 
         assertThatThrownBy(
-            () -> GoogleProjectService.validateProjectId("abc12"),
+            () -> GoogleProjectService.ensureValidProjectId("abc12"),
             "Can't contain fewer than 6 characters");
-        GoogleProjectService.validateProjectId("abc123");
+        // Check that 6 characters is OK
+        GoogleProjectService.ensureValidProjectId("abc123");
 
         assertThatThrownBy(
-            () -> GoogleProjectService.validateProjectId("a012345678901234567890123456789"),
+            () -> GoogleProjectService.ensureValidProjectId("a012345678901234567890123456789"),
             "Can't contain more than 30 characters");
-        GoogleProjectService.validateProjectId("a01234567890123456789012345678");
+        // Check that 30 characters is OK
+        GoogleProjectService.ensureValidProjectId("a01234567890123456789012345678");
 
         assertThatThrownBy(
-            () -> GoogleProjectService.validateProjectId("abc1234-567-"),
+            () -> GoogleProjectService.ensureValidProjectId("abc1234-567-"),
             "Can't end with a hyphen");
     }
 }

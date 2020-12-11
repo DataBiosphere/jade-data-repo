@@ -23,8 +23,10 @@ import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
 import com.google.api.services.serviceusage.v1.ServiceUsage;
 import com.google.api.services.serviceusage.v1.model.BatchEnableServicesRequest;
-import com.google.api.services.serviceusage.v1.model.ListServicesResponse;
 import com.google.api.services.serviceusage.v1.model.GoogleApiServiceusageV1Service;
+import com.google.api.services.serviceusage.v1.model.ListServicesResponse;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
@@ -164,6 +166,9 @@ public class GoogleProjectService {
         Map<String, List<String>> roleIdentityMapping)
         throws InterruptedException {
 
+        // Ensure that the project Id is valid
+        validateProjectId(requestedProjectId);
+
         // projects created by service accounts must live under a parent resource (either a folder or an
         // organization)
         ResourceId parentResource =
@@ -195,6 +200,16 @@ public class GoogleProjectService {
         } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not create project", e);
         }
+    }
+
+    @VisibleForTesting
+    static void validateProjectId(final String projectId) {
+        Preconditions.checkArgument(
+            projectId.matches("[a-z][a-z0-9-]{5,29}(?<!-)$"),
+            String.format("The project ID \"%s\" must be a unique string of 6 to 30 lowercase letters, digits, " +
+                "or hyphens. It must start with a letter, and cannot have a trailing hyphen. You cannot change a " +
+                "project ID once it has been created. You cannot re-use a project ID that is in use, or one that " +
+                "has been used for a deleted project.", projectId));
     }
 
     // Common project initialization for new projects, in the case where we are reusing

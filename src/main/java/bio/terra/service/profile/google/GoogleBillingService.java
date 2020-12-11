@@ -4,13 +4,11 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.resourcemanagement.exception.BillingServiceException;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.HttpTransport;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.rpc.ApiException;
 import com.google.api.resourcenames.ResourceName;
+import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.billing.v1.BillingAccountName;
 import com.google.cloud.billing.v1.CloudBillingClient;
@@ -24,7 +22,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
 
@@ -53,22 +50,15 @@ public class GoogleBillingService {
             //  If no user, use system credentials, otherwise use user credentials instead
             final String credentialName;
             final GoogleCredentials credentials;
-            if (user == null) {
+            if (user == null || !user.getToken().isPresent()) {
                 credentialName = "service account";
                 credentials = serviceAccountCredentials;
             } else {
-                HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
                 credentialName = user.getEmail();
-                credentials = ImpersonatedCredentials.newBuilder()
-                    .setScopes(scopes)
-                    .setSourceCredentials(serviceAccountCredentials)
-                    .setTargetPrincipal(credentialName)
-                    .setDelegates(null)
-                    .setLifetime(300)
-                    .setHttpTransportFactory(() -> httpTransport)
+                credentials = GoogleCredentials.newBuilder()
+                    .setAccessToken(new AccessToken(user.getToken().get(), null))
                     .build();
             }
-
             CloudBillingSettings cloudBillingSettings =
                 CloudBillingSettings.newBuilder()
                     .setCredentialsProvider(FixedCredentialsProvider.create(credentials))
@@ -76,7 +66,7 @@ public class GoogleBillingService {
             logger.info("Creating CloudBillingSettings with credentials: {}", credentialName);
 
             return CloudBillingClient.create(cloudBillingSettings);
-        } catch (IOException | GeneralSecurityException e) {
+        } catch (IOException e) {
             String message = String.format("Could not build Cloud Billing client instance: %s", e.getMessage());
             throw new BillingServiceException(message, e);
         }

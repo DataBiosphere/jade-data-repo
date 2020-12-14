@@ -25,6 +25,7 @@ public class ProfileUpdateFlight extends Flight {
         AuthenticatedUserRequest user = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
+        addStep(new UpdateProfileRetrieveExistingProfileStep(profileService, request, user));
         //update billing account id metadata
         addStep(new UpdateProfileMetadataStep(profileService, request, user));
         // Make sure valid account before changing in gcloud project

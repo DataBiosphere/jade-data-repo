@@ -4,7 +4,6 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.profile.ProfileRequestValidator;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -31,21 +30,16 @@ public class UpdateProfileMetadataStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        // get current billing model so we know what to revert to
-        BillingProfileModel oldProfileModel = profileService.getProfileById(profileRequest.getId(), user);
-        FlightMap workingMap = context.getWorkingMap();
-        workingMap.put(JobMapKeys.REVERT_TO.getKeyName(), oldProfileModel);
-
-        // Update to new billing metadata
         BillingProfileModel profileModel = profileService.updateProfileMetadata(profileRequest);
+        FlightMap workingMap = context.getWorkingMap();
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), profileModel);
-        workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
+        workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.OK);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        logger.info("Profile update failed. Reverting to old profile metadata.");
+        logger.error("Profile update failed. Reverting to old profile metadata.");
         FlightMap workingMap = context.getWorkingMap();
         BillingProfileModel oldProfileModel =
             workingMap.get(JobMapKeys.REVERT_TO.getKeyName(), BillingProfileModel.class);

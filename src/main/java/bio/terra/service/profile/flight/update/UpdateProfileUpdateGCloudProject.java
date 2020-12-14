@@ -20,13 +20,6 @@ public class UpdateProfileUpdateGCloudProject implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) throws InterruptedException {
-        // TODO: Should I check if billing account is different from request?
-        // Current thought: no - update anyway
-        // if we update anyway, it handles the case that the db is out of sync from the google project
-        // low overhead operation
-        // Since we are updating in multiple projects, we would have to handle the case that some need updating
-        // & others do not
-
         FlightMap workingMap = context.getWorkingMap();
         BillingProfileModel newBillingProfileModel =
             workingMap.get(JobMapKeys.RESPONSE.getKeyName(), BillingProfileModel.class);

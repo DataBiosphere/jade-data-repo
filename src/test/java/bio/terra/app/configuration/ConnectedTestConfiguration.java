@@ -12,7 +12,7 @@ public class ConnectedTestConfiguration {
     private String ingestbucket;
     private String ingestRequesterPaysBucket;
     private String googleBillingAccountId;
-    private String secondGoogleBillingAccountId;
+    private String noSpendGoogleBillingAccountId;
 
     public String getIngestbucket() {
         return ingestbucket;
@@ -38,12 +38,11 @@ public class ConnectedTestConfiguration {
         this.googleBillingAccountId = googleBillingAccountId;
     }
 
-    // TODO- IS THERE A BETTER NAME FOR THIS?
-    public String getSecondGoogleBillingAccountId() {
-        return secondGoogleBillingAccountId;
+    public String getNoSpendGoogleBillingAccountId() {
+        return noSpendGoogleBillingAccountId;
     }
 
-    public void setSecondGoogleBillingAccountId(String secondGoogleBillingAccountId) {
-        this.secondGoogleBillingAccountId = secondGoogleBillingAccountId;
+    public void setNoSpendGoogleBillingAccountId(String secondGoogleBillingAccountId) {
+        this.noSpendGoogleBillingAccountId = secondGoogleBillingAccountId;
     }
 }

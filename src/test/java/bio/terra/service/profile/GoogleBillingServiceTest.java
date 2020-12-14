@@ -67,7 +67,7 @@ public class GoogleBillingServiceTest {
     @Before
     public void setup() throws Exception {
         oldBillingAccountId = testConfig.getGoogleBillingAccountId();
-        newBillingAccountId = testConfig.getSecondGoogleBillingAccountId();
+        newBillingAccountId = testConfig.getNoSpendGoogleBillingAccountId();
         resetBillingAccount = false;
 
         profile = connectedOperations.createProfileForAccount(oldBillingAccountId);
@@ -97,9 +97,8 @@ public class GoogleBillingServiceTest {
             containsString(profile.getBillingAccountId()));
     }
 
-    // Ignoring since this manipulates billing accounts
-    // TODO add back in when we can create a new project, test changing billing accounts, and then delete project
-    @Ignore
+    @Ignore("assignProjectBilling manipulates billing accounts, so ignoring until we can test by creating a " +
+        "new project, test changing the billing account, and then delete the project")
     @Test
     public void assignProjectBilling() {
         //Check state before Assigning new billing account Id

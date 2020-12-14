@@ -72,7 +72,7 @@ public class ProfileServiceTest {
     @Before
     public void setup() throws Exception {
         oldBillingAccountId = testConfig.getGoogleBillingAccountId();
-        newBillingAccountId = testConfig.getSecondGoogleBillingAccountId();
+        newBillingAccountId = testConfig.getNoSpendGoogleBillingAccountId();
 
         profile = connectedOperations.createProfileForAccount(oldBillingAccountId);
         connectedOperations.stubOutSamCalls(samService);
@@ -94,12 +94,12 @@ public class ProfileServiceTest {
     @Ignore
     @Test
     public void updateProfileTest() throws Exception {
-        System.out.println("profile: " + profile.getProfileName());
+        logger.debug("profile: " + profile.getProfileName());
         BillingProfileModel model = connectedOperations.getProfileById(profile.getId());
         assertThat("BEFORE UPDATE: Billing account should be equal to the oldBillingAccountId",
             model.getBillingAccountId(),
             equalTo(oldBillingAccountId));
-        System.out.println("Retrieve Profile: " + model.getProfileName());
+        logger.debug("Retrieve Profile: " + model.getProfileName());
 
         BillingProfileUpdateModel updatedRequest = new BillingProfileUpdateModel()
             .billingAccountId(newBillingAccountId)
@@ -107,8 +107,8 @@ public class ProfileServiceTest {
             .id(profile.getId());
 
         BillingProfileModel newModel = connectedOperations.updateProfile(updatedRequest);
-        logger.info("Updated model: {}", newModel.toString());
-        assertThat("AFTER UPDATEBilling account should be equal to the newBillingAccountId",
+        logger.debug("Updated model: {}", newModel.toString());
+        assertThat("AFTER UPDATE: Billing account should be equal to the newBillingAccountId",
             newModel.getBillingAccountId(),
             equalTo(newBillingAccountId));
     }

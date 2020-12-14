@@ -254,25 +254,13 @@ public class ProfileService {
         }
     }
 
-    // Verify access to the billing account during billing profile creation
+    // Verify user access to the billing account during billing profile creation
     public void verifyAccount(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
-        // TODO: check bill account usable and creator has link access
-        //  For now we just make sure that the billing account is accessible to the
-        //  TDR service account.
-
-        // used during the creation of the billing profile
-        // need to make sure this user has billing resource create on the billing account
-        // they need to have the billing resource permission on the billing account
-        // like the canAccess check in the Google Billing Service but instead of using the service account
-        // credentials uses the user credentials
-
         String billingAccountId = request.getBillingAccountId();
         if (!billingService.canAccess(user, billingAccountId)) {
             throw new InaccessibleBillingAccountException("The repository needs access to billing account "
                 + billingAccountId + " to perform the requested operation");
         }
-
-        // check with Doug Voet that this is a reasonable thing to do
     }
 
     // -- profile upgrade --

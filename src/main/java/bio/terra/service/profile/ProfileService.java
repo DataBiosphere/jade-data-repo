@@ -62,9 +62,9 @@ public class ProfileService {
      * Create a new billing profile providing an valid google billing account
      * We make the following checks:
      * <ul>
-     *     <le>The service must have proper permissions on the google billing account</le>
-     *     <le>The caller must have billing.resourceAssociation.create permission on the google billing account</le>
-     *     <le>The google billing account must be enabled</le>
+     *     <li>The service must have proper permissions on the google billing account</le>
+     *     <li>The caller must have billing.resourceAssociation.create permission on the google billing account</le>
+     *     <li>The google billing account must be enabled</le>
      * </ul>
      * <p>
      * The billing profile name does not need to be unique across all billing profiles.
@@ -84,9 +84,9 @@ public class ProfileService {
     /**
      * Update billing profile. We make the following checks:
      * <ul>
-     *     <le>The service must have proper permissions on the google billing account</le>
-     *     <le>The caller must have billing.resourceAssociation.create permission on the google billing account</le>
-     *     <le>The google billing account must be enabled</le>
+     *     <li>The service must have proper permissions on the google billing account</le>
+     *     <li>The caller must have billing.resourceAssociation.create permission on the google billing account</le>
+     *     <li>The google billing account must be enabled</le>
      * </ul>
      *
      * @param  billingProfileRequest request with changes to billing profile
@@ -107,8 +107,8 @@ public class ProfileService {
     /**
      * Remove billing profile. We make the following checks:
      * <ul>
-     *     <le>the caller must be an owner of the billing profile</le>
-     *     <le>There must be no dependencies on the billing profile;
+     *     <li>the caller must be an owner of the billing profile</le>
+     *     <li>There must be no dependencies on the billing profile;
      *     that is, no snapshots, dataset, or buckets referencing the profile</le>
      * </ul>
      *

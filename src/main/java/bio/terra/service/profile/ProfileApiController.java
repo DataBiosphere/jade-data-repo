@@ -39,6 +39,7 @@ public class ProfileApiController implements ResourcesApi {
     private final HttpServletRequest request;
     private final ProfileService profileService;
     private final ProfileRequestValidator billingProfileRequestValidator;
+    private final ProfileUpdateRequestValidator profileUpdateRequestValidator;
     private final PolicyMemberValidator policyMemberValidator;
     private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
     private final JobService jobService;
@@ -49,6 +50,7 @@ public class ProfileApiController implements ResourcesApi {
         HttpServletRequest request,
         ProfileService profileService,
         ProfileRequestValidator billingProfileRequestValidator,
+        ProfileUpdateRequestValidator profileUpdateRequestValidator,
         PolicyMemberValidator policyMemberValidator,
         JobService jobService,
         AuthenticatedUserRequestFactory authenticatedUserRequestFactory) {
@@ -56,6 +58,7 @@ public class ProfileApiController implements ResourcesApi {
         this.request = request;
         this.profileService = profileService;
         this.billingProfileRequestValidator = billingProfileRequestValidator;
+        this.profileUpdateRequestValidator = profileUpdateRequestValidator;
         this.policyMemberValidator = policyMemberValidator;
         this.jobService = jobService;
         this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
@@ -73,6 +76,7 @@ public class ProfileApiController implements ResourcesApi {
 
     @InitBinder
     protected void initBinder(final WebDataBinder binder) {
+        binder.addValidators(profileUpdateRequestValidator);
         binder.addValidators(billingProfileRequestValidator);
         binder.addValidators(policyMemberValidator);
     }

@@ -89,9 +89,8 @@ public class ProfileServiceTest {
         connectedOperations.teardown();
     }
 
-    // TODO: Add back once we can create a new google project to test with
-    // Test for DR-1404 - Updates the billing account on google project
-    @Ignore
+    @Ignore("Test to update the billing account on google project, so ignoring until we can test by creating a " +
+        "new project, test changing the billing account, and then delete the project")
     @Test
     public void updateProfileTest() throws Exception {
         logger.debug("profile: " + profile.getProfileName());

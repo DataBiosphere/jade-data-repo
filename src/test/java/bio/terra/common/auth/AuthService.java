@@ -43,14 +43,12 @@ public class AuthService {
         pemfilename.ifPresent(s -> pemfile = new File(s));
         saEmail = testConfig.getJadeEmail();
         httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        logger.info("AuthService constructor");
     }
 
     public String getAuthToken(String userEmail) {
         if (!userTokens.containsKey(userEmail)) {
             userTokens.put(userEmail, makeToken(userEmail));
         }
-        logger.info("getAuthToken method");
         return userTokens.get(userEmail);
     }
 
@@ -58,7 +56,6 @@ public class AuthService {
         if (!directAccessTokens.containsKey(userEmail)) {
             directAccessTokens.put(userEmail, makeDirectAccessToken(userEmail));
         }
-        logger.info("getDirectAccessAuthToken method");
         return directAccessTokens.get(userEmail);
     }
 
@@ -67,7 +64,6 @@ public class AuthService {
         if (!Optional.ofNullable(pemfile).isPresent()) {
             throw new IllegalStateException(String.format("pemfile not found: %s", testConfig.getJadePemFileName()));
         }
-        logger.info("buildCredential method");
         return new GoogleCredential.Builder()
             .setTransport(httpTransport)
             .setJsonFactory(jsonFactory)
@@ -84,12 +80,10 @@ public class AuthService {
             directAccessScopes)
             .flatMap(Collection::stream)
             .collect(Collectors.toList());
-        logger.info("makeDirectAccessToken method");
         return makeTokenForScopes(userEmail, allScopes);
     }
 
     private String makeTokenForScopes(String userEmail, List<String> scopes) {
-        logger.info("makeTokenForScopes method");
         try {
             GoogleCredential cred = buildCredential(userEmail, scopes);
             cred.refreshToken();

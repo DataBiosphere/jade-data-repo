@@ -235,7 +235,6 @@ public class DataRepoClient {
         HttpHeaders copy = new HttpHeaders(headers);
         copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
         copy.set("From", user.getEmail());
-        logger.info("getHeaders method");
         return copy;
     }
 

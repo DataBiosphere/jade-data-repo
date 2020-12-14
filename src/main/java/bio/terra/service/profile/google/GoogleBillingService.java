@@ -104,9 +104,9 @@ public class GoogleBillingService {
             .setResource(resource.toString())
             .addAllPermissions(permissions)
             .build();
-        try {
+        try (CloudBillingClient client = cloudBillingClient(user)) {
             logger.info("Testing IAM permission on billing account: {}", billingAccountId);
-            TestIamPermissionsResponse response = cloudBillingClient(user).testIamPermissions(permissionsRequest);
+            TestIamPermissionsResponse response = client.testIamPermissions(permissionsRequest);
             List<String> actualPermissions = response.getPermissionsList();
             return actualPermissions != null && actualPermissions.equals(permissions);
         } catch (ApiException e) {

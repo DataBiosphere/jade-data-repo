@@ -1,5 +1,6 @@
 package bio.terra.service.profile.flight.update;
 
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
@@ -18,7 +19,7 @@ public class ProfileUpdateFlight extends Flight {
         GoogleProjectService googleProjectService =
             (GoogleProjectService) appContext.getBean("googleProjectService");
 
-        bio.terra.model.BillingProfileUpdateModel request =
+        BillingProfileUpdateModel request =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), bio.terra.model.BillingProfileUpdateModel.class);
 
         AuthenticatedUserRequest user = inputParameters.get(

@@ -23,8 +23,8 @@ public class AuthService {
     private static Logger logger = LoggerFactory.getLogger(AuthService.class);
     // the list of scopes we request from end users when they log in.
     // this should always match exactly what the UI requests, so our tests represent actual user behavior:
-    private List<String> userLoginScopes = Arrays.asList("openid", "email", "profile",
-        "https://www.googleapis.com/auth/cloud-platform");
+    private List<String> userLoginScopes =
+        Arrays.asList("openid", "email", "profile", "https://www.googleapis.com/auth/cloud-platform");
     private List<String> directAccessScopes = Arrays.asList(
         "https://www.googleapis.com/auth/bigquery",
         "https://www.googleapis.com/auth/devstorage.full_control");

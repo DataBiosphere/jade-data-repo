@@ -253,8 +253,8 @@ public class ProfileService {
     public void verifyAccount(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
         String billingAccountId = request.getBillingAccountId();
         if (!billingService.canAccess(user, billingAccountId)) {
-            throw new InaccessibleBillingAccountException("The repository needs access to billing account "
-                + billingAccountId + " to perform the requested operation");
+            throw new InaccessibleBillingAccountException("The user '" + user.getEmail() +
+                "' needs access to billing account '" + billingAccountId + "' to perform the requested operation");
         }
     }
 

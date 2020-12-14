@@ -85,7 +85,14 @@ public class ProfileDao {
             .addValue("billing_account_id", profileRequest.getBillingAccountId())
             .addValue("description", profileRequest.getDescription());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
+        int updated = jdbcTemplate.update(sql, params, keyHolder);
+
+        // Assume if the following two conditions are true, then the profile could not be found
+        // 1. the db command successfully completed
+        // 2. no rows were updated
+        if (updated != 1) {
+            throw new ProfileNotFoundException("Billing Profile was not updated.");
+        }
 
         return new BillingProfileModel()
             .id(keyHolder.getId().toString())

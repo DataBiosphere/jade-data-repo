@@ -169,11 +169,6 @@ public class ProfileService {
      * @return the profile model associated with the profile id
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
-        // when someone is trying to create a dataset or snapshot or load a dataset
-        // do nothing in here to check whether anybody is still allowed to use this billing account
-        // can be any user which is authorized to use this billing profile
-        // get owners of billing profile from sam, then loop through the users to check if they have access
-        // original owner might get revoked but still exist in sam
         if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
             iamService.verifyAuthorization(user,
                 IamResourceType.SPEND_PROFILE,

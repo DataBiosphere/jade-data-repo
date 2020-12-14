@@ -2438,6 +2438,8 @@ components:
     BillingProfileUpdateModel:
       required:
         - id
+        - billingAccountId
+        - description
       type: object
       properties:
         id:

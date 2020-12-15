@@ -239,7 +239,7 @@ public class ConnectedOperations {
             .content(TestUtils.mapToJson(profileRequestModel)))
             .andReturn();
 
-       return handleFailureCase(result.getResponse(), expectedStatus);
+        return handleFailureCase(result.getResponse(), expectedStatus);
     }
 
     public SnapshotSummaryModel createSnapshot(DatasetSummaryModel datasetSummaryModel,

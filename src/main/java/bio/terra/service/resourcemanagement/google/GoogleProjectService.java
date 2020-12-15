@@ -496,7 +496,7 @@ public class GoogleProjectService {
         billingService.assignProjectBilling(billingProfile, googleProjectResource);
 
     }
-    
+
     @VisibleForTesting
     static void ensureValidProjectId(final String projectId) {
         Preconditions.checkNotNull(projectId, "Project Id must not be null");

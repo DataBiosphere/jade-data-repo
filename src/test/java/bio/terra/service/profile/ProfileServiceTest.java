@@ -6,6 +6,8 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileUpdateModel;
+import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -25,8 +27,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,6 +40,8 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 
 @RunWith(SpringRunner.class)
@@ -112,6 +119,38 @@ public class ProfileServiceTest {
         assertThat("AFTER UPDATE: Billing account should be equal to the newBillingAccountId",
             newModel.getBillingAccountId(),
             equalTo(newBillingAccountId));
+    }
+
+    @Test
+    public void testValidationUpdateProfileTest() throws Exception {
+        BillingProfileUpdateModel badRequest = new BillingProfileUpdateModel()
+            //.billingAccountId(newBillingAccountId)
+            .description("updated profile description")
+            .id(profile.getId());
+
+        ErrorModel model = connectedOperations.updateProfileExpectError(badRequest, HttpStatus.BAD_REQUEST);
+        logger.info(model.toString());
+        assertThat("Error Model message should contain validation error", model.getMessage(),
+            containsString("Validation errors"));
+        assertThat("There should be 2 errors: 1 for null errors, 1 for incorrect pattern for billing account",
+            model.getErrorDetail().size(), equalTo(2));
+    }
+
+    @Test
+    public void testValidationCreateProfileTest() throws Exception {
+        BillingProfileRequestModel badRequest = new BillingProfileRequestModel()
+            //.biller("direct")
+            //.billingAccountId(newBillingAccountId)
+            //.profileName("name")
+            .description("updated profile description")
+            .id(profile.getId());
+
+        ErrorModel model = connectedOperations.createProfileExpectError(badRequest, HttpStatus.BAD_REQUEST);
+        logger.info(model.toString());
+        assertThat("Error Model message should contain validation error", model.getMessage(),
+            containsString("Validation error"));
+        assertThat("There should be 4 errors: 3 for null errors, 1 for incorrect pattern for billing account",
+            model.getErrorDetail().size(), equalTo(4));
     }
 
     private GoogleProjectResource buildProjectResource() throws Exception {

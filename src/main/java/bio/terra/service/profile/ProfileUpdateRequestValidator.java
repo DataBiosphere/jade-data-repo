@@ -25,11 +25,11 @@ public class ProfileUpdateRequestValidator implements Validator {
         if (target != null && target instanceof BillingProfileUpdateModel) {
             BillingProfileUpdateModel billingProfileUpdateModel = (BillingProfileUpdateModel) target;
             String billingAccountId = billingProfileUpdateModel.getBillingAccountId();
-            if (!ProfileRequestValidator.isValidAccountId(billingAccountId)) {
+            if (billingAccountId == null || !ProfileRequestValidator.isValidAccountId(billingAccountId)) {
                 errors.rejectValue("billingAccountId",
                     "The id must be 3 sets of 6 capitalized alphanumeric characters separated by dashes");
             }
-            if (StringUtils.isEmpty(billingProfileUpdateModel.getId())) {
+            if (billingProfileUpdateModel.getId() == null || StringUtils.isEmpty(billingProfileUpdateModel.getId())) {
                 errors.rejectValue("id",
                     "The billing profile id must be specified");
             }

@@ -204,6 +204,16 @@ public class ConnectedOperations {
         return billingProfileModel;
     }
 
+    public ErrorModel createProfileExpectError(BillingProfileRequestModel profileRequestModel,
+                                               HttpStatus expectedStatus) throws Exception {
+        MvcResult result = mvc.perform(post("/api/resources/v1/profiles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(profileRequestModel)))
+            .andReturn();
+
+        return handleFailureCase(result.getResponse(), expectedStatus);
+    }
+
     public BillingProfileModel getProfileById(String profileId) throws Exception {
         MvcResult result = mvc.perform(get("/api/resources/v1/profiles/" + profileId)
             .contentType(MediaType.APPLICATION_JSON))
@@ -220,6 +230,16 @@ public class ConnectedOperations {
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleSuccessCase(response, BillingProfileModel.class);
+    }
+
+    public ErrorModel updateProfileExpectError(BillingProfileUpdateModel profileRequestModel, HttpStatus expectedStatus)
+        throws Exception {
+        MvcResult result = mvc.perform(put("/api/resources/v1/profiles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(profileRequestModel)))
+            .andReturn();
+
+       return handleFailureCase(result.getResponse(), expectedStatus);
     }
 
     public SnapshotSummaryModel createSnapshot(DatasetSummaryModel datasetSummaryModel,

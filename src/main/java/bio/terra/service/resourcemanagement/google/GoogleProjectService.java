@@ -26,6 +26,8 @@ import com.google.api.services.serviceusage.v1.ServiceUsage;
 import com.google.api.services.serviceusage.v1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1.model.GoogleApiServiceusageV1Service;
 import com.google.api.services.serviceusage.v1.model.ListServicesResponse;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -174,6 +176,8 @@ public class GoogleProjectService {
         BillingProfileModel billingProfile,
         Map<String, List<String>> roleIdentityMapping)
         throws InterruptedException {
+
+        ensureValidProjectId(requestedProjectId);
 
         // projects created by service accounts must live under a parent resource (either a folder or an
         // organization)
@@ -471,5 +475,17 @@ public class GoogleProjectService {
             operation = request.execute();
         }
         return operation;
+    }
+
+    @VisibleForTesting
+    static void ensureValidProjectId(final String projectId) {
+        Preconditions.checkNotNull(projectId, "Project Id must not be null");
+
+        Preconditions.checkArgument(
+            projectId.matches("^[a-z][a-z0-9-]{4,28}[a-z0-9]$"),
+            String.format("The project ID \"%s\" must be a unique string of 6 to 30 lowercase letters, digits, " +
+                "or hyphens. It must start with a letter, and cannot have a trailing hyphen. You cannot change a " +
+                "project ID once it has been created. You cannot re-use a project ID that is in use, or one that " +
+                "has been used for a deleted project.", projectId));
     }
 }

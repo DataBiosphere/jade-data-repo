@@ -30,7 +30,7 @@ public class UpdateProfileRetrieveExistingProfileStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         // get current billing model so we know what to revert to
-        BillingProfileModel oldProfileModel = profileService.getProfileById(profileRequest.getId(), user);
+        BillingProfileModel oldProfileModel = profileService.getProfileByIdNoCheck(profileRequest.getId());
         FlightMap workingMap = context.getWorkingMap();
         workingMap.put(JobMapKeys.REVERT_TO.getKeyName(), oldProfileModel);
         return StepResult.getStepResultSuccess();

@@ -59,6 +59,8 @@ public class ProfileServiceTest {
     private GoogleProjectService googleProjectService;
     @Autowired
     private GoogleResourceConfiguration resourceConfiguration;
+    @Autowired
+    private ProfileService profileService;
     @MockBean
     private IamProviderInterface samService;
 
@@ -94,7 +96,7 @@ public class ProfileServiceTest {
     @Test
     public void updateProfileTest() throws Exception {
         logger.debug("profile: " + profile.getProfileName());
-        BillingProfileModel model = connectedOperations.getProfileById(profile.getId());
+        BillingProfileModel model = profileService.getProfileByIdNoCheck(profile.getId());
         assertThat("BEFORE UPDATE: Billing account should be equal to the oldBillingAccountId",
             model.getBillingAccountId(),
             equalTo(oldBillingAccountId));

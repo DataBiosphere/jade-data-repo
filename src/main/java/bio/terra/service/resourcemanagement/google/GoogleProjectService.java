@@ -471,7 +471,7 @@ public class GoogleProjectService {
         Preconditions.checkNotNull(projectId, "Project Id must not be null");
 
         Preconditions.checkArgument(
-            projectId.matches("^[a-z][a-z0-9-]{5,29}(?<!-)$"),
+            projectId.matches("^[a-z][a-z0-9-]{4,28}[a-z0-9]$"),
             String.format("The project ID \"%s\" must be a unique string of 6 to 30 lowercase letters, digits, " +
                 "or hyphens. It must start with a letter, and cannot have a trailing hyphen. You cannot change a " +
                 "project ID once it has been created. You cannot re-use a project ID that is in use, or one that " +

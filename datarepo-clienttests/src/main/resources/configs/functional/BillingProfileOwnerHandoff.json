@@ -9,8 +9,8 @@
   "application": {},
   "testScripts": [
     {
-      "name": "BillingProfileInUseTest",
-      "parameters": [1],
+      "name": "BillingProfileOwnerHandoffTest",
+      "parameters": ["JadeStewards-dev@dev.test.firecloud.org"],
       "numberOfUserJourneyThreadsToRun": 1,
       "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 2,

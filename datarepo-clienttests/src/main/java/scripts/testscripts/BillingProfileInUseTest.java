@@ -13,9 +13,11 @@ import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.BillingProfileUsers;
 import scripts.utils.tdrwrapper.DataRepoWrap;
 import scripts.utils.tdrwrapper.exception.DataRepoBadRequestClientException;
+import scripts.utils.tdrwrapper.exception.DataRepoNotFoundClientException;
 
 public class BillingProfileInUseTest extends BillingProfileUsers {
   private static final Logger logger = LoggerFactory.getLogger(BillingProfileInUseTest.class);
+  private String stewardsEmail;
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public BillingProfileInUseTest() {
@@ -24,6 +26,15 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     super.setup(testUsers);
+  }
+
+  public void setParameters(List<String> parameters) throws Exception {
+    if (parameters == null || parameters.size() == 0) {
+      throw new IllegalArgumentException(
+          "Must provide a number of files to load in the parameters list");
+    } else {
+      stewardsEmail = parameters.get(0);
+    }
   }
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
@@ -40,6 +51,9 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       profile = ownerUser1Api.createProfile(billingAccount, "profile_permission_test", true);
       String profileId = profile.getId();
       logger.info("ProfileId: {}", profileId);
+
+      // Remove stewards from the owner list. Otherwise, voldemort has access by default :(
+      ownerUser1Api.deleteProfilePolicyMember(profileId, "owner", stewardsEmail);
 
       ownerUser1Api.addProfilePolicyMember(profileId, "user", ownerUser2.userEmail);
       ownerUser1Api.addProfilePolicyMember(profileId, "user", userUser.userEmail);
@@ -73,6 +87,7 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       e.printStackTrace();
       throw e;
     } finally {
+      /*
       if (snapshot != null) {
         userUserApi.deleteSnapshot(snapshot.getId());
       }
@@ -82,6 +97,7 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       if (profile != null) {
         ownerUser1Api.deleteProfile(profile.getId());
       }
+         */
     }
   }
 
@@ -91,7 +107,7 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
     try {
       wrap.deleteProfile(id);
       success = true;
-    } catch (DataRepoBadRequestClientException ex) {
+    } catch (DataRepoBadRequestClientException | DataRepoNotFoundClientException ex) {
       success = false;
     }
     assertThat("success meets expectations", success, equalTo(expectSuccess));

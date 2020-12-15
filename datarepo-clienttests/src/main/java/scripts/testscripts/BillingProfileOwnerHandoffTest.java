@@ -11,6 +11,7 @@ import scripts.utils.tdrwrapper.DataRepoWrap;
 public class BillingProfileOwnerHandoffTest extends BillingProfileUsers {
   private static final Logger logger =
       LoggerFactory.getLogger(BillingProfileOwnerHandoffTest.class);
+  private String stewardsEmail;
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public BillingProfileOwnerHandoffTest() {
@@ -19,6 +20,15 @@ public class BillingProfileOwnerHandoffTest extends BillingProfileUsers {
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     super.setup(testUsers);
+  }
+
+  public void setParameters(List<String> parameters) throws Exception {
+    if (parameters == null || parameters.size() == 0) {
+      throw new IllegalArgumentException(
+          "Must provide a number of files to load in the parameters list");
+    } else {
+      stewardsEmail = parameters.get(0);
+    }
   }
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
@@ -30,6 +40,8 @@ public class BillingProfileOwnerHandoffTest extends BillingProfileUsers {
     try {
       profile = userUserApi.createProfile(billingAccount, "profile_permission_test", true);
       String profileId = profile.getId();
+      // Remove stewards from the owner list. Otherwise, voldemort has access by default :(
+      userUserApi.deleteProfilePolicyMember(profileId, "owner", stewardsEmail);
 
       userUserApi.addProfilePolicyMember(profileId, "owner", ownerUser1.userEmail);
       ownerUser1Api.deleteProfilePolicyMember(profileId, "owner", userUser.userEmail);

@@ -62,9 +62,9 @@ public class ProfileService {
      * Create a new billing profile providing an valid google billing account
      * We make the following checks:
      * <ul>
-     *     <li>The service must have proper permissions on the google billing account</le>
-     *     <li>The caller must have billing.resourceAssociation.create permission on the google billing account</le>
-     *     <li>The google billing account must be enabled</le>
+     *     <li>The service must have proper permissions on the google billing account</li>
+     *     <li>The caller must have billing.resourceAssociation.create permission on the google billing account</li>
+     *     <li>The google billing account must be enabled</li>
      * </ul>
      * <p>
      * The billing profile name does not need to be unique across all billing profiles.
@@ -84,9 +84,9 @@ public class ProfileService {
     /**
      * Update billing profile. We make the following checks:
      * <ul>
-     *     <li>The service must have proper permissions on the google billing account</le>
-     *     <li>The caller must have billing.resourceAssociation.create permission on the google billing account</le>
-     *     <li>The google billing account must be enabled</le>
+     *     <li>The service must have proper permissions on the google billing account</li>
+     *     <li>The caller must have billing.resourceAssociation.create permission on the google billing account</li>
+     *     <li>The google billing account must be enabled</li>
      * </ul>
      *
      * @param  billingProfileRequest request with changes to billing profile
@@ -107,9 +107,9 @@ public class ProfileService {
     /**
      * Remove billing profile. We make the following checks:
      * <ul>
-     *     <li>the caller must be an owner of the billing profile</le>
+     *     <li>the caller must be an owner of the billing profile</li>
      *     <li>There must be no dependencies on the billing profile;
-     *     that is, no snapshots, dataset, or buckets referencing the profile</le>
+     *     that is, no snapshots, dataset, or buckets referencing the profile</li>
      * </ul>
      *
      * @param id the unique id of the bill profile

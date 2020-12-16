@@ -135,9 +135,8 @@ public class GoogleBillingService {
         ProjectBillingInfo content = ProjectBillingInfo.newBuilder()
             .setBillingAccountName("billingAccounts/" + billingAccountId)
             .build();
-        try {
-            ProjectBillingInfo billingResponse = cloudBillingClient()
-                .updateProjectBillingInfo("projects/" + projectId, content);
+        try (CloudBillingClient client = cloudBillingClient()) {
+            ProjectBillingInfo billingResponse = client.updateProjectBillingInfo("projects/" + projectId, content);
             return billingResponse.getBillingEnabled();
         } catch (ApiException e) {
             String message = String.format("Could not assign billing account '%s' to project: %s", billingAccountId,

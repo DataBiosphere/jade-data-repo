@@ -3937,6 +3937,7 @@ components:
             openid: open id authorization
             email: email authorization
             profile: profile authorization
+            https://www.googleapis.com/auth/cloud-billing: cloud billing authorization
     authToken:
       type: apiKey
       description: >

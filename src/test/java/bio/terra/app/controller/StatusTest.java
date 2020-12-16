@@ -41,7 +41,7 @@ public class StatusTest {
     private CacheManager cacheManager;
 
     @Before
-    public void setUp() throws Exception {
+    public void setup() throws Exception {
         clearCache();
     }
 

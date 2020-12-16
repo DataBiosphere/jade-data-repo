@@ -40,7 +40,7 @@ public class FutureUtilsTest {
     private ThreadPoolExecutor executorService;
 
     @Before
-    public void setUp() throws Exception {
+    public void setup() throws Exception {
         executorService = new ThreadPoolExecutor(
             3,
             3,

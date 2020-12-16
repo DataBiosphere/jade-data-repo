@@ -33,7 +33,7 @@ public class CacheConfiguration implements CachingConfigurer {
     public static final String STATUS_PROP = "STATUS";
 
     public enum CacheProperties {
-        STATUS(30L, TimeUnit.SECONDS, null);
+        STATUS(5L, TimeUnit.SECONDS, null);
 
         private final long duration;
         private final TimeUnit unit;

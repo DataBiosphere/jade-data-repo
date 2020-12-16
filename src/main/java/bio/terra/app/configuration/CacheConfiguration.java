@@ -39,7 +39,7 @@ public class CacheConfiguration implements CachingConfigurer {
         private final TimeUnit unit;
         private final Optional<Long> maxSize;
 
-        CacheProperties(Long duration, TimeUnit unit, Long maxSize) {
+        CacheProperties(final long duration, final TimeUnit unit, final Long maxSize) {
             this.duration = duration;
             this.unit = unit;
             this.maxSize = Optional.ofNullable(maxSize);

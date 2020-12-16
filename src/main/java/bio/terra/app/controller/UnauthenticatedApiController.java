@@ -1,5 +1,6 @@
 package bio.terra.app.controller;
 
+import bio.terra.app.configuration.CacheConfiguration;
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
@@ -10,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -77,6 +79,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     }
 
     @Override
+    @Cacheable(value = { CacheConfiguration.STATUS_PROP }, cacheManager = CacheConfiguration.SPRING_CACHE_MANAGER)
     public ResponseEntity<RepositoryStatusModel> serviceStatus() {
         RepositoryStatusModel repoStatus = statusService.getStatus();
         HttpStatus httpStatus = repoStatus.isOk() ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;

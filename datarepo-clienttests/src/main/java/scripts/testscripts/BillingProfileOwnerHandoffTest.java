@@ -38,17 +38,17 @@ public class BillingProfileOwnerHandoffTest extends BillingProfileUsers {
     DataRepoWrap userUserApi = DataRepoWrap.wrapFactory(userUser, server);
 
     try {
-      profile = userUserApi.createProfile(billingAccount, "profile_permission_test", true);
+      profile = ownerUser1Api.createProfile(billingAccount, "profile_permission_test", true);
       String profileId = profile.getId();
       // Remove stewards from the owner list. Otherwise, voldemort has access by default :(
-      userUserApi.deleteProfilePolicyMember(profileId, "owner", stewardsEmail);
+      ownerUser1Api.deleteProfilePolicyMember(profileId, "owner", stewardsEmail);
 
-      userUserApi.addProfilePolicyMember(profileId, "owner", ownerUser1.userEmail);
-      ownerUser1Api.deleteProfilePolicyMember(profileId, "owner", userUser.userEmail);
+      ownerUser1Api.addProfilePolicyMember(profileId, "owner", userUser.userEmail);
+      userUserApi.deleteProfilePolicyMember(profileId, "owner", ownerUser1.userEmail);
       // Make sure removed owner can perform none of the operations
-      testOperations(userUserApi, RoleState.NONE, profileId);
+      testOperations(ownerUser1Api, RoleState.NONE, profileId);
 
-      ownerUser1Api.addProfilePolicyMember(profileId, "owner", ownerUser2.userEmail);
+      userUserApi.addProfilePolicyMember(profileId, "owner", ownerUser2.userEmail);
       testOperations(ownerUser2Api, RoleState.OWNER, profileId);
       ownerUser2Api.deleteProfile(profileId);
       profile = null;

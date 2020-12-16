@@ -131,7 +131,7 @@ public class GoogleProjectService {
 
     public void deleteUnusedProjects(List<UUID> projectIdList) {
         for (UUID projectId : projectIdList) {
-            deleteProjectResource(projectId);
+            deleteGoogleProject(projectId);
         }
     }
 
@@ -258,8 +258,8 @@ public class GoogleProjectService {
         }
     }
 
-    // package access for use in tests
-    void deleteProjectResource(UUID resourceId) {
+    @VisibleForTesting
+    void deleteGoogleProject(UUID resourceId) {
         GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(resourceId);
         deleteGoogleProject(projectResource.getGoogleProjectId());
     }

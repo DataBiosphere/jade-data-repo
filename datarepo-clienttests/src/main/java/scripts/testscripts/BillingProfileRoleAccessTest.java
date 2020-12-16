@@ -1,12 +1,13 @@
 package scripts.testscripts;
 
 import bio.terra.datarepo.model.BillingProfileModel;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.BillingProfileUsers;
 import scripts.utils.tdrwrapper.DataRepoWrap;
+
+import java.util.List;
 
 public class BillingProfileRoleAccessTest extends BillingProfileUsers {
   private static final Logger logger = LoggerFactory.getLogger(BillingProfileRoleAccessTest.class);
@@ -35,12 +36,8 @@ public class BillingProfileRoleAccessTest extends BillingProfileUsers {
   public void userJourney(TestUserSpecification testUser) throws Exception {
     DataRepoWrap ownerUser1Api = DataRepoWrap.wrapFactory(ownerUser1, server); // dumbledore
     DataRepoWrap ownerUser2Api = DataRepoWrap.wrapFactory(ownerUser2, server); // voldemort
-    DataRepoWrap userUserApi = DataRepoWrap.wrapFactory(userUser, server); // mcgonagall
 
     try {
-      // TODO: This test will stop working when DR-1475 is complete. At
-      //  that point we will need to switch to using a test billing account that we can manipulate
-      //  to add specific users with the ability to create profiles.
       profile = ownerUser1Api.createProfile(billingAccount, "profile_permission_test", true);
       String profileId = profile.getId();
       logger.info("ProfileId: {}", profileId);

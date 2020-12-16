@@ -87,7 +87,6 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       e.printStackTrace();
       throw e;
     } finally {
-      /*
       if (snapshot != null) {
         userUserApi.deleteSnapshot(snapshot.getId());
       }
@@ -97,7 +96,6 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       if (profile != null) {
         ownerUser1Api.deleteProfile(profile.getId());
       }
-         */
     }
   }
 

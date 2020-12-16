@@ -1,13 +1,12 @@
 package scripts.testscripts;
 
 import bio.terra.datarepo.model.BillingProfileModel;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.BillingProfileUsers;
 import scripts.utils.tdrwrapper.DataRepoWrap;
-
-import java.util.List;
 
 public class BillingProfileRoleAccessTest extends BillingProfileUsers {
   private static final Logger logger = LoggerFactory.getLogger(BillingProfileRoleAccessTest.class);

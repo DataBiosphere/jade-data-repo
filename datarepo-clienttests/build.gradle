@@ -63,15 +63,15 @@ dependencies {
     compile "com.google.cloud:google-cloud-storage:${googleCloud}"
     compile "com.google.cloud:google-cloud-monitoring:${googleMonitoring}"
     compile "com.google.cloud:google-cloud-logging:${googleLogging}"
-    compile "org.glassfish.jersey.core:jersey-client:${jersey}"
-    compile "org.glassfish.jersey.media:jersey-media-json-jackson:${jersey}"
-    compile "org.glassfish.jersey.media:jersey-media-multipart:${jersey}"
-    compile "org.glassfish.jersey.inject:jersey-hk2:${jersey}"
-    compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jackson}"
 
     // Gradle project property "datarepoclientjar" overrides the fetch from Maven
     if (project.hasProperty("datarepoclientjar")) {
         implementation files(project.findProperty("datarepoclientjar"))
+        compile "org.glassfish.jersey.core:jersey-client:${jersey}"
+        compile "org.glassfish.jersey.media:jersey-media-json-jackson:${jersey}"
+        compile "org.glassfish.jersey.media:jersey-media-multipart:${jersey}"
+        compile "org.glassfish.jersey.inject:jersey-hk2:${jersey}"
+        compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jackson}"
     } else {
         implementation "bio.terra:datarepo-client:${datarepoClient}"
         compile "io.swagger.core.v3:swagger-annotations:${swaggerAnnotations}"

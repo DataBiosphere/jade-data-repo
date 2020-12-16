@@ -279,8 +279,7 @@ public class ProfileService {
     }
 
     // Verify user access to the billing account during billing profile creation
-    public void verifyAccount(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
-        String billingAccountId = request.getBillingAccountId();
+    public void verifyAccount(String billingAccountId, AuthenticatedUserRequest user) {
         if (!billingService.canAccess(user, billingAccountId)) {
             throw new InaccessibleBillingAccountException("The user '" + user.getEmail() +
                 "' needs access to billing account '" + billingAccountId + "' to perform the requested operation");

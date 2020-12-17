@@ -238,14 +238,14 @@ public class SnapshotDaoTest {
                 // dataset name or created_date. add a suffix to filter on for the even snapshots
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
             String flightId = "snapshotEnumerateTest_flightId";
-            UUID snapId = UUID.randomUUID();
+            UUID tempSnapshotId = UUID.randomUUID();
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest)
                 .projectResourceId(projectId)
-                .id(snapId);
+                .id(tempSnapshotId);
             snapshotDao.createAndLock(snapshot, flightId);
 
-            snapshotDao.unlock(snapId, flightId);
-            snapshotIdList.add(snapId);
+            snapshotDao.unlock(tempSnapshotId, flightId);
+            snapshotIdList.add(tempSnapshotId);
         }
 
         testOneEnumerateRange(snapshotIdList, snapshotName, 0, 1000);

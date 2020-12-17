@@ -77,7 +77,7 @@ public class IngestTest extends UsersBase {
             dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
         }
 
-        if (profileId != null){
+        if (profileId != null) {
             dataRepoFixtures.deleteProfileLog(steward(), profileId);
         }
     }

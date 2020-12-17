@@ -6,6 +6,8 @@ import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
@@ -14,6 +16,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.SnapshotProject;
@@ -23,6 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.io.UnsupportedEncodingException;
@@ -38,12 +42,16 @@ public class DrsService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.filedata.DrsService");
 
     private static final String DRS_OBJECT_VERSION = "0";
+    // atomic counter that we incr on request arrival and decr on request response
+    private static int currentDRSRequests = 0;
 
     private final SnapshotService snapshotService;
     private final FileService fileService;
     private final DrsIdService drsIdService;
     private final IamService samService;
     private final ResourceService resourceService;
+    private final ConfigurationService configurationService;
+    private final KubeService kubeService;
     private final PerformanceLogger performanceLogger;
 
     @Autowired
@@ -52,17 +60,32 @@ public class DrsService {
                       DrsIdService drsIdService,
                       IamService samService,
                       ResourceService resourceService,
+                      ConfigurationService configurationService,
+                      KubeService kubeService,
                       PerformanceLogger performanceLogger) {
         this.snapshotService = snapshotService;
         this.fileService = fileService;
         this.drsIdService = drsIdService;
         this.samService = samService;
         this.resourceService = resourceService;
+        this.configurationService = configurationService;
+        this.kubeService = kubeService;
         this.performanceLogger = performanceLogger;
     }
 
+
+
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
 
+        // make sure not too many requests are being made at once
+        currentDRSRequests++;
+        int podCount = kubeService.getActivePodCount();
+        int maxDRSLookups = configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
+        int max = maxDRSLookups / podCount;
+        if (currentDRSRequests >= max) {
+            // what's the best way to return this in our current format?
+            HttpStatus.TOO_MANY_REQUESTS;
+        }
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         SnapshotProject snapshotProject = null;
         try {
@@ -114,8 +137,10 @@ public class DrsService {
                 this.getClass().getName(),
                 "fileService.lookupSnapshotFSItem");
         } catch (InterruptedException ex) {
+            currentDRSRequests--;
             throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
         }
+        currentDRSRequests--; // TODO is there a better place for this?
 
         if (fsObject instanceof FSFile) {
             return drsObjectFromFSFile((FSFile)fsObject, drsId.getSnapshotId(), authUser);

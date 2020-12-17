@@ -4,6 +4,7 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadRequestModel;
@@ -203,12 +204,42 @@ public class ConnectedOperations {
         return billingProfileModel;
     }
 
+    public ErrorModel createProfileExpectError(BillingProfileRequestModel profileRequestModel,
+                                               HttpStatus expectedStatus) throws Exception {
+        MvcResult result = mvc.perform(post("/api/resources/v1/profiles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(profileRequestModel)))
+            .andReturn();
+
+        return handleFailureCase(result.getResponse(), expectedStatus);
+    }
+
     public BillingProfileModel getProfileById(String profileId) throws Exception {
         MvcResult result = mvc.perform(get("/api/resources/v1/profiles/" + profileId)
             .contentType(MediaType.APPLICATION_JSON))
             .andReturn();
 
         return TestUtils.mapFromJson(result.getResponse().getContentAsString(), BillingProfileModel.class);
+    }
+
+    public BillingProfileModel updateProfile(BillingProfileUpdateModel profileRequestModel) throws Exception {
+        MvcResult result = mvc.perform(put("/api/resources/v1/profiles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(profileRequestModel)))
+            .andReturn();
+
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return handleSuccessCase(response, BillingProfileModel.class);
+    }
+
+    public ErrorModel updateProfileExpectError(BillingProfileUpdateModel profileRequestModel, HttpStatus expectedStatus)
+        throws Exception {
+        MvcResult result = mvc.perform(put("/api/resources/v1/profiles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(profileRequestModel)))
+            .andReturn();
+
+        return handleFailureCase(result.getResponse(), expectedStatus);
     }
 
     public SnapshotSummaryModel createSnapshot(DatasetSummaryModel datasetSummaryModel,

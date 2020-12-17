@@ -3,6 +3,7 @@ package bio.terra.service.profile;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
@@ -19,6 +20,7 @@ import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
+import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -60,9 +62,9 @@ public class ProfileService {
      * Create a new billing profile providing an valid google billing account
      * We make the following checks:
      * <ul>
-     *     <le>The service must have proper permissions on the google billing account</le>
-     *     <le>The caller must have billing.resourceAssociation.create permission on the google billing account</le>
-     *     <le>The google billing account must be enabled</le>
+     *     <li>The service must have proper permissions on the google billing account</li>
+     *     <li>The caller must have billing.resourceAssociation.create permission on the google billing account</li>
+     *     <li>The google billing account must be enabled</li>
      * </ul>
      * <p>
      * The billing profile name does not need to be unique across all billing profiles.
@@ -80,11 +82,34 @@ public class ProfileService {
     }
 
     /**
+     * Update billing profile. We make the following checks:
+     * <ul>
+     *     <li>The service must have proper permissions on the google billing account</li>
+     *     <li>The caller must have billing.resourceAssociation.create permission on the google billing account</li>
+     *     <li>The google billing account must be enabled</li>
+     * </ul>
+     *
+     * @param  billingProfileRequest request with changes to billing profile
+     * @param user the user attempting to update the billing profile
+     * @return jobId of the submitted stairway job
+     */
+    public String updateProfile(BillingProfileUpdateModel billingProfileRequest,
+                                AuthenticatedUserRequest user) {
+        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, billingProfileRequest.getId(),
+            IamAction.UPDATE_BILLING_ACCOUNT);
+
+        String description = String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
+        return jobService
+            .newJob(description, ProfileUpdateFlight.class, billingProfileRequest, user)
+            .submit();
+    }
+
+    /**
      * Remove billing profile. We make the following checks:
      * <ul>
-     *     <le>the caller must be an owner of the billing profile</le>
-     *     <le>There must be no dependencies on the billing profile;
-     *     that is, no snapshots, dataset, or buckets referencing the profile</le>
+     *     <li>the caller must be an owner of the billing profile</li>
+     *     <li>There must be no dependencies on the billing profile;
+     *     that is, no snapshots, dataset, or buckets referencing the profile</li>
      * </ul>
      *
      * @param id the unique id of the bill profile
@@ -226,6 +251,10 @@ public class ProfileService {
         return profileDao.createBillingProfile(profileRequest, user.getEmail());
     }
 
+    public BillingProfileModel updateProfileMetadata(BillingProfileUpdateModel profileRequest) {
+        return profileDao.updateBillingProfileById(profileRequest);
+    }
+
     public boolean deleteProfileMetadata(String profileId) {
         // TODO: refuse to delete if there are dependent projects
         UUID profileUuid = UUID.fromString(profileId);
@@ -250,8 +279,7 @@ public class ProfileService {
     }
 
     // Verify user access to the billing account during billing profile creation
-    public void verifyAccount(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
-        String billingAccountId = request.getBillingAccountId();
+    public void verifyAccount(String billingAccountId, AuthenticatedUserRequest user) {
         if (!billingService.canAccess(user, billingAccountId)) {
             throw new InaccessibleBillingAccountException("The user '" + user.getEmail() +
                 "' needs access to billing account '" + billingAccountId + "' to perform the requested operation");

@@ -4,6 +4,7 @@ import bio.terra.app.utils.ControllerUtils;
 import bio.terra.controller.ResourcesApi;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
@@ -38,6 +39,7 @@ public class ProfileApiController implements ResourcesApi {
     private final HttpServletRequest request;
     private final ProfileService profileService;
     private final ProfileRequestValidator billingProfileRequestValidator;
+    private final ProfileUpdateRequestValidator profileUpdateRequestValidator;
     private final PolicyMemberValidator policyMemberValidator;
     private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
     private final JobService jobService;
@@ -48,6 +50,7 @@ public class ProfileApiController implements ResourcesApi {
         HttpServletRequest request,
         ProfileService profileService,
         ProfileRequestValidator billingProfileRequestValidator,
+        ProfileUpdateRequestValidator profileUpdateRequestValidator,
         PolicyMemberValidator policyMemberValidator,
         JobService jobService,
         AuthenticatedUserRequestFactory authenticatedUserRequestFactory) {
@@ -55,6 +58,7 @@ public class ProfileApiController implements ResourcesApi {
         this.request = request;
         this.profileService = profileService;
         this.billingProfileRequestValidator = billingProfileRequestValidator;
+        this.profileUpdateRequestValidator = profileUpdateRequestValidator;
         this.policyMemberValidator = policyMemberValidator;
         this.jobService = jobService;
         this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
@@ -72,6 +76,7 @@ public class ProfileApiController implements ResourcesApi {
 
     @InitBinder
     protected void initBinder(final WebDataBinder binder) {
+        binder.addValidators(profileUpdateRequestValidator);
         binder.addValidators(billingProfileRequestValidator);
         binder.addValidators(policyMemberValidator);
     }
@@ -81,6 +86,14 @@ public class ProfileApiController implements ResourcesApi {
         @RequestBody BillingProfileRequestModel billingProfileRequest) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
         String jobId = profileService.createProfile(billingProfileRequest, user);
+        return jobToResponse(jobService.retrieveJob(jobId, user));
+    }
+
+    @Override
+    public ResponseEntity<JobModel> updateProfile(
+        @Valid @RequestBody  BillingProfileUpdateModel billingProfileRequest) {
+        AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
+        String jobId = profileService.updateProfile(billingProfileRequest, user);
         return jobToResponse(jobService.retrieveJob(jobId, user));
     }
 

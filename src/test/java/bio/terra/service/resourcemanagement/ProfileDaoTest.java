@@ -4,6 +4,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -54,20 +56,54 @@ public class ProfileDaoTest {
     }
 
     // keeps track of the profiles that are made so they can be cleaned up
-    private UUID makeProfile() {
+    private BillingProfileModel makeProfile() {
         BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
         BillingProfileModel billingProfileModel = profileDao.createBillingProfile(profileRequest, "me@me.me");
         UUID profileId = UUID.fromString(billingProfileModel.getId());
         profileIds.add(profileId);
-        return profileId;
+        return billingProfileModel;
     }
 
     @Test(expected = ProfileNotFoundException.class)
     public void profileDeleteTest() {
-        UUID profileId = makeProfile();
+        UUID profileId = UUID.fromString(makeProfile().getId());
         boolean deleted = profileDao.deleteBillingProfileById(profileId);
         assertThat("able to delete", deleted, equalTo(true));
         profileDao.getBillingProfileById(profileId);
+    }
+
+    @Test
+    public void profileUpdate() {
+        BillingProfileModel profile = makeProfile();
+
+        // Start with old Billing account, then set to newBillingAccount
+        String oldBillingAccount = profile.getBillingAccountId();
+        String newBillingAccount = ProfileFixtures.randomBillingAccountId();
+
+        // Check existing state: Test billing profile set as expected
+        String testBA = profileDao.getBillingProfileById(UUID.fromString(profile.getId())).getBillingAccountId();
+        assertThat("Billing account should be equal.", testBA, equalTo(oldBillingAccount));
+
+        // test the update function
+        BillingProfileUpdateModel updateModel = new BillingProfileUpdateModel()
+            .id(profile.getId())
+            .billingAccountId(newBillingAccount)
+            .description("updated");
+        BillingProfileModel newProfile = profileDao.updateBillingProfileById(updateModel);
+
+        assertThat("Billing profile should be updated.", newProfile.getBillingAccountId(),
+            equalTo(newBillingAccount));
+        assertThat("Description should be updated", newProfile.getDescription(),
+            containsString("updated"));
+    }
+
+    @Test(expected = ProfileNotFoundException.class)
+    public void updateNonExistentProfile() {
+        BillingProfileUpdateModel updateModel = new BillingProfileUpdateModel()
+            .id(UUID.randomUUID().toString())
+            .billingAccountId(ProfileFixtures.randomBillingAccountId())
+            .description("random");
+        profileDao.updateBillingProfileById(updateModel);
     }
 
     @Test
@@ -75,7 +111,7 @@ public class ProfileDaoTest {
         Map<UUID, String> profileIdToAccountId = new HashMap<>();
         List<UUID> accessibleProfileId = new ArrayList<>();
         for (int i = 0; i < 6; i++) {
-            UUID enumProfileId = makeProfile();
+            UUID enumProfileId = UUID.fromString(makeProfile().getId());
             BillingProfileModel enumProfile = profileDao.getBillingProfileById(enumProfileId);
             profileIdToAccountId.put(enumProfileId, enumProfile.getBillingAccountId());
             accessibleProfileId.add(enumProfileId);

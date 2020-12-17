@@ -190,6 +190,61 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: billingProfileRequest
+    put:
+      tags:
+        - resources
+      description: >
+        Update a billing profile by id. This is asynchronous.
+        The final return is of type definitions/BillingProfileModel.
+      operationId: updateProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingProfileUpdateModel'
+        required: true
+      responses:
+        200:
+          description: Redirect for profile update result
+          headers:
+            location:
+              description: url for the job result
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        202:
+          description: Job status of profile update job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to update profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - profile does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/resources/v1/profiles/{id}:
     get:
       tags:
@@ -2377,6 +2432,21 @@ components:
           type: string
           description: either “direct” or the reseller of the sub-account that sends
             the bill (like “on_spend”)
+        description:
+          type: string
+          description: Free text that describes the profile
+    BillingProfileUpdateModel:
+      required:
+        - id
+        - billingAccountId
+        - description
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        billingAccountId:
+          type: string
+          description: Unique identifier of the billing account from Google
         description:
           type: string
           description: Free text that describes the profile

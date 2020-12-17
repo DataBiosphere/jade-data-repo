@@ -145,4 +145,13 @@ public class GoogleBillingService {
             throw new BillingServiceException(message, e);
         }
     }
+
+    public ProjectBillingInfo getProjectBilling(String projectId) {
+        try {
+            return cloudBillingClient().getProjectBillingInfo("projects/" + projectId);
+        } catch (ApiException e) {
+            String message = String.format("Could not retrieve billing account to project: %s", projectId);
+            throw new BillingServiceException(message, e);
+        }
+    }
 }

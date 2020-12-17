@@ -74,6 +74,7 @@ dependencies {
         compile "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:${jackson}"
     } else {
         implementation "bio.terra:datarepo-client:${datarepoClient}"
+        compile "io.swagger.core.v3:swagger-annotations:${swaggerAnnotations}"
     }
 
     implementation "org.broadinstitute.dsde.workbench:sam-client_2.12:${samClient}"

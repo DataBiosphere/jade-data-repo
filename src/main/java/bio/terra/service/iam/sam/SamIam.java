@@ -191,7 +191,7 @@ public class SamIam implements IamProviderInterface {
             createAccessPolicy(IamRole.INGESTER, null));
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        logger.debug(req.toString());
+        logger.info(req.toString());
 
         // create the resource in sam
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASET.toString(), req);

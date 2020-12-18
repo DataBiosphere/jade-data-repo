@@ -11,6 +11,8 @@ import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
 import bio.terra.service.filedata.DrsService;
+import bio.terra.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.service.filedata.exception.MaxDrsLookupsException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
+import java.util.UUID;
 
 @Controller
 public class DataRepositoryServiceApiController implements DataRepositoryServiceApi {
@@ -107,7 +110,17 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand) {
         // The incoming object id is a DRS object id, not a file id.
         AuthenticatedUserRequest authUser = getAuthenticatedInfo();
-        return new ResponseEntity<>(drsService.lookupObjectByDrsId(authUser, objectId, expand), HttpStatus.OK);
+        DRSObject drsObject = null;
+        HttpStatus status = HttpStatus.OK;
+        drsService.increment();
+        try {
+            drsObject = drsService.lookupObjectByDrsId(authUser, objectId, expand);
+        } catch (MaxDrsLookupsException ex) {
+            status = HttpStatus.TOO_MANY_REQUESTS;
+        }
+        drsService.decrement(); // TODO do we ever get stuck and not get to this line?
+        return new ResponseEntity<>(drsObject, status);
+
     }
 
     @Override

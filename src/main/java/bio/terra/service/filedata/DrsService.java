@@ -11,6 +11,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.service.filedata.exception.MaxDrsLookupsException;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
@@ -73,19 +74,26 @@ public class DrsService {
         this.performanceLogger = performanceLogger;
     }
 
+    public void decrement() {
+        currentDRSRequests--;
+    }
 
-
-    public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
-
-        // make sure not too many requests are being made at once
+    public void increment() {
         currentDRSRequests++;
+    }
+
+    public void checkLookupMax() {
+        // make sure not too many requests are being made at once
         int podCount = kubeService.getActivePodCount();
         int maxDRSLookups = configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
         int max = maxDRSLookups / podCount;
         if (currentDRSRequests >= max) {
-            // what's the best way to return this in our current format?
-            HttpStatus.TOO_MANY_REQUESTS;
+            throw new MaxDrsLookupsException("Too many requests are being made at once. Please try again later.");
         }
+    }
+
+    public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
+        checkLookupMax();
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         SnapshotProject snapshotProject = null;
         try {
@@ -137,10 +145,8 @@ public class DrsService {
                 this.getClass().getName(),
                 "fileService.lookupSnapshotFSItem");
         } catch (InterruptedException ex) {
-            currentDRSRequests--;
             throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
         }
-        currentDRSRequests--; // TODO is there a better place for this?
 
         if (fsObject instanceof FSFile) {
             return drsObjectFromFSFile((FSFile)fsObject, drsId.getSnapshotId(), authUser);

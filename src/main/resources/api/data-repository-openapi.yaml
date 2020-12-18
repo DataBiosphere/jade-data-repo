@@ -345,7 +345,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  '/api/resources/v1/profiles/{id}/policies/{policyName}/members':
+
+  /api/resources/v1/profiles/{id}/policies:
+    get:
+      tags:
+        - resources
+      description: Retrieve the read and discover policies for the profile
+      operationId: retrieveProfilePolicies
+      parameters:
+        - name: id
+          in: path
+          description: A UUID to used to identify an object in the repository
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to see policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/resources/v1/profiles/{id}/policies/{policyName}/members:
     post:
       tags:
         - resources
@@ -379,6 +419,60 @@ paths:
           description: Not found - profile id does not exist
           schema:
             $ref: '#/components/schemas/ErrorModel'
+
+  /api/resources/v1/profiles/{id}/policies/{policyName}/members/{memberEmail}:
+    delete:
+      tags:
+        - resources
+      description: Removes a member from the specified policy for the profile
+      operationId: deleteProfilePolicyMember
+      parameters:
+        - name: id
+          in: path
+          description: A UUID to used to identify an object in the repository
+          required: true
+          schema:
+            type: string
+        - name: policyName
+          in: path
+          description: The relevant policy
+          required: true
+          schema:
+            type: string
+            enum:
+              - reader
+              - discoverer
+        - name: memberEmail
+          in: path
+          description: The email of the user to remove
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: PolicyResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to update policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
 
   /api/repository/v1/snapshots:
     get:
@@ -798,7 +892,7 @@ paths:
     delete:
       tags:
         - repository
-      description: Adds a member to the specified policy for the snapshot
+      description: Removes a member from the specified policy for the snapshot
       operationId: deleteSnapshotPolicyMember
       parameters:
         - name: id
@@ -1145,7 +1239,7 @@ paths:
     delete:
       tags:
         - repository
-      description: Removes the member from the specified policy for the snapshot
+      description: Removes the member from the specified policy for the dataset
       operationId: deleteDatasetPolicyMember
       parameters:
         - name: id

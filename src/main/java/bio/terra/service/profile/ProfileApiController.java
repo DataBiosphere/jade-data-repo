@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static bio.terra.app.utils.ControllerUtils.jobToResponse;
@@ -129,6 +130,25 @@ public class ProfileApiController implements ResourcesApi {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
         PolicyModel policy = profileService.addProfilePolicyMember(id, policyName, policyMember, user);
         PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> deleteProfilePolicyMember(
+        @PathVariable("id") String id,
+        @PathVariable("policyName") String policyName,
+        @PathVariable("memberEmail") String memberEmail) {
+        AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
+        PolicyModel policy = profileService.deleteProfilePolicyMember(id, policyName, memberEmail, user);
+        PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> retrieveProfilePolicies(@PathVariable("id") String id) {
+        AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
+        List<PolicyModel> policies = profileService.retrieveProfilePolicies(id, user);
+        PolicyResponse response = new PolicyResponse().policies(policies);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

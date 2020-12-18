@@ -1,0 +1,21 @@
+{
+  "name": "BillingProfileAccess",
+  "description": "Test roles and operations against billing profiles",
+  "serverSpecificationFile": "dddev.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 1
+  },
+  "application": {},
+  "testScripts": [
+    {
+      "name": "BillingProfileRoleAccessTest",
+      "parameters": ["JadeStewards-dev@dev.test.firecloud.org"],
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 1,
+      "expectedTimeForEach": 2,
+      "expectedTimeForEachUnit": "HOURS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json", "voldemort.json", "mcgonagall.json"]
+}

@@ -142,21 +142,6 @@ public class ApplicationConfiguration {
      */
     private int maxPerformanceThreadQueueSize;
 
-    /**
-     * Enforce billing profile authorization
-     * This is a temporary flag to allow disabling of billing profile authorization if something goes wrong
-     * in the upgrade process.
-     */
-    private boolean enforceBillingProfileAuthorization;
-
-    public boolean isEnforceBillingProfileAuthorization() {
-        return enforceBillingProfileAuthorization;
-    }
-
-    public void setEnforceBillingProfileAuthorization(boolean enforceBillingProfileAuthorization) {
-        this.enforceBillingProfileAuthorization = enforceBillingProfileAuthorization;
-    }
-
     public String getUserEmail() {
         return userEmail;
     }

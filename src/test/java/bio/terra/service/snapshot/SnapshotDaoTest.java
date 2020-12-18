@@ -66,6 +66,7 @@ public class SnapshotDaoTest {
     private UUID datasetId;
     private SnapshotRequestModel snapshotRequest;
     private UUID snapshotId;
+    private List<UUID> snapshotIdList;
     private UUID profileId;
     private UUID projectId;
 
@@ -104,6 +105,12 @@ public class SnapshotDaoTest {
 
     @After
     public void teardown() throws Exception {
+        if (snapshotIdList != null) {
+            for (UUID id : snapshotIdList) {
+                snapshotDao.delete(id);
+            }
+            snapshotIdList = null;
+        }
         snapshotDao.delete(snapshotId);
         datasetDao.delete(datasetId);
         resourceDao.deleteProject(projectId);
@@ -221,7 +228,7 @@ public class SnapshotDaoTest {
 
     @Test
     public void snapshotEnumerateTest() throws Exception {
-        List<UUID> snapshotIds = new ArrayList<>();
+        snapshotIdList = new ArrayList<>();
         String snapshotName = snapshotRequest.getName() + UUID.randomUUID().toString();
 
         for (int i = 0; i < 6; i++) {
@@ -231,50 +238,46 @@ public class SnapshotDaoTest {
                 // dataset name or created_date. add a suffix to filter on for the even snapshots
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
             String flightId = "snapshotEnumerateTest_flightId";
-            snapshotId = UUID.randomUUID();
+            UUID tempSnapshotId = UUID.randomUUID();
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest)
                 .projectResourceId(projectId)
-                .id(snapshotId);
+                .id(tempSnapshotId);
             snapshotDao.createAndLock(snapshot, flightId);
 
-            snapshotDao.unlock(snapshotId, flightId);
-            snapshotIds.add(snapshotId);
+            snapshotDao.unlock(tempSnapshotId, flightId);
+            snapshotIdList.add(tempSnapshotId);
         }
 
-        testOneEnumerateRange(snapshotIds, snapshotName, 0, 1000);
-        testOneEnumerateRange(snapshotIds, snapshotName, 1, 3);
-        testOneEnumerateRange(snapshotIds, snapshotName, 3, 5);
-        testOneEnumerateRange(snapshotIds, snapshotName, 4, 7);
+        testOneEnumerateRange(snapshotIdList, snapshotName, 0, 1000);
+        testOneEnumerateRange(snapshotIdList, snapshotName, 1, 3);
+        testOneEnumerateRange(snapshotIdList, snapshotName, 3, 5);
+        testOneEnumerateRange(snapshotIdList, snapshotName, 4, 7);
 
-        testSortingNames(snapshotIds, snapshotName, 0, 10, "asc");
-        testSortingNames(snapshotIds, snapshotName, 0, 3, "asc");
-        testSortingNames(snapshotIds, snapshotName, 1, 3, "asc");
-        testSortingNames(snapshotIds, snapshotName, 2, 5, "asc");
-        testSortingNames(snapshotIds, snapshotName, 0, 10, "desc");
-        testSortingNames(snapshotIds, snapshotName, 0, 3, "desc");
-        testSortingNames(snapshotIds, snapshotName, 1, 3, "desc");
-        testSortingNames(snapshotIds, snapshotName, 2, 5, "desc");
+        testSortingNames(snapshotIdList, snapshotName, 0, 10, "asc");
+        testSortingNames(snapshotIdList, snapshotName, 0, 3, "asc");
+        testSortingNames(snapshotIdList, snapshotName, 1, 3, "asc");
+        testSortingNames(snapshotIdList, snapshotName, 2, 5, "asc");
+        testSortingNames(snapshotIdList, snapshotName, 0, 10, "desc");
+        testSortingNames(snapshotIdList, snapshotName, 0, 3, "desc");
+        testSortingNames(snapshotIdList, snapshotName, 1, 3, "desc");
+        testSortingNames(snapshotIdList, snapshotName, 2, 5, "desc");
 
-        testSortingDescriptions(snapshotIds, "desc");
-        testSortingDescriptions(snapshotIds, "asc");
+        testSortingDescriptions(snapshotIdList, "desc");
+        testSortingDescriptions(snapshotIdList, "asc");
 
 
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 2, null,
-            null, "==foo==", snapshotIds);
+            null, "==foo==", snapshotIdList);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered and retrieved 2 snapshots", summaryList.size(), equalTo(2));
         assertThat("filtered total 3", summaryEnum.getTotal(), equalTo(3));
         for (int i = 0; i < 2; i++) {
-            assertThat("first 2 ids match", snapshotIds.get(i * 2), equalTo(summaryList.get(i).getId()));
+            assertThat("first 2 ids match", snapshotIdList.get(i * 2), equalTo(summaryList.get(i).getId()));
         }
 
         MetadataEnumeration<SnapshotSummary> emptyEnum = snapshotDao.retrieveSnapshots(0, 6, null,
-            null, "__", snapshotIds);
+            null, "__", snapshotIdList);
         assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
-
-        for (UUID snapshotId : snapshotIds) {
-            snapshotDao.delete(snapshotId);
-        }
     }
 
     private String makeName(String baseName, int index) {

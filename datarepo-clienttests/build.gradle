@@ -1,5 +1,3 @@
-import org.gradle.api.tasks.JavaExec
-
 plugins {
     id 'java'
     id 'application'

@@ -28,25 +28,20 @@ public class ProfileDeleteFlight extends Flight {
         //     to have no references, it (and associated unused buckets) will be marked for delete. From the
         //     perspective of the rest of the system, the buckets and projects no longer exist.
         //     NOTE: we do not undo this. Once these marks are set, the project and bucket will not be
-        //     used, even if the projects fail to be deleted.
-        //  2. For all projects marked for deletion, actually issue the delete operation to GCP
-        //  3. Remove the marked-for-delete objects from the metadata
+        //     used, even if the projects fail to be deleted. They would be found again and delete attempted
+        //     again on a subsequent attempt to delete the profile.
+        //  2. For all projects marked for deletion, actually issue the delete operation to GCP. Again, there
+        //     is no way to undo here. The projects cannot be recreated. On failure, some might be deleted and
+        //     others might not be. We tolerate projects not found during delete.
+        //  3. Remove the marked-for-delete objects from the metadata. Again there is no way to rebuild the
+        //     deleted state, so no undo. This operation is transactional, so it either all gets done or not.
         // If at that point, the profile still has existing projects, we will error. Otherwise, we
         // complete the deletion of the billing profile.
-        //
-        // mark unused projects - saves list of marked projects to working map
-        // - across many tables - implement in GoogleResourceDao via ResourceService
-        // delete marked google projects - gcp deletes, if !allowReuse
-        // - ResourceService using GoogleProjectService
-        // delete marked project metadata - delete project rows
-        // - implement in GoogleResourceDao via ResourceService
-        // AND
-        // - update getOrCreateBucket and getOrCreateProject to obey the marked for delete flags
         addStep(new DeleteProfileMarkUnusedProjects(resourceService, profileId));
         addStep(new DeleteProfileDeleteUnusedProjects(resourceService));
         addStep(new DeleteProfileProjectMetadata(resourceService));
-        addStep(new DeleteProfileAuthzIamStep(profileService, profileId));
         addStep(new DeleteProfileMetadataStep(profileService, profileId));
+        addStep(new DeleteProfileAuthzIamStep(profileService, profileId));
     }
 
 }

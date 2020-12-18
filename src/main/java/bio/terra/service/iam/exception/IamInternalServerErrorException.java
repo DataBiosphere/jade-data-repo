@@ -2,6 +2,8 @@ package bio.terra.service.iam.exception;
 
 import bio.terra.common.exception.InternalServerErrorException;
 
+import java.util.List;
+
 public class IamInternalServerErrorException extends InternalServerErrorException {
     public IamInternalServerErrorException(String message, Throwable cause) {
         super(message, cause);
@@ -13,4 +15,9 @@ public class IamInternalServerErrorException extends InternalServerErrorExceptio
     public IamInternalServerErrorException(Throwable cause) {
         super(cause);
     }
+
+    public IamInternalServerErrorException(String message, List<String> errorDetails) {
+        super(message, errorDetails);
+    }
+
 }

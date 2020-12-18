@@ -1,19 +1,17 @@
 package bio.terra.service.profile;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.common.ValidationUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
-import bio.terra.model.UpgradeModel;
-import bio.terra.model.UpgradeResponseModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.iam.exception.IamNotFoundException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
@@ -23,17 +21,13 @@ import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
-import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Component
 public class ProfileService {
@@ -43,19 +37,16 @@ public class ProfileService {
     private final IamService iamService;
     private final JobService jobService;
     private final GoogleBillingService billingService;
-    private final ApplicationConfiguration applicationConfiguration;
 
     @Autowired
     public ProfileService(ProfileDao profileDao,
                           IamService iamService,
                           JobService jobService,
-                          GoogleBillingService billingService,
-                          ApplicationConfiguration applicationConfiguration) {
+                          GoogleBillingService billingService) {
         this.profileDao = profileDao;
         this.iamService = iamService;
         this.jobService = jobService;
         this.billingService = billingService;
-        this.applicationConfiguration = applicationConfiguration;
     }
 
     /**
@@ -117,9 +108,7 @@ public class ProfileService {
      * @return jobId of the submitted stairway job
      */
     public String deleteProfile(String id, AuthenticatedUserRequest user) {
-        if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
-            iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
-        }
+        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
 
         String description = String.format("Delete billing profile id '%s'", id);
         return jobService
@@ -139,14 +128,11 @@ public class ProfileService {
     public EnumerateBillingProfileModel enumerateProfiles(Integer offset,
                                                           Integer limit,
                                                           AuthenticatedUserRequest user) {
-        if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
-            List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
-            if (resources.isEmpty()) {
-                return new EnumerateBillingProfileModel().total(0);
-            }
-            return profileDao.enumerateBillingProfiles(offset, limit, resources);
+        List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
+        if (resources.isEmpty()) {
+            return new EnumerateBillingProfileModel().total(0);
         }
-        return new EnumerateBillingProfileModel().total(0);
+        return profileDao.enumerateBillingProfiles(offset, limit, resources);
     }
 
     /**
@@ -159,10 +145,8 @@ public class ProfileService {
      * @throws IamUnauthorizedException when the caller does not have access to the billing profile
      */
     public BillingProfileModel getProfileById(String id, AuthenticatedUserRequest user) {
-        if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
-            if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id)) {
-                throw new IamUnauthorizedException("unauthorized");
-            }
+        if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id)) {
+            throw new IamUnauthorizedException("unauthorized");
         }
         return getProfileByIdNoCheck(id);
     }
@@ -194,12 +178,12 @@ public class ProfileService {
      * @return the profile model associated with the profile id
      */
     public BillingProfileModel authorizeLinking(UUID profileId, AuthenticatedUserRequest user) {
-        if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
-            iamService.verifyAuthorization(user,
-                IamResourceType.SPEND_PROFILE,
-                profileId.toString(),
-                IamAction.LINK);
-        }
+        logger.info("Verify authorization for link id={} user={}", profileId, user.getEmail());
+        iamService.verifyAuthorization(user,
+            IamResourceType.SPEND_PROFILE,
+            profileId.toString(),
+            IamAction.LINK);
+
         BillingProfileModel profileModel = profileDao.getBillingProfileById(profileId);
 
         // TODO: check bill account usable and validate delegation path
@@ -218,30 +202,37 @@ public class ProfileService {
                                               String policyName,
                                               PolicyMemberRequest policyMember,
                                               AuthenticatedUserRequest user) {
-        // TODO: their may may not be a resource behind this profile. Therefore we
-        //  eat any unauthorize/forbidden exception called that a success.
-        //  Remove when we enable authorization.
-        try {
-            return iamService.addPolicyMember(
-                user,
-                IamResourceType.SPEND_PROFILE,
-                UUID.fromString(profileId),
-                policyName,
-                policyMember.getEmail());
-        } catch (IamUnauthorizedException ex) {
-            // TODO: If we are not enforcing authorization then we allow there to be a missing profile
-            //  sam resource. Remove during clean up.
-            if (!applicationConfiguration.isEnforceBillingProfileAuthorization()) {
-                if (ex.getCause() instanceof ApiException) {
-                    ApiException samEx = (ApiException) ex.getCause();
-                    if (samEx.getCode() == 403) {
-                        logger.warn("Ignoring not found exception", ex);
-                        return new PolicyModel();
-                    }
-                }
-            }
-            throw ex;
+        return iamService.addPolicyMember(
+            user,
+            IamResourceType.SPEND_PROFILE,
+            UUID.fromString(profileId),
+            policyName,
+            policyMember.getEmail());
+    }
+
+    public PolicyModel deleteProfilePolicyMember(String profileId,
+                                                 String policyName,
+                                                 String memberEmail,
+                                                 AuthenticatedUserRequest user) {
+        logger.info("id={} policy={} email={} authuser={}", profileId, policyName, memberEmail, user.getEmail());
+        // member email can't be null since it is part of the URL
+        if (!ValidationUtils.isValidEmail(memberEmail)) {
+            throw new ValidationException("InvalidMemberEmail");
         }
+
+        return iamService.deletePolicyMember(
+            user,
+            IamResourceType.SPEND_PROFILE,
+            UUID.fromString(profileId),
+            policyName,
+            memberEmail);
+    }
+
+    public List<PolicyModel> retrieveProfilePolicies(String profileId, AuthenticatedUserRequest user) {
+        return iamService.retrievePolicies(
+            user,
+            IamResourceType.SPEND_PROFILE,
+            UUID.fromString(profileId));
     }
 
     // -- methods invoked from billing profile flights --
@@ -266,16 +257,7 @@ public class ProfileService {
     }
 
     public void deleteProfileIamResource(String profileId, AuthenticatedUserRequest user) {
-        // TODO: their may may not be a resource behind this profile. Therefore we
-        //  eat any not found exception called that a success. Remove when we enable authorization.
-        try {
-            iamService.deleteProfileResource(user, profileId);
-        } catch (IamNotFoundException ex) {
-            if (applicationConfiguration.isEnforceBillingProfileAuthorization()) {
-                throw ex;
-            }
-            logger.warn("Ignoring billing profile not found exception", ex);
-        }
+        iamService.deleteProfileResource(user, profileId);
     }
 
     // Verify user access to the billing account during billing profile creation
@@ -284,46 +266,5 @@ public class ProfileService {
             throw new InaccessibleBillingAccountException("The user '" + user.getEmail() +
                 "' needs access to billing account '" + billingAccountId + "' to perform the requested operation");
         }
-    }
-
-    // -- profile upgrade --
-
-    // Billing profiles prior to the introduction of this service did not have sam resources behind them.
-    // This code generates sam resources for any billing profile it does not have one. It sets the
-    // stewards group as the owner of the billing profile.
-    //
-    // In the current state, no billing profiles have sam resources, so the resources list will be empty.
-    // When we upgrade a billing profile, we give stewards owner role. Since we run this
-    // as a steward, we will be able to see any profiles we have already converted.
-    //
-    // The hole here is if someone gets in and creates a billing profile with a resource before
-    // we run the upgrade. We would not retrieve that one here. However, Sam would not let us create
-    // the resource in the step below. We would log an error, but otherwise, things would work.
-
-    public UpgradeResponseModel upgradeProfileResources(UpgradeModel request, AuthenticatedUserRequest user) {
-
-        Instant startTime = Instant.now();
-        List<BillingProfileModel> profiles = profileDao.getOldBillingProfiles();
-
-        List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
-        Set<String> profileResourceSet = resources.stream().map(r -> toString()).collect(Collectors.toSet());
-
-        for (BillingProfileModel profile : profiles) {
-            String profileId = profile.getId();
-            if (!profileResourceSet.contains(profileId)) {
-                try {
-                    // No Sam profile, so let's make one - stewards are automatically added as owner
-                    logger.info("Creating profile resource for {} ({})", profile.getProfileName(), profileId);
-                    iamService.createProfileResource(user, profile.getId());
-                } catch (Exception ex) {
-                    logger.error("IAM failure during upgrade", ex);
-                }
-            }
-        }
-
-        return new UpgradeResponseModel()
-            .upgradeName(request.getUpgradeName())
-            .startTime(startTime.toString())
-            .endTime(Instant.now().toString());
     }
 }

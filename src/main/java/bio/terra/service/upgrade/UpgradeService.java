@@ -9,7 +9,6 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.upgrade.exception.InvalidCustomNameException;
-import bio.terra.service.upgrade.flight.UpgradeProfileFlight;
 import bio.terra.stairway.Flight;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,7 +17,7 @@ import org.springframework.stereotype.Component;
 public class UpgradeService {
 
     private enum CustomFlight {
-        BILLING_PROFILE_PERMISSION(UpgradeProfileFlight.class);
+        PLACEHOLDER(null);
 
         private final Class<? extends Flight> flightClass;
 

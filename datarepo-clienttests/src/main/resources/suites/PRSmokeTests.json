@@ -2,5 +2,13 @@
   "name": "PRSmokeTests",
   "description": "Three smoke tests to run on PR build. Two requires authentication and one does not.",
   "serverSpecificationFile": "integration-6.json",
-  "testConfigurationFiles": ["basicexamples/BasicAuthenticated.json", "basicexamples/BasicUnauthenticated.json", "basicexamples/LookupDataset.json"]
+  "testConfigurationFiles":
+    [
+      "basicexamples/BasicAuthenticated.json",
+      "basicexamples/BasicUnauthenticated.json",
+      "basicexamples/LookupDataset.json",
+      "functional/BillingProfileAccess.json",
+      "functional/BillingProfileInUse.json",
+      "functional/BillingProfileOwnerHandoff.json"
+    ]
 }

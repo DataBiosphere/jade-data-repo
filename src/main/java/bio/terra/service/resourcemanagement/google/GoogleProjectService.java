@@ -5,6 +5,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
+import bio.terra.service.resourcemanagement.exception.MismatchedBillingProfilesException;
 import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -29,6 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -93,7 +95,15 @@ public class GoogleProjectService {
         throws InterruptedException {
 
         try {
-            return resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
+            GoogleProjectResource projectResource = resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
+            String resourceProfileId = projectResource.getProfileId().toString();
+            if (StringUtils.equals(resourceProfileId, billingProfile.getId())) {
+                return projectResource;
+            }
+            throw new MismatchedBillingProfilesException(
+                "Cannot reuse existing project " + projectResource.getGoogleProjectId() +
+                    " from profile " + resourceProfileId +
+                    " with a different profile " + billingProfile.getId());
         } catch (GoogleResourceNotFoundException e) {
             logger.info("no project resource found for projectId: {}", googleProjectId);
         }
@@ -137,7 +147,8 @@ public class GoogleProjectService {
             return request.execute();
         } catch (GoogleJsonResponseException e) {
             // if the project does not exist, the API will return a 403 unauth. to prevent people probing
-            // for projects
+            // for projects. We tolerate non-existent projects, because we want to be able to retry
+            // failures on deleting other projects.
             if (e.getDetails().getCode() != 403) {
                 throw new GoogleResourceException("Unexpected error while checking on project state", e);
             }
@@ -247,9 +258,9 @@ public class GoogleProjectService {
         }
     }
 
-    // package access for use in tests
-    void deleteGoogleProject(UUID metadataProjectId) {
-        GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(metadataProjectId);
+    @VisibleForTesting
+    void deleteGoogleProject(UUID resourceId) {
+        GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(resourceId);
         deleteGoogleProject(projectResource.getGoogleProjectId());
     }
 

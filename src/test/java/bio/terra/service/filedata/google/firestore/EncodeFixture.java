@@ -7,7 +7,6 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
@@ -104,8 +103,7 @@ public class EncodeFixture {
         // Parse the input data and load the files; generate revised data file
         String stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
         Storage stewardStorage = dataRepoFixtures.getStorage(stewardToken);
-        BillingProfileModel billingProfile = dataRepoFixtures.createBillingProfile(steward);
-        String targetPath = loadFiles(datasetSummary.getId(), billingProfile.getId(), steward, stewardStorage);
+        String targetPath = loadFiles(datasetSummary.getId(), profileId, steward, stewardStorage);
 
         // Load the tables
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);

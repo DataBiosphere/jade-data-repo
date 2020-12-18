@@ -2,8 +2,8 @@ package bio.terra.service.iam.sam;
 
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.PolicyModel;
-import bio.terra.model.UserStatusInfo;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
@@ -15,18 +15,22 @@ import bio.terra.service.iam.exception.IamConflictException;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.iam.exception.IamNotFoundException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
+import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.Pair;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
+import org.broadinstitute.dsde.workbench.client.sam.model.ErrorReport;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.broadinstitute.dsde.workbench.client.sam.model.SystemStatus;
-import org.broadinstitute.dsde.workbench.client.sam.api.StatusApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,11 +49,14 @@ import java.util.stream.Stream;
 @Component("iamProvider")
 // Use @Profile to select when there is more than one IamService
 public class SamIam implements IamProviderInterface {
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     private final SamConfiguration samConfig;
     private final ConfigurationService configurationService;
 
     @Autowired
-    public SamIam(SamConfiguration samConfig, ConfigurationService configurationService) {
+    public SamIam(SamConfiguration samConfig,
+                  ConfigurationService configurationService) {
         this.samConfig = samConfig;
         this.configurationService = configurationService;
     }
@@ -500,36 +507,45 @@ public class SamIam implements IamProviderInterface {
      * Converts a SAM-specific ApiException to a DataRepo-specific common exception, based on the HTTP status code.
      */
     public static DataRepoException convertSAMExToDataRepoEx(final ApiException samEx) {
-        // TODO: add mapping based on HTTP status code
-        // SAM uses com.google.api.client.http.HttpStatusCodes
-        // DataRepo uses org.springframework.http.HttpStatus
-
         logger.warn("SAM client exception code: {}", samEx.getCode());
         logger.warn("SAM client exception message: {}", samEx.getMessage());
         logger.warn("SAM client exception details: {}", samEx.getResponseBody());
+
+        // Sometimes the sam message is buried one level down inside of the error report object.
+        // If we find an empty message then we try to deserialize the error report and use that message.
+        String message = samEx.getMessage();
+        if (StringUtils.isEmpty(message)) {
+            try {
+                ErrorReport errorReport = objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
+                message = errorReport.getMessage();
+            } catch (JsonProcessingException ex) {
+                logger.debug("Unable to deserialize sam exception response body");
+            }
+        }
+
         switch (samEx.getCode()) {
             case HttpStatusCodes.STATUS_CODE_BAD_REQUEST: {
-                return new IamBadRequestException(samEx);
+                return new IamBadRequestException(message, samEx);
             }
             case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED: {
-                return new IamUnauthorizedException(samEx);
+                return new IamUnauthorizedException(message, samEx);
             }
             case HttpStatusCodes.STATUS_CODE_FORBIDDEN: {
                 // TODO: This is the wrong exception. See https://broadworkbench.atlassian.net/browse/DR-1482
-                return new IamUnauthorizedException(samEx);
+                return new IamUnauthorizedException(message, samEx);
             }
             case HttpStatusCodes.STATUS_CODE_NOT_FOUND: {
-                return new IamNotFoundException(samEx);
+                return new IamNotFoundException(message, samEx);
             }
             case HttpStatusCodes.STATUS_CODE_CONFLICT: {
-                return new IamConflictException(samEx);
+                return new IamConflictException(message, samEx);
             }
             case HttpStatusCodes.STATUS_CODE_SERVER_ERROR: {
-                return new IamInternalServerErrorException(samEx);
+                return new IamInternalServerErrorException(message, samEx);
             }
             // note that SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
             default: {
-                return new IamInternalServerErrorException(samEx);
+                return new IamInternalServerErrorException(message, samEx);
             }
         }
     }

@@ -17,7 +17,7 @@ public final class ResourceFixtures {
     public static GoogleProjectResource randomProjectResource(BillingProfileModel billingProfile) {
         return new GoogleProjectResource()
             .googleProjectId(ProfileFixtures.randomizeName("fake-test-project-id"))
-            .googleProjectNumber(shuffleString("123456"))
+            .googleProjectNumber(shuffleString("123456789012"))
             .profileId(UUID.fromString(billingProfile.getId()));
     }
 

@@ -26,7 +26,7 @@ public class FlakyConnectedTest {
         // Generate random integers in range 0 to 9
         int rand_int1 = rand.nextInt(10);
         logger.info("rand number: {}", rand_int1);
-        if (rand_int1 < 7) {
+        if (rand_int1 < 5) {
             logger.info("Random Failure");
             throw new Exception("random failure");
         } else {

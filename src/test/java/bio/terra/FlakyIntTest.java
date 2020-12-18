@@ -26,12 +26,12 @@ public class FlakyIntTest {
         // Generate random integers in range 0 to 9
         int rand_int1 = rand.nextInt(10);
         logger.info("rand number: {}", rand_int1);
-        if (rand_int1 < 8){
+        if (rand_int1 < 8) {
             logger.info("Random Failure");
             throw new Exception("random failure");
         } else {
             //only pass on 8 & 9
-         logger.info("Random Pass");
+            logger.info("Random Pass");
         }
     }
 }

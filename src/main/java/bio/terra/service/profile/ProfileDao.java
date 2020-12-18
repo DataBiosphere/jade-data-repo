@@ -4,6 +4,7 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.EnumerateBillingProfileModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.service.profile.exception.ProfileInUseException;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -65,6 +66,35 @@ public class ProfileDao {
             .addValue("created_by", creator);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
+
+        return new BillingProfileModel()
+            .id(keyHolder.getId().toString())
+            .profileName(keyHolder.getString("name"))
+            .biller(keyHolder.getString("biller"))
+            .billingAccountId(keyHolder.getString("billing_account_id"))
+            .description(keyHolder.getString("description"))
+            .createdBy(keyHolder.getString("created_by"))
+            .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public BillingProfileModel updateBillingProfileById(BillingProfileUpdateModel profileRequest) {
+        String sql = "UPDATE billing_profile "
+            + "SET billing_account_id = :billing_account_id, description = :description "
+            + "WHERE id = :id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("id", UUID.fromString(profileRequest.getId()))
+            .addValue("billing_account_id", profileRequest.getBillingAccountId())
+            .addValue("description", profileRequest.getDescription());
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
+        int updated = jdbcTemplate.update(sql, params, keyHolder);
+
+        // Assume if the following two conditions are true, then the profile could not be found
+        // 1. the db command successfully completed
+        // 2. no rows were updated
+        if (updated != 1) {
+            throw new ProfileNotFoundException("Billing Profile was not updated.");
+        }
 
         return new BillingProfileModel()
             .id(keyHolder.getId().toString())

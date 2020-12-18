@@ -35,6 +35,8 @@ public class GoogleResourceDao {
         " WHERE marked_for_delete = false AND google_project_id = :google_project_id";
     private static final String sqlProjectRetrieveByIdForDelete = sqlProjectRetrieve +
         " WHERE marked_for_delete = true AND id = :id";
+    private static final String sqlProjectRetrieveByBillingProfileId = sqlProjectRetrieve +
+        " WHERE marked_for_delete = false AND profile_id = :profile_id";
 
     private static final String sqlBucketRetrieve =
         "SELECT p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
@@ -121,6 +123,12 @@ public class GoogleResourceDao {
     public GoogleProjectResource retrieveProjectByIdForDelete(UUID id) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
         return retrieveProjectBy(sqlProjectRetrieveByIdForDelete, params);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<GoogleProjectResource> retrieveProjectsByBillingProfileId(UUID billingProfileId) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("profile_id", billingProfileId);
+        return retrieveProjectListBy(sqlProjectRetrieveByBillingProfileId, params);
     }
 
     // NOTE: This method is currently only used from tests

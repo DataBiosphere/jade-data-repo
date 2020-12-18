@@ -26,6 +26,7 @@ buildscript {
 plugins {
     id "com.google.cloud.tools.jib" version "1.6.1"
     id 'org.liquibase.gradle' version '2.0.1'
+    id "org.gradle.test-retry" version "1.2.0"
     id 'antlr'
     id 'com.github.spotbugs' version '4.5.1'
     id "org.hidetake.swagger.generator" version "2.18.2"
@@ -72,6 +73,7 @@ if (hasProperty('buildScan')) {
     buildScan {
         termsOfServiceUrl = 'https://gradle.com/terms-of-service'
         termsOfServiceAgree = 'yes'
+        publishAlways()
         def project = ""; def cluster = ""; def nschunk = "";
         if (System.getenv("NAMESPACEINUSE")) {
             project = "broad-jade-integration"
@@ -380,6 +382,10 @@ task testIntegration(type: Test) {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
     outputs.upToDateWhen { false }
+    retry {
+        maxRetries = 3
+        maxFailures = 42
+    }
 }
 
 task testUnit(type: Test) {

@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class DrsService {
@@ -44,7 +45,7 @@ public class DrsService {
 
     private static final String DRS_OBJECT_VERSION = "0";
     // atomic counter that we incr on request arrival and decr on request response
-    private static int currentDRSRequests = 0;
+    private static AtomicInteger currentDRSRequests = new AtomicInteger(0);
 
     private final SnapshotService snapshotService;
     private final FileService fileService;
@@ -75,11 +76,15 @@ public class DrsService {
     }
 
     public void decrement() {
-        currentDRSRequests--;
+        int currentValue = currentDRSRequests.get();
+        int newValue = currentValue - 1;
+        currentDRSRequests.set(newValue);
     }
 
     public void increment() {
-        currentDRSRequests++;
+        int currentValue = currentDRSRequests.get();
+        int newValue = currentValue + 1;
+        currentDRSRequests.set(newValue);
     }
 
     public void checkLookupMax() {
@@ -87,7 +92,7 @@ public class DrsService {
         int podCount = kubeService.getActivePodCount();
         int maxDRSLookups = configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
         int max = maxDRSLookups / podCount;
-        if (currentDRSRequests >= max) {
+        if (currentDRSRequests.get() >= max) {
             throw new MaxDrsLookupsException("Too many requests are being made at once. Please try again later.");
         }
     }

@@ -66,6 +66,13 @@ public class GlobalExceptionHandler {
         return buildErrorModel(ex, ex.getErrorDetails());
     }
 
+    // -- cautionary errors to limit overload
+    @ExceptionHandler(TooManyRequestsException.class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    public ErrorModel tooManyRequestsHandler(DataRepoException ex) {
+        return buildErrorModel(ex, ex.getErrorDetails());
+    }
+
     // -- exceptions from validations - we don't control the exception raised --
     @ExceptionHandler({MethodArgumentNotValidException.class,
         IllegalArgumentException.class,

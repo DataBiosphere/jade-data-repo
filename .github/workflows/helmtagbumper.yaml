@@ -23,27 +23,27 @@ jobs:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
       - name: "integration-1 find and replace"
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-1/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: "integration-2 find and replace"
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-2/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: "integration-3 find and replace"
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-3/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: "integration-4 find and replace"
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-4/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: "integration-5 find and replace"
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-5/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: "integration-6 find and replace"
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/integration/integration-6/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
       - name: Create pull request

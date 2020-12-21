@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.app.controller.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
@@ -11,7 +12,6 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
-import bio.terra.service.filedata.exception.MaxDrsLookupsException;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
@@ -29,6 +29,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -87,17 +89,18 @@ public class DrsService {
         currentDRSRequests.set(newValue);
     }
 
-    public void checkLookupMax() {
+    public void checkLookupMax() throws TooManyRequestsException {
         // make sure not too many requests are being made at once
         int podCount = kubeService.getActivePodCount();
         int maxDRSLookups = configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
         int max = maxDRSLookups / podCount;
         if (currentDRSRequests.get() >= max) {
-            throw new MaxDrsLookupsException("Too many requests are being made at once. Please try again later.");
+            throw new TooManyRequestsException("Too many requests are being made at once. Please try again later.");
         }
     }
 
-    public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
+    public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand
+    ) throws TooManyRequestsException {
         checkLookupMax();
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         SnapshotProject snapshotProject = null;

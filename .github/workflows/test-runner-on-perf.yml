@@ -99,7 +99,7 @@ jobs:
           path: datarepo-helm-definitions
       - name: "Update perf image tag with semVer"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "Create datarepo-helm-definition pull request with updated perf image tag"

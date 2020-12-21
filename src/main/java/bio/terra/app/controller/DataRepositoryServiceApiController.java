@@ -11,8 +11,6 @@ import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
 import bio.terra.service.filedata.DrsService;
-import bio.terra.service.filedata.exception.InvalidDrsIdException;
-import bio.terra.service.filedata.exception.MaxDrsLookupsException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -107,19 +105,14 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     @Override
     public ResponseEntity<DRSObject> getObject(
         @PathVariable("object_id") String objectId,
-        @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand) {
+        @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand
+    ) throws TooManyRequestsException {
         // The incoming object id is a DRS object id, not a file id.
         AuthenticatedUserRequest authUser = getAuthenticatedInfo();
-        DRSObject drsObject = null;
-        HttpStatus status = HttpStatus.OK;
         drsService.increment();
-        try {
-            drsObject = drsService.lookupObjectByDrsId(authUser, objectId, expand);
-        } catch (MaxDrsLookupsException ex) {
-            status = HttpStatus.TOO_MANY_REQUESTS;
-        }
+        DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, objectId, expand);
         drsService.decrement(); // TODO do we ever get stuck and not get to this line?
-        return new ResponseEntity<>(drsObject, status);
+        return new ResponseEntity<>(drsObject, HttpStatus.OK);
 
     }
 

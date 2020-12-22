@@ -360,10 +360,6 @@ test {
     useJUnit {
         includeCategories 'bio.terra.common.category.Unit'
     }
-    retry {
-        maxRetries = 3
-        maxFailures = 9
-    }
     outputs.upToDateWhen { false }
 }
 

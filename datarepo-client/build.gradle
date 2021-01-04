@@ -26,20 +26,18 @@ repositories {
 
 dependencies {
     ext {
-        swagger = "1.5.22"
         jersey = "2.30.1"
         jackson = "2.10.2"
         swaggerAnnotations = "2.1.5"
 
     }
 
-    // TODO: the comment below seems wrong, since we are version locking these.
-    // Swagger deps, versions controlled by dependencyManagement in root project
-    implementation group: "io.swagger", name: "swagger-annotations", version: "${swagger}"
     implementation group: 'org.glassfish.jersey.core', name: 'jersey-client', version: "${jersey}"
     implementation group: 'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: "${jersey}"
     implementation group: 'org.glassfish.jersey.media', name: 'jersey-media-multipart', version: "${jersey}"
+
     implementation group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: "${jackson}"
+
     implementation group: "io.swagger.core.v3", name: "swagger-annotations", version: "${swaggerAnnotations}"
     swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"
 }

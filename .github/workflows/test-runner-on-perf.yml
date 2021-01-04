@@ -129,7 +129,6 @@ jobs:
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Wait for Perf Cluster to come back up with correct version"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         run: |
           PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           RETRY_COUNT=0

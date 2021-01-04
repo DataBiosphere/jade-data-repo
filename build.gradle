@@ -374,7 +374,7 @@ task testConnected(type: Test) {
     }
     retry {
         maxRetries = 3
-        maxFailures = 9
+        maxFailures = 15
     }
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"
@@ -389,7 +389,7 @@ task testIntegration(type: Test) {
     }
     retry {
         maxRetries = 3
-        maxFailures = 9
+        maxFailures = 15
     }
     outputs.upToDateWhen { false }
 }

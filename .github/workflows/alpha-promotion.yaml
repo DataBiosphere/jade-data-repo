@@ -28,15 +28,15 @@ jobs:
           path: terra-helmfile
           persist-credentials: false
       - name: "Find and replace Datarepo version in versions.yaml"
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i terra-helmfile/versions.yaml releases.datarepo.appVersion ${{ steps.apiprevioustag.outputs.tag }}
       - name: "Find and replace Datarepo chartVersion version in versions.yaml"
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i terra-helmfile/versions.yaml releases.datarepo.chartVersion ${{ env.chartVersion }}
       - name: "Read terra-helmfile daterepo fields in versions.yaml"
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq r terra-helmfile/versions.yaml releases.datarepo
       - name: Create pull request

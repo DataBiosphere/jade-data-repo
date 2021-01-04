@@ -1,0 +1,106 @@
+import org.gradle.api.internal.artifacts.result.DefaultResolvedDependencyResult
+import org.gradle.api.internal.artifacts.result.DefaultResolvedComponentResult
+
+/**
+ * This gradle file contains tasks that can be useful in debugging the project's gradle configuration
+ */
+task dependenciesWithManyVersions(
+    group: 'help',
+    description: """Prints a list of dependencies that have more than one version accross all configurations.  You can pass in options to configure:
+    - failOnFound: (true | false) If it's true, then fail if any differing versions are found
+    - filterToModule: (String) Filter to a module.  Can be the name of the module (e.g. 'guava') or the qualified name (e.g. 'com.google.guava:guava')
+    - maxDepDepthToPrint: (Integer) If greater than 0, will print a chain of dependencies - up to the depth - of the dependencies causing the dependency to be pulled in.  If null, all dependencies will be printed
+"""
+) {
+    doFirst {
+        println "Dependencies with many versions"
+        println "================================================="
+        // Collect a map of dependency and its versions
+        def dependencies = [:]
+        // Collect a map of dependency versions with a list of libraries or modules that request it
+        def dependencyVersionRequesters = [:]
+        def failOnFound = project.hasProperty('failOnFound') ? Boolean.parseBoolean(project.property('failOnFound')) : false
+        def filterToModule = project.hasProperty('filterToModule') ? project.property('filterToModule') : null
+        def maxDepDepthToPrint = (project.hasProperty('maxDepDepthToPrint') && project.property('maxDepDepthToPrint') != "") ? Integer.parseInt(project.property('maxDepDepthToPrint').toString()) : null
+        project.configurations.forEach { conf ->
+            if (conf.canBeResolved) {
+                conf.incoming.resolutionResult.allDependencies.forEach { dep ->
+                    def id = dep.selected.componentId.moduleIdentifier
+                    def depKey = "${id.group}:${id.name}"
+                    if (filterToModule != null && filterToModule != depKey && filterToModule != id.name) {
+                        return
+                    }
+                    def version = dep.selected.componentId.version
+                    Set versions = dependencies.get(depKey)
+                    if (versions == null) {
+                        versions = []
+                    }
+                    versions.add(version)
+                    dependencies.put(depKey, versions)
+
+                    def reqKey = "${dep.selected}"
+                    def requester = dep.from
+                    Set requesters = dependencyVersionRequesters.get(reqKey)
+                    if (requesters == null) {
+                        requesters = []
+                    }
+                    requesters.add(requester)
+                    dependencyVersionRequesters.put(reqKey, requesters)
+
+                }
+            }
+        }
+
+        // Get the entries with more than one version
+        def multiVersions = dependencies.findAll { e ->
+            e.value.size() > 1
+        }
+        multiVersions
+            .sort {e -> e.key }
+            .each {e ->
+                println "${e.key}:${e.value.sort()}"
+                if (maxDepDepthToPrint != 0) {
+                    e.value.sort().each { v ->
+                        println "\t${v}:"
+                        dependencyVersionRequesters.get("${e.key}:${v}")
+                            .sort { r -> "${r}" }
+                            .collect { r -> "${getRequesterLine(r, 0, maxDepDepthToPrint).trim()}" }
+                            .unique()
+                            .each { r -> println "\t\t${r}"}
+                    }
+                }
+            }
+
+        if (!multiVersions.isEmpty() && failOnFound) {
+            throw new Exception("Found dependencies with multiple versions")
+        }
+    }
+}
+
+def getRequesterLine(requester, depth, maxDepDepthToPrint) {
+    if (maxDepDepthToPrint != null && depth >= maxDepDepthToPrint) {
+        return "..."
+    }
+    if (requester instanceof DefaultResolvedDependencyResult) {
+        return "${requester} <- ${getRequesterLine(requester.from, depth + 1, maxDepDepthToPrint)}"
+    } else if (requester instanceof DefaultResolvedComponentResult) {
+        if (requester.dependents.size() > 0) {
+            // Dedup the dependents.  This might look like:
+            // com.google.protobuf:protobuf-java-util:3.11.4 -> com.google.protobuf:protobuf-java-util:3.13.0
+            // com.google.protobuf:protobuf-java-util:3.12.2 -> com.google.protobuf:protobuf-java-util:3.13.0
+            // com.google.protobuf:protobuf-java-util:3.13.0
+            // And we can to simplify that to:
+            // com.google.protobuf:protobuf-java-util:3.13.0
+            def dependent = requester.dependents
+                .find() {d -> "${d.selected}" == "${d.requested}"}
+            // In the case where we didn't find a match but there is only one element, this indicates a root dependency
+            if (dependent == null && requester.dependents.size() == 1) {
+                dependent = requester.dependents[0]
+            }
+            // Don't increase depth since it gets incremented when reaching into the DefaultResolvedDependencyResult that the dependent points to
+            return "\n${'\t' * (depth + 2)}${getRequesterLine(dependent, depth, maxDepDepthToPrint)}"
+        } else {
+            return "\n${'\t' * (depth + 2)}${requester.componentId} version ${requester.moduleVersion}"
+        }
+    }
+}

@@ -41,7 +41,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.0.185-SNAPSHOT'
+    version '1.0.188-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -59,6 +59,8 @@ allprojects {
         }
     }
 }
+
+apply from: 'debug.gradle'
 
 // skip subproject tasks by default when building jade-data-repo
 subprojects.each { s ->

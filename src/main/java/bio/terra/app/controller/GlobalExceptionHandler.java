@@ -1,5 +1,6 @@
 package bio.terra.app.controller;
 
+import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.ConflictException;
 import bio.terra.common.exception.DataRepoException;
@@ -85,7 +86,7 @@ public class GlobalExceptionHandler {
     // -- auth errors from sam
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ErrorModel samAthorizationException(UnauthorizedException ex) {
+    public ErrorModel samAuthorizationException(UnauthorizedException ex) {
         return buildErrorModel(ex, Collections.emptyList());
     }
 

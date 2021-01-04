@@ -118,7 +118,7 @@ jobs:
           labels: "datarepo,automerge,version-update"
       - name: "Install Helmfile"
         uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
-      - name: "Use helmfile to apply image tag update to Perf yaml"
+      - name: "Use helmfile to delete and reapply helm for api pod"
         run: |
           helmfile --version
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf

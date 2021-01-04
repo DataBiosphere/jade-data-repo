@@ -1,6 +1,6 @@
 package bio.terra.service.filedata;
 
-import bio.terra.app.controller.TooManyRequestsException;
+import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
@@ -79,8 +79,10 @@ public class DrsService {
 
     public void decrement() {
         int currentValue = currentDRSRequests.get();
-        int newValue = currentValue - 1;
-        currentDRSRequests.set(newValue);
+        if (currentValue > 0) {
+            int newValue = currentValue - 1;
+            currentDRSRequests.set(newValue);
+        }
     }
 
     public void increment() {

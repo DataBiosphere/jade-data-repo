@@ -3,6 +3,7 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
@@ -26,7 +27,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
-import java.util.UUID;
 
 @Controller
 public class DataRepositoryServiceApiController implements DataRepositoryServiceApi {
@@ -106,14 +106,16 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     public ResponseEntity<DRSObject> getObject(
         @PathVariable("object_id") String objectId,
         @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand
-    ) throws TooManyRequestsException {
-        // The incoming object id is a DRS object id, not a file id.
-        AuthenticatedUserRequest authUser = getAuthenticatedInfo();
-        drsService.increment();
-        DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, objectId, expand);
-        drsService.decrement(); // TODO do we ever get stuck and not get to this line?
-        return new ResponseEntity<>(drsObject, HttpStatus.OK);
-
+    ) {
+        try {
+            // The incoming object id is a DRS object id, not a file id.
+            AuthenticatedUserRequest authUser = getAuthenticatedInfo();
+            drsService.increment();
+            DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, objectId, expand);
+            return new ResponseEntity<>(drsObject, HttpStatus.OK);
+        } finally {
+            drsService.decrement();
+        }
     }
 
     @Override

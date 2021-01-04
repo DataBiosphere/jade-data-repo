@@ -91,7 +91,6 @@ jobs:
             fi
           done
       - name: 'Checkout datarepo-helm-definitions repo'
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: actions/checkout@v2
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
@@ -118,10 +117,8 @@ jobs:
             *Note: This PR was opened by the [test-runner-perf GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "datarepo,automerge,version-update"
       - name: "Install Helmfile"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
-      - name: "Use helmfile to apply image tag update to Perf yaml"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+      - name: "Use helmfile to delete and reapply helm for api pod"
         run: |
           helmfile --version
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
@@ -132,7 +129,6 @@ jobs:
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Wait for Perf Cluster to come back up with correct version"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         run: |
           PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           RETRY_COUNT=0

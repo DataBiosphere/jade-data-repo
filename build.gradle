@@ -59,6 +59,8 @@ allprojects {
     }
 }
 
+apply from: 'debug.gradle'
+
 // skip subproject tasks by default when building jade-data-repo
 subprojects.each { s ->
     s.tasks.all {

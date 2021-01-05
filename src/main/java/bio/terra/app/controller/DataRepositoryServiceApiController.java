@@ -3,7 +3,6 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;

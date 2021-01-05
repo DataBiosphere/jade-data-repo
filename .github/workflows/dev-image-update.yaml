@@ -79,6 +79,7 @@ jobs:
         uses: broadinstitute/action-slack@v3.8.0
         with:
           status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
           author_name: Integration Test
           only_mention_fail: smark,fb,muscles
         env:

@@ -87,3 +87,4 @@ jobs:
           channel: "#jade-alerts"
           username: "Data Repo tests"
           text: "Staging smoke tests"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

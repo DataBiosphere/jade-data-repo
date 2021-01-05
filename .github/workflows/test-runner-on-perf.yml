@@ -187,6 +187,7 @@ jobs:
           channel: "#jade-alerts"
           username: "Data Repo tests"
           text: "Perf tests"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
       - name: "Notify QA Slack"
         if: ${{ github.event_name != 'workflow_dispatch' && always() }}
         uses: broadinstitute/action-slack@v3.8.0
@@ -198,3 +199,4 @@ jobs:
           channel: "#dsde-qa"
           username: "Data Repo tests"
           text: "Perf tests"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

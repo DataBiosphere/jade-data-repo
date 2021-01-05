@@ -67,6 +67,7 @@ jobs:
         with:
           status: ${{ job.status }}
           author_name: api_helm_bumper
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
           only_mention_fail: smark,fb,muscles
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -86,6 +86,7 @@ jobs:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       with:
         status: ${{ job.status }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
         channel: "#dsde-qa"
         username: "Data Repo tests"
         text: "Alpha integration tests"

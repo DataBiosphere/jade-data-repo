@@ -2506,6 +2506,11 @@ components:
       type: string
       description: >
         Unique identifier for a dataset, snapshot, etc.
+    ShortIdProperty:
+      pattern: ^[A-Za-z0-9\-\]{22}
+      type: string
+      description: >
+        Unique identifier for a flights, jobs, etc.
     BillingProfileRequestModel:
       required:
         - biller
@@ -3358,7 +3363,7 @@ components:
       type: object
       properties:
         id:
-          $ref: '#/components/schemas/UniqueIdProperty'
+          $ref: '#/components/schemas/ShortIdProperty'
         description:
           type: string
           description: Description of the job's flight from description flight input

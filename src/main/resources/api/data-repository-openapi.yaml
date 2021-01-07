@@ -2513,7 +2513,7 @@ components:
       description: >
         Unique identifier for a dataset, snapshot, etc.
     ShortIdProperty:
-      pattern: "[A-za-z0-9\\-/_]{22}"
+      pattern: "[A-za-z0-9\-/_]{22}"
       type: string
       description: >
         Unique identifier for a flights, jobs, etc.

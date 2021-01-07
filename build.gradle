@@ -332,6 +332,9 @@ jib {
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())
     }
+    container {
+        jvmFlags = ["-Xms2g", "-Xmx2g"]
+    }
 }
 // jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories
 // setting above will ensure that the generated classes end up in the right place when jib builds.

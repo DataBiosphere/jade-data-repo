@@ -249,7 +249,6 @@ public class ModularHelmChart extends DeploymentScript {
     // always set the following testing-related environment variables
     envSubTree.put("DB_STAIRWAY_FORCECLEAN", "true");
     envSubTree.put("DB_MIGRATE_DROPALLONSTART", "true");
-    envSubTree.put("DATAREPO_GCS_ALLOWREUSEEXISTINGBUCKETS", "true");
     envSubTree.put("GOOGLE_ALLOWREUSEEXISTINGBUCKETS", "true");
     envSubTree.put("GOOGLE_ALLOWREUSEEXISTINGPROJECTS", "true");
 

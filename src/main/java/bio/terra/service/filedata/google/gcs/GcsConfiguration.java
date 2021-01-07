@@ -16,7 +16,6 @@ public class GcsConfiguration {
     private String region;
     private int connectTimeoutSeconds;
     private int readTimeoutSeconds;
-    private boolean allowReuseExistingBuckets;
 
     public String getBucket() {
         return bucket;
@@ -48,14 +47,5 @@ public class GcsConfiguration {
 
     public void setReadTimeoutSeconds(int readTimeoutSeconds) {
         this.readTimeoutSeconds = readTimeoutSeconds;
-    }
-
-    public boolean getAllowReuseExistingBuckets() {
-        return allowReuseExistingBuckets;
-    }
-
-    public GcsConfiguration setAllowReuseExistingBuckets(boolean allowReuseExistingBuckets) {
-        this.allowReuseExistingBuckets = allowReuseExistingBuckets;
-        return this;
     }
 }

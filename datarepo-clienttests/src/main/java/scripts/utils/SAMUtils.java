@@ -88,6 +88,20 @@ public class SAMUtils {
   }
 
   /**
+   * Call the SAM endpoint to check if the provided test user is a steward
+   *
+   * @param testUser test user to check
+   * @param server server to check against
+   * @return true if the test user is a steward
+   * @throws Exception from underlying code
+   */
+  public static boolean isDataRepoSteward(
+      TestUserSpecification testUser, ServerSpecification server) throws Exception {
+    ApiClient apiClient = getClientForTestUser(testUser, server);
+    return isDataRepoSteward(apiClient, server.samResourceIdForDatarepo);
+  }
+
+  /**
    * Returns a random test user from the given list that is a Data Repo steward, null if none found.
    *
    * @param testUsers the list of test users to check

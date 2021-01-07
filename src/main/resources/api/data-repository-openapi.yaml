@@ -190,6 +190,61 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: billingProfileRequest
+    put:
+      tags:
+        - resources
+      description: >
+        Update a billing profile by id. This is asynchronous.
+        The final return is of type definitions/BillingProfileModel.
+      operationId: updateProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BillingProfileUpdateModel'
+        required: true
+      responses:
+        200:
+          description: Redirect for profile update result
+          headers:
+            location:
+              description: url for the job result
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        202:
+          description: Job status of profile update job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to update profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - profile does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/resources/v1/profiles/{id}:
     get:
       tags:
@@ -290,7 +345,47 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  '/api/resources/v1/profiles/{id}/policies/{policyName}/members':
+
+  /api/resources/v1/profiles/{id}/policies:
+    get:
+      tags:
+        - resources
+      description: Retrieve the read and discover policies for the profile
+      operationId: retrieveProfilePolicies
+      parameters:
+        - name: id
+          in: path
+          description: A UUID to used to identify an object in the repository
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to see policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/resources/v1/profiles/{id}/policies/{policyName}/members:
     post:
       tags:
         - resources
@@ -324,6 +419,60 @@ paths:
           description: Not found - profile id does not exist
           schema:
             $ref: '#/components/schemas/ErrorModel'
+
+  /api/resources/v1/profiles/{id}/policies/{policyName}/members/{memberEmail}:
+    delete:
+      tags:
+        - resources
+      description: Removes a member from the specified policy for the profile
+      operationId: deleteProfilePolicyMember
+      parameters:
+        - name: id
+          in: path
+          description: A UUID to used to identify an object in the repository
+          required: true
+          schema:
+            type: string
+        - name: policyName
+          in: path
+          description: The relevant policy
+          required: true
+          schema:
+            type: string
+            enum:
+              - reader
+              - discoverer
+        - name: memberEmail
+          in: path
+          description: The email of the user to remove
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: PolicyResponse
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to update policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
 
   /api/repository/v1/snapshots:
     get:
@@ -743,7 +892,7 @@ paths:
     delete:
       tags:
         - repository
-      description: Adds a member to the specified policy for the snapshot
+      description: Removes a member from the specified policy for the snapshot
       operationId: deleteSnapshotPolicyMember
       parameters:
         - name: id
@@ -1090,7 +1239,7 @@ paths:
     delete:
       tags:
         - repository
-      description: Removes the member from the specified policy for the snapshot
+      description: Removes the member from the specified policy for the dataset
       operationId: deleteDatasetPolicyMember
       parameters:
         - name: id
@@ -2051,7 +2200,7 @@ paths:
             type: string
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/ConfigEnableModel'
         required: false
@@ -2092,7 +2241,7 @@ paths:
       operationId: setConfigList
       requestBody:
         content:
-          '*/*':
+          application/json:
             schema:
               $ref: '#/components/schemas/ConfigGroupModel'
         required: false
@@ -2126,6 +2275,62 @@ paths:
         204:
           description: configuration reset
           content: {}
+
+  /api/repository/v1/upgrade:
+    post:
+      tags:
+        - repository
+      description: >-
+        Extensible endpoint for triggering upgrade tasks in the data repository.
+        The asynchronous result is UpgradeResponseModel
+      operationId: upgrade
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpgradeModel'
+        required: true
+      responses:
+        200:
+          description: Redirect for upgrade complete
+          headers:
+            location:
+              description: url for the job result
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        202:
+          description: Job status of upgrade job & url for polling in the response
+            header
+          headers:
+            location:
+              description: url for the job polling
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobModel'
+        400:
+          description: Bad request - invalid upgrade request, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to upgrade
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+      x-codegen-request-body-name: upgrade
+
+##############################################################################
+## DRS STANDARD ENDPOINTS
+##############################################################################
   /ga4gh/drs/v1/service-info:
     get:
       tags:
@@ -2321,6 +2526,21 @@ components:
           type: string
           description: either “direct” or the reseller of the sub-account that sends
             the bill (like “on_spend”)
+        description:
+          type: string
+          description: Free text that describes the profile
+    BillingProfileUpdateModel:
+      required:
+        - id
+        - billingAccountId
+        - description
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        billingAccountId:
+          type: string
+          description: Unique identifier of the billing account from Google
         description:
           type: string
           description: Free text that describes the profile
@@ -3440,6 +3660,48 @@ components:
           description: whether to enable (default) or disable the fault
           default: true
       description: Control whether a fault is enabled
+
+    UpgradeModel:
+      required:
+        - upgradeName
+        - upgradeType
+      type: object
+      properties:
+        upgradeName:
+          type: string
+          description: Unique name for the upgrade
+        upgradeType:
+          type: string
+          description: Enumeration to allow different kinds upgrades
+          enum:
+            - custom
+        customName:
+          type: string
+          description: >-
+            Name of custom upgrade to launch. Only used when upgradeType is custom.
+        customArgs:
+          description: >-
+            Array of string arguments to the custom upgrade. Only used when upgradeType is custom.
+          type: array
+          items:
+            type: string
+
+    UpgradeResponseModel:
+      type: object
+      properties:
+        upgradeName:
+          type: string
+          description: Unique name for the upgrade
+        startTime:
+          type: string
+          description: Timestamp the upgrade was started
+        endTime:
+          type: string
+          description: Timestamp the upgrade completed
+
+    ##############################################################################
+    ## DRS STANDARD MODELS
+    ##############################################################################
     DRSChecksum:
       required:
         - checksum
@@ -3747,6 +4009,7 @@ components:
             openid: open id authorization
             email: email authorization
             profile: profile authorization
+            https://www.googleapis.com/auth/cloud-billing: cloud billing authorization
     authToken:
       type: apiKey
       description: >

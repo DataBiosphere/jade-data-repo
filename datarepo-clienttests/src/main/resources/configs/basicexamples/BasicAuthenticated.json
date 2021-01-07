@@ -10,7 +10,7 @@
       "name": "EnumerateProfiles",
       "numberOfUserJourneyThreadsToRun": 5,
       "userJourneyThreadPoolSize": 2,
-      "expectedTimeForEach": 5,
+      "expectedTimeForEach": 40,
       "expectedTimeForEachUnit": "SECONDS"
     }
   ],

@@ -10,6 +10,7 @@
  * It relies on the behavior of the Java plugin, described here:
  *   https://docs.gradle.org/current/userguide/java_plugin.html#sec:java_source_sets
  */
+
 buildscript {
     ext {
         springBootVersion = '2.3.4.RELEASE'
@@ -18,23 +19,29 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath('gradle.plugin.com.srcclr:gradle:3.1.0')
+        classpath('io.swagger:swagger-codegen:2.4.11')
     }
 }
 
 plugins {
     id "com.google.cloud.tools.jib" version "1.6.1"
     id 'org.liquibase.gradle' version '2.0.1'
+    id "org.gradle.test-retry" version "1.2.0"
     id 'antlr'
     id 'com.github.spotbugs' version '4.5.1'
     id "org.hidetake.swagger.generator" version "2.18.2"
     id "org.springframework.boot" version "2.3.4.RELEASE"
+    id "idea"
+    id "java"
+    id "io.spring.dependency-management" version "1.0.10.RELEASE"
+    id "jacoco"
+    id "checkstyle"
+    id "com.srcclr.gradle" version "3.1.0"
 }
 
 allprojects {
     group 'bio.terra'
-    version '1.0.159-SNAPSHOT'
+    version '1.0.193-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -53,6 +60,8 @@ allprojects {
     }
 }
 
+apply from: 'debug.gradle'
+
 // skip subproject tasks by default when building jade-data-repo
 subprojects.each { s ->
     s.tasks.all {
@@ -62,22 +71,11 @@ subprojects.each { s ->
 
 sourceCompatibility = 1.8
 
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'org.springframework.boot'
-apply plugin: 'io.spring.dependency-management'
-apply plugin: 'antlr'
-
-apply plugin: 'checkstyle'
-apply plugin: 'jacoco'
-apply plugin: 'com.github.spotbugs'
-
-apply plugin: 'com.srcclr.gradle'
-
 if (hasProperty('buildScan')) {
     buildScan {
         termsOfServiceUrl = 'https://gradle.com/terms-of-service'
         termsOfServiceAgree = 'yes'
+        publishAlways()
         def project = ""; def cluster = ""; def nschunk = "";
         if (System.getenv("NAMESPACEINUSE")) {
             project = "broad-jade-integration"
@@ -101,7 +99,7 @@ spotbugs {
     effort = 'max'
     // This makes the "html" reports come out in plain text so you can just open the file in IntelliJ
     // and look at your bugs instead of having to switch to a browser.
-    extraArgs = [ '-emacs']
+    extraArgs = ['-emacs']
 }
 spotbugsMain {
     reports {
@@ -160,7 +158,6 @@ configurations {
 
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
-
     compile 'com.google.cloud:google-cloud-billing:1.1.6'
     compile 'com.google.cloud:google-cloud-resourcemanager:0.118.2-alpha'
     compile 'com.google.apis:google-api-services-serviceusage:v1-rev20201021-1.30.10'
@@ -168,8 +165,6 @@ dependencies {
     compile 'com.google.cloud:google-cloud-storage:1.108.0'
     compile 'com.google.cloud:google-cloud-firestore:1.22.0'
     compile group: 'com.google.cloud', name: 'google-cloud-pubsub', version: '1.104.1'
-    compile 'io.springfox:springfox-swagger-ui:2.10.0'
-    compile 'io.springfox:springfox-swagger2:2.9.2'
     compile 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
     compile 'org.apache.commons:commons-lang3:3.9'
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
@@ -188,7 +183,10 @@ dependencies {
     compile "org.springframework.cloud:spring-cloud-starter-sleuth:2.2.5.RELEASE"
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-343dfff-SNAP'
     compile 'org.antlr:ST4:4.3'                          // String templating
-    compile group: 'io.kubernetes', name: 'client-java', version: '8.0.2'
+    compile group: 'io.kubernetes', name: 'client-java', version: '10.0.0'
+
+    compile 'io.springfox:springfox-swagger-ui:2.10.0'
+    compile 'io.springfox:springfox-swagger2:2.9.2'
 
     // This allows you to build with a local Stairway JAR file, instead of the one from the repository
     // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
@@ -200,6 +198,7 @@ dependencies {
     } else {
         implementation 'bio.terra:stairway:0.0.24-SNAPSHOT'
     }
+
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     // Forcing this due to vulnerability issues
@@ -290,21 +289,10 @@ task unpack(type: Copy) {
 }
 
 def generatedOutputDir = 'src/generated/java'
-
-// TODO: we can remove lines 297 & 298 after everyone has run the latest version of the code on their local environments
 clean.doFirst {
     delete("${projectDir}/$generatedOutputDir")
     delete("${rootDir}/datarepo-client/build")
     delete("${rootDir}/datarepo-client/generated")
-}
-
-def excludePattern = 'generated-src/antlr/main/bio/terra/grammar/'
-def excludeGrammarPattern = '${buildDir}/' + excludePattern + '*'
-
-
-tasks.withType(Checkstyle) {
-    exclude excludeGrammarPattern
-    exclude "${buildDir}/generated-src/antlr/main/bio/terra/grammar/*"
 }
 
 sourceSets {
@@ -342,7 +330,7 @@ jar {
 jib {
     extraDirectories.paths = ['build/gen-expanded']
     to {
-        image = "gcr.io/broad-jade-dev/jade-data-repo:"+(System.env.GCR_TAG ?: getGitHash())
+        image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())
     }
 }
 // jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories
@@ -384,6 +372,10 @@ task testConnected(type: Test) {
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
+    retry {
+        maxRetries = 3
+        maxFailures = 15
+    }
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"
 }
@@ -394,6 +386,10 @@ task testIntegration(type: Test) {
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
+    }
+    retry {
+        maxRetries = 3
+        maxFailures = 15
     }
     outputs.upToDateWhen { false }
 }

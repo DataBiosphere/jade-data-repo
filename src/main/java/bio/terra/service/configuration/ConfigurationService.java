@@ -228,14 +228,7 @@ public class ConfigurationService {
         addParameter(FIRESTORE_QUERY_BATCH_SIZE, appConfiguration.getFirestoreQueryBatchSize());
         addParameter(AUTH_CACHE_SIZE, appConfiguration.getAuthCacheSize());
         addParameter(AUTH_CACHE_TIMEOUT_SECONDS, appConfiguration.getAuthCacheTimeoutSeconds());
-
-        // TODO: Temporarily there are two places where allowReuseExistingBuckets is set. The old one is
-        //  in the GcsConfiguration. The new one is in GoogleResourceConfiguration, which has related
-        //  settings. For now, we make the initial setting of the parameter the logical or of the two settings.
-        //  Once all of the helm charts are updated, we can remove the GcsConfiguration version.
-        addParameter(ALLOW_REUSE_EXISTING_BUCKETS,
-            (gcsConfiguration.getAllowReuseExistingBuckets() ||
-                googleResourceConfiguration.getAllowReuseExistingBuckets()));
+        addParameter(ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.getAllowReuseExistingBuckets());
 
         // -- Faults --
         addFaultSimple(CREATE_ASSET_FAULT);

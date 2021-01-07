@@ -148,7 +148,7 @@ public class ResourceService {
                                           BillingProfileModel billingProfile) throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForSnapshot(datasetName, billingProfile),
+            dataLocationSelector.projectIdForDataset(datasetName, billingProfile),
             billingProfile,
             getStewardPolicy());
 

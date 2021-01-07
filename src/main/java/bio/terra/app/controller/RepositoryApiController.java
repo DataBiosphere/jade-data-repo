@@ -26,6 +26,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.UpgradeModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.AssetModelValidator;
@@ -43,6 +44,7 @@ import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.upgrade.UpgradeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +87,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
     private final ConfigurationService configurationService;
     private final AssetModelValidator assetModelValidator;
+    private final UpgradeService upgradeService;
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
@@ -105,7 +108,8 @@ public class RepositoryApiController implements RepositoryApi {
             PolicyMemberValidator policyMemberValidator,
             AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
             ConfigurationService configurationService,
-            AssetModelValidator assetModelValidator
+            AssetModelValidator assetModelValidator,
+            UpgradeService upgradeService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -122,6 +126,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
         this.configurationService = configurationService;
         this.assetModelValidator = assetModelValidator;
+        this.upgradeService = upgradeService;
     }
 
     @InitBinder
@@ -517,6 +522,13 @@ public class RepositoryApiController implements RepositoryApi {
                                          @Valid @RequestBody ConfigEnableModel configEnable) {
         configurationService.setFault(name, configEnable.isEnabled());
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @Override
+    public ResponseEntity<JobModel> upgrade(@Valid @RequestBody UpgradeModel request) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = upgradeService.upgrade(request, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     private void validiateOffsetAndLimit(Integer offset, Integer limit) {

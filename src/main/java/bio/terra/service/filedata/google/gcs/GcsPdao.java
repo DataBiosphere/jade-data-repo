@@ -281,6 +281,7 @@ public class GcsPdao {
 
             try (Stream<FSFile> stream = files.stream()) {
                 List<Future<FSFile>> futures = stream
+                    .distinct()
                     .map(file -> executor.submit(performAclCommand(bucketCache, file, op, acls, groups)))
                     .collect(Collectors.toList());
 

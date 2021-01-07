@@ -2,7 +2,11 @@ package bio.terra.common.fixtures;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import org.apache.commons.lang3.StringUtils;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 public final class ResourceFixtures {
@@ -12,9 +16,15 @@ public final class ResourceFixtures {
     // DAO-only unit tests. This is ready to be used as a request to the GoogleResourceDao
     public static GoogleProjectResource randomProjectResource(BillingProfileModel billingProfile) {
         return new GoogleProjectResource()
-            .googleProjectId("fake-test-project-id")
-            .googleProjectNumber("123456")
+            .googleProjectId(ProfileFixtures.randomizeName("fake-test-project-id"))
+            .googleProjectNumber(shuffleString("123456789012"))
             .profileId(UUID.fromString(billingProfile.getId()));
+    }
+
+    public static String shuffleString(String input) {
+        List<String> newProjectNum = Arrays.asList(input.split(""));
+        Collections.shuffle(newProjectNum);
+        return StringUtils.join(newProjectNum, "");
     }
 
 }

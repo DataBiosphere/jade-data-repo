@@ -600,6 +600,7 @@ public class TestRunner {
         }
       } catch (Exception runnerEx) {
         logger.error("Test Runner threw an exception", runnerEx);
+        isFailure = true;
       }
 
       logger.info("==== TEST RUN RESULTS ({}) {} ====", ctr + 1, testConfiguration.name);

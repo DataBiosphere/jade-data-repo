@@ -12,6 +12,7 @@ public class ConnectedTestConfiguration {
     private String ingestbucket;
     private String ingestRequesterPaysBucket;
     private String googleBillingAccountId;
+    private String noSpendGoogleBillingAccountId;
 
     public String getIngestbucket() {
         return ingestbucket;
@@ -35,5 +36,13 @@ public class ConnectedTestConfiguration {
 
     public void setGoogleBillingAccountId(String googleBillingAccountId) {
         this.googleBillingAccountId = googleBillingAccountId;
+    }
+
+    public String getNoSpendGoogleBillingAccountId() {
+        return noSpendGoogleBillingAccountId;
+    }
+
+    public void setNoSpendGoogleBillingAccountId(String secondGoogleBillingAccountId) {
+        this.noSpendGoogleBillingAccountId = secondGoogleBillingAccountId;
     }
 }

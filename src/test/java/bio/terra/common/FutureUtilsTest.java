@@ -143,7 +143,7 @@ public class FutureUtilsTest {
     }
 
     @Test
-    public void testWaitForTasksSomeFail() {
+    public void testWaitForTasksSomeFail() throws InterruptedException {
         final AtomicInteger counter = new AtomicInteger(0);
         final Callable<Integer> action = () -> {
             try {
@@ -164,6 +164,9 @@ public class FutureUtilsTest {
         }
 
         assertThatThrownBy(() -> FutureUtils.waitFor(futures)).hasMessage("Error executing thread");
+        // Note: adding a sleep since getActiveCount represents an approximation of the number of threads active.
+        // Pausing gives the thread executor a chance to learn that the thread has been canceled
+        TimeUnit.MILLISECONDS.sleep(50);
         assertThat(executorService.getActiveCount()).isZero();
 
         // Make sure that some tasks after the failure were cancelled

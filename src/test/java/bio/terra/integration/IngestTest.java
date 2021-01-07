@@ -76,6 +76,10 @@ public class IngestTest extends UsersBase {
         if (datasetId != null) {
             dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
         }
+
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfileLog(steward(), profileId);
+        }
     }
 
     @Ignore  // subset of the snapshot test; not worth running everytime, but useful for debugging

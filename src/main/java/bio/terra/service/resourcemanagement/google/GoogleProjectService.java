@@ -5,6 +5,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
+import bio.terra.service.resourcemanagement.exception.MismatchedBillingProfilesException;
 import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -23,10 +24,13 @@ import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
 import com.google.api.services.serviceusage.v1.ServiceUsage;
 import com.google.api.services.serviceusage.v1.model.BatchEnableServicesRequest;
-import com.google.api.services.serviceusage.v1.model.ListServicesResponse;
 import com.google.api.services.serviceusage.v1.model.GoogleApiServiceusageV1Service;
+import com.google.api.services.serviceusage.v1.model.ListServicesResponse;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,7 +95,15 @@ public class GoogleProjectService {
         throws InterruptedException {
 
         try {
-            return resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
+            GoogleProjectResource projectResource = resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
+            String resourceProfileId = projectResource.getProfileId().toString();
+            if (StringUtils.equals(resourceProfileId, billingProfile.getId())) {
+                return projectResource;
+            }
+            throw new MismatchedBillingProfilesException(
+                "Cannot reuse existing project " + projectResource.getGoogleProjectId() +
+                    " from profile " + resourceProfileId +
+                    " with a different profile " + billingProfile.getId());
         } catch (GoogleResourceNotFoundException e) {
             logger.info("no project resource found for projectId: {}", googleProjectId);
         }
@@ -101,9 +113,8 @@ public class GoogleProjectService {
         // billing account.
         // In production, it is hazardous to use projects that exist since we do not know where they
         // came from, what resources they contain, who is paying for them.
-        // TODO: change the boolean when we have plumbed in the allowReuseExistingProjects flag.
         Project existingProject = getProject(googleProjectId);
-        if (existingProject != null) { // TODO: && resourceConfiguration.getAllowReuseExistingProjects()) {
+        if (existingProject != null && resourceConfiguration.getAllowReuseExistingProjects()) {
             return initializeProject(existingProject, billingProfile, roleIdentityMapping, false);
         }
 
@@ -136,7 +147,8 @@ public class GoogleProjectService {
             return request.execute();
         } catch (GoogleJsonResponseException e) {
             // if the project does not exist, the API will return a 403 unauth. to prevent people probing
-            // for projects
+            // for projects. We tolerate non-existent projects, because we want to be able to retry
+            // failures on deleting other projects.
             if (e.getDetails().getCode() != 403) {
                 throw new GoogleResourceException("Unexpected error while checking on project state", e);
             }
@@ -164,6 +176,8 @@ public class GoogleProjectService {
         BillingProfileModel billingProfile,
         Map<String, List<String>> roleIdentityMapping)
         throws InterruptedException {
+
+        ensureValidProjectId(requestedProjectId);
 
         // projects created by service accounts must live under a parent resource (either a folder or an
         // organization)
@@ -244,9 +258,9 @@ public class GoogleProjectService {
         }
     }
 
-    // package access for use in tests
-    void deleteGoogleProject(UUID metadataProjectId) {
-        GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(metadataProjectId);
+    @VisibleForTesting
+    void deleteGoogleProject(UUID resourceId) {
+        GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(resourceId);
         deleteGoogleProject(projectResource.getGoogleProjectId());
     }
 
@@ -285,7 +299,12 @@ public class GoogleProjectService {
                 blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
             }
         } catch (IOException | GeneralSecurityException e) {
-            throw new GoogleResourceException("Could not enable services", e);
+            // In development we are reusing projects. The TDR service account may not have permission to
+            // properly enable the services on a developer's project. In those cases, we do not want to
+            // error on failure. That result in issues down the line if we require enabling new services.
+            if (!resourceConfiguration.getAllowReuseExistingProjects()) {
+                throw new GoogleResourceException("Could not enable services", e);
+            }
         }
     }
 
@@ -456,5 +475,48 @@ public class GoogleProjectService {
             operation = request.execute();
         }
         return operation;
+    }
+
+    public void updateProjectsBillingAccount(BillingProfileModel billingProfileModel) {
+        List<GoogleProjectResource> projects = resourceDao
+            .retrieveProjectsByBillingProfileId(UUID.fromString(billingProfileModel.getId()));
+
+        if (projects.size() == 0) {
+            logger.info("No projects attached to billing profile so nothing to update.");
+            return;
+        }
+
+        projects.stream().forEach(project -> {
+            logger.info("Updating billing profile id {} in google project {}",
+                billingProfileModel.getBillingAccountId(), project.getGoogleProjectId());
+            updateBillingProfile(
+                project.getGoogleProjectNumber(), project.getGoogleProjectId(), billingProfileModel);
+        });
+    }
+
+    public void updateBillingProfile(String googleProjectNumber,
+                                     String googleProjectId,
+                                     BillingProfileModel billingProfile) {
+        GoogleProjectResource googleProjectResource =
+            new GoogleProjectResource()
+                .profileId(UUID.fromString(billingProfile.getId()))
+                .googleProjectId(googleProjectId)
+                .googleProjectNumber(googleProjectNumber);
+
+        // The billing profile has already been authorized so we do no further checking here
+        billingService.assignProjectBilling(billingProfile, googleProjectResource);
+
+    }
+
+    @VisibleForTesting
+    static void ensureValidProjectId(final String projectId) {
+        Preconditions.checkNotNull(projectId, "Project Id must not be null");
+
+        Preconditions.checkArgument(
+            projectId.matches("^[a-z][a-z0-9-]{4,28}[a-z0-9]$"),
+            String.format("The project ID \"%s\" must be a unique string of 6 to 30 lowercase letters, digits, " +
+                "or hyphens. It must start with a letter, and cannot have a trailing hyphen. You cannot change a " +
+                "project ID once it has been created. You cannot re-use a project ID that is in use, or one that " +
+                "has been used for a deleted project.", projectId));
     }
 }

@@ -6,6 +6,7 @@ env:
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
+  TDR_LOG_APPENDER: Console-Standard
 on:
   workflow_dispatch: {}
   schedule:
@@ -90,7 +91,6 @@ jobs:
             fi
           done
       - name: 'Checkout datarepo-helm-definitions repo'
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: actions/checkout@v2
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
@@ -98,7 +98,7 @@ jobs:
           path: datarepo-helm-definitions
       - name: "Update perf image tag with semVer"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: docker://mikefarah/yq:latest
+        uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "Create datarepo-helm-definition pull request with updated perf image tag"
@@ -117,19 +117,20 @@ jobs:
             *Note: This PR was opened by the [test-runner-perf GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "datarepo,automerge,version-update"
       - name: "Install Helmfile"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
-      - name: "Use helmfile to apply image tag update to Perf yaml"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+      - name: "Use helmfile to delete and reapply helm for api pod"
         run: |
           helmfile --version
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
+          echo "Killing perf api pod to force db migration (can be removed after DR-1544 is complete)"
+          helm delete -n perf perf-jade-datarepo-api
+          sleep 15
+          echo "Apply helm updates, including updated data-repo version"
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Wait for Perf Cluster to come back up with correct version"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         run: |
-          PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+          PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           RETRY_COUNT=0
           until [[ "$PERF_VERSION" == "${{ steps.read_property.outputs.LATEST_VERSION }}" ]]; do
             if [[ ${RETRY_COUNT} -gt 20 ]]; then
@@ -138,7 +139,7 @@ jobs:
             fi
             echo "Retry #${RETRY_COUNT}: Waiting for $PERF_VERSION to equal ${{ steps.read_property.outputs.LATEST_VERSION }}"
             sleep 15
-            PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+            PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
             ((RETRY_COUNT=RETRY_COUNT+1))
           done;
           echo "Perf successfully running on new version: $PERF_VERSION"
@@ -186,6 +187,7 @@ jobs:
           channel: "#jade-alerts"
           username: "Data Repo tests"
           text: "Perf tests"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
       - name: "Notify QA Slack"
         if: ${{ github.event_name != 'workflow_dispatch' && always() }}
         uses: broadinstitute/action-slack@v3.8.0
@@ -197,3 +199,4 @@ jobs:
           channel: "#dsde-qa"
           username: "Data Repo tests"
           text: "Perf tests"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

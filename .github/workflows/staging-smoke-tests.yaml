@@ -4,6 +4,7 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/staging-test-runner.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
+  TDR_LOG_APPENDER: Console-Standard
 on:
   workflow_dispatch: {}
 jobs:
@@ -86,3 +87,4 @@ jobs:
           channel: "#jade-alerts"
           username: "Data Repo tests"
           text: "Staging smoke tests"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import okhttp3.Call;
 import okhttp3.Response;
 import org.slf4j.Logger;
@@ -247,9 +248,9 @@ public final class KubernetesClientUtils {
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
-    long podCount = getApiPodCount(apiDeployment);
+    long podCount = countPodsWithLabel(apiDeployment);
     logger.debug("Pod Count: {}; Message: Before deleting pods", podCount);
-    printApiPods(apiDeployment);
+    logPodsWithLabel(apiDeployment);
     String deploymentComponentLabel = apiDeployment.getMetadata().getLabels().get(componentLabel);
 
     // select a random pod from list of apis
@@ -309,9 +310,10 @@ public final class KubernetesClientUtils {
       // two checks to make sure we are fully back in working order
       // 1 - does the total number of pods match the replica count (for example, all terminating
       // pods have finished terminating & no longer show up in list)
-      numPods = getApiPodCount(deployment);
+      numPods = countPodsWithLabel(deployment);
       // 2 - does the number of pods in the "ready" state matches the replica count
-      numRunningPods = getApiReadyPods(deployment);
+      numRunningPods = countReadyPodsWithLabel(deployment);
+      logger.debug("numPods: {}, numRunningPods: {}", numPods, numRunningPods);
       pollCtr--;
     }
 
@@ -337,50 +339,66 @@ public final class KubernetesClientUtils {
       throw new RuntimeException("API deployment not found.");
     }
 
-    long apiPodCount = getApiPodCount(apiDeployment);
+    long apiPodCount = countPodsWithLabel(apiDeployment);
     logger.debug("Pod Count: {}; Message: Before scaling pod count", apiPodCount);
     apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
     KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
 
     // print out the current pods
-    apiPodCount = getApiPodCount(apiDeployment);
+    apiPodCount = countPodsWithLabel(apiDeployment);
     logger.debug("Pod Count: {}; Message: After scaling pod count", apiPodCount);
-    printApiPods(apiDeployment);
+    logPodsWithLabel(apiDeployment);
   }
 
-  private static long getApiPodCount(V1Deployment deployment) throws ApiException {
+  /**
+   * Return a stream of the pods that match the deployment component label.
+   *
+   * @param deployment the deployment the pods belong to
+   * @return stream of matching pods
+   */
+  private static Stream<V1Pod> listPodsWithLabel(V1Deployment deployment) throws ApiException {
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
     // loop through the pods in the namespace
     // find the ones that match the deployment component label (e.g. find all the API pods)
-    long apiPodCount =
-        listPods().stream()
-            .filter(
-                pod ->
-                    deploymentComponentLabel.equals(
-                        pod.getMetadata().getLabels().get(componentLabel)))
-            .count();
-    return apiPodCount;
-  }
-
-  private static long getApiReadyPods(V1Deployment deployment) throws ApiException {
-    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
-    long apiPodCount =
-        listPods().stream()
-            .filter(
-                pod ->
-                    deploymentComponentLabel.equals(
-                            pod.getMetadata().getLabels().get(componentLabel))
-                        && pod.getStatus().getContainerStatuses().get(0).getReady())
-            .count();
-    return apiPodCount;
-  }
-
-  public static void printApiPods(V1Deployment deployment) throws ApiException {
-    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
-    listPods().stream()
+    return listPods().stream()
         .filter(
             pod ->
-                deploymentComponentLabel.equals(pod.getMetadata().getLabels().get(componentLabel)))
-        .forEach(p -> logger.debug("Pod: {}", p.getMetadata().getName()));
+                deploymentComponentLabel.equals(pod.getMetadata().getLabels().get(componentLabel)));
+  }
+
+  /**
+   * Count the number of pods that match the deployment component label.
+   *
+   * @param deployment the deployment the pods belong to
+   * @return the number of matching pods
+   */
+  private static long countPodsWithLabel(V1Deployment deployment) throws ApiException {
+    return listPodsWithLabel(deployment).count();
+  }
+
+  /**
+   * Count the number of pods that match the deployment component label and have the READY state.
+   *
+   * @param deployment the deployment the pods belong to
+   * @return the number of matching READY pods
+   */
+  private static long countReadyPodsWithLabel(V1Deployment deployment) throws ApiException {
+    return listPodsWithLabel(deployment)
+        .filter(
+            pod ->
+                pod.getStatus().getContainerStatuses()
+                        != null // this condition is true for evicted pods
+                    && pod.getStatus().getContainerStatuses().get(0).getReady())
+        .count();
+  }
+
+  /**
+   * Loop through the pods that match the deployment component label, writing their name to
+   * debug-level logging.
+   *
+   * @param deployment the deployment the pods below to
+   */
+  public static void logPodsWithLabel(V1Deployment deployment) throws ApiException {
+    listPodsWithLabel(deployment).forEach(p -> logger.debug("Pod: {}", p.getMetadata().getName()));
   }
 }

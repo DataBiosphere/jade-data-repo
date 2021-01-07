@@ -53,6 +53,9 @@ public class DatasetBucketDao {
     private static final String sqlExistsLink =
         "SELECT COUNT(*) FROM dataset_bucket" + whereClause;
 
+    private static final String sqlGetSuccessfulIngestCount =
+        "SELECT successful_ingests FROM dataset_bucket" + whereClause;
+
     private static final String sqlDeleteLink =
         "DELETE FROM dataset_bucket" + whereClause;
 
@@ -85,7 +88,7 @@ public class DatasetBucketDao {
         datasetBucketLinkUpdate(sqlDecrementCount, datasetId, bucketResourceId);
     }
 
-    private boolean datasetBucketLinkExists(UUID datasetId, UUID bucketResourceId) {
+    boolean datasetBucketLinkExists(UUID datasetId, UUID bucketResourceId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("dataset_id", datasetId)
             .addValue("bucket_resource_id", bucketResourceId);
@@ -94,6 +97,18 @@ public class DatasetBucketDao {
             throw new CorruptMetadataException("Impossible null value from count");
         }
         return (count == 1);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    int datasetBucketSuccessfulIngestCount(UUID datasetId, UUID bucketResourceId) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("dataset_id", datasetId)
+            .addValue("bucket_resource_id", bucketResourceId);
+        Integer count = jdbcTemplate.queryForObject(sqlGetSuccessfulIngestCount, params, Integer.class);
+        if (count == null) {
+            throw new CorruptMetadataException("Impossible null value from count");
+        }
+        return count;
     }
 
     private void incrementDatasetBucketLink(UUID datasetId, UUID bucketResourceId) {

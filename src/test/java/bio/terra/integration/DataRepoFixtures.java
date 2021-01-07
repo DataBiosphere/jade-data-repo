@@ -129,6 +129,7 @@ public class DataRepoFixtures {
 
         DataRepoResponse<DatasetSummaryModel> response = dataRepoClient.waitForResponseLog(
             user, jobResponse, DatasetSummaryModel.class);
+        logger.info("Response was: {}", response);
         assertThat("dataset create is successful", response.getStatusCode(), equalTo(HttpStatus.CREATED));
         assertTrue("dataset create response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();

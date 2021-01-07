@@ -35,6 +35,8 @@ public class GoogleResourceDao {
         " WHERE marked_for_delete = false AND google_project_id = :google_project_id";
     private static final String sqlProjectRetrieveByIdForDelete = sqlProjectRetrieve +
         " WHERE marked_for_delete = true AND id = :id";
+    private static final String sqlProjectRetrieveByBillingProfileId = sqlProjectRetrieve +
+        " WHERE marked_for_delete = false AND profile_id = :profile_id";
 
     private static final String sqlBucketRetrieve =
         "SELECT p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
@@ -123,6 +125,12 @@ public class GoogleResourceDao {
         return retrieveProjectBy(sqlProjectRetrieveByIdForDelete, params);
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<GoogleProjectResource> retrieveProjectsByBillingProfileId(UUID billingProfileId) {
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("profile_id", billingProfileId);
+        return retrieveProjectListBy(sqlProjectRetrieveByBillingProfileId, params);
+    }
+
     // NOTE: This method is currently only used from tests
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void deleteProject(UUID id) {
@@ -145,7 +153,17 @@ public class GoogleResourceDao {
                 .refCount(rs.getLong("refcnt")));
 
         // If the profile is in use by any project, we bail here.
-        if (0 < projectRefs.stream().mapToLong(ProjectRefs::getRefCount).sum()) {
+        long totalRefs = 0;
+        for (ProjectRefs ref : projectRefs) {
+            logger.info("Profile project reference projectId: {} refCount: {}", ref.getProjectId(), ref.getRefCount());
+            totalRefs += ref.getRefCount();
+        }
+
+        //long totalRefs = projectRefs.stream().mapToLong(ProjectRefs::getRefCount).sum();
+        logger.info("Profile {} has {} projects with the total of {} references",
+            profileId, projectRefs.size(), totalRefs);
+
+        if (totalRefs > 0) {
             throw new ProfileInUseException("Profile is in use and cannot be deleted");
         }
 

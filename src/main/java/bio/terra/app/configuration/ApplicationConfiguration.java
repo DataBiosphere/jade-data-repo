@@ -142,7 +142,6 @@ public class ApplicationConfiguration {
      */
     private int maxPerformanceThreadQueueSize;
 
-
     public String getUserEmail() {
         return userEmail;
     }

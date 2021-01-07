@@ -18,14 +18,19 @@ public class EnumerateProfiles extends runner.TestScript {
   }
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
-    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    ResourcesApi resourcesApi = new ResourcesApi(apiClient);
-    EnumerateBillingProfileModel profiles = resourcesApi.enumerateProfiles(0, 10);
+    try {
+      ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
+      ResourcesApi resourcesApi = new ResourcesApi(apiClient);
+      EnumerateBillingProfileModel profiles = resourcesApi.enumerateProfiles(0, 10);
 
-    int httpStatus = resourcesApi.getApiClient().getStatusCode();
-    logger.debug(
-        "Enumerate profiles: HTTP status {}, number of profiles found = {}",
-        httpStatus,
-        profiles.getTotal());
+      int httpStatus = resourcesApi.getApiClient().getStatusCode();
+      logger.debug(
+          "Enumerate profiles: HTTP status {}, number of profiles found = {}",
+          httpStatus,
+          profiles.getTotal());
+    } catch (Exception e) {
+      logger.info("User journey failed: ", e);
+      throw e;
+    }
   }
 }

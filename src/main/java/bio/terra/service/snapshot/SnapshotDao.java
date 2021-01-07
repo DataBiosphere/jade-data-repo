@@ -72,7 +72,7 @@ public class SnapshotDao {
      * @throws SnapshotLockException if the snapshot is locked by another flight
      * @throws SnapshotNotFoundException if the snapshot does not exist
      */
-    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void lock(UUID snapshotId, String flightId) {
         if (flightId == null) {
             throw new SnapshotLockException("Locking flight id cannot be null");
@@ -108,7 +108,7 @@ public class SnapshotDao {
      * @param flightId flight id that wants to unlock the snapshot
      * @return true if a snapshot was unlocked, false otherwise
      */
-    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean unlock(UUID snapshotId, String flightId) {
         // update the snapshot entry to remove the flightid IF it is currently set to this flightid
         String sql = "UPDATE snapshot SET flightid = NULL " +
@@ -204,8 +204,20 @@ public class SnapshotDao {
      * @param snapshotId the snapshot id
      * @return the Snapshot object
      */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public Snapshot retrieveAvailableSnapshot(UUID snapshotId) {
         return retrieveSnapshot(snapshotId, true);
+    }
+
+    /**
+     * This is a convenience wrapper that returns a snapshot project only if it is NOT exclusively locked.
+     * This method is intended for user-facing API calls (e.g. from RepositoryApiController).
+     * @param snapshotId the snapshot id
+     * @return the SnapshotProject object
+     */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
+    public SnapshotProject retrieveAvailableSnapshotProject(UUID snapshotId) {
+        return retrieveSnapshotProject(snapshotId, true);
     }
 
     /**
@@ -214,6 +226,7 @@ public class SnapshotDao {
      * @param snapshotId the snapshot id
      * @return the Snapshot object
      */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public Snapshot retrieveSnapshot(UUID snapshotId) {
         return retrieveSnapshot(snapshotId, false);
     }
@@ -225,6 +238,7 @@ public class SnapshotDao {
      *                              false to include all snapshots
      * @return the Snapshot object
      */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public Snapshot retrieveSnapshot(UUID snapshotId, boolean onlyRetrieveAvailable) {
         logger.debug("retrieve snapshot id: " + snapshotId);
         String sql = "SELECT * FROM snapshot WHERE id = :id";
@@ -239,6 +253,24 @@ public class SnapshotDao {
         return snapshot;
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
+    public SnapshotProject retrieveSnapshotProject(UUID snapshotId, boolean onlyRetrieveAvailable) {
+        logger.debug("retrieve snapshot id: " + snapshotId);
+        String sql = "SELECT snapshot.id, name, snapshot.profile_id, google_project_id FROM snapshot " +
+            "JOIN project_resource ON snapshot.project_resource_id = project_resource.id " +
+            "WHERE snapshot.id = :id";
+        if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
+            sql += " AND flightid IS NULL";
+        }
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", snapshotId);
+        SnapshotProject snapshotProject = retrieveSnapshotProject(sql, params);
+        if (snapshotProject == null) {
+            throw new SnapshotNotFoundException("Snapshot not found - id: " + snapshotId);
+        }
+        return snapshotProject;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public Snapshot retrieveSnapshotByName(String name) {
         String sql = "SELECT * FROM snapshot WHERE name = :name";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
@@ -274,6 +306,20 @@ public class SnapshotDao {
                 snapshot.projectResource(resourceService.getProjectResource(snapshot.getProjectResourceId()));
             }
             return snapshot;
+        } catch (EmptyResultDataAccessException ex) {
+            return null;
+        }
+    }
+
+    private SnapshotProject retrieveSnapshotProject(String sql, MapSqlParameterSource params) {
+        try {
+            SnapshotProject snapshotProject = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
+                new SnapshotProject()
+                    .id(rs.getObject("id", UUID.class))
+                    .name(rs.getString("name"))
+                    .profileId(rs.getObject("profile_id", UUID.class))
+                    .dataProject(rs.getString("google_project_id")));
+            return snapshotProject;
         } catch (EmptyResultDataAccessException ex) {
             return null;
         }
@@ -339,6 +385,7 @@ public class SnapshotDao {
      * @param accessibleSnapshotIds list of snapshots ids that caller has access to (fetched from IAM service)
      * @return a list of dataset summary objects
      */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public MetadataEnumeration<SnapshotSummary> retrieveSnapshots(
         int offset,
         int limit,
@@ -377,6 +424,7 @@ public class SnapshotDao {
             .total(total);
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public SnapshotSummary retrieveSummaryById(UUID id) {
         logger.debug("retrieve snapshot summary for id: " + id);
         try {
@@ -388,6 +436,7 @@ public class SnapshotDao {
         }
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public SnapshotSummary retrieveSummaryByName(String name) {
         logger.debug("retrieve snapshot summary for name: " + name);
         try {
@@ -399,6 +448,7 @@ public class SnapshotDao {
         }
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public List<SnapshotSummary> retrieveSnapshotsForDataset(UUID datasetId) {
         try {
             String sql = "SELECT snapshot.id, name, description, created_date, profile_id FROM snapshot " +

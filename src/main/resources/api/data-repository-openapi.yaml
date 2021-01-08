@@ -3028,7 +3028,8 @@ components:
           $ref: '#/components/schemas/LoadTagModel'
         maxFailedFileLoads:
           type: integer
-          description: max number of failed file loads before stopping
+          default: 0
+          description: max number of failed file loads before stopping; if -1, allow any number of errors
         loadControlFile:
           type: string
           description: >-
@@ -3056,7 +3057,8 @@ components:
           $ref: '#/components/schemas/LoadTagModel'
         maxFailedFileLoads:
           type: integer
-          description: max number of failed file loads before stopping
+          default: 0
+          description: max number of failed file loads before stopping; if -1, allow any number of errors
         loadArray:
           type: array
           description: Array files to load

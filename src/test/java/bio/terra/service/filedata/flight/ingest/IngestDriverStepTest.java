@@ -46,19 +46,17 @@ public class IngestDriverStepTest extends TestCase {
 
     private void runTest(int maxFailedFileLoads) throws Exception {
         given(kubeService.getActivePodCount()).willReturn(1);
-        given(configurationService.getParameterValue(ConfigEnum.AUTH_CACHE_SIZE)).willReturn(1);
         given(configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES)).willReturn(1);
-        final LoadFile loadFile = new LoadFile();
 
         // Start the task with three failed loads and one pending (candidate) file.
         LoadCandidates candidates = new LoadCandidates()
-            .candidateFiles(Collections.singletonList(loadFile))
+            .candidateFiles(Collections.singletonList(new LoadFile()))
             .runningLoads(Collections.emptyList())
             .failedLoads(3);
         given(loadService.findCandidates(loadUuid, 1)).willReturn(candidates);
 
         IngestDriverStep step = new IngestDriverStep(loadService, configurationService, kubeService,
-            "datasetId", "loadTag", maxFailedFileLoads, 0, "profileId");
+            null, null, maxFailedFileLoads, 0, null);
 
         FlightContext flightContext = new FlightContext(new FlightMap(), "", Collections.emptyList());
         flightContext.getWorkingMap().put(LoadMapKeys.LOAD_ID, loadUuid.toString());

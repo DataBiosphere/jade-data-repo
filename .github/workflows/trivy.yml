@@ -17,7 +17,9 @@ jobs:
       # set up Gradle cache
       - uses: actions/cache@v2
         with:
-          path: ~/.gradle/caches
+          path: |
+            ~/.gradle/caches
+            .gradle
           key: gradle-${{ hashFiles('**/*.gradle*') }}
           restore-keys: |
             gradle-

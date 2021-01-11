@@ -316,7 +316,7 @@ public class ApplicationConfiguration {
     }
 
     public int getMaxDrsLookups() {
-        return maxDRSLookups;
+        return maxDrsLookups;
     }
 
     public void setDrsLookupMax(int maxDrsLookups) {

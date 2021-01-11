@@ -43,10 +43,10 @@ public class DRSLookup extends SimpleDataset {
   private static List<BlobId> scratchFiles = new ArrayList<>();
   private String dirObjectId;
 
-  private Integer K = 1;
+  private int NUM_DRS_LOOKUPS = 1;
 
   public void setParameters(List<String> parameters) {
-    K = Integer.parseInt(parameters.get(0));
+    NUM_DRS_LOOKUPS = Integer.parseInt(parameters.get(0));
     logger.debug("Repeated DRS Lookups (default is 1): {}", K);
   }
 
@@ -163,7 +163,7 @@ public class DRSLookup extends SimpleDataset {
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
-    for (int i = 0; i < K; i++) {
+    for (int i = 0; i < NUM_DRS_LOOKUPS; i++) {
       DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
       logger.debug(
           "Successfully retrieved drs object: {}, with id: {} and data project: {}",

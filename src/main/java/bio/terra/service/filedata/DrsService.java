@@ -47,7 +47,7 @@ public class DrsService {
 
     private static final String DRS_OBJECT_VERSION = "0";
     // atomic counter that we incr on request arrival and decr on request response
-    private static AtomicInteger currentDRSRequests = new AtomicInteger(0);
+    private AtomicInteger currentDRSRequests = new AtomicInteger(0);
 
     private final SnapshotService snapshotService;
     private final FileService fileService;
@@ -78,17 +78,14 @@ public class DrsService {
     }
 
     public void decrement() {
-        int currentValue = currentDRSRequests.get();
-        if (currentValue > 0) {
-            int newValue = currentValue - 1;
-            currentDRSRequests.set(newValue);
-        }
+        int newValue = currentDRSRequests.decrementAndGet(); // how do I make sure this never becomes negative?
+        currentDRSRequests.set(newValue);
     }
 
     public void increment() {
-        int currentValue = currentDRSRequests.get();
-        int newValue = currentValue + 1;
+        int newValue = currentDRSRequests.incrementAndGet();
         currentDRSRequests.set(newValue);
+        checkLookupMax();
     }
 
     public void checkLookupMax() throws TooManyRequestsException {
@@ -103,7 +100,6 @@ public class DrsService {
 
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand
     ) throws TooManyRequestsException {
-        checkLookupMax();
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         SnapshotProject snapshotProject = null;
         try {

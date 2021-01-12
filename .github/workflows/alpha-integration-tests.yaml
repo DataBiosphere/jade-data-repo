@@ -87,6 +87,6 @@ jobs:
       with:
         status: ${{ job.status }}
         fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-        channel: "#dsde-qa"
+        channel: "#jade-alerts"
         username: "Data Repo tests"
         text: "Alpha integration tests"

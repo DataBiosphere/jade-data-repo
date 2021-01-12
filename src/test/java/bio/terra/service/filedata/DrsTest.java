@@ -11,6 +11,8 @@ import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.FileModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
@@ -32,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -73,6 +76,7 @@ public class DrsTest extends UsersBase {
     @Autowired private EncodeFixture encodeFixture;
     @Autowired private AuthService authService;
     @Autowired private IamService iamService;
+    @Autowired private ConfigurationService configurationService;
 
     private String custodianToken;
     private SnapshotModel snapshotModel;
@@ -187,6 +191,36 @@ public class DrsTest extends UsersBase {
             datasetIamRoles.get(IamRole.CUSTODIAN),
             datasetIamRoles.get(IamRole.INGESTER)
         ));
+    }
+
+    @Test
+    public void drsScaleTest() throws Exception {
+        String maxValue = "1";
+        configurationService.reset();
+
+        bio.terra.model.ConfigModel concurrentConfig = configurationService.getConfig(ConfigEnum.DRS_LOOKUP_MAX.name());
+        concurrentConfig.setParameter(new bio.terra.model.ConfigParameterModel().value(maxValue));
+
+        bio.terra.model.ConfigGroupModel configGroupModel = new bio.terra.model.ConfigGroupModel()
+            .label("DRSTest")
+            .addGroupItem(concurrentConfig);
+        configurationService.setConfig(configGroupModel);
+        
+        // Get a DRS ID from the dataset using the custodianToken.
+        // Note: the reader does not have permission to run big query jobs anywhere.
+        BigQuery bigQueryCustodian = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
+        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryCustodian,
+            snapshotModel,
+            "file",
+            "file_ref");
+
+        // DRS lookup the file and validate
+        logger.info("DRS Object Id - file: {}", drsObjectId);
+        DrsResponse<DRSObject> response = dataRepoFixtures.drsGetObjectRaw(reader(), drsObjectId);
+        assertThat("object is not successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.TOO_MANY_REQUESTS));
+
+        //assertThat("object is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+        //final DRSObject drsObjectFile = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
     }
 
     private void validateDrsObject(DRSObject drsObject, String drsObjectId) {

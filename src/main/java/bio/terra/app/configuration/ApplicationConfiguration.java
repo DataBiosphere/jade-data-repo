@@ -319,7 +319,7 @@ public class ApplicationConfiguration {
         return maxDrsLookups;
     }
 
-    public void setDrsLookupMax(int maxDrsLookups) {
+    public void setMaxDrsLookups(int maxDrsLookups) {
         this.maxDrsLookups = maxDrsLookups;
     }
 

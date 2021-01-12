@@ -227,7 +227,7 @@ public class ConfigurationService {
         addParameter(FIRESTORE_SNAPSHOT_CACHE_SIZE, appConfiguration.getFirestoreSnapshotCacheSize());
         addParameter(FIRESTORE_VALIDATE_BATCH_SIZE, appConfiguration.getFirestoreValidateBatchSize());
         addParameter(FIRESTORE_QUERY_BATCH_SIZE, appConfiguration.getFirestoreQueryBatchSize());
-        addParameter(DRS_LOOKUP_MAX, appConfiguration.getDrsLookupMax());
+        addParameter(DRS_LOOKUP_MAX, appConfiguration.getMaxDrsLookups());
         addParameter(AUTH_CACHE_SIZE, appConfiguration.getAuthCacheSize());
         addParameter(AUTH_CACHE_TIMEOUT_SECONDS, appConfiguration.getAuthCacheTimeoutSeconds());
         addParameter(ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.getAllowReuseExistingBuckets());

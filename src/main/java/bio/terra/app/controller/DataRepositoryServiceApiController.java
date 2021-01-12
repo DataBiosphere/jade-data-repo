@@ -104,8 +104,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     @Override
     public ResponseEntity<DRSObject> getObject(
         @PathVariable("object_id") String objectId,
-        @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand
-    ) {
+        @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand) {
         // The incoming object id is a DRS object id, not a file id.
         AuthenticatedUserRequest authUser = getAuthenticatedInfo();
         DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, objectId, expand);

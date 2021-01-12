@@ -27,10 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -47,7 +44,7 @@ public class DrsService {
 
     private static final String DRS_OBJECT_VERSION = "0";
     // atomic counter that we incr on request arrival and decr on request response
-    private AtomicInteger currentDRSRequests = new AtomicInteger(0);
+    private final AtomicInteger currentDRSRequests = new AtomicInteger(0);
 
     private final SnapshotService snapshotService;
     private final FileService fileService;
@@ -77,90 +74,90 @@ public class DrsService {
         this.performanceLogger = performanceLogger;
     }
 
-    public void decrement() {
-        int newValue = currentDRSRequests.decrementAndGet(); // how do I make sure this never becomes negative?
-        currentDRSRequests.set(newValue);
-    }
+    private class DrsRequestResource implements AutoCloseable {
+        DrsRequestResource() {
+            // make sure not too many requests are being made at once
+            int podCount = kubeService.getActivePodCount();
+            int maxDRSLookups = configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
+            int max = maxDRSLookups / podCount;
+            if (currentDRSRequests.incrementAndGet() > max) {
+                throw new TooManyRequestsException("Too many requests are being made at once. Please try again later.");
+            }
+            currentDRSRequests.incrementAndGet();
+        }
 
-    public void increment() {
-        int newValue = currentDRSRequests.incrementAndGet();
-        currentDRSRequests.set(newValue);
-        checkLookupMax();
-    }
-
-    public void checkLookupMax() throws TooManyRequestsException {
-        // make sure not too many requests are being made at once
-        int podCount = kubeService.getActivePodCount();
-        int maxDRSLookups = configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
-        int max = maxDRSLookups / podCount;
-        if (currentDRSRequests.get() >= max) {
-            throw new TooManyRequestsException("Too many requests are being made at once. Please try again later.");
+        @Override
+        public void close() {
+            currentDRSRequests.decrementAndGet();
         }
     }
 
+    // throws TooManyRequestsException
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand
-    ) throws TooManyRequestsException {
-        DrsId drsId = drsIdService.fromObjectId(drsObjectId);
-        SnapshotProject snapshotProject = null;
-        try {
-            UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
-            // We only look up DRS ids for unlocked snapshots.
-            String retrieveTimer = performanceLogger.timerStart();
+    ) {
+        try (DrsRequestResource r = new DrsRequestResource()) {
+            DrsId drsId = drsIdService.fromObjectId(drsObjectId);
+            SnapshotProject snapshotProject = null;
+            try {
+                UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
+                // We only look up DRS ids for unlocked snapshots.
+                String retrieveTimer = performanceLogger.timerStart();
 
-            snapshotProject = snapshotService.retrieveAvailableSnapshotProject(snapshotId);
+                snapshotProject = snapshotService.retrieveAvailableSnapshotProject(snapshotId);
 
-            performanceLogger.timerEndAndLog(
-                retrieveTimer,
-                drsObjectId, // not a flight, so no job id
-                this.getClass().getName(),
-                "snapshotService.retrieveAvailable");
-        } catch (IllegalArgumentException ex) {
-            throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
-        } catch (SnapshotNotFoundException ex) {
-            throw new DrsObjectNotFoundException("No snapshot found for DRS object id '" + drsObjectId + "'", ex);
-        }
+                performanceLogger.timerEndAndLog(
+                    retrieveTimer,
+                    drsObjectId, // not a flight, so no job id
+                    this.getClass().getName(),
+                    "snapshotService.retrieveAvailable");
+            } catch (IllegalArgumentException ex) {
+                throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
+            } catch (SnapshotNotFoundException ex) {
+                throw new DrsObjectNotFoundException("No snapshot found for DRS object id '" + drsObjectId + "'", ex);
+            }
 
-        // Make sure requester is a READER on the snapshot
-        String samTimer = performanceLogger.timerStart();
+            // Make sure requester is a READER on the snapshot
+            String samTimer = performanceLogger.timerStart();
 
-        samService.verifyAuthorization(
-            authUser,
-            IamResourceType.DATASNAPSHOT,
-            drsId.getSnapshotId(),
-            IamAction.READ_DATA);
-
-        performanceLogger.timerEndAndLog(
-            samTimer,
-            drsObjectId, // not a flight, so no job id
-            this.getClass().getName(),
-            "samService.verifyAuthorization");
-
-        int depth = (expand ? -1 : 1);
-
-        FSItem fsObject = null;
-        try {
-            String lookupTimer = performanceLogger.timerStart();
-            fsObject = fileService.lookupSnapshotFSItem(
-                snapshotProject,
-                drsId.getFsObjectId(),
-                depth);
+            samService.verifyAuthorization(
+                authUser,
+                IamResourceType.DATASNAPSHOT,
+                drsId.getSnapshotId(),
+                IamAction.READ_DATA);
 
             performanceLogger.timerEndAndLog(
-                lookupTimer,
+                samTimer,
                 drsObjectId, // not a flight, so no job id
                 this.getClass().getName(),
-                "fileService.lookupSnapshotFSItem");
-        } catch (InterruptedException ex) {
-            throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
-        }
+                "samService.verifyAuthorization");
 
-        if (fsObject instanceof FSFile) {
-            return drsObjectFromFSFile((FSFile)fsObject, drsId.getSnapshotId(), authUser);
-        } else if (fsObject instanceof FSDir) {
-            return drsObjectFromFSDir((FSDir)fsObject, drsId.getSnapshotId());
-        }
+            int depth = (expand ? -1 : 1);
 
-        throw new IllegalArgumentException("Invalid object type");
+            FSItem fsObject = null;
+            try {
+                String lookupTimer = performanceLogger.timerStart();
+                fsObject = fileService.lookupSnapshotFSItem(
+                    snapshotProject,
+                    drsId.getFsObjectId(),
+                    depth);
+
+                performanceLogger.timerEndAndLog(
+                    lookupTimer,
+                    drsObjectId, // not a flight, so no job id
+                    this.getClass().getName(),
+                    "fileService.lookupSnapshotFSItem");
+            } catch (InterruptedException ex) {
+                throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
+            }
+
+            if (fsObject instanceof FSFile) {
+                return drsObjectFromFSFile((FSFile) fsObject, drsId.getSnapshotId(), authUser);
+            } else if (fsObject instanceof FSDir) {
+                return drsObjectFromFSDir((FSDir) fsObject, drsId.getSnapshotId());
+            }
+
+            throw new IllegalArgumentException("Invalid object type");
+        }
     }
 
     private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {

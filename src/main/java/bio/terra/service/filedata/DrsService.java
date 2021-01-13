@@ -80,7 +80,10 @@ public class DrsService {
             int podCount = kubeService.getActivePodCount();
             int maxDRSLookups = configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
             int max = maxDRSLookups / podCount;
-            if (currentDRSRequests.get() > max) {
+            logger.info("Max number of DRS lookups allowed : " + max);
+            logger.info("Current number of requests being made : " + currentDRSRequests);
+
+            if (currentDRSRequests.get() >= max) {
                 throw new TooManyRequestsException("Too many requests are being made at once. Please try again later.");
             }
             currentDRSRequests.incrementAndGet();

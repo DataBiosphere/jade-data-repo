@@ -445,11 +445,14 @@ public class SnapshotService {
 
             // for each dataset column specified in the request, create a column in the snapshot with the same name
             for (Column datasetColumn : datasetTable.getColumns()) {
-                Column snapshotColumn = new Column().name(datasetColumn.getName());
+                Column snapshotColumn = new Column()
+                    .name(datasetColumn.getName())
+                    .type(datasetColumn.getType())
+                    .arrayOf(datasetColumn.isArrayOf());
                 SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
                     .fromColumn(datasetColumn)
                     .toColumn(snapshotColumn);
-                columnList.add(datasetColumn);
+                columnList.add(snapshotColumn);
                 mapColumnList.add(snapshotMapColumn);
             }
 

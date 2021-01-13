@@ -122,6 +122,7 @@ public class DrsTest extends UsersBase {
         if (profileId != null) {
             dataRepoFixtures.deleteProfileLog(steward(), profileId);
         }
+        dataRepoFixtures.resetConfig(steward());
     }
 
     @Test
@@ -196,6 +197,7 @@ public class DrsTest extends UsersBase {
     @Test
     public void drsScaleTest() throws Exception {
         String maxValue = "0";
+        dataRepoFixtures.resetConfig(steward());
 
         bio.terra.model.ConfigModel concurrentConfig = configurationService.getConfig(ConfigEnum.DRS_LOOKUP_MAX.name());
         concurrentConfig.setParameter(new bio.terra.model.ConfigParameterModel().value(maxValue));
@@ -207,7 +209,6 @@ public class DrsTest extends UsersBase {
         List<bio.terra.model.ConfigModel> configList =
             dataRepoFixtures.setConfigList(steward(), configGroupModel).getItems();
         logger.info("Config model : " + configList.get(0));
-
 
         // Get a DRS ID from the dataset using the custodianToken.
         // Note: the reader does not have permission to run big query jobs anywhere.

@@ -196,19 +196,8 @@ public class DrsTest extends UsersBase {
 
     @Test
     public void drsScaleTest() throws Exception {
-        String maxValue = "0";
+        String failureMaxValue = "0";
         dataRepoFixtures.resetConfig(steward());
-
-        bio.terra.model.ConfigModel concurrentConfig = configurationService.getConfig(ConfigEnum.DRS_LOOKUP_MAX.name());
-        concurrentConfig.setParameter(new bio.terra.model.ConfigParameterModel().value(maxValue));
-
-        bio.terra.model.ConfigGroupModel configGroupModel = new bio.terra.model.ConfigGroupModel()
-            .label("DRSTest")
-            .addGroupItem(concurrentConfig);
-
-        List<bio.terra.model.ConfigModel> configList =
-            dataRepoFixtures.setConfigList(steward(), configGroupModel).getItems();
-        logger.info("Config model : " + configList.get(0));
 
         // Get a DRS ID from the dataset using the custodianToken.
         // Note: the reader does not have permission to run big query jobs anywhere.
@@ -221,8 +210,26 @@ public class DrsTest extends UsersBase {
         // DRS lookup the file and validate
         logger.info("DRS Object Id - file: {}", drsObjectId);
         DrsResponse<DRSObject> response = dataRepoFixtures.drsGetObjectRaw(reader(), drsObjectId);
+        assertThat("object is successfully retrieved",
+            response.getStatusCode(), equalTo(HttpStatus.OK));
+
+        // Now lets cap the number allowed
+        bio.terra.model.ConfigModel concurrentConfig = configurationService.getConfig(ConfigEnum.DRS_LOOKUP_MAX.name());
+
+        concurrentConfig.setParameter(new bio.terra.model.ConfigParameterModel().value(failureMaxValue));
+        bio.terra.model.ConfigGroupModel failureConfigGroupModel = new bio.terra.model.ConfigGroupModel()
+            .label("DRSTest")
+            .addGroupItem(concurrentConfig);
+
+        List<bio.terra.model.ConfigModel> failureConfigList =
+            dataRepoFixtures.setConfigList(steward(), failureConfigGroupModel).getItems();
+        logger.info("Config model : " + failureConfigList.get(0));
+
+        // DRS lookup the file and validate
+        logger.info("DRS Object Id - file: {}", drsObjectId);
+        DrsResponse<DRSObject> failureResponse = dataRepoFixtures.drsGetObjectRaw(reader(), drsObjectId);
         assertThat("object is not successfully retrieved",
-            response.getStatusCode(), equalTo(HttpStatus.TOO_MANY_REQUESTS));
+            failureResponse.getStatusCode(), equalTo(HttpStatus.TOO_MANY_REQUESTS));
     }
 
     private void validateDrsObject(DRSObject drsObject, String drsObjectId) {

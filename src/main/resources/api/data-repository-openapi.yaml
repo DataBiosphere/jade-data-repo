@@ -3551,6 +3551,9 @@ components:
         gitHash:
           type: string
           description: the git hash of the data repository
+        terraUrl:
+          type: string
+          description: the url to the corresponding terra environment
     ConfigModel:
       type: object
       properties:

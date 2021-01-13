@@ -195,8 +195,7 @@ public class DrsTest extends UsersBase {
 
     @Test
     public void drsScaleTest() throws Exception {
-        String maxValue = "1";
-        configurationService.reset();
+        String maxValue = "0";
 
         bio.terra.model.ConfigModel concurrentConfig = configurationService.getConfig(ConfigEnum.DRS_LOOKUP_MAX.name());
         concurrentConfig.setParameter(new bio.terra.model.ConfigParameterModel().value(maxValue));
@@ -204,8 +203,12 @@ public class DrsTest extends UsersBase {
         bio.terra.model.ConfigGroupModel configGroupModel = new bio.terra.model.ConfigGroupModel()
             .label("DRSTest")
             .addGroupItem(concurrentConfig);
-        configurationService.setConfig(configGroupModel);
-        
+
+        List<bio.terra.model.ConfigModel> configList =
+            dataRepoFixtures.setConfigList(steward(), configGroupModel).getItems();
+        logger.info("Config model : " + configList.get(0));
+
+
         // Get a DRS ID from the dataset using the custodianToken.
         // Note: the reader does not have permission to run big query jobs anywhere.
         BigQuery bigQueryCustodian = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
@@ -217,10 +220,8 @@ public class DrsTest extends UsersBase {
         // DRS lookup the file and validate
         logger.info("DRS Object Id - file: {}", drsObjectId);
         DrsResponse<DRSObject> response = dataRepoFixtures.drsGetObjectRaw(reader(), drsObjectId);
-        assertThat("object is not successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.TOO_MANY_REQUESTS));
-
-        //assertThat("object is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
-        //final DRSObject drsObjectFile = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
+        assertThat("object is not successfully retrieved",
+            response.getStatusCode(), equalTo(HttpStatus.TOO_MANY_REQUESTS));
     }
 
     private void validateDrsObject(DRSObject drsObject, String drsObjectId) {

@@ -526,6 +526,11 @@ paths:
             in the name or description.
           schema:
             type: string
+        - name: datasetId
+          in: query
+          description: Filter the results where this datasetId is a source dataset.
+          schema:
+            type: string
       responses:
         200:
           description: List of snapshots

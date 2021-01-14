@@ -364,12 +364,13 @@ public class RepositoryApiController implements RepositoryApi {
         @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
         @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
         @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
-        @Valid @RequestParam(value = "filter", required = false) String filter) {
+        @Valid @RequestParam(value = "filter", required = false) String filter,
+        @Valid @RequestParam(value = "datasetId", required = false) String datasetId) {
         ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
         List<UUID> resources = iamService.listAuthorizedResources(
             getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
         EnumerateSnapshotModel edm = snapshotService.enumerateSnapshots(offset, limit, sort,
-            direction, filter, resources);
+            direction, filter, datasetId, resources);
         return new ResponseEntity<>(edm, HttpStatus.OK);
     }
 

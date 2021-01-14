@@ -267,7 +267,7 @@ public class SnapshotDaoTest {
 
 
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 2, null,
-            null, "==foo==", snapshotIdList);
+            null, "==foo==", null, snapshotIdList);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered and retrieved 2 snapshots", summaryList.size(), equalTo(2));
         assertThat("filtered total 3", summaryEnum.getTotal(), equalTo(3));
@@ -276,7 +276,7 @@ public class SnapshotDaoTest {
         }
 
         MetadataEnumeration<SnapshotSummary> emptyEnum = snapshotDao.retrieveSnapshots(0, 6, null,
-            null, "__", snapshotIdList);
+            null, "__", null, snapshotIdList);
         assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
     }
 
@@ -291,7 +291,7 @@ public class SnapshotDaoTest {
         int limit,
         String direction) {
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit, "name",
-            direction, null, snapshotIds);
+            direction, null, null, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         int index = (direction.equals("asc")) ? offset : snapshotIds.size() - offset - 1;
         for (SnapshotSummary summary : summaryList) {
@@ -303,7 +303,7 @@ public class SnapshotDaoTest {
 
     private void testSortingDescriptions(List<UUID> snapshotIds, String direction) {
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 6,
-            "description", direction, null, snapshotIds);
+            "description", direction, null, null, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("the full list comes back", summaryList.size(), equalTo(6));
         String previous = summaryList.get(0).getDescription();
@@ -325,7 +325,7 @@ public class SnapshotDaoTest {
                                        int limit) {
         // We expect the snapshots to be returned in their created order
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit, "created_date",
-            "asc", null, snapshotIds);
+            "asc", null, null, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         int index = offset;
         for (SnapshotSummary summary : summaryList) {

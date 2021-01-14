@@ -392,9 +392,10 @@ public class SnapshotDao {
         String sort,
         String direction,
         String filter,
+        String datasetId,
         List<UUID> accessibleSnapshotIds) {
         logger.debug("retrieve snapshots offset: " + offset + " limit: " + limit + " sort: " + sort +
-            " direction: " + direction + " filter:" + filter);
+            " direction: " + direction + " filter: " + filter + " datasetId: " + datasetId);
         MapSqlParameterSource params = new MapSqlParameterSource();
         List<String> whereClauses = new ArrayList<>();
         DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses);
@@ -403,7 +404,12 @@ public class SnapshotDao {
         // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
         String whereSql = "";
-        if (!whereClauses.isEmpty()) {
+        String joinSql = "";
+        if (!whereClauses.isEmpty() || !StringUtils.isEmpty(datasetId)) { //TODO can whereClauses be empty w line 402?
+            if (!StringUtils.isEmpty(datasetId)) {
+                whereClauses.add(" snapshot_source.dataset_id = :datasetId ");
+                joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
+            }
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
 
@@ -414,8 +420,12 @@ public class SnapshotDao {
             throw new CorruptMetadataException("Impossible null value from count");
         }
 
-        String sql = "SELECT id, name, description, created_date, profile_id FROM snapshot " + whereSql +
-            DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
+        String sql = "SELECT id, name, description, created_date, profile_id FROM snapshot " +
+            joinSql +
+            whereSql +
+            DaoUtils.orderByClause(sort, direction) +
+            " OFFSET :offset LIMIT :limit";
+
         params.addValue("offset", offset).addValue("limit", limit);
         List<SnapshotSummary> summaries = jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
 

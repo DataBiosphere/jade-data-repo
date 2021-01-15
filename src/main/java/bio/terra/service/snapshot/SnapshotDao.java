@@ -409,12 +409,10 @@ public class SnapshotDao {
 
         if (!datasetIds.isEmpty()) {
             joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
-            List<String> datasetIdMatchClauses = new ArrayList<>();
-
-            datasetIds.stream().map(datasetId ->
-                    datasetIdMatchClauses.add(" snapshot_source.dataset_id = '" + datasetId + "'"))
-                .collect(Collectors.toList()); //  TODO do I need to collect these?
-            String datasetMatchSql = StringUtils.join(datasetIdMatchClauses, " OR ");
+        String datasetMatchSql =
+            datasetIds.stream()
+                .map(datasetId -> " snapshot_source.dataset_id = '" + datasetId + "'")
+                .collect(Collectors.joining(" OR "));
             whereClauses.add("(".concat(datasetMatchSql).concat(")"));
         }
         String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");

@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.rmi.server.UID;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -392,10 +393,10 @@ public class SnapshotDao {
         String sort,
         String direction,
         String filter,
-        String datasetId,
+        List<UUID> datasetIds,
         List<UUID> accessibleSnapshotIds) {
         logger.debug("retrieve snapshots offset: " + offset + " limit: " + limit + " sort: " + sort +
-            " direction: " + direction + " filter: " + filter + " datasetId: " + datasetId);
+            " direction: " + direction + " filter: " + filter + " datasetIds: " + StringUtils.join(datasetIds, ","));
         MapSqlParameterSource params = new MapSqlParameterSource();
         List<String> whereClauses = new ArrayList<>();
         DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses);
@@ -403,15 +404,18 @@ public class SnapshotDao {
 
         // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
-        String whereSql = "";
         String joinSql = "";
-        if (!whereClauses.isEmpty() || !StringUtils.isEmpty(datasetId)) { //TODO can whereClauses be empty w line 402?
-            if (!StringUtils.isEmpty(datasetId)) {
-                whereClauses.add(" snapshot_source.dataset_id = :datasetId ");
-                joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
-            }
-            whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
+
+        if (!datasetIds.isEmpty()) {
+            joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
+            List<String> datasetIdMatchClauses = new ArrayList<>();
+
+            datasetIds.stream().map(datasetId ->
+                    datasetIdMatchClauses.add(" snapshot_source.dataset_id = :datasetId "));
+            String datasetMatchSql = StringUtils.join(datasetIdMatchClauses, " OR ");
+            whereClauses.add("(".concat(datasetMatchSql).concat(")"));
         }
+        String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 
         // get total count of objects
         String countSql = "SELECT count(id) AS total FROM snapshot " + whereSql;

@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class SnapshotDao {
@@ -399,32 +400,35 @@ public class SnapshotDao {
             " direction: " + direction + " filter: " + filter + " datasetIds: " + StringUtils.join(datasetIds, ","));
         MapSqlParameterSource params = new MapSqlParameterSource();
         List<String> whereClauses = new ArrayList<>();
-        DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses);
+        DaoUtils.addAuthzSnapshotIdsClause(accessibleSnapshotIds, params, whereClauses);
         whereClauses.add(" flightid IS NULL"); // exclude snapshots that are exclusively locked
 
         // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
         String joinSql = "";
 
-        if (!datasetIds.isEmpty()) {
+        if (datasetIds != null && !datasetIds.isEmpty()) {
             joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
             List<String> datasetIdMatchClauses = new ArrayList<>();
 
             datasetIds.stream().map(datasetId ->
-                    datasetIdMatchClauses.add(" snapshot_source.dataset_id = :datasetId "));
+                    datasetIdMatchClauses.add(" snapshot_source.dataset_id = '" + datasetId +"'"))
+                .collect(Collectors.toList()); //  TODO do I need to collect these?
             String datasetMatchSql = StringUtils.join(datasetIdMatchClauses, " OR ");
             whereClauses.add("(".concat(datasetMatchSql).concat(")"));
         }
         String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 
         // get total count of objects
-        String countSql = "SELECT count(id) AS total FROM snapshot " + whereSql;
+        String countSql = "SELECT count(snapshot.id) AS total FROM snapshot " +
+            joinSql +
+            whereSql;
         Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
         if (total == null) {
             throw new CorruptMetadataException("Impossible null value from count");
         }
 
-        String sql = "SELECT id, name, description, created_date, profile_id FROM snapshot " +
+        String sql = "SELECT snapshot.id, name, description, created_date, profile_id FROM snapshot " +
             joinSql +
             whereSql +
             DaoUtils.orderByClause(sort, direction) +

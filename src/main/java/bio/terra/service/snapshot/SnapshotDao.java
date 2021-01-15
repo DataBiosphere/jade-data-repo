@@ -26,7 +26,6 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.rmi.server.UID;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -409,10 +408,10 @@ public class SnapshotDao {
 
         if (!datasetIds.isEmpty()) {
             joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
-        String datasetMatchSql =
-            datasetIds.stream()
-                .map(datasetId -> " snapshot_source.dataset_id = '" + datasetId + "'")
-                .collect(Collectors.joining(" OR "));
+            String datasetMatchSql =
+                datasetIds.stream()
+                    .map(datasetId -> " snapshot_source.dataset_id = '" + datasetId + "'")
+                    .collect(Collectors.joining(" OR "));
             whereClauses.add("(".concat(datasetMatchSql).concat(")"));
         }
         String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");

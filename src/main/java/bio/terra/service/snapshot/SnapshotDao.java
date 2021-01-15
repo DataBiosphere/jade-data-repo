@@ -412,7 +412,7 @@ public class SnapshotDao {
             List<String> datasetIdMatchClauses = new ArrayList<>();
 
             datasetIds.stream().map(datasetId ->
-                    datasetIdMatchClauses.add(" snapshot_source.dataset_id = '" + datasetId +"'"))
+                    datasetIdMatchClauses.add(" snapshot_source.dataset_id = '" + datasetId + "'"))
                 .collect(Collectors.toList()); //  TODO do I need to collect these?
             String datasetMatchSql = StringUtils.join(datasetIdMatchClauses, " OR ");
             whereClauses.add("(".concat(datasetMatchSql).concat(")"));

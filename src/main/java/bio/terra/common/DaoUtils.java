@@ -42,7 +42,8 @@ public final class DaoUtils {
         clauses.add(" id in (:idlist) ");
     }
 
-    public static void addAuthzSnapshotIdsClause(List<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
+    public static void addAuthzSnapshotIdsClause(
+        List<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
         params.addValue("idlist", authzIds);
         clauses.add(" snapshot.id in (:idlist) ");
     }

@@ -407,7 +407,7 @@ public class SnapshotDao {
         DaoUtils.addFilterClause(filter, params, whereClauses);
         String joinSql = "";
 
-        if (datasetIds != null && !datasetIds.isEmpty()) {
+        if (!datasetIds.isEmpty()) {
             joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
             List<String> datasetIdMatchClauses = new ArrayList<>();
 

@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
@@ -122,6 +123,26 @@ public class SnapshotDaoTest {
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
         snapshot.projectResourceId(projectId);
         snapshotDao.updateSnapshotTableRowCounts(snapshot, Collections.emptyMap());
+    }
+
+    @Test
+    public void testFilteringOnDatasetId() throws Exception {
+        // TODO does this need to be changed to a UUID?
+        // use the original dataset id and make sure you get 1 dataset
+        List<UUID> datasetIds = singletonList(datasetId);
+        Snapshot snapshot1 = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+        List<UUID> snapshotIds1 = singletonList(snapshot1.getId());
+        MetadataEnumeration<SnapshotSummary> summaryEnum1 = snapshotDao.retrieveSnapshots(0, 10, null,
+            null, null, datasetIds, snapshotIds1);
+        assertThat("expected dataset uuid gives expected snapshot", summaryEnum1.getTotal(), equalTo(1));
+
+        // made a random dataset uuid and made sure that you get no snapshots
+        snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
+        Snapshot snapshot2 = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+        List<UUID> snapshotIds2 = singletonList(snapshot2.getId());
+        MetadataEnumeration<SnapshotSummary> summaryEnum2 = snapshotDao.retrieveSnapshots(0, 10, null,
+            null, null, datasetIds, snapshotIds2);
+        assertThat("dummy dataset uuid gives no snapshots", summaryEnum2.getTotal(), equalTo(0));
     }
 
     @Test

@@ -127,11 +127,14 @@ public class SnapshotDaoTest {
 
     @Test
     public void testFilteringOnDatasetId() throws Exception {
-        // TODO does this need to be changed to a UUID?
         // use the original dataset id and make sure you get 1 dataset
         List<UUID> datasetIds = singletonList(datasetId);
-        Snapshot snapshot1 = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-        List<UUID> snapshotIds1 = singletonList(snapshot1.getId());
+        List<UUID> snapshotIds1 = singletonList(snapshotId);
+
+        MetadataEnumeration<SnapshotSummary> summaryEnum0 = snapshotDao.retrieveSnapshots(0, 10, null,
+            null, null, null, snapshotIds1);
+       // assertThat("expected no selected dataset uuid gives expected snapshot", summaryEnum0.getTotal(), equalTo(1));
+
         MetadataEnumeration<SnapshotSummary> summaryEnum1 = snapshotDao.retrieveSnapshots(0, 10, null,
             null, null, datasetIds, snapshotIds1);
         assertThat("expected dataset uuid gives expected snapshot", summaryEnum1.getTotal(), equalTo(1));
@@ -299,6 +302,22 @@ public class SnapshotDaoTest {
         MetadataEnumeration<SnapshotSummary> emptyEnum = snapshotDao.retrieveSnapshots(0, 6, null,
             null, "__", null, snapshotIdList);
         assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
+
+        MetadataEnumeration<SnapshotSummary> summaryEnum0 = snapshotDao.retrieveSnapshots(0, 10, null,
+            null, null, null, snapshotIdList);
+        assertThat("no dataset uuid gives all snapshots", summaryEnum0.getTotal(), equalTo(6));
+
+        // use the original dataset id and make sure you get all snapshots
+        List<UUID> datasetIds = singletonList(datasetId);
+        MetadataEnumeration<SnapshotSummary> summaryEnum1 = snapshotDao.retrieveSnapshots(0, 10, null,
+            null, null, datasetIds, snapshotIdList);
+        assertThat("expected dataset uuid gives expected snapshot", summaryEnum1.getTotal(), equalTo(6));
+
+        // made a random dataset uuid and made sure that you get no snapshots
+        List<UUID> datasetIdsBad = singletonList(UUID.randomUUID());
+        MetadataEnumeration<SnapshotSummary> summaryEnum2 = snapshotDao.retrieveSnapshots(0, 10, null,
+            null, null, datasetIdsBad, snapshotIdList);
+        assertThat("dummy dataset uuid gives no snapshots", summaryEnum2.getTotal(), equalTo(0));
     }
 
     private String makeName(String baseName, int index) {

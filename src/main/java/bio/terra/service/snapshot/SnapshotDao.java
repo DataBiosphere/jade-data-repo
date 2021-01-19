@@ -408,11 +408,9 @@ public class SnapshotDao {
 
         if (!datasetIds.isEmpty()) {
             joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
-            String datasetMatchSql =
-                datasetIds.stream()
-                    .map(datasetId -> " snapshot_source.dataset_id = '" + datasetId + "'")
-                    .collect(Collectors.joining(" OR "));
-            whereClauses.add("(".concat(datasetMatchSql).concat(")"));
+            String datasetMatchSql = "snapshot_source.dataset_id IN (:datasetIds)";
+            whereClauses.add(datasetMatchSql);
+            params.addValue("datasetIds", datasetIds);
         }
         String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 

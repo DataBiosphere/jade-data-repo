@@ -1,6 +1,7 @@
 package bio.terra.app.controller;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.exception.BadRequestException;
@@ -85,6 +86,12 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     public ResponseEntity<DRSError> notImplementedExceptionHandler(NotImplementedException ex) {
         DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.NOT_IMPLEMENTED.value());
         return new ResponseEntity<>(error, HttpStatus.NOT_IMPLEMENTED);
+    }
+
+    @ExceptionHandler     // -- cautionary errors to limit overload
+    public ResponseEntity<DRSError> tooManyRequestsExceptionHandler(TooManyRequestsException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.TOO_MANY_REQUESTS.value());
+        return new ResponseEntity<>(error, HttpStatus.TOO_MANY_REQUESTS);
     }
 
     @ExceptionHandler

@@ -1,6 +1,5 @@
 package bio.terra.app.controller;
 
-import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.ConflictException;
 import bio.terra.common.exception.DataRepoException;
@@ -64,13 +63,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorModel conflictHandler(DataRepoException ex) {
-        return buildErrorModel(ex, ex.getErrorDetails());
-    }
-
-    // -- cautionary errors to limit overload
-    @ExceptionHandler(TooManyRequestsException.class)
-    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
-    public ErrorModel tooManyRequestsHandler(DataRepoException ex) {
         return buildErrorModel(ex, ex.getErrorDetails());
     }
 

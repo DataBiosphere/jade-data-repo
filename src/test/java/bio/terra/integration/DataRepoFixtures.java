@@ -360,11 +360,11 @@ public class DataRepoFixtures {
         String datasetIdsString;
         List<String> datasetIdsQuery = ListUtils.emptyIfNull(datasetIds).stream()
             .map(id -> "datasetIds=" + id).collect(Collectors.toList());
-        datasetIdsString = StringUtils.join(datasetIdsQuery, "& ");
+        datasetIdsString = StringUtils.join(datasetIdsQuery, "&");
         return dataRepoClient.get(user,
             "/api/repository/v1/snapshots?" +
                 datasetIdsString +
-                "sort=created_date&direction=desc",
+                "&sort=created_date&direction=desc",
             EnumerateSnapshotModel.class);
     }
 

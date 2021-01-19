@@ -46,7 +46,6 @@ import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.upgrade.UpgradeService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -371,7 +370,8 @@ public class RepositoryApiController implements RepositoryApi {
         ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
         List<UUID> resources = iamService.listAuthorizedResources(
             getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
-        List<UUID> datasetUUIDs = ListUtils.emptyIfNull(datasetIds).stream().map(UUID::fromString).collect(Collectors.toList());
+        List<UUID> datasetUUIDs = ListUtils.emptyIfNull(datasetIds).stream()
+            .map(UUID::fromString).collect(Collectors.toList());
         EnumerateSnapshotModel edm = snapshotService.enumerateSnapshots(offset, limit, sort,
             direction, filter, datasetUUIDs, resources);
         return new ResponseEntity<>(edm, HttpStatus.OK);

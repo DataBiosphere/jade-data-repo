@@ -103,6 +103,7 @@ public class SnapshotDaoTest {
 
         // Populate the snapshotId with random; delete should quietly not find it.
         snapshotId = UUID.randomUUID();
+        datasetIds = new ArrayList<>();
     }
 
     @After

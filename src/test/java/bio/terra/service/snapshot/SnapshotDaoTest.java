@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
@@ -67,6 +68,7 @@ public class SnapshotDaoTest {
     private SnapshotRequestModel snapshotRequest;
     private UUID snapshotId;
     private List<UUID> snapshotIdList;
+    private List<UUID> datasetIds;
     private UUID profileId;
     private UUID projectId;
 
@@ -101,6 +103,7 @@ public class SnapshotDaoTest {
 
         // Populate the snapshotId with random; delete should quietly not find it.
         snapshotId = UUID.randomUUID();
+        datasetIds = new ArrayList<>();
     }
 
     @After
@@ -267,7 +270,7 @@ public class SnapshotDaoTest {
 
 
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 2, null,
-            null, "==foo==", snapshotIdList);
+            null, "==foo==", datasetIds, snapshotIdList);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered and retrieved 2 snapshots", summaryList.size(), equalTo(2));
         assertThat("filtered total 3", summaryEnum.getTotal(), equalTo(3));
@@ -276,8 +279,24 @@ public class SnapshotDaoTest {
         }
 
         MetadataEnumeration<SnapshotSummary> emptyEnum = snapshotDao.retrieveSnapshots(0, 6, null,
-            null, "__", snapshotIdList);
+            null, "__", datasetIds, snapshotIdList);
         assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
+
+        MetadataEnumeration<SnapshotSummary> summaryEnum0 = snapshotDao.retrieveSnapshots(0, 10, null,
+            null, null, datasetIds, snapshotIdList);
+        assertThat("no dataset uuid gives all snapshots", summaryEnum0.getTotal(), equalTo(6));
+
+        // use the original dataset id and make sure you get all snapshots
+        datasetIds = singletonList(datasetId);
+        MetadataEnumeration<SnapshotSummary> summaryEnum1 = snapshotDao.retrieveSnapshots(0, 10, null,
+            null, null, datasetIds, snapshotIdList);
+        assertThat("expected dataset uuid gives expected snapshot", summaryEnum1.getTotal(), equalTo(6));
+
+        // made a random dataset uuid and made sure that you get no snapshots
+        List<UUID> datasetIdsBad = singletonList(UUID.randomUUID());
+        MetadataEnumeration<SnapshotSummary> summaryEnum2 = snapshotDao.retrieveSnapshots(0, 10, null,
+            null, null, datasetIdsBad, snapshotIdList);
+        assertThat("dummy dataset uuid gives no snapshots", summaryEnum2.getTotal(), equalTo(0));
     }
 
     private String makeName(String baseName, int index) {
@@ -291,7 +310,7 @@ public class SnapshotDaoTest {
         int limit,
         String direction) {
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit, "name",
-            direction, null, snapshotIds);
+            direction, null, datasetIds, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         int index = (direction.equals("asc")) ? offset : snapshotIds.size() - offset - 1;
         for (SnapshotSummary summary : summaryList) {
@@ -303,7 +322,7 @@ public class SnapshotDaoTest {
 
     private void testSortingDescriptions(List<UUID> snapshotIds, String direction) {
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 6,
-            "description", direction, null, snapshotIds);
+            "description", direction, null, datasetIds, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("the full list comes back", summaryList.size(), equalTo(6));
         String previous = summaryList.get(0).getDescription();
@@ -325,7 +344,7 @@ public class SnapshotDaoTest {
                                        int limit) {
         // We expect the snapshots to be returned in their created order
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit, "created_date",
-            "asc", null, snapshotIds);
+            "asc", null, datasetIds, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         int index = offset;
         for (SnapshotSummary summary : summaryList) {

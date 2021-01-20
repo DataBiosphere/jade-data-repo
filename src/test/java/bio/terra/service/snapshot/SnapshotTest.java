@@ -36,7 +36,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -148,6 +150,34 @@ public class SnapshotTest extends UsersBase {
         EnumerateSnapshotModel enumSnap = dataRepoFixtures.enumerateSnapshots(discoverer());
         assertThat("Discoverer does not have access to dataSnapshots",
             enumSnap.getTotal(),
+            equalTo(0));
+
+        assertThat("Discoverer does not have access to dataSnapshots",
+            enumSnap.getTotal(),
+            equalTo(0));
+
+        EnumerateSnapshotModel enumSnapByDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
+            steward(),
+            Collections.singletonList(datasetSummaryModel.getId()));
+
+        assertThat("Dataset filters to dataSnapshots",
+            enumSnapByDatasetId.getTotal(),
+            equalTo(1));
+
+        EnumerateSnapshotModel enumSnapByNoDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
+            steward(),
+            Collections.emptyList());
+
+        assertThat("Dataset filters to dataSnapshots",
+            enumSnapByNoDatasetId.getTotal(),
+            equalTo(1));
+
+        EnumerateSnapshotModel enumSnapByBadDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
+            steward(),
+            Collections.singletonList(UUID.randomUUID().toString()));
+
+        assertThat("Dataset filters to dataSnapshots",
+            enumSnapByBadDatasetId.getTotal(),
             equalTo(0));
     }
 

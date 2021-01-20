@@ -157,7 +157,7 @@ public class SnapshotTest extends UsersBase {
             equalTo(0));
 
         EnumerateSnapshotModel enumSnapByDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
-            reader(),
+            steward(),
             Collections.singletonList(datasetSummaryModel.getId()));
 
         assertThat("Dataset filters to dataSnapshots",
@@ -165,7 +165,7 @@ public class SnapshotTest extends UsersBase {
             equalTo(1));
 
         EnumerateSnapshotModel enumSnapByNoDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
-            reader(),
+            steward(),
             Collections.emptyList());
 
         assertThat("Dataset filters to dataSnapshots",
@@ -173,7 +173,7 @@ public class SnapshotTest extends UsersBase {
             equalTo(1));
 
         EnumerateSnapshotModel enumSnapByBadDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
-            reader(),
+            steward(),
             Collections.singletonList(UUID.randomUUID().toString()));
 
         assertThat("Dataset filters to dataSnapshots",

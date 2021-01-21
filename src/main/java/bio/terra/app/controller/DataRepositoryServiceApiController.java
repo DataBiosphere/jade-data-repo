@@ -1,6 +1,7 @@
 package bio.terra.app.controller;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.exception.BadRequestException;
@@ -87,6 +88,12 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         return new ResponseEntity<>(error, HttpStatus.NOT_IMPLEMENTED);
     }
 
+    @ExceptionHandler     // -- cautionary errors to limit overload
+    public ResponseEntity<DRSError> tooManyRequestsExceptionHandler(TooManyRequestsException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.TOO_MANY_REQUESTS.value());
+        return new ResponseEntity<>(error, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
     @ExceptionHandler
     public ResponseEntity<DRSError> exceptionHandler(Exception ex) {
         DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -107,7 +114,8 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand) {
         // The incoming object id is a DRS object id, not a file id.
         AuthenticatedUserRequest authUser = getAuthenticatedInfo();
-        return new ResponseEntity<>(drsService.lookupObjectByDrsId(authUser, objectId, expand), HttpStatus.OK);
+        DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, objectId, expand);
+        return new ResponseEntity<>(drsObject, HttpStatus.OK);
     }
 
     @Override

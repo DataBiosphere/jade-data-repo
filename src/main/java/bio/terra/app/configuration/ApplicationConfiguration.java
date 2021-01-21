@@ -118,6 +118,11 @@ public class ApplicationConfiguration {
     private int firestoreQueryBatchSize;
 
     /**
+     * Maximum number of DRS lookup requests allowed
+     */
+    private int maxDrsLookups;
+
+    /**
      * Size of users in auth cache
      */
     private int authCacheSize;
@@ -308,6 +313,14 @@ public class ApplicationConfiguration {
 
     public void setFirestoreQueryBatchSize(int firestoreQueryBatchSize) {
         this.firestoreQueryBatchSize = firestoreQueryBatchSize;
+    }
+
+    public int getMaxDrsLookups() {
+        return maxDrsLookups;
+    }
+
+    public void setMaxDrsLookups(int maxDrsLookups) {
+        this.maxDrsLookups = maxDrsLookups;
     }
 
     public int getAuthCacheSize() {

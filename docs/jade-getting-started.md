@@ -41,7 +41,7 @@ Connect your GitHub account to your Broad profile:
 **My Profile** tab.
 2. Link your profile to GitHub by clicking under **Other Profiles**.
 3. [Check if the account is successfully linked](https://github.broadinstitute.org/).
-4. Open each of the following GitHub groups and **Request to join** by going to 
+4. Open each of the following GitHub groups and **Request to join** by going to
 the Members tab: [Broad Institute Read](https://github.com/orgs/broadinstitute/teams/broad-institute-read),
 [Prometheus](https://github.com/orgs/broadinstitute/teams/prometheus),
 [DSDE Engineering](https://github.com/orgs/broadinstitute/teams/dsde-engineering)
@@ -99,10 +99,10 @@ upgrading Kubernetes deployments, which are otherwise challenging to manage:
 
 ```
 brew install helm
-helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+helm repo add stable
 helm repo add datarepo-helm https://broadinstitute.github.io/datarepo-helm
 helm plugin install https://github.com/thomastaylor312/helm-namespace
-helm repo update
+helm repo update https://charts.helm.sh/stable
 ```
 
 5. [Skaffold](https://github.com/GoogleContainerTools/skaffold) facilitates the

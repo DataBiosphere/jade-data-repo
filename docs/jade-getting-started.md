@@ -238,9 +238,9 @@ helm list --namespace zzz
 
 5. On the Google Cloud Platform [API Credentials](https://console.cloud.google.com/apis/credentials?authuser=3&project=broad-jade-dev)
 page, select the Jade Data Repository OAuth2 Client ID and update the authorized domains:
- - Under Authorized JavaScript origins, add "https://jade-zzz.datarepo-dev.broadinstitute.org"
- - Under Authorized redirect URIs, add "https://jade-zzz.datarepo-dev.broadinstitute.org/login/google" and
-   "https://jade-zzz.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html"
+ - Under Authorized JavaScript origins, add `https://jade-zzz.datarepo-dev.broadinstitute.org`
+ - Under Authorized redirect URIs, add `https://jade-zzz.datarepo-dev.broadinstitute.org/login/google` and
+   `https://jade-zzz.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
 
 ## 8. Install Postgres 12
 

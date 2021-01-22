@@ -224,7 +224,7 @@ command to copy and paste into the terminal:
 gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
 ```
 
-4. Starting from your [project directory](#6-code-checkout) in datarepo-helm-definitions, bring up Helm services (note
+4. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`, bring up Helm services (note
 it will take about 10-15 minutes for ingress and cert creation):
 
 ```

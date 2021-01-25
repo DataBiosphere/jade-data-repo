@@ -46,7 +46,9 @@ public class DRSLookup extends SimpleDataset {
   private int NUM_DRS_LOOKUPS = 1;
 
   public void setParameters(List<String> parameters) {
-    NUM_DRS_LOOKUPS = Integer.parseInt(parameters.get(0));
+    if (parameters != null && parameters.size() > 0) {
+      NUM_DRS_LOOKUPS = Integer.parseInt(parameters.get(0));
+    }
     logger.debug("Repeated DRS Lookups (default is 1): {}", NUM_DRS_LOOKUPS);
   }
 

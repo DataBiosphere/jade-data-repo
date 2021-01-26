@@ -1,0 +1,56 @@
+package bio.terra.service.filedata.flight.ingest;
+
+import bio.terra.model.FileLoadModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.exception.FileAlreadyExistsException;
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
+import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.job.JobMapKeys;
+import bio.terra.stairway.*;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class ValidateIngestFileDirectoryStep implements Step {
+    private static final Logger logger = LoggerFactory.getLogger(ValidateIngestFileDirectoryStep.class);
+
+    private final FireStoreDao fileDao;
+    private final Dataset dataset;
+
+    public ValidateIngestFileDirectoryStep(FireStoreDao fileDao,
+                                  Dataset dataset) {
+        this.fileDao = fileDao;
+        this.dataset = dataset;
+    }
+
+    @Override
+    public StepResult doStep(FlightContext context) throws InterruptedException {
+        FlightMap inputParameters = context.getInputParameters();
+        FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+
+        String targetPath = loadModel.getTargetPath();
+
+        try {
+            // The state logic goes like this:
+            //  1. the directory entry doesn't exist. We need to create the directory entry for it.
+            //  2. the directory entry exists. There are three cases:
+            //      a. If loadTags do not match, then we throw FileAlreadyExistsException.
+            FireStoreDirectoryEntry existingEntry = fileDao.lookupDirectoryEntryByPath(dataset, targetPath);
+            if (existingEntry != null && !StringUtils.equals(existingEntry.getLoadTag(), loadModel.getLoadTag())) {
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
+                    new FileAlreadyExistsException("Path already exists: " + targetPath));
+            }
+        } catch (FileSystemAbortTransactionException rex) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
+        }
+
+        return StepResult.getStepResultSuccess();
+    }
+
+    @Override
+    public StepResult undoStep(FlightContext context) {
+        return StepResult.getStepResultSuccess();
+    }
+
+}

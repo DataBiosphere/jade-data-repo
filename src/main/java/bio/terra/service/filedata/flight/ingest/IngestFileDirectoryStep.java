@@ -72,7 +72,7 @@ public class IngestFileDirectoryStep implements Step {
                     .datasetId(datasetId)
                     .loadTag(loadModel.getLoadTag());
                 fileDao.createDirectoryEntry(dataset, newEntry);
-            } else if (StringUtils.equals(existingEntry.getLoadTag(), loadModel.getLoadTag())){
+            } else if (StringUtils.equals(existingEntry.getLoadTag(), loadModel.getLoadTag())) {
                 // 2. (a) or (b) Load tags match - check file ids
                 if (!StringUtils.equals(existingEntry.getFileId(), fileId)) {
                     // (b) We are in a re-run of a load job. Try to get the file entry.

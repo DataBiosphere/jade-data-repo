@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +35,8 @@ public class GoogleBucketService {
     private final GcsProjectFactory gcsProjectFactory;
     private final GcsConfiguration gcsConfiguration;
     private final ConfigurationService configService;
+
+    private final static Long RETENTION_PERIOD = Duration.ofDays(30).getSeconds();
 
     @Autowired
     public GoogleBucketService(
@@ -285,6 +288,7 @@ public class GoogleBucketService {
             // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
             .setStorageClass(StorageClass.REGIONAL)
             .setLocation(gcsConfiguration.getRegion())
+            .setRetentionPeriod(RETENTION_PERIOD)
             .build();
         // the project will have been created before this point, so no need to fetch it
         logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);

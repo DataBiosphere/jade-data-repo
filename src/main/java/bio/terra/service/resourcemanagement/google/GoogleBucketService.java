@@ -36,7 +36,7 @@ public class GoogleBucketService {
     private final GcsConfiguration gcsConfiguration;
     private final ConfigurationService configService;
 
-    private static final Long RETENTION_PERIOD = Duration.ofDays(30).getSeconds();
+    private static final long RETENTION_PERIOD = Duration.ofDays(30).getSeconds();
 
     @Autowired
     public GoogleBucketService(

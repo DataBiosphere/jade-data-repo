@@ -60,13 +60,10 @@ jobs:
           # write vault tokens
           base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
 
-          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
-
-          # configure integration prerequisites
           gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
           gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
-          gcloud auth configure-docker --quiet
-          #echo 'Set google sdk to SA user'
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
           gcloud auth configure-docker  --quiet
 

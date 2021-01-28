@@ -1,9 +1,11 @@
 name: Track semVer through environments
 
 on:
-  push:
+##temporary on pull_request
+  pull_request:
     branches:
       - develop
+##
   schedule:
     - cron: '0 */3 * * *' # run every 3 hours and on push
   workflow_dispatch: {}
@@ -41,7 +43,7 @@ jobs:
              echo "No env found"
             fi
             semVer=$(curl -s $i | jq -r '.semVer')
-            printf "{\"env\":\"$env\",\"date\":\"$(date +%Y-%m-%d\ %H:%M:%S)\",\"semVer\":\"$semVer\"}\n" | jq >> $value
+            printf "{\"env\":\"$env\",\"date\":\"$(date +%Y-%m-%d\ %H:%M:%S)\",\"semVer\":\"$semVer\"}\n" | jq >> endpoints.json
           done
       - name: Upload result for environments
         uses: actions/upload-artifact@v2

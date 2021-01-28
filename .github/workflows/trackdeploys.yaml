@@ -15,10 +15,14 @@ jobs:
     name: Get semVer for environments
     runs-on: ubuntu-latest
     steps:
-      - name: Download track_deploys
-        uses: actions/download-artifact@v2
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@master
         with:
-          name: track_deploys
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_BUCKET_SA_KEY }}
+          export_default_credentials: true
+      - name: Use gcloud copy endpoints.json
+        run: gsutil cp gs://deployment-tracking/endpoints.json .
       - shell: bash
         run: |
           endPoints+=( "https://jade.datarepo-dev.broadinstitute.org/configuration" \
@@ -43,10 +47,9 @@ jobs:
              echo "No env found"
             fi
             semVer=$(curl -s $i | jq -r '.semVer')
-            printf "{\"env\":\"$env\",\"date\":\"$(date +%Y-%m-%d\ %H:%M:%S)\",\"semVer\":\"$semVer\"}\n" | jq >> endpoints.json
+            printf "{\"env\":\"$env\",\"date\":\"$(date +%Y-%m-%d\ %H:%M:%S)\",\"semVer\":\"$semVer\"}\n" >> endpoints.json
           done
-      - name: Upload result for environments
-        uses: actions/upload-artifact@v2
-        with:
-          name: track_deploys
-          path: endpoints.json
+      - name: Use gcloud copy to upload new endpoints.json to bucket
+        run: gsutil cp endpoints.json gs://deployment-tracking/endpoints.json
+      - name: Print uploaded file
+        run: cat endpoints.json

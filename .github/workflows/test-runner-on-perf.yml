@@ -2,7 +2,6 @@ name: Update Perf Env and Run Nightly Test Runner Tests
 env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_CLOUD_PROJECT: broad-jade-perf
-  CLOUDSDK_CORE_PROJECT: broad-jade-perf
   GOOGLE_CLOUD_DATA_PROJECT: broad-jade-perf-data2
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
@@ -60,20 +59,13 @@ jobs:
           # write vault tokens
           base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
 
-          echo "[Logs] Set compute zone ${GOOGLE_ZONE}"
-          gcloud config set compute/zone ${GOOGLE_ZONE}
+          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
+          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
 
-          echo "[Logs] Set project ${GOOGLE_CLOUD_PROJECT}"
-          gcloud config set project ${GOOGLE_CLOUD_PROJECT}
-
-          echo "[Logs] gcloud auth activate-service-account"
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
+          gcloud auth configure-docker  --quiet
 
-          echo "[Logs] gcloud auth configure-docker "
-          gcloud auth configure-docker
-
-          echo "[Logs] Set google sdk to SA user"
           if [[ -n "${K8_CLUSTER}" ]]; then
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi

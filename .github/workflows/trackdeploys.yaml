@@ -1,11 +1,6 @@
 name: Track semVer through environments
 
 on:
-##temporary on pull_request
-  pull_request:
-    branches:
-      - develop
-##
   schedule:
     - cron: '0 */3 * * *' # run every 3 hours and on push
   workflow_dispatch: {}

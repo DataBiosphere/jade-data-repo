@@ -60,16 +60,24 @@ jobs:
           # write vault tokens
           base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
 
+          echo "[Logs] Set compute zone ${GOOGLE_ZONE}"
+          gcloud config set compute/zone ${GOOGLE_ZONE}
+
+          echo "[Logs] Set project ${GOOGLE_CLOUD_PROJECT}"
+          gcloud config set project ${GOOGLE_CLOUD_PROJECT}
+
+          echo "[Logs] gcloud auth activate-service-account"
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
-          # configure integration prerequisites
-          gcloud config set compute/zone ${GOOGLE_ZONE}
-          gcloud config set project broad-jade-perf
-          gcloud auth configure-docker --quiet
-          #echo 'Set google sdk to SA user'
+
+          echo "[Logs] gcloud auth configure-docker "
+          gcloud auth configure-docker
+
+          echo "[Logs] Set google sdk to SA user"
           if [[ -n "${K8_CLUSTER}" ]]; then
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
+          echo "[Logs] done"
       - name: "Whitelist Runner IP"
         run: |
           CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \

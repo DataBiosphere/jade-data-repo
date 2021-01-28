@@ -1,0 +1,50 @@
+name: Track semVer through environments
+
+on:
+  push:
+    branches:
+      - develop
+  schedule:
+    - cron: '0 */3 * * *' # run every 3 hours and on push
+  workflow_dispatch: {}
+
+jobs:
+  get_versions:
+    name: Get semVer for environments
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download track_deploys
+        uses: actions/download-artifact@v2
+        with:
+          name: track_deploys
+      - shell: bash
+        run: |
+          endPoints+=( "https://jade.datarepo-dev.broadinstitute.org/configuration" \
+            "https://data.alpha.envs-terra.bio/configuration" \
+            "https://data.staging.envs-terra.bio/configuration" \
+            "https://data.terra.bio/configuration")
+
+          for i in ${endPoints[@]}; do
+            if [[ "$i" == *"dev"* ]]
+            then
+             env=dev
+            elif [[ "$i" == *"alpha"* ]]
+            then
+             env=alpha
+            elif [[ "$i" == *"staging"* ]]
+            then
+             env=staging
+           elif [[ "$i" == *"data.terra.bio"* ]]
+            then
+             env=production
+            else
+             echo "No env found"
+            fi
+            semVer=$(curl -s $i | jq -r '.semVer')
+            printf "{\"env\":\"$env\",\"date\":\"$(date +%Y-%m-%d\ %H:%M:%S)\",\"semVer\":\"$semVer\"}\n" | jq >> $value
+          done
+      - name: Upload result for environments
+        uses: actions/upload-artifact@v2
+        with:
+          name: track_deploys
+          path: endpoints.json

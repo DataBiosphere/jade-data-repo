@@ -68,8 +68,6 @@ jobs:
           gcloud auth configure-docker --quiet
           #echo 'Set google sdk to SA user'
 
-          gcloud auth configure-docker  --quiet
-
           if [[ -n "${K8_CLUSTER}" ]]; then
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi

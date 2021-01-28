@@ -69,7 +69,6 @@ jobs:
           if [[ -n "${K8_CLUSTER}" ]]; then
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
-          echo "[Logs] done"
       - name: "Whitelist Runner IP"
         run: |
           CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \

@@ -6,6 +6,7 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
+import bio.terra.common.fixtures.SpendProfileSelector;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetSummaryModel;
@@ -109,6 +110,7 @@ public class SnapshotConnectedTest {
     @Autowired private ResourceService dataLocationService;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
+    @Autowired private SpendProfileSelector spendProfileSelector;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private ConfigurationService configService;
     @Autowired private DrsIdService drsIdService;
@@ -126,7 +128,7 @@ public class SnapshotConnectedTest {
         connectedOperations.stubOutSamCalls(samService);
         configService.reset();
         billingProfile =
-            connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+            spendProfileSelector.getOrCreateProfileForAccount(testConfig.getGoogleBillingAccountId());
         datasetSummary = createTestDataset("snapshot-test-dataset.json");
         loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
     }

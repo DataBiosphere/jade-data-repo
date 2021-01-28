@@ -4,6 +4,7 @@ package bio.terra.service.resourcemanagement.google;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.OnDemand;
 import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.SpendProfileSelector;
 import bio.terra.model.BillingProfileModel;
 import com.google.api.client.util.Lists;
 import com.google.api.services.cloudresourcemanager.model.Project;
@@ -38,12 +39,13 @@ public class ResourceServiceTest {
     @Autowired private GoogleProjectService projectService;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private ConnectedTestConfiguration testConfig;
+    @Autowired private SpendProfileSelector spendProfileSelector;
 
     private BillingProfileModel profile;
 
     @Before
     public void setup() throws Exception {
-        profile = connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+        profile = spendProfileSelector.getOrCreateProfileForAccount(testConfig.getGoogleBillingAccountId());
     }
 
     @After

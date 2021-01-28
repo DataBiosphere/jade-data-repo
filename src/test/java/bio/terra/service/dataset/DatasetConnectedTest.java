@@ -7,6 +7,7 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
+import bio.terra.common.fixtures.SpendProfileSelector;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DataDeletionGcsFileModel;
 import bio.terra.model.DataDeletionRequest;
@@ -84,6 +85,8 @@ public class DatasetConnectedTest {
     @Autowired
     private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired
+    private SpendProfileSelector spendProfileSelector;
+    @Autowired
     private ConnectedOperations connectedOperations;
     @Autowired
     private BigQueryPdao bigQueryPdao;
@@ -108,7 +111,7 @@ public class DatasetConnectedTest {
         connectedOperations.stubOutSamCalls(samService);
         configService.reset();
         billingProfile =
-            connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+            spendProfileSelector.getOrCreateProfileForAccount(testConfig.getGoogleBillingAccountId());
         // create a dataset and check that it succeeds
         String resourcePath = "snapshot-test-dataset.json";
         datasetRequest =

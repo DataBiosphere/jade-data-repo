@@ -5,6 +5,7 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.SpendProfileSelector;
 import bio.terra.common.fixtures.StringListCompare;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSObject;
@@ -99,6 +100,8 @@ public class EncodeFileTest {
     @Autowired
     private ConnectedOperations connectedOperations;
     @Autowired
+    private SpendProfileSelector spendProfileSelector;
+    @Autowired
     private DrsIdService drsIdService;
     @Autowired
     private FireStoreUtils fireStoreUtils;
@@ -119,7 +122,7 @@ public class EncodeFileTest {
         // Setup mock sam service
         connectedOperations.stubOutSamCalls(samService);
         String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
-        profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
+        profileModel = spendProfileSelector.getOrCreateProfileForAccount(coreBillingAccountId);
         loadTag = "encodeLoadTag" + UUID.randomUUID();
         datasetSummary = connectedOperations.createDataset(profileModel, "encodefiletest-dataset.json");
         targetProjectId = googleResourceConfiguration.getSingleDataProjectId(); // we rely on using single project

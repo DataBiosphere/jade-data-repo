@@ -4,6 +4,7 @@ package bio.terra.service.profile;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.SpendProfileSelector;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.profile.google.GoogleBillingService;
@@ -51,6 +52,8 @@ public class GoogleBillingServiceTest {
     @Autowired
     private ConnectedOperations connectedOperations;
     @Autowired
+    private SpendProfileSelector spendProfileSelector;
+    @Autowired
     private GoogleBillingService googleBillingService;
     @Autowired
     private ConnectedTestConfiguration testConfig;
@@ -70,7 +73,7 @@ public class GoogleBillingServiceTest {
         newBillingAccountId = testConfig.getNoSpendGoogleBillingAccountId();
         resetBillingAccount = false;
 
-        profile = connectedOperations.createProfileForAccount(oldBillingAccountId);
+        profile = spendProfileSelector.getOrCreateProfileForAccount(oldBillingAccountId);
         connectedOperations.stubOutSamCalls(samService);
 
         // get or created project in which to do the bucket work

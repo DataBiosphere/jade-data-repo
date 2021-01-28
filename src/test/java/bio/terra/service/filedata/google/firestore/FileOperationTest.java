@@ -6,6 +6,7 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
+import bio.terra.common.fixtures.SpendProfileSelector;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
@@ -97,6 +98,8 @@ public class FileOperationTest {
     @Autowired
     private ConnectedOperations connectedOperations;
     @Autowired
+    private SpendProfileSelector spendProfileSelector;
+    @Autowired
     private ConfigurationService configService;
     @Autowired
     private DatasetDao datasetDao;
@@ -128,7 +131,7 @@ public class FileOperationTest {
 
         // Retrieve billing info
         coreBillingAccountId = testConfig.getGoogleBillingAccountId();
-        profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
+        profileModel = spendProfileSelector.getOrCreateProfileForAccount(coreBillingAccountId);
 
         datasetSummary = connectedOperations.createDataset(profileModel, "snapshot-test-dataset.json");
         // Make sure we start from a known configuration

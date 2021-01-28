@@ -6,7 +6,7 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.model.*;
+import bio.terra.common.fixtures.SpendProfileSelector;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.*;
 import bio.terra.service.iam.IamProviderInterface;
@@ -33,6 +33,14 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.model.BulkLoadFileState;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotSummaryModel;
 
 import java.io.IOException;
 import java.util.*;
@@ -70,6 +78,8 @@ public class BigQueryPdaoTest {
     private ResourceService resourceService;
     @Autowired
     private GoogleResourceDao resourceDao;
+    @Autowired
+    private SpendProfileSelector spendProfileSelector;
 
     @MockBean
     private IamProviderInterface samService;
@@ -87,7 +97,7 @@ public class BigQueryPdaoTest {
         connectedOperations.stubOutSamCalls(samService);
 
         String coreBillingAccount = testConfig.getGoogleBillingAccountId();
-        profileModel = connectedOperations.createProfileForAccount(coreBillingAccount);
+        profileModel = spendProfileSelector.getOrCreateProfileForAccount(coreBillingAccount);
     }
 
     @After

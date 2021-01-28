@@ -186,12 +186,6 @@ public class ConnectedOperations {
         return errorModel;
     }
 
-    public BillingProfileModel createProfileForAccount(String billingAccountId) throws Exception {
-        BillingProfileRequestModel profileRequestModel = ProfileFixtures.randomBillingProfileRequest()
-            .billingAccountId(billingAccountId);
-        return createProfile(profileRequestModel);
-    }
-
     public BillingProfileModel createProfile(BillingProfileRequestModel profileRequestModel) throws Exception {
         MvcResult result = mvc.perform(post("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)
@@ -222,6 +216,8 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(result.getResponse().getContentAsString(), BillingProfileModel.class);
     }
 
+    // NOTE: Use caution w/ this operation. For integration tests that run on alpha, it would manipulate
+    // the alpha project's billing profile.
     public BillingProfileModel updateProfile(BillingProfileUpdateModel profileRequestModel) throws Exception {
         MvcResult result = mvc.perform(put("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)

@@ -4,6 +4,7 @@ package bio.terra.service.profile;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.SpendProfileSelector;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.BillingProfileRequestModel;
@@ -54,6 +55,8 @@ public class ProfileServiceTest {
     @Autowired
     private ConnectedOperations connectedOperations;
     @Autowired
+    private SpendProfileSelector spendProfileSelector;
+    @Autowired
     private GoogleResourceDao googleResourceDao;
     @Autowired
     private ProfileDao profileDao;
@@ -80,7 +83,7 @@ public class ProfileServiceTest {
         oldBillingAccountId = testConfig.getGoogleBillingAccountId();
         newBillingAccountId = testConfig.getNoSpendGoogleBillingAccountId();
 
-        profile = connectedOperations.createProfileForAccount(oldBillingAccountId);
+        profile = spendProfileSelector.getOrCreateProfileForAccount(oldBillingAccountId);
         connectedOperations.stubOutSamCalls(samService);
 
         projectResource = buildProjectResource();

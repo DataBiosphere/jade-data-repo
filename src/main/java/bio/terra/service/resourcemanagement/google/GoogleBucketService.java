@@ -21,9 +21,11 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -36,7 +38,10 @@ public class GoogleBucketService {
     private final GcsConfiguration gcsConfiguration;
     private final ConfigurationService configService;
 
-    private static final long RETENTION_PERIOD = Duration.ofDays(30).getSeconds();
+    private static long RETENTION_PERIOD = Duration.ofDays(30).getSeconds();
+
+    @Autowired
+    private Environment env;
 
     @Autowired
     public GoogleBucketService(
@@ -279,6 +284,9 @@ public class GoogleBucketService {
      * @return a reference to the bucket as a GCS Bucket object
      */
     private Bucket newCloudBucket(GoogleBucketResource bucketResource) {
+        if (Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("test"))) {
+            RETENTION_PERIOD = Duration.ofSeconds(1).getSeconds();
+        }
         String bucketName = bucketResource.getName();
         GoogleProjectResource projectResource = bucketResource.getProjectResource();
         String googleProjectId = projectResource.getGoogleProjectId();

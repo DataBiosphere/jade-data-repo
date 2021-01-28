@@ -61,7 +61,6 @@ jobs:
           base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
 
           gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
-          #gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
 
           gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 

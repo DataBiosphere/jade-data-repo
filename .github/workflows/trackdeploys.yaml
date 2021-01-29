@@ -24,6 +24,7 @@ jobs:
             "https://data.alpha.envs-terra.bio/configuration" \
             "https://data.staging.envs-terra.bio/configuration" \
             "https://data.terra.bio/configuration")
+          date=$(date +%Y-%m-%d\ %H:%M:%S)
 
           for i in ${endPoints[@]}; do
             if [[ "$i" == *"dev"* ]]
@@ -41,7 +42,6 @@ jobs:
             else
              echo "No env found"
             fi
-            date=$(date +%Y-%m-%d\ %H:%M:%S)
             semVer=$(curl -s $i | jq -r '.semVer')
             cat <<< $(jq --arg env "$env" \
               --arg date "$date" \

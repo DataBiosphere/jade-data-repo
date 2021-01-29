@@ -3,16 +3,20 @@ package bio.terra.service.resourcemanagement.google;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.profile.google.GoogleBillingService;
+import bio.terra.service.resourcemanagement.exception.AppengineException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.MismatchedBillingProfilesException;
 import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.appengine.v1.Appengine;
+import com.google.api.services.appengine.v1.model.Application;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
@@ -59,11 +63,19 @@ public class GoogleProjectService {
                 "firebaserules.googleapis.com",
                 "storage-component.googleapis.com",
                 "storage-api.googleapis.com",
-                "cloudbilling.googleapis.com"));
+                "cloudbilling.googleapis.com",
+                "appengine.googleapis.com"));
+
+    /**
+     * This is where the Firestore database will be created.
+     */
+    private static final String DEFAULT_FS_LOCATION_ID = "us-central";
+    private static final String FIRESTORE_DB_TYPE = "CLOUD_FIRESTORE";
 
     private final GoogleBillingService billingService;
     private final GoogleResourceDao resourceDao;
     private final GoogleResourceConfiguration resourceConfiguration;
+    private final ObjectMapper objectMapper;
     private final ConfigurationService configService;
 
     @Autowired
@@ -71,11 +83,13 @@ public class GoogleProjectService {
         GoogleResourceDao resourceDao,
         GoogleResourceConfiguration resourceConfiguration,
         GoogleBillingService billingService,
-        ConfigurationService configService) {
+        ConfigurationService configService,
+        ObjectMapper objectMapper) {
         this.resourceDao = resourceDao;
         this.resourceConfiguration = resourceConfiguration;
         this.billingService = billingService;
         this.configService = configService;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -264,7 +278,8 @@ public class GoogleProjectService {
         deleteGoogleProject(projectResource.getGoogleProjectId());
     }
 
-    private void enableServices(GoogleProjectResource projectResource) throws InterruptedException {
+    @VisibleForTesting
+    void enableServices(GoogleProjectResource projectResource) throws InterruptedException {
         try {
             ServiceUsage serviceUsage = serviceUsage();
             String projectNumberString = "projects/" + projectResource.getGoogleProjectNumber();
@@ -286,6 +301,7 @@ public class GoogleProjectService {
                 actualServiceNames =
                     serviceList.stream().map(GoogleApiServiceusageV1Service::getName).collect(Collectors.toList());
             }
+            long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
 
             if (actualServiceNames.containsAll(requiredServices)) {
                 logger.info("project already has the right resources enabled, skipping");
@@ -295,9 +311,10 @@ public class GoogleProjectService {
                     new BatchEnableServicesRequest().setServiceIds(DATA_PROJECT_SERVICE_IDS);
                 ServiceUsage.Services.BatchEnable batchEnable =
                     serviceUsage.services().batchEnable(projectNumberString, batchRequest);
-                long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
                 blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
             }
+
+            enableFirestore(appengine(), projectResource.getGoogleProjectId(), DEFAULT_FS_LOCATION_ID, timeout);
         } catch (IOException | GeneralSecurityException e) {
             // In development we are reusing projects. The TDR service account may not have permission to
             // properly enable the services on a developer's project. In those cases, we do not want to
@@ -399,6 +416,102 @@ public class GoogleProjectService {
         return new CloudResourceManager.Builder(httpTransport, jsonFactory, credential)
             .setApplicationName(resourceConfiguration.getApplicationName())
             .build();
+    }
+
+    /**
+     * Create a client to speak to the appengine admin api
+     */
+    private Appengine appengine() throws GeneralSecurityException, IOException {
+        HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+        JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+
+        GoogleCredential credential = GoogleCredential.getApplicationDefault();
+        if (credential.createScopedRequired()) {
+            credential =
+                credential.createScoped(
+                    Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+        }
+
+        return new Appengine.Builder(httpTransport, jsonFactory, credential)
+            .setApplicationName(resourceConfiguration.getApplicationName())
+            .build();
+    }
+
+    /**
+     * Enable Firestore in native mode in an existing project
+     * @param appengine appengine client
+     * @param googleProjectId name of the google project to create the Firestore DB in
+     * @param locationId location of the Firestore DB
+     * @param timeout how long to wait for the creation operation
+     */
+    private static void enableFirestore(final Appengine appengine,
+                                        final String googleProjectId,
+                                        final String locationId,
+                                        final long timeout) throws IOException, InterruptedException {
+        logger.info("Enabling Firestore in project {} in location {}", googleProjectId, locationId);
+        // Create a request object
+        Appengine.Apps.Create createRequest = appengine.apps().create(new Application()
+            .setId(googleProjectId)
+            .setLocationId(locationId)
+            .setDatabaseType(FIRESTORE_DB_TYPE)
+        );
+
+        // Make sure that Firestore is created in the correct project
+        createRequest.getRequestHeaders().set("X-Goog-User-Project", googleProjectId);
+
+        // Execute the request
+        com.google.api.services.appengine.v1.model.Operation operation = createRequest.execute();
+
+        // Wait for the Firestore creation to finish
+        blockUntilAppengineOperationComplete(appengine, operation, googleProjectId, timeout);
+        logger.info("Firestore was enabled successfully");
+    }
+
+    /**
+     * Poll the app engine api until an operation completes. It is possible to hit quota issues
+     * here, so the timeout is set to 10 seconds.
+     *
+     * @param appengine       service instance
+     * @param operation       has an id for us to use in the check
+     * @param appId           id of the app that the operation is related to
+     * @param timeoutSeconds  how many seconds before we give up
+     * @return a completed operation
+     */
+    private static com.google.api.services.appengine.v1.model.Operation blockUntilAppengineOperationComplete(
+        Appengine appengine,
+        com.google.api.services.appengine.v1.model.Operation operation,
+        String appId,
+        long timeoutSeconds) throws IOException, InterruptedException {
+        long start = System.currentTimeMillis();
+        final long pollInterval = 10 * 1000; // 10 seconds
+        // Get
+        final String opName = operation.getName();
+        // The format returns is apps/{appId}/operations/{useful id} so we need to extract it
+        // Add a check in case they ever change the format
+        if (!opName.matches(String.format("^apps/%s/operations/" +
+            "[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}", appId))) {
+            throw new AppengineException(String.format("Operation Name does not look as expected: %s", opName));
+        }
+        final String opId = opName.replaceAll(String.format("^apps/%s/operations/", appId), "");
+
+        while (operation != null && (operation.getDone() == null || !operation.getDone())) {
+            com.google.api.services.appengine.v1.model.Status error = operation.getError();
+            if (error != null) {
+                throw new AppengineException(
+                    "Error while waiting for operation to complete" + error.getMessage());
+            }
+            Thread.sleep(pollInterval);
+            long elapsed = System.currentTimeMillis() - start;
+            if (elapsed >= timeoutSeconds * 1000) {
+                throw new AppengineException("Timed out waiting for operation to complete");
+            }
+            logger.info("checking operation: {}", opId);
+            Appengine.Apps.Operations.Get request = appengine.apps().operations().get(appId, opId);
+            // Make sure that the proper project context is set
+            request.getRequestHeaders().set("X-Goog-User-Project", appId);
+            operation = request.execute();
+        }
+        return operation;
     }
 
     /**

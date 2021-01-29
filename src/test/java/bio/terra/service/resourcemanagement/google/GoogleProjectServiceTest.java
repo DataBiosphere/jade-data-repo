@@ -1,16 +1,25 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.common.category.Unit;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @RunWith(SpringRunner.class)
+@AutoConfigureMockMvc
+@SpringBootTest
 @Category(Unit.class)
 public class GoogleProjectServiceTest {
+
+    @Autowired
+    private GoogleProjectService projectService;
 
     @Test
     public void testVerifyProjectId() {
@@ -58,5 +67,14 @@ public class GoogleProjectServiceTest {
         assertThatThrownBy(
             () -> GoogleProjectService.ensureValidProjectId("abc1234-567-"),
             "Can't end with a hyphen");
+    }
+
+
+    @Test
+    @Ignore("Un-ignore to test the explicit activation of a Firestore DB in an empty project")
+    public void testInitFirestore() throws InterruptedException {
+        projectService.enableServices(new GoogleProjectResource()
+            .googleProjectId("")
+            .googleProjectNumber(""));
     }
 }

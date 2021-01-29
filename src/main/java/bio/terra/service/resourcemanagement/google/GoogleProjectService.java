@@ -69,7 +69,6 @@ public class GoogleProjectService {
     /**
      * This is where the Firestore database will be created.
      */
-    private static final String DEFAULT_FS_LOCATION_ID = "us-central";
     private static final String FIRESTORE_DB_TYPE = "CLOUD_FIRESTORE";
 
     private final GoogleBillingService billingService;
@@ -314,7 +313,13 @@ public class GoogleProjectService {
                 blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
             }
 
-            enableFirestore(appengine(), projectResource.getGoogleProjectId(), DEFAULT_FS_LOCATION_ID, timeout);
+            enableFirestore(
+                appengine(),
+                projectResource.getGoogleProjectId(),
+                resourceConfiguration.getDefaultFirestoreLocation(),
+                timeout
+            );
+
         } catch (IOException | GeneralSecurityException e) {
             // In development we are reusing projects. The TDR service account may not have permission to
             // properly enable the services on a developer's project. In those cases, we do not want to

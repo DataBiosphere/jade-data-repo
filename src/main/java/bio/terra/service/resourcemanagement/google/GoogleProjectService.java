@@ -488,7 +488,7 @@ public class GoogleProjectService {
         String appId,
         long timeoutSeconds) throws IOException, InterruptedException {
         long start = System.currentTimeMillis();
-        final long pollInterval = 10 * 1000; // 10 seconds
+        final long pollInterval = TimeUnit.SECONDS.toMillis(10);
         // Get
         final String opName = operation.getName();
         // The format returns is apps/{appId}/operations/{useful id} so we need to extract it
@@ -507,7 +507,7 @@ public class GoogleProjectService {
             }
             Thread.sleep(pollInterval);
             long elapsed = System.currentTimeMillis() - start;
-            if (elapsed >= timeoutSeconds * 1000) {
+            if (elapsed >= TimeUnit.SECONDS.toMillis(timeoutSeconds)) {
                 throw new AppengineException("Timed out waiting for operation to complete");
             }
             logger.info("checking operation: {}", opId);
@@ -532,7 +532,7 @@ public class GoogleProjectService {
         CloudResourceManager resourceManager, Operation operation, long timeoutSeconds)
         throws IOException, InterruptedException {
         long start = System.currentTimeMillis();
-        final long pollInterval = 10 * 1000; // 10 seconds
+        final long pollInterval = TimeUnit.SECONDS.toMillis(10);
         String opId = operation.getName();
 
         while (operation != null && (operation.getDone() == null || !operation.getDone())) {
@@ -543,7 +543,7 @@ public class GoogleProjectService {
             }
             Thread.sleep(pollInterval);
             long elapsed = System.currentTimeMillis() - start;
-            if (elapsed >= timeoutSeconds * 1000) {
+            if (elapsed >= TimeUnit.SECONDS.toMillis(timeoutSeconds)) {
                 throw new GoogleResourceException("Timed out waiting for operation to complete");
             }
             logger.info("checking operation: {}", opId);
@@ -575,7 +575,7 @@ public class GoogleProjectService {
         throws IOException, InterruptedException {
 
         long start = System.currentTimeMillis();
-        final long pollInterval = 5 * 1000; // 5 seconds
+        final long pollInterval = TimeUnit.SECONDS.toMillis(5);
         String opId = operation.getName();
 
         while (operation != null && (operation.getDone() == null || !operation.getDone())) {
@@ -586,7 +586,7 @@ public class GoogleProjectService {
             }
             Thread.sleep(pollInterval);
             long elapsed = System.currentTimeMillis() - start;
-            if (elapsed >= timeoutSeconds * 1000) {
+            if (elapsed >= TimeUnit.SECONDS.toMillis(timeoutSeconds)) {
                 throw new GoogleResourceException("Timed out waiting for operation to complete");
             }
             ServiceUsage.Operations.Get request = serviceUsage.operations().get(opId);

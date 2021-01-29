@@ -45,6 +45,8 @@ public class IngestFileDirectoryStep implements Step {
         String datasetId = dataset.getId().toString();
         String targetPath = loadModel.getTargetPath();
 
+        String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
+
         try {
             // The state logic goes like this:
             //  1. the directory entry doesn't exist. We need to create the directory entry for it.
@@ -62,7 +64,7 @@ public class IngestFileDirectoryStep implements Step {
             // Lookup the file - on a recovery, we may have already created it, but not
             // finished. Or it might already exist, created by someone else.
             FireStoreDirectoryEntry existingEntry = fileDao.lookupDirectoryEntryByPath(dataset, targetPath);
-            if (existingEntry == null) {
+            if (ingestFileAction.equals("createEntry")) {
                 // 1. Not there - create it
                 FireStoreDirectoryEntry newEntry = new FireStoreDirectoryEntry()
                     .fileId(fileId)
@@ -72,19 +74,16 @@ public class IngestFileDirectoryStep implements Step {
                     .datasetId(datasetId)
                     .loadTag(loadModel.getLoadTag());
                 fileDao.createDirectoryEntry(dataset, newEntry);
-            } else if (StringUtils.equals(existingEntry.getLoadTag(), loadModel.getLoadTag())) {
-                // 2. (a) or (b) Load tags match - check file ids
-                if (!StringUtils.equals(existingEntry.getFileId(), fileId)) {
-                    // (b) We are in a re-run of a load job. Try to get the file entry.
-                    fileId = existingEntry.getFileId();
-                    workingMap.put(FileMapKeys.FILE_ID, fileId);
-                    FireStoreFile fileEntry = fileDao.lookupFile(dataset, fileId);
-                    if (fileEntry != null) {
-                        // (b)(i) We successfully loaded this file already
-                        workingMap.put(FileMapKeys.LOAD_COMPLETED, true);
-                    }
-                    // (b)(ii) We are recovering and should continue this load; leave load completed false/unset
+            } else if (ingestFileAction.equals("checkEntry") && !StringUtils.equals(existingEntry.getFileId(), fileId)) {
+                // (b) We are in a re-run of a load job. Try to get the file entry.
+                fileId = existingEntry.getFileId();
+                workingMap.put(FileMapKeys.FILE_ID, fileId);
+                FireStoreFile fileEntry = fileDao.lookupFile(dataset, fileId);
+                if (fileEntry != null) {
+                    // (b)(i) We successfully loaded this file already
+                    workingMap.put(FileMapKeys.LOAD_COMPLETED, true);
                 }
+                // (b)(ii) We are recovering and should continue this load; leave load completed false/unset
 
             }
         } catch (FileSystemAbortTransactionException rex) {
@@ -98,10 +97,14 @@ public class IngestFileDirectoryStep implements Step {
     public StepResult undoStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
-        try {
-            fileDao.deleteDirectoryEntry(dataset, fileId);
-        } catch (FileSystemAbortTransactionException rex) {
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
+        String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
+
+        if (ingestFileAction.equals("createEntry")) {
+            try {
+                fileDao.deleteDirectoryEntry(dataset, fileId);
+            } catch (FileSystemAbortTransactionException rex) {
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
+            }
         }
         return StepResult.getStepResultSuccess();
     }

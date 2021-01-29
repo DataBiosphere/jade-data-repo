@@ -17,6 +17,7 @@ public class GoogleResourceConfiguration {
     private String parentResourceType;
     private String parentResourceId;
     private String singleDataProjectId;
+    private String defaultFirestoreLocation;
     private boolean allowReuseExistingProjects;
     private boolean allowReuseExistingBuckets;
 
@@ -82,6 +83,14 @@ public class GoogleResourceConfiguration {
 
     public void setAllowReuseExistingBuckets(boolean allowReuseExistingBuckets) {
         this.allowReuseExistingBuckets = allowReuseExistingBuckets;
+    }
+
+    public String getDefaultFirestoreLocation() {
+        return defaultFirestoreLocation;
+    }
+
+    public void setDefaultFirestoreLocation(String defaultFirestoreLocation) {
+        this.defaultFirestoreLocation = defaultFirestoreLocation;
     }
 
     // TODO: Is this used?

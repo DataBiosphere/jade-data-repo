@@ -65,7 +65,7 @@ public class IngestFileDirectoryStep implements Step {
             // finished. Or it might already exist, created by someone else.
             FireStoreDirectoryEntry existingEntry = fileDao.lookupDirectoryEntryByPath(dataset, targetPath);
             if (ingestFileAction.equals("createEntry")) {
-                // 1. Not there - create it
+                // (1) Not there - create it
                 FireStoreDirectoryEntry newEntry = new FireStoreDirectoryEntry()
                     .fileId(fileId)
                     .isFileRef(true)
@@ -74,7 +74,8 @@ public class IngestFileDirectoryStep implements Step {
                     .datasetId(datasetId)
                     .loadTag(loadModel.getLoadTag());
                 fileDao.createDirectoryEntry(dataset, newEntry);
-            } else if (ingestFileAction.equals("checkEntry") && !StringUtils.equals(existingEntry.getFileId(), fileId)) {
+            } else if (ingestFileAction.equals("checkEntry") &&
+                !StringUtils.equals(existingEntry.getFileId(), fileId)) {
                 // (b) We are in a re-run of a load job. Try to get the file entry.
                 fileId = existingEntry.getFileId();
                 workingMap.put(FileMapKeys.FILE_ID, fileId);

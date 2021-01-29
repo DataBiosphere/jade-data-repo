@@ -22,6 +22,8 @@ public class ValidateIngestFileDirectoryStep implements Step {
 
     private final FireStoreDao fileDao;
     private final Dataset dataset;
+    public static final String createEntryAction = "createEntry";
+    public static final String checkEntryAction = "checkEntry";
 
     public ValidateIngestFileDirectoryStep(FireStoreDao fileDao,
                                   Dataset dataset) {
@@ -47,12 +49,12 @@ public class ValidateIngestFileDirectoryStep implements Step {
             //      (b) Otherwise, update INGEST_FILE_ACTION to checkEntry
             FireStoreDirectoryEntry existingEntry = fileDao.lookupDirectoryEntryByPath(dataset, targetPath);
             if (existingEntry == null) {
-                workingMap.put(FileMapKeys.INGEST_FILE_ACTION, "createEntry");
+                workingMap.put(FileMapKeys.INGEST_FILE_ACTION, createEntryAction);
             } else if (!StringUtils.equals(existingEntry.getLoadTag(), loadModel.getLoadTag())) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                     new FileAlreadyExistsException("Path already exists: " + targetPath));
             } else {
-                workingMap.put(FileMapKeys.INGEST_FILE_ACTION, "checkEntry");
+                workingMap.put(FileMapKeys.INGEST_FILE_ACTION, checkEntryAction);
             }
         } catch (FileSystemAbortTransactionException rex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);

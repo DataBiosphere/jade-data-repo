@@ -161,6 +161,7 @@ dependencies {
     compile 'com.google.cloud:google-cloud-billing:1.1.6'
     compile 'com.google.cloud:google-cloud-resourcemanager:0.118.2-alpha'
     compile 'com.google.apis:google-api-services-serviceusage:v1-rev20201021-1.30.10'
+    compile 'com.google.apis:google-api-services-appengine:v1-rev20201201-1.31.0'
     compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
     compile 'com.google.cloud:google-cloud-storage:1.108.0'
     compile 'com.google.cloud:google-cloud-firestore:1.22.0'
@@ -174,6 +175,8 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation group: "javax.validation", name: "validation-api"
+    // Fix to this version
+    compile 'com.google.http-client:google-http-client:1.38.0'
 
     implementation group: "io.swagger.core.v3", name: "swagger-annotations"
     swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"

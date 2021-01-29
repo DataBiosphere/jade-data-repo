@@ -49,6 +49,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Component
@@ -489,15 +491,8 @@ public class GoogleProjectService {
         long timeoutSeconds) throws IOException, InterruptedException {
         long start = System.currentTimeMillis();
         final long pollInterval = TimeUnit.SECONDS.toMillis(10);
-        // Get
         final String opName = operation.getName();
-        // The format returns is apps/{appId}/operations/{useful id} so we need to extract it
-        // Add a check in case they ever change the format
-        if (!opName.matches(String.format("^apps/%s/operations/" +
-            "[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}", appId))) {
-            throw new AppengineException(String.format("Operation Name does not look as expected: %s", opName));
-        }
-        final String opId = opName.replaceAll(String.format("^apps/%s/operations/", appId), "");
+        final String opId = extractOperationIdFromName(appId, opName);
 
         while (operation != null && (operation.getDone() == null || !operation.getDone())) {
             com.google.api.services.appengine.v1.model.Status error = operation.getError();
@@ -517,6 +512,19 @@ public class GoogleProjectService {
             operation = request.execute();
         }
         return operation;
+    }
+
+    @VisibleForTesting
+    static String extractOperationIdFromName(final String appId, final String opName) {
+        // The format returns is apps/{appId}/operations/{useful id} so we need to extract it
+        // Add a check in case they ever change the format
+        final String uuidRegex = "\\p{XDigit}{8}-\\p{XDigit}{4}-\\p{XDigit}{4}-\\p{XDigit}{4}-\\p{XDigit}{12}";
+        final Pattern pattern = Pattern.compile(String.format("^apps/%s/operations/(%s)", appId, uuidRegex));
+        final Matcher matcher = pattern.matcher(opName);
+        if (!matcher.find()) {
+            throw new AppengineException(String.format("Operation Name does not look as expected: %s", opName));
+        }
+        return matcher.group(1);
     }
 
     /**

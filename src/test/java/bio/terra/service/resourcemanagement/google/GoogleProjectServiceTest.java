@@ -1,25 +1,18 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.common.category.Unit;
-import org.junit.Ignore;
+import bio.terra.service.resourcemanagement.exception.AppengineException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @RunWith(SpringRunner.class)
-@AutoConfigureMockMvc
-@SpringBootTest
 @Category(Unit.class)
 public class GoogleProjectServiceTest {
-
-    @Autowired
-    private GoogleProjectService projectService;
 
     @Test
     public void testVerifyProjectId() {
@@ -69,12 +62,26 @@ public class GoogleProjectServiceTest {
             "Can't end with a hyphen");
     }
 
-
     @Test
-    @Ignore("Un-ignore to test the explicit activation of a Firestore DB in an empty project")
-    public void testInitFirestore() throws InterruptedException {
-        projectService.enableServices(new GoogleProjectResource()
-            .googleProjectId("")
-            .googleProjectNumber(""));
+    public void testAppEngineOpIdExtraction() {
+        assertThat(GoogleProjectService.extractOperationIdFromName(
+            "my-project",
+            "apps/my-project/operations/aa9a20e4-69a9-488d-978f-0c55cc2beae8"
+        )).as("works as expected")
+            .isEqualTo("aa9a20e4-69a9-488d-978f-0c55cc2beae8");
+
+        assertThatThrownBy(() -> GoogleProjectService.extractOperationIdFromName(
+            "my-project",
+            "apps/my-project/somenewformat/aa9a20e4-69a9-488d-978f-0c55cc2beae8"
+        )).as("handles bad path")
+            .isInstanceOf(AppengineException.class)
+            .hasMessageStartingWith("Operation Name does not look as expected");
+
+        assertThatThrownBy(() -> GoogleProjectService.extractOperationIdFromName(
+            "my-project",
+            "apps/my-project/operations/aa9a20g4-69a9-488d-978f-0c55cc2beae8"
+        )).as("handles bad uuid")
+            .isInstanceOf(AppengineException.class)
+            .hasMessageStartingWith("Operation Name does not look as expected");
     }
 }

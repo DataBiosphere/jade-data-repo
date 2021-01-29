@@ -408,8 +408,19 @@ task testUnit(type: Test) {
     outputs.upToDateWhen { false }
 }
 
+task testOnDemand(type: Test) {
+    useJUnit {
+        includeCategories 'bio.terra.common.category.OnDemand'
+    }
+    testLogging {
+        events = ["passed", "failed", "skipped", "started", "standard_out"]
+    }
+    outputs.upToDateWhen { false }
+}
+
 task testAll(type: Test) {
     useJUnit {
+        // Note: explicitly not including OnDemand tests
         includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }

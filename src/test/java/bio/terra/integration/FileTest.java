@@ -170,7 +170,7 @@ public class FileTest extends UsersBase {
 
         for (int i = 0; i < 20; i++) {
             DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
-                steward(), datasetId, profileId, gsPath, filePath + i);
+                steward(), datasetId, null, profileId, gsPath, filePath + i);
             responseList.add(launchResp);
         }
 
@@ -193,6 +193,28 @@ public class FileTest extends UsersBase {
     }
 
     @Test
+    public void fileAlreadyExistsTest() throws Exception {
+        String gsPath = "gs://" + testConfiguration.getIngestbucket();
+        String filePath = "/foo/bar";
+
+        FileModel fileModel = dataRepoFixtures.ingestFile(
+            steward(), datasetId, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
+        String fileId = fileModel.getFileId();
+        dataRepoFixtures.getFileById(steward(), datasetId, fileId);
+
+        // Re-ingesting the same file with a different load tag throws an error
+        DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
+            steward(), datasetId, "loadTag", profileId, gsPath + "/files/File Design Notes.pdf", filePath);
+
+        DataRepoResponse<FileModel> response = dataRepoClient.waitForResponse(steward(), launchResp, FileModel.class);
+        assertThat("File already exists", response.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+
+        // Assert original file entry still exists
+        dataRepoFixtures.getFileById(steward(), datasetId, fileId);
+
+    }
+
+    @Test
     @SuppressFBWarnings(
         value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
         justification = "Spurious RCN check; related to Java 11")
@@ -202,7 +224,7 @@ public class FileTest extends UsersBase {
         String filePath = "/foo/bar";
 
         DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
-            custodian(), datasetId, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
+            custodian(), datasetId, null, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
         assertThat("Custodian is not authorized to ingest a file",
             launchResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));

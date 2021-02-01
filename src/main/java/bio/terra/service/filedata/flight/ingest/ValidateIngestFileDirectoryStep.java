@@ -37,10 +37,7 @@ public class ValidateIngestFileDirectoryStep implements Step {
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
 
         String targetPath = loadModel.getTargetPath();
-
         FlightMap workingMap = context.getWorkingMap();
-        String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
-        String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
 
         try {
             //  1. If the directory entry does not exist, update INGEST_FILE_ACTION to createEntry

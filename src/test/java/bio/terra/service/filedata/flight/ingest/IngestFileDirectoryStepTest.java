@@ -4,7 +4,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;

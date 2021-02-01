@@ -22,8 +22,8 @@ public class ValidateIngestFileDirectoryStep implements Step {
 
     private final FireStoreDao fileDao;
     private final Dataset dataset;
-    public static final String createEntryAction = "createEntry";
-    public static final String checkEntryAction = "checkEntry";
+    public static final String CREATE_ENTRY_ACTION = "createEntry";
+    public static final String CHECK_ENTRY_ACTION = "checkEntry";
 
     public ValidateIngestFileDirectoryStep(FireStoreDao fileDao,
                                   Dataset dataset) {

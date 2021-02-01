@@ -64,7 +64,7 @@ public class IngestFileDirectoryStep implements Step {
             // Lookup the file - on a recovery, we may have already created it, but not
             // finished. Or it might already exist, created by someone else.
             FireStoreDirectoryEntry existingEntry = fileDao.lookupDirectoryEntryByPath(dataset, targetPath);
-            if (ingestFileAction.equals("createEntry")) {
+            if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
                 // (1) Not there - create it
                 FireStoreDirectoryEntry newEntry = new FireStoreDirectoryEntry()
                     .fileId(fileId)
@@ -74,7 +74,7 @@ public class IngestFileDirectoryStep implements Step {
                     .datasetId(datasetId)
                     .loadTag(loadModel.getLoadTag());
                 fileDao.createDirectoryEntry(dataset, newEntry);
-            } else if (ingestFileAction.equals("checkEntry") &&
+            } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION) &&
                 !StringUtils.equals(existingEntry.getFileId(), fileId)) {
                 // (b) We are in a re-run of a load job. Try to get the file entry.
                 fileId = existingEntry.getFileId();
@@ -100,7 +100,7 @@ public class IngestFileDirectoryStep implements Step {
         String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
         String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
 
-        if (ingestFileAction.equals("createEntry")) {
+        if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
             try {
                 fileDao.deleteDirectoryEntry(dataset, fileId);
             } catch (FileSystemAbortTransactionException rex) {

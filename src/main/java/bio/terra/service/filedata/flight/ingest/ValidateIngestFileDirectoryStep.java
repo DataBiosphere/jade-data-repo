@@ -19,11 +19,11 @@ import org.slf4j.LoggerFactory;
 
 public class ValidateIngestFileDirectoryStep implements Step {
     private static final Logger logger = LoggerFactory.getLogger(ValidateIngestFileDirectoryStep.class);
+    public static final String CREATE_ENTRY_ACTION = "createEntry";
+    public static final String CHECK_ENTRY_ACTION = "checkEntry";
 
     private final FireStoreDao fileDao;
     private final Dataset dataset;
-    public static final String CREATE_ENTRY_ACTION = "createEntry";
-    public static final String CHECK_ENTRY_ACTION = "checkEntry";
 
     public ValidateIngestFileDirectoryStep(FireStoreDao fileDao,
                                   Dataset dataset) {
@@ -46,12 +46,12 @@ public class ValidateIngestFileDirectoryStep implements Step {
             //      (b) Otherwise, update INGEST_FILE_ACTION to checkEntry
             FireStoreDirectoryEntry existingEntry = fileDao.lookupDirectoryEntryByPath(dataset, targetPath);
             if (existingEntry == null) {
-                workingMap.put(FileMapKeys.INGEST_FILE_ACTION, createEntryAction);
+                workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CREATE_ENTRY_ACTION);
             } else if (!StringUtils.equals(existingEntry.getLoadTag(), loadModel.getLoadTag())) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                     new FileAlreadyExistsException("Path already exists: " + targetPath));
             } else {
-                workingMap.put(FileMapKeys.INGEST_FILE_ACTION, checkEntryAction);
+                workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CHECK_ENTRY_ACTION);
             }
         } catch (FileSystemAbortTransactionException e) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);

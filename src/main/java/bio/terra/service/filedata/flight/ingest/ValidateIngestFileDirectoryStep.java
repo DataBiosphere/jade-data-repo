@@ -53,8 +53,8 @@ public class ValidateIngestFileDirectoryStep implements Step {
             } else {
                 workingMap.put(FileMapKeys.INGEST_FILE_ACTION, checkEntryAction);
             }
-        } catch (FileSystemAbortTransactionException rex) {
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
+        } catch (FileSystemAbortTransactionException e) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
         }
 
         return StepResult.getStepResultSuccess();

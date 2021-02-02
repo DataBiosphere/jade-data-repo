@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat
+
 /*
  * Data Repository Building Notes
  *
@@ -339,6 +341,13 @@ jib {
     container {
         jvmFlags = ["-Xms2g", "-Xmx2g"]
     }
+    container.creationTime = buildTime()
+}
+
+def buildTime() {
+    def df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'") // you can change it
+    df.setTimeZone(TimeZone.getTimeZone("UTC"))
+    return df.format(new Date())
 }
 // jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories
 // setting above will ensure that the generated classes end up in the right place when jib builds.

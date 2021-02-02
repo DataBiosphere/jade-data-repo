@@ -7,6 +7,7 @@ public final class FileMapKeys {
     public static final String DATASET_ID = "datasetId";
     public static final String FILE_ID = "fileId";
     public static final String FILE_INFO = "fileInfo";
+    public static final String INGEST_FILE_ACTION = "ingestFileAction";
     public static final String BUCKET_INFO = "bucketInfo";
     public static final String FIRESTORE_FILE = "fireStoreFile";
     public static final String REQUEST = "request";

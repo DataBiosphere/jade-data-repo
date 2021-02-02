@@ -53,9 +53,11 @@ public class RetrieveSnapshot extends SimpleDataset {
     if (StringUtils.isBlank(profileNameRaw)) {
       profileName = Optional.empty();
       deleteProfile = true;
+      logger.info("No profile name specified.  Will create a new billing profile");
     } else {
       profileName = Optional.ofNullable(profileNameRaw);
       deleteProfile = false;
+      logger.info("Will attempt to use a billing profile named {}", profileName.get());
     }
 
     // pick the a user that is a Data Repo steward to be the dataset creator

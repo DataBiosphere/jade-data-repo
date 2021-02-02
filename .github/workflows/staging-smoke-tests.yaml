@@ -61,6 +61,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
           echo "Building Data Repo client library"
           export TEST_RUNNER_SERVER_SPECIFICATION_FILE="staging.json"
+          export TEST_RUNNER_BILLING_PROFILE_NAME="stest1"
           ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
           export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")

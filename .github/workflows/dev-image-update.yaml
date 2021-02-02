@@ -28,8 +28,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        with:
-          ref: develop
+        # ADD BACK BEFORE MERGE
+        #with:
+        #  ref: develop
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
         with:

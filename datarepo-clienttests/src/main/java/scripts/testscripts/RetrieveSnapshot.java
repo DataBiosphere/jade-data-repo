@@ -3,8 +3,6 @@ package scripts.testscripts;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.client.ApiException;
-import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
@@ -22,7 +20,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +31,10 @@ import scripts.utils.SAMUtils;
 public class RetrieveSnapshot extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(RetrieveSnapshot.class);
 
+  // Specify the name of a profile to use for the test with the TEST_RUNNER_BILLING_PROFILE_NAME
+  // env variable.
+  private static final String profileNameRaw = System.getenv("TEST_RUNNER_BILLING_PROFILE_NAME");
+
   /** Public constructor so that this class can be instantiated via reflection. */
   public RetrieveSnapshot() {
     super();
@@ -41,14 +42,8 @@ public class RetrieveSnapshot extends SimpleDataset {
 
   private SnapshotSummaryModel snapshotSummaryModel;
   private List<BlobId> scratchFiles = new ArrayList<>();
-  private boolean deleteProfile;
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
-    // Specify the name of a profile to use for the test with the TEST_RUNNER_BILLING_PROFILE_NAME
-    // env variable.
-    // If it's not specified or the profile isn't found, a new one with a randomly generated name
-    // will be created
-    String profileNameRaw = System.getenv("TEST_RUNNER_BILLING_PROFILE_NAME");
     Optional<String> profileName;
     if (StringUtils.isBlank(profileNameRaw)) {
       profileName = Optional.empty();
@@ -67,28 +62,19 @@ public class RetrieveSnapshot extends SimpleDataset {
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
     ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
-    BillingProfileModel billingProfileModel =
-        profileName
-            .map(
-                p -> {
-                  try {
-                    List<BillingProfileModel> profiles =
-                        resourcesApi.enumerateProfiles(0, 100).getItems();
+    billingProfileModel = null;
+    if (profileName.isPresent()) {
+      billingProfileModel =
+          resourcesApi.enumerateProfiles(0, 100).getItems().stream()
+              .filter(p -> StringUtils.equalsIgnoreCase(profileName.get(), p.getProfileName()))
+              .findFirst()
+              .orElseThrow(
+                  () ->
+                      new RuntimeException(
+                          String.format("Could not find profile named %s", profileName.get())));
+    }
 
-                    BillingProfileModel foundProfile =
-                        IterableUtils.find(
-                            profiles, m -> StringUtils.equalsIgnoreCase(p, m.getProfileName()));
-                    if (foundProfile == null) {
-                      logger.info("Could not find a profile named {}", p);
-                    }
-                    return foundProfile;
-                  } catch (final ApiException e) {
-                    throw new RuntimeException("Error fetching profile", e);
-                  }
-                })
-            .orElse(null);
-
-    super.setup(testUsers, billingProfileModel);
+    super.setup(testUsers);
 
     // load data into the new dataset
     // note that there's a fileref in the dataset
@@ -192,7 +178,7 @@ public class RetrieveSnapshot extends SimpleDataset {
     logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
 
     // delete the profile and dataset
-    super.cleanup(testUsers, deleteProfile);
+    super.cleanup(testUsers);
 
     // delete the scratch files used for ingesting tabular data
     StorageUtils.deleteFiles(

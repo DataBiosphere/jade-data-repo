@@ -20,13 +20,9 @@ public class SimpleDataset extends runner.TestScript {
   protected TestUserSpecification datasetCreator;
   protected BillingProfileModel billingProfileModel;
   protected DatasetSummaryModel datasetSummaryModel;
+  protected boolean deleteProfile;
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
-    setup(testUsers, null);
-  }
-
-  public void setup(List<TestUserSpecification> testUsers, BillingProfileModel billingProfile)
-      throws Exception {
     // pick the a user that is a Data Repo steward to be the dataset creator
     datasetCreator = SAMUtils.findTestUserThatIsDataRepoSteward(testUsers, server);
     if (datasetCreator == null) {
@@ -40,13 +36,12 @@ public class SimpleDataset extends runner.TestScript {
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // create a new profile
-    if (billingProfile == null) {
+    if (billingProfileModel == null) {
       billingProfileModel =
           DataRepoUtils.createProfile(
               resourcesApi, repositoryApi, billingAccount, "profile-simple", true);
       logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
     } else {
-      billingProfileModel = billingProfile;
       logger.info("Using existing profile: {}", billingProfileModel.getProfileName());
     }
 
@@ -63,11 +58,6 @@ public class SimpleDataset extends runner.TestScript {
   }
 
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
-    cleanup(testUsers, true);
-  }
-
-  public void cleanup(List<TestUserSpecification> testUsers, boolean deleteProfile)
-      throws Exception {
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);

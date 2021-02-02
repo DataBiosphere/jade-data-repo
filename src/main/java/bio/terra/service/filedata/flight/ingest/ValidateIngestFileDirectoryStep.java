@@ -48,8 +48,7 @@ public class ValidateIngestFileDirectoryStep implements Step {
             if (existingEntry == null) {
                 workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CREATE_ENTRY_ACTION);
             } else if (!StringUtils.equals(existingEntry.getLoadTag(), loadModel.getLoadTag())) {
-                return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                    new FileAlreadyExistsException("Path already exists: " + targetPath));
+                throw new FileAlreadyExistsException("Path already exists: " + targetPath);
             } else {
                 workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CHECK_ENTRY_ACTION);
             }

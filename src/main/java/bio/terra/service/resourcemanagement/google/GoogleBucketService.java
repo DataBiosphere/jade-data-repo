@@ -21,8 +21,10 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -34,6 +36,9 @@ public class GoogleBucketService {
     private final GcsProjectFactory gcsProjectFactory;
     private final GcsConfiguration gcsConfiguration;
     private final ConfigurationService configService;
+
+    @Autowired
+    private Environment env;
 
     @Autowired
     public GoogleBucketService(
@@ -276,6 +281,7 @@ public class GoogleBucketService {
      * @return a reference to the bucket as a GCS Bucket object
      */
     private Bucket newCloudBucket(GoogleBucketResource bucketResource) {
+        boolean doVersioning = Arrays.stream(env.getActiveProfiles()).noneMatch(env -> env.contains("test"));
         String bucketName = bucketResource.getName();
         GoogleProjectResource projectResource = bucketResource.getProjectResource();
         String googleProjectId = projectResource.getGoogleProjectId();
@@ -285,6 +291,7 @@ public class GoogleBucketService {
             // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
             .setStorageClass(StorageClass.REGIONAL)
             .setLocation(gcsConfiguration.getRegion())
+            .setVersioningEnabled(doVersioning)
             .build();
         // the project will have been created before this point, so no need to fetch it
         logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);

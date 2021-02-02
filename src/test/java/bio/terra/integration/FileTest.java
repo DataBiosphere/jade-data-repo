@@ -170,7 +170,7 @@ public class FileTest extends UsersBase {
 
         for (int i = 0; i < 20; i++) {
             DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
-                steward(), datasetId, null, profileId, gsPath, filePath + i);
+                steward(), datasetId, profileId, gsPath, filePath + i);
             responseList.add(launchResp);
         }
 
@@ -202,7 +202,7 @@ public class FileTest extends UsersBase {
         String filePath = "/foo/bar";
 
         DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
-            custodian(), datasetId, null, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
+            custodian(), datasetId, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
         assertThat("Custodian is not authorized to ingest a file",
             launchResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));

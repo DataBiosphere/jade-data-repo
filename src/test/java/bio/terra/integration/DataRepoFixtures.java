@@ -450,7 +450,6 @@ public class DataRepoFixtures {
     public DataRepoResponse<JobModel> ingestFileLaunch(
         TestConfiguration.User user,
         String datasetId,
-        String loadTag,
         String profileId,
         String sourceGsPath,
         String targetPath) throws Exception {
@@ -460,8 +459,7 @@ public class DataRepoFixtures {
             .profileId(profileId)
             .description(null)
             .mimeType("application/octet-string")
-            .targetPath(targetPath)
-            .loadTag(loadTag);
+            .targetPath(targetPath);
 
         String json = TestUtils.mapToJson(fileLoadModel);
 
@@ -478,7 +476,7 @@ public class DataRepoFixtures {
         String profileId,
         String sourceGsPath,
         String targetPath) throws Exception {
-        DataRepoResponse<JobModel> resp = ingestFileLaunch(user, datasetId, null, profileId, sourceGsPath, targetPath);
+        DataRepoResponse<JobModel> resp = ingestFileLaunch(user, datasetId, profileId, sourceGsPath, targetPath);
         assertTrue("ingest launch succeeded", resp.getStatusCode().is2xxSuccessful());
         assertTrue("ingest launch response is present", resp.getResponseObject().isPresent());
 

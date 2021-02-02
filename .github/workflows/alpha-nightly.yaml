@@ -35,7 +35,7 @@ jobs:
           path: jade-data-repo-ui
           ref: develop
       - name: 'Create alpha release images'
-        uses: broadinstitute/datarepo-actions@0.26.0
+        uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}

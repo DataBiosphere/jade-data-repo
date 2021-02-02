@@ -28,9 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-        # ADD BACK BEFORE MERGE
-        #with:
-        #  ref: develop
+        with:
+          ref: develop
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
         with:
@@ -81,7 +80,7 @@ jobs:
           path: jade-data-repo-ui
           ref: develop
       - name: 'Release Candidate Container Build: Create alpha release images'
-        uses: broadinstitute/datarepo-actions@sh-dr-1593-bump-path
+        uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}

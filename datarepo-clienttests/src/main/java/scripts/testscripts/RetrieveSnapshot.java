@@ -17,6 +17,11 @@ import bio.terra.datarepo.model.SnapshotSummaryModel;
 import com.google.cloud.storage.BlobId;
 import common.utils.FileUtils;
 import common.utils.StorageUtils;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -25,12 +30,6 @@ import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
 import scripts.utils.DataRepoUtils;
 import scripts.utils.SAMUtils;
-
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 public class RetrieveSnapshot extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(RetrieveSnapshot.class);

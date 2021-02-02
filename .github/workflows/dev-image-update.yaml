@@ -37,7 +37,7 @@ jobs:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
       - name: "Bump the tag to a new version"
-        uses: broadinstitute/datarepo-actions@0.35.0
+        uses: broadinstitute/datarepo-actions@sh-dr-1593-bump-path
         with:
           actions_subcommand: 'bumper'
           role_id: ${{ secrets.ROLE_ID }}
@@ -54,13 +54,13 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ENABLE_SUBPROJECT_TASKS: true
       - name: "Build new delevop docker image"
-        uses: broadinstitute/datarepo-actions@0.35.0
+        uses: broadinstitute/datarepo-actions@sh-dr-1593-bump-path
         with:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Check and edit Helm definition for dev"
-        uses: broadinstitute/datarepo-actions@0.35.0
+        uses: broadinstitute/datarepo-actions@sh-dr-1593-bump-path
         with:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
@@ -80,7 +80,7 @@ jobs:
           path: jade-data-repo-ui
           ref: develop
       - name: 'Release Candidate Container Build: Create alpha release images'
-        uses: broadinstitute/datarepo-actions@0.35.0
+        uses: broadinstitute/datarepo-actions@sh-dr-1593-bump-path
         with:
           actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}

@@ -13,7 +13,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +46,7 @@ public class ValidateIngestFileDirectoryStep implements Step {
             FireStoreDirectoryEntry existingEntry = fileDao.lookupDirectoryEntryByPath(dataset, targetPath);
             if (existingEntry == null) {
                 workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CREATE_ENTRY_ACTION);
-            } else if (!StringUtils.equals(existingEntry.getLoadTag(), loadModel.getLoadTag())) {
+            } else if (!existingEntry.getLoadTag().equals(loadModel.getLoadTag())) {
                 throw new FileAlreadyExistsException("Path already exists: " + targetPath);
             } else {
                 workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CHECK_ENTRY_ACTION);

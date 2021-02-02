@@ -3,7 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.common.category.Unit;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.kubernetes.KubeService;
+import bio.terra.common.kubernetes.KubeService;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;

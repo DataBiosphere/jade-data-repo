@@ -202,6 +202,14 @@ dependencies {
         implementation 'bio.terra:stairway:0.0.24-SNAPSHOT'
     }
 
+    if (project.hasProperty("commonlibjar")) {
+        implementation files(project.ext.get("commonlibjar"))
+        implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
+        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
+    } else {
+        implementation 'bio.terra:terra-common-lib:0.0.9-SNAPSHOT'
+    }
+
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
 

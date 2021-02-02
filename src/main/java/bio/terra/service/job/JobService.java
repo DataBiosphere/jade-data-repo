@@ -3,6 +3,9 @@ package bio.terra.service.job;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.kubernetes.KubeConfiguration;
+import bio.terra.common.kubernetes.KubeService;
+import bio.terra.common.kubernetes.KubeShutdownState;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
@@ -16,7 +19,6 @@ import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.service.job.exception.JobServiceShutdownException;
 import bio.terra.service.job.exception.JobServiceStartupException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
-import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.upgrade.Migrate;
 import bio.terra.service.upgrade.MigrateConfiguration;
@@ -60,7 +62,8 @@ public class JobService {
     private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
     private final KubeService kubeService;
-    private final JobShutdownState jobShutdownState;
+    private final KubeConfiguration kubeConfiguration;
+    private final KubeShutdownState kubeShutdownState;
     private final Migrate migrate;
 
 
@@ -72,7 +75,8 @@ public class JobService {
                       GoogleResourceConfiguration googleResourceConfiguration,
                       ApplicationContext applicationContext,
                       KubeService kubeService,
-                      JobShutdownState jobShutdownState,
+                      KubeConfiguration kubeConfiguration,
+                      KubeShutdownState kubeShutdownState,
                       Migrate migrate,
                       ObjectMapper objectMapper,
                       PerformanceLogger performanceLogger) throws StairwayExecutionException {
@@ -81,7 +85,8 @@ public class JobService {
         this.kubeService = kubeService;
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
-        this.jobShutdownState = jobShutdownState;
+        this.kubeConfiguration = kubeConfiguration;
+        this.kubeShutdownState = kubeShutdownState;
         this.migrate = migrate;
 
         String projectId = googleResourceConfiguration.getProjectId();
@@ -96,11 +101,11 @@ public class JobService {
             .maxParallelFlights(appConfig.getMaxStairwayThreads())
             .exceptionSerializer(serializer)
             .applicationContext(applicationContext)
-            .stairwayName(appConfig.getPodName())
+            .stairwayName(kubeConfiguration.getPodName())
             .stairwayHook(new StairwayLoggingHooks(performanceLogger))
             .stairwayClusterName(stairwayClusterName)
             .workQueueProjectId(projectId)
-            .enableWorkQueue(appConfig.isInKubernetes())
+            .enableWorkQueue(kubeConfiguration.isInKubernetes())
             .build();
     }
 
@@ -167,11 +172,11 @@ public class JobService {
      */
     public boolean shutdown() throws InterruptedException {
         logger.info("JobService received shutdown request");
-        if (jobShutdownState.isShutdown()) {
+        if (kubeShutdownState.isShutdown()) {
             logger.warn("Ignoring duplicate shutdown request");
             return true; // allow this to be success
         }
-        jobShutdownState.setShutdown();
+        kubeShutdownState.setShutdown();
 
         // We enforce a minimum shutdown time. Otherwise, there is no point in trying the shutdown.
         // We allocate 3/4 of the time for graceful shutdown. Then call terminate for the rest of the time.
@@ -229,7 +234,7 @@ public class JobService {
     // submit a new job to stairway
     // protected method intended to be called only from JobBuilder
     protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap) {
-        if (jobShutdownState.isShutdown()) {
+        if (kubeShutdownState.isShutdown()) {
             throw new JobServiceShutdownException("Job service is shut down. Cannot accept a flight");
         }
 

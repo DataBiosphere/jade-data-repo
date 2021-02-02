@@ -13,7 +13,7 @@ import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.kubernetes.KubeService;
+import bio.terra.common.kubernetes.KubeService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadMapKeys;

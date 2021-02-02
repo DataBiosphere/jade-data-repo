@@ -6,7 +6,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.kubernetes.KubeService;
+import bio.terra.common.kubernetes.KubeService;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;

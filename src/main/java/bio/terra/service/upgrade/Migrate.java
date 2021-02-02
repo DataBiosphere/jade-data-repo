@@ -1,7 +1,7 @@
 package bio.terra.service.upgrade;
 
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
-import bio.terra.service.kubernetes.KubeService;
+import bio.terra.common.kubernetes.KubeService;
 import bio.terra.service.upgrade.exception.MigrateException;
 import liquibase.Contexts;
 import liquibase.Liquibase;

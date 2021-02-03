@@ -140,9 +140,7 @@ public class IngestTest extends UsersBase {
             "participant", "ingest-test/ingest-test-participant.json");
         IngestResponseModel ingestCustodianResp = dataRepoFixtures.ingestJsonData(
             custodian(), datasetId, request);
-        assertThat("Custodian is not authorized to ingest data",
-            ingestCustResp.getStatusCode(),
-            equalTo(HttpStatus.ACCEPTED));
+        assertThat("Custodian was able to ingest", ingestCustodianResp.getRowCount(), greaterThan(0L));
         DataRepoResponse<JobModel> ingestReadResp = dataRepoFixtures.ingestJsonDataLaunch(
             reader(), datasetId, request);
         assertThat("Reader is not authorized to ingest data",

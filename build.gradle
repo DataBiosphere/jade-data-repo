@@ -398,7 +398,6 @@ task testIntegration(type: Test) {
         maxRetries = 3
         maxFailures = 15
     }
-    failFast = true
     outputs.upToDateWhen { false }
 }
 

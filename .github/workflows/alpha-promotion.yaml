@@ -11,35 +11,35 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
+      - name: "Checkout"
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: 'Get Previous tag'
+      - name: "Get Previous tag"
         id: apiprevioustag
         uses: "broadinstitute/github-action-get-previous-tag@master"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: 'Checkout terra-helmfile repo'
+      - name: "[Update version in terra-helmfile]: Checkout terra-helmfile repo"
         uses: actions/checkout@v2
         with:
           repository: 'broadinstitute/terra-helmfile'
           token: ${{ secrets.TERRA_HELMFILE_TOKEN }}
           path: terra-helmfile
           persist-credentials: false
-      - name: "Find and replace Datarepo version in versions.yaml"
+      - name: "[Update version in terra-helmfile/versions.yaml] Update Datarepo version"
         uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i terra-helmfile/versions.yaml releases.datarepo.appVersion ${{ steps.apiprevioustag.outputs.tag }}
-      - name: "Find and replace Datarepo chartVersion version in versions.yaml"
+      - name: "[Update version in terra-helmfile/versions.yaml] Update chartVersion"
         uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i terra-helmfile/versions.yaml releases.datarepo.chartVersion ${{ env.chartVersion }}
-      - name: "Read terra-helmfile daterepo fields in versions.yaml"
+      - name: "[Update version in terra-helmfile/versions.yaml] Read Fields"
         uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq r terra-helmfile/versions.yaml releases.datarepo
-      - name: Create pull request
+      - name: "[Update version in terra-helmfile] Create pull request"
         uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
         id: create-pr
         with:
@@ -54,3 +54,21 @@ jobs:
             Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "broadbot,datarepo,automerge,version-update"
+      - name: "Check to see that alpha is running against new version"
+        run: |
+          ALPHA_VERSION=$(curl -s -X GET "https://data.alpha.envs-terra.bio/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+          RETRY_COUNT=0
+          until [[ "$ALPHA_VERSION" == "${{ steps.apiprevioustag.outputs.tag }}" ]]; do
+            if [[ ${RETRY_COUNT} -gt 20 ]]; then
+              echo "Failed to match alpha version $ALPHA_VERSION to dev version ${{ steps.apiprevioustag.outputs.tag }}"
+              exit 1
+            fi
+            echo "Retry #${RETRY_COUNT}: Waiting for $ALPHA_VERSION to equal ${{ steps.apiprevioustag.outputs.tag }}"
+            sleep 15
+            ALPHA_VERSION=$(curl -s -X GET "https://data.alpha.envs-terra.bio/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+            ((RETRY_COUNT=RETRY_COUNT+1))
+          done;
+          echo "Perf successfully running on new version: $ALPHA_VERSION"
+      - name: "TODO - ADD TEST RUN!"
+        run: echo "hello"
+      - name: "[Cherrypick image to prod GCR]"

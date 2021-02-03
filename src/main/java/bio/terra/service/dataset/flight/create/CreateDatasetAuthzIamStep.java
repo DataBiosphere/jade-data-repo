@@ -5,7 +5,6 @@ import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.iam.IamRole;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -13,7 +12,6 @@ import bio.terra.stairway.StepResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Map;
 import java.util.UUID;
 
 public class CreateDatasetAuthzIamStep implements Step {

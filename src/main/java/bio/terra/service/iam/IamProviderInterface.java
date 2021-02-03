@@ -102,7 +102,7 @@ public interface IamProviderInterface {
      */
     Map<IamRole, String> addDatasetResourcePolicies(AuthenticatedUserRequest userReq, UUID datasetId)
         throws InterruptedException;
-    
+
     /**
      * Create a snapshot IAM resource
      *

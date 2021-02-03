@@ -177,10 +177,10 @@ public class SamIam implements IamProviderInterface {
     }
 
     @Override
-    public boolean createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
+    public void createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
         throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
-        return samRetry.perform(() -> createDatasetResourceInner(userReq, datasetId));
+        samRetry.perform(() -> createDatasetResourceInner(userReq, datasetId));
     }
 
     private boolean createDatasetResourceInner(AuthenticatedUserRequest userReq,

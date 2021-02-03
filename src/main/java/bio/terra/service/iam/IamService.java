@@ -174,7 +174,7 @@ public class IamService {
      */
     public void createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
         try {
-            return iamProvider.createDatasetResource(userReq, datasetId);
+            iamProvider.createDatasetResource(userReq, datasetId);
         } catch (InterruptedException ex) {
             throw new IamUnavailableException("service unavailable");
         }

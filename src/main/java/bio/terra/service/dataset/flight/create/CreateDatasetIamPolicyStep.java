@@ -33,23 +33,13 @@ public class CreateDatasetIamPolicyStep implements Step {
     public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-        Map<IamRole, String> policyEmails = iamClient.addDatasetPoliciesToResource(userReq, datasetId);
+        Map<IamRole, String> policyEmails = iamClient.addDatasetResourcePolicies(userReq, datasetId);
         workingMap.put(DatasetWorkingMapKeys.POLICY_EMAILS, policyEmails);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) throws InterruptedException {
-        FlightMap workingMap = context.getWorkingMap();
-        UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-        try {
-            iamClient.deleteDatasetResource(userReq, datasetId);
-        } catch (UnauthorizedException ex) {
-            // suppress exception
-            logger.error("NEEDS CLEANUP: delete sam resource for dataset " + datasetId.toString(), ex);
-        } catch (NotFoundException ex) {
-            // if the SAM resource is not found, then it was likely not created -- continue undoing
-        }
         return StepResult.getStepResultSuccess();
     }
 }

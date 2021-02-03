@@ -20,7 +20,7 @@ public class SimpleDataset extends runner.TestScript {
   protected TestUserSpecification datasetCreator;
   protected BillingProfileModel billingProfileModel;
   protected DatasetSummaryModel datasetSummaryModel;
-  protected boolean deleteProfile;
+  protected boolean deleteProfile = true;
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // pick the a user that is a Data Repo steward to be the dataset creator

@@ -90,9 +90,19 @@ public interface IamProviderInterface {
      * @param datasetId id of the dataset
      * @return Map of policy group emails for the dataset policies
      */
-    Map<IamRole, String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
+    void createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
         throws InterruptedException;
 
+    /**
+     * Add policies to dataset
+     *
+     * @param userReq   authenticated user
+     * @param datasetId id of the dataset
+     * @return Map of policy group emails for the dataset policies
+     */
+    Map<IamRole, String> addDatasetResourcePolicies(AuthenticatedUserRequest userReq, UUID datasetId)
+        throws InterruptedException;
+    
     /**
      * Create a snapshot IAM resource
      *

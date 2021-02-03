@@ -172,7 +172,7 @@ public class IamService {
      * @param datasetId id of the dataset
      * @return List of policy group emails for the dataset policies
      */
-    public Map<IamRole, String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
+    public void createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
         try {
             return iamProvider.createDatasetResource(userReq, datasetId);
         } catch (InterruptedException ex) {

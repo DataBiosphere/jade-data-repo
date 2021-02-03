@@ -177,13 +177,13 @@ public class SamIam implements IamProviderInterface {
     }
 
     @Override
-    public Map<IamRole, String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
+    public boolean createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
         throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> createDatasetResourceInner(userReq, datasetId));
     }
 
-    private Map<IamRole, String> createDatasetResourceInner(AuthenticatedUserRequest userReq,
+    private boolean createDatasetResourceInner(AuthenticatedUserRequest userReq,
                                                             UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());
@@ -202,7 +202,18 @@ public class SamIam implements IamProviderInterface {
 
         // create the resource in sam
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASET.toString(), req);
+        return true;
+    }
 
+    @Override
+    public Map<IamRole, String> addDatasetResourcePolicies(AuthenticatedUserRequest userReq, UUID datasetId)
+        throws InterruptedException {
+        SamRetry samRetry = new SamRetry(configurationService);
+        return samRetry.perform(() -> addDatasetResourcePoliciesInner(userReq, datasetId));
+    }
+
+    private Map<IamRole, String> addDatasetResourcePoliciesInner(AuthenticatedUserRequest userReq,
+                                                            UUID datasetId) throws ApiException {
         // we'll want all of these roles to have read access to the underlying data,
         // so we sync and return the emails for the policies that get created by SAM
         Map<IamRole, String> policies = new HashMap<>();

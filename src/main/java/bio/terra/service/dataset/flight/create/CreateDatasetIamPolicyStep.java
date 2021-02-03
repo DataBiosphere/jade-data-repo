@@ -16,13 +16,13 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.UUID;
 
-public class CreateDatasetAuthzIamStep implements Step {
-    private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzIamStep.class);
+public class CreateDatasetIamPolicyStep implements Step {
+    private static Logger logger = LoggerFactory.getLogger(CreateDatasetIamPolicyStep.class);
 
     private final IamProviderInterface iamClient;
     private final AuthenticatedUserRequest userReq;
 
-    public CreateDatasetAuthzIamStep(
+    public CreateDatasetIamPolicyStep(
         IamProviderInterface iamClient,
         AuthenticatedUserRequest userReq) {
         this.iamClient = iamClient;
@@ -33,9 +33,9 @@ public class CreateDatasetAuthzIamStep implements Step {
     public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-        iamClient.createDatasetResource(userReq, datasetId);
+        Map<IamRole, String> policyEmails = iamClient.addDatasetPoliciesToResource(userReq, datasetId);
+        workingMap.put(DatasetWorkingMapKeys.POLICY_EMAILS, policyEmails);
         return StepResult.getStepResultSuccess();
-
     }
 
     @Override

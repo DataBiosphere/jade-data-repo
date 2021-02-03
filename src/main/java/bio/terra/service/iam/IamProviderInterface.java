@@ -88,7 +88,6 @@ public interface IamProviderInterface {
      *
      * @param userReq   authenticated user
      * @param datasetId id of the dataset
-     * @return Map of policy group emails for the dataset policies
      */
     void createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
         throws InterruptedException;

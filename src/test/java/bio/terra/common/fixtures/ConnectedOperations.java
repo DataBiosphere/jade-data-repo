@@ -124,9 +124,7 @@ public class ConnectedOperations {
 
         when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
-        //TODO Fix
-        //when(samService.createDatasetResource(any(), any())).;
-        //when(samService.create).thenReturn(datasetPolicies);
+        when(samService.addDatasetResourcePolicies(any(), any())).thenReturn(datasetPolicies);
 
         // when asked what datasets/snapshots the caller has access to, return all the datasets/snapshots contained
         // in the bookkeeping lists (createdDatasetIds/createdDatasetIds) in this class.

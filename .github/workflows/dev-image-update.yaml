@@ -68,8 +68,6 @@ jobs:
           helm_env_prefix: dev
       - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
         run: |
-          #TOD0: remove before merging - this is only necessary b/c we're on a local branch
-          git pull 
           git checkout ${{ steps.bumperstep.outputs.tag }}
       - name: 'Release Candidate Container Build: Checkout DataBiosphere/jade-data-repo-ui repo'
         uses: actions/checkout@v2

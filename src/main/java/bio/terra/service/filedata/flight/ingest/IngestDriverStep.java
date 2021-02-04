@@ -13,6 +13,7 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.stairway.exception.DuplicateFlightIdSubmittedException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -129,7 +130,7 @@ public class IngestDriverStep implements Step {
                 // Wait until some loads complete
                 waitForAny(context, loadId, scaledConcurrentFiles, currentRunning);
             }
-        } catch (DatabaseOperationException | StairwayExecutionException ex) {
+        } catch (DatabaseOperationException | StairwayExecutionException | DuplicateFlightIdSubmittedException ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
         }
         return StepResult.getStepResultSuccess();
@@ -259,7 +260,8 @@ public class IngestDriverStep implements Step {
                              String profileId,
                              UUID loadId,
                              GoogleBucketResource bucketInfo)
-        throws DatabaseOperationException, StairwayExecutionException, InterruptedException {
+        throws DatabaseOperationException, StairwayExecutionException,
+        InterruptedException, DuplicateFlightIdSubmittedException {
 
         Stairway stairway = context.getStairway();
 

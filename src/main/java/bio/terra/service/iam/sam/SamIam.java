@@ -383,11 +383,13 @@ public class SamIam implements IamProviderInterface {
                                        String policyName,
                                        String userEmail) throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
-        return samRetry.perform(
+        samRetry.perform(
             () -> addPolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
+        return samRetry.perform(
+            () -> retrievePolicy(userReq, iamResourceType, resourceId, policyName));
     }
 
-    private PolicyModel addPolicyMemberInner(AuthenticatedUserRequest userReq,
+    private Void addPolicyMemberInner(AuthenticatedUserRequest userReq,
                                              IamResourceType iamResourceType,
                                              UUID resourceId,
                                              String policyName,
@@ -396,12 +398,7 @@ public class SamIam implements IamProviderInterface {
         logger.debug("addUserPolicy resourceType {} resourceId {} policyName {} userEmail {}",
             iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
         samResourceApi.addUserToPolicy(iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
-
-        AccessPolicyMembership result =
-            samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
-        return new PolicyModel()
-            .name(policyName)
-            .members(result.getMemberEmails());
+        return null;
     }
 
     @Override
@@ -411,11 +408,12 @@ public class SamIam implements IamProviderInterface {
                                           String policyName,
                                           String userEmail) throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
-        return samRetry.perform(
+        samRetry.perform(
             () -> deletePolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
+        return samRetry.perform(() -> retrievePolicy(userReq, iamResourceType, resourceId, policyName));
     }
 
-    private PolicyModel deletePolicyMemberInner(AuthenticatedUserRequest userReq,
+    private Void deletePolicyMemberInner(AuthenticatedUserRequest userReq,
                                                 IamResourceType iamResourceType,
                                                 UUID resourceId,
                                                 String policyName,
@@ -426,7 +424,14 @@ public class SamIam implements IamProviderInterface {
             resourceId.toString(),
             policyName,
             userEmail);
+        return null;
+    }
 
+    private PolicyModel retrievePolicy(AuthenticatedUserRequest userReq,
+                                       IamResourceType iamResourceType,
+                                       UUID resourceId,
+                                       String policyName) throws ApiException {
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         AccessPolicyMembership result =
             samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
         return new PolicyModel()

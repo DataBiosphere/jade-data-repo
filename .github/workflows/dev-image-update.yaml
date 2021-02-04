@@ -64,11 +64,29 @@ jobs:
         with:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
-      - name: Trigger action to tag containers with semantic version
-        uses: broadinstitute/workflow-dispatch@v1
+      - name: 'Release Candidate Container Build: Get Previous tag'
+        id: apiprevioustag
+        uses: "broadinstitute/github-action-get-previous-tag@master"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
+        run: |
+          git checkout ${{ steps.apiprevioustag.outputs.tag }}
+      - name: 'Release Candidate Container Build: Checkout DataBiosphere/jade-data-repo-ui repo'
+        uses: actions/checkout@v2
         with:
-          workflow: Alpha Nightly
-          token: ${{ secrets.WORKFLOW_DISPATCH }}
+          repository: 'DataBiosphere/jade-data-repo-ui'
+          token: ${{ secrets.HELM_REPO_TOKEN }}
+          path: jade-data-repo-ui
+          ref: develop
+      - name: 'Release Candidate Container Build: Create alpha release images'
+        uses: broadinstitute/datarepo-actions@0.36.0
+        with:
+          actions_subcommand: 'alpharelease'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+          alpharelease: ${{ steps.apiprevioustag.outputs.tag }}
+          gcr_google_project: 'broad-jade-dev'
       - name: Trigger action to tag update helm tag
         uses: broadinstitute/workflow-dispatch@v1
         with:

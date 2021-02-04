@@ -33,7 +33,7 @@ public class RetrieveSnapshot extends SimpleDataset {
 
   // Specify the name of a profile to use for the test with the TEST_RUNNER_BILLING_PROFILE_NAME
   // env variable.
-  private static final String profileNameRaw = System.getenv("TEST_RUNNER_BILLING_PROFILE_NAME");
+  private static final String PROFILE_NAME_RAW = System.getenv("TEST_RUNNER_BILLING_PROFILE_NAME");
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public RetrieveSnapshot() {
@@ -45,12 +45,12 @@ public class RetrieveSnapshot extends SimpleDataset {
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     Optional<String> profileName;
-    if (StringUtils.isBlank(profileNameRaw)) {
+    if (StringUtils.isBlank(PROFILE_NAME_RAW)) {
       profileName = Optional.empty();
       deleteProfile = true;
       logger.info("No profile name specified.  Will create a new billing profile");
     } else {
-      profileName = Optional.ofNullable(profileNameRaw);
+      profileName = Optional.ofNullable(PROFILE_NAME_RAW);
       deleteProfile = false;
       logger.info("Will attempt to use a billing profile named {}", profileName.get());
     }

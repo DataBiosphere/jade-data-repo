@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -13,19 +14,20 @@ import bio.terra.stairway.StepResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.UUID;
 
-public class SnapshotAuthzIamStep implements Step {
+public class SnapshotAuthzIamPolicyStep implements Step {
     private final IamService sam;
     private final SnapshotService snapshotService;
     private final SnapshotRequestModel snapshotRequestModel;
     private final AuthenticatedUserRequest userReq;
-    private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzIamStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzIamPolicyStep.class);
 
-    public SnapshotAuthzIamStep(IamService sam,
-                                SnapshotService snapshotService,
-                                SnapshotRequestModel snapshotRequestModel,
-                                AuthenticatedUserRequest userReq) {
+    public SnapshotAuthzIamPolicyStep(IamService sam,
+                                      SnapshotService snapshotService,
+                                      SnapshotRequestModel snapshotRequestModel,
+                                      AuthenticatedUserRequest userReq) {
         this.sam = sam;
         this.snapshotService = snapshotService;
         this.snapshotRequestModel = snapshotRequestModel;
@@ -37,8 +39,10 @@ public class SnapshotAuthzIamStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
-        // This creates the resource in SAM
-        sam.createSnapshotResource(userReq, snapshotId, snapshotRequestModel.getReaders());
+        // This returns the policy email created by Google to correspond to the readers list in SAM
+        Map<IamRole, String> policies =
+            sam.syncSnapshotResourcePolicies(userReq, snapshotId, snapshotRequestModel.getReaders());
+        workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policies);
         return StepResult.getStepResultSuccess();
     }
 

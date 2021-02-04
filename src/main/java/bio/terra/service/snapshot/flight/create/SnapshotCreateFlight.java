@@ -96,6 +96,7 @@ public class SnapshotCreateFlight extends Flight {
         // Create the IAM resource and readers for the snapshot
         // The IAM code contains retries, so we don't make a retry rule here.
         addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq));
+        addStep(new SnapshotAuthzIamPolicyStep(iamClient, snapshotService, snapshotReq, userReq));
 
         // Make the firestore file system for the snapshot
         addStep(new CreateSnapshotFireStoreDataStep(

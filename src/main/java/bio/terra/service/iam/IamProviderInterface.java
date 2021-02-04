@@ -107,10 +107,20 @@ public interface IamProviderInterface {
      *
      * @param userReq     authenticated user
      * @param snapshotId  id of the snapshot
+     */
+    void createSnapshotResource(AuthenticatedUserRequest userReq,
+                                                UUID snapshotId,
+                                                List<String> readersList) throws InterruptedException;
+
+    /**
+     * sync policies for snapshot IAM resource
+     *
+     * @param userReq     authenticated user
+     * @param snapshotId  id of the snapshot
      * @param readersList list of emails of users to add as readers of the snapshot
      * @return Policy group email for the snapshot reader policy
      */
-    Map<IamRole, String> createSnapshotResource(AuthenticatedUserRequest userReq,
+    Map<IamRole, String> syncSnapshotResourcePolicies(AuthenticatedUserRequest userReq,
                                                 UUID snapshotId,
                                                 List<String> readersList) throws InterruptedException;
 

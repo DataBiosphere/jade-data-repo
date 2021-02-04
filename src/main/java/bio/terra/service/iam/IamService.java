@@ -185,14 +185,31 @@ public class IamService {
      *
      * @param userReq     authenticated user
      * @param snapshotId  id of the snapshot
-     * @param readersList list of emails of users to add as readers of the snapshot
      * @return Policy group map
      */
-    public Map<IamRole, String> createSnapshotResource(AuthenticatedUserRequest userReq,
+    public void createSnapshotResource(AuthenticatedUserRequest userReq,
                                                        UUID snapshotId,
                                                        List<String> readersList) {
         try {
-            return iamProvider.createSnapshotResource(userReq, snapshotId, readersList);
+            iamProvider.createSnapshotResource(userReq, snapshotId, readersList);
+        } catch (InterruptedException ex) {
+            throw new IamUnavailableException("service unavailable");
+        }
+    }
+
+    /**
+     * Add policy to snapshot IAM resource
+     *
+     * @param userReq     authenticated user
+     * @param snapshotId  id of the snapshot
+     * @param readersList list of emails of users to add as readers of the snapshot
+     * @return Policy group map
+     */
+    public Map<IamRole, String> syncSnapshotResourcePolicies(AuthenticatedUserRequest userReq,
+                                                       UUID snapshotId,
+                                                       List<String> readersList) {
+        try {
+            return iamProvider.syncSnapshotResourcePolicies(userReq, snapshotId, readersList);
         } catch (InterruptedException ex) {
             throw new IamUnavailableException("service unavailable");
         }

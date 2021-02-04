@@ -183,7 +183,7 @@ public class SamIam implements IamProviderInterface {
         samRetry.perform(() -> createDatasetResourceInner(userReq, datasetId));
     }
 
-    private boolean createDatasetResourceInner(AuthenticatedUserRequest userReq,
+    private Void createDatasetResourceInner(AuthenticatedUserRequest userReq,
                                                             UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());
@@ -202,7 +202,7 @@ public class SamIam implements IamProviderInterface {
 
         // create the resource in sam
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASET.toString(), req);
-        return true;
+        return null;
     }
 
     @Override
@@ -226,16 +226,16 @@ public class SamIam implements IamProviderInterface {
     }
 
     @Override
-    public Map<IamRole, String> createSnapshotResource(
+    public void createSnapshotResource(
         AuthenticatedUserRequest userReq,
         UUID snapshotId,
         List<String> readersList) throws InterruptedException {
 
         SamRetry samRetry = new SamRetry(configurationService);
-        return samRetry.perform(() -> createSnapshotResourceInner(userReq, snapshotId, readersList));
+        samRetry.perform(() -> createSnapshotResourceInner(userReq, snapshotId, readersList));
     }
 
-    private Map<IamRole, String> createSnapshotResourceInner(AuthenticatedUserRequest userReq,
+    private Void createSnapshotResourceInner(AuthenticatedUserRequest userReq,
                                                              UUID snapshotId,
                                                              List<String> readersList) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
@@ -258,7 +258,22 @@ public class SamIam implements IamProviderInterface {
 
         // create the resource in sam
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASNAPSHOT.toString(), req);
+        return null;
+    }
 
+    @Override
+    public Map<IamRole, String> syncSnapshotResourcePolicies(
+        AuthenticatedUserRequest userReq,
+        UUID snapshotId,
+        List<String> readersList) throws InterruptedException {
+
+        SamRetry samRetry = new SamRetry(configurationService);
+        return samRetry.perform(() -> syncSnapshotResourcePoliciesInner(userReq, snapshotId, readersList));
+    }
+
+    private Map<IamRole, String> syncSnapshotResourcePoliciesInner(AuthenticatedUserRequest userReq,
+                                                             UUID snapshotId,
+                                                             List<String> readersList) throws ApiException {
         // sync the policies for all roles that have read data action
         Map<IamRole, String> policies = new HashMap<>();
         String policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.READER);

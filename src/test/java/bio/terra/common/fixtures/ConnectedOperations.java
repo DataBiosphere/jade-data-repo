@@ -122,7 +122,7 @@ public class ConnectedOperations {
         datasetPolicies.put(IamRole.STEWARD,  "hi@hi.com");
         datasetPolicies.put(IamRole.INGESTER,  "hi@hi.com");
 
-        when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
+        when(samService.syncSnapshotResourcePolicies(any(), any(), any())).thenReturn(snapshotPolicies);
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
         when(samService.addDatasetResourcePolicies(any(), any())).thenReturn(datasetPolicies);
 

@@ -26,7 +26,7 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
+      - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v2
         with:
           ref: develop
@@ -37,6 +37,7 @@ jobs:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
       - name: "Bump the tag to a new version"
+        id: bumperstep
         uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'bumper'
@@ -59,19 +60,14 @@ jobs:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Check and edit Helm definition for dev"
+      - name: "Update Version in helm for Dev Env"
         uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
-      - name: 'Release Candidate Container Build: Get Previous tag'
-        id: apiprevioustag
-        uses: "broadinstitute/github-action-get-previous-tag@master"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
         run: |
-          git checkout ${{ steps.apiprevioustag.outputs.tag }}
+          git checkout ${{ steps.bumperstep.outputs.tag }}
       - name: 'Release Candidate Container Build: Checkout DataBiosphere/jade-data-repo-ui repo'
         uses: actions/checkout@v2
         with:
@@ -79,15 +75,15 @@ jobs:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: jade-data-repo-ui
           ref: develop
-      - name: 'Release Candidate Container Build: Create alpha release images'
+      - name: 'Release Candidate Container Build: Create release candidate images'
         uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          alpharelease: ${{ steps.apiprevioustag.outputs.tag }}
+          alpharelease: ${{ steps.bumperstep.outputs.tag }}
           gcr_google_project: 'broad-jade-dev'
-      - name: Trigger action to tag update helm tag
+      - name: "Update Version in helm for Integration Env"
         uses: broadinstitute/workflow-dispatch@v1
         with:
           workflow: Update integration api helm image tag

@@ -21,8 +21,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Checkout tag for DataBiosphere/jade-data-repo"
+        if: github.ref == 'refs/heads/develop'
         run: |
           git checkout ${{ steps.apiprevioustag.outputs.tag }}
+          echo "Current branch is ${{ github.ref }}"
       - name: "Import Vault staging secrets"
         uses: hashicorp/vault-action@v2.1.0
         with:

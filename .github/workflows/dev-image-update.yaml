@@ -26,7 +26,7 @@ jobs:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
+      - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v2
         with:
           ref: develop
@@ -36,7 +36,7 @@ jobs:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
-      - name: "Bump the tag to a new version"
+      - name: "Bump the tag to a new minor version"
         id: bumperstep
         uses: broadinstitute/datarepo-actions@0.36.0
         with:
@@ -60,7 +60,7 @@ jobs:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Check and edit Helm definition for dev"
+      - name: "Update Version in helm for Dev Env"
         uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'deploytagupdate'
@@ -75,7 +75,7 @@ jobs:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: jade-data-repo-ui
           ref: develop
-      - name: 'Release Candidate Container Build: Create alpha release images'
+      - name: 'Release Candidate Container Build: Create release candidate images'
         uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'alpharelease'
@@ -83,11 +83,45 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
           alpharelease: ${{ steps.bumperstep.outputs.tag }}
           gcr_google_project: 'broad-jade-dev'
-      - name: Trigger action to tag update helm tag
-        uses: broadinstitute/workflow-dispatch@v1
+      - name: "Update version for Integration Env: integration-1 find and replace"
+        uses: docker://mikefarah/yq:3.3.4
         with:
-          workflow: Update integration api helm image tag
-          token: ${{ secrets.WORKFLOW_DISPATCH }}
+          args: yq w -i datarepo-helm-definitions/integration/integration-1/datarepo-api.yaml image.tag ${{ steps.bumperstep.outputs.tag }}"
+      - name: "Update version for Integration Env: integration-2 find and replace"
+        uses: docker://mikefarah/yq:3.3.4
+        with:
+          args: yq w -i datarepo-helm-definitions/integration/integration-2/datarepo-api.yaml image.tag ${{ steps.bumperstep.outputs.tag }}"
+      - name: "Update version for Integration Env: integration-3 find and replace"
+        uses: docker://mikefarah/yq:3.3.4
+        with:
+          args: yq w -i datarepo-helm-definitions/integration/integration-3/datarepo-api.yaml image.tag ${{ steps.bumperstep.outputs.tag }}"
+      - name: "Update version for Integration Env: integration-4 find and replace"
+        uses: docker://mikefarah/yq:3.3.4
+        with:
+          args: yq w -i datarepo-helm-definitions/integration/integration-4/datarepo-api.yaml image.tag ${{ steps.bumperstep.outputs.tag }}"
+      - name: "Update version for Integration Env: integration-5 find and replace"
+        uses: docker://mikefarah/yq:3.3.4
+        with:
+          args: yq w -i datarepo-helm-definitions/integration/integration-5/datarepo-api.yaml image.tag ${{ steps.bumperstep.outputs.tag }}"
+      - name: "Update version for Integration Env: integration-6 find and replace"
+        uses: docker://mikefarah/yq:3.3.4
+        with:
+          args: yq w -i datarepo-helm-definitions/integration/integration-6/datarepo-api.yaml image.tag ${{ steps.bumperstep.outputs.tag }}"
+      - name: "Update version for Integration Env: Create and merge datarepo-helm-definitions pull request"
+        uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
+        id: create-pr
+        with:
+          token: ${{ secrets.TERRA_HELMFILE_TOKEN }}
+          path: datarepo-helm-definitions
+          commit-message: "Datarepo api tag version update: ${{ steps.bumperstep.outputs.tag }}"
+          committer: datarepo-bot <noreply@github.com>
+          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+          title: "Datarepo version update: ${{ steps.bumperstep.outputs.tag }}"
+          branch: "version-update/${{ steps.bumperstep.outputs.tag }}"
+          body: |
+            Update versions in **${{ steps.bumperstep.outputs.tag }}**.
+            *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
+          labels: "datarepo,automerge,version-update"
       - name: Slack job status
         if: always()
         uses: broadinstitute/action-slack@v3.8.0

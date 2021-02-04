@@ -28,9 +28,8 @@ jobs:
     steps:
       - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v2
-        # ADD BACK BEFORE MERGE
-        #with:
-        #  ref: develop
+        with:
+          ref: develop
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
         with:

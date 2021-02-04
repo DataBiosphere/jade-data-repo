@@ -68,7 +68,7 @@ public class DatasetCreateFlight extends Flight {
 
         // The underlying service provides retries so we do not need to retry for IAM step
         addStep(new CreateDatasetAuthzIamStep(iamClient, userReq));
-        addStep(new CreateDatasetIamPolicyStep(iamClient, userReq));
+        addStep(new CreateDatasetAuthzIamPolicyStep(iamClient, userReq));
 
         // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes. The max
         // operation timeout is generous.

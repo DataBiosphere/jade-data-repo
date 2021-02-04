@@ -206,13 +206,13 @@ public class SamIam implements IamProviderInterface {
     }
 
     @Override
-    public Map<IamRole, String> addDatasetResourcePolicies(AuthenticatedUserRequest userReq, UUID datasetId)
+    public Map<IamRole, String> syncDatasetResourcePolicies(AuthenticatedUserRequest userReq, UUID datasetId)
         throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
-        return samRetry.perform(() -> addDatasetResourcePoliciesInner(userReq, datasetId));
+        return samRetry.perform(() -> syncDatasetResourcePoliciesInner(userReq, datasetId));
     }
 
-    private Map<IamRole, String> addDatasetResourcePoliciesInner(AuthenticatedUserRequest userReq,
+    private Map<IamRole, String> syncDatasetResourcePoliciesInner(AuthenticatedUserRequest userReq,
                                                             UUID datasetId) throws ApiException {
         // we'll want all of these roles to have read access to the underlying data,
         // so we sync and return the emails for the policies that get created by SAM

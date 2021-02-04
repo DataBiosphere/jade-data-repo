@@ -99,7 +99,7 @@ public interface IamProviderInterface {
      * @param datasetId id of the dataset
      * @return Map of policy group emails for the dataset policies
      */
-    Map<IamRole, String> addDatasetResourcePolicies(AuthenticatedUserRequest userReq, UUID datasetId)
+    Map<IamRole, String> syncDatasetResourcePolicies(AuthenticatedUserRequest userReq, UUID datasetId)
         throws InterruptedException;
 
     /**

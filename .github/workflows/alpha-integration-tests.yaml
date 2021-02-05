@@ -6,7 +6,6 @@ env:
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   TDR_LOG_APPENDER: Console-Standard
 on:
-  # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}
 jobs:
   alpha-integration-test:

@@ -108,7 +108,6 @@ jobs:
         ./gradlew uploadResults --args="BroadJadeDev.json $outputDir"
 
         cd ${GITHUB_WORKSPACE}/${workingDir}
-    - name: "Upload Results"
     - name: "Notify Slack"
       if: always()
       uses: broadinstitute/action-slack@v3.8.0

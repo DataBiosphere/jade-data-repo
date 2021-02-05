@@ -85,8 +85,8 @@ jobs:
         echo "Running test suite"
         ./gradlew runTest --args="suites/AlphaSmokeTests.json tmp/TestRunnerResults"
 
-        echo "Collecting measurements"
-        ./gradlew collectMeasurements --args="AlphaSmokeTests.json tmp/TestRunnerResults"
+        #echo "Collecting measurements"
+        #./gradlew collectMeasurements --args="AlphaSmokeTests.json tmp/TestRunnerResults"
 
         echo "Uploading results"
         ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"

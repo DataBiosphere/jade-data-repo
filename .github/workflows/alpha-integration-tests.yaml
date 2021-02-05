@@ -21,7 +21,8 @@ jobs:
     - name: "Read staging version from terra-helmfile" 
       id: terrahelmfile
       run: |
-        alpha_version=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r terra-helmfile/versions/alpha.yaml releases.datarepo.appVersion)
+        #TODO - Switch to terra-helmfile/versions/alpha.yaml before merging
+        alpha_version=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r terra-helmfile/versions.yaml releases.datarepo.appVersion)
         echo "::set-output name=alpha_version::$alpha_version"
     - name: "Checkout tag for DataBiosphere/jade-data-repo"
       #if: github.ref == 'refs/heads/develop'

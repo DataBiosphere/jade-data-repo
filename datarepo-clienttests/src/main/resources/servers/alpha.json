@@ -12,5 +12,5 @@
   "containerName": "datarepo-datarepo-api",
   "testRunnerServiceAccountFile": "jade-k8-sa.json",
   "skipDeployment": true,
-  "skipKubernetes": false
+  "skipKubernetes": true
 }

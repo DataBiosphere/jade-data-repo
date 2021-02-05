@@ -91,7 +91,7 @@ jobs:
           username: "Data Repo tests"
           text: "Staging smoke tests"
           fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-    - name: "Notify QA Slack"
+      - name: "Notify QA Slack"
         if: always()
         uses: broadinstitute/action-slack@v3.8.0
         env:

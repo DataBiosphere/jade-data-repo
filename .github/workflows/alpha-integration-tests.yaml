@@ -1,7 +1,7 @@
 name: DataRepo Alpha Integration Tests
 env:
   K8_CLUSTER: jade-master-us-central1
-  GOOGLE_APPLICATION_CREDENTIALS: /tmp/alpha-test-runner.json
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   TDR_LOG_APPENDER: Console-Standard

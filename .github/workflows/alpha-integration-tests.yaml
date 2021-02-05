@@ -28,7 +28,6 @@ jobs:
         #if: github.ref == 'refs/heads/develop'
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0
           ref: ${{ steps.terrahelmfile.outputs.alpha_version }}
     - name: "Checkout jade-data-repo"
       if: github.ref != 'refs/heads/develop'

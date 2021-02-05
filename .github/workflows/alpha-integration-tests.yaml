@@ -82,16 +82,33 @@ jobs:
         export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
         echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
-        echo "Running test suite"
-        ./gradlew runTest --args="suites/AlphaSmokeTests.json tmp/TestRunnerResults"
+          
+        echo "Running spotless and spotbugs"
+        ./gradlew spotlessCheck
+        ./gradlew spotbugsMain
 
-        #echo "Collecting measurements"
-        #./gradlew collectMeasurements --args="AlphaSmokeTests.json tmp/TestRunnerResults"
+        local outputDir="/tmp/TestRunnerResults"
+        echo "Output directory set to: $outputDir"
+  
+        echo "Running tests"
+        ./gradlew runTest --args="suites/AlphaSmokeTests.json $outputDir" ||
+          (echo "Running tests FAILED" &&
+          ./gradlew uploadResults --args="BroadJadeDev.json $outputDir" &&
+          return 1)
+        echo "Running test suite SUCCEEDED"
+
+        echo "Collecting measurements"
+        ./gradlew collectMeasurements --args="AlphaSmokeTests.json $outputDir" ||
+          (echo "Collecting measurements FAILED" &&
+          ./gradlew uploadResults --args="BroadJadeDev.json $outputDir" &&
+          return 1)
+        echo "Collecting measurements SUCCEEDED"
 
         echo "Uploading results"
-        ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
+        ./gradlew uploadResults --args="BroadJadeDev.json $outputDir"
 
         cd ${GITHUB_WORKSPACE}/${workingDir}
+    - name: "Upload Results"
     - name: "Notify Slack"
       if: always()
       uses: broadinstitute/action-slack@v3.8.0

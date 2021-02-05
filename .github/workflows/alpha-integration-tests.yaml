@@ -87,7 +87,7 @@ jobs:
         ./gradlew spotlessCheck
         ./gradlew spotbugsMain
 
-        local outputDir="/tmp/TestRunnerResults"
+        outputDir="/tmp/TestRunnerResults"
         echo "Output directory set to: $outputDir"
   
         echo "Running tests"

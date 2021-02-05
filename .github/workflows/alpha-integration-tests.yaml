@@ -11,6 +11,10 @@ jobs:
   alpha-integration-test:
     runs-on: ubuntu-latest
     steps:
+    - name: "Checkout jade-data-repo"
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: 'Checkout terra-helmfile repo'
       uses: actions/checkout@v2
       with:

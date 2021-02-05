@@ -10,7 +10,7 @@
   "project": "terra-datarepo-alpha",
   "namespace": "terra-alpha",
   "containerName": "datarepo-datarepo-api",
-  "testRunnerServiceAccountFile": "jade-k8-sa.json",
+  "testRunnerServiceAccountFile": "alpha-test-runner-sa.json",
   "skipDeployment": true,
   "skipKubernetes": true
 }

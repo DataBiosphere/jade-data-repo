@@ -10,8 +10,10 @@ import liquibase.resource.ClassLoaderResourceAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -35,6 +37,8 @@ public class Migrate {
     private final DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
 
+    @Autowired
+    private Environment env;
 
     @Autowired
     public Migrate(DataRepoJdbcConfiguration dataRepoJdbcConfiguration,
@@ -55,7 +59,12 @@ public class Migrate {
                 new JdbcConnection(connection));
 
             logger.info(String.format("dropAllOnStart is set to %s", migrateConfiguration.getDropAllOnStart()));
-            if (migrateConfiguration.getDropAllOnStart()) {
+            String[] profiles = env.getActiveProfiles();
+            boolean allowDropAllOnStart = Arrays.stream(profiles).anyMatch(env -> env.contains("dev")
+                || env.contains("test"));
+            logger.info(String.format("Allow dropAllOnStart is set to %s", allowDropAllOnStart));
+
+            if (allowDropAllOnStart && migrateConfiguration.getDropAllOnStart()) {
                 liquibase.dropAll(); // drops everything in the default schema. The migrate schema should be OK
             }
             logger.info(String.format("updateAllOnStart is set to %s", migrateConfiguration.getUpdateAllOnStart()));

@@ -83,30 +83,30 @@ jobs:
         echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
           
-        echo "Running spotless and spotbugs"
+        echo "[INFO] Running spotless and spotbugs"
         ./gradlew spotlessCheck
         ./gradlew spotbugsMain
 
         outputDir="/tmp/TestRunnerResults"
         echo "Output directory set to: $outputDir"
   
-        echo "Running tests"
+        echo "[INFO] Running tests"
         ./gradlew runTest --args="suites/AlphaSmokeTests.json $outputDir" ||
           (echo "Running tests FAILED" &&
           ./gradlew uploadResults --args="BroadJadeDev.json $outputDir" &&
           return 1)
-        echo "Running test suite SUCCEEDED"
+        echo "[INFO] Running test suite SUCCEEDED"
 
-        #echo "Collecting measurements"
+        #echo "[INFO] Collecting measurements"
         #./gradlew collectMeasurements --args="AlphaSmokeTests.json $outputDir" ||
         #  (echo "Collecting measurements FAILED" &&
         #  ./gradlew uploadResults --args="BroadJadeDev.json $outputDir" &&
         #  return 1)
-        #echo "Collecting measurements SUCCEEDED"
+        #echo "[INFO] Collecting measurements SUCCEEDED"
 
-        echo "Uploading results"
+        echo "[INFO] Uploading results"
         ./gradlew uploadResults --args="BroadJadeDev.json $outputDir"
-
+        echo "[INFO] Uploading results SUCCEEDED"
         cd ${GITHUB_WORKSPACE}/${workingDir}
     - name: "Notify Slack"
       if: always()

@@ -46,7 +46,7 @@ jobs:
         roleId: ${{ secrets.ALPHA_ROLE_ID }}
         secretId: ${{ secrets.ALPHA_SECRET_ID }}
         secrets: |
-          secret/dsde/datarepo/alpha/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
+          secret/dsde/datarepo/alpha/test-runner-sa key | B64_APPLICATION_CREDENTIALS ;
     - name: "Perform IAM policy cleanup for staging"
       run: |
         # write vault tokens

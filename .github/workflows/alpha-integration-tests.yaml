@@ -6,6 +6,7 @@ env:
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   TDR_LOG_APPENDER: Console-Standard
 on:
+  # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}
 jobs:
   alpha-integration-test:
@@ -36,6 +37,8 @@ jobs:
     - name: "[TESTING RUNS ONLY] Checkout jade-data-repo for branch"
       if: github.ref != 'refs/heads/develop'
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: "Import Vault Secrets for Alpha Test Runner Service Account"
       uses: hashicorp/vault-action@v2.1.0
       with:

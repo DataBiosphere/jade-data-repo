@@ -61,7 +61,7 @@ public class Migrate {
             logger.info(String.format("dropAllOnStart is set to %s", migrateConfiguration.getDropAllOnStart()));
             String[] profiles = env.getActiveProfiles();
             boolean allowDropAllOnStart = Arrays.stream(profiles).anyMatch(env -> env.contains("dev")
-                || env.contains("test"));
+                || env.contains("test") || env.contains("int"));
             logger.info(String.format("Allow dropAllOnStart is set to %s", allowDropAllOnStart));
 
             if (allowDropAllOnStart && migrateConfiguration.getDropAllOnStart()) {

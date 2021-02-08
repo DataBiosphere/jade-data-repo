@@ -30,10 +30,16 @@ jobs:
         echo "::set-output name=alpha_version::$alpha_version"
         echo "Alpha Version: $alpha_version"
     - name: "Checkout tag for DataBiosphere/jade-data-repo"
-      if: github.ref == 'refs/heads/develop'
+      #TODO REMOVE COMMENT BEFORE MERGING
+      #if: github.ref == 'refs/heads/develop'
       run: |
         git checkout ${{ steps.terrahelmfile.outputs.alpha_version }}
         echo "Current branch is ${{ github.ref }}"
+    #TODO REMOVE STEP BEFORE MERGING
+    - name: "Checkout jade-data-repo and latest tags"
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: "Import Vault Secrets for Alpha Test Runner Service Account"
       uses: hashicorp/vault-action@v2.1.0
       with:

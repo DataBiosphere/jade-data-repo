@@ -29,10 +29,16 @@ jobs:
           echo "::set-output name=staging_version::$staging_version"
           echo "Staging Version: $staging_version"
       - name: "Checkout tag for DataBiosphere/jade-data-repo"
-        if: github.ref == 'refs/heads/develop'
+        #TODO REMOVE COMMENT BEFORE MERGING
+        #if: github.ref == 'refs/heads/develop'
         run: |
           git checkout ${{ steps.terrahelmfile.outputs.staging_version }}
           echo "Current branch is ${{ github.ref }}"
+      #TODO REMOVE STEP BEFORE MERGING
+      - name: "Checkout jade-data-repo and latest tags"
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: "Import Vault staging secrets"
         uses: hashicorp/vault-action@v2.1.0
         with:

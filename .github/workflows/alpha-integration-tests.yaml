@@ -23,7 +23,7 @@ jobs:
         token: ${{ secrets.TERRA_HELMFILE_TOKEN }}
         path: terra-helmfile
         persist-credentials: false
-    - name: "Read staging version from terra-helmfile" 
+    - name: "Read alpha version from terra-helmfile" 
       id: terrahelmfile
       run: |
         alpha_version=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r terra-helmfile/versions/alpha.yaml releases.datarepo.appVersion)

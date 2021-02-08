@@ -56,7 +56,7 @@ jobs:
         gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
         ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
-    - name: "Import Vault Secrets for Dev "jade-k8-sa" Service Account"
+    - name: "Import Vault Secrets for Dev Service Account"
       uses: hashicorp/vault-action@v2.1.0
       with:
         url: ${{ secrets.VAULT_ADDR }}

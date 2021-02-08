@@ -26,19 +26,14 @@ jobs:
     - name: "Read staging version from terra-helmfile" 
       id: terrahelmfile
       run: |
-        #TODO - Switch to terra-helmfile/versions/alpha.yaml before merging
-        alpha_version=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r terra-helmfile/versions.yaml releases.datarepo.appVersion)
+        alpha_version=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r terra-helmfile/versions/alpha.yaml releases.datarepo.appVersion)
         echo "::set-output name=alpha_version::$alpha_version"
-    - name: "[NON-TESTING RUNS ONLY] Checkout tag for DataBiosphere/jade-data-repo"
-      #if: github.ref == 'refs/heads/develop'
+        echo "Alpha Version: $alpha_version"
+    - name: "Checkout tag for DataBiosphere/jade-data-repo"
+      if: github.ref == 'refs/heads/develop'
       run: |
         git checkout ${{ steps.terrahelmfile.outputs.alpha_version }}
         echo "Current branch is ${{ github.ref }}"
-    - name: "[TESTING RUNS ONLY] Checkout jade-data-repo for branch"
-      if: github.ref != 'refs/heads/develop'
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
     - name: "Import Vault Secrets for Alpha Test Runner Service Account"
       uses: hashicorp/vault-action@v2.1.0
       with:

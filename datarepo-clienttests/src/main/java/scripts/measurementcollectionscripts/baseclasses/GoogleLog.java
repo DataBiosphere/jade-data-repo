@@ -41,8 +41,6 @@ public class GoogleLog extends MeasurementCollectionScript<LogEntry> {
     logger.debug("filter: {}", filter);
     LoggingClient loggingClient =
         LogsUtils.getClientForServiceAccount(server.testRunnerServiceAccount);
-    logger.debug(
-        "Request Log Entries: {}; {}", server.project, server.testRunnerServiceAccount.name);
     LoggingClient.ListLogEntriesPagedResponse response =
         LogsUtils.requestLogEntries(loggingClient, ProjectName.of(server.project), filter, null);
 

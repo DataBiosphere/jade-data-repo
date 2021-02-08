@@ -17,6 +17,7 @@ public enum IamAction {
     CREATE_DATASET,
     LIST_JOBS,
     DELETE_JOBS,
+    CONFIGURE,
     // dataset
     EDIT_DATASET,
     READ_DATASET,

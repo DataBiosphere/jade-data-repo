@@ -5,8 +5,10 @@ env:
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   TDR_LOG_APPENDER: Console-Standard
-  #Required for configureCrednetials call in datarepo-actions
-  GOOGLE_SA_CERT: jade-dev-account.pem
+  GCR_DEV_URL: gcr.io/broad-jade-dev/
+  GCR_PROD_URL: gcr.io/terra-datarepo-production/
+  API_REPO: jade-data-repo
+  UI_REPO: jade-data-repo-ui
 on:
   # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}
@@ -108,17 +110,27 @@ jobs:
         ./gradlew uploadResults --args="BroadJadeDev.json $outputDir"
         echo "[INFO] Uploading results SUCCEEDED"
         cd ${GITHUB_WORKSPACE}/${workingDir}
-    - name: "[API][Cherry-pick to Prod GCR] Perform cherry-pick"
-      uses: broadinstitute/datarepo-actions@fb-DR-1594-cherry-pick
-      env:  
-        GOOGLE_SA_CERT: jade-dev-account.pem
-        K8_CLUSTER: integration-master
+    - name: "[Cherry-pick to Prod GCR] Import Vault Secrets for Production GCR Service Account"
+      uses: hashicorp/vault-action@v2.1.0
       with:
-          actions_subcommand: 'gcrcherrypick'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-          gcr_which_repo: 'api'
-          gcr_img_version: '${{ steps.terrahelmfile.outputs.alpha_version_api }}'
+        url: ${{ secrets.VAULT_ADDR }}
+        method: approle
+        roleId: ${{ secrets.PROD_ROLE_ID }}
+        secretId: ${{ secrets.PROD_SECRET_ID }}
+        secrets: |
+          secret/dsde/datarepo/production/gcr-sa key | B64_APPLICATION_CREDENTIALS ;
+    - name: "[Cherry-pick to Prod GCR] Add prod gcr-sa credentials to perform cherry-pick"
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: /tmp/prod-gcr-sa.json
+      run: |
+        # write vault tokens
+        base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+    - name: "[API][Cherry-pick to Prod GCR] Perform cherry-pick"
+      env:
+        GOOGLE_APPLICATION_CREDENTIALS: /tmp/prod-gcr-sa.json
+      run: |
+        echo "Cherry picking ${{ steps.terrahelmfile.outputs.alpha_version_api }} from ${GCR_DEV_URL}${API_REPO} to ${GCR_PROD_URL}${API_REPO}"
+        gcloud container images add-tag --quiet "${GCR_DEV_URL}${API_REPO}" "${GCR_PROD_URL}${API_REPO}"
     #- name: '[UI][Cherry-pick to Prod GCR] Checkout datarepo-helm repo'
     #    uses: actions/checkout@v2
     #    with:

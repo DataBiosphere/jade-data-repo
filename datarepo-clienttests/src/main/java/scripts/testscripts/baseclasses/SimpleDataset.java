@@ -20,6 +20,7 @@ public class SimpleDataset extends runner.TestScript {
   protected TestUserSpecification datasetCreator;
   protected BillingProfileModel billingProfileModel;
   protected DatasetSummaryModel datasetSummaryModel;
+  protected boolean deleteProfile = true;
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // pick the a user that is a Data Repo steward to be the dataset creator
@@ -35,10 +36,14 @@ public class SimpleDataset extends runner.TestScript {
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // create a new profile
-    billingProfileModel =
-        DataRepoUtils.createProfile(
-            resourcesApi, repositoryApi, billingAccount, "profile-simple", true);
-    logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
+    if (billingProfileModel == null) {
+      billingProfileModel =
+          DataRepoUtils.createProfile(
+              resourcesApi, repositoryApi, billingAccount, "profile-simple", true);
+      logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
+    } else {
+      logger.info("Using existing profile: {}", billingProfileModel.getProfileName());
+    }
 
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
@@ -67,7 +72,11 @@ public class SimpleDataset extends runner.TestScript {
     logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
 
     // delete the profile
-    resourcesApi.deleteProfile(billingProfileModel.getId());
-    logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
+    if (deleteProfile) {
+      resourcesApi.deleteProfile(billingProfileModel.getId());
+      logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
+    } else {
+      logger.info("Skipping profile delete because test is using a shared profile");
+    }
   }
 }

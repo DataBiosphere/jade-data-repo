@@ -1,6 +1,7 @@
 package scripts.testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
+import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
@@ -18,14 +19,21 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
 import scripts.utils.DataRepoUtils;
+import scripts.utils.SAMUtils;
 
 public class RetrieveSnapshot extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(RetrieveSnapshot.class);
+
+  // Specify the name of a profile to use for the test with the TEST_RUNNER_BILLING_PROFILE_NAME
+  // env variable.
+  private static final String PROFILE_NAME_RAW = System.getenv("TEST_RUNNER_BILLING_PROFILE_NAME");
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public RetrieveSnapshot() {
@@ -36,12 +44,37 @@ public class RetrieveSnapshot extends SimpleDataset {
   private List<BlobId> scratchFiles = new ArrayList<>();
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
-    // create the profile and dataset
-    super.setup(testUsers);
+    Optional<String> profileName;
+    if (StringUtils.isBlank(PROFILE_NAME_RAW)) {
+      profileName = Optional.empty();
+      deleteProfile = true;
+      logger.info("No profile name specified.  Will create a new billing profile");
+    } else {
+      profileName = Optional.ofNullable(PROFILE_NAME_RAW);
+      deleteProfile = false;
+      logger.info("Will attempt to use a billing profile named {}", profileName.get());
+    }
+
+    // pick the a user that is a Data Repo steward to be the dataset creator
+    datasetCreator = SAMUtils.findTestUserThatIsDataRepoSteward(testUsers, server);
 
     // get the ApiClient for the snapshot creator, same as the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
+    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
+    billingProfileModel = null;
+    if (profileName.isPresent()) {
+      billingProfileModel =
+          resourcesApi.enumerateProfiles(0, 100).getItems().stream()
+              .filter(p -> StringUtils.equalsIgnoreCase(profileName.get(), p.getProfileName()))
+              .findFirst()
+              .orElseThrow(
+                  () ->
+                      new RuntimeException(
+                          String.format("Could not find profile named %s", profileName.get())));
+    }
+
+    super.setup(testUsers);
 
     // load data into the new dataset
     // note that there's a fileref in the dataset

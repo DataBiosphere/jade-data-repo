@@ -1,36 +1,40 @@
 name: DataRepo Alpha Integration Tests
 env:
-  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
-  GOOGLE_SA_CERT: /tmp/jade-dev-account.pem
+  K8_CLUSTER: jade-master-us-central1
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/alpha-test-runner.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
-  IT_JADE_API_URL: https://data.alpha.envs-terra.bio
   TDR_LOG_APPENDER: Console-Standard
-  PGHOST: 127.0.0.1
-  PGPASSWORD: postgres
-  DB_DATAREPO_URI: "jdbc:postgresql://${PGHOST}:5432/datarepo"
-  DB_STAIRWAY_URI: "jdbc:postgresql://${PGHOST}:5432/stairway"
 on:
   # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}
 jobs:
   alpha-integration-test:
     runs-on: ubuntu-latest
-    # run a local Postgres container in Docker for the basic check tests
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-    - name: "Checkout code"
+    - name: "Checkout jade-data-repo and latest tags"
       uses: actions/checkout@v2
-    - name: "Import Vault alpha secrets"
+      with:
+        fetch-depth: 0
+    - name: 'Checkout terra-helmfile repo'
+      uses: actions/checkout@v2
+      with:
+        repository: 'broadinstitute/terra-helmfile'
+        token: ${{ secrets.TERRA_HELMFILE_TOKEN }}
+        path: terra-helmfile
+        persist-credentials: false
+    - name: "Read alpha version from terra-helmfile" 
+      id: terrahelmfile
+      run: |
+        alpha_version=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r terra-helmfile/versions/alpha.yaml releases.datarepo.appVersion)
+        echo "::set-output name=alpha_version::$alpha_version"
+        echo "Alpha Version: $alpha_version"
+    - name: "Checkout tag for DataBiosphere/jade-data-repo"
+      if: github.ref == 'refs/heads/develop'
+      run: |
+        git checkout ${{ steps.terrahelmfile.outputs.alpha_version }}
+        echo "Current branch is ${{ github.ref }}"
+    - name: "Import Vault Secrets for Alpha Test Runner Service Account"
       uses: hashicorp/vault-action@v2.1.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
@@ -38,25 +42,16 @@ jobs:
         roleId: ${{ secrets.ALPHA_ROLE_ID }}
         secretId: ${{ secrets.ALPHA_SECRET_ID }}
         secrets: |
-          secret/dsde/datarepo/alpha/datarepo-api-sa key | B64_APPLICATION_CREDENTIALS ;
-    - name: "Perform IAM policy cleanup"
+          secret/dsde/datarepo/alpha/test-runner-sa key | B64_APPLICATION_CREDENTIALS ;
+    - name: "Perform IAM policy cleanup for Alpha"
       run: |
         # write vault tokens
         base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
-        jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
 
         gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
 
-        # retrieve all iam policies for the data project
-        BINDINGS=$(gcloud projects get-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} --format=json)
-        # remove any policies that start with group:policy- or deleted:group:policy-
-        # group policies need to be cleared out to avoid hitting 250 iam policy limit
-        # that are created during test runs
-        OK_BINDINGS=$(echo ${BINDINGS} | jq 'del(.bindings[] | select(.role=="roles/bigquery.jobUser") | .members[] | select(startswith("group:policy-") or startswith("deleted:group:policy-")))')
-        # overwrite the iam policy without the group and deleted policies
-        echo ${OK_BINDINGS} | jq '.' > policy.json
-        gcloud projects set-iam-policy ${GOOGLE_CLOUD_DATA_PROJECT} policy.json
-    - name: "Import Vault dev secrets"
+        ./tools/cleanupPolicies.sh ${GOOGLE_CLOUD_DATA_PROJECT}
+    - name: "Import Vault Secrets for Dev Service Account"
       uses: hashicorp/vault-action@v2.1.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
@@ -65,19 +60,50 @@ jobs:
         secretId: ${{ secrets.SECRET_ID }}
         secrets: |
           secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
-    - name: "Build and run alpha integration tests"
+    - name: "Add jade-k8-sa credentials to run as Harry Potter test users"
+      env:
+        # note: hack to overwrite the env var to grab the dev credentials too
+        GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
       run: |
         # write vault tokens
         base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
-        jq -r .private_key ${GOOGLE_APPLICATION_CREDENTIALS} > ${GOOGLE_SA_CERT}
+    - name: "Build and run Test Runner"
+      run: |
+        cd ${GITHUB_WORKSPACE}/${workingDir}
+        echo "Building Data Repo client library"
+        export TEST_RUNNER_SERVER_SPECIFICATION_FILE="alpha.json"
+        export TEST_RUNNER_BILLING_PROFILE_NAME="stest1"
+        ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
+        cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
+        export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
+        echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
-        # check that postgres is ready
-        pg_isready -h ${PGHOST} -p 5432
-        psql -U postgres -f ./db/create-data-repo-db
+          
+        echo "[INFO] Running spotless and spotbugs"
+        ./gradlew spotlessCheck
+        ./gradlew spotbugsMain
 
-        # run integration tests
-        ./gradlew assemble
-        ./gradlew testIntegration --scan
+        outputDir="/tmp/TestRunnerResults"
+        echo "Output directory set to: $outputDir"
+  
+        echo "[INFO] Running tests"
+        ./gradlew runTest --args="suites/AlphaSmokeTests.json $outputDir" ||
+          (echo "Running tests FAILED" &&
+          ./gradlew uploadResults --args="BroadJadeDev.json $outputDir" &&
+          return 1)
+        echo "[INFO] Running test suite SUCCEEDED"
+
+        echo "[INFO] Collecting measurements"
+        ./gradlew collectMeasurements --args="AlphaSmokeTests.json $outputDir" ||
+          (echo "Collecting measurements FAILED" &&
+          ./gradlew uploadResults --args="BroadJadeDev.json $outputDir" &&
+          return 1)
+        echo "[INFO] Collecting measurements SUCCEEDED"
+
+        echo "[INFO] Uploading results"
+        ./gradlew uploadResults --args="BroadJadeDev.json $outputDir"
+        echo "[INFO] Uploading results SUCCEEDED"
+        cd ${GITHUB_WORKSPACE}/${workingDir}
     - name: "Notify Slack"
       if: always()
       uses: broadinstitute/action-slack@v3.8.0
@@ -89,4 +115,4 @@ jobs:
         fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
         channel: "#jade-alerts"
         username: "Data Repo tests"
-        text: "Alpha integration tests"
+        text: "Alpha Smoke tests"

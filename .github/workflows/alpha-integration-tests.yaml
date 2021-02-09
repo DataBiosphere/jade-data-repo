@@ -109,7 +109,7 @@ jobs:
       with:
           actions_subcommand: 'gcrcherrypick'
           gcr_which_repo: 'api'
-          gcr_img_version: ${{ steps.terrahelmfile.outputs.alpha_version_api }}
+          gcr_img_version: '${{ steps.terrahelmfile.outputs.alpha_version_api }}'
     - name: '[UI][Cherry-pick to Prod GCR] Checkout datarepo-helm repo'
         uses: actions/checkout@v2
         with:

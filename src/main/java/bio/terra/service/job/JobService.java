@@ -112,19 +112,13 @@ public class JobService {
     public void initialize() {
         try {
             List<String> recordedStairways;
-            boolean weMigrated = false;
-            try {
-                weMigrated = migrate.migrateDatabase();
+            migrate.migrateDatabase();
 
-                // Initialize stairway - only do the stairway migration if we did the data repo migration
-                recordedStairways = stairway.initialize(stairwayJdbcConfiguration.getDataSource(),
-                    (weMigrated && migrateConfiguration.getDropAllOnStart()),
-                    (weMigrated && migrateConfiguration.getUpdateAllOnStart()));
-            } finally {
-                if (weMigrated) {
-                    migrate.releaseMigrateLock();
-                }
-            }
+            // Initialize stairway - only do the stairway migration if we did the data repo migration
+            recordedStairways = stairway.initialize(stairwayJdbcConfiguration.getDataSource(),
+                migrateConfiguration.getDropAllOnStart(),
+                migrateConfiguration.getUpdateAllOnStart());
+
 
             // Order is important here. There are two concerns we need to handle:
             // 1. We need to avoid a window where a running pod could get onto the Stairway list, but not be

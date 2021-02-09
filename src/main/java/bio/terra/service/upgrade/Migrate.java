@@ -59,12 +59,12 @@ public class Migrate {
                 new JdbcConnection(connection));
 
             logger.info(String.format("dropAllOnStart is set to %s", migrateConfiguration.getDropAllOnStart()));
-            String[] profiles = env.getActiveProfiles();
-            boolean allowDropAllOnStart = Arrays.stream(profiles).anyMatch(env -> env.contains("dev")
+            boolean allowDropAllOnStart = Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
                 || env.contains("test") || env.contains("int"));
             logger.info(String.format("Allow dropAllOnStart is set to %s", allowDropAllOnStart));
 
             if (allowDropAllOnStart && migrateConfiguration.getDropAllOnStart()) {
+                logger.info("Dropping all db objects in the default schema");
                 liquibase.dropAll(); // drops everything in the default schema. The migrate schema should be OK
             }
             logger.info(String.format("updateAllOnStart is set to %s", migrateConfiguration.getUpdateAllOnStart()));

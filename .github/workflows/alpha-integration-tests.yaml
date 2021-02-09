@@ -104,30 +104,30 @@ jobs:
         ./gradlew uploadResults --args="BroadJadeDev.json $outputDir"
         echo "[INFO] Uploading results SUCCEEDED"
         cd ${GITHUB_WORKSPACE}/${workingDir}
-    - name: "[API][Cherry-pick to Prod GCR] Perform cherry-pick"
-      uses: broadinstitute/datarepo-actions@fb-DR-1594-cherry-pick
-      with:
-          actions_subcommand: 'gcrcherrypick'
-          gcr_which_repo: 'api'
-          gcr_img_version: '${{ steps.terrahelmfile.outputs.alpha_version_api }}'
-    - name: '[UI][Cherry-pick to Prod GCR] Checkout datarepo-helm repo'
-        uses: actions/checkout@v2
-        with:
-          repository: 'broadinstitute/datarepo-helm'
-          token: ${{ secrets.HELM_REPO_TOKEN }}
-          path: datarepo-helm
-    - name: "[UI][Cherry-pick to Prod GCR] Read UI version from datarepo-helm" 
-      id: datarepohelm
-      run: |
-        alpha_version_ui=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r datarepo-helm/charts/datarepo-ui/values.yaml image.tag)
-        echo "::set-output name=alpha_version_ui::$alpha_version_ui"
-        echo "Alpha UI Version: $alpha_version_ui"
-    - name: "[UI][Cherry-pick to Prod GCR] Perform cherry-pick"
-      uses: broadinstitute/datarepo-actions@fb-DR-1594-cherry-pick
-      with:
-          actions_subcommand: 'gcrcherrypick'
-          gcr_which_repo: 'ui'
-          gcr_img_version: ${{ steps.datarepohelm.outputs.alpha_version_ui }}
+    #- name: "[API][Cherry-pick to Prod GCR] Perform cherry-pick"
+    #  uses: broadinstitute/datarepo-actions@fb-DR-1594-cherry-pick
+    #  with:
+    #      actions_subcommand: 'gcrcherrypick'
+    #      gcr_which_repo: 'api'
+    #      gcr_img_version: '${{ steps.terrahelmfile.outputs.alpha_version_api }}'
+    #- name: '[UI][Cherry-pick to Prod GCR] Checkout datarepo-helm repo'
+    #    uses: actions/checkout@v2
+    #    with:
+    #      repository: 'broadinstitute/datarepo-helm'
+    #      token: ${{ secrets.HELM_REPO_TOKEN }}
+    #      path: datarepo-helm
+    #- name: "[UI][Cherry-pick to Prod GCR] Read UI version from datarepo-helm" 
+    #  id: datarepohelm
+    #  run: |
+    #    alpha_version_ui=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r datarepo-helm/charts/datarepo-ui/values.yaml image.tag)
+    #    echo "::set-output name=alpha_version_ui::$alpha_version_ui"
+    #    echo "Alpha UI Version: $alpha_version_ui"
+    #- name: "[UI][Cherry-pick to Prod GCR] Perform cherry-pick"
+    #  uses: broadinstitute/datarepo-actions@fb-DR-1594-cherry-pick
+    #  with:
+    #      actions_subcommand: 'gcrcherrypick'
+    #      gcr_which_repo: 'ui'
+    #      gcr_img_version: ${{ steps.datarepohelm.outputs.alpha_version_ui }}
     - name: "Notify Slack"
       if: always()
       uses: broadinstitute/action-slack@v3.8.0

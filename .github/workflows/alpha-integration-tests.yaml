@@ -5,6 +5,8 @@ env:
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   TDR_LOG_APPENDER: Console-Standard
+  #Required for configureCrednetials call in datarepo-actions
+  GOOGLE_SA_CERT: jade-dev-account.pem
 on:
   # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}

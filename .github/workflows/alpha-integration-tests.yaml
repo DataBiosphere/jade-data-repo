@@ -133,7 +133,8 @@ jobs:
     #      gcr_which_repo: 'ui'
     #      gcr_img_version: ${{ steps.datarepohelm.outputs.alpha_version_ui }}
     - name: "Notify Slack"
-      if: always()
+      #TODO: Switch back to always() before merging
+      if: false
       uses: broadinstitute/action-slack@v3.8.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

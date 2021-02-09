@@ -119,7 +119,7 @@ jobs:
     - name: "[UI][Cherry-pick to Prod GCR] Read UI version from datarepo-helm" 
       id: datarepohelm
       run: |
-        alpha_version_ui=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r terra-helmfile/versions/alpha.yaml releases.datarepo.appVersion)
+        alpha_version_ui=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r datarepo-helm/charts/datarepo-ui/values.yaml image.tag)
         echo "::set-output name=alpha_version_ui::$alpha_version_ui"
         echo "Alpha UI Version: $alpha_version_ui"
     - name: "[UI][Cherry-pick to Prod GCR] Perform cherry-pick"

@@ -110,6 +110,8 @@ jobs:
       uses: broadinstitute/datarepo-actions@fb-DR-1594-cherry-pick
       with:
           actions_subcommand: 'gcrcherrypick'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
           gcr_which_repo: 'api'
           gcr_img_version: '${{ steps.terrahelmfile.outputs.alpha_version_api }}'
     #- name: '[UI][Cherry-pick to Prod GCR] Checkout datarepo-helm repo'

@@ -2,12 +2,10 @@ package bio.terra.app.controller;
 
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoFixtures;
-import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.ConfigParameterModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -22,7 +20,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 import static org.assertj.core.api.Assertions.assertThat;
-
 
 /**
  * This is meant to be a very lightweight integration test to make sure that SAM actions are used as expected.
@@ -51,7 +48,6 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
         assertThat(dataRepoFixtures.getConfigListRaw(reader()).getStatusCode())
             .isEqualTo(HttpStatus.UNAUTHORIZED);
     }
-
 
     @Test
     public void testSetConfigList() throws Exception {

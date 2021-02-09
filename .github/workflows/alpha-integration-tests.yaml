@@ -110,10 +110,13 @@ jobs:
         cd ${GITHUB_WORKSPACE}/${workingDir}
     - name: "[API][Cherry-pick to Prod GCR] Perform cherry-pick"
       uses: broadinstitute/datarepo-actions@fb-DR-1594-cherry-pick
+      env:  
+        GOOGLE_SA_CERT: jade-dev-account.pem
       with:
           actions_subcommand: 'gcrcherrypick'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
+          google_project: 'terra-datarepo-alpha'
           gcr_which_repo: 'api'
           gcr_img_version: '${{ steps.terrahelmfile.outputs.alpha_version_api }}'
     #- name: '[UI][Cherry-pick to Prod GCR] Checkout datarepo-helm repo'

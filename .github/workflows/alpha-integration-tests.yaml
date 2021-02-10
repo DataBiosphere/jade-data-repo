@@ -133,24 +133,24 @@ jobs:
         prod_image=(${GCR_PROD_URL}${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }})
         echo "Cherry picking ${{ steps.terrahelmfile.outputs.alpha_version_api }} from $dev_image to $prod_image"
         gcloud container images add-tag --quiet "$dev_image" "$prod_image"
-    #- name: '[UI][Cherry-pick to Prod GCR] Checkout datarepo-helm repo'
-    #    uses: actions/checkout@v2
-    #    with:
-    #      repository: 'broadinstitute/datarepo-helm'
-    #      token: ${{ secrets.HELM_REPO_TOKEN }}
-    #      path: datarepo-helm
-    #- name: "[UI][Cherry-pick to Prod GCR] Read UI version from datarepo-helm" 
-    #  id: datarepohelm
-    #  run: |
-    #    alpha_version_ui=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r datarepo-helm/charts/datarepo-ui/values.yaml image.tag)
-    #    echo "::set-output name=alpha_version_ui::$alpha_version_ui"
-    #    echo "Alpha UI Version: $alpha_version_ui"
-    #- name: "[UI][Cherry-pick to Prod GCR] Perform cherry-pick"
-    #  uses: broadinstitute/datarepo-actions@fb-DR-1594-cherry-pick
-    #  with:
-    #      actions_subcommand: 'gcrcherrypick'
-    #      gcr_which_repo: 'ui'
-    #      gcr_img_version: ${{ steps.datarepohelm.outputs.alpha_version_ui }}
+    - name: '[UI][Cherry-pick to Prod GCR] Checkout datarepo-helm repo'
+        uses: actions/checkout@v2
+        with:
+          repository: 'broadinstitute/datarepo-helm'
+          token: ${{ secrets.HELM_REPO_TOKEN }}
+          path: datarepo-helm
+    - name: "[UI][Cherry-pick to Prod GCR] Read UI version from datarepo-helm" 
+      id: datarepohelm
+      run: |
+        alpha_version_ui=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r datarepo-helm/charts/datarepo-ui/values.yaml image.tag)
+        echo "::set-output name=alpha_version_ui::$alpha_version_ui"
+        echo "Alpha UI Version: $alpha_version_ui"
+    - name: "[UI][Cherry-pick to Prod GCR] Perform cherry-pick"
+      run: |
+        dev_image=(${GCR_DEV_URL}${API_REPO}:${{ steps.datarepohelm.outputs.alpha_version_ui }})
+        prod_image=(${GCR_PROD_URL}${API_REPO}:${{ steps.datarepohelm.outputs.alpha_version_ui }})
+        echo "Cherry picking ${{ steps.datarepohelm.outputs.alpha_version_ui }} from $dev_image to $prod_image"
+        gcloud container images add-tag --quiet "$dev_image" "$prod_image"
     - name: "Notify Slack"
       #TODO: Switch back to always() before merging
       if: false

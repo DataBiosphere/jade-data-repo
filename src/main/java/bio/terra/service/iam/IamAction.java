@@ -14,7 +14,6 @@ public enum IamAction {
     READ_POLICIES,
     ALTER_POLICIES,
     // datarepo
-    CREATE_DATASET,
     LIST_JOBS,
     DELETE_JOBS,
     CONFIGURE,

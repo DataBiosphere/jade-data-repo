@@ -117,7 +117,7 @@ jobs:
         secretId: ${{ secrets.PROD_SECRET_ID }}
         secrets: |
           secret/dsde/datarepo/production/gcr-sa key | B64_APPLICATION_CREDENTIALS ;
-    - name: "[Cherry-pick to Prod GCR] Add prod gcr-sa credentials to perform cherry-pick"
+    - name: "[Cherry-pick to Prod GCR] Authenticate with Prod GCR SA Credentials"
       env:
         GOOGLE_APPLICATION_CREDENTIALS: /tmp/prod-gcr-sa.json
       run: |

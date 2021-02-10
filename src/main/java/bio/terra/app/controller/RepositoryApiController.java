@@ -89,8 +89,6 @@ public class RepositoryApiController implements RepositoryApi {
     private final ConfigurationService configurationService;
     private final AssetModelValidator assetModelValidator;
     private final UpgradeService upgradeService;
-
-    // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
 
     @Autowired
@@ -505,6 +503,11 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<ConfigListModel> getConfigList() {
+        iamService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            IamResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            IamAction.CONFIGURE);
         ConfigListModel configModelList = configurationService.getConfigList();
         return new ResponseEntity<>(configModelList, HttpStatus.OK);
     }

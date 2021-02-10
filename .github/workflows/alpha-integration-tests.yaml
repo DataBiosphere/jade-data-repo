@@ -129,7 +129,7 @@ jobs:
       run: |
         DEV_IMAGE="${GCR_DEV_URL}/${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }}"
         PROD_IMAGE="${GCR_PROD_URL}/${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }}"
-        echo "Cherry picking ${{ steps.terrahelmfile.outputs.alpha_version_api }} from ${DEV_IMAGE} to ${PROD_IMAGE}
+        echo "Cherry picking ${{ steps.terrahelmfile.outputs.alpha_version_api }} from ${DEV_IMAGE} to ${PROD_IMAGE}"
         gcloud container images add-tag --quiet "${DEV_IMAGE}" "${PROD_IMAGE}"
     - name: "[UI][Cherry-pick to Prod GCR] Checkout datarepo-helm repo"
       uses: actions/checkout@v2

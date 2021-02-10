@@ -5,8 +5,8 @@ env:
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
   TDR_LOG_APPENDER: Console-Standard
-  GCR_DEV_URL: gcr.io/broad-jade-dev/
-  GCR_PROD_URL: gcr.io/terra-datarepo-production/
+  GCR_DEV_URL: gcr.io/broad-jade-dev
+  GCR_PROD_URL: gcr.io/terra-datarepo-production
   API_REPO: jade-data-repo
   UI_REPO: jade-data-repo-ui
 on:
@@ -127,10 +127,10 @@ jobs:
         gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
     - name: "[API][Cherry-pick to Prod GCR] Perform cherry-pick"
       run: |
-        dev_image=(${GCR_DEV_URL}${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }})
-        prod_image=(${GCR_PROD_URL}${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }})
-        echo "Cherry picking ${{ steps.terrahelmfile.outputs.alpha_version_api }} from $dev_image to $prod_image"
-        gcloud container images add-tag --quiet "$dev_image" "$prod_image"
+        DEV_IMAGE="${GCR_DEV_URL}/${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }}"
+        PROD_IMAGE="${GCR_PROD_URL}/${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }}"
+        echo "Cherry picking ${{ steps.terrahelmfile.outputs.alpha_version_api }} from ${DEV_IMAGE} to ${PROD_IMAGE}
+        gcloud container images add-tag --quiet "${DEV_IMAGE}" "${PROD_IMAGE}"
     - name: "[UI][Cherry-pick to Prod GCR] Checkout datarepo-helm repo"
       uses: actions/checkout@v2
       with:
@@ -145,10 +145,10 @@ jobs:
         echo "Alpha UI Version: $alpha_version_ui"
     - name: "[UI][Cherry-pick to Prod GCR] Perform cherry-pick"
       run: |
-        dev_image=(${GCR_DEV_URL}${UI_REPO}:${{ steps.datarepohelm.outputs.alpha_version_ui }})
-        prod_image=(${GCR_PROD_URL}${UI_REPO}:${{ steps.datarepohelm.outputs.alpha_version_ui }})
-        echo "Cherry picking ${{ steps.datarepohelm.outputs.alpha_version_ui }} from $dev_image to $prod_image"
-        gcloud container images add-tag --quiet "$dev_image" "$prod_image"
+        DEV_IMAGE="${GCR_DEV_URL}/${UI_REPO}:${{ steps.datarepohelm.outputs.alpha_version_ui }}"
+        PROD_IMAGE="${GCR_PROD_URL}/${UI_REPO}:${{ steps.datarepohelm.outputs.alpha_version_ui }}"
+        echo "Cherry picking ${{ steps.datarepohelm.outputs.alpha_version_ui }} from ${DEV_IMAGE} to ${PROD_IMAGE}"
+        gcloud container images add-tag --quiet "${DEV_IMAGE}" "${PROD_IMAGE}"
     - name: "Notify Slack"
       if: always()
       uses: broadinstitute/action-slack@v3.8.0

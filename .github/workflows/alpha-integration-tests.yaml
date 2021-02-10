@@ -125,9 +125,9 @@ jobs:
       run: |
         # write vault tokens
         base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+
+        gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
     - name: "[API][Cherry-pick to Prod GCR] Perform cherry-pick"
-      env:
-        GOOGLE_APPLICATION_CREDENTIALS: /tmp/prod-gcr-sa.json
       run: |
         dev_image=(${GCR_DEV_URL}${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }})
         prod_image=(${GCR_PROD_URL}${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }})

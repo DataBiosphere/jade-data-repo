@@ -108,7 +108,6 @@ public class BillingProfileUsers extends runner.TestScript {
       retrievePolicySuccess = false;
     }
     logger.info("Role {} retrievePolicies {}", role, retrievePolicySuccess);
-
     switch (role) {
       case NONE:
         // all operations should fail

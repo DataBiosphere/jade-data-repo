@@ -1,4 +1,4 @@
-name: DataRepo Alpha Integration Tests
+name: DataRepo Alpha Tests and Prod GCR Promotion
 env:
   K8_CLUSTER: jade-master-us-central1
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/alpha-test-runner.json
@@ -152,8 +152,7 @@ jobs:
         echo "Cherry picking ${{ steps.datarepohelm.outputs.alpha_version_ui }} from $dev_image to $prod_image"
         gcloud container images add-tag --quiet "$dev_image" "$prod_image"
     - name: "Notify Slack"
-      #TODO: Switch back to always() before merging
-      if: false
+      if: always()
       uses: broadinstitute/action-slack@v3.8.0
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,4 +1,4 @@
-name: DataRepo Alpha Tests and Prod GCR Promotion
+name: Alpha Tests and GCR Promotion
 env:
   K8_CLUSTER: jade-master-us-central1
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/alpha-test-runner.json
@@ -13,7 +13,7 @@ on:
   # Jenkins will kick this job off manually after Alpha is deployed
   workflow_dispatch: {}
 jobs:
-  alpha-integration-test:
+  alpha-tests-and-gcr-promotion:
     runs-on: ubuntu-latest
     steps:
     - name: "Checkout jade-data-repo and latest tags"

@@ -22,7 +22,7 @@ jobs:
           echo "::set-output name=staging_version::$staging_version"
           echo "Staging Version: $staging_version"
       - name: "Checkout tag for DataBiosphere/jade-data-repo"
-        if: github.ref == 'refs/heads/develop'
+        #if: github.ref == 'refs/heads/develop'
         run: |
           git checkout ${{ steps.configuration.outputs.staging_version }}
           echo "Current branch is ${{ github.ref }}"

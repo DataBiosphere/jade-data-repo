@@ -3,6 +3,7 @@ package bio.terra.service.job;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.kubernetes.KubeService;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
@@ -16,7 +17,6 @@ import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.service.job.exception.JobServiceShutdownException;
 import bio.terra.service.job.exception.JobServiceStartupException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
-import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.upgrade.Migrate;
 import bio.terra.service.upgrade.MigrateConfiguration;
@@ -46,6 +46,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class JobService {
@@ -53,6 +54,7 @@ public class JobService {
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
     private static final int MIN_SHUTDOWN_TIMEOUT = 14;
     private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
+    private static final String API_POD_FILTER = "datarepo-api";
 
     private final Stairway stairway;
     private final IamService samService;
@@ -60,7 +62,7 @@ public class JobService {
     private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
     private final KubeService kubeService;
-    private final JobShutdownState jobShutdownState;
+    private final AtomicBoolean isShutdown;
     private final Migrate migrate;
 
 
@@ -71,18 +73,18 @@ public class JobService {
                       MigrateConfiguration migrateConfiguration,
                       GoogleResourceConfiguration googleResourceConfiguration,
                       ApplicationContext applicationContext,
-                      KubeService kubeService,
-                      JobShutdownState jobShutdownState,
                       Migrate migrate,
                       ObjectMapper objectMapper,
                       PerformanceLogger performanceLogger) throws StairwayExecutionException {
         this.samService = samService;
         this.appConfig = appConfig;
-        this.kubeService = kubeService;
+
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
-        this.jobShutdownState = jobShutdownState;
+        this.isShutdown = new AtomicBoolean(false);
         this.migrate = migrate;
+
+        this.kubeService = new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
 
         String projectId = googleResourceConfiguration.getProjectId();
         String stairwayClusterName = kubeService.getNamespace() + "-stairwaycluster";
@@ -131,7 +133,7 @@ public class JobService {
             kubeService.startPodListener(stairway);
 
             // Lookup all of the stairway instances we know about
-            Set<String> existingStairways = kubeService.getApiPodList();
+            Set<String> existingStairways = kubeService.getPodSet();
             List<String> obsoleteStairways = new LinkedList<>();
 
             // Any instances that stairway knows about, but we cannot see are obsolete.
@@ -161,11 +163,11 @@ public class JobService {
      */
     public boolean shutdown() throws InterruptedException {
         logger.info("JobService received shutdown request");
-        if (jobShutdownState.isShutdown()) {
+        if (isShutdown.get()) {
             logger.warn("Ignoring duplicate shutdown request");
             return true; // allow this to be success
         }
-        jobShutdownState.setShutdown();
+        isShutdown.set(true);
 
         // We enforce a minimum shutdown time. Otherwise, there is no point in trying the shutdown.
         // We allocate 3/4 of the time for graceful shutdown. Then call terminate for the rest of the time.
@@ -189,6 +191,10 @@ public class JobService {
         }
         logger.info("JobService finished shutdown?: " + finishedShutdown);
         return finishedShutdown;
+    }
+
+    public int getActivePodCount() {
+        return kubeService.getActivePodCount();
     }
 
     public static class JobResultWithStatus<T> {
@@ -223,7 +229,7 @@ public class JobService {
     // submit a new job to stairway
     // protected method intended to be called only from JobBuilder
     protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap) {
-        if (jobShutdownState.isShutdown()) {
+        if (isShutdown.get()) {
             throw new JobServiceShutdownException("Job service is shut down. Cannot accept a flight");
         }
 
@@ -517,6 +523,5 @@ public class JobService {
             throw new JobServiceShutdownException("Job service interrupted", ex);
         }
     }
-
 
 }

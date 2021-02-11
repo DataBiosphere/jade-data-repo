@@ -446,8 +446,8 @@ paths:
           schema:
             type: string
             enum:
-              - reader
-              - discoverer
+              - owner
+              - user
         - name: memberEmail
           in: path
           description: The email of the user to remove

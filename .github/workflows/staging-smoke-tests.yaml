@@ -28,6 +28,16 @@ jobs:
           staging_version=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r terra-helmfile/versions/staging.yaml releases.datarepo.appVersion)
           echo "::set-output name=staging_version::$staging_version"
           echo "Staging Version: $staging_version"
+      - name: "Assert terra-helmfile and server version match"
+        run: |
+          SERVER_VERSION=$(curl -s -X GET "https://data.staging.envs-terra.bio/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+          echo "Version on staging server: ${SERVER_VERSION}"
+          echo "Verion in terra-helmfile for staging:  ${{ steps.terrahelmfile.outputs.staging_version }}"
+          if [[ "${{ steps.terrahelmfile.outputs.staging_version }}" != "${SERVER_VERSION}" ]]; then
+            echo "ERROR: terra-helmfile staging version and server do not match"
+            exit 1
+          fi
+          echo "CORRECT: versions match"
       - name: "Checkout tag for DataBiosphere/jade-data-repo"
         if: github.ref == 'refs/heads/develop'
         run: |

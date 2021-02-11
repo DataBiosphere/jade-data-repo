@@ -29,6 +29,16 @@ jobs:
         alpha_version=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r terra-helmfile/versions/alpha.yaml releases.datarepo.appVersion)
         echo "::set-output name=alpha_version::$alpha_version"
         echo "Alpha Version: $alpha_version"
+    - name: "Assert terra-helmfile and server version match"
+      run: |
+        CURRENT_VERSION=$(curl -s -X GET "https://data.alpha.envs-terra.bio/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+        echo "Version on alpha server: ${CURRENT_VERSION}"
+        echo "Verion in terra-helmfile for alpha:  ${{ steps.terrahelmfile.outputs.alpha_version }}"
+        if [[ "${{ steps.terrahelmfile.outputs.alpha_version }}" != "${CURRENT_VERSION}" ]]; then
+          echo "ERROR: terra-helmfile alpha version and server do not match"
+          exit 1
+        fi
+        echo "CORRECT: versions match"
     - name: "Checkout tag for DataBiosphere/jade-data-repo"
       if: github.ref == 'refs/heads/develop'
       run: |

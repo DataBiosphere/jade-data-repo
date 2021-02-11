@@ -260,13 +260,8 @@ public class FileTest extends UsersBase {
             job.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
-        job = dataRepoFixtures.deleteFileLaunch(custodian(), datasetId, fileId);
-        assertThat("Custodian is not authorized to delete file",
-            job.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
-
         // validates success
-        dataRepoFixtures.deleteFile(steward(), datasetId, fileId);
+        dataRepoFixtures.deleteFile(custodian(), datasetId, fileId);
     }
 
     @Test

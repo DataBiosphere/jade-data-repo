@@ -62,7 +62,7 @@ public class JobService {
     private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
     private final KubeService kubeService;
-    private final AtomicBoolean isShutdown;
+    private final AtomicBoolean isRunning;
     private final Migrate migrate;
 
 
@@ -81,7 +81,7 @@ public class JobService {
 
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
-        this.isShutdown = new AtomicBoolean(false);
+        this.isRunning = new AtomicBoolean(true);
         this.migrate = migrate;
 
         this.kubeService = new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
@@ -163,11 +163,11 @@ public class JobService {
      */
     public boolean shutdown() throws InterruptedException {
         logger.info("JobService received shutdown request");
-        if (isShutdown.get()) {
+        boolean currentlyRunning = isRunning.getAndSet(false);
+        if (!currentlyRunning) {
             logger.warn("Ignoring duplicate shutdown request");
             return true; // allow this to be success
         }
-        isShutdown.set(true);
 
         // We enforce a minimum shutdown time. Otherwise, there is no point in trying the shutdown.
         // We allocate 3/4 of the time for graceful shutdown. Then call terminate for the rest of the time.
@@ -229,20 +229,19 @@ public class JobService {
     // submit a new job to stairway
     // protected method intended to be called only from JobBuilder
     protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap) {
-        if (isShutdown.get()) {
-            throw new JobServiceShutdownException("Job service is shut down. Cannot accept a flight");
+        if (isRunning.get()) {
+            String jobId = createJobId();
+            try {
+                stairway.submit(jobId, flightClass, parameterMap);
+            } catch (StairwayException stairwayEx) {
+                throw new InternalStairwayException(stairwayEx);
+            } catch (InterruptedException ex) {
+                throw new JobServiceShutdownException("Job service interrupted", ex);
+            }
+            return jobId;
         }
 
-        String jobId = createJobId();
-        try {
-            stairway.submit(jobId, flightClass, parameterMap);
-        } catch (StairwayException stairwayEx) {
-            throw new InternalStairwayException(stairwayEx);
-        } catch (InterruptedException ex) {
-            throw new JobServiceShutdownException("Job service interrupted", ex);
-        }
-
-        return jobId;
+        throw new JobServiceShutdownException("Job service is shut down. Cannot accept a flight");
     }
 
     // submit a new job to stairway, wait for it to finish, then return the result
@@ -319,12 +318,12 @@ public class JobService {
         }
 
         JobModel jobModel = new JobModel()
-                .id(flightState.getFlightId())
-                .description(description)
-                .jobStatus(jobStatus)
-                .statusCode(statusCode.value())
-                .submitted(submittedDate)
-                .completed(completedDate);
+            .id(flightState.getFlightId())
+            .description(description)
+            .jobStatus(jobStatus)
+            .statusCode(statusCode.value())
+            .submitted(submittedDate)
+            .completed(completedDate);
 
         return jobModel;
     }
@@ -408,6 +407,7 @@ public class JobService {
      *     handler, we retrieve the Throwable and use the error text from that in the error model</li>
      *     <li> Failed flight: no exception present. We throw InvalidResultState exception</li>
      * </ol>
+     *
      * @param jobId to process
      * @return object of the result class pulled from the result map
      */
@@ -434,6 +434,7 @@ public class JobService {
     /**
      * In general, we keep Stairway encapsulated in the JobService. KubeService also needs access,
      * so we provide this accessor.
+     *
      * @return stairway instance
      */
     public Stairway getStairway() {
@@ -456,7 +457,7 @@ public class JobService {
                 if (flightState.getException().isPresent()) {
                     Exception exception = flightState.getException().get();
                     if (exception instanceof RuntimeException) {
-                        throw (RuntimeException)exception;
+                        throw (RuntimeException) exception;
                     } else {
                         throw new JobResponseException("wrap non-runtime exception", exception);
                     }
@@ -468,7 +469,7 @@ public class JobService {
                 if (statusCode == null) {
                     statusCode = HttpStatus.OK;
                 }
-                return  new JobResultWithStatus<T>()
+                return new JobResultWithStatus<T>()
                     .statusCode(statusCode)
                     .result(resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass));
 

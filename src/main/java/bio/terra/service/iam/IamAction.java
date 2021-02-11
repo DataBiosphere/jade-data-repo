@@ -18,13 +18,15 @@ public enum IamAction {
     DELETE_JOBS,
     CONFIGURE,
     // dataset
-    EDIT_DATASET,
+    MANAGE_SCHEMA,
     READ_DATASET,
     INGEST_DATA,
-    UPDATE_DATA,
-    // snapshots
-    CREATE_DATASNAPSHOT,
-    EDIT_DATASNAPSHOT,
+    SOFT_DELETE,
+    HARD_DELETE,
+    LINK_SNAPSHOT,
+    UNLINK_SNAPSHOT,
+    // snapshots,
+    UPDATE_SNAPSHOT,
     READ_DATA,
     DISCOVER_DATA,
     // billing profiles

@@ -1,7 +1,10 @@
 #!/bin/sh
 
-INPUT_WHICH_REPO=api
-INPUT_IMG_VERSION=1.3.0
+# set as either `api` or `ui`
+INPUT_WHICH_REPO=
+
+# set as the version of the code that will be cherry picked, for example 1.3.0
+INPUT_IMG_VERSION=
 
 GCR_DEV_URL="gcr.io/broad-jade-dev/jade-data-repo"
 GCR_PUB_URL="gcr.io/datarepo-public-gcr/jade-data-repo"
@@ -35,7 +38,7 @@ gcr_cherry_pick() {
         ui)
             add_ui_url ; add_version_url ;;
         *)
-            echo 'must be one of `api` or `ui`'; exit 1 ;;
+            echo '${INPUT_WHICH_REPO} must be one of `api` or `ui`'; exit 1 ;;
     esac
 
     cherry_pick_msg "${INPUT_IMG_VERSION}" "${INPUT_WHICH_REPO}" "${GCR_DEV_URL}" "${GCR_PUB_URL}"

@@ -117,13 +117,13 @@ jobs:
         roleId: ${{ secrets.ROLE_ID }}
         secretId: ${{ secrets.SECRET_ID }}
         secrets: |
-          secret/dsde/datarepo/dev/gcr-sa | GOOGLE_APPLICATION_CREDENTIALS ;
+          secret/dsde/datarepo/dev/gcr-sa-b64 key | B64_APPLICATION_CREDENTIALS ;
     - name: "[Cherry-pick to public GCR] Authenticate with Public GCR SA Credentials"
       env:
         GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcr-sa.json
       run: |
         # write vault tokens
-        #base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+        base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
 
         gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
     - name: "[API][Cherry-pick to public GCR] Perform cherry-pick"

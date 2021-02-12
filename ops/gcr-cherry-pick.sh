@@ -6,6 +6,14 @@ INPUT_IMG_VERSION=1.3.0
 GCR_DEV_URL="gcr.io/broad-jade-dev/jade-data-repo"
 GCR_PUB_URL="gcr.io/datarepo-public-gcr/jade-data-repo"
 
+GOOGLE_APPLICATION_CREDENTIALS="/tmp/gcr-public-sa.json"
+
+gcr_public_auth() {
+    vault read -format=json secret/dsde/datarepo/dev/gcr-sa-b64 | jq -r .data.key \
+        | base64 --decode | tee ${GOOGLE_APPLICATION_CREDENTIALS}
+    gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+}
+
 cherry_pick_msg() {
     printf 'Cherry picking v%s of %s\n  from `%s`\n    to `%s`\n' "$1" "$2" "$3" "$4"
 }
@@ -35,4 +43,5 @@ gcr_cherry_pick() {
     gcloud container images add-tag --quiet "${GCR_DEV_URL}" "${GCR_PUB_URL}"
 }
 
+gcr_public_auth
 gcr_cherry_pick

@@ -108,7 +108,7 @@ jobs:
         ./gradlew uploadResults --args="BroadJadeDev.json $outputDir"
         echo "[INFO] Uploading results SUCCEEDED"
         cd ${GITHUB_WORKSPACE}/${workingDir}
-    - name: "[Cherry-pick to Public GCR] Import Vault Secrets for GCR Service Account"
+    - name: "[Cherry-pick to public GCR] Import Vault Secrets for GCR Service Account"
       uses: hashicorp/vault-action@v2.1.0
       with:
         url: ${{ secrets.VAULT_ADDR }}
@@ -117,7 +117,7 @@ jobs:
         secretId: ${{ secrets.SECRET_ID }}
         secrets: |
           secret/dsde/datarepo/dev/gcr-sa-b64 key | B64_APPLICATION_CREDENTIALS ;
-    - name: "[Cherry-pick to public GCR] Authenticate with Public GCR SA Credentials"
+    - name: "[Cherry-pick to public GCR] Authenticate with GCR SA Credentials"
       env:
         GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcr-sa.json
       run: |

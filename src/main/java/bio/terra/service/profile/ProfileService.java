@@ -131,7 +131,7 @@ public class ProfileService {
                                                           AuthenticatedUserRequest user) {
         List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
         if (resources.isEmpty()) {
-            return new EnumerateBillingProfileModel().items(Collections.emptyList()).total(0);
+            return new EnumerateBillingProfileModel().total(0).items(Collections.emptyList());
         }
         return profileDao.enumerateBillingProfiles(offset, limit, resources);
     }

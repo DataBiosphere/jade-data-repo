@@ -42,7 +42,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
     @Test
     public void testGetConfigList() throws Exception {
         // Assume this call is successful
-        dataRepoFixtures.getConfigList(steward());
+        dataRepoFixtures.getConfigList(admin());
 
         // This call should be unsuccessful
         assertThat(dataRepoFixtures.getConfigListRaw(reader()).getStatusCode())
@@ -51,7 +51,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
 
     @Test
     public void testSetConfigList() throws Exception {
-        dataRepoFixtures.resetConfig(steward());
+        dataRepoFixtures.resetConfig(admin());
         ConfigGroupModel configGroup = new ConfigGroupModel()
             .label("testSetConfigList")
             .addGroupItem(new ConfigModel()
@@ -60,19 +60,19 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
                 .parameter(new ConfigParameterModel().value(String.valueOf(30))));
 
         // Assume this call is successful
-        dataRepoFixtures.setConfigList(steward(), configGroup);
+        dataRepoFixtures.setConfigList(admin(), configGroup);
 
         // This call should be unsuccessful
         assertThat(dataRepoFixtures.setConfigListRaw(reader(), configGroup).getStatusCode())
             .isEqualTo(HttpStatus.UNAUTHORIZED);
 
         // Reset config changes
-        dataRepoFixtures.resetConfig(steward());
+        dataRepoFixtures.resetConfig(admin());
     }
 
     @Test
     public void testGetConfig() throws Exception {
-        assertThat(dataRepoFixtures.getConfig(steward(), SAM_RETRY_INITIAL_WAIT_SECONDS.name()).getStatusCode())
+        assertThat(dataRepoFixtures.getConfig(admin(), SAM_RETRY_INITIAL_WAIT_SECONDS.name()).getStatusCode())
             .isEqualTo(HttpStatus.OK);
 
         assertThat(dataRepoFixtures.getConfig(reader(), SAM_RETRY_INITIAL_WAIT_SECONDS.name()).getStatusCode())
@@ -81,19 +81,19 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
 
     @Test
     public void testSetFault() throws Exception {
-        assertThat(dataRepoFixtures.setFault(steward(), SAM_TIMEOUT_FAULT.name(), false).getStatusCode())
+        assertThat(dataRepoFixtures.setFault(admin(), SAM_TIMEOUT_FAULT.name(), false).getStatusCode())
             .isEqualTo(HttpStatus.NO_CONTENT);
 
         assertThat(dataRepoFixtures.setFault(reader(), SAM_TIMEOUT_FAULT.name(), false).getStatusCode())
             .isEqualTo(HttpStatus.UNAUTHORIZED);
 
         // Reset config changes
-        dataRepoFixtures.resetConfig(steward());
+        dataRepoFixtures.resetConfig(admin());
     }
 
     @Test
     public void testResetConfig() throws Exception {
-        assertThat(dataRepoFixtures.resetConfig(steward()).getStatusCode())
+        assertThat(dataRepoFixtures.resetConfig(admin()).getStatusCode())
             .isEqualTo(HttpStatus.NO_CONTENT);
 
         assertThat(dataRepoFixtures.resetConfig(reader()).getStatusCode())

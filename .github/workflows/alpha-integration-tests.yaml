@@ -120,9 +120,9 @@ jobs:
         gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
     - name: "[API][Cherry-pick to public GCR] Perform cherry-pick"
       run: |
-        DEV_IMAGE="${GCR_DEV_URL}/${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }}"
-        PUBLIC_IMAGE="${GCR_PUBLIC_URL}/${API_REPO}:${{ steps.terrahelmfile.outputs.alpha_version_api }}"
-        echo "Cherry picking ${{ steps.terrahelmfile.outputs.alpha_version_api }} from ${DEV_IMAGE} to ${PUBLIC_IMAGE}"
+        DEV_IMAGE="${GCR_DEV_URL}/${API_REPO}:${{ steps.configuration.outputs.alpha_version_api }}"
+        PUBLIC_IMAGE="${GCR_PUBLIC_URL}/${API_REPO}:${{ steps.configuration.outputs.alpha_version_api }}"
+        echo "Cherry picking ${{ steps.configuration.outputs.alpha_version_api }} from ${DEV_IMAGE} to ${PUBLIC_IMAGE}"
         gcloud container images add-tag --quiet "${DEV_IMAGE}" "${PUBLIC_IMAGE}"
     - name: "[UI][Cherry-pick to public GCR] Checkout datarepo-helm repo"
       uses: actions/checkout@v2

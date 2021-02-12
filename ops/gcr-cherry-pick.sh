@@ -1,7 +1,7 @@
 #!/bin/sh
 
-INPUT_GET_REPO=api
-INPUT_VERSION=1.3.0
+INPUT_WHICH_REPO=api
+INPUT_IMG_VERSION=1.3.0
 
 GCR_DEV_URL="gcr.io/broad-jade-dev/jade-data-repo"
 GCR_PUB_URL="gcr.io/datarepo-public-gcr/jade-data-repo"
@@ -16,22 +16,21 @@ add_ui_url() {
 }
 
 add_version_url() {
-    GCR_DEV_URL="${GCR_DEV_URL}:${INPUT_VERSION}"
-    GCR_PUB_URL="${GCR_PUB_URL}:${INPUT_VERSION}"
+    GCR_DEV_URL="${GCR_DEV_URL}:${INPUT_IMG_VERSION}"
+    GCR_PUB_URL="${GCR_PUB_URL}:${INPUT_IMG_VERSION}"
 }
 
 gcr_cherry_pick() {
-    case ${INPUT_GET_REPO} in
+    case ${INPUT_WHICH_REPO} in
         api)
-            true ;;
+            add_version_url ;;
         ui)
-            add_ui_url ;;
+            add_ui_url ; add_version_url ;;
         *)
             echo 'must be one of `api` or `ui`'; exit 1 ;;
     esac
 
-    add_version_url
-    cherry_pick_msg "${INPUT_VERSION}" "${INPUT_GET_REPO}" "${GCR_DEV_URL}" "${GCR_PUB_URL}"
+    cherry_pick_msg "${INPUT_IMG_VERSION}" "${INPUT_WHICH_REPO}" "${GCR_DEV_URL}" "${GCR_PUB_URL}"
 
     gcloud container images add-tag --quiet "${GCR_DEV_URL}" "${GCR_PUB_URL}"
 }

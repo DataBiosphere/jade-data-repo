@@ -6,14 +6,13 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.kubernetes.KubeService;
+import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import bio.terra.stairway.exception.DuplicateFlightIdSubmittedException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -22,6 +21,7 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.DatabaseOperationException;
+import bio.terra.stairway.exception.DuplicateFlightIdSubmittedException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import org.slf4j.Logger;
@@ -48,7 +48,7 @@ public class IngestDriverStep implements Step {
 
     private final LoadService loadService;
     private final ConfigurationService configurationService;
-    private final KubeService kubeService;
+    private final JobService jobService;
     private final String datasetId;
     private final String loadTag;
     private final int maxFailedFileLoads;
@@ -57,7 +57,7 @@ public class IngestDriverStep implements Step {
 
     public IngestDriverStep(LoadService loadService,
                             ConfigurationService configurationService,
-                            KubeService kubeService,
+                            JobService jobService,
                             String datasetId,
                             String loadTag,
                             int maxFailedFileLoads,
@@ -65,7 +65,7 @@ public class IngestDriverStep implements Step {
                             String profileId) {
         this.loadService = loadService;
         this.configurationService = configurationService;
-        this.kubeService = kubeService;
+        this.jobService = jobService;
         this.datasetId = datasetId;
         this.loadTag = loadTag;
         this.maxFailedFileLoads = maxFailedFileLoads;
@@ -89,7 +89,7 @@ public class IngestDriverStep implements Step {
 
             // Load Loop
             while (true) {
-                int podCount = kubeService.getActivePodCount();
+                int podCount = jobService.getActivePodCount();
                 int concurrentFiles = configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
                 int scaledConcurrentFiles = podCount * concurrentFiles;
                 // Get the state of active and failed loads

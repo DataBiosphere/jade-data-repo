@@ -13,7 +13,7 @@ import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.kubernetes.KubeService;
+import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadMapKeys;
@@ -51,17 +51,17 @@ public class FileIngestBulkFlight extends Flight {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        LoadService loadService = (LoadService)appContext.getBean("loadService");
-        ApplicationConfiguration appConfig = (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
-        ResourceService resourceService = (ResourceService)appContext.getBean("resourceService");
-        BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
-        DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-        ConfigurationService configurationService = (ConfigurationService) appContext.getBean("configurationService");
-        KubeService kubeService = (KubeService) appContext.getBean("kubeService");
-        GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
-        ProfileService profileService = (ProfileService) appContext.getBean("profileService");
-        DatasetBucketDao datasetBucketDao = (DatasetBucketDao) appContext.getBean("datasetBucketDao");
-        DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
+        LoadService loadService = appContext.getBean(LoadService.class);
+        ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+        ResourceService resourceService = appContext.getBean(ResourceService.class);
+        BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+        DatasetService datasetService = appContext.getBean(DatasetService.class);
+        ConfigurationService configurationService = appContext.getBean(ConfigurationService.class);
+        JobService jobService = appContext.getBean(JobService.class);
+        GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+        ProfileService profileService = appContext.getBean(ProfileService.class);
+        DatasetBucketDao datasetBucketDao =  appContext.getBean(DatasetBucketDao.class);
+        DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
 
         // Common input parameters
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -139,7 +139,7 @@ public class FileIngestBulkFlight extends Flight {
         addStep(new IngestDriverStep(
             loadService,
             configurationService,
-            kubeService,
+            jobService,
             datasetId,
             loadTag,
             maxFailedFileLoads,

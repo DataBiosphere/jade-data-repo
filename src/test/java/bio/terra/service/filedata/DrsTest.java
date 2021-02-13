@@ -147,8 +147,7 @@ public class DrsTest extends UsersBase {
         validateBQJobUserRolePresent(Arrays.asList(
             datasetIamRoles.get(IamRole.STEWARD),
             datasetIamRoles.get(IamRole.CUSTODIAN),
-            datasetIamRoles.get(IamRole.INGESTER),
-            snapshotIamRoles.get(IamRole.CUSTODIAN)
+            datasetIamRoles.get(IamRole.SNAPSHOT_CREATOR)
         ));
 
         // We don't have a DRS URI for a directory, so we back into it by computing the parent path
@@ -180,7 +179,7 @@ public class DrsTest extends UsersBase {
         validateBQJobUserRolePresent(Arrays.asList(
             datasetIamRoles.get(IamRole.STEWARD),
             datasetIamRoles.get(IamRole.CUSTODIAN),
-            datasetIamRoles.get(IamRole.INGESTER)
+            datasetIamRoles.get(IamRole.SNAPSHOT_CREATOR)
         ));
 
         // Delete dataset and make sure that project level ACLs are reset
@@ -190,7 +189,7 @@ public class DrsTest extends UsersBase {
         validateBQJobUserRoleNotPresent(Arrays.asList(
             datasetIamRoles.get(IamRole.STEWARD),
             datasetIamRoles.get(IamRole.CUSTODIAN),
-            datasetIamRoles.get(IamRole.INGESTER)
+            datasetIamRoles.get(IamRole.SNAPSHOT_CREATOR)
         ));
     }
 
@@ -283,8 +282,6 @@ public class DrsTest extends UsersBase {
      */
     private void validateContainsAcls(List<Acl> acls) {
         final Collection<String> entities = CollectionUtils.collect(acls, a -> a.getEntity().toString());
-        assertThat("Has custodian ACLs", entities, hasItem(String.format("group-%s",
-            snapshotIamRoles.get(IamRole.CUSTODIAN))));
         assertThat("Has steward ACLs", entities, hasItem(String.format("group-%s",
             snapshotIamRoles.get(IamRole.STEWARD))));
         assertThat("Has reader ACLs", entities, hasItem(String.format("group-%s",
@@ -298,8 +295,6 @@ public class DrsTest extends UsersBase {
         final Collection<String> entities = CollectionUtils.collect(acls, a -> a.getEntity().toString());
         assertThat("Doesn't have custodian ACLs", entities, not(hasItem(String.format("group-%s",
             snapshotIamRoles.get(IamRole.CUSTODIAN)))));
-        assertThat("Doesn't have steward ACLs", entities, not(hasItem(String.format("group-%s",
-            snapshotIamRoles.get(IamRole.STEWARD)))));
         assertThat("Doesn't have reader ACLs", entities, not(hasItem(String.format("group-%s",
             snapshotIamRoles.get(IamRole.READER)))));
     }

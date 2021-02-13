@@ -133,7 +133,6 @@ public class SnapshotTest extends UsersBase {
                 datasetSummaryModel.getName(),
                 profileId,
                 "ingest-test-snapshot.json");
-        createdSnapshotIds.add(snapshotSummary.getId());
 
         DataRepoResponse<JobModel> deleteSnapResp =
             dataRepoFixtures.deleteSnapshotLaunch(reader(), snapshotSummary.getId());
@@ -179,6 +178,9 @@ public class SnapshotTest extends UsersBase {
         assertThat("Dataset filters to dataSnapshots",
             enumSnapByBadDatasetId.getTotal(),
             equalTo(0));
+
+        // Delete snapshot as custodian for this test since teardown uses steward
+        dataRepoFixtures.deleteSnapshot(custodian(), snapshotSummary.getId());
     }
 
     @Test

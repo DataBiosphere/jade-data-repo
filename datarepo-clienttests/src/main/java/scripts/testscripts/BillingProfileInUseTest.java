@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
+import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import java.util.List;
 import org.slf4j.Logger;
@@ -52,9 +53,6 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       String profileId = profile.getId();
       logger.info("ProfileId: {}", profileId);
 
-      // Remove stewards from the owner list. Otherwise, voldemort has access by default :(
-      ownerUser1Api.deleteProfilePolicyMember(profileId, "owner", stewardsEmail);
-
       ownerUser1Api.addProfilePolicyMember(profileId, "user", ownerUser2.userEmail);
       ownerUser1Api.addProfilePolicyMember(profileId, "user", userUser.userEmail);
       dumpPolicies(ownerUser1Api, profileId);
@@ -70,13 +68,17 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       // attempt to delete profile should fail due to dataset and snapshot dependency
       tryDeleteProfile(ownerUser1Api, profileId, false);
 
-      userUserApi.deleteSnapshot(snapshot.getId());
+      assertThat(
+          userUserApi.deleteSnapshot(snapshot.getId()).getObjectState(),
+          equalTo(DeleteResponseModel.ObjectStateEnum.DELETED));
       snapshot = null;
 
       // attempt to delete profile should fail due to dataset dependency
       tryDeleteProfile(ownerUser1Api, profileId, false);
 
-      ownerUser2Api.deleteDataset(dataset.getId());
+      assertThat(
+          ownerUser2Api.deleteDataset(dataset.getId()).getObjectState(),
+          equalTo(DeleteResponseModel.ObjectStateEnum.DELETED));
       dataset = null;
 
       // attempt to delete profile should succeed

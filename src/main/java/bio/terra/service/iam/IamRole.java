@@ -8,11 +8,11 @@ public enum IamRole {
     ADMIN,
     STEWARD,
     CUSTODIAN,
-    INGESTER,
     READER,
     DISCOVERER,
     OWNER,
-    USER;
+    USER,
+    SNAPSHOT_CREATOR;
 
     @Override
     @JsonValue

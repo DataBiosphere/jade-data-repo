@@ -446,8 +446,8 @@ paths:
           schema:
             type: string
             enum:
-              - reader
-              - discoverer
+              - owner
+              - user
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -869,6 +869,7 @@ paths:
           schema:
             type: string
             enum:
+              - steward
               - reader
               - discoverer
       requestBody:
@@ -924,6 +925,7 @@ paths:
           schema:
             type: string
             enum:
+              - steward
               - reader
               - discoverer
         - name: memberEmail
@@ -1217,7 +1219,7 @@ paths:
             enum:
               - steward
               - custodian
-              - ingester
+              - snapshot_creator
       requestBody:
         description: Dataset to change the policy of
         content:
@@ -1273,7 +1275,7 @@ paths:
             enum:
               - steward
               - custodian
-              - ingester
+              - snapshot_creator
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -3961,6 +3963,7 @@ components:
       schema:
         type: string
         enum:
+          - steward
           - reader
           - discoverer
     DatasetPolicyName:
@@ -3973,7 +3976,7 @@ components:
         enum:
           - steward
           - custodian
-          - ingester
+          - snapshot_creator
     ProfilePolicyName:
       name: policyName
       in: path

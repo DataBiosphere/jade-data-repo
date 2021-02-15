@@ -129,7 +129,7 @@ public class SnapshotService {
         List<UUID> datasetIds,
         List<UUID> resources) {
         if (resources.isEmpty()) {
-            return new EnumerateSnapshotModel().total(0);
+            return new EnumerateSnapshotModel().total(0).items(Collections.emptyList());
         }
         MetadataEnumeration<SnapshotSummary> enumeration = snapshotDao.retrieveSnapshots(offset, limit, sort, direction,
             filter, datasetIds, resources);

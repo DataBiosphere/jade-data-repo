@@ -17,7 +17,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.kubernetes.KubeService;
+import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.SnapshotProject;
@@ -52,7 +52,7 @@ public class DrsService {
     private final IamService samService;
     private final ResourceService resourceService;
     private final ConfigurationService configurationService;
-    private final KubeService kubeService;
+    private final JobService jobService;
     private final PerformanceLogger performanceLogger;
 
     @Autowired
@@ -62,7 +62,7 @@ public class DrsService {
                       IamService samService,
                       ResourceService resourceService,
                       ConfigurationService configurationService,
-                      KubeService kubeService,
+                      JobService jobService,
                       PerformanceLogger performanceLogger) {
         this.snapshotService = snapshotService;
         this.fileService = fileService;
@@ -70,14 +70,14 @@ public class DrsService {
         this.samService = samService;
         this.resourceService = resourceService;
         this.configurationService = configurationService;
-        this.kubeService = kubeService;
+        this.jobService = jobService;
         this.performanceLogger = performanceLogger;
     }
 
     private class DrsRequestResource implements AutoCloseable {
         DrsRequestResource() {
             // make sure not too many requests are being made at once
-            int podCount = kubeService.getActivePodCount();
+            int podCount = jobService.getActivePodCount();
             int maxDRSLookups = configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX);
             int max = maxDRSLookups / podCount;
             logger.info("Max number of DRS lookups allowed : " + max);

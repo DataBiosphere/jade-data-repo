@@ -17,11 +17,15 @@ public class UsersBase {
 
 
     private static Logger logger = LoggerFactory.getLogger(UsersBase.class);
+    private TestConfiguration.User admin;
     private TestConfiguration.User steward;
     private TestConfiguration.User custodian;
     private TestConfiguration.User reader;
     private TestConfiguration.User discoverer;
 
+    public TestConfiguration.User admin() {
+        return admin;
+    }
     public TestConfiguration.User steward() {
         return steward;
     }
@@ -38,6 +42,7 @@ public class UsersBase {
 
 
     protected void setup() throws Exception {
+        admin = users.getUserForRole("admin");
         steward = users.getUserForRole("steward");
         custodian = users.getUserForRole("custodian");
         reader = users.getUserForRole("reader");

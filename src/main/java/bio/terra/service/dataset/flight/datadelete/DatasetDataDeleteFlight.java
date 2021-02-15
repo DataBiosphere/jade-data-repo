@@ -45,7 +45,7 @@ public class DatasetDataDeleteFlight extends Flight {
             iamClient,
             IamResourceType.DATASET,
             datasetId,
-            IamAction.UPDATE_DATA));
+            IamAction.SOFT_DELETE));
 
         // need to lock, need dataset name and flight id
         addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true),

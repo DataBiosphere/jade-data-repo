@@ -3,7 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.common.category.Unit;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.kubernetes.KubeService;
+import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
@@ -39,12 +39,12 @@ public class IngestDriverStepTest extends TestCase {
     private ConfigurationService configurationService;
 
     @MockBean
-    private KubeService kubeService;
+    private JobService jobService;
 
     private final UUID loadUuid = UUID.randomUUID();
 
     private void runTest(int maxFailedFileLoads) throws Exception {
-        given(kubeService.getActivePodCount()).willReturn(1);
+        given(jobService.getActivePodCount()).willReturn(1);
         given(configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES)).willReturn(1);
 
         // Start the task with three failed loads and one pending (candidate) file.
@@ -54,7 +54,7 @@ public class IngestDriverStepTest extends TestCase {
             .failedLoads(3);
         given(loadService.findCandidates(loadUuid, 1)).willReturn(candidates);
 
-        IngestDriverStep step = new IngestDriverStep(loadService, configurationService, kubeService,
+        IngestDriverStep step = new IngestDriverStep(loadService, configurationService, jobService,
             null, null, maxFailedFileLoads, 0, null);
 
         FlightContext flightContext = new FlightContext(new FlightMap(), "", Collections.emptyList());

@@ -125,6 +125,12 @@ public class EncodeFixture {
         SnapshotSummaryModel snapshotSummary = dataRepoFixtures.createSnapshot(
             custodian, datasetSummary.getName(), profileId, "encodefiletest-snapshot.json");
 
+        dataRepoFixtures.addSnapshotPolicyMember(
+            custodian,
+            snapshotSummary.getId(),
+            IamRole.STEWARD,
+            steward.getEmail());
+
         // TODO: Fix use of IamProviderInterface - see DR-494
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian,

@@ -188,14 +188,17 @@ public class SamIam implements IamProviderInterface {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
+            IamRole.ADMIN.toString(),
+            createAccessPolicyOne(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
+        req.addPoliciesItem(
             IamRole.STEWARD.toString(),
-            createAccessPolicyOne(IamRole.STEWARD, samConfig.getStewardsGroupEmail()));
+            createAccessPolicyOne(IamRole.STEWARD, userReq.getEmail()));
         req.addPoliciesItem(
             IamRole.CUSTODIAN.toString(),
             createAccessPolicyOne(IamRole.CUSTODIAN, userReq.getEmail()));
         req.addPoliciesItem(
-            IamRole.INGESTER.toString(),
-            createAccessPolicy(IamRole.INGESTER, null));
+            IamRole.SNAPSHOT_CREATOR.toString(),
+            createAccessPolicy(IamRole.SNAPSHOT_CREATOR, null));
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug(req.toString());
@@ -216,8 +219,9 @@ public class SamIam implements IamProviderInterface {
                                                             UUID datasetId) throws ApiException {
         // we'll want all of these roles to have read access to the underlying data,
         // so we sync and return the emails for the policies that get created by SAM
+        // Note: ADMIN explicitly does NOT require this since it does not require read access to the data
         Map<IamRole, String> policies = new HashMap<>();
-        for (IamRole role : Arrays.asList(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.INGESTER)) {
+        for (IamRole role : Arrays.asList(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.SNAPSHOT_CREATOR)) {
             String policy = syncOnePolicy(userReq, IamResourceType.DATASET, datasetId, role);
             policies.put(role, policy);
         }
@@ -241,11 +245,11 @@ public class SamIam implements IamProviderInterface {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(snapshotId.toString());
         req.addPoliciesItem(
-            IamRole.STEWARD.toString(),
-            createAccessPolicyOne(IamRole.STEWARD, samConfig.getStewardsGroupEmail()));
+            IamRole.ADMIN.toString(),
+            createAccessPolicyOne(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
         req.addPoliciesItem(
-            IamRole.CUSTODIAN.toString(),
-            createAccessPolicyOne(IamRole.CUSTODIAN, userReq.getEmail()));
+            IamRole.STEWARD.toString(),
+            createAccessPolicyOne(IamRole.STEWARD, userReq.getEmail()));
         req.addPoliciesItem(
             IamRole.READER.toString(),
             createAccessPolicy(IamRole.READER, readersList));
@@ -278,8 +282,6 @@ public class SamIam implements IamProviderInterface {
         Map<IamRole, String> policies = new HashMap<>();
         String policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.READER);
         policies.put(IamRole.READER, policy);
-        policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.CUSTODIAN);
-        policies.put(IamRole.CUSTODIAN, policy);
         policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.STEWARD);
         policies.put(IamRole.STEWARD, policy);
         return policies;
@@ -306,16 +308,14 @@ public class SamIam implements IamProviderInterface {
     }
 
     private Void createProfileResourceInner(AuthenticatedUserRequest userReq, String profileId) throws ApiException {
-        // TODO: For now we continue to give stewards access to all profiles. That is consistent with
-        //  the current behavior. When we do the migration to the new permission model we should remove
-        //  this and replace it with the admin group or similar. See DR-663
-        List<String> ownerList = Arrays.asList(userReq.getEmail(), samConfig.getStewardsGroupEmail());
-
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(profileId);
         req.addPoliciesItem(
+            IamRole.ADMIN.toString(),
+            createAccessPolicyOne(IamRole.ADMIN, samConfig.getAdminsGroupEmail()));
+        req.addPoliciesItem(
             IamRole.OWNER.toString(),
-            createAccessPolicy(IamRole.OWNER, ownerList));
+            createAccessPolicyOne(IamRole.OWNER, userReq.getEmail()));
         req.addPoliciesItem(
             IamRole.USER.toString(),
             createAccessPolicy(IamRole.USER, null));

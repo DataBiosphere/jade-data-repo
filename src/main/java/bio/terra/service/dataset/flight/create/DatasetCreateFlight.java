@@ -1,16 +1,12 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.flight.VerifyAuthorizationStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
@@ -35,15 +31,8 @@ public class DatasetCreateFlight extends Flight {
         ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
         IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
-        ApplicationConfiguration appConfig = (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
         ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
         ProfileService profileService = (ProfileService) appContext.getBean("profileService");
-
-        addStep(new VerifyAuthorizationStep(
-            iamClient,
-            IamResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            IamAction.CREATE_DATASET));
 
         DatasetRequestModel datasetRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);

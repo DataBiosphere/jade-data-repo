@@ -49,7 +49,6 @@ public class SnapshotAuthzTabularAclStep implements Step {
         // Build the list of the policy emails that should have read access to the big query dataset
         List<String> emails = new ArrayList<>();
         emails.add(policies.get(IamRole.STEWARD));
-        emails.add(policies.get(IamRole.CUSTODIAN));
         emails.add(policies.get(IamRole.READER));
 
         try {

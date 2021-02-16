@@ -144,13 +144,12 @@ public class CreateSnapshot extends SimpleDataset {
       DataRepoUtils.expectJobSuccess(
           repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
       logger.info("Successfully deleted snapshot: {}", snapshotModel.getName());
-
-      super.cleanup(testUsers);
-      // delete the profile and dataset
-
-      // delete the scratch files used for ingesting tabular data and soft delete rows
-      StorageUtils.deleteFiles(
-          StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
     }
+    super.cleanup(testUsers);
+    // delete the profile and dataset
+
+    // delete the scratch files used for ingesting tabular data and soft delete rows
+    StorageUtils.deleteFiles(
+        StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount), scratchFiles);
   }
 }

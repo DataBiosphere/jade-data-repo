@@ -3,11 +3,16 @@ package scripts.testscripts.baseclasses;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.PolicyMemberRequest;
+import bio.terra.datarepo.model.PolicyResponse;
 import java.util.List;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -55,6 +60,26 @@ public class SimpleDataset extends runner.TestScript {
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
     logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
+
+    // add users as custodians
+    List<TestUserSpecification> custodians =
+        testUsers.stream()
+            .filter(u -> !StringUtils.equals(u.userEmail, datasetCreator.userEmail))
+            .collect(Collectors.toList());
+
+    custodians.forEach(
+        u -> {
+          try {
+            logger.info("Adding user {} as custodian", u.userEmail);
+            PolicyResponse policyResponse =
+                repositoryApi.addDatasetPolicyMember(
+                    datasetSummaryModel.getId(),
+                    "custodian",
+                    new PolicyMemberRequest().email(u.userEmail));
+          } catch (ApiException e) {
+            throw new RuntimeException("Error adding user as custodian", e);
+          }
+        });
   }
 
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {

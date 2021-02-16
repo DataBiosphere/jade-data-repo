@@ -200,7 +200,7 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<JobModel> addDatasetAssetSpecifications(@PathVariable("id") String id,
                                                   @Valid @RequestBody AssetModel asset) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.EDIT_DATASET);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.MANAGE_SCHEMA);
         String jobId = datasetService.addDatasetAssetSpecifications(id, asset, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
@@ -209,7 +209,7 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<JobModel> removeDatasetAssetSpecifications(@PathVariable("id") String id,
                                                                      @PathVariable("assetId") String assetId) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.EDIT_DATASET);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.MANAGE_SCHEMA);
         String jobId = datasetService.removeDatasetAssetSpecifications(id, assetId, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
@@ -219,7 +219,7 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<JobModel> deleteFile(@PathVariable("id") String id,
                                                @PathVariable("fileid") String fileid) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.UPDATE_DATA);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.SOFT_DELETE);
         String jobId = fileService.deleteFile(id, fileid, userReq);
         // we can retrieve the job we just created
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
@@ -328,7 +328,7 @@ public class RepositoryApiController implements RepositoryApi {
                 userReq,
                 IamResourceType.DATASET,
                 sourceId.toString(),
-                IamAction.CREATE_DATASNAPSHOT))
+                IamAction.LINK_SNAPSHOT))
             .collect(Collectors.toList());
     }
 
@@ -497,6 +497,11 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<ConfigModel> getConfig(@PathVariable("name") String name) {
+        iamService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            IamResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            IamAction.CONFIGURE);
         ConfigModel configModel = configurationService.getConfig(name);
         return new ResponseEntity<>(configModel, HttpStatus.OK);
     }
@@ -514,12 +519,22 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<Void> resetConfig() {
+        iamService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            IamResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            IamAction.CONFIGURE);
         configurationService.reset();
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @Override
     public ResponseEntity<ConfigListModel> setConfigList(@Valid @RequestBody ConfigGroupModel configModel) {
+        iamService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            IamResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            IamAction.CONFIGURE);
         ConfigListModel configModelList = configurationService.setConfig(configModel);
         return new ResponseEntity<>(configModelList, HttpStatus.OK);
     }
@@ -527,6 +542,11 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<Void> setFault(@PathVariable("name") String name,
                                          @Valid @RequestBody ConfigEnableModel configEnable) {
+        iamService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            IamResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            IamAction.CONFIGURE);
         configurationService.setFault(name, configEnable.isEnabled());
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

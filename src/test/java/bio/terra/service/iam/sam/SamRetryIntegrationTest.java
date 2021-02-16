@@ -68,15 +68,17 @@ public class SamRetryIntegrationTest extends UsersBase {
         iam.createDatasetResource(userRequest, fakeDatasetId);
 
         iam.syncDatasetResourcePolicies(userRequest, fakeDatasetId);
-        List<PolicyModel> firstSync_policyList = iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
+        List<PolicyModel> firstSync_policyList =
+            iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
 
         // Should be able to re-run syncDatasetResourcePolicies without an error being thrown
         // Otherwise, need to break up each "SamIam.syncOnePolicy" into own retry loop
         iam.syncDatasetResourcePolicies(userRequest, fakeDatasetId);
-        List<PolicyModel> secondSync_policyList = iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
+        List<PolicyModel> secondSync_policyList =
+            iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
 
         // Let's make sure the policy model didn't change between the first and second sync
-        for(int i = 0; i < firstSync_policyList.size(); i++){
+        for (int i = 0; i < firstSync_policyList.size(); i++) {
             PolicyModel firstSync_policy = firstSync_policyList.get(i);
             PolicyModel secondSync_policy = secondSync_policyList.get(i);
 

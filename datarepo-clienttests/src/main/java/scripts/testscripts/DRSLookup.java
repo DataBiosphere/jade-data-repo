@@ -11,6 +11,7 @@ import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.PolicyMemberRequest;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import bio.terra.datarepo.model.TableModel;
@@ -24,6 +25,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -135,6 +137,19 @@ public class DRSLookup extends SimpleDataset {
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
     logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
+
+    for (TestUserSpecification user : testUsers) {
+      if (!StringUtils.equals(datasetCreator.userEmail, user.userEmail)) {
+        repositoryApi.addSnapshotPolicyMember(
+            snapshotSummaryModel.getId(),
+            "steward",
+            new PolicyMemberRequest().email(user.userEmail));
+        logger.info(
+            "Granted steward access on snapshot {} to user {}",
+            snapshotSummaryModel.getName(),
+            user.userEmail);
+      }
+    }
 
     // now go and retrieve the file Id that should be stored in the snapshot
     snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());

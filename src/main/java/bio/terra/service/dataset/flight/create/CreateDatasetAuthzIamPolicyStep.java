@@ -8,15 +8,11 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.UUID;
 
 public class CreateDatasetAuthzIamPolicyStep implements Step {
-    final private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzIamPolicyStep.class);
-
     private final IamProviderInterface iamClient;
     private final AuthenticatedUserRequest userReq;
 

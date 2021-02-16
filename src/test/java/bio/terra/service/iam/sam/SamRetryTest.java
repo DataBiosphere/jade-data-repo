@@ -28,8 +28,6 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_
 public class SamRetryTest {
     @Autowired
     private ConfigurationService configService;
-    @Autowired
-    private SamRetry samRetry;
 
     private int count;
 
@@ -41,12 +39,14 @@ public class SamRetryTest {
     @Test(expected = IamInternalServerErrorException.class)
     public void testRetryTimeout() throws Exception {
         setSamParams("testRetryTimeout", 1, 3, 10);
+        SamRetry samRetry = new SamRetry(configService);
         samRetry.perform(() -> testRetryFinishInner(100));
     }
 
     @Test
     public void testRetryFinish() throws Exception {
         setSamParams("testRetryFinish", 2, 5, 10);
+        SamRetry samRetry = new SamRetry(configService);
         samRetry.perform(() -> testRetryFinishInner(2));
     }
 

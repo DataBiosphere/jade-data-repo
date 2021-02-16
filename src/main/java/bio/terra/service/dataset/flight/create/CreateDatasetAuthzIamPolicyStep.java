@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 public class CreateDatasetAuthzIamPolicyStep implements Step {
-    private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzIamPolicyStep.class);
+    final private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzIamPolicyStep.class);
 
     private final IamProviderInterface iamClient;
     private final AuthenticatedUserRequest userReq;

@@ -56,7 +56,7 @@ public class SnapshotAuthzIamPolicyStep implements Step {
             // when SAM deletes the ACL. How 'bout that!
         } catch (UnauthorizedException ex) {
             // suppress exception
-            logger.error("NEEDS CLEANUP: delete sam resource for snapshot " + snapshotId.toString());
+            logger.error("NEEDS CLEANUP: delete sam resource for snapshot {}", snapshotId);
             logger.warn(ex.getMessage());
         }
         return StepResult.getStepResultSuccess();

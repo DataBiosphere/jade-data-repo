@@ -217,6 +217,10 @@ public class SamIam implements IamProviderInterface {
 
     private Map<IamRole, String> syncDatasetResourcePoliciesInner(AuthenticatedUserRequest userReq,
                                                             UUID datasetId) throws ApiException {
+        // This includes multiple calls to SAM within one retry call
+        // retrySyncDatasetPolicies() integration test proves that we can re-run all of these calls
+        // if the call fails part of the way through
+
         // we'll want all of these roles to have read access to the underlying data,
         // so we sync and return the emails for the policies that get created by SAM
         // Note: ADMIN explicitly does NOT require this since it does not require read access to the data

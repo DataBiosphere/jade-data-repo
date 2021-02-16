@@ -85,6 +85,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     @Override
     public ResponseEntity<RepositoryConfigurationModel> retrieveRepositoryConfig() {
+        logger.info("TESTING HOTFIX!");
         RepositoryConfigurationModel configurationModel = new RepositoryConfigurationModel()
             .clientId(oauthConfig.getClientId())
             .activeProfiles(Arrays.asList(env.getActiveProfiles()))

@@ -3,13 +3,26 @@ name: Track semVer through environments
 on:
   schedule:
     - cron: '0 */3 * * *' # run every 3 hours and on push
-  workflow_dispatch: {}
+# push is only for merge tracking
+  push:
+    branches:
+      - develop
 
 jobs:
   get_versions:
     name: Get semVer for environments
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          ref: develop
+      - name: 'Get Previous tag'
+        id: apiprevioustag
+        uses: "broadinstitute/github-action-get-previous-tag@master"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@master
         with:
@@ -20,7 +33,8 @@ jobs:
         run: gsutil cp gs://deployment-tracking/endpoints.json .
       - shell: bash
         run: |
-          endPoints='[{"env":"dev","endpoint":"https://jade.datarepo-dev.broadinstitute.org/configuration"},
+          endPoints='[{"env":"merge","endpoint":"null"},
+            {"env":"dev","endpoint":"https://jade.datarepo-dev.broadinstitute.org/configuration"},
             {"env":"alpha","endpoint":"https://data.alpha.envs-terra.bio/configuration"},
             {"env":"staging","endpoint":"https://data.staging.envs-terra.bio/configuration"},
             {"env":"production","endpoint":"https://data.terra.bio/configuration"}]'
@@ -31,8 +45,15 @@ jobs:
             _jq() {
             echo ${row} | base64 --decode | jq -r ${1}
             }
-            semVer=$(curl -s $(_jq '.endpoint') | jq -r '.semVer')
+
             env=$(_jq '.env')
+
+            if  [ $env == "merge" ]
+            then
+              semVer="${{ steps.apiprevioustag.outputs.tag }}-SNAPSHOT"
+            else
+              semVer=$(curl -s $(_jq '.endpoint') | jq -r '.semVer')
+            fi
 
             cat <<< $(jq --arg env "$env" \
               --arg date "$date" \

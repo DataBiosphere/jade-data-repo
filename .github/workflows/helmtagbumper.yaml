@@ -112,7 +112,7 @@ jobs:
         uses: docker://mikefarah/yq:3
         with:
           args: yq w -i datarepo-helm/charts/datarepo-api/Chart.yaml version ${{ steps.chartversion.outputs.chartversion }}"
-      - name: [datarepo-helm] Create pull request
+      - name: "[datarepo-helm] Create pull request"
         uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
         id: create-pr
         with:

@@ -119,7 +119,7 @@ jobs:
           token: ${{ secrets.HELM_DEF_REPO_TOKEN }}
           path: datarepo-helm
           commit-message: "Datarepo api version update: ${{ steps.apiprevioustag.outputs.tag }}"
-          committer: imagetagbot <robot@jade.team>
+          committer: datarepo-bot <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           title: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
           branch: "version-update/${{ steps.apiprevioustag.outputs.tag }}"

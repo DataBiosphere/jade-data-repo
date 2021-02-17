@@ -72,7 +72,7 @@ jobs:
           fields: job,repo,message,author,took
           author_name: "Helm Bumper"
           only_mention_fail: smark,fb,muscles
-    datarepo_helm_chart_update:
+  datarepo_helm_chart_update:
     runs-on: ubuntu-20.04
       steps:
         - name: 'Checkout develop branch of jade-data-repo'

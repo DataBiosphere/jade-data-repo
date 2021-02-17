@@ -84,7 +84,7 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
           alpharelease: ${{ steps.bumperstep.outputs.tag }}
           gcr_google_project: 'broad-jade-dev'
-      - name: "Update Version in helm for Integration Env"
+      - name: "Update Version in datarepo-helm and datarepo-helm-definitions"
         uses: broadinstitute/workflow-dispatch@v1
         with:
           workflow: Update integration api helm image tag

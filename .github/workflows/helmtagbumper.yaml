@@ -116,7 +116,7 @@ jobs:
         uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
         id: create-pr
         with:
-          token: ${{ secrets.HELM_DEF_REPO_TOKEN }}
+          token: ${{ secrets.TERRA_HELMFILE_TOKEN }}
           path: datarepo-helm
           commit-message: "Datarepo api version update: ${{ steps.apiprevioustag.outputs.tag }}"
           committer: imagetagbot <robot@jade.team>
@@ -124,7 +124,7 @@ jobs:
           title: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
           branch: "version-update/${{ steps.apiprevioustag.outputs.tag }}"
           body: |
-            Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
+            Update datarepo-api versions in **${{ steps.apiprevioustag.outputs.tag }}**.
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "datarepo,automerge,version-update"
       - name: "Notify Slack"

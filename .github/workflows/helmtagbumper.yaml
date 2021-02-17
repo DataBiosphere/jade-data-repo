@@ -121,7 +121,7 @@ jobs:
           commit-message: "Datarepo api version update: ${{ steps.apiprevioustag.outputs.tag }}"
           committer: datarepo-bot <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
+          title: "Datarepo-api version update: ${{ steps.apiprevioustag.outputs.tag }}"
           branch: "version-update/${{ steps.apiprevioustag.outputs.tag }}"
           body: |
             Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.

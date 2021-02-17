@@ -58,6 +58,27 @@ public class SamRetryTest {
         return true;
     }
 
+    @Test(expected = IamInternalServerErrorException.class)
+    public void testRetryVoidTimeout() throws Exception {
+        setSamParams("testRetryTimeout", 1, 3, 10);
+        SamRetry.retryVoid(configService, () -> testRetryVoidFinishInner(100));
+    }
+
+    @Test
+    public void testRetryVoidFinish() throws Exception {
+        setSamParams("testRetryFinish", 2, 5, 10);
+        SamRetry.retryVoid(configService, () -> testRetryVoidFinishInner(2));
+    }
+
+    // Make this "Inner" to mimic the structure of the SamIam code
+    // It "fails" twice and then succeeds
+    private void testRetryVoidFinishInner(int failCount) throws ApiException {
+        if (count < failCount) {
+            count++;
+            throw new ApiException(HttpStatusCodes.STATUS_CODE_SERVER_ERROR, "testing");
+        }
+    }
+
     private void setSamParams(String label, int initialWait, int maxWait, int operationTimeout) {
         ConfigGroupModel groupModel = new ConfigGroupModel()
             .label(label)

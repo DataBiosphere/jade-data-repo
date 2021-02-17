@@ -40,40 +40,71 @@ class SamRetry {
         return samRetry.perform(function);
     }
 
+    static void retryVoid(ConfigurationService configService, SamVoidFunction function)
+        throws InterruptedException {
+        SamRetry samRetry = new SamRetry(configService);
+        samRetry.performVoid(function);
+    }
+
     private <T> T perform(SamFunction<T> function) throws InterruptedException {
         while (true) {
             try {
-                // Simulate a socket timeout for testing
-                configService.fault(ConfigEnum.SAM_TIMEOUT_FAULT, () -> {
-                    throw new ApiException("fault insertion", HttpStatusCodes.STATUS_CODE_SERVER_ERROR, null, null);
-                });
+                insertFaultWhenTesting();
 
                 return function.apply();
-
             } catch (ApiException ex) {
-                DataRepoException rex = SamIam.convertSAMExToDataRepoEx(ex);
-                if (!(rex instanceof IamInternalServerErrorException)) {
-                    throw rex;
-                }
-                logger.info("SamRetry: caught retry-able exception: " + ex);
-                // if our operation timeout will happen before we wake up from our next retry
-                // sleep, then we give up and re-throw.
-                if (operationTimeout.minusSeconds(retrySeconds).isBefore(now())) {
-                    logger.error("SamRetry: operation timed out after " + operationTimeout.toString());
-                    throw rex;
-                }
+                handleApiException(ex);
             } catch (Exception ex) {
                 throw new IamInternalServerErrorException("Unexpected exception type: " + ex.toString(), ex);
             }
-
-            // Retry
-            logger.info("SamRetry: sleeping " + retrySeconds + " seconds");
-            TimeUnit.SECONDS.sleep(retrySeconds);
-
-            retrySeconds = retrySeconds + retrySeconds;
-            if (retrySeconds > retryMaxWait) {
-                retrySeconds = retryMaxWait;
-            }
+            sleepBeforeRetrying();
         }
+    }
+
+    private void performVoid(SamVoidFunction function) throws InterruptedException {
+        while (true) {
+            try {
+                insertFaultWhenTesting();
+
+                function.apply();
+                return;
+            } catch (ApiException ex) {
+                handleApiException(ex);
+            } catch (Exception ex) {
+                throw new IamInternalServerErrorException("Unexpected exception type: " + ex.toString(), ex);
+            }
+            sleepBeforeRetrying();
+        }
+    }
+
+    private void handleApiException(ApiException ex) {
+        DataRepoException rex = SamIam.convertSAMExToDataRepoEx(ex);
+        if (!(rex instanceof IamInternalServerErrorException)) {
+            throw rex;
+        }
+        logger.info("SamRetry: caught retry-able exception: " + ex);
+        // if our operation timeout will happen before we wake up from our next retry
+        // sleep, then we give up and re-throw.
+        if (operationTimeout.minusSeconds(retrySeconds).isBefore(now())) {
+            logger.error("SamRetry: operation timed out after " + operationTimeout.toString());
+            throw rex;
+        }
+    }
+
+    private void sleepBeforeRetrying() throws InterruptedException {
+        logger.info("SamRetry: sleeping " + retrySeconds + " seconds");
+        TimeUnit.SECONDS.sleep(retrySeconds);
+
+        retrySeconds = retrySeconds + retrySeconds;
+        if (retrySeconds > retryMaxWait) {
+            retrySeconds = retryMaxWait;
+        }
+    }
+
+    private void insertFaultWhenTesting() throws Exception {
+        // Simulate a socket timeout for testing
+        configService.fault(ConfigEnum.SAM_TIMEOUT_FAULT, () -> {
+            throw new ApiException("fault insertion", HttpStatusCodes.STATUS_CODE_SERVER_ERROR, null, null);
+        });
     }
 }

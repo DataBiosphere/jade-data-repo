@@ -163,7 +163,7 @@ public class SamIam implements IamProviderInterface {
 
     private void deleteResource(AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
         throws InterruptedException {
-        SamRetry.retryVoid(configurationService,
+        SamRetry.retry(configurationService,
             () -> deleteResourceInner(userReq, iamResourceType, resourceId));
     }
 
@@ -177,7 +177,7 @@ public class SamIam implements IamProviderInterface {
     @Override
     public void createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
         throws InterruptedException {
-        SamRetry.retryVoid(configurationService,
+        SamRetry.retry(configurationService,
             () -> createDatasetResourceInner(userReq, datasetId));
     }
 
@@ -235,7 +235,7 @@ public class SamIam implements IamProviderInterface {
         AuthenticatedUserRequest userReq,
         UUID snapshotId,
         List<String> readersList) throws InterruptedException {
-        SamRetry.retryVoid(configurationService,
+        SamRetry.retry(configurationService,
             () -> createSnapshotResourceInner(userReq, snapshotId, readersList));
     }
 
@@ -301,7 +301,7 @@ public class SamIam implements IamProviderInterface {
 
     @Override
     public void createProfileResource(AuthenticatedUserRequest userReq, String profileId) throws InterruptedException {
-        SamRetry.retryVoid(configurationService,
+        SamRetry.retry(configurationService,
             () -> createProfileResourceInner(userReq, profileId));
     }
 
@@ -379,7 +379,7 @@ public class SamIam implements IamProviderInterface {
                                        UUID resourceId,
                                        String policyName,
                                        String userEmail) throws InterruptedException {
-        SamRetry.retryVoid(configurationService,
+        SamRetry.retry(configurationService,
             () -> addPolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
         return SamRetry.retry(configurationService,
             () -> retrievePolicy(userReq, iamResourceType, resourceId, policyName));
@@ -402,7 +402,7 @@ public class SamIam implements IamProviderInterface {
                                           UUID resourceId,
                                           String policyName,
                                           String userEmail) throws InterruptedException {
-        SamRetry.retryVoid(configurationService,
+        SamRetry.retry(configurationService,
             () -> deletePolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
         return SamRetry.retry(configurationService,
             () -> retrievePolicy(userReq, iamResourceType, resourceId, policyName));

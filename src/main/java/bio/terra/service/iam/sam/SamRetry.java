@@ -33,13 +33,25 @@ class SamRetry {
         this.operationTimeout = now().plusSeconds(operationTimeoutSeconds);
     }
 
+
+    @FunctionalInterface
+    public interface SamVoidFunction {
+        void apply() throws ApiException, InterruptedException;
+    }
+
+    @FunctionalInterface
+    public interface SamFunction<R> {
+        R apply() throws ApiException, InterruptedException;
+    }
+
+
     static <T> T retry(ConfigurationService configService, SamFunction<T> function)
         throws InterruptedException {
         SamRetry samRetry = new SamRetry(configService);
         return samRetry.perform(function);
     }
 
-    static void retryVoid(ConfigurationService configService, SamVoidFunction function)
+    static void retry(ConfigurationService configService, SamVoidFunction function)
         throws InterruptedException {
         SamRetry samRetry = new SamRetry(configService);
         samRetry.performVoid(function);

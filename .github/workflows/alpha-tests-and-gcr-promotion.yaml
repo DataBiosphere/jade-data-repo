@@ -150,19 +150,7 @@ jobs:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       with:
         status: ${{ job.status }}
-        fields: job,repo,message,author,took
+        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
         channel: "#jade-alerts"
         username: "Data Repo tests"
         text: "Alpha Tests and GCR Promotion"
-    - name: "Notify QA Slack"
-      if: always()
-      uses: broadinstitute/action-slack@v3.8.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      with:
-        status: ${{ job.status }}
-        channel: "#dsde-qa"
-        username: "Data Repo tests"
-        text: "Alpha Tests and GCR Promotion"
-        fields: job,repo,message,author,took

@@ -98,6 +98,7 @@ public interface IamProviderInterface {
      *
      * @param userReq     authenticated user
      * @param snapshotId  id of the snapshot
+     * @param readersList list of emails of users to add as readers of the snapshot
      * @return Policy group email for the snapshot reader policy
      */
     Map<IamRole, String> createSnapshotResource(AuthenticatedUserRequest userReq,

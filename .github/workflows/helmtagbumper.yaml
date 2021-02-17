@@ -61,17 +61,19 @@ jobs:
             Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "datarepo,automerge,version-update"
-      - name: Slack job status
+      - name: "Notify Slack"
         if: always()
         uses: broadinstitute/action-slack@v3.8.0
-        with:
-          status: ${{ job.status }}
-          author_name: api_helm_bumper
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-          only_mention_fail: smark,fb,muscles
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          fields: job,repo,message,author,took
+          channel: "#jade-alerts"
+          username: "Helm Bumper"
+          text: "Update datarepo-api version in datarepo-helm-defintions for Integration namespaces"
+          only_mention_fail: smark,fb,muscles
     datarepo_helm_chart_update:
     runs-on: ubuntu-20.04
       steps:
@@ -127,14 +129,16 @@ jobs:
               Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
               *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
             labels: "datarepo,automerge,version-update"
-        - name: Slack job status
+        - name: "Notify Slack"
           if: always()
           uses: broadinstitute/action-slack@v3.8.0
-          with:
-            status: ${{ job.status }}
-            author_name: api_helm_bumper
-            fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-            only_mention_fail: smark,fb,muscles
           env:
             GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
             SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          with:
+            status: ${{ job.status }}
+            fields: job,repo,message,author,took
+            channel: "#jade-alerts"
+            username: "Helm Bumper"
+            text: "Update datarepo-api version in datarepo-helm chart"
+            only_mention_fail: smark,fb,muscles

@@ -3,75 +3,75 @@ on:
   workflow_dispatch: {}
 jobs:
 # new integration image updater
-  integration_helm_tag_update:
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-          ref: develop
-      - name: 'Get Previous tag'
-        id: apiprevioustag
-        uses: "broadinstitute/github-action-get-previous-tag@master"
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: 'Checkout datarepo-helm-definitions repo'
-        uses: actions/checkout@v2
-        with:
-          repository: 'broadinstitute/datarepo-helm-definitions'
-          token: ${{ secrets.HELM_REPO_TOKEN }}
-          path: datarepo-helm-definitions
-      - name: "integration-1 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-1/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "integration-2 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-2/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "integration-3 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-3/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "integration-4 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-4/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "integration-5 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-5/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: "integration-6 find and replace"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/integration-6/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
-      - name: Create pull request
-        uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
-        id: create-pr
-        with:
-          token: ${{ secrets.TERRA_HELMFILE_TOKEN }}
-          path: datarepo-helm-definitions
-          commit-message: "Datarepo api tag version update: ${{ steps.apiprevioustag.outputs.tag }}"
-          committer: datarepo-bot <noreply@github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
-          branch: "version-update/${{ steps.apiprevioustag.outputs.tag }}"
-          body: |
-            Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
-            *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
-          labels: "datarepo,automerge,version-update"
-      - name: Slack job status
-        if: always()
-        uses: broadinstitute/action-slack@v3.8.0
-        with:
-          status: ${{ job.status }}
-          author_name: api_helm_bumper
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-          only_mention_fail: smark,fb,muscles
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  #integration_helm_tag_update:
+  #  runs-on: ubuntu-20.04
+  #  steps:
+  #    - name: Checkout
+  #      uses: actions/checkout@v2
+  #      with:
+  #        fetch-depth: 0
+  #        ref: develop
+  #    - name: 'Get Previous tag'
+  #      id: apiprevioustag
+  #      uses: "broadinstitute/github-action-get-previous-tag@master"
+  #      env:
+  #        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+  #    - name: 'Checkout datarepo-helm-definitions repo'
+  #      uses: actions/checkout@v2
+  #      with:
+  #        repository: 'broadinstitute/datarepo-helm-definitions'
+  #        token: ${{ secrets.HELM_REPO_TOKEN }}
+  #        path: datarepo-helm-definitions
+  #    - name: "integration-1 find and replace"
+  #      uses: docker://mikefarah/yq:3.3.4
+  #      with:
+  #        args: yq w -i datarepo-helm-definitions/integration/integration-1/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
+  #    - name: "integration-2 find and replace"
+  #      uses: docker://mikefarah/yq:3.3.4
+  #      with:
+  #        args: yq w -i datarepo-helm-definitions/integration/integration-2/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
+  #    - name: "integration-3 find and replace"
+  #      uses: docker://mikefarah/yq:3.3.4
+  #      with:
+  #        args: yq w -i datarepo-helm-definitions/integration/integration-3/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
+  #    - name: "integration-4 find and replace"
+  #      uses: docker://mikefarah/yq:3.3.4
+  #      with:
+  #        args: yq w -i datarepo-helm-definitions/integration/integration-4/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
+  #    - name: "integration-5 find and replace"
+  #      uses: docker://mikefarah/yq:3.3.4
+  #      with:
+  #        args: yq w -i datarepo-helm-definitions/integration/integration-5/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
+  #    - name: "integration-6 find and replace"
+  #      uses: docker://mikefarah/yq:3.3.4
+  #      with:
+  #        args: yq w -i datarepo-helm-definitions/integration/integration-6/datarepo-api.yaml image.tag ${{ steps.apiprevioustag.outputs.tag }}"
+  #    - name: Create pull request
+  #      uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
+  #      id: create-pr
+  #      with:
+  #        token: ${{ secrets.TERRA_HELMFILE_TOKEN }}
+  #        path: datarepo-helm-definitions
+  #        commit-message: "Datarepo api tag version update: ${{ steps.apiprevioustag.outputs.tag }}"
+  #        committer: datarepo-bot <noreply@github.com>
+  #        author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+  #        title: "Datarepo version update: ${{ steps.apiprevioustag.outputs.tag }}"
+  #        branch: "version-update/${{ steps.apiprevioustag.outputs.tag }}"
+  #        body: |
+  #          Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
+  #          *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
+  #        labels: "datarepo,automerge,version-update"
+  #    - name: Slack job status
+  #      if: always()
+  #      uses: broadinstitute/action-slack@v3.8.0
+  #      with:
+  #        status: ${{ job.status }}
+  #        author_name: api_helm_bumper
+  #        fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+  #        only_mention_fail: smark,fb,muscles
+  #      env:
+  #        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     datarepo_helm_chart_update:
     runs-on: ubuntu-20.04
       steps:
@@ -128,7 +128,7 @@ jobs:
               *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
             labels: "datarepo,automerge,version-update"
         - name: Slack job status
-          if: always()
+          if: false #always()
           uses: broadinstitute/action-slack@v3.8.0
           with:
             status: ${{ job.status }}

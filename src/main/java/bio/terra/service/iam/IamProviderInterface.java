@@ -104,7 +104,6 @@ public interface IamProviderInterface {
                                                 UUID snapshotId,
                                                 List<String> readersList) throws InterruptedException;
 
-
     // -- billing profile resource support --
 
     /**

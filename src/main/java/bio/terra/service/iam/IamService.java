@@ -185,9 +185,10 @@ public class IamService {
      *
      * @param userReq     authenticated user
      * @param snapshotId  id of the snapshot
+     * @param readersList list of emails of users to add as readers of the snapshot
      * @return Policy group map
      */
-    public Map<IamRole, String>  createSnapshotResource(AuthenticatedUserRequest userReq,
+    public Map<IamRole, String> createSnapshotResource(AuthenticatedUserRequest userReq,
                                                        UUID snapshotId,
                                                        List<String> readersList) {
         try {

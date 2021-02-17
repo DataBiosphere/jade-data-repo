@@ -36,7 +36,6 @@ public class CreateDatasetAuthzIamStep implements Step {
         Map<IamRole, String> policyEmails = iamClient.createDatasetResource(userReq, datasetId);
         workingMap.put(DatasetWorkingMapKeys.POLICY_EMAILS, policyEmails);
         return StepResult.getStepResultSuccess();
-
     }
 
     @Override

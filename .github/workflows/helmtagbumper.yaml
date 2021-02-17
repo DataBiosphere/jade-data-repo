@@ -69,7 +69,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
           status: ${{ job.status }}
-          fields: job,repo,message,author,tfook
+          fields: job,repo,message,author,took
           author_name: "[API] [datarepo-helm-definitions] Verion update for Integration namespaces"
           only_mention_fail: smark,fb,muscles
   datarepo_helm_chart_update:
@@ -136,5 +136,5 @@ jobs:
         with:
           status: ${{ job.status }}
           fields: job,repo,message,author,took
-          author_name: "[API] [datarepo-helm] Verion update for Helm Charts"
+          author_name: "[API] [datarepo-helm] Version update for Helm Charts"
           only_mention_fail: smark,fb,muscles

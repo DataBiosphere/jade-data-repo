@@ -116,7 +116,7 @@ jobs:
         uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
         id: create-pr
         with:
-          token: ${{ secrets.HELM_DEF_REPO_TOKEN }}
+          token: ${{ secrets.TERRA_HELMFILE_TOKEN }}
           path: datarepo-helm
           commit-message: "Datarepo api version update: ${{ steps.apiprevioustag.outputs.tag }}"
           committer: datarepo-bot <noreply@github.com>

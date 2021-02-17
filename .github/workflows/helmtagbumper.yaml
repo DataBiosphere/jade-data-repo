@@ -1,4 +1,4 @@
-name: Update integration api helm image tag
+name: Update API Helm Image Tags
 on:
   workflow_dispatch: {}
 jobs:
@@ -69,8 +69,8 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
           status: ${{ job.status }}
-          fields: job,repo,message,author,took
-          author_name: "Helm Bumper"
+          fields: job,repo,message,author,tfook
+          author_name: "[API] [datarepo-helm-definitions] Verion update for Integration namespaces"
           only_mention_fail: smark,fb,muscles
   datarepo_helm_chart_update:
     runs-on: ubuntu-20.04
@@ -136,5 +136,5 @@ jobs:
         with:
           status: ${{ job.status }}
           fields: job,repo,message,author,took
-          author_name: "Helm Bumper"
+          author_name: "[API] [datarepo-helm] Verion update for Helm Charts"
           only_mention_fail: smark,fb,muscles

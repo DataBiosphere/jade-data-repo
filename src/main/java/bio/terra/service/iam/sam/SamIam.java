@@ -175,10 +175,12 @@ public class SamIam implements IamProviderInterface {
     }
 
     @Override
-    public void createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
+    public Map<IamRole, String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
         throws InterruptedException {
         SamRetry.retry(configurationService,
             () -> createDatasetResourceInner(userReq, datasetId));
+        return SamRetry.retry(configurationService,
+            () -> syncDatasetResourcePoliciesInner(userReq, datasetId));
     }
 
     private void createDatasetResourceInner(AuthenticatedUserRequest userReq,
@@ -203,13 +205,6 @@ public class SamIam implements IamProviderInterface {
 
         // create the resource in sam
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASET.toString(), req);
-    }
-
-    @Override
-    public Map<IamRole, String> syncDatasetResourcePolicies(AuthenticatedUserRequest userReq, UUID datasetId)
-        throws InterruptedException {
-        return SamRetry.retry(configurationService,
-            () -> syncDatasetResourcePoliciesInner(userReq, datasetId));
     }
 
     private Map<IamRole, String> syncDatasetResourcePoliciesInner(AuthenticatedUserRequest userReq,

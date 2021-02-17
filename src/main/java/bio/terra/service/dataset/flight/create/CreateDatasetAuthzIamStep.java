@@ -33,8 +33,7 @@ public class CreateDatasetAuthzIamStep implements Step {
     public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-        iamClient.createDatasetResource(userReq, datasetId);
-        Map<IamRole, String> policyEmails = iamClient.syncDatasetResourcePolicies(userReq, datasetId);
+        Map<IamRole, String> policyEmails = iamClient.createDatasetResource(userReq, datasetId);
         workingMap.put(DatasetWorkingMapKeys.POLICY_EMAILS, policyEmails);
         return StepResult.getStepResultSuccess();
 

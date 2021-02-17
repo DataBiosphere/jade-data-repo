@@ -8,6 +8,10 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.model.PolicyModel;
+import bio.terra.service.iam.IamRole;
+import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
+import org.broadinstitute.dsde.workbench.client.sam.ApiException;
+import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,8 +26,10 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 
@@ -40,10 +46,19 @@ public class SamRetryIntegrationTest extends UsersBase {
     private DataRepoFixtures dataRepoFixtures;
     @Autowired
     private IamProviderInterface iam;
+    @Autowired
+    private SamConfiguration samConfig;
 
     private String stewardToken;
     private UUID fakeDatasetId;
     private AuthenticatedUserRequest userRequest;
+    private GoogleApi samGoogleApi;
+    private ApiClient getApiClient(String accessToken) {
+        ApiClient apiClient = new ApiClient();
+        apiClient.setAccessToken(accessToken);
+        apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java");  // only logs an error in sam
+        return apiClient.setBasePath(samConfig.getBasePath());
+    }
 
     @Before
     public void setup() throws Exception {
@@ -54,6 +69,7 @@ public class SamRetryIntegrationTest extends UsersBase {
             .email(steward().getEmail())
             .token(java.util.Optional.ofNullable(stewardToken));
         fakeDatasetId = UUID.randomUUID();
+        samGoogleApi = new GoogleApi(getApiClient(stewardToken));
     }
 
     @After
@@ -64,18 +80,22 @@ public class SamRetryIntegrationTest extends UsersBase {
     }
 
     @Test
-    public void retrySyncDatasetPolicies() throws InterruptedException {
+    public void retrySyncDatasetPolicies() throws InterruptedException, ApiException {
         iam.createDatasetResource(userRequest, fakeDatasetId);
-
-        iam.syncDatasetResourcePolicies(userRequest, fakeDatasetId);
-        List<PolicyModel> firstSync_policyList =
-            iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
 
         // Should be able to re-run syncDatasetResourcePolicies without an error being thrown
         // Otherwise, need to break up each "SamIam.syncOnePolicy" into own retry loop
-        iam.syncDatasetResourcePolicies(userRequest, fakeDatasetId);
+        String policyEmail = SyncPolicy(IamResourceType.DATASET, fakeDatasetId, IamRole.STEWARD);
+        logger.info("[TEST INFO] Policy email on first sync: {}", policyEmail);
+        List<PolicyModel> firstSync_policyList =
+            iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
+
+        String second_policyEmail = SyncPolicy(IamResourceType.DATASET, fakeDatasetId, IamRole.STEWARD);
+        logger.info("[TEST INFO] Policy email on second sync: {}", policyEmail);
         List<PolicyModel> secondSync_policyList =
             iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
+
+        assertEquals("Policy Emails should be the same", policyEmail, second_policyEmail);
 
         // Let's make sure the policy model didn't change between the first and second sync
         for (int i = 0; i < firstSync_policyList.size(); i++) {
@@ -89,5 +109,15 @@ public class SamRetryIntegrationTest extends UsersBase {
 
         }
     }
+
+    private String SyncPolicy(IamResourceType resourceType, UUID resourceId, IamRole role) throws ApiException {
+
+        Map<String, List<Object>> results = samGoogleApi.syncPolicy(
+            resourceType.toString(),
+            resourceId.toString(),
+            role.toString());
+        return results.keySet().iterator().next();
+    }
+
 
 }

@@ -71,8 +71,7 @@ jobs:
           status: ${{ job.status }}
           fields: job,repo,message,author,took
           channel: "#jade-alerts"
-          username: "Helm Bumper"
-          text: "Update datarepo-api version in datarepo-helm-defintions for Integration namespaces"
+          author_name: "Helm Bumper"
           only_mention_fail: smark,fb,muscles
     datarepo_helm_chart_update:
     runs-on: ubuntu-20.04
@@ -139,6 +138,5 @@ jobs:
             status: ${{ job.status }}
             fields: job,repo,message,author,took
             channel: "#jade-alerts"
-            username: "Helm Bumper"
-            text: "Update datarepo-api version in datarepo-helm chart"
+            author_name: "Helm Bumper"
             only_mention_fail: smark,fb,muscles

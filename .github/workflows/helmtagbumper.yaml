@@ -70,6 +70,7 @@ jobs:
         with:
           status: ${{ job.status }}
           fields: job,repo,message,author,took
+          #channel: "#jade-alerts"
           author_name: "Helm Bumper"
           only_mention_fail: smark,fb,muscles
   datarepo_helm_chart_update:
@@ -136,5 +137,6 @@ jobs:
           with:
             status: ${{ job.status }}
             fields: job,repo,message,author,took
+            #channel: "#jade-alerts"
             author_name: "Helm Bumper"
             only_mention_fail: smark,fb,muscles

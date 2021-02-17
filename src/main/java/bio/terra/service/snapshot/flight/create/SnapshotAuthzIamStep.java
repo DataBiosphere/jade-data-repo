@@ -39,11 +39,8 @@ public class SnapshotAuthzIamStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
-        // This creates the resource in SAM
-        sam.createSnapshotResource(userReq, snapshotId, snapshotRequestModel.getReaders());
-        // This returns the policy email created by Google to correspond to the readers list in SAM
-        Map<IamRole, String> policies =
-            sam.syncSnapshotResourcePolicies(userReq, snapshotId, snapshotRequestModel.getReaders());
+        Map<IamRole, String> policies = sam.createSnapshotResource(
+            userReq, snapshotId, snapshotRequestModel.getReaders());
         workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policies);
         return StepResult.getStepResultSuccess();
     }

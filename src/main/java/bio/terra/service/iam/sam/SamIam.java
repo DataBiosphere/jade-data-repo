@@ -226,12 +226,14 @@ public class SamIam implements IamProviderInterface {
     }
 
     @Override
-    public void createSnapshotResource(
+    public Map<IamRole, String> createSnapshotResource(
         AuthenticatedUserRequest userReq,
         UUID snapshotId,
         List<String> readersList) throws InterruptedException {
         SamRetry.retry(configurationService,
             () -> createSnapshotResourceInner(userReq, snapshotId, readersList));
+        return SamRetry.retry(configurationService,
+            () -> syncSnapshotResourcePoliciesInner(userReq, snapshotId, readersList));
     }
 
     private void createSnapshotResourceInner(AuthenticatedUserRequest userReq,
@@ -257,15 +259,6 @@ public class SamIam implements IamProviderInterface {
 
         // create the resource in sam
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASNAPSHOT.toString(), req);
-    }
-
-    @Override
-    public Map<IamRole, String> syncSnapshotResourcePolicies(
-        AuthenticatedUserRequest userReq,
-        UUID snapshotId,
-        List<String> readersList) throws InterruptedException {
-        return SamRetry.retry(configurationService,
-            () -> syncSnapshotResourcePoliciesInner(userReq, snapshotId, readersList));
     }
 
     private Map<IamRole, String> syncSnapshotResourcePoliciesInner(AuthenticatedUserRequest userReq,

@@ -121,7 +121,7 @@ public class ConnectedOperations {
         datasetPolicies.put(IamRole.STEWARD,  "hi@hi.com");
         datasetPolicies.put(IamRole.SNAPSHOT_CREATOR,  "hi@hi.com");
 
-        when(samService.syncSnapshotResourcePolicies(any(), any(), any())).thenReturn(snapshotPolicies);
+        when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
         when(samService.createDatasetResource(any(), any())).thenReturn(datasetPolicies);
 

@@ -578,8 +578,7 @@ public class SamIam implements IamProviderInterface {
     @Override
     public RepositoryStatusModelSystems samStatus() {
         try {
-            return SamRetry.retry(configurationService,
-                () -> {
+            return SamRetry.retry(configurationService, () -> {
                 StatusApi samApi = new StatusApi(getUnauthApiClient());
                 SystemStatus status = samApi.getSystemStatus();
                 return new RepositoryStatusModelSystems()

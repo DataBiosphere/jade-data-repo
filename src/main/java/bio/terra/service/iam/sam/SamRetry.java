@@ -5,7 +5,6 @@ import bio.terra.common.exception.DataRepoException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
-import bio.terra.stairway.exception.DatabaseOperationException;
 import com.google.api.client.http.HttpStatusCodes;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;

@@ -5,6 +5,7 @@ import bio.terra.common.exception.DataRepoException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
+import bio.terra.stairway.exception.DatabaseOperationException;
 import com.google.api.client.http.HttpStatusCodes;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -33,7 +34,13 @@ class SamRetry {
         this.operationTimeout = now().plusSeconds(operationTimeoutSeconds);
     }
 
-    <T> T perform(SamFunction<T> function) throws InterruptedException {
+    static <T> T retry(ConfigurationService configService, SamFunction<T> function)
+        throws InterruptedException {
+        SamRetry samRetry = new SamRetry(configService);
+        return samRetry.perform(function);
+    }
+
+    private <T> T perform(SamFunction<T> function) throws InterruptedException {
         while (true) {
             try {
                 // Simulate a socket timeout for testing

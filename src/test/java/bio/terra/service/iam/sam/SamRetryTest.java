@@ -39,15 +39,13 @@ public class SamRetryTest {
     @Test(expected = IamInternalServerErrorException.class)
     public void testRetryTimeout() throws Exception {
         setSamParams("testRetryTimeout", 1, 3, 10);
-        SamRetry samRetry = new SamRetry(configService);
-        samRetry.perform(() -> testRetryFinishInner(100));
+        SamRetry.retry(configService, () -> testRetryFinishInner(100));
     }
 
     @Test
     public void testRetryFinish() throws Exception {
         setSamParams("testRetryFinish", 2, 5, 10);
-        SamRetry samRetry = new SamRetry(configService);
-        samRetry.perform(() -> testRetryFinishInner(2));
+        SamRetry.retry(configService, () -> testRetryFinishInner(2));
     }
 
     // Make this "Inner" to mimic the structure of the SamIam code

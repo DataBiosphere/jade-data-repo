@@ -1,21 +1,16 @@
 package bio.terra.service.upgrade;
 
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
+import bio.terra.common.migrate.LiquibaseMigrator;
 import bio.terra.service.upgrade.exception.MigrateException;
-import liquibase.Contexts;
-import liquibase.Liquibase;
-import liquibase.database.jvm.JdbcConnection;
-import liquibase.exception.LiquibaseException;
-import liquibase.resource.ClassLoaderResourceAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
+import javax.sql.DataSource;
 import java.util.Arrays;
-import java.sql.Connection;
-import java.sql.SQLException;
 
 /**
  * Provides methods for upgrading the data repository metadata and stairway databases.
@@ -36,42 +31,49 @@ public class Migrate {
     private static final Logger logger = LoggerFactory.getLogger("bio.terra.service.upgrade");
     private final DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
-
-    @Autowired
-    private Environment env;
+    private final LiquibaseMigrator liquibaseMigrator;
+    private final Environment env;
 
     @Autowired
     public Migrate(DataRepoJdbcConfiguration dataRepoJdbcConfiguration,
-                   MigrateConfiguration migrateConfiguration) {
+                   MigrateConfiguration migrateConfiguration,
+                   LiquibaseMigrator liquibaseMigrator,
+                   Environment env) {
         this.dataRepoJdbcConfiguration = dataRepoJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
+        this.liquibaseMigrator = liquibaseMigrator;
+        this.env = env;
     }
 
     /**
-     * Run liquibase migration
-     *
+     * Run liquibase migration based on the configuration
      */
     public void migrateDatabase() {
+
         String changesetFile = dataRepoJdbcConfiguration.getChangesetFile();
-        try (Connection connection = dataRepoJdbcConfiguration.getDataSource().getConnection()) {
-            Liquibase liquibase = new Liquibase(changesetFile,
-                new ClassLoaderResourceAccessor(),
-                new JdbcConnection(connection));
+        DataSource dataSource = dataRepoJdbcConfiguration.getDataSource();
 
-            logger.info(String.format("dropAllOnStart is set to %s", migrateConfiguration.getDropAllOnStart()));
-            boolean allowDropAllOnStart = Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
-                || env.contains("test") || env.contains("int"));
-            logger.info(String.format("Allow dropAllOnStart is set to %s", allowDropAllOnStart));
+        boolean allowDropAllOnStart = Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
+            || env.contains("test") || env.contains("int"));
 
+        logger.info("dropAllOnStart={}; allowDropAllOnstart={}; updateAllOnStart={}",
+            migrateConfiguration.getDropAllOnStart(), allowDropAllOnStart, migrateConfiguration.getUpdateAllOnStart());
+
+        // Two booleans mean 4 cases
+        // - dropAll=false; updateAll=false - do nothing
+        // - dropAll=false; updateAll=true - update
+        // - dropAll=true; updateAll=true OR =false - drop and update
+        // The case of dropAll=true and updateAll=false makes no sense, since it would leave you
+        // with an empty database, so we collapse the cases.
+        try {
             if (allowDropAllOnStart && migrateConfiguration.getDropAllOnStart()) {
-                logger.info("Dropping all db objects in the default schema");
-                liquibase.dropAll(); // drops everything in the default schema. The migrate schema should be OK
+                liquibaseMigrator.initialize(changesetFile, dataSource);
+            } else {
+                if (migrateConfiguration.getUpdateAllOnStart()) {
+                    liquibaseMigrator.upgrade(changesetFile, dataSource);
+                }
             }
-            logger.info(String.format("updateAllOnStart is set to %s", migrateConfiguration.getUpdateAllOnStart()));
-            if (migrateConfiguration.getUpdateAllOnStart()) {
-                liquibase.update(new Contexts()); // Run all migrations - no context filtering
-            }
-        } catch (LiquibaseException | SQLException ex) {
+        } catch (bio.terra.common.migrate.MigrateException ex) {
             throw new MigrateException("Failed to migrate database from " + changesetFile, ex);
         }
     }

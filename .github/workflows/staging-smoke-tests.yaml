@@ -6,7 +6,7 @@ env:
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
   TDR_LOG_APPENDER: Console-Standard
 on:
-  # Jenkins will kick this job off manually after Alpha is deployed
+  # Jenkins will kick this job off manually after staging is deployed
   # Lives in repo:
   # /dsp-jenkins/src/main/resources/shell/datarepo-integration-test-trigger.sh#L27
   workflow_dispatch: {}

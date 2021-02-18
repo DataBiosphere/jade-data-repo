@@ -71,7 +71,8 @@ subprojects.each { s ->
     }
 }
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 if (hasProperty('buildScan')) {
     buildScan {
@@ -225,6 +226,7 @@ dependencies {
     }
 
     antlr "org.antlr:antlr4:4.8"
+    spotbugs 'com.github.spotbugs:spotbugs:4.1.3'
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
@@ -292,7 +294,7 @@ swaggerSources {
                 "--model-package", "bio.terra.model",
                 "-D", "interfaceOnly=true," +
                     "useTags=true," +
-                    "dateLibrary=java8"
+                    "dateLibrary=java11"
             ]
         }
     }
@@ -359,6 +361,9 @@ jar {
 
 jib {
     extraDirectories.paths = ['build/gen-expanded']
+    from {
+        image = "gcr.io/distroless/java-debian10:11"
+    }
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())
     }

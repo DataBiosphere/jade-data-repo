@@ -68,10 +68,8 @@ public class Migrate {
         try {
             if (allowDropAllOnStart && migrateConfiguration.getDropAllOnStart()) {
                 liquibaseMigrator.initialize(changesetFile, dataSource);
-            } else {
-                if (migrateConfiguration.getUpdateAllOnStart()) {
-                    liquibaseMigrator.upgrade(changesetFile, dataSource);
-                }
+            } else if (migrateConfiguration.getUpdateAllOnStart()) {
+                liquibaseMigrator.upgrade(changesetFile, dataSource);
             }
         } catch (bio.terra.common.migrate.MigrateException ex) {
             throw new MigrateException("Failed to migrate database from " + changesetFile, ex);

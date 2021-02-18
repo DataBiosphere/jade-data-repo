@@ -87,7 +87,7 @@ jobs:
       - name: "Update Version for Integration Namespaces and Helm Charts"
         uses: broadinstitute/workflow-dispatch@v1
         with:
-          workflow: Update integration api helm image tag
+          workflow: Update API Helm Image Tags
           token: ${{ secrets.WORKFLOW_DISPATCH }}
       - name: Slack job status
         if: always()

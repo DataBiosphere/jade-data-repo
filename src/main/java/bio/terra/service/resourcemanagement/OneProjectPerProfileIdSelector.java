@@ -39,7 +39,7 @@ public class OneProjectPerProfileIdSelector implements DataLocationSelector {
     private String getSuffixForProfileId(BillingProfileModel billingProfile) {
         String lowercaseProfileName = billingProfile.getProfileName().toLowerCase();
         String profileSuffix = "-" + lowercaseProfileName.replaceAll("[^a-z-0-9]", "-");
-        // The project id below is the name of the core project
-        return resourceConfiguration.getProjectId() + profileSuffix;
+        // The project id below is an application level prefix or, if that is emoty, the name of the core project
+        return resourceConfiguration.getDataProjectPrefixToUse() + profileSuffix;
     }
 }

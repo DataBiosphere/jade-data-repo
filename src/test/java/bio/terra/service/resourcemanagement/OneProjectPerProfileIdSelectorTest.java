@@ -8,7 +8,6 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -27,7 +26,6 @@ import static org.hamcrest.Matchers.equalTo;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Connected.class)
-@Ignore
 public class OneProjectPerProfileIdSelectorTest {
     @Autowired
     private GoogleResourceConfiguration resourceConfiguration;
@@ -41,21 +39,26 @@ public class OneProjectPerProfileIdSelectorTest {
     @MockBean
     private IamProviderInterface iamService;
 
+    private String dataProjectPrefix;
+
     @Before
     public void setup() throws Exception {
         connectedOperations.stubOutSamCalls(iamService);
+        dataProjectPrefix = resourceConfiguration.getDataProjectPrefix();
     }
 
     @After
     public void tearDown() throws Exception {
         connectedOperations.teardown();
+        resourceConfiguration.setDataProjectPrefix(dataProjectPrefix);
     }
     @Test
     public void shouldGetCorrectIdForDataset() throws Exception {
         String datasetName = "adataset";
         BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
         String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(datasetName, billingProfile);
-        String expectedProfileId = resourceConfiguration.getProjectId() + "-" + billingProfile.getProfileName();
+        String expectedProfileId =
+            resourceConfiguration.getDataProjectPrefixToUse() + "-" + billingProfile.getProfileName();
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
     }
 
@@ -65,7 +68,7 @@ public class OneProjectPerProfileIdSelectorTest {
         String oddProfileName = "abc & 123";
         BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile().profileName(oddProfileName);
         String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(datasetName, billingProfile);
-        String expectedProfileId = resourceConfiguration.getProjectId() + "-abc---123";
+        String expectedProfileId = resourceConfiguration.getDataProjectPrefixToUse() + "-abc---123";
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
     }
 
@@ -74,7 +77,8 @@ public class OneProjectPerProfileIdSelectorTest {
         String snapshotName = "asnapshot";
         BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
         String projectId = oneProjectPerProfileIdSelector.projectIdForSnapshot(snapshotName, billingProfile);
-        String expectedProfileId = resourceConfiguration.getProjectId() + "-" + billingProfile.getProfileName();
+        String expectedProfileId = resourceConfiguration.getDataProjectPrefixToUse() + "-" +
+            billingProfile.getProfileName();
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
     }
 
@@ -83,7 +87,8 @@ public class OneProjectPerProfileIdSelectorTest {
         String datasetName = "adataset";
         BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
         String projectId = oneProjectPerProfileIdSelector.projectIdForFile(datasetName, billingProfile);
-        String expectedProfileId = resourceConfiguration.getProjectId() + "-" + billingProfile.getProfileName();
+        String expectedProfileId = resourceConfiguration.getDataProjectPrefixToUse() + "-" +
+            billingProfile.getProfileName();
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
     }
 
@@ -92,9 +97,25 @@ public class OneProjectPerProfileIdSelectorTest {
         String datasetName = "adataset";
         BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
         String projectId = oneProjectPerProfileIdSelector.bucketForFile(datasetName, billingProfile);
-        String expectedProfileId = resourceConfiguration.getProjectId()
+        String expectedProfileId = resourceConfiguration.getDataProjectPrefixToUse()
             + "-" + billingProfile.getProfileName()
             + "-bucket";
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
+    }
+
+    @Test
+    public void shouldGetCorrectIdForDatasetWithPrefix() throws Exception {
+        String datasetName = "adataset";
+        BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
+        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(datasetName, billingProfile);
+        String expectedProfileId =
+            resourceConfiguration.getProjectId() + "-" + billingProfile.getProfileName();
+        assertThat("Project ID is what we expect before changing prefix", projectId, equalTo(expectedProfileId));
+        resourceConfiguration.setDataProjectPrefix("PREFIX");
+        String projectIdWithPrefix = oneProjectPerProfileIdSelector.projectIdForDataset(datasetName, billingProfile);
+        String expectedProfileIdWithPrefix =
+            resourceConfiguration.getProjectId() + "-" + billingProfile.getProfileName();
+        assertThat("Project ID is what we expect after changing prefix", projectIdWithPrefix,
+            equalTo(expectedProfileIdWithPrefix));
     }
 }

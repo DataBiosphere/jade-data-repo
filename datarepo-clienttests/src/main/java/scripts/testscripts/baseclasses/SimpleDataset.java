@@ -28,12 +28,17 @@ public class SimpleDataset extends runner.TestScript {
   protected boolean deleteProfile = true;
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
-    // pick the a user that is a Data Repo steward to be the dataset creator
-    datasetCreator = SAMUtils.findTestUserThatIsDataRepoSteward(testUsers, server);
+    // pick the a user that is a Data Repo steward to be the dataset creator if it hasn't already
+    // been set
     if (datasetCreator == null) {
-      throw new IllegalArgumentException("None of the test users are Data Repo stewards.");
+      datasetCreator = SAMUtils.findTestUserThatIsDataRepoSteward(testUsers, server);
+      if (datasetCreator == null) {
+        throw new IllegalArgumentException("None of the test users are Data Repo stewards.");
+      }
+    } else {
+      logger.info("datasetCreator was set before base class initialization.");
     }
-    logger.debug("datasetCreator: {}", datasetCreator.name);
+    logger.info("datasetCreator: {}", datasetCreator.name);
 
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);

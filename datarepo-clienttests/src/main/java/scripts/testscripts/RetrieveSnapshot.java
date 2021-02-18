@@ -150,7 +150,10 @@ public class RetrieveSnapshot extends SimpleDataset {
     snapshotSummaryModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
-    logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
+    logger.info(
+        "Successfully created snapshot: {} with user {} ",
+        snapshotSummaryModel.getName(),
+        datasetCreator.name);
   }
 
   public void userJourney(TestUserSpecification testUser) throws Exception {

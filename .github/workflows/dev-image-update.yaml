@@ -29,8 +29,7 @@ jobs:
       - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v2
         with:
-          #TODO - revert before merging
-          #ref: develop
+          ref: develop
           token: ${{ secrets.BROADBOT_TOKEN }}
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
@@ -40,7 +39,7 @@ jobs:
           path: datarepo-helm-definitions
       - name: "Bump the tag to a new version"
         id: bumperstep
-        uses: broadinstitute/datarepo-actions@sh-test
+        uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'bumper'
           role_id: ${{ secrets.ROLE_ID }}
@@ -57,13 +56,13 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           ENABLE_SUBPROJECT_TASKS: true
       - name: "Build new delevop docker image"
-        uses: broadinstitute/datarepo-actions@sh-test
+        uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Update Version in helm for Dev Env"
-        uses: broadinstitute/datarepo-actions@sh-test
+        uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
@@ -79,7 +78,7 @@ jobs:
           path: jade-data-repo-ui
           ref: develop
       - name: 'Release Candidate Container Build: Create release candidate images'
-        uses: broadinstitute/datarepo-actions@sh-test
+        uses: broadinstitute/datarepo-actions@0.36.0
         with:
           actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}
@@ -92,7 +91,7 @@ jobs:
           workflow: Update API Helm Image Tags
           token: ${{ secrets.WORKFLOW_DISPATCH }}
       - name: Slack job status
-        if: false #always()
+        if: always()
         uses: broadinstitute/action-slack@v3.8.0
         with:
           status: ${{ job.status }}

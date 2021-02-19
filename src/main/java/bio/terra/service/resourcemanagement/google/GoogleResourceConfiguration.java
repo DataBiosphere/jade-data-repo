@@ -113,10 +113,10 @@ public class GoogleResourceConfiguration {
     }
 
     public String getDataProjectPrefixToUse() {
-        if (StringUtils.isAllBlank(getProjectId())) {
-            return getDataProjectPrefix();
-        } else {
+        if (StringUtils.isAllBlank(getDataProjectPrefix())) {
             return getProjectId();
+        } else {
+            return getDataProjectPrefix();
         }
     }
 }

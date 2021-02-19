@@ -114,7 +114,7 @@ public class OneProjectPerProfileIdSelectorTest {
         resourceConfiguration.setDataProjectPrefix("PREFIX");
         String projectIdWithPrefix = oneProjectPerProfileIdSelector.projectIdForDataset(datasetName, billingProfile);
         String expectedProfileIdWithPrefix =
-            resourceConfiguration.getProjectId() + "-" + billingProfile.getProfileName();
+            resourceConfiguration.getDataProjectPrefix() + "-" + billingProfile.getProfileName();
         assertThat("Project ID is what we expect after changing prefix", projectIdWithPrefix,
             equalTo(expectedProfileIdWithPrefix));
     }

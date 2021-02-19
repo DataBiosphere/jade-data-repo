@@ -45,7 +45,7 @@ jobs:
           secret_id: ${{ secrets.SECRET_ID }}
           version_file_path: build.gradle
           version_variable_name: version
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
       - name: "Publish to Artifactory"
         uses: broadinstitute/gradle-command-action@v1
         with:

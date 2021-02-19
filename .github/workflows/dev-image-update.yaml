@@ -29,7 +29,9 @@ jobs:
       - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v2
         with:
-          ref: develop
+          #TODO - revert before merging
+          #ref: develop
+          token: ${{ secrets.BROADBOT_TOKEN }}
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
         with:

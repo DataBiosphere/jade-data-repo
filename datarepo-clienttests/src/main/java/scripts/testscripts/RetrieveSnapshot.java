@@ -156,7 +156,7 @@ public class RetrieveSnapshot extends SimpleDataset {
         datasetCreator.name);
   }
 
-  public void userJourney() throws Exception {
+  public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 

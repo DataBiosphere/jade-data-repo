@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement.google;
 
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +18,7 @@ public class GoogleResourceConfiguration {
     private String parentResourceType;
     private String parentResourceId;
     private String singleDataProjectId;
+    private String dataProjectPrefix;
     private String defaultFirestoreLocation;
     private boolean allowReuseExistingProjects;
     private boolean allowReuseExistingBuckets;
@@ -69,6 +71,14 @@ public class GoogleResourceConfiguration {
         this.singleDataProjectId = singleDataProjectId;
     }
 
+    public String getDataProjectPrefix() {
+        return dataProjectPrefix;
+    }
+
+    public void setDataProjectPrefix(String dataProjectPrefix) {
+        this.dataProjectPrefix = dataProjectPrefix;
+    }
+
     public boolean getAllowReuseExistingProjects() {
         return allowReuseExistingProjects;
     }
@@ -100,5 +110,13 @@ public class GoogleResourceConfiguration {
             .setProjectId(projectId)
             .build()
             .getService();
+    }
+
+    public String getDataProjectPrefixToUse() {
+        if (StringUtils.isAllBlank(getDataProjectPrefix())) {
+            return getProjectId();
+        } else {
+            return getDataProjectPrefix();
+        }
     }
 }

@@ -6,12 +6,14 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
 import com.google.api.gax.rpc.DeadlineExceededException;
+import com.google.api.gax.rpc.InternalException;
 import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
+import io.grpc.StatusRuntimeException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.digest.PureJavaCrc32C;
 import org.apache.commons.lang3.StringUtils;
@@ -210,6 +212,8 @@ public class FireStoreUtils {
                     } catch (DeadlineExceededException |
                         UnavailableException |
                         AbortedException |
+                        InternalException |
+                        StatusRuntimeException |
                         ExecutionException ex) {
                         if (shouldRetry(ex)) {
                             logger.warn("Retry-able error in firestore future get - input: " +
@@ -244,7 +248,9 @@ public class FireStoreUtils {
         }
         if (throwable instanceof DeadlineExceededException ||
             throwable instanceof UnavailableException ||
-            throwable instanceof AbortedException) {
+            throwable instanceof AbortedException ||
+            throwable instanceof InternalException ||
+            throwable instanceof StatusRuntimeException) {
 
             return true;
         }

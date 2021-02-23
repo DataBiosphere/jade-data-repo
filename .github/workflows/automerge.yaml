@@ -18,6 +18,7 @@ jobs:
       - name: Checkout jade-data-repo branch
         uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           token: ${{ secrets.BROADBOT_TOKEN }}
       - name: Merge branch into develop
         run: |

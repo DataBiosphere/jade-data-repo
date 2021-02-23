@@ -21,4 +21,6 @@ jobs:
           token: ${{ secrets.BROADBOT_TOKEN }}
       - name: Merge branch into develop
         run: |
-          git merge origin/develop
+          git fetch origin develop
+          git checkout $GITHUB_REF
+          git merge develop

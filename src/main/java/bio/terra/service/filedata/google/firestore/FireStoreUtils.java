@@ -2,6 +2,7 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
 import com.google.api.gax.rpc.DeadlineExceededException;
@@ -16,6 +17,7 @@ import org.apache.commons.codec.digest.PureJavaCrc32C;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -28,6 +30,13 @@ import java.util.concurrent.TimeUnit;
 public class FireStoreUtils {
 
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
+
+    private int firestoreRetries;
+
+    @Autowired
+    public FireStoreUtils(GoogleResourceConfiguration googleResourceConfiguration) {
+        firestoreRetries = googleResourceConfiguration.getFirestoreRetries();
+    }
 
     <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {
         try {
@@ -151,7 +160,6 @@ public class FireStoreUtils {
         return Long.toHexString(crc.getValue());
     }
 
-    private static final int NO_PROGRESS_MAX = 4;
     private static final int SLEEP_MILLISECONDS = 1000;
 
     /**
@@ -219,9 +227,9 @@ public class FireStoreUtils {
 
             if (completeCount == 0) {
                 noProgressCount++;
-                if (noProgressCount > NO_PROGRESS_MAX) {
+                if (noProgressCount > firestoreRetries) {
                     throw new FileSystemExecutionException("batch operation failed. " +
-                        NO_PROGRESS_MAX + " tries with no progress.");
+                        firestoreRetries + " tries with no progress.");
                 }
             }
             TimeUnit.MILLISECONDS.sleep(SLEEP_MILLISECONDS);

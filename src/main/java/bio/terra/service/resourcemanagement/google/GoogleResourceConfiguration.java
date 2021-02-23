@@ -20,6 +20,7 @@ public class GoogleResourceConfiguration {
     private String singleDataProjectId;
     private String dataProjectPrefix;
     private String defaultFirestoreLocation;
+    private int firestoreRetries;
     private boolean allowReuseExistingProjects;
     private boolean allowReuseExistingBuckets;
 
@@ -101,6 +102,14 @@ public class GoogleResourceConfiguration {
 
     public void setDefaultFirestoreLocation(String defaultFirestoreLocation) {
         this.defaultFirestoreLocation = defaultFirestoreLocation;
+    }
+
+    public int getFirestoreRetries() {
+        return firestoreRetries;
+    }
+
+    public void setFirestoreRetries(int firestoreRetries) {
+        this.firestoreRetries = firestoreRetries;
     }
 
     // TODO: Is this used?

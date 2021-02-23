@@ -15,17 +15,11 @@ jobs:
     if: "contains( github.event.pull_request.labels.*.name, 'automerge')"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout jade-data-repo
+      - name: Checkout jade-data-repo branch
         uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           token: ${{ secrets.BROADBOT_TOKEN }}
-      - name: automerge
-        uses: "broadinstitute/automerge-action@v0.12.0" # Forked from pascalgn/automerge-action
-        env:
-          # merges even if checks have not passed & reviews not completed
-          GITHUB_TOKEN: "${{ secrets.BROADBOT_TOKEN }}"
-          # This step also checks for the automerge labbel
-          MERGE_LABELS: "automerge"
-          MERGE_METHOD: squash
-          MERGE_FORKS: false
-          MERGE_RETRIES: 24 # Retry for 2 minutes instead of 30s
+      - name: Merge branch into develop
+        run: |
+          git merge develop

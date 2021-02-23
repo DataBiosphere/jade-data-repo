@@ -25,6 +25,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    if: "!contains( github.event.sender.login, 'broadbot')"
     steps:
       - name: Checkout Develop branch of jade-data-repo
         uses: actions/checkout@v2

@@ -22,4 +22,4 @@ jobs:
           token: ${{ secrets.BROADBOT_TOKEN }}
       - name: Merge branch into develop
         run: |
-          git merge develop
+          git merge origin/develop

@@ -2,7 +2,7 @@
 BRANCH=$(git branch --show-current)
 TOKEN=$(cat $HOME/.gh_token)
 REPO="DataBiosphere/jade-data-repo"
-WORKFLOW="int-and-connected-test-run.yml"
+WORKFLOW="dev-image-update.yaml"
 
 curl -H "Accept: application/vnd.github.everest-preview+json" \
     -H "Authorization: token ${TOKEN}" \

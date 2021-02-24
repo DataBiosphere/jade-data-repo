@@ -52,6 +52,7 @@ jobs:
           COMMIT_MESSAGE: "Datarepo api tag version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm-definitions
           SWITCH_DIRECTORIES: true
+          MERGE_BRANCH: master
       - name: "Notify Slack"
         if: always()
         uses: broadinstitute/action-slack@v3.8.0
@@ -109,6 +110,7 @@ jobs:
           COMMIT_MESSAGE: "Datarepo api version update: ${{ steps.apiprevioustag.outputs.tag }}"
           GITHUB_REPO: datarepo-helm
           SWITCH_DIRECTORIES: true
+          MERGE_BRANCH: master
       - name: "Notify Slack"
         if: always()
         uses: broadinstitute/action-slack@v3.8.0

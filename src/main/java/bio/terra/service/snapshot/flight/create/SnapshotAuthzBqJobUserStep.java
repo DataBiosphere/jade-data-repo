@@ -34,8 +34,11 @@ public class SnapshotAuthzBqJobUserStep implements Step {
 
         Snapshot snapshot = snapshotService.retrieveByName(snapshotName);
 
-        // Allow the reader to make queries in this project.
+        // Allow the steward and reader to make queries in this project.
         // The underlying service provides retries so we do not need to retry this operation
+        resourceService.grantPoliciesBqJobUser(
+            snapshot.getProjectResource().getGoogleProjectId(),
+            Collections.singletonList(policyMap.get(IamRole.STEWARD)));
         resourceService.grantPoliciesBqJobUser(
             snapshot.getProjectResource().getGoogleProjectId(),
             Collections.singletonList(policyMap.get(IamRole.READER)));

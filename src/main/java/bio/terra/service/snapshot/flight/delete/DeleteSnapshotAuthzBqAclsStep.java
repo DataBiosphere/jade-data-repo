@@ -14,7 +14,7 @@ import bio.terra.stairway.StepResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.UUID;
 
@@ -57,7 +57,10 @@ public class DeleteSnapshotAuthzBqAclsStep implements Step {
         // The underlying service provides retries so we do not need to retry this operation
         resourceService.revokePoliciesBqJobUser(
             snapshot.getProjectResource().getGoogleProjectId(),
-            Collections.singletonList(policyEmails.get(IamRole.CUSTODIAN)));
+            Arrays.asList(
+                policyEmails.get(IamRole.STEWARD),
+                policyEmails.get(IamRole.READER)
+            ));
 
         return StepResult.getStepResultSuccess();
     }

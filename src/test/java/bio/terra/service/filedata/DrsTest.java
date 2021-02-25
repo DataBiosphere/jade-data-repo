@@ -44,7 +44,6 @@ import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -149,6 +148,11 @@ public class DrsTest extends UsersBase {
             datasetIamRoles.get(IamRole.CUSTODIAN),
             datasetIamRoles.get(IamRole.SNAPSHOT_CREATOR)
         ));
+        // Make sure that the snapshot BigQuery Job User permission role is present for the Steward and Reader
+        validateBQJobUserRolePresent(Arrays.asList(
+            snapshotIamRoles.get(IamRole.STEWARD),
+            snapshotIamRoles.get(IamRole.READER)
+        ));
 
         // We don't have a DRS URI for a directory, so we back into it by computing the parent path
         // and using the non-DRS interface to get that file. Then we use that to build the
@@ -173,8 +177,11 @@ public class DrsTest extends UsersBase {
 
         Map<String, List<Acl>> postDeleteAcls = TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
         validateDoesNotContainAcls(postDeleteAcls.values().iterator().next());
-        // Make sure that the snapshot role is removed
-        validateBQJobUserRoleNotPresent(Collections.singleton(snapshotIamRoles.get(IamRole.CUSTODIAN)));
+        // Make sure that the snapshot BigQuery Job User roles are removed
+        validateBQJobUserRoleNotPresent(Arrays.asList(
+            snapshotIamRoles.get(IamRole.STEWARD),
+            snapshotIamRoles.get(IamRole.READER)
+        ));
         // ...and that the dataset roles are still present
         validateBQJobUserRolePresent(Arrays.asList(
             datasetIamRoles.get(IamRole.STEWARD),

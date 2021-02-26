@@ -90,6 +90,7 @@ jobs:
         with:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "[datarepo-helm-definitions] Merge version update"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: broadinstitute/datarepo-actions/actions/merger@0.39.0
         env:
           COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"

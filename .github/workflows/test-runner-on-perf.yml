@@ -70,26 +70,11 @@ jobs:
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
       - name: "Whitelist Runner IP"
-        run: |
-          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \
-            jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
-            RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
-            NEW_IPS=$(printf '%s\n' $CUR_IPS $RUNNER_IP | jq -s -r 'add | unique | join(",")')
-          for i in {1..5}; do
-            if gcloud container clusters update ${K8_CLUSTER} \
-              --enable-master-authorized-networks \
-              --master-authorized-networks ${NEW_IPS}; then
-              echo "Successful whitelist"
-              break
-            else
-              echo "Failed to whitelist - Retrying"
-              sleep 15
-              if [ i == 5 ]; then
-                echo "Failed to whitelist - Terminating"
-                exit 1
-              fi
-            fi
-          done
+        uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        with:
+          actions_subcommand: 'gcp_whitelist'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
       - name: 'Checkout datarepo-helm-definitions repo'
         uses: actions/checkout@v2
         with:
@@ -157,17 +142,9 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
-        run: |
-          # export the original IP list so it can be restored during cleanup
-          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \
-            jq -r '[ .masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock ]')
-          RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
-          RUNNER_IP=$(echo ${RUNNER_IP}| jq -r '.[0]')
-          RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -r --arg RUNNER_IP "$RUNNER_IP" '. - [ $RUNNER_IP ] | unique | join(",")')
-          # restore the original list of authorized IPs if they exist
-          gcloud container clusters update ${K8_CLUSTER} \
-            --enable-master-authorized-networks \
-            --master-authorized-networks ${RESTORE_IPS}
+        uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        with:
+          actions_subcommand: 'gcp_whitelist_clean'
       - name: "Notify Jade Slack"
         if: always()
         uses: broadinstitute/action-slack@v3.8.0

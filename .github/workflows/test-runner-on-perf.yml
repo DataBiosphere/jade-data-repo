@@ -1,13 +1,15 @@
 name: Update Perf Env and Run Nightly Test Runner Tests
 env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
-  GOOGLE_SA_CERT: 'jade-dev-account.pem'
   GOOGLE_CLOUD_PROJECT: broad-jade-perf
   GOOGLE_CLOUD_DATA_PROJECT: broad-jade-perf-data2
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
   TDR_LOG_APPENDER: Console-Standard
+  #variables needed for datarepo-actions/actions/main
+  GOOGLE_SA_CERT: 'jade-dev-account.pem'
+  GOOGLE_PROJECT: broad-jade-perf
 on:
   workflow_dispatch: {}
   schedule:

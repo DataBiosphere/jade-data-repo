@@ -6,7 +6,7 @@ env:
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
-  TDR_LOG_APPENDER: Console-Standard  
+  TDR_LOG_APPENDER: Console-Standard
 on:
   workflow_dispatch: {}
   schedule:

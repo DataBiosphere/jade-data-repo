@@ -6,9 +6,7 @@ env:
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
-  TDR_LOG_APPENDER: Console-Standard
-  #variables needed for datarepo-actions/actions/main
-  GOOGLE_SA_CERT: 'jade-dev-account.pem'
+  TDR_LOG_APPENDER: Console-Standard  
 on:
   workflow_dispatch: {}
   schedule:
@@ -73,6 +71,8 @@ jobs:
           fi
       - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        env:
+          GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
@@ -146,6 +146,8 @@ jobs:
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        env:
+          GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
           actions_subcommand: 'gcp_whitelist_clean'
           google_project: broad-jade-perf

@@ -1,6 +1,7 @@
 name: Update Perf Env and Run Nightly Test Runner Tests
 env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
+  GOOGLE_SA_CERT: 'jade-dev-account.pem'
   GOOGLE_CLOUD_PROJECT: broad-jade-perf
   GOOGLE_CLOUD_DATA_PROJECT: broad-jade-perf-data2
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json

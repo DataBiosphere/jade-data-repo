@@ -98,8 +98,10 @@ jobs:
           SWITCH_DIRECTORIES: "true"
           MERGE_BRANCH: master
       - name: "Install Helmfile"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
-      - name: "Use helmfile to delete and reapply helm for api pod"
+      - name: "Use helmfile reapply helm for api pod to update version"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         run: |
           helmfile --version
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf

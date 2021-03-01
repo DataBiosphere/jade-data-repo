@@ -78,19 +78,19 @@ jobs:
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
           google_project: broad-jade-perf
-      - name: 'Checkout datarepo-helm-definitions repo'
+      - name: '[Update API version on Perf] Checkout datarepo-helm-definitions repo'
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: actions/checkout@v2
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.BROADBOT_TOKEN }}
           path: datarepo-helm-definitions
-      - name: "Update perf image tag with semVer"
+      - name: "[Update API version on Perf] Update perf image tag with semVer"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
-      - name: "[datarepo-helm-definitions] Merge version update"
+      - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: broadinstitute/datarepo-actions/actions/merger@0.39.0
         env:
@@ -98,10 +98,10 @@ jobs:
           GITHUB_REPO: datarepo-helm-definitions
           SWITCH_DIRECTORIES: "true"
           MERGE_BRANCH: master
-      - name: "Install Helmfile"
+      - name: "[Update API version on Perf] Install Helmfile"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
-      - name: "Use helmfile reapply helm for api pod to update version"
+      - name: "[Update API version on Perf] Use helmfile reapply helm for api pod to update version"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         run: |
           helmfile --version
@@ -109,7 +109,7 @@ jobs:
           echo "Apply helm updates, including updated data-repo version"
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
-      - name: "Wait for Perf Cluster to come back up with correct version"
+      - name: "[Update API version on Perf] Wait for Perf Cluster to come back up with correct version"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         run: |
           PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')

@@ -70,64 +70,52 @@ jobs:
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
       - name: "Whitelist Runner IP"
-        run: |
-          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \
-            jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
-            RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
-            NEW_IPS=$(printf '%s\n' $CUR_IPS $RUNNER_IP | jq -s -r 'add | unique | join(",")')
-          for i in {1..5}; do
-            if gcloud container clusters update ${K8_CLUSTER} \
-              --enable-master-authorized-networks \
-              --master-authorized-networks ${NEW_IPS}; then
-              echo "Successful whitelist"
-              break
-            else
-              echo "Failed to whitelist - Retrying"
-              sleep 15
-              if [ i == 5 ]; then
-                echo "Failed to whitelist - Terminating"
-                exit 1
-              fi
-            fi
-          done
-      - name: 'Checkout datarepo-helm-definitions repo'
+        uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        env:
+          GOOGLE_SA_CERT: 'jade-dev-account.pem'
+        with:
+          actions_subcommand: 'gcp_whitelist'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+          google_project: broad-jade-perf
+      - name: '[Update API version on Perf] Checkout datarepo-helm-definitions repo'
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: actions/checkout@v2
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
-          token: ${{ secrets.HELM_REPO_TOKEN }}
+          token: ${{ secrets.BROADBOT_TOKEN }}
           path: datarepo-helm-definitions
-      - name: "Update perf image tag with semVer"
+      - name: "[Update API version on Perf] Update perf image tag with semVer"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: docker://mikefarah/yq:3.3.4
         with:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
-      - name: "Create datarepo-helm-definition pull request with updated perf image tag"
+      - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
-        with:
-          token: ${{ secrets.HELM_REPO_TOKEN }}
-          path: datarepo-helm-definitions
-          commit-message: "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
-          committer: datarepo-bot <noreply@github.com>
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          title: "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
-          branch: "version-update-${{ steps.read_property.outputs.LATEST_VERSION }}"
-          body: |
-            Update versions in perf env to reflect image tag ${{ steps.read_property.outputs.LATEST_VERSION }}.
-            *Note: This PR was opened by the [test-runner-perf GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
-          labels: "datarepo,automerge,version-update"
-      - name: "Install Helmfile"
+        uses: broadinstitute/datarepo-actions/actions/merger@0.39.0
+        env:
+          COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
+          GITHUB_REPO: datarepo-helm-definitions
+          SWITCH_DIRECTORIES: "true"
+          MERGE_BRANCH: master
+      - name: "[Update API version on Perf] Install Helmfile"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
-      - name: "Use helmfile to delete and reapply helm for api pod"
+      - name: "[Update API version on Perf] Use helmfile reapply helm for api pod to update version"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         run: |
           helmfile --version
           cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
-          echo "Killing perf api pod to force db migration (can be removed after DR-1544 is complete)"
-          helm delete -n perf perf-jade-datarepo-api
-          sleep 15
           echo "Apply helm updates, including updated data-repo version"
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: "Cycle pods to clear lingering artifacts if not doing version bump"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION == steps.read_property.outputs.CURRENT_SEMVER }}
+        run: |
+          echo "Cycle API pods to trigger migrations to run and clear out database"
+          kubectl delete pods -n perf -l app.kubernetes.io/name=datarepo-api
+          echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
+          sleep 45
       - name: "Wait for Perf Cluster to come back up with correct version"
         run: |
           PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
@@ -165,17 +153,12 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
-        run: |
-          # export the original IP list so it can be restored during cleanup
-          CUR_IPS=$(gcloud container clusters describe ${K8_CLUSTER} --format json | \
-            jq -r '[ .masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock ]')
-          RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
-          RUNNER_IP=$(echo ${RUNNER_IP}| jq -r '.[0]')
-          RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -r --arg RUNNER_IP "$RUNNER_IP" '. - [ $RUNNER_IP ] | unique | join(",")')
-          # restore the original list of authorized IPs if they exist
-          gcloud container clusters update ${K8_CLUSTER} \
-            --enable-master-authorized-networks \
-            --master-authorized-networks ${RESTORE_IPS}
+        uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        env:
+          GOOGLE_SA_CERT: 'jade-dev-account.pem'
+        with:
+          actions_subcommand: 'gcp_whitelist_clean'
+          google_project: broad-jade-perf
       - name: "Notify Jade Slack"
         if: always()
         uses: broadinstitute/action-slack@v3.8.0

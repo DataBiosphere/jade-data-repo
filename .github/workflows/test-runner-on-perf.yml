@@ -109,8 +109,14 @@ jobs:
           echo "Apply helm updates, including updated data-repo version"
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
-      - name: "[Update API version on Perf] Wait for Perf Cluster to come back up with correct version"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+      - name: "Cycle pods to clear lingering artifacts if not doing version bump"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION == steps.read_property.outputs.CURRENT_SEMVER }}
+        run: |
+          echo "Cycle API pods to trigger migrations to run and clear out database"
+          kubectl delete pods -n perf -l app.kubernetes.io/name=datarepo-api
+          echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
+          sleep 45
+      - name: "Wait for Perf Cluster to come back up with correct version"
         run: |
           PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           RETRY_COUNT=0

@@ -162,7 +162,7 @@ public class FireStoreUtils {
         return Long.toHexString(crc.getValue());
     }
 
-    private static final int SLEEP_MILLISECONDS = 1000;
+    private static final int SLEEP_BASE_MILLISECONDS = 1000;
 
     /**
      * Perform the specified Firestore operation against a specified list of inputs in batch.
@@ -229,14 +229,18 @@ public class FireStoreUtils {
                 break;
             }
 
+            final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, noProgressCount)).longValue();
             if (completeCount == 0) {
                 noProgressCount++;
                 if (noProgressCount > firestoreRetries) {
                     throw new FileSystemExecutionException("batch operation failed. " +
                         firestoreRetries + " tries with no progress.");
+                } else {
+                    logger.info("will attempt retry #{} after {} millisecond pause.", noProgressCount, retryWait);
                 }
             }
-            TimeUnit.MILLISECONDS.sleep(SLEEP_MILLISECONDS);
+            // Exponential backoff
+            TimeUnit.MILLISECONDS.sleep(retryWait);
         }
 
         return outputs;

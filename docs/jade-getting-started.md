@@ -115,7 +115,7 @@ brew install helm
 helm repo add stable
 helm repo add datarepo-helm https://broadinstitute.github.io/datarepo-helm
 helm plugin install https://github.com/thomastaylor312/helm-namespace
-helm repo update https://charts.helm.sh/stable
+helm repo update
 ```
 
 5. [Helmfile](https://github.com/roboll/helmfile) streamlines deploying multiple helm charts:

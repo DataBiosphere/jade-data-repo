@@ -166,7 +166,7 @@ public class FireStoreUtils {
 
     /**
      * Perform the specified Firestore operation against a specified list of inputs in batch.
-     * @param inputs A list containing the inputs to the function to be applied in batch
+     * @param inputs A list containing the inputs to the function to be applied in batch.  Note: it's a bad idea to pass futures in as the input and just have generator be an identity function since the future does not re-resolve after an initial execution
      * @param generator A generator that provides a future given an input from the inputs parameter
      * @param <T> The class of the objects in the input list
      * @param <V> The class of the objects that will result when the generated futures resolve

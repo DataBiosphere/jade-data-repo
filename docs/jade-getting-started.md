@@ -52,6 +52,18 @@ relevant to your team.
 Connect your Docker Hub account to your Broad profile by contacting the DevOps
 team.
 
+### 3. Create Terra Accounts
+The Data Repo uses [Sam](https://github.com/broadinstitute/sam) for identity and access management. To register
+as a new user, create an account through Terra. Use a non-Broad email for the non-prod instances:
+- [Dev](https://bvdp-saturn-dev.appspot.com/)
+- [Alpha](https://bvdp-saturn-alpha.appspot.com/)
+- [Staging](https://bvdp-saturn-staging.appspot.com/)
+
+For [production](https://app.terra.bio/), you will need to register using a firecloud.org email. In order to get an
+account, follow these [steps](https://docs.google.com/document/d/1DRftlTe-9Q4H-R0jxanVojvyNn1IzbdIOhNKiIj9IpI/edit).
+
+Ask a member of the team to add you to the admins group for each of these environments.
+
 ## 3. Install Homebrew
 
 [Homebrew](https://brew.sh/) is a [package manager](https://en.wikipedia.org/wiki/Package_manager)

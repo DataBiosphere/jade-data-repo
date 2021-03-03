@@ -1,7 +1,7 @@
 name: Alpha Nightly Promotion
 on:
   workflow_dispatch: {}
-  #Note: We're scheduling this to run before the alpha deploy job
+  #Note: We're scheduling this to run before the Jenkins alpha deploy job
   # this schedule is defined here: /dsp-jenkins/src/main/groovy/org/broadinstitute/dspjenkins/FCLegacyDeploy.groovyL130
   schedule:
     - cron:

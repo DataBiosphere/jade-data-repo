@@ -1,8 +1,12 @@
 name: Alpha Nightly Promotion
 on:
   workflow_dispatch: {}
+  #Note: We're scheduling this to run before the alpha deploy job
+  # this schedule is defined here: /dsp-jenkins/src/main/groovy/org/broadinstitute/dspjenkins/FCLegacyDeploy.groovyL130
   schedule:
-    - cron: '30 2 * * *' # run at 2:30 AM UTC
+    - cron:
+      - '* 14 * * 5'     # Fridays at 2:00 pm
+      - '* 23 * * 0-4'   # Sun - Thurs 11:00 pm
 env:
   chartVersion: 0.1.68
 jobs:

@@ -10,7 +10,6 @@ env:
   chartVersion: 0.1.68
 jobs:
   alpha_promotion:
-    if: false
     strategy:
       matrix:
         os: [ubuntu-latest]

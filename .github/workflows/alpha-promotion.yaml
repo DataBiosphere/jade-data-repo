@@ -7,7 +7,7 @@ on:
     - cron: '* 14 * * 5' # Fridays at 2:00 pm 
     - cron: '* 23 * * 0-4' # Sun - Thurs 11:00 pm
 env:
-  chartVersion: 0.1.70
+  chartVersion: 0.1.72
 jobs:
   alpha_promotion:
     strategy:

@@ -54,7 +54,8 @@ team.
 
 ## 3. Create Terra Accounts
 The Data Repo uses [Sam](https://github.com/broadinstitute/sam) for identity and access management. To register
-as a new user, create an account through Terra. Use a non-Broad email for the non-prod instances:
+as a new user, create an account through Terra. Use a non-Broad email address specifically created for development
+purposes in the non-prod environments:
 - [Dev](https://bvdp-saturn-dev.appspot.com/)
 - [Alpha](https://bvdp-saturn-alpha.appspot.com/)
 - [Staging](https://bvdp-saturn-staging.appspot.com/)

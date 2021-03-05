@@ -1,7 +1,7 @@
 name: GitHub Docker Test
 env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
-  GOOGLE_CLOUD_PROJECT: broad-jade-dev
+  GOOGLE_CLOUD_PROJECT: broad-jade-integration
   GOOGLE_REGION: us-central1
 on:
   workflow_dispatch: {}

@@ -53,6 +53,7 @@ Connect your Docker Hub account to your Broad profile by contacting the DevOps
 team.
 
 ## 3. Create Terra Accounts
+
 The Data Repo uses [Sam](https://github.com/broadinstitute/sam) for identity and access management. To register
 as a new user, create an account through Terra. Use a non-Broad email address specifically created for development
 purposes in the non-prod environments:

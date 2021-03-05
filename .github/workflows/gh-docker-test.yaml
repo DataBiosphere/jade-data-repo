@@ -2,6 +2,7 @@ name: GitHub Docker Test
 env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_CLOUD_PROJECT: broad-jade-dev
+  GOOGLE_REGION: us-central1
 on:
   workflow_dispatch: {}
   pull_request:

@@ -4,8 +4,8 @@ on:
   #Note: We're scheduling this to run before the Jenkins alpha deploy job
   # this schedule is defined here: /dsp-jenkins/src/main/groovy/org/broadinstitute/dspjenkins/FCLegacyDeploy.groovyL130
   schedule:
-    - cron: '0 14 * * 5' # Fridays at 2:00 pm 
-    - cron: '0 23 * * 0-4' # Sun - Thurs 11:00 pm
+    - cron: '0 18 * * 5' # Fridays at 1:00 pm EST; 6PM UTC
+    - cron: '0 3 * * 1-5' # Sun - Thurs 10:00 pm EST; 3AM UTC
 env:
   chartVersion: 0.1.70
 jobs:

@@ -1,0 +1,41 @@
+name: GitHub Docker Test
+env:
+  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
+  GOOGLE_CLOUD_PROJECT: broad-jade-dev
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches:
+      - fb-dr-1528-gh-docker
+jobs:
+  gh_docker_test:
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Import Vault Secrets for Development GCR
+        uses: hashicorp/vault-action@v2.1.2
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.ROLE_ID }}
+          secretId: ${{ secrets.SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
+      - name: Decode Vault token
+        run: |
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.1
+        with:
+          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+          service_account_key: ${{ env.B64_APPLICATION_CREDENTIALS }}
+          export_default_credentials: true
+      - name: Add Runner IP to allowlist
+        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@fb-dr-1528-gh-docker
+        env:
+          K8_CLUSTER: integration-master

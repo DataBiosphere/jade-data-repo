@@ -3,6 +3,7 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_CLOUD_PROJECT: broad-jade-integration
   GOOGLE_REGION: us-central1
+  K8_CLUSTER: integration-master
 on:
   workflow_dispatch: {}
   pull_request:
@@ -44,13 +45,9 @@ jobs:
           gcloud container clusters get-credentials "${K8_CLUSTER}" --zone "${GOOGLE_REGION}"
       - name: Add Runner IP to allowlist
         uses: broadinstitute/datarepo-actions/actions/add-runner-ip@fb-dr-1528-gh-docker
-        env:
-          K8_CLUSTER: integration-master
       - name: Sleep for a bit
         run: |
           sleep 15
           echo "Slept for a bit"
       - name: Remove Runner IP from allowlist
         uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@fb-dr-1528-gh-docker
-        env:
-          K8_CLUSTER: integration-master

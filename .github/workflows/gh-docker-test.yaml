@@ -30,12 +30,18 @@ jobs:
       - name: Decode Vault token
         run: |
           base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
-      - name: Set up Google Cloud SDK
+      - name: Install Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v0.2.1
         with:
           project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
           service_account_key: ${{ env.B64_APPLICATION_CREDENTIALS }}
           export_default_credentials: true
+      - name: Configure Google Cloud SDK
+        run: |
+          gcloud auth activate-service-account --key-file "${GOOGLE_APPLICATION_CREDENTIALS}"
+          gcloud config set project "${GOOGLE_CLOUD_PROJECT}"
+          gcloud config set compute/zone "${GOOGLE_REGION}"
+          gcloud container clusters get-credentials "${K8_CLUSTER}" --zone "${GOOGLE_REGION}"
       - name: Add Runner IP to allowlist
         uses: broadinstitute/datarepo-actions/actions/add-runner-ip@fb-dr-1528-gh-docker
         env:

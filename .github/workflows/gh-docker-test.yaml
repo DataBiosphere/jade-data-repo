@@ -46,6 +46,10 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/add-runner-ip@fb-dr-1528-gh-docker
         env:
           K8_CLUSTER: integration-master
+      - name: Sleep for a bit
+        run: |
+          sleep 15
+          echo "Slept for a bit"
       - name: Remove Runner IP from allowlist
         uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@fb-dr-1528-gh-docker
         env:

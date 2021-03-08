@@ -41,13 +41,17 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/configure-gcloud-sdk@fb-dr-1673-configure-gcloud-sdk
       - name: Add Runner IP to allowlist
         uses: broadinstitute/datarepo-actions/actions/add-runner-ip@fb-dr-1688-add-runner-ip
+      - name: Lock namespace for use
+        uses: broadinstitute/datarepo-actions/actions/lock-namespace@fb-dr-1679-lock-namespace
+        env:
+          K8_NAMESPACES: "integration-1,integration-2,integration-3,integration-6"
       - name: Sleep for a bit
         run: |
           sleep 15
           echo "Slept for a bit"
+      - name: Unlock namespace for use
+        uses: broadinstitute/datarepo-actions/actions/unlock-namespace@fb-dr-1680-unlock-namespace
       - name: Clean IAM policy
         uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@fb-dr-1685-clean-iam-policy
-        env:
-          NAMESPACEINUSE: integration-1
       - name: Remove Runner IP from allowlist
         uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@fb-dr-1689-rm-runner-ip

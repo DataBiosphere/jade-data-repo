@@ -38,12 +38,12 @@ jobs:
           service_account_key: ${{ env.B64_APPLICATION_CREDENTIALS }}
           export_default_credentials: true
       - name: Configure Google Cloud SDK
-        uses: broadinstitute/datarepo-actions/actions/configure-gcloud-sdk@fb-dr-1528-gh-docker
+        uses: broadinstitute/datarepo-actions/actions/configure-gcloud-sdk@fb-dr-1673-configure-gcloud-sdk
       - name: Add Runner IP to allowlist
-        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@fb-dr-1528-gh-docker
+        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@fb-dr-1688-add-runner-ip
       - name: Sleep for a bit
         run: |
           sleep 15
           echo "Slept for a bit"
       - name: Remove Runner IP from allowlist
-        uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@fb-dr-1528-gh-docker
+        uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@fb-dr-1689-rm-runner-ip

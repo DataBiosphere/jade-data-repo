@@ -2516,18 +2516,17 @@ components:
       pattern: ^[a-zA-Z0-9][_a-zA-Z0-9]*$
       type: string
       description: >
-        Dataset column names follow this pattern. This should be used for the name of any object in the
+        Table and column names follow this pattern. This should be used for the name of any object in the
         system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
-        any extra columns the DR adds.
+        any extra columns the DR adds. For table and column names, this is shorter than what BigQuery allows.
     DatasetSnapshotNameProperty:
       maxLength: 512
       minLength: 1
       pattern: ^[a-zA-Z0-9][_a-zA-Z0-9]*$
       type: string
       description: >
-        Dataset and snapshot names follow this pattern. It enforces BigQuery naming rules except it disallows a
-        leading underscore so we avoid collisions with any extra columns the DR adds. This is shorter than
-        what BigQuery allows.
+        Dataset and snapshot names follow this pattern. It is the same as ObjectNameProperty, but has
+        a greater maxLength.
     UniqueIdProperty:
       pattern: ^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}
       type: string

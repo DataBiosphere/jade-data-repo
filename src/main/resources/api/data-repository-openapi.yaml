@@ -2516,9 +2516,18 @@ components:
       pattern: ^[a-zA-Z0-9][_a-zA-Z0-9]*$
       type: string
       description: >
-        Dataset, table, and column names follow this pattern. This should be used for the name of any object in the
+        Dataset column names follow this pattern. This should be used for the name of any object in the
         system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
-        any extra columns the DR adds. For table names, this is shorter than what BigQuery allows.
+        any extra columns the DR adds.
+    DatasetSnapshotNameProperty:
+      maxLength: 512
+      minLength: 1
+      pattern: ^[a-zA-Z0-9][_a-zA-Z0-9]*$
+      type: string
+      description: >
+        Dataset and snapshot names follow this pattern. It enforces BigQuery naming rules except it disallows a
+        leading underscore so we avoid collisions with any extra columns the DR adds. This is shorter than
+        what BigQuery allows.
     UniqueIdProperty:
       pattern: ^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}
       type: string
@@ -2609,7 +2618,7 @@ components:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the dataset
@@ -2634,7 +2643,7 @@ components:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the dataset
@@ -2653,7 +2662,7 @@ components:
       type: object
       properties:
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the dataset
@@ -2901,7 +2910,7 @@ components:
         dataset_id:
           $ref: '#/components/schemas/UniqueIdProperty'
         dataset:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         table:
           $ref: '#/components/schemas/ObjectNameProperty'
         path:
@@ -3198,7 +3207,7 @@ components:
       type: object
       properties:
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the snapshot
@@ -3228,7 +3237,7 @@ components:
       type: object
       properties:
         datasetName:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         mode:
           type: string
           enum:
@@ -3308,7 +3317,7 @@ components:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the snapshot
@@ -3337,7 +3346,7 @@ components:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the snapshot

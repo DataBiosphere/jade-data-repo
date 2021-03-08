@@ -10,7 +10,7 @@
 
     <property name="identifier_type" value="varchar(63)"/>
     <property name="description_type" value="varchar(2047)"/>
-    <property name="dataset_snapshot_identifier_type" value="varchar(512)"/>
+    <property name="dataset_snapshot_identifier_type" value="varchar(511)"/>
 
     <include file="changesets/20181203_datasettable.yaml" relativeToChangelogFile="true"/>
     <include file="changesets/20190214_snapshots.yaml" relativeToChangelogFile="true"/>

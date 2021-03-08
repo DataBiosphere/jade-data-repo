@@ -2520,7 +2520,7 @@ components:
         system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
         any extra columns the DR adds. For table and column names, this is shorter than what BigQuery allows.
     DatasetSnapshotNameProperty:
-      maxLength: 512
+      maxLength: 511
       minLength: 1
       pattern: ^[a-zA-Z0-9][_a-zA-Z0-9]*$
       type: string

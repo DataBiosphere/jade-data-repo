@@ -301,8 +301,8 @@ public class DatasetValidationsTest {
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(""));
         checkValidationErrorModel(errorModel, new String[]{"Size", "Pattern"});
 
-        // Make a 513 character string, it should be considered too long by the validation.
-        String tooLong = StringUtils.repeat("a", 513);
+        // Make a 512 character string, it should be considered too long by the validation.
+        String tooLong = StringUtils.repeat("a", 512);
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(tooLong));
         checkValidationErrorModel(errorModel, new String[]{"Size"});
     }

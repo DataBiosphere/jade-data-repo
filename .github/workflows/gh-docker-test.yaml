@@ -45,5 +45,9 @@ jobs:
         run: |
           sleep 15
           echo "Slept for a bit"
+      - name: Clean IAM policy
+        uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@fb-dr-1685-clean-iam-policy
+        env:
+          NAMESPACEINUSE: integration-1
       - name: Remove Runner IP from allowlist
         uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@fb-dr-1689-rm-runner-ip

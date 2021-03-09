@@ -45,10 +45,8 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/lock-namespace@fb-dr-1679-lock-namespace
         env:
           K8_NAMESPACES: "integration-1,integration-2,integration-3,integration-6"
-      - name: Sleep for a bit
-        run: |
-          sleep 15
-          echo "Slept for a bit"
+      - name: Wait for deployment
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@fb-dr-1690-wait-for-deployment
       - name: Unlock namespace for use
         uses: broadinstitute/datarepo-actions/actions/unlock-namespace@fb-dr-1680-unlock-namespace
       - name: Clean IAM policy

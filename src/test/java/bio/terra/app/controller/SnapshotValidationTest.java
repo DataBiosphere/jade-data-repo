@@ -170,9 +170,9 @@ public class SnapshotValidationTest {
         errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
         checkValidationErrorModel(errorModel, new String[]{"Size", "Pattern"});
 
-        // Make a 64 character string, it should be considered too long by the validation.
-        // Note: a 63 character string, we are okay with
-        String tooLong = StringUtils.repeat("a", 64);
+        // Make a 512 character string, it should be considered too long by the validation.
+        // Note: a 511 character string, we are okay with
+        String tooLong = StringUtils.repeat("a", 512);
         snapshotByAssetRequest.name(tooLong);
         errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
         checkValidationErrorModel(errorModel, new String[]{"Size"});
@@ -222,8 +222,8 @@ public class SnapshotValidationTest {
         errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
         checkValidationErrorModel(errorModel, new String[]{"Size", "Pattern"});
 
-        // Make a 64 character string, it should be considered too long by the validation.
-        String tooLong = StringUtils.repeat("a", 64);
+        // Make a 512 character string, it should be considered too long by the validation.
+        String tooLong = StringUtils.repeat("a", 512);
         contents.setDatasetName(tooLong);
         errorModel = expectBadSnapshotCreateRequest(snapshotByAssetRequest);
         checkValidationErrorModel(errorModel, new String[]{"Size"});

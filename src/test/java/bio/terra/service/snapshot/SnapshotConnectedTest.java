@@ -635,6 +635,130 @@ public class SnapshotConnectedTest {
         connectedOperations.getDatasetExpectError(datasetRefSummary.getId(), HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    public void testSnapshotArrayFileRefLookups() throws Exception {
+        // create a dataset
+        DatasetSummaryModel datasetRefSummary = createTestDataset("simple-with-array-filerefs-dataset.json");
+
+        // ingest a file
+        URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt",
+            null, null);
+        String targetFilePath =
+            "/mm/" + Names.randomizeName("testdir") + "/testExcludeLockedFromSnapshotFileLookups.txt";
+        FileLoadModel fileLoadModel = new FileLoadModel()
+            .sourcePath(sourceUri.toString())
+            .description("testExcludeLockedFromSnapshotFileLookups")
+            .mimeType("text/plain")
+            .targetPath(targetFilePath)
+            .profileId(billingProfile.getId());
+        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetRefSummary.getId(), fileLoadModel);
+
+        // generate a JSON file with the fileref
+        String jsonLine = "{\"name\":\"name1\", \"file_ref\":\"[" + fileModel.getFileId() + "]\"}\n";
+
+        // load a JSON file that contains the table rows to load into the test bucket
+        String jsonFileName = "this-array-better-pass.json";
+        String dirInCloud = "scratch/testExcludeLockedFromSnapshotFileLookups/" + UUID.randomUUID().toString();
+        BlobInfo ingestTableBlob = BlobInfo
+            .newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + jsonFileName)
+            .build();
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        storage.create(ingestTableBlob, jsonLine.getBytes(StandardCharsets.UTF_8));
+
+        // make sure the JSON file gets cleaned up on test teardown
+        connectedOperations.addScratchFile(dirInCloud + "/" + jsonFileName);
+
+        // ingest the tabular data from the JSON file we just generated
+        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + jsonFileName;
+        IngestRequestModel ingestRequest1 = new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .table("tableA")
+            .path(gsPath);
+        connectedOperations.ingestTableSuccess(datasetRefSummary.getId(), ingestRequest1);
+
+        // create a snapshot
+        SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(
+            datasetRefSummary, "simple-with-filerefs-snapshot.json", "");
+
+        // check that the snapshot metadata row is unlocked
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
+
+        String fileUri = getFileRefIdFromSnapshot(snapshotSummary);
+        DrsId drsId = drsIdService.fromUri(fileUri);
+        DRSObject drsObject = connectedOperations.drsGetObjectSuccess(drsId.toDrsObjectId(), false);
+        String filePath = drsObject.getAliases().get(0);
+
+        // lookup the snapshot file by DRS id, make sure it's returned (lookupSnapshotFileSuccess will already check)
+        FileModel fsObjById =
+            connectedOperations.lookupSnapshotFileSuccess(snapshotSummary.getId(), drsId.getFsObjectId());
+        assertEquals("Retrieve snapshot file by DRS id matches desc", fsObjById.getDescription(),
+            fileLoadModel.getDescription());
+
+        // lookup the snapshot file by DRS path and check that it's found
+        FileModel fsObjByPath =
+            connectedOperations.lookupSnapshotFileByPathSuccess(snapshotSummary.getId(), filePath, 0);
+        assertEquals("Retrieve snapshot file by path matches desc",
+            fsObjByPath.getDescription(), fileLoadModel.getDescription());
+        assertThat("Retrieve snapshot file objects match", fsObjById, CoreMatchers.equalTo(fsObjByPath));
+
+        // now the snapshot exists....let's get it locked!
+
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        // kick off a request to delete the snapshot. this should hang before unlocking the snapshot object.
+        // note: asserts are below outside the hang block
+        MvcResult deleteResult = mvc.perform(delete(
+            "/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch and get to the hang
+
+        // check that the snapshot metadata row has an exclusive lock
+        exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+
+        // lookup the snapshot file by id and check that it's NOT found
+        MockHttpServletResponse failedGetSnapshotByIdResponse =
+            connectedOperations.lookupSnapshotFileRaw(snapshotSummary.getId(), drsId.getFsObjectId());
+
+        // lookup the snapshot file by path and check that it's NOT found
+        MockHttpServletResponse failedGetSnapshotByPathResponse =
+            connectedOperations.lookupSnapshotFileByPathRaw(snapshotSummary.getId(), filePath, 0);
+
+        // disable hang in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+        // ====================================================
+
+        // check that the snapshot metadata row has an exclusive lock after kicking off the delete
+        assertNotNull("snapshot row is exclusively locked", exclusiveLock);
+
+        assertEquals("Snapshot file NOT found by DRS id lookup",
+            HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByIdResponse.getStatus()));
+
+        assertEquals("Snapshot file NOT found by path lookup",
+            HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByPathResponse.getStatus()));
+
+        // check the response from the snapshot delete request
+        MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);
+        DeleteResponseModel deleteResponseModel =
+            connectedOperations.handleSuccessCase(deleteResponse, DeleteResponseModel.class);
+        assertEquals("Snapshot delete returned successfully",
+            DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // delete the dataset and check that it succeeds
+        connectedOperations.deleteTestDatasetAndCleanup(datasetRefSummary.getId());
+
+        // remove the file from the connectedoperation bookkeeping list
+        connectedOperations.removeFile(datasetRefSummary.getId(), fileModel.getFileId());
+
+        // try to fetch the snapshot again and confirm nothing is returned
+        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
+
+        // try to fetch the dataset again and confirm nothing is returned
+        connectedOperations.getDatasetExpectError(datasetRefSummary.getId(), HttpStatus.NOT_FOUND);
+    }
+
     private DatasetSummaryModel setupMinimalDataset() throws Exception {
         DatasetSummaryModel datasetMinimalSummary = createTestDataset("dataset-minimal.json");
         loadCsvData(datasetMinimalSummary.getId(), "participant", "dataset-minimal-participant.csv");

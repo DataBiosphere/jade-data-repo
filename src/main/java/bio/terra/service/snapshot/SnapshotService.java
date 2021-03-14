@@ -428,7 +428,7 @@ public class SnapshotService {
                     SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
                         .fromColumn(datasetColumn)
                         .toColumn(snapshotColumn);
-                    columnList.add(datasetColumn);
+                    columnList.add(snapshotColumn);
                     mapColumnList.add(snapshotMapColumn);
                 });
         }

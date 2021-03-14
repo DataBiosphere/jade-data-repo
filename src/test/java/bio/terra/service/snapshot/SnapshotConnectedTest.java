@@ -65,7 +65,6 @@ import org.stringtemplate.v4.ST;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -653,7 +652,6 @@ public class SnapshotConnectedTest {
             .targetPath(targetFilePath)
             .profileId(billingProfile.getId());
         FileModel fileModel = connectedOperations.ingestFileSuccess(datasetRefSummary.getId(), fileLoadModel);
-        List<String> fileModelArray = Collections.singletonList(fileModel.getFileId());
 
         // generate a JSON file with the fileref
         String jsonLine = "{\"name\":\"name1\", \"file_ref\":\"[" + fileModel.getFileId() + "]\"}\n";

@@ -65,6 +65,7 @@ import org.stringtemplate.v4.ST;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -652,6 +653,7 @@ public class SnapshotConnectedTest {
             .targetPath(targetFilePath)
             .profileId(billingProfile.getId());
         FileModel fileModel = connectedOperations.ingestFileSuccess(datasetRefSummary.getId(), fileLoadModel);
+        List<String> fileModelArray = Collections.singletonList(fileModel.getFileId());
 
         // generate a JSON file with the fileref
         String jsonLine = "{\"name\":\"name1\", \"file_ref\":\"[" + fileModel.getFileId() + "]\"}\n";
@@ -702,44 +704,12 @@ public class SnapshotConnectedTest {
             fsObjByPath.getDescription(), fileLoadModel.getDescription());
         assertThat("Retrieve snapshot file objects match", fsObjById, CoreMatchers.equalTo(fsObjByPath));
 
-        // now the snapshot exists....let's get it locked!
+        // clean it all up!
 
-        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
-        // ====================================================
-        // enable hang in DeleteSnapshotPrimaryDataStep
-        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
-
-        // kick off a request to delete the snapshot. this should hang before unlocking the snapshot object.
-        // note: asserts are below outside the hang block
+        // kick off a request to delete the snapshot
         MvcResult deleteResult = mvc.perform(delete(
             "/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
-        TimeUnit.SECONDS.sleep(5); // give the flight time to launch and get to the hang
 
-        // check that the snapshot metadata row has an exclusive lock
-        exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
-
-        // lookup the snapshot file by id and check that it's NOT found
-        MockHttpServletResponse failedGetSnapshotByIdResponse =
-            connectedOperations.lookupSnapshotFileRaw(snapshotSummary.getId(), drsId.getFsObjectId());
-
-        // lookup the snapshot file by path and check that it's NOT found
-        MockHttpServletResponse failedGetSnapshotByPathResponse =
-            connectedOperations.lookupSnapshotFileByPathRaw(snapshotSummary.getId(), filePath, 0);
-
-        // disable hang in DeleteSnapshotPrimaryDataStep
-        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
-        // ====================================================
-
-        // check that the snapshot metadata row has an exclusive lock after kicking off the delete
-        assertNotNull("snapshot row is exclusively locked", exclusiveLock);
-
-        assertEquals("Snapshot file NOT found by DRS id lookup",
-            HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByIdResponse.getStatus()));
-
-        assertEquals("Snapshot file NOT found by path lookup",
-            HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByPathResponse.getStatus()));
-
-        // check the response from the snapshot delete request
         MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);
         DeleteResponseModel deleteResponseModel =
             connectedOperations.handleSuccessCase(deleteResponse, DeleteResponseModel.class);

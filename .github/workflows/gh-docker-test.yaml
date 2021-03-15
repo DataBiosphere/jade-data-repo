@@ -1,6 +1,5 @@
 name: GitHub Docker Test
 env:
-  GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_CLOUD_PROJECT: broad-jade-integration
   GOOGLE_REGION: us-central1
   K8_CLUSTER: integration-master
@@ -28,9 +27,6 @@ jobs:
           secretId: ${{ secrets.SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
-      - name: Decode Vault token
-        run: |
-          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
       - name: Install Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v0.2.1
         with:

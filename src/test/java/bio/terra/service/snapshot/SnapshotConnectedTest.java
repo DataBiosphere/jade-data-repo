@@ -654,7 +654,7 @@ public class SnapshotConnectedTest {
         FileModel fileModel = connectedOperations.ingestFileSuccess(datasetRefSummary.getId(), fileLoadModel);
 
         // generate a JSON file with the fileref
-        String jsonLine = "{\"name\":\"name1\", \"file_ref\":\"[" + fileModel.getFileId() + "]\"}\n";
+        String jsonLine = "{\"name\":\"name1\", \"file_ref\":[\"" + fileModel.getFileId() + "\"]}\n";
 
         // load a JSON file that contains the table rows to load into the test bucket
         String jsonFileName = "this-array-better-pass.json";
@@ -921,7 +921,13 @@ public class SnapshotConnectedTest {
         TableResult result = bigQuery.query(queryConfig);
         FieldValueList row = result.iterateAll().iterator().next();
         FieldValue idValue = row.get(0);
-        return idValue.getStringValue();
+        if (idValue.getAttribute().name().equals("REPEATED")) {
+            return idValue.getRepeatedValue()
+                .stream().map(FieldValue::getStringValue)
+                .collect(Collectors.toList()).get(0);
+        } else {
+            return idValue.getStringValue();
+        }
     }
 
     private void snapshotHappyPathTestingHelper(String path) throws Exception {

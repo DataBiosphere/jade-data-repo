@@ -38,11 +38,11 @@ jobs:
           service_account_key: ${{ env.B64_APPLICATION_CREDENTIALS }}
           export_default_credentials: true
       - name: Configure Google Cloud SDK
-        uses: broadinstitute/datarepo-actions/actions/configure-gcloud-sdk@fb-dr-1673-configure-gcloud-sdk
+        uses: broadinstitute/datarepo-actions/actions/configure-gcloud-sdk@0.48.0
       - name: Add Runner IP to allowlist
-        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@fb-dr-1688-add-runner-ip
+        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@0.48.0
       - name: Lock namespace for use
-        uses: broadinstitute/datarepo-actions/actions/lock-namespace@fb-dr-1679-lock-namespace
+        uses: broadinstitute/datarepo-actions/actions/lock-namespace@0.48.0
         env:
           K8_NAMESPACES: "integration-1,integration-2,integration-3,integration-6"
       - name: Gradle build and upload Docker container
@@ -52,10 +52,10 @@ jobs:
       - name: Run Gradle test runner smoke tests
         uses: broadinstitute/datarepo-actions/actions/gradle-test-runner@fb-dr-1687-gradle-test-runner
       - name: Wait for deployment
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@fb-dr-1690-wait-for-deployment
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.48.0
       - name: Unlock namespace for use
-        uses: broadinstitute/datarepo-actions/actions/unlock-namespace@fb-dr-1680-unlock-namespace
+        uses: broadinstitute/datarepo-actions/actions/unlock-namespace@0.48.0
       - name: Clean IAM policy
-        uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@fb-dr-1685-clean-iam-policy
+        uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@0.48.0
       - name: Remove Runner IP from allowlist
-        uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@fb-dr-1689-rm-runner-ip
+        uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@0.48.0

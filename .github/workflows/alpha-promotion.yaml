@@ -58,3 +58,15 @@ jobs:
             Update versions in **${{ steps.apiprevioustag.outputs.tag }}**.
             *Note: This PR was opened by the [update-env GitHub Actions workflow](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}).*
           labels: "broadbot,datarepo,automerge,version-update"
+      - name: "Notify Slack"
+        if: always()
+        uses: broadinstitute/action-slack@v3.8.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          fields: job,repo,message
+          channel: "#jade-alerts"
+          username: "Data Repo tests"
+          text: "Alpha Nightly Promotion"

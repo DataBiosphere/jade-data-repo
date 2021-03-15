@@ -49,6 +49,8 @@ jobs:
         uses: broadinstitute/gradle-command-action@v1
         with:
           arguments: jib
+      - name: Run Gradle test runner smoke tests
+        uses: broadinstitute/datarepo-actions/actions/gradle-test-runner@fb-dr-1687-gradle-test-runner
       - name: Wait for deployment
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@fb-dr-1690-wait-for-deployment
       - name: Unlock namespace for use

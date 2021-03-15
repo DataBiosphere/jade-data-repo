@@ -54,8 +54,11 @@ jobs:
       - name: Wait for deployment
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.48.0
       - name: Unlock namespace for use
+        if: always()
         uses: broadinstitute/datarepo-actions/actions/unlock-namespace@0.48.0
       - name: Clean IAM policy
+        if: always()
         uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@0.48.0
       - name: Remove Runner IP from allowlist
+        if: always()
         uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@0.48.0

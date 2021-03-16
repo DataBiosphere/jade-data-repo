@@ -338,6 +338,14 @@ public class SnapshotService {
         snapshot.snapshotTables(tableList);
     }
 
+    private Column toSnapshotColumn(Column datasetColumn) {
+        return new Column()
+            .name(datasetColumn.getName())
+            .type(datasetColumn.getType())
+            .arrayOf(datasetColumn.isArrayOf());
+        // do we need a Table mapping too?
+    }
+
     /**
      * Map from a list of source relationships (from a dataset or asset) into snapshot relationships.
      *
@@ -422,9 +430,7 @@ public class SnapshotService {
                 .stream()
                 .filter(c -> requestColumns.contains(c.getName()))
                 .forEach(datasetColumn -> {
-                    Column snapshotColumn = new Column()
-                        .name(datasetColumn.getName())
-                        .arrayOf(datasetColumn.isArrayOf());
+                    Column snapshotColumn = toSnapshotColumn(datasetColumn);
                     SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
                         .fromColumn(datasetColumn)
                         .toColumn(snapshotColumn);
@@ -448,9 +454,7 @@ public class SnapshotService {
 
             // for each dataset column specified in the request, create a column in the snapshot w the same name & array
             for (Column datasetColumn : datasetTable.getColumns()) {
-                Column snapshotColumn = new Column()
-                    .name(datasetColumn.getName())
-                    .arrayOf(datasetColumn.isArrayOf());
+                Column snapshotColumn = toSnapshotColumn(datasetColumn);
                 SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
                     .fromColumn(datasetColumn)
                     .toColumn(snapshotColumn);

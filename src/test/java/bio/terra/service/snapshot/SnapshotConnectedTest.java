@@ -645,9 +645,10 @@ public class SnapshotConnectedTest {
             null, null);
         String targetFilePath =
             "/mm/" + Names.randomizeName("testdir") + "/testExcludeLockedFromSnapshotFileLookups.txt";
+        UUID descriptionRandomUUID = UUID.randomUUID();
         FileLoadModel fileLoadModel = new FileLoadModel()
             .sourcePath(sourceUri.toString())
-            .description("testExcludeLockedFromSnapshotFileLookups")
+            .description(descriptionRandomUUID.toString())
             .mimeType("text/plain")
             .targetPath(targetFilePath)
             .profileId(billingProfile.getId());
@@ -692,13 +693,13 @@ public class SnapshotConnectedTest {
         // lookup the snapshot file by DRS id, make sure it's returned (lookupSnapshotFileSuccess will already check)
         FileModel fsObjById =
             connectedOperations.lookupSnapshotFileSuccess(snapshotSummary.getId(), drsId.getFsObjectId());
-        assertEquals("Retrieve snapshot file by DRS id matches desc", fsObjById.getDescription(),
+        assertEquals("Retrieve snapshot file by DRS id matches uuid in desc", fsObjById.getDescription(),
             fileLoadModel.getDescription());
 
         // lookup the snapshot file by DRS path and check that it's found
         FileModel fsObjByPath =
             connectedOperations.lookupSnapshotFileByPathSuccess(snapshotSummary.getId(), filePath, 0);
-        assertEquals("Retrieve snapshot file by path matches desc",
+        assertEquals("Retrieve snapshot file by path matches uuid in desc",
             fsObjByPath.getDescription(), fileLoadModel.getDescription());
         assertThat("Retrieve snapshot file objects match", fsObjById, CoreMatchers.equalTo(fsObjByPath));
     }

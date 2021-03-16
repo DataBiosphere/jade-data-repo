@@ -5,6 +5,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.resourcemanagement.ResourceService;
+import com.google.api.client.util.Lists;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -12,7 +13,6 @@ import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
-import com.google.cloud.firestore.WriteResult;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,7 +20,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
@@ -122,46 +124,46 @@ public class FireStoreDependencyDao {
                     .whereEqualTo("snapshotId", snapshotId).get()
             );
 
-        // Scan the lookup results and launch the sets in parallel
+        // Combine the batch inputs with the results from the lookups to be used in the next batch process
         int index = 0;
-        List<ApiFuture<WriteResult>> setFutures = new ArrayList<>();
-
+        final Map<String, QuerySnapshot> fileIdToQuerySnapshot = new HashMap<>();
         for (QuerySnapshot querySnapshot : querySnapshotList) {
             String fileId = batch.get(index);
-
-            List<QueryDocumentSnapshot> documents = querySnapshot.getDocuments();
-            switch (documents.size()) {
-                case 0: {
-                    // no dependency yet. Let's make one
-                    FireStoreDependency fireStoreDependency = new FireStoreDependency()
-                        .snapshotId(snapshotId)
-                        .fileId(fileId)
-                        .refCount(1L);
-                    DocumentReference docRef = depColl.document();
-                    setFutures.add(docRef.set(fireStoreDependency));
-                    break;
-                }
-
-                case 1: {
-                    // existing dependency; increment the reference count
-                    QueryDocumentSnapshot docSnap = documents.get(0);
-                    FireStoreDependency fireStoreDependency = docSnap.toObject(FireStoreDependency.class);
-                    fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
-                    setFutures.add(docSnap.getReference().set(fireStoreDependency));
-                    break;
-                }
-
-                default:
-                    throw new FileSystemCorruptException(
-                        "Found more than one document for a file dependency - fileId: " + fileId);
-            }
+            fileIdToQuerySnapshot.put(fileId, querySnapshot);
             index++;
         }
 
         // Collect the set results
         fireStoreUtils.batchOperation(
-            setFutures,
-            future -> future
+            Lists.newArrayList(fileIdToQuerySnapshot.entrySet()),
+            e -> {
+                final String fileId = e.getKey();
+                final QuerySnapshot querySnapshot = e.getValue();
+                List<QueryDocumentSnapshot> documents = querySnapshot.getDocuments();
+                switch (documents.size()) {
+                    case 0: {
+                        // no dependency yet. Let's make one
+                        FireStoreDependency fireStoreDependency = new FireStoreDependency()
+                            .snapshotId(snapshotId)
+                            .fileId(fileId)
+                            .refCount(1L);
+                        DocumentReference docRef = depColl.document();
+                        return docRef.set(fireStoreDependency);
+                    }
+
+                    case 1: {
+                        // existing dependency; increment the reference count
+                        QueryDocumentSnapshot docSnap = documents.get(0);
+                        FireStoreDependency fireStoreDependency = docSnap.toObject(FireStoreDependency.class);
+                        fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
+                        return docSnap.getReference().set(fireStoreDependency);
+                    }
+
+                    default:
+                        throw new FileSystemCorruptException(
+                            "Found more than one document for a file dependency - fileId: " + fileId);
+                }
+            }
         );
     }
 

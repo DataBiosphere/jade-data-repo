@@ -446,8 +446,8 @@ paths:
           schema:
             type: string
             enum:
-              - reader
-              - discoverer
+              - owner
+              - user
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -526,6 +526,16 @@ paths:
             in the name or description.
           schema:
             type: string
+        - name: datasetIds
+          in: query
+          description: Filter the results where these datasetIds are source datasets.
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         200:
           description: List of snapshots
@@ -859,6 +869,7 @@ paths:
           schema:
             type: string
             enum:
+              - steward
               - reader
               - discoverer
       requestBody:
@@ -914,6 +925,7 @@ paths:
           schema:
             type: string
             enum:
+              - steward
               - reader
               - discoverer
         - name: memberEmail
@@ -1207,7 +1219,7 @@ paths:
             enum:
               - steward
               - custodian
-              - ingester
+              - snapshot_creator
       requestBody:
         description: Dataset to change the policy of
         content:
@@ -1263,7 +1275,7 @@ paths:
             enum:
               - steward
               - custodian
-              - ingester
+              - snapshot_creator
         - name: memberEmail
           in: path
           description: The email of the user to remove
@@ -2504,9 +2516,17 @@ components:
       pattern: ^[a-zA-Z0-9][_a-zA-Z0-9]*$
       type: string
       description: >
-        Dataset, table, and column names follow this pattern. This should be used for the name of any object in the
+        Table and column names follow this pattern. This should be used for the name of any object in the
         system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
-        any extra columns the DR adds. For table names, this is shorter than what BigQuery allows.
+        any extra columns the DR adds. For table and column names, this is shorter than what BigQuery allows.
+    DatasetSnapshotNameProperty:
+      maxLength: 511
+      minLength: 1
+      pattern: ^[a-zA-Z0-9][_a-zA-Z0-9]*$
+      type: string
+      description: >
+        Dataset and snapshot names follow this pattern. It is the same as ObjectNameProperty, but has
+        a greater maxLength.
     UniqueIdProperty:
       pattern: ^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}
       type: string
@@ -2597,7 +2617,7 @@ components:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the dataset
@@ -2622,7 +2642,7 @@ components:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the dataset
@@ -2641,7 +2661,7 @@ components:
       type: object
       properties:
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the dataset
@@ -2889,7 +2909,7 @@ components:
         dataset_id:
           $ref: '#/components/schemas/UniqueIdProperty'
         dataset:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         table:
           $ref: '#/components/schemas/ObjectNameProperty'
         path:
@@ -3186,7 +3206,7 @@ components:
       type: object
       properties:
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the snapshot
@@ -3216,7 +3236,7 @@ components:
       type: object
       properties:
         datasetName:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         mode:
           type: string
           enum:
@@ -3296,7 +3316,7 @@ components:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the snapshot
@@ -3325,7 +3345,7 @@ components:
         id:
           $ref: '#/components/schemas/UniqueIdProperty'
         name:
-          $ref: '#/components/schemas/ObjectNameProperty'
+          $ref: '#/components/schemas/DatasetSnapshotNameProperty'
         description:
           type: string
           description: Description of the snapshot
@@ -3951,6 +3971,7 @@ components:
       schema:
         type: string
         enum:
+          - steward
           - reader
           - discoverer
     DatasetPolicyName:
@@ -3963,7 +3984,7 @@ components:
         enum:
           - steward
           - custodian
-          - ingester
+          - snapshot_creator
     ProfilePolicyName:
       name: policyName
       in: path

@@ -4,8 +4,7 @@ Ensure that you have access to the required team resources beforehand. If you
 encounter a permission error, it is likely because you are missing appropriate
 access. Join the `#github` Slack channel, click the lightning bolt in the
 channel header, and select `Join DataBiosphere`. Ask for access to Google Groups
-including `dsde-engineering`. A colleague on the team will also need to create a
-Helm `datarepo` definition for you.
+including `dsde-engineering`.
 
 These instructions assume you use MacOS, and that you are on the internal Broad
 network or the VPN. If the VPN is not installed, follow the instructions
@@ -41,7 +40,7 @@ Connect your GitHub account to your Broad profile:
 **My Profile** tab.
 2. Link your profile to GitHub by clicking under **Other Profiles**.
 3. [Check if the account is successfully linked](https://github.broadinstitute.org/).
-4. Open each of the following GitHub groups and **Request to join** by going to 
+4. Open each of the following GitHub groups and **Request to join** by going to
 the Members tab: [Broad Institute Read](https://github.com/orgs/broadinstitute/teams/broad-institute-read),
 [Prometheus](https://github.com/orgs/broadinstitute/teams/prometheus),
 [DSDE Engineering](https://github.com/orgs/broadinstitute/teams/dsde-engineering)
@@ -53,7 +52,21 @@ relevant to your team.
 Connect your Docker Hub account to your Broad profile by contacting the DevOps
 team.
 
-## 3. Install Homebrew
+## 3. Create Terra Accounts
+
+The Data Repo uses [Sam](https://github.com/broadinstitute/sam) for identity and access management. To register
+as a new user, create an account through Terra. Use a non-Broad email address specifically created for development
+purposes in the non-prod environments:
+- [Dev](https://bvdp-saturn-dev.appspot.com/)
+- [Alpha](https://bvdp-saturn-alpha.appspot.com/)
+- [Staging](https://bvdp-saturn-staging.appspot.com/)
+
+For [production](https://app.terra.bio/), you will need to register using a firecloud.org email. In order to get an
+account, follow these [steps](https://docs.google.com/document/d/1DRftlTe-9Q4H-R0jxanVojvyNn1IzbdIOhNKiIj9IpI/edit).
+
+Ask a member of the team to add you to the admins group for each of these environments.
+
+## 4. Install Homebrew
 
 [Homebrew](https://brew.sh/) is a [package manager](https://en.wikipedia.org/wiki/Package_manager)
 which enables the installation of software using a single, convenient command
@@ -99,13 +112,19 @@ upgrading Kubernetes deployments, which are otherwise challenging to manage:
 
 ```
 brew install helm
-helm repo add stable https://kubernetes-charts.storage.googleapis.com/
+helm repo add stable
 helm repo add datarepo-helm https://broadinstitute.github.io/datarepo-helm
 helm plugin install https://github.com/thomastaylor312/helm-namespace
-helm repo update
+helm repo update https://charts.helm.sh/stable
 ```
 
-5. [Skaffold](https://github.com/GoogleContainerTools/skaffold) facilitates the
+5. [Helmfile](https://github.com/roboll/helmfile) streamlines deploying multiple helm charts:
+```
+brew install helmfile
+helm plugin install https://github.com/databus23/helm-diff
+```
+
+6. [Skaffold](https://github.com/GoogleContainerTools/skaffold) facilitates the
 continuous development of Kubernetes resources. Newer versions are incompatible
 with our development environments, so version 1.3.1 is installed instead.
 
@@ -115,7 +134,7 @@ brew install skaffold.rb
 brew pin skaffold
 ```
 
-6. [Vault](https://www.vaultproject.io/) is an encrypted database used to store
+7. [Vault](https://www.vaultproject.io/) is an encrypted database used to store
 many of the team's secrets such as keys and passwords:
 
 ```
@@ -123,7 +142,7 @@ brew install vault
 export VAULT_ADDR=https://clotho.broadinstitute.org:8200
 ```
 
-7. Much of the code written at the Broad is in [Java](https://en.wikipedia.org/wiki/Java_(programming_language)).
+8. Much of the code written at the Broad is in [Java](https://en.wikipedia.org/wiki/Java_(programming_language)).
 Install the OpenJDK 8 runtime from the [AdoptOpenJDK](https://adoptopenjdk.net/)
 project to develop and run Java code:
 
@@ -132,7 +151,7 @@ brew tap AdoptOpenJDK/openjdk
 brew cask install adoptopenjdk8
 ```
 
-8. [Google Cloud SDK](https://cloud.google.com/sdk) is a command-line interface
+9. [Google Cloud SDK](https://cloud.google.com/sdk) is a command-line interface
 to Google Cloud services. Once it is installed, you'll need to allow auth access
 and configure Docker to connect to the appropriate Google Cloud endpoint when
 necessary:
@@ -144,7 +163,7 @@ gcloud auth application-default login
 gcloud auth configure-docker
 ```
 
-9. [IntelliJ IDEA](https://www.jetbrains.com/idea/) is an integrated development
+10. [IntelliJ IDEA](https://www.jetbrains.com/idea/) is an integrated development
 environment (IDE) for Java. There are two versions available: **Ultimate** (paid)
 and **Community** (open-source). The **Community** edition has all the features
 needed for development:
@@ -154,11 +173,11 @@ brew cask install intellij-idea-ce
 open -a "IntelliJ IDEA CE"
 ```
 
-10. Once it is launched, go to IntelliJ IDEA -> Preferences -> Plugins,
+11. Once it is launched, go to IntelliJ IDEA -> Preferences -> Plugins,
 then click in the search box and install **Cloud Code**, which integrates
 Google Cloud features with IntelliJ IDEA.
 
-## 4. Create GitHub token
+## 5. Create GitHub token
 
 The GitHub token verifies team permissions. This token is necessary for the next
 step, [Login to Vault](#6-login-to-vault). To create a token:
@@ -174,7 +193,7 @@ GH_VAULT_TOKEN=<<GITHUB TOKEN VALUE>>
 echo $GH_VAULT_TOKEN > ~/.gh_token
 ```
 
-## 5. Login to Vault
+## 6. Login to Vault
 
 Vault access tokens can be obtained using the GitHub token from earlier as
 follows:
@@ -183,7 +202,7 @@ follows:
 vault login -method=github token=$(cat ~/.gh_token)
 ```
 
-## 6. Code Checkout
+## 7. Code Checkout
 
 > It may be useful to create a folder for Broad projects in your home directory.
 
@@ -198,7 +217,14 @@ git clone https://github.com/broadinstitute/datarepo-helm
 git clone https://github.com/broadinstitute/datarepo-helm-definitions
 ```
 
-## 7. Google Cloud Platform setup
+Create your datarepo helm definition:
+1. In `datarepo-helm-definitions/dev` directory, copy an existing developer
+definition and change all initials to your own.
+2. Create a pull request with these changes in
+[datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions)
+3. Ask a colleague from DevOps to create a service account and database for your deployment.
+
+## 8. Google Cloud Platform setup
 
 1. Log in to [Google Cloud Platform](https://console.cloud.google.com). In the
 top-left corner, select the **BROADINSTITUTE.ORG** organization. Select
@@ -212,16 +238,25 @@ command to copy and paste into the terminal:
 gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
 ```
 
-4. Starting from your [project directory](#7-code-checkout), bring up Helm services:
+4. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`, bring up Helm services (note
+it will take about 10-15 minutes for ingress and cert creation):
 
 ```
 # replace all instances of `zzz` with your initials
 cd datarepo-helm-definitions/dev/zzz
-helm namespace upgrade zzz-secrets datarepo-helm/create-secret-manager-secret --version=0.0.4 --install --namespace zzz -f zzzSecrets.yaml
-helm namespace upgrade zzz-jade datarepo-helm/datarepo --version=0.1.0 --install --namespace zzz -f zzzDeployment.yaml
+helmfile apply
+
+# check that the deployments were created
+helm list --namespace zzz
 ```
 
-## 8. Install Postgres 12
+5. On the Google Cloud Platform [API Credentials](https://console.cloud.google.com/apis/credentials?authuser=3&project=broad-jade-dev)
+page, select the Jade Data Repository OAuth2 Client ID and update the authorized domains:
+ - Under Authorized JavaScript origins, add `https://jade-zzz.datarepo-dev.broadinstitute.org`
+ - Under Authorized redirect URIs, add `https://jade-zzz.datarepo-dev.broadinstitute.org/login/google` and
+   `https://jade-zzz.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
+
+## 9. Install Postgres 12
 
 [Postgres](https://www.postgresql.org/) is an advanced open-source database.
 **Postgres.app** is used to manage a local installation of Postgres. The latest
@@ -244,7 +279,7 @@ psql -f db/create-data-repo-db
 psql --list
 ```
 
-## 9. Repository Setup
+## 10. Repository Setup
 
 ### 1. Build `jade-data-repo`
 

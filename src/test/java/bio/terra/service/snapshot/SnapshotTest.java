@@ -36,7 +36,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -131,7 +133,6 @@ public class SnapshotTest extends UsersBase {
                 datasetSummaryModel.getName(),
                 profileId,
                 "ingest-test-snapshot.json");
-        createdSnapshotIds.add(snapshotSummary.getId());
 
         DataRepoResponse<JobModel> deleteSnapResp =
             dataRepoFixtures.deleteSnapshotLaunch(reader(), snapshotSummary.getId());
@@ -149,6 +150,37 @@ public class SnapshotTest extends UsersBase {
         assertThat("Discoverer does not have access to dataSnapshots",
             enumSnap.getTotal(),
             equalTo(0));
+
+        assertThat("Discoverer does not have access to dataSnapshots",
+            enumSnap.getTotal(),
+            equalTo(0));
+
+        EnumerateSnapshotModel enumSnapByDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
+            steward(),
+            Collections.singletonList(datasetSummaryModel.getId()));
+
+        assertThat("Dataset filters to dataSnapshots",
+            enumSnapByDatasetId.getTotal(),
+            equalTo(1));
+
+        EnumerateSnapshotModel enumSnapByNoDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
+            steward(),
+            Collections.emptyList());
+
+        assertThat("Dataset filters to dataSnapshots",
+            enumSnapByNoDatasetId.getTotal(),
+            equalTo(1));
+
+        EnumerateSnapshotModel enumSnapByBadDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
+            steward(),
+            Collections.singletonList(UUID.randomUUID().toString()));
+
+        assertThat("Dataset filters to dataSnapshots",
+            enumSnapByBadDatasetId.getTotal(),
+            equalTo(0));
+
+        // Delete snapshot as custodian for this test since teardown uses steward
+        dataRepoFixtures.deleteSnapshot(custodian(), snapshotSummary.getId());
     }
 
     @Test

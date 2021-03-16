@@ -126,12 +126,13 @@ public class SnapshotService {
         String sort,
         String direction,
         String filter,
+        List<UUID> datasetIds,
         List<UUID> resources) {
         if (resources.isEmpty()) {
-            return new EnumerateSnapshotModel().total(0);
+            return new EnumerateSnapshotModel().total(0).items(Collections.emptyList());
         }
         MetadataEnumeration<SnapshotSummary> enumeration = snapshotDao.retrieveSnapshots(offset, limit, sort, direction,
-            filter, resources);
+            filter, datasetIds, resources);
         List<SnapshotSummaryModel> models = enumeration.getItems()
                 .stream()
                 .map(this::makeSummaryModelFromSummary)

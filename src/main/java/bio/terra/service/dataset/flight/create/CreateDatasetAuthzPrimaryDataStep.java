@@ -57,7 +57,7 @@ public class CreateDatasetAuthzPrimaryDataStep implements Step {
             List<String> emails = new ArrayList<>();
             emails.add(policyEmails.get(IamRole.STEWARD));
             emails.add(policyEmails.get(IamRole.CUSTODIAN));
-            emails.add(policyEmails.get(IamRole.INGESTER));
+            emails.add(policyEmails.get(IamRole.SNAPSHOT_CREATOR));
             bigQueryPdao.grantReadAccessToDataset(dataset, emails);
 
         } catch (BigQueryException ex) {

@@ -2,20 +2,24 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
 import com.google.api.gax.rpc.DeadlineExceededException;
+import com.google.api.gax.rpc.InternalException;
 import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
+import io.grpc.StatusRuntimeException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.digest.PureJavaCrc32C;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -28,6 +32,13 @@ import java.util.concurrent.TimeUnit;
 public class FireStoreUtils {
 
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
+
+    private int firestoreRetries;
+
+    @Autowired
+    public FireStoreUtils(GoogleResourceConfiguration googleResourceConfiguration) {
+        firestoreRetries = googleResourceConfiguration.getFirestoreRetries();
+    }
 
     <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {
         try {
@@ -151,12 +162,13 @@ public class FireStoreUtils {
         return Long.toHexString(crc.getValue());
     }
 
-    private static final int NO_PROGRESS_MAX = 4;
-    private static final int SLEEP_MILLISECONDS = 1000;
+    private static final int SLEEP_BASE_MILLISECONDS = 1000;
 
     /**
      * Perform the specified Firestore operation against a specified list of inputs in batch.
-     * @param inputs A list containing the inputs to the function to be applied in batch
+     * @param inputs A list containing the inputs to the function to be applied in batch.  Note: it's a bad idea to
+     *               pass futures in as the input and just have generator be an identity function since the future does
+     *               not re-resolve after an initial execution
      * @param generator A generator that provides a future given an input from the inputs parameter
      * @param <T> The class of the objects in the input list
      * @param <V> The class of the objects that will result when the generated futures resolve
@@ -202,6 +214,8 @@ public class FireStoreUtils {
                     } catch (DeadlineExceededException |
                         UnavailableException |
                         AbortedException |
+                        InternalException |
+                        StatusRuntimeException |
                         ExecutionException ex) {
                         if (shouldRetry(ex)) {
                             logger.warn("Retry-able error in firestore future get - input: " +
@@ -217,14 +231,18 @@ public class FireStoreUtils {
                 break;
             }
 
+            final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, noProgressCount)).longValue();
             if (completeCount == 0) {
                 noProgressCount++;
-                if (noProgressCount > NO_PROGRESS_MAX) {
+                if (noProgressCount > firestoreRetries) {
                     throw new FileSystemExecutionException("batch operation failed. " +
-                        NO_PROGRESS_MAX + " tries with no progress.");
+                        firestoreRetries + " tries with no progress.");
+                } else {
+                    logger.info("will attempt retry #{} after {} millisecond pause.", noProgressCount, retryWait);
                 }
             }
-            TimeUnit.MILLISECONDS.sleep(SLEEP_MILLISECONDS);
+            // Exponential backoff
+            TimeUnit.MILLISECONDS.sleep(retryWait);
         }
 
         return outputs;
@@ -236,7 +254,9 @@ public class FireStoreUtils {
         }
         if (throwable instanceof DeadlineExceededException ||
             throwable instanceof UnavailableException ||
-            throwable instanceof AbortedException) {
+            throwable instanceof AbortedException ||
+            throwable instanceof InternalException ||
+            throwable instanceof StatusRuntimeException) {
 
             return true;
         }

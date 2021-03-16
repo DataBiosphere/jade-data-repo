@@ -78,7 +78,7 @@ public class GlobalExceptionHandler {
     // -- auth errors from sam
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ErrorModel samAthorizationException(UnauthorizedException ex) {
+    public ErrorModel samAuthorizationException(UnauthorizedException ex) {
         return buildErrorModel(ex, Collections.emptyList());
     }
 

@@ -11,6 +11,8 @@ import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.FileModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.firestore.EncodeFixture;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
@@ -32,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -41,7 +44,6 @@ import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -73,6 +75,7 @@ public class DrsTest extends UsersBase {
     @Autowired private EncodeFixture encodeFixture;
     @Autowired private AuthService authService;
     @Autowired private IamService iamService;
+    @Autowired private ConfigurationService configurationService;
 
     private String custodianToken;
     private SnapshotModel snapshotModel;
@@ -118,6 +121,7 @@ public class DrsTest extends UsersBase {
         if (profileId != null) {
             dataRepoFixtures.deleteProfileLog(steward(), profileId);
         }
+        dataRepoFixtures.resetConfig(steward());
     }
 
     @Test
@@ -142,8 +146,12 @@ public class DrsTest extends UsersBase {
         validateBQJobUserRolePresent(Arrays.asList(
             datasetIamRoles.get(IamRole.STEWARD),
             datasetIamRoles.get(IamRole.CUSTODIAN),
-            datasetIamRoles.get(IamRole.INGESTER),
-            snapshotIamRoles.get(IamRole.CUSTODIAN)
+            datasetIamRoles.get(IamRole.SNAPSHOT_CREATOR)
+        ));
+        // Make sure that the snapshot BigQuery Job User permission role is present for the Steward and Reader
+        validateBQJobUserRolePresent(Arrays.asList(
+            snapshotIamRoles.get(IamRole.STEWARD),
+            snapshotIamRoles.get(IamRole.READER)
         ));
 
         // We don't have a DRS URI for a directory, so we back into it by computing the parent path
@@ -169,13 +177,16 @@ public class DrsTest extends UsersBase {
 
         Map<String, List<Acl>> postDeleteAcls = TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
         validateDoesNotContainAcls(postDeleteAcls.values().iterator().next());
-        // Make sure that the snapshot role is removed
-        validateBQJobUserRoleNotPresent(Collections.singleton(snapshotIamRoles.get(IamRole.CUSTODIAN)));
+        // Make sure that the snapshot BigQuery Job User roles are removed
+        validateBQJobUserRoleNotPresent(Arrays.asList(
+            snapshotIamRoles.get(IamRole.STEWARD),
+            snapshotIamRoles.get(IamRole.READER)
+        ));
         // ...and that the dataset roles are still present
         validateBQJobUserRolePresent(Arrays.asList(
             datasetIamRoles.get(IamRole.STEWARD),
             datasetIamRoles.get(IamRole.CUSTODIAN),
-            datasetIamRoles.get(IamRole.INGESTER)
+            datasetIamRoles.get(IamRole.SNAPSHOT_CREATOR)
         ));
 
         // Delete dataset and make sure that project level ACLs are reset
@@ -185,8 +196,46 @@ public class DrsTest extends UsersBase {
         validateBQJobUserRoleNotPresent(Arrays.asList(
             datasetIamRoles.get(IamRole.STEWARD),
             datasetIamRoles.get(IamRole.CUSTODIAN),
-            datasetIamRoles.get(IamRole.INGESTER)
+            datasetIamRoles.get(IamRole.SNAPSHOT_CREATOR)
         ));
+    }
+
+    @Test
+    public void drsScaleTest() throws Exception {
+        String failureMaxValue = "0";
+        dataRepoFixtures.resetConfig(steward());
+
+        // Get a DRS ID from the dataset using the custodianToken.
+        // Note: the reader does not have permission to run big query jobs anywhere.
+        BigQuery bigQueryCustodian = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
+        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryCustodian,
+            snapshotModel,
+            "file",
+            "file_ref");
+
+        // DRS lookup the file and validate
+        logger.info("DRS Object Id - file: {}", drsObjectId);
+        DrsResponse<DRSObject> response = dataRepoFixtures.drsGetObjectRaw(reader(), drsObjectId);
+        assertThat("object is successfully retrieved",
+            response.getStatusCode(), equalTo(HttpStatus.OK));
+
+        // Now lets cap the number allowed
+        bio.terra.model.ConfigModel concurrentConfig = configurationService.getConfig(ConfigEnum.DRS_LOOKUP_MAX.name());
+
+        concurrentConfig.setParameter(new bio.terra.model.ConfigParameterModel().value(failureMaxValue));
+        bio.terra.model.ConfigGroupModel failureConfigGroupModel = new bio.terra.model.ConfigGroupModel()
+            .label("DRSTest")
+            .addGroupItem(concurrentConfig);
+
+        List<bio.terra.model.ConfigModel> failureConfigList =
+            dataRepoFixtures.setConfigList(steward(), failureConfigGroupModel).getItems();
+        logger.info("Config model : " + failureConfigList.get(0));
+
+        // DRS lookup the file and validate
+        logger.info("DRS Object Id - file: {}", drsObjectId);
+        DrsResponse<DRSObject> failureResponse = dataRepoFixtures.drsGetObjectRaw(reader(), drsObjectId);
+        assertThat("object is not successfully retrieved",
+            failureResponse.getStatusCode(), equalTo(HttpStatus.TOO_MANY_REQUESTS));
     }
 
     private void validateDrsObject(DRSObject drsObject, String drsObjectId) {
@@ -240,8 +289,6 @@ public class DrsTest extends UsersBase {
      */
     private void validateContainsAcls(List<Acl> acls) {
         final Collection<String> entities = CollectionUtils.collect(acls, a -> a.getEntity().toString());
-        assertThat("Has custodian ACLs", entities, hasItem(String.format("group-%s",
-            snapshotIamRoles.get(IamRole.CUSTODIAN))));
         assertThat("Has steward ACLs", entities, hasItem(String.format("group-%s",
             snapshotIamRoles.get(IamRole.STEWARD))));
         assertThat("Has reader ACLs", entities, hasItem(String.format("group-%s",
@@ -255,8 +302,6 @@ public class DrsTest extends UsersBase {
         final Collection<String> entities = CollectionUtils.collect(acls, a -> a.getEntity().toString());
         assertThat("Doesn't have custodian ACLs", entities, not(hasItem(String.format("group-%s",
             snapshotIamRoles.get(IamRole.CUSTODIAN)))));
-        assertThat("Doesn't have steward ACLs", entities, not(hasItem(String.format("group-%s",
-            snapshotIamRoles.get(IamRole.STEWARD)))));
         assertThat("Doesn't have reader ACLs", entities, not(hasItem(String.format("group-%s",
             snapshotIamRoles.get(IamRole.READER)))));
     }

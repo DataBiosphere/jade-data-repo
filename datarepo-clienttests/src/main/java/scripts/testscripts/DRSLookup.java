@@ -11,6 +11,7 @@ import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.PolicyMemberRequest;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import bio.terra.datarepo.model.TableModel;
@@ -24,6 +25,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -42,6 +44,15 @@ public class DRSLookup extends SimpleDataset {
 
   private static List<BlobId> scratchFiles = new ArrayList<>();
   private String dirObjectId;
+
+  private int NUM_DRS_LOOKUPS = 1;
+
+  public void setParameters(List<String> parameters) {
+    if (parameters != null && parameters.size() > 0) {
+      NUM_DRS_LOOKUPS = Integer.parseInt(parameters.get(0));
+    }
+    logger.debug("Repeated DRS Lookups (default is 1): {}", NUM_DRS_LOOKUPS);
+  }
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // create the profile and dataset
@@ -127,6 +138,19 @@ public class DRSLookup extends SimpleDataset {
             repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
     logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
 
+    for (TestUserSpecification user : testUsers) {
+      if (!StringUtils.equals(datasetCreator.userEmail, user.userEmail)) {
+        repositoryApi.addSnapshotPolicyMember(
+            snapshotSummaryModel.getId(),
+            "steward",
+            new PolicyMemberRequest().email(user.userEmail));
+        logger.info(
+            "Granted steward access on snapshot {} to user {}",
+            snapshotSummaryModel.getName(),
+            user.userEmail);
+      }
+    }
+
     // now go and retrieve the file Id that should be stored in the snapshot
     snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
 
@@ -156,12 +180,14 @@ public class DRSLookup extends SimpleDataset {
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
     DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
-    DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
-    logger.debug(
-        "Successfully retrieved drs object: {}, with id: {} and data project: {}",
-        object.getName(),
-        dirObjectId,
-        snapshotModel.getDataProject());
+    for (int i = 0; i < NUM_DRS_LOOKUPS; i++) {
+      DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
+      logger.debug(
+          "Successfully retrieved drs object: {}, with id: {} and data project: {}",
+          object.getName(),
+          dirObjectId,
+          snapshotModel.getDataProject());
+    }
   }
 
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {

@@ -392,30 +392,42 @@ public class SnapshotDao {
         String sort,
         String direction,
         String filter,
+        List<UUID> datasetIds,
         List<UUID> accessibleSnapshotIds) {
         logger.debug("retrieve snapshots offset: " + offset + " limit: " + limit + " sort: " + sort +
-            " direction: " + direction + " filter:" + filter);
+            " direction: " + direction + " filter: " + filter + " datasetIds: " + StringUtils.join(datasetIds, ","));
         MapSqlParameterSource params = new MapSqlParameterSource();
         List<String> whereClauses = new ArrayList<>();
-        DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses);
+        DaoUtils.addAuthzSnapshotIdsClause(accessibleSnapshotIds, params, whereClauses);
         whereClauses.add(" flightid IS NULL"); // exclude snapshots that are exclusively locked
 
         // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
-        String whereSql = "";
-        if (!whereClauses.isEmpty()) {
-            whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
+        String joinSql = "";
+
+        if (!datasetIds.isEmpty()) {
+            joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
+            String datasetMatchSql = "snapshot_source.dataset_id IN (:datasetIds)";
+            whereClauses.add(datasetMatchSql);
+            params.addValue("datasetIds", datasetIds);
         }
+        String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 
         // get total count of objects
-        String countSql = "SELECT count(id) AS total FROM snapshot " + whereSql;
+        String countSql = "SELECT count(snapshot.id) AS total FROM snapshot " +
+            joinSql +
+            whereSql;
         Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
         if (total == null) {
             throw new CorruptMetadataException("Impossible null value from count");
         }
 
-        String sql = "SELECT id, name, description, created_date, profile_id FROM snapshot " + whereSql +
-            DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
+        String sql = "SELECT snapshot.id, name, description, created_date, profile_id FROM snapshot " +
+            joinSql +
+            whereSql +
+            DaoUtils.orderByClause(sort, direction) +
+            " OFFSET :offset LIMIT :limit";
+
         params.addValue("offset", offset).addValue("limit", limit);
         List<SnapshotSummary> summaries = jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
 

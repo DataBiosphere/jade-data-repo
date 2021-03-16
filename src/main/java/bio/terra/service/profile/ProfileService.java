@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -130,7 +131,7 @@ public class ProfileService {
                                                           AuthenticatedUserRequest user) {
         List<UUID> resources = iamService.listAuthorizedResources(user, IamResourceType.SPEND_PROFILE);
         if (resources.isEmpty()) {
-            return new EnumerateBillingProfileModel().total(0);
+            return new EnumerateBillingProfileModel().total(0).items(Collections.emptyList());
         }
         return profileDao.enumerateBillingProfiles(offset, limit, resources);
     }

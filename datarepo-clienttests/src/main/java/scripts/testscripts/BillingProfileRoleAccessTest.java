@@ -1,6 +1,10 @@
 package scripts.testscripts;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.DeleteResponseModel;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +74,9 @@ public class BillingProfileRoleAccessTest extends BillingProfileUsers {
       throw e;
     } finally {
       if (profile != null) {
-        ownerUser1Api.deleteProfile(profile.getId());
+        assertThat(
+            ownerUser1Api.deleteProfile(profile.getId()).getObjectState(),
+            equalTo(DeleteResponseModel.ObjectStateEnum.DELETED));
       }
     }
   }

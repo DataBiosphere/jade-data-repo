@@ -1,3 +1,5 @@
+## Be sure to add the helm repos
+## helm repo add datarepo-helm https://broadinstitute.github.io/datarepo-helm && helm repo update
 apiVersion: skaffold/v2alpha2
 kind: Config
 build:
@@ -19,24 +21,21 @@ deploy:
     releases:
     # create secrets
     - name: TEMP-jade-create-secret-manager-secret
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/create-secret-manager-secret-0.0.6/create-secret-manager-secret-0.0.6.tgz
-      version: 0.0.6
+      chartPath: datarepo-helm/create-secret-manager-secret
       namespace: TEMP
       remote: true
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/create-secret-manager-secret.yaml
     # gcp sqlproxy
     - name: TEMP-jade-gcloud-sqlproxy
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/gcloud-sqlproxy-0.19.7/gcloud-sqlproxy-0.19.7.tgz
-      version: 0.19.7
+      chartPath: datarepo-helm/gcloud-sqlproxy
       namespace: TEMP
       remote: true
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/gcloud-sqlproxy.yaml
     # datarepo-api
     - name: TEMP-jade-datarepo-api
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-api-0.0.23/datarepo-api-0.0.23.tgz
-      version: 0.0.23
+      chartPath: datarepo-helm/datarepo-api
       namespace: TEMP
       remote: true
       values:
@@ -45,16 +44,14 @@ deploy:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/datarepo-api.yaml
     # datarepo-ui
     - name: TEMP-jade-datarepo-ui
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-ui-0.0.12/datarepo-ui-0.0.12.tgz
-      version: 0.0.12
+      chartPath: datarepo-helm/datarepo-ui
       namespace: TEMP
       remote: true
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/datarepo-ui.yaml
     # oidc-proxy
     - name: TEMP-jade-oidc-proxy
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/oidc-proxy-0.0.14/oidc-proxy-0.0.14.tgz
-      version: 0.0.14
+      chartPath: datarepo-helm/oidc-proxy
       namespace: TEMP
       remote: true
       valuesFiles:

@@ -61,6 +61,7 @@ public class FileIngestWorkerFlight extends Flight {
         //    matches what users will see when they examine the GCS object. When the file entry is (atomically)
         //    created in the file firestore collection, the file becomes visible for REST API lookups.
         addStep(new IngestFileIdStep(configService));
+        addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
         addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
         addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);

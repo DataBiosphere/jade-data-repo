@@ -23,6 +23,7 @@ import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -104,7 +105,7 @@ public class DatasetService {
     public EnumerateDatasetModel enumerate(
         int offset, int limit, String sort, String direction, String filter, List<UUID> resources) {
         if (resources.isEmpty()) {
-            return new EnumerateDatasetModel().total(0);
+            return new EnumerateDatasetModel().total(0).items(Collections.emptyList());
         }
         MetadataEnumeration<DatasetSummary> datasetEnum = datasetDao.enumerate(
             offset, limit, sort, direction, filter, resources);

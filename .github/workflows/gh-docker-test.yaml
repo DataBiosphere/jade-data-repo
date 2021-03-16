@@ -54,10 +54,10 @@ jobs:
       - name: Clean IAM policy
         if: always()
         uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@0.49.0
-      - name: Run Gradle test runner smoke tests
-        uses: broadinstitute/datarepo-actions/actions/gradle-test-runner@0.49.0
-        env:
-          JSON_KEY_FILENAME: jade-dev-account.json
+#      - name: Run Gradle test runner smoke tests
+#        uses: broadinstitute/datarepo-actions/actions/gradle-test-runner@0.49.0
+#        env:
+#          JSON_KEY_FILENAME: jade-dev-account.json
       - name: Deploy the latest dev image tag to datarepo-helm-definitions
         uses: broadinstitute/datarepo-actions/actions/deploy-tag-update@fb-dr-1681-deploy-tag-update
       - name: Wait for deployment

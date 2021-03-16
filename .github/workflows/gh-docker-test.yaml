@@ -34,11 +34,11 @@ jobs:
           service_account_key: ${{ env.B64_APPLICATION_CREDENTIALS }}
           export_default_credentials: true
       - name: Configure Google Cloud SDK
-        uses: broadinstitute/datarepo-actions/actions/configure-gcloud-sdk@0.48.0
+        uses: broadinstitute/datarepo-actions/actions/configure-gcloud-sdk@0.49.0
       - name: Add Runner IP to allowlist
-        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@0.48.0
+        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@0.49.0
       - name: Lock namespace for use
-        uses: broadinstitute/datarepo-actions/actions/lock-namespace@0.48.0
+        uses: broadinstitute/datarepo-actions/actions/lock-namespace@0.49.0
         env:
           K8_NAMESPACES: "integration-1,integration-2,integration-3,integration-6"
       - name: Gradle build and upload Docker container
@@ -46,17 +46,17 @@ jobs:
         with:
           arguments: jib
       - name: Run Gradle test runner smoke tests
-        uses: broadinstitute/datarepo-actions/actions/gradle-test-runner@fb-dr-1687-gradle-test-runner
+        uses: broadinstitute/datarepo-actions/actions/gradle-test-runner@0.49.0
         env:
           JSON_KEY_FILENAME: jade-dev-account.json
       - name: Wait for deployment
-        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.48.0
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.49.0
       - name: Unlock namespace for use
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/unlock-namespace@0.48.0
+        uses: broadinstitute/datarepo-actions/actions/unlock-namespace@0.49.0
       - name: Clean IAM policy
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@0.48.0
+        uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@0.49.0
       - name: Remove Runner IP from allowlist
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@0.48.0
+        uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@0.49.0

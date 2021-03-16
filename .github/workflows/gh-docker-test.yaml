@@ -69,6 +69,11 @@ jobs:
         if: always()
         uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@0.49.0
   test_connected:
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     services:
       postgres:
         image: postgres:11

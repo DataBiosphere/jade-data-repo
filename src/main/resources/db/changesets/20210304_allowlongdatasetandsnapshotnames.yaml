@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: allowlongdatasetandsnapshotnames
+      author: sehsan
+      changes:
+        - modifyDataType:
+            tableName: dataset
+            columnName: name
+            newDataType: ${dataset_snapshot_identifier_type}
+        - modifyDataType:
+            tableName: snapshot
+            columnName: name
+            newDataType: ${dataset_snapshot_identifier_type}

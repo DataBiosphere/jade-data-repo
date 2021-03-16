@@ -52,7 +52,21 @@ relevant to your team.
 Connect your Docker Hub account to your Broad profile by contacting the DevOps
 team.
 
-## 3. Install Homebrew
+## 3. Create Terra Accounts
+
+The Data Repo uses [Sam](https://github.com/broadinstitute/sam) for identity and access management. To register
+as a new user, create an account through Terra. Use a non-Broad email address specifically created for development
+purposes in the non-prod environments:
+- [Dev](https://bvdp-saturn-dev.appspot.com/)
+- [Alpha](https://bvdp-saturn-alpha.appspot.com/)
+- [Staging](https://bvdp-saturn-staging.appspot.com/)
+
+For [production](https://app.terra.bio/), you will need to register using a firecloud.org email. In order to get an
+account, follow these [steps](https://docs.google.com/document/d/1DRftlTe-9Q4H-R0jxanVojvyNn1IzbdIOhNKiIj9IpI/edit).
+
+Ask a member of the team to add you to the admins group for each of these environments.
+
+## 4. Install Homebrew
 
 [Homebrew](https://brew.sh/) is a [package manager](https://en.wikipedia.org/wiki/Package_manager)
 which enables the installation of software using a single, convenient command
@@ -163,7 +177,7 @@ open -a "IntelliJ IDEA CE"
 then click in the search box and install **Cloud Code**, which integrates
 Google Cloud features with IntelliJ IDEA.
 
-## 4. Create GitHub token
+## 5. Create GitHub token
 
 The GitHub token verifies team permissions. This token is necessary for the next
 step, [Login to Vault](#6-login-to-vault). To create a token:
@@ -179,7 +193,7 @@ GH_VAULT_TOKEN=<<GITHUB TOKEN VALUE>>
 echo $GH_VAULT_TOKEN > ~/.gh_token
 ```
 
-## 5. Login to Vault
+## 6. Login to Vault
 
 Vault access tokens can be obtained using the GitHub token from earlier as
 follows:
@@ -188,7 +202,7 @@ follows:
 vault login -method=github token=$(cat ~/.gh_token)
 ```
 
-## 6. Code Checkout
+## 7. Code Checkout
 
 > It may be useful to create a folder for Broad projects in your home directory.
 
@@ -210,7 +224,7 @@ definition and change all initials to your own.
 [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions)
 3. Ask a colleague from DevOps to create a service account and database for your deployment.
 
-## 7. Google Cloud Platform setup
+## 8. Google Cloud Platform setup
 
 1. Log in to [Google Cloud Platform](https://console.cloud.google.com). In the
 top-left corner, select the **BROADINSTITUTE.ORG** organization. Select
@@ -242,7 +256,7 @@ page, select the Jade Data Repository OAuth2 Client ID and update the authorized
  - Under Authorized redirect URIs, add `https://jade-zzz.datarepo-dev.broadinstitute.org/login/google` and
    `https://jade-zzz.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
 
-## 8. Install Postgres 12
+## 9. Install Postgres 12
 
 [Postgres](https://www.postgresql.org/) is an advanced open-source database.
 **Postgres.app** is used to manage a local installation of Postgres. The latest
@@ -265,7 +279,7 @@ psql -f db/create-data-repo-db
 psql --list
 ```
 
-## 9. Repository Setup
+## 10. Repository Setup
 
 ### 1. Build `jade-data-repo`
 

@@ -18,6 +18,12 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v2
+      - name: Checkout datarepo-helm-definitions repo
+        uses: actions/checkout@v2
+        with:
+          repository: "broadinstitute/datarepo-helm-definitions"
+          token: ${{ secrets.BROADBOT_TOKEN }}
+          path: datarepo-helm-definitions
       - name: Import Vault Secrets for Development GCR
         uses: hashicorp/vault-action@v2.1.2
         with:

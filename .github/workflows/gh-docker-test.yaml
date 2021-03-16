@@ -49,6 +49,8 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/gradle-test-runner@0.49.0
         env:
           JSON_KEY_FILENAME: jade-dev-account.json
+      - name: Deploy the latest dev image tag to datarepo-helm-definitions
+        uses: broadinstitute/datarepo-actions/actions/deploy-tag-update@fb-dr-1681-deploy-tag-update
       - name: Wait for deployment
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.49.0
       - name: Unlock namespace for use

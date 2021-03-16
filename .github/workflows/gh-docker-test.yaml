@@ -9,84 +9,21 @@ on:
     branches:
       - fb-dr-1528-gh-docker
 jobs:
-#  gh_docker_test:
-#    timeout-minutes: 180
-#    strategy:
-#      matrix:
-#        os: [ubuntu-latest]
-#    runs-on: ${{ matrix.os }}
-#    steps:
-#      - name: Checkout jade-data-repo
-#        uses: actions/checkout@v2
-#      - name: Checkout datarepo-helm-definitions
-#        uses: actions/checkout@v2
-#        with:
-#          repository: "broadinstitute/datarepo-helm-definitions"
-#          token: ${{ secrets.BROADBOT_TOKEN }}
-#          path: datarepo-helm-definitions
-#      - name: Import Vault Secrets for Development GCR
-#        uses: hashicorp/vault-action@v2.1.2
-#        with:
-#          url: ${{ secrets.VAULT_ADDR }}
-#          method: approle
-#          roleId: ${{ secrets.ROLE_ID }}
-#          secretId: ${{ secrets.SECRET_ID }}
-#          secrets: |
-#            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
-#      - name: Install Google Cloud SDK
-#        uses: google-github-actions/setup-gcloud@v0.2.1
-#        with:
-#          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
-#          service_account_key: ${{ env.B64_APPLICATION_CREDENTIALS }}
-#          export_default_credentials: true
-#      - name: Configure Google Cloud SDK
-#        uses: broadinstitute/datarepo-actions/actions/configure-gcloud-sdk@0.49.0
-#      - name: Add Runner IP to allowlist
-#        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@0.49.0
-#      - name: Lock namespace for use
-#        uses: broadinstitute/datarepo-actions/actions/lock-namespace@0.49.0
-#        env:
-#          K8_NAMESPACES: "integration-1,integration-2,integration-3,integration-6"
-#      - name: Gradle build and upload Docker container
-#        uses: broadinstitute/gradle-command-action@v1
-#        with:
-#          arguments: jib
-#      - name: Clean IAM policy
-#        if: always()
-#        uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@0.49.0
-#      - name: Run Gradle test runner smoke tests
-#        uses: broadinstitute/datarepo-actions/actions/gradle-test-runner@0.49.0
-#        env:
-#          JSON_KEY_FILENAME: jade-dev-account.json
-#      - name: Deploy the latest dev image tag to datarepo-helm-definitions
-#        uses: broadinstitute/datarepo-actions/actions/deploy-tag-update@fb-dr-1681-deploy-tag-update
-#      - name: Wait for deployment
-#        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.49.0
-#      - name: Unlock namespace for use
-#        if: always()
-#        uses: broadinstitute/datarepo-actions/actions/unlock-namespace@0.49.0
-#      - name: Remove Runner IP from allowlist
-#        if: always()
-#        uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@0.49.0
-  test_connected:
+  gh_docker_test:
     timeout-minutes: 180
     strategy:
       matrix:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-      - name: "Checkout code"
+      - name: Checkout jade-data-repo
         uses: actions/checkout@v2
+      - name: Checkout datarepo-helm-definitions
+        uses: actions/checkout@v2
+        with:
+          repository: "broadinstitute/datarepo-helm-definitions"
+          token: ${{ secrets.BROADBOT_TOKEN }}
+          path: datarepo-helm-definitions
       - name: Import Vault Secrets for Development GCR
         uses: hashicorp/vault-action@v2.1.2
         with:
@@ -110,13 +47,76 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/lock-namespace@0.49.0
         env:
           K8_NAMESPACES: "integration-1,integration-2,integration-3,integration-6"
-      - name: Run Gradle connected tests
-        uses: broadinstitute/datarepo-actions/actions/gradle-connected-integration@fb-dr-1686-gradle-connected-int
+      - name: Gradle build and upload Docker container
+        uses: broadinstitute/gradle-command-action@v1
+        with:
+          arguments: jib
+      - name: Clean IAM policy
+        if: always()
+        uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@0.49.0
+      - name: Run Gradle test runner smoke tests
+        uses: broadinstitute/datarepo-actions/actions/gradle-test-runner@0.49.0
         env:
-          TEST_TO_RUN: testConnected
+          JSON_KEY_FILENAME: jade-dev-account.json
+      - name: Deploy the latest dev image tag to datarepo-helm-definitions
+        uses: broadinstitute/datarepo-actions/actions/deploy-tag-update@fb-dr-1681-deploy-tag-update
+      - name: Wait for deployment
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.49.0
       - name: Unlock namespace for use
         if: always()
         uses: broadinstitute/datarepo-actions/actions/unlock-namespace@0.49.0
       - name: Remove Runner IP from allowlist
         if: always()
         uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@0.49.0
+#  test_connected:
+#    timeout-minutes: 180
+#    strategy:
+#      matrix:
+#        os: [ubuntu-latest]
+#    runs-on: ${{ matrix.os }}
+#    services:
+#      postgres:
+#        image: postgres:11
+#        env:
+#          POSTGRES_USER: postgres
+#          POSTGRES_PASSWORD: postgres
+#          POSTGRES_DB: postgres
+#        ports:
+#          - 5432:5432
+#        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+#    steps:
+#      - name: "Checkout code"
+#        uses: actions/checkout@v2
+#      - name: Import Vault Secrets for Development GCR
+#        uses: hashicorp/vault-action@v2.1.2
+#        with:
+#          url: ${{ secrets.VAULT_ADDR }}
+#          method: approle
+#          roleId: ${{ secrets.ROLE_ID }}
+#          secretId: ${{ secrets.SECRET_ID }}
+#          secrets: |
+#            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
+#      - name: Install Google Cloud SDK
+#        uses: google-github-actions/setup-gcloud@v0.2.1
+#        with:
+#          project_id: ${{ env.GOOGLE_CLOUD_PROJECT }}
+#          service_account_key: ${{ env.B64_APPLICATION_CREDENTIALS }}
+#          export_default_credentials: true
+#      - name: Configure Google Cloud SDK
+#        uses: broadinstitute/datarepo-actions/actions/configure-gcloud-sdk@0.49.0
+#      - name: Add Runner IP to allowlist
+#        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@0.49.0
+#      - name: Lock namespace for use
+#        uses: broadinstitute/datarepo-actions/actions/lock-namespace@0.49.0
+#        env:
+#          K8_NAMESPACES: "integration-1,integration-2,integration-3,integration-6"
+#      - name: Run Gradle connected tests
+#        uses: broadinstitute/datarepo-actions/actions/gradle-connected-integration@fb-dr-1686-gradle-connected-int
+#        env:
+#          TEST_TO_RUN: testConnected
+#      - name: Unlock namespace for use
+#        if: always()
+#        uses: broadinstitute/datarepo-actions/actions/unlock-namespace@0.49.0
+#      - name: Remove Runner IP from allowlist
+#        if: always()
+#        uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@0.49.0

@@ -701,30 +701,6 @@ public class SnapshotConnectedTest {
         assertEquals("Retrieve snapshot file by path matches desc",
             fsObjByPath.getDescription(), fileLoadModel.getDescription());
         assertThat("Retrieve snapshot file objects match", fsObjById, CoreMatchers.equalTo(fsObjByPath));
-
-        // clean it all up!
-
-        // kick off a request to delete the snapshot
-        MvcResult deleteResult = mvc.perform(delete(
-            "/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
-
-        MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);
-        DeleteResponseModel deleteResponseModel =
-            connectedOperations.handleSuccessCase(deleteResponse, DeleteResponseModel.class);
-        assertEquals("Snapshot delete returned successfully",
-            DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
-
-        // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDatasetAndCleanup(datasetRefSummary.getId());
-
-        // remove the file from the connectedoperation bookkeeping list
-        connectedOperations.removeFile(datasetRefSummary.getId(), fileModel.getFileId());
-
-        // try to fetch the snapshot again and confirm nothing is returned
-        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
-
-        // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(datasetRefSummary.getId(), HttpStatus.NOT_FOUND);
     }
 
     private DatasetSummaryModel setupMinimalDataset() throws Exception {

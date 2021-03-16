@@ -104,6 +104,8 @@ jobs:
           export_default_credentials: true
       - name: Configure Google Cloud SDK
         uses: broadinstitute/datarepo-actions/actions/configure-gcloud-sdk@0.49.0
+      - name: Add Runner IP to allowlist
+        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@0.49.0
       - name: Lock namespace for use
         uses: broadinstitute/datarepo-actions/actions/lock-namespace@0.49.0
         env:
@@ -115,3 +117,6 @@ jobs:
       - name: Unlock namespace for use
         if: always()
         uses: broadinstitute/datarepo-actions/actions/unlock-namespace@0.49.0
+      - name: Remove Runner IP from allowlist
+        if: always()
+        uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@0.49.0

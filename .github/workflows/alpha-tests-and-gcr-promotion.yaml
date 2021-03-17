@@ -128,7 +128,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: 'broadinstitute/datarepo-helm'
-        token: ${{ secrets.HELM_REPO_TOKEN }}
+        token: ${{ secrets.BROADBOT_TOKEN }}
         path: datarepo-helm
     - name: "[UI][Cherry-pick to public GCR] Read UI version from datarepo-helm" 
       id: datarepohelm

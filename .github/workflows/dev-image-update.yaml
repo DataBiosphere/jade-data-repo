@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: 'broadinstitute/datarepo-helm-definitions'
-          token: ${{ secrets.HELM_REPO_TOKEN }}
+          token: ${{ secrets.BROADBOT_TOKEN }}
           path: datarepo-helm-definitions
       - name: "Bump the tag to a new version"
         id: bumperstep
@@ -75,7 +75,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           repository: 'DataBiosphere/jade-data-repo-ui'
-          token: ${{ secrets.HELM_REPO_TOKEN }}
+          token: ${{ secrets.BROADBOT_TOKEN }}
           path: jade-data-repo-ui
           ref: develop
       - name: 'Release Candidate Container Build: Create release candidate images'

@@ -20,6 +20,13 @@ public class Column {
         this.arrayOf = fromColumn.arrayOf;
     }
 
+    public static Column toSnapshotColumn(Column datasetColumn) {
+        return new Column()
+            .name(datasetColumn.getName())
+            .type(datasetColumn.getType())
+            .arrayOf(datasetColumn.isArrayOf());
+    }
+
     public UUID getId() {
         return id;
     }

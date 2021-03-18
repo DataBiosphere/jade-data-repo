@@ -21,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.List;
 import java.util.UUID;
 
 
@@ -65,7 +66,20 @@ public class SnapshotDeleteTest extends UsersBase {
     @Test
     public void PrimaryDataStepSnapshotDelete() throws InterruptedException {
         Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+
         bigQueryPdao.deleteSnapshot(snapshot);
+        // 1. determines the BQ Dataset to delete
+        // 2. Determines the sources of the snapshot
+        // List<SnapshotSource> sources = snapshot.getSnapshotSources();
+        // "SELECT id, dataset_id, asset_id FROM snapshot_source WHERE snapshot_id = :snapshot_id
+
+        // 3. For each source, get dataset, and delete View ACLs
+        //if (sources.size() > 0) {
+        //    String datasetName = sources.get(0).getDataset().getName();
+        //    String datasetBqDatasetName = prefixName(datasetName);
+        //    deleteViewAcls(datasetBqDatasetName, snapshot, projectId);
+        //}
+
 
         // Remove snapshot file references from the underlying datasets
         for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {

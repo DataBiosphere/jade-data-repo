@@ -62,7 +62,7 @@ public class FireStoreFileDaoTest {
     public void setup() throws Exception {
         configurationService.reset();
         datasetId = UUID.randomUUID().toString();
-        firestore = FirestoreOptions.getDefaultInstance().getService();
+        firestore = TestFirestoreProvider.getFirestore();
     }
 
     @Test

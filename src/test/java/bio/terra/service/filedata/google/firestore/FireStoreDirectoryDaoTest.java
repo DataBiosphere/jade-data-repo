@@ -53,7 +53,7 @@ public class FireStoreDirectoryDaoTest {
     public void setup() throws Exception {
         pretendDatasetId = UUID.randomUUID().toString();
         collectionId = "directoryDaoTest_" + pretendDatasetId;
-        firestore = FirestoreOptions.getDefaultInstance().getService();
+        firestore = TestFirestoreProvider.getFirestore();
     }
 
     @Test

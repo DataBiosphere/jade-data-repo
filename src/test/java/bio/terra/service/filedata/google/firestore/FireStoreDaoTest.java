@@ -57,7 +57,7 @@ public class FireStoreDaoTest {
 
     @Before
     public void setup() throws Exception {
-        firestore = FirestoreOptions.getDefaultInstance().getService();
+        firestore = TestFirestoreProvider.getFirestore();
         pretendDatasetId = UUID.randomUUID().toString();
         collectionId = "fsdaoDset_" + pretendDatasetId;
         snapshotId = "fsdaoSnap_" + pretendDatasetId;

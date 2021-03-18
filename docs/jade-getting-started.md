@@ -298,9 +298,11 @@ export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
 export GOOGLE_CLOUD_PROJECT=broad-jade-zzz
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
 export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
+export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-zzz-data
+export IT_JADE_API_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
 ```
 
-* If you're not on a Broad computer, you may need to set the host to `localhost`
+* If you're not on a *Broad-provided* computer, you may need to set the host to `localhost`
 instead of `http://local.broadinstitute.org`:
 
 ```
@@ -313,7 +315,7 @@ export HOST=localhost
 ./gradlew bootRun         # build jade-data-repo with Spring Boot features
 ./gradlew check           # linters and unit tests
 ./gradlew testConnected   # connected tests
-./gradlew testIntegrated  # integration tests
+./gradlew testIntegration  # integration tests
 ```
 
 * The first run of the integration tests should create a corresponding Google

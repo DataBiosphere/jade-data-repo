@@ -10,7 +10,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.FirestoreOptions;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -62,7 +61,7 @@ public class FireStoreFileDaoTest {
     public void setup() throws Exception {
         configurationService.reset();
         datasetId = UUID.randomUUID().toString();
-        firestore = FirestoreOptions.getDefaultInstance().getService();
+        firestore = TestFirestoreProvider.getFirestore();
     }
 
     @Test

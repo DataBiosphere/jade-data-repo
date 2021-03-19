@@ -302,7 +302,7 @@ export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-zzz-data
 export IT_JADE_API_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
 ```
 
-* If you're not on a *Broad-provided* computer, you may need to set the host to `localhost`
+* If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
 instead of `http://local.broadinstitute.org`:
 
 ```

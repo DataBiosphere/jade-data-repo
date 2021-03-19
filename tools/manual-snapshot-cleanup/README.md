@@ -6,7 +6,7 @@
 
 **Remove references to Snapshot from source dataset:**
 2. [done?] **Remove ACLs from source dataset**
-- Everything looks okay here. All of the group policies on this dataset are correct, according to a SAM query. Am I missing something?
+- Everything looks okay here. All of the group policies on this dataset are correct, according to a SAM query. Am I missing something? I put together the "viewACLS.sh" to see all of the permissions in one spot
 3. [todo: run script] **Delete Snapshot File *Dependencies* from Firestore**
 - cleanup-snapshot-firestore.py script
 - Question: Getting 1785 entries to be deleted from firestore for one HCA snapshot. Does this number make sense?

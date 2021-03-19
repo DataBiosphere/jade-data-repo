@@ -18,6 +18,8 @@ jobs:
     steps:
       - name: Checkout jade-data-repo
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Checkout datarepo-helm-definitions
         uses: actions/checkout@v2
         with:

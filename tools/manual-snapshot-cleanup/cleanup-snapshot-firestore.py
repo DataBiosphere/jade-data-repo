@@ -24,9 +24,11 @@ print(sum(1 for k in results))
 #result: 17585
 
 #-----Step 3, part 4 - files-----
-file_query = db.collection(sourceDatasetId)
+file_query = db.collection(snapshotId)
 file_results = file_query.stream()#.delete()
 print("files: ")
 print(sum(1 for k in file_results))
 #result: 35195
+
+
 

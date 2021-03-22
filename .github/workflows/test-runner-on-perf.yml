@@ -116,21 +116,21 @@ jobs:
       #    kubectl delete pods -n perf -l app.kubernetes.io/name=datarepo-api
       #    echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
       #    sleep 45
-      - name: "Wait for Perf Cluster to come back up with correct version"
-        run: |
-          PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-          RETRY_COUNT=0
-          until [[ "$PERF_VERSION" == "${{ steps.read_property.outputs.LATEST_VERSION }}" ]]; do
-            if [[ ${RETRY_COUNT} -gt 20 ]]; then
-              echo "Failed to match perf $PERF_VERSION to dev version ${{ steps.read_property.outputs.LATEST_VERSION }}"
-              exit 1
-            fi
-            echo "Retry #${RETRY_COUNT}: Waiting for $PERF_VERSION to equal ${{ steps.read_property.outputs.LATEST_VERSION }}"
-            sleep 15
-            PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-            ((RETRY_COUNT=RETRY_COUNT+1))
-          done;
-          echo "Perf successfully running on new version: $PERF_VERSION"
+      # - name: "Wait for Perf Cluster to come back up with correct version"
+      #   run: |
+      #     PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+      #     RETRY_COUNT=0
+      #     until [[ "$PERF_VERSION" == "${{ steps.read_property.outputs.LATEST_VERSION }}" ]]; do
+      #       if [[ ${RETRY_COUNT} -gt 20 ]]; then
+      #         echo "Failed to match perf $PERF_VERSION to dev version ${{ steps.read_property.outputs.LATEST_VERSION }}"
+      #         exit 1
+      #       fi
+      #       echo "Retry #${RETRY_COUNT}: Waiting for $PERF_VERSION to equal ${{ steps.read_property.outputs.LATEST_VERSION }}"
+      #       sleep 15
+      #       PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
+      #       ((RETRY_COUNT=RETRY_COUNT+1))
+      #     done;
+      #     echo "Perf successfully running on new version: $PERF_VERSION"
       - name: Clear Perf database
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}

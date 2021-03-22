@@ -138,10 +138,11 @@ jobs:
           DB_DATAREPO_PASSWORD: ${{ secrets.PERF_DB_DATAREPO_PWD }}
         run: |
           # port foward to perf database
-          kubectl port-forward --namespace perf svc/perf-jade-gcloud-sqlproxy 5434:5432
-          cd ${GITHUB_WORKSPACE}/${workingDir}
-          # note - probably need to proxy to the perf database, but just want to sanity check the simple solution first
-          ./gradlew dropAll
+          kubectl port-forward --namespace perf svc/perf-jade-gcloud-sqlproxy 5434:5432 & \
+          wait 60 && \
+          echo "After 60 seconds - run drop all & update" && \
+          cd ${GITHUB_WORKSPACE}/${workingDir}  &&\
+          ./gradlew dropAll && \
           ./gradlew update
       # - name: "Build and run Test Runner"
       #   run: |

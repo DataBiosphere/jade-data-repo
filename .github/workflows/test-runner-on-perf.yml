@@ -132,7 +132,13 @@ jobs:
       #     done;
       #     echo "Perf successfully running on new version: $PERF_VERSION"
       - name: Clear Perf database
+        env:
+          DB_DATAREPO_URI=jdbc:postgresql://localhost:5434/datarepo
+          #yes, it's weird that we need the stairway password for the db password
+          DB_DATAREPO_PASSWORD=${{ secrets.PERF_DB_DATAREPO_PWD }}
         run: |
+          # port foward to perf database
+          kubectl port-forward --namespace perf svc/perf-jade-gcloud-sqlproxy 5434:5432
           cd ${GITHUB_WORKSPACE}/${workingDir}
           # note - probably need to proxy to the perf database, but just want to sanity check the simple solution first
           ./gradlew dropAll

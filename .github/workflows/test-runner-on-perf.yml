@@ -139,11 +139,12 @@ jobs:
         run: |
           # port foward to perf database
           kubectl port-forward --namespace perf svc/perf-jade-gcloud-sqlproxy 5434:5432 & \
-          wait 60 && \
-          echo "After 60 seconds - run drop all & update" && \
-          cd ${GITHUB_WORKSPACE}/${workingDir}  &&\
+          sleep 10 && \
+          echo "After 10 seconds - run drop all & update" && \
+          cd ${GITHUB_WORKSPACE}/${workingDir}  && \
           ./gradlew dropAll && \
-          ./gradlew update
+          ./gradlew update && \
+          exit 0
       # - name: "Build and run Test Runner"
       #   run: |
       #     cd ${GITHUB_WORKSPACE}/${workingDir}

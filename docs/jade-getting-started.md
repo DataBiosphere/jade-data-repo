@@ -217,12 +217,22 @@ git clone https://github.com/broadinstitute/datarepo-helm
 git clone https://github.com/broadinstitute/datarepo-helm-definitions
 ```
 
-Create your datarepo helm definition:
-1. In `datarepo-helm-definitions/dev` directory, copy an existing developer
+## 8. [DRAFT] Set up your Development Environment
+Note: These instructions have not been tests yet! This may be a good step to work on together with another jade team member. There is a video of us walking through these steps in our [Jade Googe Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing). 
+
+1. Follow [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process) to add your initials to the terraform templates and generate the static resources needed to deploy your personal development environment. Apply the changes and create a pull request to merge your additons to terraform-jade.
+2. Create your datarepo helm definition:
+  -  In `datarepo-helm-definitions/dev` directory, copy an existing developer
 definition and change all initials to your own.
-2. Create a pull request with these changes in
-[datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions)
-3. Ask a colleague from DevOps to create a service account and database for your deployment.
+  -  Create a pull request with these changes in [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions)
+3. Connect to your new dev postgres database instance (replace ZZ with your inintials):
+Note that this is separate instance than the local one you will configure in step 9. The following command connected to the database via a proxy.
+```
+cd jade-data-repo/ops
+DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
+```
+4. Add some setting to your database, that I can't remembmer... 
+5. Ask colleague from DevOps to create a google project for your named broad-jade-ZZ (replacing 'ZZ' with your initials) in the broadinstitute.org organization
 
 ## 8. Google Cloud Platform setup
 
@@ -292,14 +302,36 @@ to build `jade-data-repo`.
 * Certain environment variables need to be set beforehand. Instances of `zzz`
 should be replaced by your initials or the environment (i.e. `dev`):
 
+
 ```
+export NVM_DIR="$HOME/.nvm"
+export JAVA_HOME=$(/usr/libexec/java_home)
+
 export VAULT_ADDR=https://clotho.broadinstitute.org:8200
-export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
+export ENVIRONMENT=dev
 export GOOGLE_CLOUD_PROJECT=broad-jade-zzz
+export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-zzz-data
+export SUFFIX=zzz
+export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
+export CYPRESS_BASE_URL=http://local.broadinstitute.org:3000
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
 export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
-export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-zzz-data
+export JADECLI_TEST_BILLING_ACCOUNT=00708C-45D19D-27AAFA
+export DATAREPO_USEREMAIL={your dev gmail account}
+
+# Clears database on startup, test run, etc. (Further explaned in oncall playbook)
+export DB_MIGRATE_DROPALLONSTART=true
+
+# Setting for testing environment (Further explaned in oncall playbook)
+export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
+export GOOGLE_ALLOWREUSEEXISTINGPROJECTS=true
+
+# Integration test setting: change this to http://localhost:8080/ to run against  # local instance
 export IT_JADE_API_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
+export IT_INGEST_BUCKET=broad-jade-zzz-data-bucket
+
+# formats logs in a more readable way (other option: "Console-Stackdriver")
+export TDR_LOG_APPENDER=Console-Standard
 ```
 
 * If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
@@ -343,20 +375,5 @@ Ensure that:
 1. You are on the Broad Non-split VPN. See earlier [instructions](#-getting-started).
 2. Docker is running.
 3. Postgres database is started.
-4. Environment variables are set. Instances of `zzz` should be replaced by your
-initials or the environment (i.e. `dev`). You may need to set some or all of the
-environment variables below depending on what you are trying to run:
+4. Environment variables are set. See list of environment variables above.
 
-```
-export NVM_DIR="$HOME/.nvm"
-export VAULT_ADDR=https://clotho.broadinstitute.org:8200
-export ENVIRONMENT=dev
-export GOOGLE_CLOUD_PROJECT=broad-jade-zzz
-export SUFFIX=zzz
-export STEWARD_ACCT={YOUREMAIL}@{whatever}.com
-export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
-export CYPRESS_BASE_URL=http://local.broadinstitute.org:3000
-# Only need to do this if you're not using a Broad computer - otherwise host
-# would be http://local.broadinstitute.org
-export HOST=localhost
-```

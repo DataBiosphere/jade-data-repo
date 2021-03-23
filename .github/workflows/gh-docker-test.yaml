@@ -56,12 +56,19 @@ jobs:
       - name: Clean IAM policy
         if: always()
         uses: broadinstitute/datarepo-actions/actions/clean-iam-policy@0.49.0
+      - name: Bump semantic version tag
+        uses: broadinstitute/datarepo-actions/actions/bumper@fb-dr-1676-bumper
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branch_list: fb-dr-1528-gh-docker
+          semver_bump: minor
+          version_file_path: build.gradle
 #      - name: Run Gradle test runner smoke tests
 #        uses: broadinstitute/datarepo-actions/actions/gradle-test-runner@0.49.0
 #        env:
 #          JSON_KEY_FILENAME: jade-dev-account.json
-      - name: Deploy the latest dev image tag to datarepo-helm-definitions
-        uses: broadinstitute/datarepo-actions/actions/deploy-tag-update@fb-dr-1681-deploy-tag-update
+#      - name: Deploy the latest dev image tag to datarepo-helm-definitions
+#        uses: broadinstitute/datarepo-actions/actions/deploy-tag-update@fb-dr-1681-deploy-tag-update
       - name: Wait for deployment
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.49.0
       - name: Unlock namespace for use

@@ -2,7 +2,6 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.common.category.Connected;
 import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.FirestoreOptions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,7 +56,7 @@ public class FireStoreDaoTest {
 
     @Before
     public void setup() throws Exception {
-        firestore = FirestoreOptions.getDefaultInstance().getService();
+        firestore = TestFirestoreProvider.getFirestore();
         pretendDatasetId = UUID.randomUUID().toString();
         collectionId = "fsdaoDset_" + pretendDatasetId;
         snapshotId = "fsdaoSnap_" + pretendDatasetId;

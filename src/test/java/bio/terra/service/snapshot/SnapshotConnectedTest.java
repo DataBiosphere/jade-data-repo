@@ -34,6 +34,7 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
@@ -112,6 +113,7 @@ public class SnapshotConnectedTest {
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private ConfigurationService configService;
     @Autowired private DrsIdService drsIdService;
+    @Autowired private BigQuery bigQuery;
 
     @MockBean
     private IamProviderInterface samService;
@@ -120,6 +122,8 @@ public class SnapshotConnectedTest {
     private BillingProfileModel billingProfile;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
     private DatasetSummaryModel datasetSummary;
+
+    public SnapshotConnectedTest(){}
 
     @Before
     public void setup() throws Exception {
@@ -223,6 +227,25 @@ public class SnapshotConnectedTest {
 
 
         // TODO put big snapshot request into a GCS bucket
+        SnapshotRequestModel snapshotRequestScale = makeSnapshotTestRequest(datasetSummary,
+            "hca-mvp-analysis-file-row-ids-snapshot.json");
+
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequestScale, "");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequestScale, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequestScale, datasetSummary);
+
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void snapshotACLSTest() throws Exception {
+        Dataset dataset = bigQuery.getDataset(datasetSummary.getId());
+
+        // use the dataset already created in setup
         SnapshotRequestModel snapshotRequestScale = makeSnapshotTestRequest(datasetSummary,
             "hca-mvp-analysis-file-row-ids-snapshot.json");
 

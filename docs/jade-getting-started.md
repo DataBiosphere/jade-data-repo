@@ -218,7 +218,7 @@ git clone https://github.com/broadinstitute/datarepo-helm-definitions
 ```
 
 ## 8. [DRAFT] Set up your Development Environment
-Note: These instructions have not been tests yet! This may be a good step to work on together with another jade team member. There is a video of us walking through these steps in our [Jade Googe Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing). 
+Note: These instructions have not been tested yet! This may be a good step to pair on with another jade team member. There is a video of us walking through these steps in our [Jade Googe Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing). 
 
 1. Follow [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process) to add your initials to the terraform templates and generate the static resources needed to deploy your personal development environment. Apply the changes and create a pull request to merge your additons to terraform-jade.
 2. Create your datarepo helm definition:

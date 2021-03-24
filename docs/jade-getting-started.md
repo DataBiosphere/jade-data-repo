@@ -224,7 +224,8 @@ git clone https://github.com/broadinstitute/datarepo-helm
 git clone https://github.com/broadinstitute/datarepo-helm-definitions
 ```
 
-## 8. [DRAFT] Set up your Development Environment
+## 8. Set up your Development Environment
+
 The goal of this step is set up some of the basic components of your development
 environment.  You'll actually spin up this instance on broad-jade-dev in next step.
 

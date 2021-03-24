@@ -244,6 +244,7 @@ definition and change all initials to your own.
 3. Connect to your new dev postgres database instance (replace `ZZ` with your initials):
 Note that this is separate instance than the local one you will configure in step 9.
 The following command connects to the database via a proxy.
+
 ```
 cd jade-data-repo/ops
 DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh

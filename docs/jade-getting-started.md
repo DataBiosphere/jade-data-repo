@@ -6,7 +6,8 @@ network or the VPN. If the VPN is not installed, follow the instructions
 
 > During this process, you will need your GitHub and Docker Hub username,
 password, and personal access token for multiple steps, so make sure to have
-those handy.
+those handy. If you don't have those yet, see the section below, otherwise you
+can skip to [Request Required Access](#2-request-required-access).
 
 ## 1. Create a GitHub and Docker Hub account
 
@@ -389,4 +390,4 @@ Ensure that:
 1. You are on the Broad Non-split VPN. See earlier [instructions](#-getting-started).
 2. Docker is running.
 3. Postgres database is started.
-4. Environment variables are set. See list of environment variables below.
+4. Environment variables are set. See list of environment variables [above](#11-repository-setup).

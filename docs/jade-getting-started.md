@@ -240,7 +240,7 @@ definition and change all initials to your own.
   -  Create a pull request with these changes in [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions)
 3. Connect to your new dev postgres database instance (replace ZZ with your inintials):
 Note that this is separate instance than the local one you will configure in step 9.
-The following command connected to the database via a proxy.
+The following command connects to the database via a proxy.
 ```
 cd jade-data-repo/ops
 DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh

@@ -229,9 +229,9 @@ git clone https://github.com/broadinstitute/datarepo-helm-definitions
 The goal of this step is set up some of the basic components of your development
 environment.  You'll actually spin up this instance on broad-jade-dev in next step.
 
-Note: These instructions have not been tested yet! This may be a good step to
-pair on with another jade team member. There is a video of us walking through
-these steps in our [Jade Googe Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing). 
+> These instructions have not been tested yet! This may be a good step to
+pair on with another Jade team member. There is a video of us walking through
+these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing). 
 
 1. Follow [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
 to add your initials to the terraform templates and generate the static resources needed

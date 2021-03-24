@@ -241,7 +241,7 @@ to merge your additions to `terraform-jade`.
   -  In `datarepo-helm-definitions/dev` directory, copy an existing developer
 definition and change all initials to your own.
   -  Create a pull request with these changes in [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions)
-3. Connect to your new dev postgres database instance (replace ZZ with your inintials):
+3. Connect to your new dev postgres database instance (replace `ZZ` with your initials):
 Note that this is separate instance than the local one you will configure in step 9.
 The following command connects to the database via a proxy.
 ```

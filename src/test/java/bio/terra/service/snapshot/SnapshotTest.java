@@ -317,7 +317,7 @@ public class SnapshotTest extends UsersBase {
         List<Acl> beforeAcls = bq_dataset.getAcl();
         logger.info("ACLS: {}", beforeAcls.stream().toString());
 
-        /*SnapshotRequestModel requestModel =
+        SnapshotRequestModel requestModel =
             jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
         // swap in the correct dataset name (with the id at the end)
         requestModel.getContents().get(0).setDatasetName(datasetName);
@@ -336,6 +336,6 @@ public class SnapshotTest extends UsersBase {
         TimeUnit.SECONDS.sleep(10);
         Dataset after_bq_dataset = bigQuery.getDataset(datasetName);
         List<Acl> afterAcls = after_bq_dataset.getAcl();
-        logger.info("After ACLS: {}", afterAcls.stream().toString());*/
+        logger.info("After ACLS: {}", afterAcls.stream().toString());
     }
 }

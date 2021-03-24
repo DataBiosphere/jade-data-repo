@@ -223,22 +223,30 @@ git clone https://github.com/broadinstitute/datarepo-helm-definitions
 ```
 
 ## 8. [DRAFT] Set up your Development Environment
-The goal of this step is set up some of the basic components of your development environment.  You'll actually spin up this instance on broad-jade-dev in next step.
+The goal of this step is set up some of the basic components of your development
+environment.  You'll actually spin up this instance on broad-jade-dev in next step.
 
-Note: These instructions have not been tested yet! This may be a good step to pair on with another jade team member. There is a video of us walking through these steps in our [Jade Googe Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing). 
+Note: These instructions have not been tested yet! This may be a good step to
+pair on with another jade team member. There is a video of us walking through
+these steps in our [Jade Googe Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing). 
 
-1. Follow [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process) to add your initials to the terraform templates and generate the static resources needed to deploy your personal development environment. Apply the changes and create a pull request to merge your additons to terraform-jade.
+1. Follow [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
+to add your initials to the terraform templates and generate the static resources needed
+to deploy your personal development environment. Apply the changes and create a pull request
+to merge your additons to terraform-jade.
 2. Create your datarepo helm definition:
   -  In `datarepo-helm-definitions/dev` directory, copy an existing developer
 definition and change all initials to your own.
   -  Create a pull request with these changes in [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions)
 3. Connect to your new dev postgres database instance (replace ZZ with your inintials):
-Note that this is separate instance than the local one you will configure in step 9. The following command connected to the database via a proxy.
+Note that this is separate instance than the local one you will configure in step 9.
+The following command connected to the database via a proxy.
 ```
 cd jade-data-repo/ops
 DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
 ```
-4. Now that you're connected to your dev database, run the following command (Once DR-1156 is done, this will no longer be needed):
+4. Now that you're connected to your dev database, run the following command
+(Once DR-1156 is done, this will no longer be needed):
 ```
 create extension pgcrypto;
 ```
@@ -260,7 +268,8 @@ command to copy and paste into the terminal:
 gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
 ```
 
-4. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`, bring up Helm services (note it will take about 10-15 minutes for ingress and cert creation):
+4. Starting from your [project directory](#6-code-checkout) in `datarepo-helm-definitions`,
+bring up Helm services (note it will take about 10-15 minutes for ingress and cert creation):
 
 ```
 # replace all instances of `zzz` with your initials

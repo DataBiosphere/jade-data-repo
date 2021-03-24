@@ -342,7 +342,7 @@ export IT_INGEST_BUCKET=broad-jade-ZZ-data-bucket
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
 export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 
-# Clears database on startup, test run, etc. (Further explaned in oncall playbook)
+# Clears database on startup, test run, etc. This is further explained in the oncall playbook.
 export DB_MIGRATE_DROPALLONSTART=true
 
 # Setting for testing environment (Further explaned in oncall playbook)

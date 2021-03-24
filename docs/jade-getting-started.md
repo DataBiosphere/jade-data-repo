@@ -258,7 +258,7 @@ create extension pgcrypto;
 ```
 
 5. Ask a colleague from DevOps to create a google project for you with the following details:
-  * Google Project Name: broad-jade-ZZ (replacing 'ZZ' with your initials)
+  * Google Project Name: `broad-jade-ZZ` (replacing `ZZ` with your initials)
   * Google Organization: broadinstitute.org
 
 ## 9. Google Cloud Platform setup

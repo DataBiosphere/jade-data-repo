@@ -31,6 +31,7 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.firestore.FirestoreOptions;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -298,6 +299,7 @@ public class SnapshotTest extends UsersBase {
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
 
+    @Ignore("We expect this test to be flaky b/c ACLs can take a while to update (up to 7 minutes)")
     @Test
     public void snapshotACLTest() throws Exception {
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);

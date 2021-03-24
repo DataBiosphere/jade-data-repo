@@ -252,6 +252,7 @@ DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
 
 4. Now that you're connected to your dev database, run the following command
 (Once DR-1156 is done, this will no longer be needed):
+
 ```
 create extension pgcrypto;
 ```

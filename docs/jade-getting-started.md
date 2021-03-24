@@ -322,25 +322,25 @@ to build `jade-data-repo`.
 
 * You will need to run `render-configs.sh` before running integration tests.
 
-* Certain environment variables need to be set beforehand. Instances of `ZZ`
-should be replaced by your initials or the environment (i.e. `dev`):
-
+* **Set Environment Variables**: While not exhaustive, here's a list that notes the important environment variables to set when running jade-data-repo locally. Instances of `ZZ` should be replaced by your initials or the environment (i.e. `dev`).  These variables override settings in
+jade-data-repo/application.properties.  You can convert any application.property to an environment
+variable by switching to upper case and every "." to "_". 
 
 ```
-export NVM_DIR="$HOME/.nvm"
-export JAVA_HOME=$(/usr/libexec/java_home)
+export DATAREPO_USEREMAIL={your dev gmail account}
 
-export VAULT_ADDR=https://clotho.broadinstitute.org:8200
-export ENVIRONMENT=dev
+# Point to your personal dev project/deployment
 export GOOGLE_CLOUD_PROJECT=broad-jade-ZZ
 export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-ZZ-data
-export SUFFIX=ZZ
 export PROXY_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
-export CYPRESS_BASE_URL=http://local.broadinstitute.org:3000
+
+# Integration test setting: change this to http://localhost:8080/ to run against a local instance
+export IT_JADE_API_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
+export IT_INGEST_BUCKET=broad-jade-ZZ-data-bucket
+
+# This file will be populated when you run ./render-configs.sh
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
 export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
-export JADECLI_TEST_BILLING_ACCOUNT=00708C-45D19D-27AAFA
-export DATAREPO_USEREMAIL={your dev gmail account}
 
 # Clears database on startup, test run, etc. (Further explaned in oncall playbook)
 export DB_MIGRATE_DROPALLONSTART=true
@@ -348,13 +348,6 @@ export DB_MIGRATE_DROPALLONSTART=true
 # Setting for testing environment (Further explaned in oncall playbook)
 export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
 export GOOGLE_ALLOWREUSEEXISTINGPROJECTS=true
-
-# Integration test setting: change this to http://localhost:8080/ to run against  # local instance
-export IT_JADE_API_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
-export IT_INGEST_BUCKET=broad-jade-ZZ-data-bucket
-
-# formats logs in a more readable way (other option: "Console-Stackdriver")
-export TDR_LOG_APPENDER=Console-Standard
 ```
 
 * If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`
@@ -392,4 +385,4 @@ Ensure that:
 1. You are on the Broad Non-split VPN. See earlier [instructions](#-getting-started).
 2. Docker is running.
 3. Postgres database is started.
-4. Environment variables are set. See list of environment variables above.
+4. Environment variables are set. See list of environment variables below.

@@ -315,7 +315,12 @@ public class SnapshotTest extends UsersBase {
 
         // fetch ACLs
         List<Acl> beforeAcls = bq_dataset.getAcl();
-        logger.info("ACLS: {}", beforeAcls.stream().toString());
+        assertEquals("There should be 7 ACLs on the dataset", 7, beforeAcls.size());
+        logger.info("---- Dataset ACLs before snapshot create-----");
+        beforeAcls.forEach(acl -> {
+            logger.info("Acl: {}", acl.toString());
+        });
+
 
         SnapshotRequestModel requestModel =
             jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
@@ -331,11 +336,26 @@ public class SnapshotTest extends UsersBase {
         SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
+
+        // fetch ACLs
+        Dataset dataset_plus_snapshot = bigQuery.getDataset(bqDatasetName);
+        List<Acl> dataset_plus_snapshot_acls = dataset_plus_snapshot.getAcl();
+        logger.info("---- Dataset ACLs after snapshot create-----");
+        dataset_plus_snapshot_acls.forEach(acl -> {
+            logger.info("Acl: {}", acl.toString());
+        });
+        assertEquals("There should be 10 ACLs on the dataset after snapshot create", 10, dataset_plus_snapshot_acls.size());
+
         dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
 
         TimeUnit.SECONDS.sleep(10);
-        Dataset after_bq_dataset = bigQuery.getDataset(datasetName);
-        List<Acl> afterAcls = after_bq_dataset.getAcl();
-        logger.info("After ACLS: {}", afterAcls.stream().toString());
+        // fetch ACLs
+        Dataset dataset_minus_snapshot = bigQuery.getDataset(bqDatasetName);
+        List<Acl> dataset_minus_snapshot_acls = dataset_minus_snapshot.getAcl();
+        logger.info("---- Dataset ACLs after snapshot delete-----");
+        dataset_minus_snapshot_acls.forEach(acl -> {
+            logger.info("Acl: {}", acl.toString());
+        });
+        assertEquals("We should be back to 7 ACLs on the dataset after snapshot delete", 7, dataset_minus_snapshot_acls.size());
     }
 }

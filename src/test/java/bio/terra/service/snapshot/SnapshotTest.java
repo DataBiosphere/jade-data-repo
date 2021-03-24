@@ -323,9 +323,9 @@ public class SnapshotTest extends UsersBase {
 
         // fetch ACLs
         logger.info("---- Dataset ACLs after snapshot create-----");
-        int dataset_plus_snapshot_count = fetchSourceDatasetAcls(datasetName);
+        int datasetPlusSnapshotCount = fetchSourceDatasetAcls(datasetName);
         assertThat("There should be more ACLs on the dataset after snapshot create",
-            dataset_plus_snapshot_count, greaterThan(datasetAclCount));
+            datasetPlusSnapshotCount, greaterThan(datasetAclCount));
 
         //-----------delete snapshot------------
         dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
@@ -334,17 +334,14 @@ public class SnapshotTest extends UsersBase {
         TimeUnit.SECONDS.sleep(10);
 
         logger.info("---- Dataset ACLs after snapshot delete-----");
-        int dataset_minus_snapshot_acl_count = fetchSourceDatasetAcls(datasetName);
+        int datasetMinusSnapshotACLCount = fetchSourceDatasetAcls(datasetName);
         assertEquals("We should be back to the same number of ACLs on the dataset after snapshot delete",
-            datasetAclCount, dataset_minus_snapshot_acl_count);
+            datasetAclCount, datasetMinusSnapshotACLCount);
     }
 
-    private int fetchSourceDatasetAcls(String datasetName) {
-        String projectId = System.getenv("GOOGLE_CLOUD_DATA_PROJECT");
-        bigQuery = BigQueryOptions.newBuilder()
-            .setProjectId(projectId)
-            .build()
-            .getService();
+    private int fetchSourceDatasetAcls(String datasetName) throws Exception {
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+        bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
 
         // Fetch BQ Dataset
         String bqDatasetName = bigQueryPdao.prefixName(datasetName);
@@ -354,9 +351,7 @@ public class SnapshotTest extends UsersBase {
         List<Acl> acls = bq_dataset.getAcl();
         int aclCount = acls.size();
 
-        acls.forEach(acl -> {
-            logger.info("Acl: {}", acl);
-        });
+        acls.forEach(acl ->  logger.info("Acl: {}", acl));
         return aclCount;
     }
 }

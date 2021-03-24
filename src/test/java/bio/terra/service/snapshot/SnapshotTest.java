@@ -348,7 +348,7 @@ public class SnapshotTest extends UsersBase {
 
         dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
 
-        TimeUnit.SECONDS.sleep(7*60);
+        TimeUnit.SECONDS.sleep(10);
         // fetch ACLs
         Dataset dataset_minus_snapshot = bigQuery.getDataset(bqDatasetName);
         List<Acl> dataset_minus_snapshot_acls = dataset_minus_snapshot.getAcl();

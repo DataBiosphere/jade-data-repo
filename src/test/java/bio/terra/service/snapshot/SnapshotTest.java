@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.common.PdaoConstant;
+import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
@@ -17,13 +18,17 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.firestore.FirestoreOptions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,6 +72,8 @@ public class SnapshotTest extends UsersBase {
 
     @Autowired
     private AuthService authService;
+    @Autowired private BigQueryPdao bigQueryPdao;
+    @Autowired private DatasetDao datasetDao;
 
     private BigQuery bigQuery;
 
@@ -295,16 +302,22 @@ public class SnapshotTest extends UsersBase {
     public void snapshotACLTest() throws Exception {
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
 
+        String projectId = System.getenv("GOOGLE_CLOUD_DATA_PROJECT");
         bigQuery = BigQueryOptions.newBuilder()
-            .setProjectId(dataset.getDataProject())
+            .setProjectId(projectId)
             .build()
             .getService();
-        Dataset bq_dataset = bigQuery.getDataset(datasetId);
+
+        // Fetch BQ Dataset
+        String datasetName = dataset.getName();
+        String bqDatasetName = bigQueryPdao.prefixName(datasetName);
+        Dataset bq_dataset = bigQuery.getDataset(bqDatasetName);
+
+        // fetch ACLs
         List<Acl> beforeAcls = bq_dataset.getAcl();
         logger.info("ACLS: {}", beforeAcls.stream().toString());
 
-        String datasetName = dataset.getName();
-        SnapshotRequestModel requestModel =
+        /*SnapshotRequestModel requestModel =
             jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
         // swap in the correct dataset name (with the id at the end)
         requestModel.getContents().get(0).setDatasetName(datasetName);
@@ -321,8 +334,8 @@ public class SnapshotTest extends UsersBase {
         dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
 
         TimeUnit.SECONDS.sleep(10);
-        Dataset after_bq_dataset = bigQuery.getDataset(datasetId);
+        Dataset after_bq_dataset = bigQuery.getDataset(datasetName);
         List<Acl> afterAcls = after_bq_dataset.getAcl();
-        logger.info("After ACLS: {}", afterAcls.stream().toString());
+        logger.info("After ACLS: {}", afterAcls.stream().toString());*/
     }
 }

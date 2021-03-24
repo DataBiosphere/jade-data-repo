@@ -359,17 +359,11 @@ your initials. After this is created, Firestore needs to be enabled:
   1. Go to the [Google Cloud Console](http://console.cloud.google.com/).
   2. From the `DATA.TEST-TERRA.BIO` organization, select your newly created GCP
   project: `broad-jade-zzz-data`.
-  3. Go to Firestore and enable firestore in **Native** mode.
 
 ### 2. Build `jade-data-repo-ui`
 
 Follow the [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui)
 to build the `jade-data-repo-ui` repository.
-
-### 3. Initialize `terraform-jade`
-
-Follow the [setup instructions](https://github.com/broadinstitute/terraform-jade#terraform-jade)
-to initialize the `terraform-jade` repository.
 
 ## Common Issues
 

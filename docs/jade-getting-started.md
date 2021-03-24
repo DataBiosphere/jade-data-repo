@@ -4,6 +4,10 @@ These instructions assume you use MacOS, and that you are on the internal Broad
 network or the VPN. If the VPN is not installed, follow the instructions
 [at this link](https://broad.io/vpn).
 
+> During this process, you will need your GitHub and Docker Hub username,
+password, and personal access token for multiple steps, so make sure to have
+those handy.
+
 ## 1. Create a GitHub and Docker Hub account
 
 GitHub is where the Broad stores our code and projects. Docker Hub allows the
@@ -16,10 +20,6 @@ Sign up to these services with your **personal** email:
 
 Create a [personal access token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line)
 so you can interact with GitHub on the command line.
-
-During this process, you will need your GitHub and Docker Hub username,
-password, and personal access token for multiple steps, so make sure to have
-those handy.
 
 ## 2. Request Required Access
 

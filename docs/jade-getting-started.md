@@ -22,6 +22,7 @@ password, and personal access token for multiple steps, so make sure to have
 those handy.
 
 ## 2. Request Required Access
+
 Ensure that you have access to the required team resources. If you
 encounter a permission error, it is likely because you are missing appropriate
 access. 
@@ -390,4 +391,3 @@ Ensure that:
 2. Docker is running.
 3. Postgres database is started.
 4. Environment variables are set. See list of environment variables above.
-

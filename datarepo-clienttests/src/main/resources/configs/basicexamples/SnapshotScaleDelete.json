@@ -1,0 +1,20 @@
+{
+  "name": "DRSLookup",
+  "description": "Run DRS lookups on the file refs in a snapshot.",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 2
+  },
+  "application": {},
+  "testScripts": [
+    {
+      "name": "DRSLookup",
+      "numberOfUserJourneyThreadsToRun": 50,
+      "userJourneyThreadPoolSize": 3,
+      "expectedTimeForEach": 20,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json", "voldemort.json"]
+}

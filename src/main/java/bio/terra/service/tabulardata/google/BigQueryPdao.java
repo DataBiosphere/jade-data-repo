@@ -631,8 +631,7 @@ public class BigQueryPdao {
     }
 
     public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException {
-        return bigQueryProjectForSnapshot(snapshot).deleteDataset(snapshot.getName());
-        /*BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         String projectId = bigQueryProject.getProjectId();
         List<SnapshotSource> sources = snapshot.getSnapshotSources();
         if (sources.size() > 0) {
@@ -642,7 +641,7 @@ public class BigQueryPdao {
         } else {
             logger.warn("Snapshot is missing sources: " + snapshot.getName());
         }
-        return bigQueryProject.deleteDataset(snapshot.getName());*/
+        return bigQueryProject.deleteDataset(snapshot.getName());
     }
 
     private List<Acl> convertToViewAcls(String projectId, String datasetName, List<String> tableNames) {

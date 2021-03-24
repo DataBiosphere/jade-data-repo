@@ -28,8 +28,8 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.DataLocationService;
-import bio.terra.service.resourcemanagement.ProfileDao;
+import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -106,7 +106,7 @@ public class SnapshotConnectedTest {
     @Autowired private DatasetDao datasetDao;
     @Autowired private SnapshotDao snapshotDao;
     @Autowired private ProfileDao profileDao;
-    @Autowired private DataLocationService dataLocationService;
+    @Autowired private ResourceService dataLocationService;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private ConnectedTestConfiguration testConfig;
@@ -126,7 +126,7 @@ public class SnapshotConnectedTest {
         connectedOperations.stubOutSamCalls(samService);
         configService.reset();
         billingProfile =
-            connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
+            connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
         datasetSummary = createTestDataset("snapshot-test-dataset.json");
         loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
     }
@@ -169,8 +169,8 @@ public class SnapshotConnectedTest {
     public void testMinimal() throws Exception {
         DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
         String datasetName = PDAO_PREFIX + datasetMinimalSummary.getName();
-        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetMinimalSummary.getName());
+        BigQueryProject bigQueryProject =
+            TestUtils.bigQueryProjectForDatasetName(datasetDao, datasetMinimalSummary.getName());
         long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
@@ -209,11 +209,41 @@ public class SnapshotConnectedTest {
     }
 
     @Test
+    public void snapshotRowIdsScaleTest() throws Exception {
+        // use the dataset already created in setup
+
+        // load add'l data rows into the dataset with rows from the GCS bucket
+        IngestRequestModel ingestRequest = new IngestRequestModel()
+            .table("thetable")
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .path("gs://jade-testdata/scratch/buildSnapshotWithRowIds/hca-mvp-analysis-file-row-ids-dataset-data.csv");
+
+        ingestRequest.csvSkipLeadingRows(1);
+        connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
+
+
+        // TODO put big snapshot request into a GCS bucket
+        SnapshotRequestModel snapshotRequestScale = makeSnapshotTestRequest(datasetSummary,
+            "hca-mvp-analysis-file-row-ids-snapshot.json");
+
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequestScale, "");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequestScale, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequestScale, datasetSummary);
+
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+
+    @Test
     public void testArrayStruct() throws Exception {
         DatasetSummaryModel datasetArraySummary = setupArrayStructDataset();
         String datasetName = PDAO_PREFIX + datasetArraySummary.getName();
-        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetArraySummary.getName());
+        BigQueryProject bigQueryProject =
+            TestUtils.bigQueryProjectForDatasetName(datasetDao, datasetArraySummary.getName());
         long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
@@ -314,11 +344,48 @@ public class SnapshotConnectedTest {
         ErrorModel errorModel = handleCreateSnapshotFailureCase(response);
         assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
         assertThat("error message includes name conflict",
-            errorModel.getMessage(), containsString("Snapshot name already exists"));
+            errorModel.getMessage(), containsString("Snapshot name or id already exists"));
+
+        // fetch the snapshot and confirm the metadata still matches the original
+        SnapshotModel origModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        assertEquals("fetched snapshot remains unchanged", snapshotModel, origModel);
 
         // delete and confirm deleted
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void testDeleteRecreateSnapshot() throws Exception {
+        // create a dataset and load some tabular data
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        // create a snapshot
+        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+        // fetch the snapshot and confirm the metadata matches the request
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        assertNotNull("fetched snapshot successfully after creation", snapshotModel);
+
+        // check that the snapshot metadata row is unlocked
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotModel.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
+
+        // delete and confirm deleted
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
+
+        // now after deleting the snapshot, make sure you can create it again and the delete worked!
+        snapshotRequest.setName(snapshotModel.getName());
+        response = performCreateSnapshot(snapshotRequest, null);
+        SnapshotSummaryModel summaryModelSequel = validateSnapshotCreated(snapshotRequest, response);
+
+        // then delete it a final time for cleanup
+        connectedOperations.deleteTestSnapshot(summaryModelSequel.getId());
+        connectedOperations.getSnapshotExpectError(summaryModelSequel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -556,7 +623,7 @@ public class SnapshotConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(datasetRefSummary.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(datasetRefSummary.getId());
 
         // remove the file from the connectedoperation bookkeeping list
         connectedOperations.removeFile(datasetRefSummary.getId(), fileModel.getFileId());
@@ -566,6 +633,75 @@ public class SnapshotConnectedTest {
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(datasetRefSummary.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void testSnapshotArrayFileRefLookups() throws Exception {
+        // create a dataset
+        DatasetSummaryModel datasetRefSummary = createTestDataset("simple-with-array-filerefs-dataset.json");
+
+        // ingest a file
+        URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt",
+            null, null);
+        String targetFilePath =
+            "/mm/" + Names.randomizeName("testdir") + "/testExcludeLockedFromSnapshotFileLookups.txt";
+        UUID descriptionRandomUUID = UUID.randomUUID();
+        FileLoadModel fileLoadModel = new FileLoadModel()
+            .sourcePath(sourceUri.toString())
+            .description(descriptionRandomUUID.toString())
+            .mimeType("text/plain")
+            .targetPath(targetFilePath)
+            .profileId(billingProfile.getId());
+        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetRefSummary.getId(), fileLoadModel);
+
+        // generate a JSON file with the fileref
+        String jsonLine = "{\"name\":\"name1\", \"file_ref\":[\"" + fileModel.getFileId() + "\"]}\n";
+
+        // load a JSON file that contains the table rows to load into the test bucket
+        String jsonFileName = "this-array-better-pass.json";
+        String dirInCloud = "scratch/testExcludeLockedFromSnapshotFileLookups/" + UUID.randomUUID().toString();
+        BlobInfo ingestTableBlob = BlobInfo
+            .newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + jsonFileName)
+            .build();
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        storage.create(ingestTableBlob, jsonLine.getBytes(StandardCharsets.UTF_8));
+
+        // make sure the JSON file gets cleaned up on test teardown
+        connectedOperations.addScratchFile(dirInCloud + "/" + jsonFileName);
+
+        // ingest the tabular data from the JSON file we just generated
+        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + jsonFileName;
+        IngestRequestModel ingestRequest1 = new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .table("tableA")
+            .path(gsPath);
+        connectedOperations.ingestTableSuccess(datasetRefSummary.getId(), ingestRequest1);
+
+        // create a snapshot
+        SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(
+            datasetRefSummary, "simple-with-filerefs-snapshot.json", "");
+
+        // check that the snapshot metadata row is unlocked
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
+
+        String fileUri = getFileRefIdFromSnapshot(snapshotSummary);
+        DrsId drsId = drsIdService.fromUri(fileUri);
+        DRSObject drsObject = connectedOperations.drsGetObjectSuccess(drsId.toDrsObjectId(), false);
+        String filePath = drsObject.getAliases().get(0);
+
+        // lookup the snapshot file by DRS id, make sure it's returned (lookupSnapshotFileSuccess will already check)
+        FileModel fsObjById =
+            connectedOperations.lookupSnapshotFileSuccess(snapshotSummary.getId(), drsId.getFsObjectId());
+        assertEquals("Retrieve snapshot file by DRS id matches uuid in desc", fsObjById.getDescription(),
+            fileLoadModel.getDescription());
+
+        // lookup the snapshot file by DRS path and check that it's found
+        FileModel fsObjByPath =
+            connectedOperations.lookupSnapshotFileByPathSuccess(snapshotSummary.getId(), filePath, 0);
+        assertEquals("Retrieve snapshot file by path matches uuid in desc",
+            fsObjByPath.getDescription(), fileLoadModel.getDescription());
+        assertThat("Retrieve snapshot file objects match", fsObjById, CoreMatchers.equalTo(fsObjByPath));
     }
 
     private DatasetSummaryModel setupMinimalDataset() throws Exception {
@@ -690,7 +826,7 @@ public class SnapshotConnectedTest {
 
     private EnumerateSnapshotModel enumerateTestSnapshots() throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/snapshots?offset=0&limit=1000"))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
@@ -703,7 +839,7 @@ public class SnapshotConnectedTest {
                                         SnapshotRequestModel snapshotRequest,
                                         DatasetSummaryModel datasetSummary) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + id))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_VALUE))
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
@@ -750,12 +886,11 @@ public class SnapshotConnectedTest {
     // Technically a helper method, but so specific to testExcludeLockedFromSnapshotFileLookups, likely not re-useable
     private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) throws InterruptedException {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
-        SnapshotDataProject dataProject = dataLocationService.getOrCreateProject(snapshot);
-        BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
+        BigQueryProject bigQueryProject = BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 
         ST sqlTemplate = new ST(queryForRefIdTemplate);
-        sqlTemplate.add("project", dataProject.getGoogleProjectId());
+        sqlTemplate.add("project", snapshot.getProjectResource().getGoogleProjectId());
         sqlTemplate.add("snapshot", snapshot.getName());
         sqlTemplate.add("table", "tableA");
 
@@ -763,7 +898,13 @@ public class SnapshotConnectedTest {
         TableResult result = bigQuery.query(queryConfig);
         FieldValueList row = result.iterateAll().iterator().next();
         FieldValue idValue = row.get(0);
-        return idValue.getStringValue();
+        if (idValue.getAttribute().name().equals("REPEATED")) {
+            return idValue.getRepeatedValue()
+                .stream().map(FieldValue::getStringValue)
+                .collect(Collectors.toList()).get(0);
+        } else {
+            return idValue.getStringValue();
+        }
     }
 
     private void snapshotHappyPathTestingHelper(String path) throws Exception {

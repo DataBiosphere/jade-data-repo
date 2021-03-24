@@ -26,9 +26,8 @@ Ensure that you have access to the required team resources. If you
 encounter a permission error, it is likely because you are missing appropriate
 access. 
 - DataBiosphere: Join the `#github` Slack channel, click the lightning bolt in the
-channel header, and select `Join DataBiosphere`.  Ask a team member to add your github user to the [DataBiosphere/jadeteam group](https://github.com/orgs/DataBiosphere/teams/jadeteam). This will give you admin access to our repositories. 
-- Google Groups: Ask for access to Google Groups
-including `dsde-engineering`.
+channel header, and select `Join DataBiosphere`.  Once you've been granted access to DataBiosphere, ask a team member to add your github user to the [DataBiosphere/jadeteam group](https://github.com/orgs/DataBiosphere/teams/jadeteam). This will give you admin access to our repositories. 
+- Google Groups: Ask for access to Google Groups including `dsde-engineering`.
 
 ## 3. Connect accounts
 
@@ -188,7 +187,7 @@ step, [Login to Vault](#6-login-to-vault). To create a token:
 page and click **Generate new token**.
 2. Give the token a descriptive name, **only** give it the following two scopes and then click **Generate token**.
   *  `read:org` scope under `admin:org`
-  * `workflow` (this will give you access to kick off github actions from the command line)
+  *  `workflow` (this will give you access to kick off github actions from the command line)
 3. Store this token in a file:
 
 ```
@@ -234,8 +233,10 @@ Note that this is separate instance than the local one you will configure in ste
 cd jade-data-repo/ops
 DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
 ```
-4. Add some setting to your database, that I can't remembmer... 
-5. Ask colleague from DevOps to create a google project for your named broad-jade-ZZ (replacing 'ZZ' with your initials) in the broadinstitute.org organization
+4. Add something to your database (I can't remember what...)
+5. Ask a colleague from DevOps to create a google project for you with the following details:
+  * Google Project Name: broad-jade-ZZ (replacing 'ZZ' with your initials)
+  * Google Organization: broadinstitute.org
 
 ## 9. Google Cloud Platform setup
 

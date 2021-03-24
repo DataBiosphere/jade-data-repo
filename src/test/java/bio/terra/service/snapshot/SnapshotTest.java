@@ -320,7 +320,7 @@ public class SnapshotTest extends UsersBase {
         assertEquals("There should be 7 ACLs on the dataset", 7, beforeAcls.size());
         logger.info("---- Dataset ACLs before snapshot create-----");
         beforeAcls.forEach(acl -> {
-            logger.info("Acl: {}", acl.toString());
+            logger.info("Acl: {}", acl);
         });
 
 

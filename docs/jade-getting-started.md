@@ -25,7 +25,8 @@ those handy.
 
 Ensure that you have access to the required team resources. If you
 encounter a permission error, it is likely because you are missing appropriate
-access. 
+access.
+
 - DataBiosphere: Join the `#github` Slack channel, click the lightning bolt in the
 channel header, and select `Join DataBiosphere`.  Once you've been granted access
 to DataBiosphere, ask a team member to add your github user to the

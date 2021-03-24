@@ -32,7 +32,7 @@ channel header, and select `Join DataBiosphere`.  Once you've been granted acces
 to DataBiosphere, ask a team member to add your github user to the
 [DataBiosphere/jadeteam group](https://github.com/orgs/DataBiosphere/teams/jadeteam).
 This will give you admin access to our repositories. 
-- Google Groups: Ask a team member for access to Google Groups including `dsde-engineering`.
+- Google Groups: Ask a team member for access to Google Groups including `jade-internal` and `dsde-engineering`.
 
 ## 3. Connect accounts
 

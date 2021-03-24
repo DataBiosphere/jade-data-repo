@@ -1,6 +1,6 @@
 {
-  "name": "DRSLookup",
-  "description": "Run DRS lookups on the file refs in a snapshot.",
+  "name": "SnapshotScaleDelete",
+  "description": "Create and delete 1+ snapshots based on the same source dataset.",
   "serverSpecificationFile": "perf.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
@@ -9,7 +9,8 @@
   "application": {},
   "testScripts": [
     {
-      "name": "DRSLookup",
+      "name": "SnapshotScaleDelete",
+      "parameters": [2],
       "numberOfUserJourneyThreadsToRun": 50,
       "userJourneyThreadPoolSize": 3,
       "expectedTimeForEach": 20,

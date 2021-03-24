@@ -1,19 +1,8 @@
 # Getting Started
 
-Ensure that you have access to the required team resources beforehand. If you
-encounter a permission error, it is likely because you are missing appropriate
-access. Join the `#github` Slack channel, click the lightning bolt in the
-channel header, and select `Join DataBiosphere`. Ask for access to Google Groups
-including `dsde-engineering`.
-
 These instructions assume you use MacOS, and that you are on the internal Broad
 network or the VPN. If the VPN is not installed, follow the instructions
 [at this link](https://broad.io/vpn).
-
-> During this process, you will need your GitHub and Docker Hub username,
-password, and personal access token for multiple steps, so make sure to have
-those handy. If you don't have those yet, see the section below, otherwise you
-can skip to [Connect Accounts](#2-connect-accounts)
 
 ## 1. Create a GitHub and Docker Hub account
 
@@ -28,7 +17,20 @@ Sign up to these services with your **personal** email:
 Create a [personal access token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line)
 so you can interact with GitHub on the command line.
 
-## 2. Connect accounts
+During this process, you will need your GitHub and Docker Hub username,
+password, and personal access token for multiple steps, so make sure to have
+those handy.
+
+## 2. Request Required Access
+Ensure that you have access to the required team resources. If you
+encounter a permission error, it is likely because you are missing appropriate
+access. 
+- DataBiosphere: Join the `#github` Slack channel, click the lightning bolt in the
+channel header, and select `Join DataBiosphere`.  Ask a team member to add your github user to the [DataBiosphere/jadeteam group](https://github.com/orgs/DataBiosphere/teams/jadeteam). This will give you admin access to our repositories. 
+- Google Groups: Ask for access to Google Groups
+including `dsde-engineering`.
+
+## 3. Connect accounts
 
 > Make sure 2-factor authentication (2FA) is activated on your
 [Broad](https://broad.io/2fa) and [GitHub](https://github.com/settings/security)
@@ -52,7 +54,7 @@ relevant to your team.
 Connect your Docker Hub account to your Broad profile by contacting the DevOps
 team.
 
-## 3. Create Terra Accounts
+## 4. Create Terra Accounts
 
 The Data Repo uses [Sam](https://github.com/broadinstitute/sam) for identity and access management. To register
 as a new user, create an account through Terra. Use a non-Broad email address specifically created for development
@@ -66,7 +68,7 @@ account, follow these [steps](https://docs.google.com/document/d/1DRftlTe-9Q4H-R
 
 Ask a member of the team to add you to the admins group for each of these environments.
 
-## 4. Install Homebrew
+## 5. Install Homebrew
 
 [Homebrew](https://brew.sh/) is a [package manager](https://en.wikipedia.org/wiki/Package_manager)
 which enables the installation of software using a single, convenient command
@@ -177,15 +179,16 @@ open -a "IntelliJ IDEA CE"
 then click in the search box and install **Cloud Code**, which integrates
 Google Cloud features with IntelliJ IDEA.
 
-## 5. Create GitHub token
+## 6. Create GitHub token
 
 The GitHub token verifies team permissions. This token is necessary for the next
 step, [Login to Vault](#6-login-to-vault). To create a token:
 
 1. Go to the [GitHub Personal Access Token](https://github.com/settings/tokens)
 page and click **Generate new token**.
-2. Give the token a descriptive name, **only** give it the `read:org` scope
-under `admin:org`, and click **Generate token**.
+2. Give the token a descriptive name, **only** give it the following two scopes and then click **Generate token**.
+  *  `read:org` scope under `admin:org`
+  * `workflow` (this will give you access to kick off github actions from the command line)
 3. Store this token in a file:
 
 ```
@@ -234,7 +237,7 @@ DB=datarepo SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
 4. Add some setting to your database, that I can't remembmer... 
 5. Ask colleague from DevOps to create a google project for your named broad-jade-ZZ (replacing 'ZZ' with your initials) in the broadinstitute.org organization
 
-## 8. Google Cloud Platform setup
+## 9. Google Cloud Platform setup
 
 1. Log in to [Google Cloud Platform](https://console.cloud.google.com). In the
 top-left corner, select the **BROADINSTITUTE.ORG** organization. Select
@@ -266,7 +269,7 @@ page, select the Jade Data Repository OAuth2 Client ID and update the authorized
  - Under Authorized redirect URIs, add `https://jade-zzz.datarepo-dev.broadinstitute.org/login/google` and
    `https://jade-zzz.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
 
-## 9. Install Postgres 12
+## 10. Install Postgres 12
 
 [Postgres](https://www.postgresql.org/) is an advanced open-source database.
 **Postgres.app** is used to manage a local installation of Postgres. The latest
@@ -289,7 +292,7 @@ psql -f db/create-data-repo-db
 psql --list
 ```
 
-## 10. Repository Setup
+## 11. Repository Setup
 
 ### 1. Build `jade-data-repo`
 

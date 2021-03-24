@@ -19,7 +19,10 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
+import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.TableResult;
 import org.junit.After;
 import org.junit.Before;
@@ -64,6 +67,8 @@ public class SnapshotTest extends UsersBase {
 
     @Autowired
     private AuthService authService;
+
+    private BigQuery bigQuery;
 
     private static final Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
     private String profileId;
@@ -284,5 +289,40 @@ public class SnapshotTest extends UsersBase {
         SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
+    }
+
+    @Test
+    public void snapshotACLTest() throws Exception {
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+
+        bigQuery = BigQueryOptions.newBuilder()
+            .setProjectId(dataset.getDataProject())
+            .build()
+            .getService();
+        Dataset bq_dataset = bigQuery.getDataset(datasetId);
+        List<Acl> beforeAcls = bq_dataset.getAcl();
+        logger.info("ACLS: {}", beforeAcls.stream().toString());
+
+        String datasetName = dataset.getName();
+        SnapshotRequestModel requestModel =
+            jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
+        // swap in the correct dataset name (with the id at the end)
+        requestModel.getContents().get(0).setDatasetName(datasetName);
+        SnapshotSummaryModel snapshotSummary =
+            dataRepoFixtures.createSnapshotWithRequest(steward(),
+                datasetName,
+                profileId,
+                requestModel);
+        TimeUnit.SECONDS.sleep(10);
+        createdSnapshotIds.add(snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+        assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
+        dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
+
+        TimeUnit.SECONDS.sleep(10);
+        Dataset after_bq_dataset = bigQuery.getDataset(datasetId);
+        List<Acl> afterAcls = after_bq_dataset.getAcl();
+        logger.info("After ACLS: {}", afterAcls.stream().toString());
     }
 }

@@ -230,7 +230,7 @@ dependencies {
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
-    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
+    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '3.0.7'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
@@ -294,7 +294,7 @@ swaggerSources {
                 "--model-package", "bio.terra.model",
                 "-D", "interfaceOnly=true," +
                     "useTags=true," +
-                    "dateLibrary=java11"
+                    "dateLibrary=java8"
             ]
         }
     }

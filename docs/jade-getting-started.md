@@ -236,7 +236,7 @@ these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/fol
 1. Follow [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
 to add your initials to the terraform templates and generate the static resources needed
 to deploy your personal development environment. Apply the changes and create a pull request
-to merge your additons to terraform-jade.
+to merge your additions to `terraform-jade`.
 2. Create your datarepo helm definition:
   -  In `datarepo-helm-definitions/dev` directory, copy an existing developer
 definition and change all initials to your own.

@@ -275,19 +275,19 @@ gcloud container clusters get-credentials dev-master --region us-central1 --proj
 bring up Helm services (note it will take about 10-15 minutes for ingress and cert creation):
 
 ```
-# replace all instances of `zzz` with your initials
-cd datarepo-helm-definitions/dev/zzz
+# replace all instances of `ZZ` with your initials
+cd datarepo-helm-definitions/dev/ZZ
 helmfile apply
 
 # check that the deployments were created
-helm list --namespace zzz
+helm list --namespace ZZ
 ```
 
 5. On the Google Cloud Platform [API Credentials](https://console.cloud.google.com/apis/credentials?authuser=3&project=broad-jade-dev)
 page, select the Jade Data Repository OAuth2 Client ID and update the authorized domains:
- - Under Authorized JavaScript origins, add `https://jade-zzz.datarepo-dev.broadinstitute.org`
- - Under Authorized redirect URIs, add `https://jade-zzz.datarepo-dev.broadinstitute.org/login/google` and
-   `https://jade-zzz.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
+ - Under Authorized JavaScript origins, add `https://jade-ZZ.datarepo-dev.broadinstitute.org`
+ - Under Authorized redirect URIs, add `https://jade-ZZ.datarepo-dev.broadinstitute.org/login/google` and
+   `https://jade-ZZ.datarepo-dev.broadinstitute.org/webjars/springfox-swagger-ui/oauth2-redirect.html`
 
 ## 10. Install Postgres 12
 
@@ -322,7 +322,7 @@ to build `jade-data-repo`.
 
 * You will need to run `render-configs.sh` before running integration tests.
 
-* Certain environment variables need to be set beforehand. Instances of `zzz`
+* Certain environment variables need to be set beforehand. Instances of `ZZ`
 should be replaced by your initials or the environment (i.e. `dev`):
 
 
@@ -332,10 +332,10 @@ export JAVA_HOME=$(/usr/libexec/java_home)
 
 export VAULT_ADDR=https://clotho.broadinstitute.org:8200
 export ENVIRONMENT=dev
-export GOOGLE_CLOUD_PROJECT=broad-jade-zzz
-export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-zzz-data
-export SUFFIX=zzz
-export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
+export GOOGLE_CLOUD_PROJECT=broad-jade-ZZ
+export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-ZZ-data
+export SUFFIX=ZZ
+export PROXY_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
 export CYPRESS_BASE_URL=http://local.broadinstitute.org:3000
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
 export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
@@ -350,8 +350,8 @@ export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
 export GOOGLE_ALLOWREUSEEXISTINGPROJECTS=true
 
 # Integration test setting: change this to http://localhost:8080/ to run against  # local instance
-export IT_JADE_API_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
-export IT_INGEST_BUCKET=broad-jade-zzz-data-bucket
+export IT_JADE_API_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
+export IT_INGEST_BUCKET=broad-jade-ZZ-data-bucket
 
 # formats logs in a more readable way (other option: "Console-Stackdriver")
 export TDR_LOG_APPENDER=Console-Standard
@@ -374,11 +374,11 @@ export HOST=localhost
 ```
 
 * The first run of the integration tests should create a corresponding Google
-Cloud Project with the name `broad-jade-zzz-data`, where `zzz` is replaced by
+Cloud Project with the name `broad-jade-ZZ-data`, where `ZZ` is replaced by
 your initials. After this is created, Firestore needs to be enabled:
   1. Go to the [Google Cloud Console](http://console.cloud.google.com/).
   2. From the `DATA.TEST-TERRA.BIO` organization, select your newly created GCP
-  project: `broad-jade-zzz-data`.
+  project: `broad-jade-ZZ-data`.
 
 ### 2. Build `jade-data-repo-ui`
 

@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.common.PdaoConstant;
-import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
@@ -22,16 +21,13 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.TableResult;
-import com.google.cloud.firestore.FirestoreOptions;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -53,6 +49,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -299,31 +296,16 @@ public class SnapshotTest extends UsersBase {
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
 
-    @Ignore("We expect this test to be flaky b/c ACLs can take a while to update (up to 7 minutes)")
     @Test
     public void snapshotACLTest() throws Exception {
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
 
-        String projectId = System.getenv("GOOGLE_CLOUD_DATA_PROJECT");
-        bigQuery = BigQueryOptions.newBuilder()
-            .setProjectId(projectId)
-            .build()
-            .getService();
-
-        // Fetch BQ Dataset
         String datasetName = dataset.getName();
-        String bqDatasetName = bigQueryPdao.prefixName(datasetName);
-        Dataset bq_dataset = bigQuery.getDataset(bqDatasetName);
 
-        // fetch ACLs
-        List<Acl> beforeAcls = bq_dataset.getAcl();
-        assertEquals("There should be 7 ACLs on the dataset", 7, beforeAcls.size());
         logger.info("---- Dataset ACLs before snapshot create-----");
-        beforeAcls.forEach(acl -> {
-            logger.info("Acl: {}", acl.toString());
-        });
+        int datasetAclCount = fetchSourceDatasetAcls(datasetName);
 
-
+        //-------------------Create Snapshot----------------
         SnapshotRequestModel requestModel =
             jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
         // swap in the correct dataset name (with the id at the end)
@@ -340,24 +322,41 @@ public class SnapshotTest extends UsersBase {
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
 
         // fetch ACLs
-        Dataset dataset_plus_snapshot = bigQuery.getDataset(bqDatasetName);
-        List<Acl> dataset_plus_snapshot_acls = dataset_plus_snapshot.getAcl();
         logger.info("---- Dataset ACLs after snapshot create-----");
-        dataset_plus_snapshot_acls.forEach(acl -> {
-            logger.info("Acl: {}", acl.toString());
-        });
-        assertEquals("There should be 10 ACLs on the dataset after snapshot create", 10, dataset_plus_snapshot_acls.size());
+        int dataset_plus_snapshot_count = fetchSourceDatasetAcls(datasetName);
+        assertThat("There should be more ACLs on the dataset after snapshot create",
+            dataset_plus_snapshot_count, greaterThan(datasetAclCount));
 
+        //-----------delete snapshot------------
         dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
 
+        // Give ACLs a second to update in big query
         TimeUnit.SECONDS.sleep(10);
-        // fetch ACLs
-        Dataset dataset_minus_snapshot = bigQuery.getDataset(bqDatasetName);
-        List<Acl> dataset_minus_snapshot_acls = dataset_minus_snapshot.getAcl();
+
         logger.info("---- Dataset ACLs after snapshot delete-----");
-        dataset_minus_snapshot_acls.forEach(acl -> {
-            logger.info("Acl: {}", acl.toString());
+        int dataset_minus_snapshot_acl_count = fetchSourceDatasetAcls(datasetName);
+        assertEquals("We should be back to the same number of ACLs on the dataset after snapshot delete",
+            datasetAclCount, dataset_minus_snapshot_acl_count);
+    }
+
+    private int fetchSourceDatasetAcls(String datasetName) {
+        String projectId = System.getenv("GOOGLE_CLOUD_DATA_PROJECT");
+        bigQuery = BigQueryOptions.newBuilder()
+            .setProjectId(projectId)
+            .build()
+            .getService();
+
+        // Fetch BQ Dataset
+        String bqDatasetName = bigQueryPdao.prefixName(datasetName);
+        Dataset bq_dataset = bigQuery.getDataset(bqDatasetName);
+
+        // fetch ACLs
+        List<Acl> acls = bq_dataset.getAcl();
+        int aclCount = acls.size();
+
+        acls.forEach(acl -> {
+            logger.info("Acl: {}", acl);
         });
-        assertEquals("We should be back to 7 ACLs on the dataset after snapshot delete", 7, dataset_minus_snapshot_acls.size());
+        return aclCount;
     }
 }

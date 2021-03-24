@@ -233,7 +233,7 @@ environment.  You'll actually spin up this instance on broad-jade-dev in next st
 pair on with another Jade team member. There is a video of us walking through
 these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing). 
 
-1. Follow [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
+1. Follow the [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
 to add your initials to the terraform templates and generate the static resources needed
 to deploy your personal development environment. Apply the changes and create a pull request
 to merge your additions to `terraform-jade`.

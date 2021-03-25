@@ -127,9 +127,7 @@ public class DatasetValidationsTest {
             "\"description\":\"Invalid dataset schema leads to no response body\"," +
             "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\"," +
             "\"schema\":{\"tables\":[{\"name\":\"table\",\"columns\":" +
-            "[{\"name\":\"column\",\"datatype\":\"fileref\",\"is_array\":true}]" +
-            ",\"primaryKey\":[\"column\"],\"partitionMode\":\"date\"," +
-            "\"datePartitionOptions\":{\"column\":\"datarepo_ingest_date\"}}]}}";
+            "[{\"name\":\"column\",\"datatype\":\"fileref\",\"is_array\":true}]}]}}";
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
             .content(invalidSchema))

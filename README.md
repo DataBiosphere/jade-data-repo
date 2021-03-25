@@ -84,7 +84,7 @@ If you are making code changes, run:
 
 ### Run jade locally
 
-Before you run for the first time, you need to generate the credentials file `/tmp/jade-dev-account.json` by running `./render-configs`
+Before you run for the first time, you need to generate the credentials file by running `./render-configs`
 
 To run jade locally:
 `./gradlew bootRun`
@@ -109,7 +109,7 @@ https://local.broadinstitue.org:8080
 
 The integration tests will hit the data repo running in the  broad-jade-integration envrionment by default. To use a
 different data-repo, edit the src/main/resources/application-integration.properties file and specify the URL. Before
-you run the integration tests, you need to generate the correct pem file by running `./render_configs`
+you run the integration tests, you need to generate the correct pem file by running `./render-configs`
 
 To run the tests, use: `./gradlew testIntegration`
 

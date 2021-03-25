@@ -23,7 +23,6 @@ import bio.terra.service.iam.IamRole;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.TableResult;
 import org.junit.After;

@@ -327,7 +327,7 @@ to build `jade-data-repo`.
 
 * You will need to run `render-configs.sh` before running integration tests.
 
-* **Set Environment Variables**: While not exhaustive, here's a list that notes the important environment variables to set when running jade-data-repo locally. Instances of `ZZ` should be replaced by your initials or the environment (i.e. `dev`).  These variables override settings in
+* **Set Environment Variables**: While not exhaustive, here's a list that notes the important environment variables to set when running `jade-data-repo` locally. Instances of `ZZ` should be replaced by your initials or the environment (i.e. `dev`).  These variables override settings in
 jade-data-repo/application.properties.  You can convert any application.property to an environment
 variable by switching to upper case and every "." to "_". 
 

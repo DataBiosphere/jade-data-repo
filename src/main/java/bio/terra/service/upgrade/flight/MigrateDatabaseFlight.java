@@ -8,7 +8,6 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.service.upgrade.Migrate;
 import bio.terra.service.upgrade.MigrateConfiguration;
 import org.springframework.context.ApplicationContext;
 

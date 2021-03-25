@@ -75,7 +75,7 @@ public class Migrate {
     /**
      * Helper function to block "drop all on start" from happening on undesired databases
      */
-    public boolean allowDropAllOnStart(){
+    public boolean allowDropAllOnStart() {
         return Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
             || env.contains("test") || env.contains("int"));
     }

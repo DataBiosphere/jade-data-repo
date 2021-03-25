@@ -5,7 +5,6 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobService;
 import bio.terra.service.upgrade.MigrateConfiguration;
 import bio.terra.stairway.FlightContext;
-import bio.terra.service.upgrade.Migrate;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 

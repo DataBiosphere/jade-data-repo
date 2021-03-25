@@ -1,13 +1,10 @@
 package bio.terra.service.upgrade.flight;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.model.UpgradeModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.upgrade.Migrate;
-import bio.terra.service.upgrade.MigrateConfiguration;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

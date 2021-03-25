@@ -31,7 +31,7 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
     protected ResponseEntity<Object> handleExceptionInternal(
         Exception ex, @Nullable Object body, HttpHeaders headers, HttpStatus status, WebRequest request) {
 
-        if (HttpStatus.INTERNAL_SERVER_ERROR.equals(status)) {
+        if (HttpStatus.INTERNAL_SERVER_ERROR == status) {
             request.setAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE, ex, WebRequest.SCOPE_REQUEST);
         }
 
@@ -73,4 +73,3 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
         return builder.toString();
     }
 }
-

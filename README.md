@@ -102,7 +102,7 @@ setting the environment variable:
 (the default is "Console-Stackdriver")
 
 The swagger page is:
-https://local.broadinstitue.org:8080
+https://local.broadinstitute.org:8080
 
 ### Run connected and integration tests
 `./gradlew testConnected`

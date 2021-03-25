@@ -17,6 +17,7 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
 
+import java.util.List;
 import java.util.UUID;
 
 public class SnapshotDeleteFlight extends Flight {
@@ -65,6 +66,7 @@ public class SnapshotDeleteFlight extends Flight {
             datasetService,
             configService));
         addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
-        addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
+        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotId(snapshotId);
+        addStep(new UnlockSnapshotStep(datasetService, snapshotDao, snapshotId, sourceDatasetIds));
     }
 }

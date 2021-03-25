@@ -4,6 +4,7 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -22,6 +23,9 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import org.springframework.context.ApplicationContext;
+
+import java.util.List;
+import java.util.UUID;
 
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 
@@ -60,9 +64,10 @@ public class SnapshotCreateFlight extends Flight {
         addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, snapshotReq));
 
         // create the snapshot metadata object in postgres and lock it
+        // also lock the source dataset
         // mint a snapshot id and put it in the working map
         addStep(new CreateSnapshotIdStep(snapshotReq));
-        addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
+        addStep(new CreateSnapshotMetadataStep(datasetService, snapshotDao, snapshotService, snapshotReq));
 
         // Make the big query dataset with views and populate row id filtering tables.
         // Depending on the type of snapshot, the primary data step will differ:
@@ -125,6 +130,7 @@ public class SnapshotCreateFlight extends Flight {
             snapshotName));
 
        // unlock the snapshot metadata row
-        addStep(new UnlockSnapshotStep(snapshotDao, null));
+        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotReq);
+        addStep(new UnlockSnapshotStep(datasetService, snapshotDao, null, sourceDatasetIds));
     }
 }

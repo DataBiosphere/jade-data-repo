@@ -38,7 +38,7 @@ public class UpgradeService {
     }
 
     public String upgrade(UpgradeModel request, AuthenticatedUserRequest user) {
-        // Make sure the user is a steward by checking for list jobs action
+        // Make sure the user is a steward or admin by checking for list jobs action
         iamService.verifyAuthorization(
             user,
             IamResourceType.DATAREPO,

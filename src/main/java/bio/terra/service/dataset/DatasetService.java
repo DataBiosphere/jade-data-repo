@@ -23,6 +23,7 @@ import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -174,5 +175,13 @@ public class DatasetService {
             .newJob(description, DatasetDataDeleteFlight.class, dataDeletionRequest, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .submit();
+    }
+
+    public void lockDataset(UUID datasetId, String flightId) {
+        datasetDao.lockExclusive(datasetId, flightId);
+    }
+
+    public void unlockDataset(UUID datasetId, String flightId) {
+        datasetDao.unlockExclusive(datasetId, flightId);
     }
 }

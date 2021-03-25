@@ -3,7 +3,6 @@ package bio.terra.service.filedata.google.firestore;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.StringListCompare;
 import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.FirestoreOptions;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -53,7 +52,7 @@ public class FireStoreDirectoryDaoTest {
     public void setup() throws Exception {
         pretendDatasetId = UUID.randomUUID().toString();
         collectionId = "directoryDaoTest_" + pretendDatasetId;
-        firestore = FirestoreOptions.getDefaultInstance().getService();
+        firestore = TestFirestoreProvider.getFirestore();
     }
 
     @Test

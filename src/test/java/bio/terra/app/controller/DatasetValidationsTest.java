@@ -122,7 +122,7 @@ public class DatasetValidationsTest {
     }
 
     @Test
-    public void TestJsonParsingErrors() throws Exception {
+    public void testJsonParsingErrors() throws Exception {
         String invalidSchema = "{\"name\":\"no_response\"," +
             "\"description\":\"Invalid dataset schema leads to no response body\"," +
             "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\"," +

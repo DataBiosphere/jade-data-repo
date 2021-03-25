@@ -103,6 +103,7 @@ jobs:
           helm_oidc_proxy_chart_version: 0.0.20
       - name: "Wait for deployment to come back online"
         uses: broadinstitute/datarepo-actions/actions/main@rc-se-actions-testing
+        with:
           actions_subcommand: 'waitfordeployment'
       - name: "Run Test Runner smoke tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@rc-se-actions-testing

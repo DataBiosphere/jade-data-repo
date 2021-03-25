@@ -84,6 +84,8 @@ If you are making code changes, run:
 
 ### Run jade locally
 
+Before you run for the first time, you need to generate the credentials file `/tmp/jade-dev-account.json` by running `./render-configs`
+
 To run jade locally:
 `./gradlew bootRun`
 

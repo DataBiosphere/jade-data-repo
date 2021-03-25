@@ -114,11 +114,19 @@ public class JobService {
     public void initialize() {
         try {
             List<String> recordedStairways;
-            migrate.migrateDatabase();
+            // check if we should allow DropAllOnStart
+
+            boolean allowDropAllOnStart = migrate.allowDropAllOnStart();
+            boolean dropAllOnStartConfig = migrateConfiguration.getDropAllOnStart();
+            boolean dropAllOnStart = allowDropAllOnStart && dropAllOnStartConfig;
+            logger.info("DropAllOnStart? {} => allowDropAllOnStart = {} && dropAllOnStartConfig = {}",
+                dropAllOnStart, allowDropAllOnStart, dropAllOnStartConfig);
+
+            migrate.migrateDatabase(dropAllOnStart);
 
             // Initialize stairway - only do the stairway migration if we did the data repo migration
             recordedStairways = stairway.initialize(stairwayJdbcConfiguration.getDataSource(),
-                migrateConfiguration.getDropAllOnStart(),
+                dropAllOnStart,
                 migrateConfiguration.getUpdateAllOnStart());
 
 

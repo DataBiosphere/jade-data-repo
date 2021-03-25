@@ -51,19 +51,15 @@ public class Migrate {
      * Run liquibase migration
      *
      */
-    public void migrateDatabase() {
+    public void migrateDatabase(boolean dropAllOnStart) {
         String changesetFile = dataRepoJdbcConfiguration.getChangesetFile();
         try (Connection connection = dataRepoJdbcConfiguration.getDataSource().getConnection()) {
             Liquibase liquibase = new Liquibase(changesetFile,
                 new ClassLoaderResourceAccessor(),
                 new JdbcConnection(connection));
 
-            logger.info(String.format("dropAllOnStart is set to %s", migrateConfiguration.getDropAllOnStart()));
-            boolean allowDropAllOnStart = Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
-                || env.contains("test") || env.contains("int"));
-            logger.info(String.format("Allow dropAllOnStart is set to %s", allowDropAllOnStart));
-
-            if (allowDropAllOnStart && migrateConfiguration.getDropAllOnStart()) {
+            logger.info(String.format("dropAllOnStart is set to %s", dropAllOnStart));
+            if (dropAllOnStart) {
                 logger.info("Dropping all db objects in the default schema");
                 liquibase.dropAll(); // drops everything in the default schema. The migrate schema should be OK
             }
@@ -74,6 +70,14 @@ public class Migrate {
         } catch (LiquibaseException | SQLException ex) {
             throw new MigrateException("Failed to migrate database from " + changesetFile, ex);
         }
+    }
+
+    /**
+     * Helper function to block "drop all on start" from happening on undesired databases
+     */
+    public boolean allowDropAllOnStart(){
+        return Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
+            || env.contains("test") || env.contains("int"));
     }
 
 }

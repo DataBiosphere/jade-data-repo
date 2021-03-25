@@ -5,6 +5,7 @@ import bio.terra.model.UpgradeModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.job.JobService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.service.upgrade.Migrate;
@@ -17,7 +18,7 @@ public class MigrateDatabaseFlight extends Flight {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        Migrate migrate = (Migrate) appContext.getBean("migrate");
+        JobService jobService = (JobService) appContext.getBean("jobService");
         MigrateConfiguration migrateConfiguration =
             (MigrateConfiguration) appContext.getBean("migrateConfiguration");
         IamService iamService =
@@ -32,9 +33,8 @@ public class MigrateDatabaseFlight extends Flight {
 
         //auth
         addStep(new MigrateDatabaseAuthStep(iamService, applicationConfiguration, user));
-        //datarepo migrate
-        addStep(new MigrateDataRepoDatabaseStep(migrate, migrateConfiguration, request, user));
-        //stairway migrate
+        //set drop all on start variable and run datarepo & stairway migration
+        addStep(new MigrateDatabaseMigrationStep(jobService, migrateConfiguration, request, user));
     }
 
 }

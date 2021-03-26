@@ -69,8 +69,15 @@ jobs:
           if [[ -n "${K8_CLUSTER}" ]]; then
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
-      - name: Add Runner IP to allowlist
-        uses: broadinstitute/datarepo-actions/actions/add-runner-ip@0.49.0
+      - name: "Whitelist Runner IP"
+        uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        env:
+          GOOGLE_SA_CERT: 'jade-dev-account.pem'
+        with:
+          actions_subcommand: 'gcp_whitelist'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+          google_project: broad-jade-perf
       - name: 'Checkout datarepo-helm-definitions repo'
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
         uses: actions/checkout@v2
@@ -167,28 +174,33 @@ jobs:
       #     cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: Remove Runner IP from allowlist
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/rm-runner-ip@0.49.0
-      - name: "Notify Jade Slack"
-        if: always()
-        uses: broadinstitute/action-slack@v3.8.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.39.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
-          status: ${{ job.status }}
-          channel: "#jade-alerts"
-          username: "Data Repo tests"
-          text: "Perf tests"
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-      - name: "Notify QA Slack"
-        if: ${{ github.event_name != 'workflow_dispatch' && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#dsde-qa"
-          username: "Data Repo tests"
-          text: "Perf tests"
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+          actions_subcommand: 'gcp_whitelist_clean'
+          google_project: broad-jade-perf
+      # - name: "Notify Jade Slack"
+      #   if: always()
+      #   uses: broadinstitute/action-slack@v3.8.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: "#jade-alerts"
+      #     username: "Data Repo tests"
+      #     text: "Perf tests"
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      # - name: "Notify QA Slack"
+      #   if: ${{ github.event_name != 'workflow_dispatch' && always() }}
+      #   uses: broadinstitute/action-slack@v3.8.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: "#dsde-qa"
+      #     username: "Data Repo tests"
+      #     text: "Perf tests"
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

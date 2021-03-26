@@ -64,6 +64,7 @@ public class JobService {
     private final KubeService kubeService;
     private final AtomicBoolean isRunning;
     private final Migrate migrate;
+    private final GoogleResourceConfiguration resourceConfiguration;
 
 
     @Autowired
@@ -75,7 +76,8 @@ public class JobService {
                       ApplicationContext applicationContext,
                       Migrate migrate,
                       ObjectMapper objectMapper,
-                      PerformanceLogger performanceLogger) throws StairwayExecutionException {
+                      PerformanceLogger performanceLogger,
+                      GoogleResourceConfiguration resourceConfiguration) throws StairwayExecutionException {
         this.samService = samService;
         this.appConfig = appConfig;
 
@@ -83,6 +85,7 @@ public class JobService {
         this.migrateConfiguration = migrateConfiguration;
         this.isRunning = new AtomicBoolean(true);
         this.migrate = migrate;
+        this.resourceConfiguration = resourceConfiguration;
 
         this.kubeService = new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
 

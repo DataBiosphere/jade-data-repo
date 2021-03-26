@@ -13,6 +13,8 @@ import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
+import bio.terra.model.UpgradeModel;
+import bio.terra.model.UpgradeResponseModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DataDeletionRequest;
@@ -32,9 +34,11 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.UpgradeModel;
 import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
+import bio.terra.service.upgrade.UpgradeService;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
@@ -69,6 +73,9 @@ public class DataRepoFixtures {
     @Autowired
     private TestConfiguration testConfig;
 
+    @Autowired
+    private UpgradeService upgradeService;
+
     // Create a Billing Profile model: expect successful creation
     public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
         BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.billingProfileRequest(
@@ -93,6 +100,14 @@ public class DataRepoFixtures {
         return postResponse.getResponseObject().get();
     }
 
+    public BillingProfileModel retrieveBillingProfile(TestConfiguration.User user, String profileId) throws Exception
+    {
+        DataRepoResponse<BillingProfileModel> response = dataRepoClient.get(user,
+        "/api/resources/v1/profiles/" + profileId,
+        BillingProfileModel.class);
+        assertTrue("successfully retrieved billing profile", response.getStatusCode().is2xxSuccessful());
+        return response.getResponseObject().get();
+    }
     public void deleteProfile(TestConfiguration.User user, String profileId) throws Exception {
         DataRepoResponse<DeleteResponseModel> deleteResponse = deleteProfileLog(user, profileId);
         assertGoodDeleteResponse(deleteResponse);
@@ -678,6 +693,33 @@ public class DataRepoFixtures {
         assertThat("getConfigList is successfully", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("getConfigList response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
+    }
+
+    public UpgradeResponseModel migrateDatabases(TestConfiguration.User user, String dropAllOnStart) throws Exception {
+        UpgradeModel request = new UpgradeModel();
+        request.addCustomArgsItem(dropAllOnStart);
+        request.customName("MIGRATE_DATABASE");
+        request.upgradeName("test");
+        request.upgradeType(UpgradeModel.UpgradeTypeEnum.CUSTOM);
+        String json = TestUtils.mapToJson(request);
+
+        DataRepoResponse<JobModel> jobResponse = dataRepoClient.post(
+            user,
+            "/api/repository/v1/upgrade",
+            json,
+            JobModel.class);
+        assertTrue("migrate database flight launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("migrate database flight launch response is present",
+            jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<UpgradeResponseModel> postResponse = dataRepoClient.waitForResponse(
+            user, jobResponse, UpgradeResponseModel.class);
+
+        assertThat("upgrade response model is successfully created", postResponse.getStatusCode(),
+            equalTo(HttpStatus.CREATED));
+        assertTrue("upgrade response model response is present",
+            postResponse.getResponseObject().isPresent());
+        return postResponse.getResponseObject().get();
     }
 
 }

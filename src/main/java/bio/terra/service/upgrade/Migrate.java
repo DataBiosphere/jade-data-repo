@@ -1,6 +1,7 @@
 package bio.terra.service.upgrade;
 
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.upgrade.exception.MigrateException;
 import liquibase.Contexts;
 import liquibase.Liquibase;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Provides methods for upgrading the data repository metadata and stairway databases.
@@ -36,15 +38,18 @@ public class Migrate {
     private static final Logger logger = LoggerFactory.getLogger("bio.terra.service.upgrade");
     private final DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
+    private final GoogleResourceConfiguration resourceConfiguration;
 
     @Autowired
     private Environment env;
 
     @Autowired
     public Migrate(DataRepoJdbcConfiguration dataRepoJdbcConfiguration,
-                   MigrateConfiguration migrateConfiguration) {
+                   MigrateConfiguration migrateConfiguration,
+                   GoogleResourceConfiguration resourceConfiguration) {
         this.dataRepoJdbcConfiguration = dataRepoJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
+        this.resourceConfiguration = resourceConfiguration;
     }
 
     /**
@@ -76,8 +81,11 @@ public class Migrate {
      * Helper function to block "drop all on start" from happening on undesired databases
      */
     public boolean allowDropAllOnStart() {
-        return Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
+        boolean allowedProfile = Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
             || env.contains("test") || env.contains("int"));
+
+        boolean blacklistedDataProject = resourceConfiguration.getSingleDataProjectId().equals("broad-jade-dev-data");
+        return allowedProfile && !blacklistedDataProject;
     }
 
 }

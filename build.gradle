@@ -252,6 +252,21 @@ dependencies {
     generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"
 
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+    constraints {
+        compile('org.bouncycastle:bcpg-jdk15on:1.68') {
+            because '1.66 has security vulnerabilities'
+        }
+        compile('org.bouncycastle:bcpkix-jdk15on:1.68') {
+            because '1.66 has security vulnerabilities'
+        }
+        compile('org.bouncycastle:bcprov-ext-jdk15on:1.68') {
+            because '1.66 has security vulnerabilities'
+        }
+        compile('org.bouncycastle:bcprov-jdk15on:1.68') {
+            because '1.66 has security vulnerabilities'
+        }
+    }
 }
 
 def getGitHash = { ->

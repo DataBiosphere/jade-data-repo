@@ -196,13 +196,16 @@ dependencies {
     // This allows you to build with a local Stairway JAR file, instead of the one from the repository
     // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
     // Or define the environment variable ORG_GRADLE_PROJECT_stairwayjar
-    if (project.hasProperty("stairwayjar")) {
-        implementation files(project.ext.get("stairwayjar"))
-        implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
-        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
-    } else {
-        implementation 'bio.terra:stairway:0.0.36-SNAPSHOT'
-    }
+//    if (project.hasProperty("stairwayjar")) {
+//        implementation files(project.ext.get("stairwayjar"))
+//        implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
+//        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
+//    } else {
+    implementation 'bio.terra:stairway:0.0.36-SNAPSHOT'
+    //}
+    //compile fileTree(dir: 'lib', include: '*.jar')
+
+
 
     // Similar development mode for pointing to terra common library
     if (project.hasProperty("commonlibjar")) {
@@ -366,6 +369,13 @@ task setupGeneratedDir(type: Copy) {
 }
 tasks.jib.dependsOn setupGeneratedDir
 
+//task unzip(type: Copy) {
+//    from zipTree(configurations.stairwayJar.allDependencies).matching {
+//        include 'stairway.db/changelog.xml'
+//    }.singleFile
+//    into 'lib/stairway/'
+//}
+
 liquibase {
     activities {
         datarepo {
@@ -375,8 +385,15 @@ liquibase {
             password project.ext.dbDatarepoPassword
             logLevel 'debug'
         }
+        stairway {
+            changeLogFile 'productionRuntimeClasspath:/stairway/db/changelog.xml'
+            url project.ext.dbStairwayUri
+            username project.ext.dbStairwayUsername
+            password project.ext.dbStairwayPassword
+        }
     }
 }
+//liquibase.dependsOn(unzip)
 
 
 // -- Test tasks --

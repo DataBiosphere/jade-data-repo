@@ -1,6 +1,5 @@
 package scripts.testscripts;
 
-import bio.terra.datarepo.api.DataRepositoryServiceApi;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.DeleteResponseModel;
@@ -28,7 +27,6 @@ public class SnapshotScaleDelete extends SimpleDataset {
   private SnapshotModel snapshotModel;
 
   private static List<BlobId> scratchFiles = new ArrayList<>();
-  private String dirObjectId;
 
   private int NUM_SNAPSHOTS = 1;
 
@@ -45,7 +43,7 @@ public class SnapshotScaleDelete extends SimpleDataset {
 
     // get the ApiClient for the snapshot creator, same as the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
+    // RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // dont bother to load data into the new dataset
     // create MANY snapshots based on a single dataset
@@ -73,7 +71,9 @@ public class SnapshotScaleDelete extends SimpleDataset {
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
+
+    // DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
 
     for (int i = 0; i < NUM_SNAPSHOTS; i++) {
       // make the create snapshot request and wait for the job to finish

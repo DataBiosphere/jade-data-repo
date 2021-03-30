@@ -40,33 +40,6 @@ public class SnapshotScaleDelete extends SimpleDataset {
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     // create the profile and dataset
     super.setup(testUsers);
-
-    // get the ApiClient for the snapshot creator, same as the dataset creator
-    ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    // RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
-
-    // dont bother to load data into the new dataset
-    // create MANY snapshots based on a single dataset
-
-    /*    for (int i = 0; i < NUM_SNAPSHOTS; i++) {
-       // make the create snapshot request and wait for the job to finish
-       // the name of the snapshot will already be randomized based on the bool
-       JobModel createSnapshotJobResponse =
-           DataRepoUtils.createSnapshot(
-               repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
-
-       // save a reference to the snapshot summary model so we can delete it in cleanup()
-       // TODO ^ shouldn't I be deleting them all anyway?
-       // do I need to account for the fact that many will be deleted already?
-       // another idea would be that we create and then delete them each in the userjourney
-       SnapshotSummaryModel snapshotSummaryModel =
-           DataRepoUtils.expectJobSuccess(
-               repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
-       logger.info("Successfully created snapshot: {}, index: {}",
-           snapshotSummaryModel.getName(),
-           i
-       );
-    }*/
   }
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
@@ -74,7 +47,8 @@ public class SnapshotScaleDelete extends SimpleDataset {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     // DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
-
+    List<SnapshotSummaryModel> snapshotList = new ArrayList<>();
+    List<JobModel> deleteList = new ArrayList<>();
     for (int i = 0; i < NUM_SNAPSHOTS; i++) {
       // make the create snapshot request and wait for the job to finish
       // the name of the snapshot will already be randomized based on the bool
@@ -86,18 +60,26 @@ public class SnapshotScaleDelete extends SimpleDataset {
       SnapshotSummaryModel snapshotSummaryModel =
           DataRepoUtils.expectJobSuccess(
               repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
+      snapshotList.add(snapshotSummaryModel);
       logger.info(
           "Successfully created snapshot: {}, index: {}", snapshotSummaryModel.getName(), i);
+    }
 
+    for (int i = 0; i < snapshotList.size(); i++) {
       // Now delete each snapshot
       JobModel deleteSnapshotJobResponse =
-          repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
-      deleteSnapshotJobResponse =
-          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
-      DataRepoUtils.expectJobSuccess(
-          repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-      logger.info(
-          "Successfully deleted snapshot: {}, index: {}", snapshotSummaryModel.getName(), i);
+          repositoryApi.deleteSnapshot(snapshotList.get(i).getId());
+      deleteList.add(deleteSnapshotJobResponse);
+    }
+
+    for (int i = 0; i < deleteList.size(); i++) {
+    // Now check the delete of each snapshot
+      JobModel deleteSnapshotJobResponse =
+          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteList.get(i));
+    //  ^ Shelby makes the great point that this wait is v artificial
+    DataRepoUtils.expectJobSuccess(
+        repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+     logger.info("Successfully deleted snapshot: {}, index: {}", snapshotList.get(i).getName(), i);
     }
   }
 

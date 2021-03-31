@@ -396,14 +396,14 @@ liquibase {
             url project.ext.dbDatarepoUri
             username project.ext.dbDatarepoUsername
             password project.ext.dbDatarepoPassword
-            logLevel 'debug'
+            logLevel 'info'
         }
         stairway {
             changeLogFile project.ext.dbStairwayChangesetFile
             url project.ext.dbStairwayUri
             username project.ext.dbStairwayUsername
             password project.ext.dbStairwayPassword
-            logLevel 'debug'
+            logLevel 'info'
         }
     }
 }

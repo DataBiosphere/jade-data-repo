@@ -381,6 +381,14 @@ task setupGeneratedDir(type: Copy) {
 }
 tasks.jib.dependsOn setupGeneratedDir
 
+task generateStairway(type: Copy) {
+    from zipTree(configurations.runtimeClasspath.find { File file -> file.name.contains("stairway")})
+    into 'build/stairway'
+}
+// Is there a way to just specify all liquibase commands?
+tasks.update.dependsOn generateStairway
+tasks.dropAll.dependsOn generateStairway
+
 liquibase {
     activities {
         datarepo {
@@ -389,6 +397,12 @@ liquibase {
             username project.ext.dbDatarepoUsername
             password project.ext.dbDatarepoPassword
             logLevel 'debug'
+        }
+        stairway {
+            changeLogFile project.ext.dbStairwayChangesetFile
+            url project.ext.dbStairwayUri
+            username project.ext.dbStairwayUsername
+            password project.ext.dbStairwayPassword
         }
     }
 }
@@ -464,3 +478,4 @@ compileGeneratedJava.dependsOn generateGrammarSource
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava
 ideaModule.dependsOn swaggerSources.server.code
+generateStairway.dependsOn configurations.runtimeClasspath

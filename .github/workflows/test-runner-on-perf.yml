@@ -114,7 +114,7 @@ jobs:
         env:
           ORG_GRADLE_PROJECT_dbDatarepoUri: jdbc:postgresql://localhost:5434/datarepo
           ORG_GRADLE_PROJECT_dbDatarepoPassword: ${{ secrets.PERF_DB_DATAREPO_PWD }}
-          ORG_GRADLE_PROJECT_dbStaiwayUri: jdbc:postgresql://localhost:5434/stairway
+          ORG_GRADLE_PROJECT_dbStairwayUri: jdbc:postgresql://localhost:5434/stairway
           ORG_GRADLE_PROJECT_dbStairwayPassword: ${{ secrets.PERF_DB_DATAREPO_PWD }}
         run: |
           # port foward to perf database

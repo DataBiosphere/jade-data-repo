@@ -392,6 +392,7 @@ task unzip(type: Copy) {
     from zipTree(configurations.runtimeClasspath.find { File file -> file.name.contains("stairway")})
     into 'build/stairway'
 }
+// Is there a way to just specify all liquibase commands?
 tasks.update.dependsOn unzip
 tasks.dropAll.dependsOn unzip
 

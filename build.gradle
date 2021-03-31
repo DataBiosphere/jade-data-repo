@@ -156,6 +156,7 @@ repositories {
 configurations {
     generatedCompile
     runtimeClasspath
+    stairway
 }
 
 dependencies {
@@ -202,6 +203,8 @@ dependencies {
 //        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
 //    } else {
     implementation 'bio.terra:stairway:0.0.36-SNAPSHOT'
+    compileClasspath('bio.terra:stairway:0.0.36-SNAPSHOT')
+
     //}
     //compile fileTree(dir: 'lib', include: '*.jar')
 
@@ -228,6 +231,7 @@ dependencies {
     }
 
     antlr "org.antlr:antlr4:4.8"
+    stairway "bio.terra:stairway:0.0.36-SNAPSHOT"
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
@@ -384,14 +388,12 @@ task setupGeneratedDir(type: Copy) {
 }
 tasks.jib.dependsOn setupGeneratedDir
 
-//task unzip(type: Copy) {
-//    from zipTree(configurations.stairwayJar.allDependencies).matching {
-//        include 'stairway.db/changelog.xml'
-//    }.singleFile
-//    into 'lib/stairway/'
-//}
+task unzip(type: Copy) {
+    from zipTree(configurations.runtimeClasspath.find { File file -> file.name.contains("stairway")})
+    into 'build/stairway'
+}
 
-liquibase {
+liquibase() {
     activities {
         datarepo {
             changeLogFile project.ext.dbDatarepoChangesetFile
@@ -401,14 +403,16 @@ liquibase {
             logLevel 'debug'
         }
         stairway {
-            changeLogFile 'productionRuntimeClasspath:/stairway/db/changelog.xml'
+            //changeLogFile new StringBuilder().append(configurations.compileClasspath.find { File file -> file.name.contains("stairway")}).append('!/stairway/db/changelog.xml')
+            changeLogFile 'build/stairway/db/changelog.xml'
             url project.ext.dbStairwayUri
             username project.ext.dbStairwayUsername
             password project.ext.dbStairwayPassword
         }
     }
 }
-//liquibase.dependsOn(unzip)
+
+
 
 
 // -- Test tasks --
@@ -481,3 +485,11 @@ compileGeneratedJava.dependsOn generateGrammarSource
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava
 ideaModule.dependsOn swaggerSources.server.code
+
+task list(dependsOn: configurations.runtimeClasspath) {
+    doLast {
+        //println "classpath = ${configurations.runtimeClasspath.find { File file -> file.name.contains("stairway")}}"
+
+        //println "${configurations.classpath.collect { File file -> file.name }}"
+    }
+}

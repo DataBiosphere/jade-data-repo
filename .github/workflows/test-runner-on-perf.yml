@@ -26,8 +26,9 @@ jobs:
           echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
       - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_VERSION }} branch"
         uses: actions/checkout@v2
-        with:
-          ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
+        #REVERT BEFORE MERGE
+        #with:
+        #  ref: ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "Import Vault perf secrets"
         uses: hashicorp/vault-action@v2.1.0
         with:

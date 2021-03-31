@@ -70,7 +70,7 @@ jobs:
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.55.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
@@ -92,7 +92,7 @@ jobs:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/datarepo-actions/actions/merger@0.39.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.55.0
         env:
           COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
           GITHUB_REPO: datarepo-helm-definitions
@@ -153,7 +153,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.55.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:

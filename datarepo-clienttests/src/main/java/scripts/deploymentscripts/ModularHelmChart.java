@@ -248,7 +248,6 @@ public class ModularHelmChart extends DeploymentScript {
 
     // always set the following testing-related environment variables
     envSubTree.put("DB_STAIRWAY_FORCECLEAN", "true");
-    envSubTree.put("DB_MIGRATE_DROPALLONSTART", "true");
     envSubTree.put("GOOGLE_ALLOWREUSEEXISTINGBUCKETS", "true");
     envSubTree.put("GOOGLE_ALLOWREUSEEXISTINGPROJECTS", "true");
 
@@ -256,6 +255,8 @@ public class ModularHelmChart extends DeploymentScript {
     // make sure the values are Strings so that they will be quoted in the Helm chart
     // otherwise, Helm may convert numbers to scientific notation, which breaks Spring's ability to
     // read them in as application properties
+
+    envSubTree.put("DB_MIGRATE_DROPALLONSTART", String.valueOf(serverSpecification.dbDropAllOnStart));
     envSubTree.put(
         "DATAREPO_MAXSTAIRWAYTHREADS", String.valueOf(applicationSpecification.maxStairwayThreads));
     envSubTree.put(

@@ -195,8 +195,7 @@ public class LaunchLocalProcess extends DeploymentScript {
     envVars.put("GOOGLE_ALLOWREUSEEXISTINGPROJECTS", "true");
 
     // set the following environment variables from the application specification object
-    envVars.put(
-          "DB_MIGRATE_DROPALLONSTART", String.valueOf(serverSpecification.dbDropAllOnStart));
+    envVars.put("DB_MIGRATE_DROPALLONSTART", String.valueOf(serverSpecification.dbDropAllOnStart));
     envVars.put(
         "DATAREPO_MAXSTAIRWAYTHREADS", String.valueOf(applicationSpecification.maxStairwayThreads));
     envVars.put(

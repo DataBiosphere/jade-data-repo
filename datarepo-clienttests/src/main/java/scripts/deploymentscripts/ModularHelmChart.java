@@ -256,7 +256,8 @@ public class ModularHelmChart extends DeploymentScript {
     // otherwise, Helm may convert numbers to scientific notation, which breaks Spring's ability to
     // read them in as application properties
 
-    envSubTree.put("DB_MIGRATE_DROPALLONSTART", String.valueOf(serverSpecification.dbDropAllOnStart));
+    envSubTree.put(
+        "DB_MIGRATE_DROPALLONSTART", String.valueOf(serverSpecification.dbDropAllOnStart));
     envSubTree.put(
         "DATAREPO_MAXSTAIRWAYTHREADS", String.valueOf(applicationSpecification.maxStairwayThreads));
     envSubTree.put(

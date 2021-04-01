@@ -20,7 +20,7 @@
 
 #----- TROUBLESHOOTING----
 #Error: parse error: Invalid numeric literal at line 1, column 10 
-# + emtpy samPolicies.txt files
+# + empty samPolicies.txt files
 # REASON: your token has expired. Run the steps above again!
 
 # Require a project id

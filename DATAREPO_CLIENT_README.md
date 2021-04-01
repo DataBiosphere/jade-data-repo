@@ -54,8 +54,9 @@ getting a cached version. To do this, change `version` in the root `build.gradle
 ## Versioning
 The version number for the client code is the same as the data repo version, and a new library is built
 whenever the data repo version is changed. The artifact for this library is automatically built
-and pushed to Broad local repo when a branch is merged to develop by the
-"Publish to Artifactory" step in [this github action](.github/workflows/dev-image-update.yaml).
+and pushed to a [Broad local repo](https://broadinstitute.jfrog.io/ui/packages/gav:%2F%2Fbio.terra:datarepo-client)
+when a branch is merged to develop,
+by the "Publish to Artifactory" step in [this github action](.github/workflows/dev-image-update.yaml).
 
 ## Why is there junk in the tdrclient directory after a build?
 The swagger codegen creates a pile of extraneous files. I don't know how to turn them off.

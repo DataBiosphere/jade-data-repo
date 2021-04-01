@@ -12,15 +12,13 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.TableModel;
 import bio.terra.common.ValidationUtils;
+import com.google.common.collect.ImmutableSet;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
 import javax.validation.constraints.NotNull;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static java.util.stream.Collectors.toList;
 
@@ -35,6 +33,8 @@ import static java.util.stream.Collectors.toList;
  */
 @Component
 public class DatasetRequestValidator implements Validator {
+
+    private final static ImmutableSet VALID_DATATYPES = ImmutableSet.of("fileref", "int64", "float64", "string", "date");
 
     @Override
     public boolean supports(Class<?> clazz) {
@@ -172,6 +172,8 @@ public class DatasetRequestValidator implements Validator {
         List<String> primaryKeyList = table.getPrimaryKey();
 
         if (tableName != null && columns != null) {
+            columns.forEach((column) -> validateDatatype(column, errors));
+
             List<String> columnNames = columns.stream().map(ColumnModel::getName).collect(toList());
             if (ValidationUtils.hasDuplicates(columnNames)) {
                 errors.rejectValue("schema", "DuplicateColumnNames");
@@ -217,6 +219,13 @@ public class DatasetRequestValidator implements Validator {
         } else if (intOptions != null) {
             errors.rejectValue("schema", "InvalidIntPartitionOptions",
                 "intPartitionOptions can only be specified when using 'int' partitionMode");
+        }
+    }
+
+    private void validateDatatype(ColumnModel column, Errors errors) {
+        if (!VALID_DATATYPES.contains(column.getDatatype().toLowerCase())){
+            errors.rejectValue("datatype", "InvalidDatatype",
+                "invalid datatype " + column.getDatatype() + " valid datatypes are " + String.join(",", VALID_DATATYPES.asList()));
         }
     }
 

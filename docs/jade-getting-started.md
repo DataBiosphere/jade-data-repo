@@ -172,13 +172,21 @@ gcloud auth configure-docker
 
 10. [IntelliJ IDEA](https://www.jetbrains.com/idea/) is an integrated development
 environment (IDE) for Java. There are two versions available: **Ultimate** (paid)
-and **Community** (open-source). We recommend the Ultimate Edition for its database navigation capabilities:
+and **Community** (open-source).
+
+We recommend the Ultimate Edition to Broad employees for its database navigation capabilities:
 
 ```
 brew install --cask intellij-idea
 open -a "IntelliJ IDEA"
 ```
-Connect to the Broad VPN and use http://jetbrains.broadinstitute.org:8080 as the license server.
+
+Alternatively, the Community Edition has all the features needed for development:
+
+```
+brew cask install intellij-idea-ce
+open -a "IntelliJ IDEA CE"
+```
 
 11. Once it is launched, go to IntelliJ IDEA -> Preferences -> Plugins,
 then click in the search box and install **Cloud Code**, which integrates

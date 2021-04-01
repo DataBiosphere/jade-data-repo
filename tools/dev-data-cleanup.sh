@@ -4,7 +4,7 @@
 
 #---USAGE---
 #gcloud auth login #your dev gmail
-#export token = $(gcloud auth print-access-token)
+#export token=$(gcloud auth print-access-token)
 #gcloud auth login #your broad email
 #./dev-data-cleanup.sh broad-jade-dev-data
 
@@ -17,6 +17,11 @@
 #2. Remove group policies listed in iamPolicyONLY.txt
 #3. Update the IAM policy to use the udpated one by running:
 # gcloud projects set-iam-policy broad-jade-dev-data updatedPolicy.json
+
+#----- TROUBLESHOOTING----
+#Error: parse error: Invalid numeric literal at line 1, column 10 
+# + emtpy samPolicies.txt files
+# REASON: your token has expired. Run the steps above again!
 
 # Require a project id
 : ${1?"Usage: $0 PROJECT_ID"}

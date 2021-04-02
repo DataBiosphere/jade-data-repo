@@ -124,6 +124,12 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}  && \
           ./gradlew dropAll && \
           exit 0
+      - name: "Cycle pods to initialize databases"
+        run: |
+          echo "Cycle API pods to trigger migrations to initialize databases"
+          kubectl delete pods -n perf -l app.kubernetes.io/name=datarepo-api
+          echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
+          sleep 45
       - name: "Wait for Perf Cluster to come back up with correct version"
         run: |
           PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')

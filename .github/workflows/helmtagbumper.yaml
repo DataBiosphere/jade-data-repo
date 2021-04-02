@@ -123,4 +123,4 @@ jobs:
           fields: job,repo,message,author,took
           author_name: "[API] [datarepo-helm] Version update for Helm Charts"
           mention: fb,muscles
-          mention_if: failure
+          if_mention: failure

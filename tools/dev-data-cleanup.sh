@@ -65,5 +65,5 @@ comm -13 ${FOLDER_NAME}/samPoliciesSorted.txt ${FOLDER_NAME}/iamPoliciesSorted.t
 dt=$(date '+%d-%m-%Y-%H:%M:%S');
 zip -r ${FOLDER_NAME}/${FOLDER_NAME}${dt}.zip ${FOLDER_NAME}
 echo "DONE"
-echo "Check $FOLDER_NAME for results. Policies that can be removed from the google project should be listed in iamPolicyONLY.txt"
+echo "Check ${FOLDER_NAME} for results. Policies that can be removed from the google project should be listed in iamPolicyONLY.txt"
 echo "Upload the zipped up directory to slack or jira to keep record of what what changed."

@@ -123,9 +123,6 @@ jobs:
           echo "After 10 seconds - run drop all & update" && \
           cd ${GITHUB_WORKSPACE}/${workingDir}  && \
           ./gradlew dropAll && \
-          ./gradlew update && \
-          ./gradlew clearChecksums && \
-          ./gradlew changeLogSync && \
           exit 0
       - name: "Wait for Perf Cluster to come back up with correct version"
         run: |

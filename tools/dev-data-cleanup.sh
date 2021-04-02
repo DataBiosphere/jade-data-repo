@@ -36,7 +36,7 @@ fi
 
 #Require user to set BEARER TOKEN
 if [ -z "${token}" ]; then
-    echo "ERROR set token env variable. Try gcloud auth login and then export token=$(gcloud auth print-access-token)"
+    echo "ERROR set token env variable. Try 'gcloud auth login' and then set 'token' env variable with value from 'gcloud auth print-access-token'"
     exit 1
 fi
 

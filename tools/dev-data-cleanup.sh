@@ -1,6 +1,7 @@
 #!/bin/bash
-# This script is also used as a cleanup script used ahead of manual cleanup of the broad-jade-dev-data project. 
-# SAM policies need to be cleared out to avoid hitting 250 IAM policy limit
+# This script generates a list of IAM policies that can be removed from broad-jade-dev-data project
+# Users can follow the steps below to update the IAM policy
+# Why? Clear out unused IAM policies to avoid hitting 250 IAM policy limit
 
 #---USAGE---
 #gcloud auth login #your dev gmail
@@ -19,7 +20,7 @@
 # gcloud projects set-iam-policy broad-jade-dev-data updatedPolicy.json
 
 #----- TROUBLESHOOTING----
-#Error: parse error: Invalid numeric literal at line 1, column 10 
+#Error: parse error: Invalid numeric literal at line 1, column 10
 # + empty samPolicies.txt files
 # REASON: your token has expired. Run the steps above again!
 

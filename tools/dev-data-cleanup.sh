@@ -49,7 +49,7 @@ echo ${BINDINGS} | jq '.' > ${FOLDER_NAME}/backupPolicy.json
 
 echo "Collecting policies attached to either datasets or snapshots"
 DATASET_POLICIES=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/datasets?direction=desc&limit=10000&offset=0&sort=created_date" -H "accept: application/json" -H "authorization: Bearer ${token}" | jq -r .items[].id | xargs -I datasetId curl -s -X GET "https://sam.dsde-dev.broadinstitute.org/api/resources/v2/dataset/datasetId/policies" -H "accept: application/json" -H "authorization: Bearer ${token}" | jq -r .[].email)
-echo $DATASET_POLICIES >> ${FOLDER_NAME}/samPolicies.txt
+echo $DATASET_POLICIES > ${FOLDER_NAME}/samPolicies.txt
 SNAPSHOT_POLICIES=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/api/repository/v1/snapshots?direction=desc&limit=10000&offset=0&sort=created_date" -H "accept: application/json" -H "authorization: Bearer ${token}" | jq -r .items[].id | xargs -I snapshotId curl -s -X GET "https://sam.dsde-dev.broadinstitute.org/api/resources/v2/datasnapshot/snapshotId/policies" -H "accept: application/json" -H "authorization: Bearer ${token}" | jq -r .[].email)
 echo $SNAPSHOT_POLICIES >> ${FOLDER_NAME}/samPolicies.txt
 cat ${FOLDER_NAME}/samPolicies.txt | tr ' ' '\n' | sort -u > ${FOLDER_NAME}/samPoliciesSorted.txt

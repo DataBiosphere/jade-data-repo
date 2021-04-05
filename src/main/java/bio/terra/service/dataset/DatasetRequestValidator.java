@@ -110,7 +110,7 @@ public class DatasetRequestValidator implements Validator {
                 columns.stream().filter(c -> targetColumn.equals(c.getName())).findFirst();
 
             if (matchingColumn.isPresent()) {
-                String colType = matchingColumn.get().getDatatype().name();
+                String colType = matchingColumn.get().getDatatype().toString();
 
                 if (!"DATE".equalsIgnoreCase(colType) && !"TIMESTAMP".equalsIgnoreCase(colType)) {
                     errors.rejectValue("schema", "InvalidDatePartitionColumnType",
@@ -133,7 +133,7 @@ public class DatasetRequestValidator implements Validator {
                 columns.stream().filter(c -> targetColumn.equals(c.getName())).findFirst();
 
             if (matchingColumn.isPresent()) {
-                String colType = matchingColumn.get().getDatatype().name();
+                String colType = matchingColumn.get().getDatatype().toString();
 
                 if (!"INTEGER".equalsIgnoreCase(colType) && !"INT64".equalsIgnoreCase(colType)) {
                     errors.rejectValue("schema", "InvalidIntPartitionColumnType",
@@ -173,7 +173,6 @@ public class DatasetRequestValidator implements Validator {
         List<String> primaryKeyList = table.getPrimaryKey();
 
         if (tableName != null && columns != null) {
-
             List<String> columnNames = columns.stream().map(ColumnModel::getName).collect(toList());
             if (ValidationUtils.hasDuplicates(columnNames)) {
                 errors.rejectValue("schema", "DuplicateColumnNames");

@@ -11,13 +11,16 @@ import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.TableModel;
+import bio.terra.model.TableDatatypes;
+
 import bio.terra.common.ValidationUtils;
-import com.google.common.collect.ImmutableSet;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
 import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -173,6 +176,8 @@ public class DatasetRequestValidator implements Validator {
         List<String> primaryKeyList = table.getPrimaryKey();
 
         if (tableName != null && columns != null) {
+            validateDataTypes(columns, errors);
+
             List<String> columnNames = columns.stream().map(ColumnModel::getName).collect(toList());
             if (ValidationUtils.hasDuplicates(columnNames)) {
                 errors.rejectValue("schema", "DuplicateColumnNames");
@@ -188,7 +193,6 @@ public class DatasetRequestValidator implements Validator {
                     }
                 }
             }
-
             context.addTable(tableName, columns);
         }
 
@@ -218,6 +222,20 @@ public class DatasetRequestValidator implements Validator {
         } else if (intOptions != null) {
             errors.rejectValue("schema", "InvalidIntPartitionOptions",
                 "intPartitionOptions can only be specified when using 'int' partitionMode");
+        }
+    }
+
+    private void validateDataTypes(List<ColumnModel> columns, Errors errors) {
+        List validDataTypes = new ArrayList(Arrays.asList(TableDatatypes.values()));
+        for (ColumnModel column : columns) {
+            // spring defaults user input not belonging to the TableDataTypes enum to null
+            if (column.getDatatype() == null || !validDataTypes.contains(column.getDatatype())) {
+                errors.rejectValue("schema", "InvalidDatatype",
+                    "invalid datatype(s) in table columns, valid DataTypes are " +
+                        validDataTypes.stream().map(datatype -> datatype.toString()).collect(toList()));
+                // don't need to spam user with this message
+                break;
+            }
         }
     }
 

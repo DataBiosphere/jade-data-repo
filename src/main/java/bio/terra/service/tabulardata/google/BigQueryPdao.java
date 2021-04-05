@@ -14,6 +14,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.model.TableDatatypes;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
@@ -1428,36 +1429,35 @@ public class BigQueryPdao {
     }
 
     private LegacySQLTypeName translateType(String datatype) {
-        String lowtype = StringUtils.lowerCase(datatype);
-        if (ColumnModel.DatatypeEnum.BOOLEAN.toString().equalsIgnoreCase(datatype)) {
+        if (TableDatatypes.BOOLEAN.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.BOOLEAN;
-        } else if (ColumnModel.DatatypeEnum.BYTES.toString().equalsIgnoreCase(datatype)) {
+        } else if (bio.terra.model.TableDatatypes.BYTES.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.BYTES;
-        } else if (ColumnModel.DatatypeEnum.DATE.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.DATE.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.DATE;
-        } else if (ColumnModel.DatatypeEnum.DATETIME.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.DATETIME.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.DATETIME;
-        } else if (ColumnModel.DatatypeEnum.DIRREF.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.DIRREF.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.STRING;
-        } else if (ColumnModel.DatatypeEnum.FILEREF.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.FILEREF.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.STRING;
-        } else if (ColumnModel.DatatypeEnum.FLOAT.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.FLOAT.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.FLOAT;
-        } else if (ColumnModel.DatatypeEnum.FLOAT64.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.FLOAT64.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.FLOAT;
-        } else if (ColumnModel.DatatypeEnum.INTEGER.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.INTEGER.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.INTEGER;
-        } else if (ColumnModel.DatatypeEnum.INT64.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.INT64.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.INTEGER;
-        } else if (ColumnModel.DatatypeEnum.NUMERIC.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.NUMERIC.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.NUMERIC;
-        } else if (ColumnModel.DatatypeEnum.STRING.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.STRING.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.STRING;
-        } else if (ColumnModel.DatatypeEnum.TEXT.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.TEXT.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.STRING;
-        } else if (ColumnModel.DatatypeEnum.TIME.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.TIME.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.TIME;
-        } else if (ColumnModel.DatatypeEnum.TIMESTAMP.toString().equalsIgnoreCase(datatype)) {
+        } else if (TableDatatypes.TIMESTAMP.toString().equalsIgnoreCase(datatype)) {
             return LegacySQLTypeName.TIMESTAMP;
         } else {
             throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");

@@ -16,6 +16,7 @@ import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
+import bio.terra.model.TableDatatypes;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -189,7 +190,7 @@ public final class DatasetJsonConversion {
     public static ColumnModel columnModelFromDatasetColumn(Column tableColumn) {
         return new ColumnModel()
                 .name(tableColumn.getName())
-                .datatype(ColumnModel.DatatypeEnum.fromValue(tableColumn.getType()))
+                .datatype(TableDatatypes.fromValue(tableColumn.getType()))
                 .arrayOf(tableColumn.isArrayOf());
     }
 

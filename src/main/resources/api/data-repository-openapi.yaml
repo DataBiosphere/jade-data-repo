@@ -2510,6 +2510,11 @@ paths:
                 $ref: '#/components/schemas/DRSError'
 components:
   schemas:
+    TableDatatypes:
+      type: string
+      enum: [ boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, numeric, record, string, text, time, timestamp ]
+      description: >
+        Valid column datatypes in a table.
     ObjectNameProperty:
       maxLength: 63
       minLength: 1
@@ -2692,8 +2697,7 @@ components:
         name:
           $ref: '#/components/schemas/ObjectNameProperty'
         datatype:
-          type: string
-          enum: [boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, numeric, record, string, text, time, timestamp]
+          $ref: '#/components/schemas/TableDatatypes'
         array_of:
           type: boolean
           description: if true, make this column an array of type datatype.

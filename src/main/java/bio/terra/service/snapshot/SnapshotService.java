@@ -21,6 +21,7 @@ import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
+import bio.terra.model.TableDatatypes;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
@@ -552,7 +553,7 @@ public class SnapshotService {
     private ColumnModel makeColumnModelFromColumn(Column column) {
         return new ColumnModel()
             .name(column.getName())
-            .datatype(ColumnModel.DatatypeEnum.fromValue(column.getType()))
+            .datatype(TableDatatypes.fromValue(column.getType()))
             .arrayOf(column.isArrayOf());
     }
 }

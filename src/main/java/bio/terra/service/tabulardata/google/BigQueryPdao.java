@@ -8,6 +8,7 @@ import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.model.ColumnModel;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -1426,27 +1427,40 @@ public class BigQueryPdao {
         return null;
     }
 
-    // TODO: Make an enum for the datatypes in swagger
     private LegacySQLTypeName translateType(String datatype) {
-        String uptype = StringUtils.upperCase(datatype);
-        switch (uptype) {
-            case "BOOLEAN":   return LegacySQLTypeName.BOOLEAN;
-            case "BYTES":     return LegacySQLTypeName.BYTES;
-            case "DATE":      return LegacySQLTypeName.DATE;
-            case "DATETIME":  return LegacySQLTypeName.DATETIME;
-            case "DIRREF":    return LegacySQLTypeName.STRING;
-            case "FILEREF":   return LegacySQLTypeName.STRING;
-            case "FLOAT":     return LegacySQLTypeName.FLOAT;
-            case "FLOAT64":   return LegacySQLTypeName.FLOAT;  // match the SQL type
-            case "INTEGER":   return LegacySQLTypeName.INTEGER;
-            case "INT64":     return LegacySQLTypeName.INTEGER;  // match the SQL type
-            case "NUMERIC":   return LegacySQLTypeName.NUMERIC;
-            //case "RECORD":    return LegacySQLTypeName.RECORD;
-            case "STRING":    return LegacySQLTypeName.STRING;
-            case "TEXT":      return LegacySQLTypeName.STRING;   // match the Postgres type
-            case "TIME":      return LegacySQLTypeName.TIME;
-            case "TIMESTAMP": return LegacySQLTypeName.TIMESTAMP;
-            default: throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
+        String lowtype = StringUtils.lowerCase(datatype);
+        if (ColumnModel.DatatypeEnum.BOOLEAN.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.BOOLEAN;
+        } else if (ColumnModel.DatatypeEnum.BYTES.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.BYTES;
+        } else if (ColumnModel.DatatypeEnum.DATE.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.DATE;
+        } else if (ColumnModel.DatatypeEnum.DATETIME.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.DATETIME;
+        } else if (ColumnModel.DatatypeEnum.DIRREF.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.STRING;
+        } else if (ColumnModel.DatatypeEnum.FILEREF.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.STRING;
+        } else if (ColumnModel.DatatypeEnum.FLOAT.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.FLOAT;
+        } else if (ColumnModel.DatatypeEnum.FLOAT64.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.FLOAT;
+        } else if (ColumnModel.DatatypeEnum.INTEGER.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.INTEGER;
+        } else if (ColumnModel.DatatypeEnum.INT64.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.INTEGER;
+        } else if (ColumnModel.DatatypeEnum.NUMERIC.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.NUMERIC;
+        } else if (ColumnModel.DatatypeEnum.STRING.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.STRING;
+        } else if (ColumnModel.DatatypeEnum.TEXT.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.STRING;
+        } else if (ColumnModel.DatatypeEnum.TIME.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.TIME;
+        } else if (ColumnModel.DatatypeEnum.TIMESTAMP.toString().equalsIgnoreCase(datatype)) {
+            return LegacySQLTypeName.TIMESTAMP;
+        } else {
+            throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
         }
     }
 

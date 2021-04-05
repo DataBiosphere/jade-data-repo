@@ -2693,6 +2693,7 @@ components:
           $ref: '#/components/schemas/ObjectNameProperty'
         datatype:
           type: string
+          enum: [boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, numeric, record, string, text, time, timestamp]
         array_of:
           type: boolean
           description: if true, make this column an array of type datatype.

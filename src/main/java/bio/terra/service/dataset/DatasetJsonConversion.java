@@ -182,14 +182,14 @@ public final class DatasetJsonConversion {
     public static Column columnModelToDatasetColumn(ColumnModel columnModel) {
         return new Column()
                 .name(columnModel.getName())
-                .type(columnModel.getDatatype())
+                .type(columnModel.getDatatype().name())
                 .arrayOf(columnModel.isArrayOf());
     }
 
     public static ColumnModel columnModelFromDatasetColumn(Column tableColumn) {
         return new ColumnModel()
                 .name(tableColumn.getName())
-                .datatype(tableColumn.getType())
+                .datatype(ColumnModel.DatatypeEnum.fromValue(tableColumn.getType()))
                 .arrayOf(tableColumn.isArrayOf());
     }
 

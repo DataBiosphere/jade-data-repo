@@ -552,7 +552,7 @@ public class SnapshotService {
     private ColumnModel makeColumnModelFromColumn(Column column) {
         return new ColumnModel()
             .name(column.getName())
-            .datatype(column.getType())
+            .datatype(ColumnModel.DatatypeEnum.fromValue(column.getType()))
             .arrayOf(column.isArrayOf());
     }
 }

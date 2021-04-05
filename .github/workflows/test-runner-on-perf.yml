@@ -118,12 +118,13 @@ jobs:
           ORG_GRADLE_PROJECT_dbStairwayPassword: ${{ secrets.PERF_DB_DATAREPO_PWD }}
         run: |
           # port foward to perf database
-          kubectl port-forward --namespace perf svc/perf-jade-gcloud-sqlproxy 5434:5432 & \
-          sleep 10 && \
-          echo "After 10 seconds - run drop all & update" && \
-          cd ${GITHUB_WORKSPACE}/${workingDir}  && \
-          ./gradlew dropAll && \
-          exit 0
+          kubectl port-forward --namespace perf svc/perf-jade-gcloud-sqlproxy 5434:5432 &
+          PID=$!
+          sleep 10
+          echo "After 10 seconds - run drop all & update"
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+          ./gradlew dropAll
+          kill ${PID}
       - name: "Cycle pods to initialize databases"
         run: |
           echo "Cycle API pods to trigger migrations to initialize databases"

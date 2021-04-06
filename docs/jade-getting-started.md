@@ -150,12 +150,12 @@ export VAULT_ADDR=https://clotho.broadinstitute.org:8200
 ```
 
 8. Much of the code written at the Broad is in [Java](https://en.wikipedia.org/wiki/Java_(programming_language)).
-Install the OpenJDK 8 runtime from the [AdoptOpenJDK](https://adoptopenjdk.net/)
+Install the OpenJDK 11 runtime from the [AdoptOpenJDK](https://adoptopenjdk.net/)
 project to develop and run Java code:
 
 ```
 brew tap AdoptOpenJDK/openjdk
-brew install --cask adoptopenjdk8
+brew install --cask adoptopenjdk11
 ```
 
 9. [Google Cloud SDK](https://cloud.google.com/sdk) is a command-line interface

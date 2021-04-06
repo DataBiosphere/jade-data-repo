@@ -30,7 +30,7 @@ plugins {
     id 'org.liquibase.gradle' version '2.0.1'
     id "org.gradle.test-retry" version "1.2.0"
     id 'antlr'
-    id 'com.github.spotbugs' version '4.5.1'
+    id 'com.github.spotbugs' version '4.7.0'
     id "org.hidetake.swagger.generator" version "2.18.2"
     id "org.springframework.boot" version "2.3.4.RELEASE"
     id "idea"
@@ -71,7 +71,8 @@ subprojects.each { s ->
     }
 }
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 if (hasProperty('buildScan')) {
     buildScan {
@@ -225,10 +226,11 @@ dependencies {
     }
 
     antlr "org.antlr:antlr4:4.8"
+    spotbugs 'com.github.spotbugs:spotbugs:4.2.2'
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
-    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
+    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '3.0.7'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
@@ -359,6 +361,9 @@ jar {
 
 jib {
     extraDirectories.paths = ['build/gen-expanded']
+    from {
+        image = "gcr.io/distroless/java-debian10:11"
+    }
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())
     }

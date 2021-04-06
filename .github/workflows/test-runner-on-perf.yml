@@ -121,7 +121,7 @@ jobs:
           kubectl port-forward --namespace perf svc/perf-jade-gcloud-sqlproxy 5434:5432 &
           PID=$!
           sleep 10
-          echo "After 10 seconds - run drop all & update"
+          echo "After giving the proxy 10 seconds to spin up, run drop all on perf database"
           cd ${GITHUB_WORKSPACE}/${workingDir}
           ./gradlew dropAll
           kill ${PID}

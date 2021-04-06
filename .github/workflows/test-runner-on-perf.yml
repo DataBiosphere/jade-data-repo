@@ -79,37 +79,37 @@ jobs:
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
           google_project: broad-jade-perf
-      # - name: '[Update API version on Perf] Checkout datarepo-helm-definitions repo'
-      #   if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-      #   uses: actions/checkout@v2
-      #   with:
-      #     repository: 'broadinstitute/datarepo-helm-definitions'
-      #     token: ${{ secrets.BROADBOT_TOKEN }}
-      #     path: datarepo-helm-definitions
-      # - name: "[Update API version on Perf] Update perf image tag with semVer"
-      #   if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-      #   uses: docker://mikefarah/yq:3.3.4
-      #   with:
-      #     args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
-      # - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
-      #   if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-      #   uses: broadinstitute/datarepo-actions/actions/merger@0.56.0
-      #   env:
-      #     COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
-      #     GITHUB_REPO: datarepo-helm-definitions
-      #     SWITCH_DIRECTORIES: "true"
-      #     MERGE_BRANCH: master
-      # - name: "[Update API version on Perf] Install Helmfile"
-      #   if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-      #   uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
-      # - name: "[Update API version on Perf] Use helmfile reapply helm for api pod to update version"
-      #   if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-      #   run: |
-      #     helmfile --version
-      #     cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
-      #     echo "Apply helm updates, including updated data-repo version"
-      #     helmfile apply
-      #     cd ${GITHUB_WORKSPACE}/${workingDir}
+      - name: '[Update API version on Perf] Checkout datarepo-helm-definitions repo'
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+        uses: actions/checkout@v2
+        with:
+          repository: 'broadinstitute/datarepo-helm-definitions'
+          token: ${{ secrets.BROADBOT_TOKEN }}
+          path: datarepo-helm-definitions
+      - name: "[Update API version on Perf] Update perf image tag with semVer"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+        uses: docker://mikefarah/yq:3.3.4
+        with:
+          args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
+      - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+        uses: broadinstitute/datarepo-actions/actions/merger@0.56.0
+        env:
+          COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
+          GITHUB_REPO: datarepo-helm-definitions
+          SWITCH_DIRECTORIES: "true"
+          MERGE_BRANCH: master
+      - name: "[Update API version on Perf] Install Helmfile"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+        uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
+      - name: "[Update API version on Perf] Use helmfile reapply helm for api pod to update version"
+        if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
+        run: |
+          helmfile --version
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/perf
+          echo "Apply helm updates, including updated data-repo version"
+          helmfile apply
+          cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "[Clear Perf Database] Import Perf Database Secret"
         uses: hashicorp/vault-action@v2.1.0
         with:
@@ -155,26 +155,26 @@ jobs:
             ((RETRY_COUNT=RETRY_COUNT+1))
           done;
           echo "Perf successfully running on new version: $PERF_VERSION"
-      # - name: "Build and run Test Runner"
-      #   run: |
-      #     cd ${GITHUB_WORKSPACE}/${workingDir}
-      #     echo "Building Data Repo client library"
-      #     export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
-      #     ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
-      #     cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
-      #     export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
-      #     echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
+      - name: "Build and run Test Runner"
+        run: |
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+          echo "Building Data Repo client library"
+          export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
+          ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
+          export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
+          echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
-      #     echo "Running test suite"
-      #     ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
+          echo "Running test suite"
+          ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
-      #     echo "Collecting measurements"
-      #     ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
+          echo "Collecting measurements"
+          ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
-      #     echo "Uploading results"
-      #     ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
+          echo "Uploading results"
+          ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
-      #     cd ${GITHUB_WORKSPACE}/${workingDir}
+          cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.56.0
@@ -183,27 +183,27 @@ jobs:
         with:
           actions_subcommand: 'gcp_whitelist_clean'
           google_project: broad-jade-perf
-      # - name: "Notify Jade Slack"
-      #   if: always()
-      #   uses: broadinstitute/action-slack@v3.8.0
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      #   with:
-      #     status: ${{ job.status }}
-      #     channel: "#jade-alerts"
-      #     username: "Data Repo tests"
-      #     text: "Perf tests"
-      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-      # - name: "Notify QA Slack"
-      #   if: ${{ github.event_name != 'workflow_dispatch' && always() }}
-      #   uses: broadinstitute/action-slack@v3.8.0
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-      #   with:
-      #     status: ${{ job.status }}
-      #     channel: "#dsde-qa"
-      #     username: "Data Repo tests"
-      #     text: "Perf tests"
-      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      - name: "Notify Jade Slack"
+        if: always()
+        uses: broadinstitute/action-slack@v3.8.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          channel: "#jade-alerts"
+          username: "Data Repo tests"
+          text: "Perf tests"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      - name: "Notify QA Slack"
+        if: ${{ github.event_name != 'workflow_dispatch' && always() }}
+        uses: broadinstitute/action-slack@v3.8.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ job.status }}
+          channel: "#dsde-qa"
+          username: "Data Repo tests"
+          text: "Perf tests"
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

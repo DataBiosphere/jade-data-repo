@@ -117,8 +117,8 @@ jobs:
           method: approle
           roleId: ${{ secrets.PERF_ROLE_ID }}
           secretId: ${{ secrets.PERF_SECRET_ID }}
+          #Yes, they both point to the stairway database password
           secrets: |
-            #Yes, they both point to the stairway database password
             secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | ORG_GRADLE_PROJECT_dbDatarepoPassword ;
             secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | ORG_GRADLE_PROJECT_dbStairwayPassword ;
       - name: "[Clear Perf Database] Perform DropAll"

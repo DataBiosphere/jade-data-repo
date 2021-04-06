@@ -32,7 +32,7 @@ access.
 channel header, and select `Join DataBiosphere`.  Once you've been granted access
 to DataBiosphere, ask a team member to add your github user to the
 [DataBiosphere/jadeteam group](https://github.com/orgs/DataBiosphere/teams/jadeteam).
-This will give you admin access to our repositories. 
+This will give you admin access to our repositories.
 - Google Groups: Ask a team member for access to Google Groups including `jade-internal` and `dsde-engineering`.
 
 ## 3. Connect accounts
@@ -110,7 +110,7 @@ which deploys groups of containers together in clusters. Once installed, you'll
 need to run Docker once from your list of Applications:
 
 ```
-brew cask install docker
+brew install --cask docker
 open -a Docker
 ```
 
@@ -150,12 +150,12 @@ export VAULT_ADDR=https://clotho.broadinstitute.org:8200
 ```
 
 8. Much of the code written at the Broad is in [Java](https://en.wikipedia.org/wiki/Java_(programming_language)).
-Install the OpenJDK 8 runtime from the [AdoptOpenJDK](https://adoptopenjdk.net/)
+Install the OpenJDK 11 runtime from the [AdoptOpenJDK](https://adoptopenjdk.net/)
 project to develop and run Java code:
 
 ```
 brew tap AdoptOpenJDK/openjdk
-brew cask install adoptopenjdk8
+brew install --cask adoptopenjdk11
 ```
 
 9. [Google Cloud SDK](https://cloud.google.com/sdk) is a command-line interface
@@ -164,7 +164,7 @@ and configure Docker to connect to the appropriate Google Cloud endpoint when
 necessary:
 
 ```
-brew cask install google-cloud-sdk
+brew install --cask google-cloud-sdk
 gcloud auth login
 gcloud auth application-default login
 gcloud auth configure-docker
@@ -172,8 +172,16 @@ gcloud auth configure-docker
 
 10. [IntelliJ IDEA](https://www.jetbrains.com/idea/) is an integrated development
 environment (IDE) for Java. There are two versions available: **Ultimate** (paid)
-and **Community** (open-source). The **Community** edition has all the features
-needed for development:
+and **Community** (open-source).
+
+We recommend the Ultimate Edition to Broad employees for its database navigation capabilities:
+
+```
+brew install --cask intellij-idea
+open -a "IntelliJ IDEA"
+```
+
+Alternatively, the Community Edition has all the features needed for development:
 
 ```
 brew cask install intellij-idea-ce
@@ -214,15 +222,17 @@ vault login -method=github token=$(cat ~/.gh_token)
 
 > It may be useful to create a folder for Broad projects in your home directory.
 
+Setup [Github SSH](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh)
+
 Download the team's projects:
 
 ```
-git clone https://github.com/DataBiosphere/jade-data-repo
-git clone https://github.com/DataBiosphere/jade-data-repo-ui
-git clone https://github.com/DataBiosphere/jade-data-repo-cli
-git clone https://github.com/broadinstitute/terraform-jade
-git clone https://github.com/broadinstitute/datarepo-helm
-git clone https://github.com/broadinstitute/datarepo-helm-definitions
+git clone git@github.com:DataBiosphere/jade-data-repo.git
+git clone git@github.com:DataBiosphere/jade-data-repo-ui.git
+git clone git@github.com:DataBiosphere/jade-data-repo-cli
+git clone git@github.com:DataBiosphere/terraform-jade
+git clone git@github.com:DataBiosphere/datarepo-helm
+git clone git@github.com:DataBiosphere/datarepo-helm-definitions
 ```
 
 ## 8. Set up your Development Environment
@@ -232,7 +242,7 @@ environment.  You'll actually spin up this instance on broad-jade-dev in next st
 
 > These instructions have not been tested yet! This may be a good step to
 pair on with another Jade team member. There is a video of us walking through
-these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing). 
+these steps in our [Jade Google Drive Folder](https://drive.google.com/drive/folders/1JM-_M0qsX6eXocyPc9TB7ivCKJTji3dX?usp=sharing).
 
 1. Follow the [instructions in our terraform-jade repository](https://github.com/broadinstitute/terraform-jade/tree/master/old#new-team-member-process)
 to add your initials to the terraform templates and generate the static resources needed
@@ -329,7 +339,7 @@ to build `jade-data-repo`.
 
 * **Set Environment Variables**: While not exhaustive, here's a list that notes the important environment variables to set when running `jade-data-repo` locally. Instances of `ZZ` should be replaced by your initials or the environment (i.e. `dev`).  These variables override settings in
 jade-data-repo/application.properties.  You can convert any application.property to an environment
-variable by switching to upper case and every "." to "_". 
+variable by switching to upper case and every "." to "_".
 
 ```
 export DATAREPO_USEREMAIL={your dev gmail account}

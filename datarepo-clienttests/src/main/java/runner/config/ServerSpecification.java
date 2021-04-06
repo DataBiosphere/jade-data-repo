@@ -27,7 +27,7 @@ public class ServerSpecification implements SpecificationInterface {
   public ServiceAccountSpecification testRunnerServiceAccount;
   public boolean skipKubernetes = false;
   public boolean skipDeployment = false;
-  public boolean dbDropAllOnStart = true;
+  public boolean dbDropAllOnStart = false;
 
   public static final String resourceDirectory = "servers";
 

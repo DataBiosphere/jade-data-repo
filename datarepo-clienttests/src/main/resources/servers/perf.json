@@ -16,6 +16,5 @@
   },
   "testRunnerServiceAccountFile": "jade-k8-sa.json",
   "skipDeployment": false,
-  "skipKubernetes": false,
-  "dbDropAllOnStart": false
+  "skipKubernetes": false
 }

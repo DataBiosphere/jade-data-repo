@@ -14,7 +14,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
-import bio.terra.model.TableDatatypes;
+import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
@@ -1334,11 +1334,10 @@ public class BigQueryPdao {
         if (mapColumn == null) {
             return "NULL AS " + targetColumnName;
         } else {
-            String colType = mapColumn.getFromColumn().getType();
+            TableDataType colType = mapColumn.getFromColumn().getType();
             String mapName = mapColumn.getFromColumn().getName();
 
-            if (StringUtils.equalsIgnoreCase(colType, "FILEREF") ||
-                StringUtils.equalsIgnoreCase(colType, "DIRREF")) {
+            if (colType == TableDataType.FILEREF || colType ==  TableDataType.DIRREF) {
 
                 String drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshotId + "_'";
 
@@ -1428,39 +1427,25 @@ public class BigQueryPdao {
         return null;
     }
 
-    private LegacySQLTypeName translateType(String datatype) {
-        if (TableDatatypes.BOOLEAN.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.BOOLEAN;
-        } else if (bio.terra.model.TableDatatypes.BYTES.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.BYTES;
-        } else if (TableDatatypes.DATE.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.DATE;
-        } else if (TableDatatypes.DATETIME.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.DATETIME;
-        } else if (TableDatatypes.DIRREF.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.STRING;
-        } else if (TableDatatypes.FILEREF.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.STRING;
-        } else if (TableDatatypes.FLOAT.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.FLOAT;
-        } else if (TableDatatypes.FLOAT64.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.FLOAT;
-        } else if (TableDatatypes.INTEGER.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.INTEGER;
-        } else if (TableDatatypes.INT64.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.INTEGER;
-        } else if (TableDatatypes.NUMERIC.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.NUMERIC;
-        } else if (TableDatatypes.STRING.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.STRING;
-        } else if (TableDatatypes.TEXT.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.STRING;
-        } else if (TableDatatypes.TIME.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.TIME;
-        } else if (TableDatatypes.TIMESTAMP.toString().equalsIgnoreCase(datatype)) {
-            return LegacySQLTypeName.TIMESTAMP;
-        } else {
-            throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
+    private LegacySQLTypeName translateType(TableDataType datatype) {
+        switch (datatype) {
+            case BOOLEAN:   return LegacySQLTypeName.BOOLEAN;
+            case BYTES:     return LegacySQLTypeName.BYTES;
+            case DATE:      return LegacySQLTypeName.DATE;
+            case DATETIME:  return LegacySQLTypeName.DATETIME;
+            case DIRREF:    return LegacySQLTypeName.STRING;
+            case FILEREF:   return LegacySQLTypeName.STRING;
+            case FLOAT:     return LegacySQLTypeName.FLOAT;
+            case FLOAT64:   return LegacySQLTypeName.FLOAT;  // match the SQL type
+            case INTEGER:   return LegacySQLTypeName.INTEGER;
+            case INT64:     return LegacySQLTypeName.INTEGER;  // match the SQL type
+            case NUMERIC:   return LegacySQLTypeName.NUMERIC;
+            //case RECORD:    return LegacySQLTypeName.RECORD;
+            case STRING:    return LegacySQLTypeName.STRING;
+            case TEXT:      return LegacySQLTypeName.STRING;   // match the Postgres type
+            case TIME:      return LegacySQLTypeName.TIME;
+            case TIMESTAMP: return LegacySQLTypeName.TIMESTAMP;
+            default: throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
         }
     }
 

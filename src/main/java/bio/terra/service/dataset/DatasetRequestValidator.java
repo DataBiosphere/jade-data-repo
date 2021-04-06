@@ -11,7 +11,7 @@ import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.TableModel;
-import bio.terra.model.TableDatatypes;
+import bio.terra.model.TableDataType;
 
 import bio.terra.common.ValidationUtils;
 import org.springframework.stereotype.Component;
@@ -19,6 +19,7 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
 import javax.validation.constraints.NotNull;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -226,18 +227,20 @@ public class DatasetRequestValidator implements Validator {
     }
 
     private void validateDataTypes(List<ColumnModel> columns, Errors errors) {
-        List validDataTypes = new ArrayList(Arrays.asList(TableDatatypes.values()));
+        List<ColumnModel> invalidColumns = new ArrayList<>();
         for (ColumnModel column : columns) {
-            // spring defaults user input not belonging to the TableDataTypes enum to null
-            if (column.getDatatype() == null || !validDataTypes.contains(column.getDatatype())) {
-                errors.rejectValue("schema", "InvalidDatatype",
-                    "invalid datatype(s) in table columns, valid DataTypes are " +
-                        validDataTypes.stream().map(datatype -> datatype.toString()).collect(toList()));
-                // don't need to spam user with this message
-                break;
+            // spring defaults user input not belonging to the TableDataType enum to null
+            if (column.getDatatype() == null) {
+                invalidColumns.add(column);
             }
         }
-    }
+        if (invalidColumns.size() > 0) {
+            errors.rejectValue("schema", "InvalidDatatype",
+                "invalid datatype(s) in table columns: " +
+                    String.join(", ", invalidColumns.stream().map(ColumnModel::getName).collect(toList())) +
+                    ", valid DataTypes are " + Arrays.toString(TableDataType.values()));
+        }
+     }
 
     private void validateRelationshipTerm(RelationshipTermModel term, Errors errors, SchemaValidationContext context) {
         String table = term.getTable();

@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
@@ -69,9 +70,8 @@ public class CreateSnapshotFireStoreDataStep implements Step {
             int numFilesSeen = 0;
             for (SnapshotMapTable mapTable : snapshotSource.getSnapshotMapTables()) {
                 for (SnapshotMapColumn mapColumn : mapTable.getSnapshotMapColumns()) {
-                    String fromDatatype = mapColumn.getFromColumn().getType();
-                    if (StringUtils.equalsIgnoreCase(fromDatatype, "FILEREF") ||
-                        StringUtils.equalsIgnoreCase(fromDatatype, "DIRREF")) {
+                    bio.terra.model.TableDataType fromDatatype = mapColumn.getFromColumn().getType();
+                    if (fromDatatype == TableDataType.FILEREF || fromDatatype == TableDataType.DIRREF) {
 
                         String bigQueryTimer = performanceLogger.timerStart();
                         List<String> refIds = bigQueryPdao.getSnapshotRefIds(snapshotSource.getDataset(),

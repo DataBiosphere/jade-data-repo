@@ -16,7 +16,7 @@ import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
-import bio.terra.model.TableDatatypes;
+import bio.terra.model.TableDataType;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -176,22 +176,15 @@ public final class DatasetJsonConversion {
             .datePartitionOptions(dateOptions)
             .intPartitionOptions(intOptions)
             .columns(datasetTable.getColumns().stream()
-                .map(DatasetJsonConversion::columnModelFromDatasetColumn)
+                .map(column -> column.toColumnModel())
                 .collect(Collectors.toList()));
     }
 
     public static Column columnModelToDatasetColumn(ColumnModel columnModel) {
         return new Column()
                 .name(columnModel.getName())
-                .type(columnModel.getDatatype().toString())
+                .type(columnModel.getDatatype())
                 .arrayOf(columnModel.isArrayOf());
-    }
-
-    public static ColumnModel columnModelFromDatasetColumn(Column tableColumn) {
-        return new ColumnModel()
-                .name(tableColumn.getName())
-                .datatype(TableDatatypes.fromValue(tableColumn.getType()))
-                .arrayOf(tableColumn.isArrayOf());
     }
 
     public static Relationship relationshipModelToDatasetRelationship(

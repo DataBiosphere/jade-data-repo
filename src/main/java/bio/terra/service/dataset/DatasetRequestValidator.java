@@ -236,7 +236,7 @@ public class DatasetRequestValidator implements Validator {
         }
         if (invalidColumns.size() > 0) {
             errors.rejectValue("schema", "InvalidDatatype",
-                "invalid datatype(s) in table columns: " +
+                "invalid datatype in table column(s): " +
                     String.join(", ", invalidColumns.stream().map(ColumnModel::getName).collect(toList())) +
                     ", valid DataTypes are " + Arrays.toString(TableDataType.values()));
         }

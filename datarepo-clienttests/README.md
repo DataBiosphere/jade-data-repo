@@ -316,7 +316,7 @@ resources/servers directory. Below are the available fields:
   * deploymentScript: Name of the deployment script class to run. Only required if skipDeployment is false
   * skipDeployment: (optional) true to skip the deployment script, default is false
   * skipKubernetes: (optional) true to skip the post-deployment Kubernetes modifications, default is false
-  * dbDropAllOnStart: (optional) true to dropAll and update the datarepo and stairway databases, default is true
+  * dbDropAllOnStart: (optional) true to dropAll and update the datarepo and stairway databases, default is false
 
 #### Add a new deployment script
 A deployment script is a sub-class of the DeploymentScript base class. It specifies the deploy, waitForDeployToFinish,

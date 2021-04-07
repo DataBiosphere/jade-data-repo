@@ -119,7 +119,7 @@ public class BigQueryPdao {
                 bigQueryProject.deleteDataset(datasetName);
             }
 
-            bigQueryProject.createDataset(datasetName, dataset.getDescription());
+            bigQueryProject.createDataset(datasetName, dataset.getDescription()); // need to specify region
             bigQueryProject.createTable(
                 datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
             for (DatasetTable table : dataset.getTables()) {

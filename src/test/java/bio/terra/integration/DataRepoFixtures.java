@@ -10,6 +10,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
@@ -38,11 +39,16 @@ import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
@@ -65,13 +71,20 @@ public class DataRepoFixtures {
 
     // Create a Billing Profile model: expect successful creation
     public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
-        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest();
+        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.billingProfileRequest(
+            ProfileFixtures.billingProfileForAccount(testConfig.getGoogleBillingAccountId()));
         String json = TestUtils.mapToJson(billingProfileRequestModel);
-        DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.post(
+
+        DataRepoResponse<JobModel> jobResponse = dataRepoClient.post(
             user,
             "/api/resources/v1/profiles",
             json,
-            BillingProfileModel.class);
+            JobModel.class);
+        assertTrue("profile create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("profile create launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.waitForResponse(
+            user, jobResponse, BillingProfileModel.class);
 
         assertThat("billing profile model is successfuly created", postResponse.getStatusCode(),
             equalTo(HttpStatus.CREATED));
@@ -80,13 +93,28 @@ public class DataRepoFixtures {
         return postResponse.getResponseObject().get();
     }
 
+    public void deleteProfile(TestConfiguration.User user, String profileId) throws Exception {
+        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteProfileLog(user, profileId);
+        assertGoodDeleteResponse(deleteResponse);
+    }
+
+    public DataRepoResponse<DeleteResponseModel> deleteProfileLog(TestConfiguration.User user, String profileId)
+        throws Exception {
+
+        DataRepoResponse<JobModel> jobResponse = dataRepoClient.delete(
+            user, "/api/resources/v1/profiles/" + profileId, JobModel.class);
+        assertTrue("profile delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("profile delete launch response is present", jobResponse.getResponseObject().isPresent());
+
+        return dataRepoClient.waitForResponseLog(user, jobResponse, DeleteResponseModel.class);
+    }
+
     // datasets
 
-    public DataRepoResponse<JobModel> createDatasetRaw(TestConfiguration.User user, String filename)
+    private DataRepoResponse<JobModel> createDatasetRaw(TestConfiguration.User user, String profileId, String filename)
         throws Exception {
         DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
-        BillingProfileModel billingProfileModel = this.createBillingProfile(user);
-        requestModel.setDefaultProfileId(billingProfileModel.getId());
+        requestModel.setDefaultProfileId(profileId);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
         String json = TestUtils.mapToJson(requestModel);
 
@@ -97,22 +125,26 @@ public class DataRepoFixtures {
             JobModel.class);
     }
 
-    public DatasetSummaryModel createDataset(TestConfiguration.User user, String filename) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, filename);
+    public DatasetSummaryModel createDataset(TestConfiguration.User user,
+                                             String profileId,
+                                             String filename) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename);
         assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
 
-        DataRepoResponse<DatasetSummaryModel> response = dataRepoClient.waitForResponse(
+        DataRepoResponse<DatasetSummaryModel> response = dataRepoClient.waitForResponseLog(
             user, jobResponse, DatasetSummaryModel.class);
+        logger.info("Response was: {}", response);
         assertThat("dataset create is successful", response.getStatusCode(), equalTo(HttpStatus.CREATED));
         assertTrue("dataset create response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
-    public ErrorModel createDatasetError(TestConfiguration.User user,
+    public void createDatasetError(TestConfiguration.User user,
+                                         String profileId,
                                          String filename,
                                          HttpStatus checkStatus) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, filename);
+        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename);
         assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
 
@@ -123,7 +155,6 @@ public class DataRepoFixtures {
             assertThat("correct dataset create error", response.getStatusCode(), equalTo(checkStatus));
         }
         assertTrue("dataset create error response is present", response.getErrorObject().isPresent());
-        return response.getErrorObject().get();
     }
 
     public DataRepoResponse<JobModel> deleteDataRaw(TestConfiguration.User user,
@@ -161,16 +192,7 @@ public class DataRepoFixtures {
         assertTrue("dataset delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset delete launch response is present", jobResponse.getResponseObject().isPresent());
 
-        DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
-            user, jobResponse, DeleteResponseModel.class);
-        // if not successful, log the response
-        if (!deleteResponse.getStatusCode().is2xxSuccessful()) {
-            logger.error("delete operation failed");
-            if (deleteResponse.getErrorObject().isPresent()) {
-                logger.error("error object: " + deleteResponse.getErrorObject().get());
-            }
-        }
-        return deleteResponse;
+        return dataRepoClient.waitForResponseLog(user, jobResponse, DeleteResponseModel.class);
     }
 
     public DataRepoResponse<EnumerateDatasetModel> enumerateDatasetsRaw(TestConfiguration.User user) throws Exception {
@@ -205,9 +227,23 @@ public class DataRepoFixtures {
                                                        String userEmail,
                                                        IamResourceType iamResourceType) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-        return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(iamResourceType) +
-                "/" + resourceId + "/policies/" + role.toString() + "/members",
-            TestUtils.mapToJson(req), null);
+        String pathPrefix;
+        switch (iamResourceType) {
+            case DATASET:
+                pathPrefix = "/api/repository/v1/datasets/";
+                break;
+            case DATASNAPSHOT:
+                pathPrefix = "/api/repository/v1/snapshots/";
+                break;
+            case SPEND_PROFILE:
+                pathPrefix = "/api/resources/v1/profiles/";
+                break;
+            default:
+                throw new IllegalArgumentException("No path prefix defined for IamResourceType " + iamResourceType);
+        }
+        String path = pathPrefix + resourceId + "/policies/" + role.toString() + "/members";
+
+        return dataRepoClient.post(user, path, TestUtils.mapToJson(req), null);
     }
 
     public void addPolicyMember(TestConfiguration.User user,
@@ -257,14 +293,15 @@ public class DataRepoFixtures {
         addPolicyMember(user, snapshotId, role, newMemberEmail, IamResourceType.DATASNAPSHOT);
     }
 
-    public DataRepoResponse<JobModel> createSnapshotWithRequestLaunch(
+    public DataRepoResponse<JobModel> createSnapshotRaw(
         TestConfiguration.User user,
         String datasetName,
+        String profileId,
         SnapshotRequestModel requestModel) throws Exception {
-        BillingProfileModel billingProfileModel = this.createBillingProfile(user);
+
         requestModel.setName(Names.randomizeName(requestModel.getName()));
         requestModel.getContents().get(0).setDatasetName(datasetName);
-        requestModel.setProfileId(billingProfileModel.getId());
+        requestModel.setProfileId(profileId);
         String json = TestUtils.mapToJson(requestModel);
 
         return dataRepoClient.post(
@@ -274,13 +311,26 @@ public class DataRepoFixtures {
             JobModel.class);
     }
 
-    public DataRepoResponse<JobModel> createSnapshotLaunch(
-        TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
-        SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
-        return createSnapshotWithRequestLaunch(user, datasetSummaryModel.getName(), requestModel);
+    public SnapshotSummaryModel createSnapshotWithRequest(
+        TestConfiguration.User user,
+        String datasetName,
+        String profileId,
+        SnapshotRequestModel snapshotRequest) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createSnapshotRaw(user, datasetName, profileId, snapshotRequest);
+        return finishCreateSnapshot(user, jobResponse);
     }
 
-    public SnapshotSummaryModel resolveCreateSnapshot(
+    public SnapshotSummaryModel createSnapshot(
+        TestConfiguration.User user,
+        String datasetName,
+        String profileId,
+        String filename) throws Exception {
+        SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
+        DataRepoResponse<JobModel> jobResponse = createSnapshotRaw(user, datasetName, profileId, requestModel);
+        return finishCreateSnapshot(user, jobResponse);
+    }
+
+    private SnapshotSummaryModel finishCreateSnapshot(
         TestConfiguration.User user,
         DataRepoResponse<JobModel> jobResponse) throws Exception {
         assertTrue("snapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
@@ -293,22 +343,6 @@ public class DataRepoFixtures {
         return snapshotResponse.getResponseObject().get();
     }
 
-    public SnapshotSummaryModel createSnapshotWithRequest(
-        TestConfiguration.User user,
-        String datasetName,
-        SnapshotRequestModel snapshotRequest) throws Exception {
-        DataRepoResponse<JobModel> jobResponse =
-            createSnapshotWithRequestLaunch(user, datasetName, snapshotRequest);
-        return resolveCreateSnapshot(user, jobResponse);
-    }
-
-    public SnapshotSummaryModel createSnapshot(
-        TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createSnapshotLaunch(
-            user, datasetSummaryModel, filename);
-        return resolveCreateSnapshot(user, jobResponse);
-    }
-
     public DataRepoResponse<SnapshotModel> getSnapshotRaw(TestConfiguration.User user, String snapshotId)
         throws Exception {
         return dataRepoClient.get(user, "/api/repository/v1/snapshots/" + snapshotId, SnapshotModel.class);
@@ -318,6 +352,27 @@ public class DataRepoFixtures {
         DataRepoResponse<SnapshotModel> response = getSnapshotRaw(user, snapshotId);
         assertThat("dataset is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("dataset get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public DataRepoResponse<EnumerateSnapshotModel> enumerateSnapshotsByDatasetIdsRaw(
+        TestConfiguration.User user, List<String> datasetIds) throws Exception {
+        String datasetIdsString;
+        List<String> datasetIdsQuery = ListUtils.emptyIfNull(datasetIds).stream()
+            .map(id -> "datasetIds=" + id).collect(Collectors.toList());
+        datasetIdsString = StringUtils.join(datasetIdsQuery, "&");
+        return dataRepoClient.get(user,
+            "/api/repository/v1/snapshots?" +
+                datasetIdsString +
+                "&sort=created_date&direction=desc",
+            EnumerateSnapshotModel.class);
+    }
+
+    public EnumerateSnapshotModel enumerateSnapshotsByDatasetIds(
+        TestConfiguration.User user, List<String> datasetIds) throws Exception {
+        DataRepoResponse<EnumerateSnapshotModel> response = enumerateSnapshotsByDatasetIdsRaw(user, datasetIds);
+        assertThat("snapshot enumeration is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("snapshot get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
@@ -347,16 +402,7 @@ public class DataRepoFixtures {
         assertTrue("snapshot delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("snapshot delete launch response is present", jobResponse.getResponseObject().isPresent());
 
-        DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
-            user, jobResponse, DeleteResponseModel.class);
-        // if not successful, log the response
-        if (!deleteResponse.getStatusCode().is2xxSuccessful()) {
-            logger.error("delete operation failed");
-            if (deleteResponse.getErrorObject().isPresent()) {
-                logger.error("error object: " + deleteResponse.getErrorObject().get());
-            }
-        }
-        return deleteResponse;
+        return dataRepoClient.waitForResponseLog(user, jobResponse, DeleteResponseModel.class);
     }
 
     public DataRepoResponse<JobModel> deleteSnapshotLaunch(TestConfiguration.User user, String snapshotId)
@@ -581,13 +627,6 @@ public class DataRepoFixtures {
             .path(gsPath);
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteProfile(
-        TestConfiguration.User user,
-        String profileId) throws Exception {
-        return dataRepoClient.delete(
-            user, "/api/resources/v1/profiles/" + profileId, DeleteResponseModel.class);
-    }
-
     // Configuration methods
 
     public DataRepoResponse<ConfigModel> getConfig(TestConfiguration.User user, String configName) throws Exception {
@@ -598,9 +637,11 @@ public class DataRepoFixtures {
     public DataRepoResponse<ConfigModel> setFault(TestConfiguration.User user,
                                                   String configName,
                                                   boolean enable) throws Exception {
+        ConfigEnableModel configEnableModel = new ConfigEnableModel().enabled(enable);
+        String json = TestUtils.mapToJson(configEnableModel);
         return dataRepoClient.put(user,
-            "/api/repository/v1/configs/" + configName + "?enable=" + enable,
-            null,
+            "/api/repository/v1/configs/" + configName,
+            json,
             null); // TODO should this validation on returned value?
     }
 

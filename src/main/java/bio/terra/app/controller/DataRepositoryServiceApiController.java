@@ -14,6 +14,7 @@ import bio.terra.model.DRSServiceInfo;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
+import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,6 +93,12 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     public ResponseEntity<DRSError> tooManyRequestsExceptionHandler(TooManyRequestsException ex) {
         DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.TOO_MANY_REQUESTS.value());
         return new ResponseEntity<>(error, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> iAmUnauthorizedExceptionHandler(IamUnauthorizedException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.UNAUTHORIZED.value());
+        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler

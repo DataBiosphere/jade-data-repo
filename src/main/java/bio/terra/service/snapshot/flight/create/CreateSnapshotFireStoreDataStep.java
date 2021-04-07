@@ -16,7 +16,6 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,7 +69,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
             int numFilesSeen = 0;
             for (SnapshotMapTable mapTable : snapshotSource.getSnapshotMapTables()) {
                 for (SnapshotMapColumn mapColumn : mapTable.getSnapshotMapColumns()) {
-                    bio.terra.model.TableDataType fromDatatype = mapColumn.getFromColumn().getType();
+                    TableDataType fromDatatype = mapColumn.getFromColumn().getType();
                     if (fromDatatype == TableDataType.FILEREF || fromDatatype == TableDataType.DIRREF) {
 
                         String bigQueryTimer = performanceLogger.timerStart();

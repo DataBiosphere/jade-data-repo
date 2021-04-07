@@ -8,7 +8,6 @@ import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.BulkLoadHistoryModel;
-import bio.terra.model.ColumnModel;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;

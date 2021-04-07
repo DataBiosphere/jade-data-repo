@@ -19,7 +19,6 @@ import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
 import javax.validation.constraints.NotNull;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -27,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -114,9 +114,9 @@ public class DatasetRequestValidator implements Validator {
                 columns.stream().filter(c -> targetColumn.equals(c.getName())).findFirst();
 
             if (matchingColumn.isPresent()) {
-                String colType = matchingColumn.get().getDatatype().toString();
+                TableDataType colType = matchingColumn.get().getDatatype();
 
-                if (!"DATE".equalsIgnoreCase(colType) && !"TIMESTAMP".equalsIgnoreCase(colType)) {
+                if (colType != TableDataType.DATE  && colType != TableDataType.TIMESTAMP) {
                     errors.rejectValue("schema", "InvalidDatePartitionColumnType",
                         "partitionColumn in datePartitionOptions must refer to a DATE or TIMESTAMP column");
                 }
@@ -237,10 +237,10 @@ public class DatasetRequestValidator implements Validator {
         if (invalidColumns.size() > 0) {
             errors.rejectValue("schema", "InvalidDatatype",
                 "invalid datatype in table column(s): " +
-                    String.join(", ", invalidColumns.stream().map(ColumnModel::getName).collect(toList())) +
+                    invalidColumns.stream().map(ColumnModel::getName).collect(joining(", ")) +
                     ", valid DataTypes are " + Arrays.toString(TableDataType.values()));
         }
-     }
+    }
 
     private void validateRelationshipTerm(RelationshipTermModel term, Errors errors, SchemaValidationContext context) {
         String table = term.getTable();

@@ -311,6 +311,26 @@ public class DatasetValidationsTest {
     }
 
     @Test
+    public void testTableSchemaInvalidDataType() throws Exception {
+        String invalidSchema = "{\"name\":\"no_response\"," +
+            "\"description\":\"Invalid datatype in dataset schema leads to no response body\"," +
+            "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\"," +
+            "\"schema\":{\"tables\":[{\"name\":\"table\",\"columns\":" +
+            "[{\"name\":\"bad_column1\",\"datatype\":\"bad_datatype\"}, " +
+            "{\"name\":\"bad_column2\",\"datatype\":\"bad_datatype\"}]}]}}";
+        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(invalidSchema))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        MockHttpServletResponse response = result.getResponse();
+        String responseBody = response.getContentAsString();
+        assertTrue("Invalid DataTypes are logged and returned",
+            responseBody.contains("invalid datatype in table column(s): bad_column1, bad_column2, valid DataTypes are [boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, numeric, record, string, text, time, timestamp]"));
+    }
+
+    @Test
     public void testDatasetNameInvalid() throws Exception {
         ErrorModel errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name("no spaces"));
         checkValidationErrorModel(errorModel, new String[]{"Pattern"});

@@ -109,10 +109,33 @@ jobs:
           echo "Apply helm updates, including updated data-repo version"
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
-      - name: "Cycle pods to clear lingering artifacts if not doing version bump"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION == steps.read_property.outputs.CURRENT_SEMVER }}
+      - name: "[Clear Perf Database] Import Perf Database Secret"
+        uses: hashicorp/vault-action@v2.1.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.PERF_ROLE_ID }}
+          secretId: ${{ secrets.PERF_SECRET_ID }}
+          #Yes, they both point to the stairway database password
+          secrets: |
+            secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | ORG_GRADLE_PROJECT_dbDatarepoPassword ;
+            secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | ORG_GRADLE_PROJECT_dbStairwayPassword ;
+      - name: "[Clear Perf Database] Perform DropAll"
+        env:
+          ORG_GRADLE_PROJECT_dbDatarepoUri: jdbc:postgresql://localhost:5434/datarepo
+          ORG_GRADLE_PROJECT_dbStairwayUri: jdbc:postgresql://localhost:5434/stairway
         run: |
-          echo "Cycle API pods to trigger migrations to run and clear out database"
+          # port foward to perf database
+          kubectl port-forward --namespace perf svc/perf-jade-gcloud-sqlproxy 5434:5432 &
+          PID=$!
+          sleep 10
+          echo "After giving the proxy 10 seconds to spin up, run drop all on perf database"
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+          ./gradlew dropAll
+          kill ${PID}
+      - name: "[Clear Perf Database] Cycle pods to initialize databases"
+        run: |
+          echo "Cycle API pods to trigger migrations to initialize databases"
           kubectl delete pods -n perf -l app.kubernetes.io/name=datarepo-api
           echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
           sleep 45

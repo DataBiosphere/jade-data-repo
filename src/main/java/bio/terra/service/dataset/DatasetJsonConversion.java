@@ -15,6 +15,7 @@ import bio.terra.model.DatePartitionOptionsModel;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.StorageSpecificationModel;
 import bio.terra.model.TableModel;
 
 import java.util.ArrayList;
@@ -36,6 +37,7 @@ public final class DatasetJsonConversion {
         Map<String, Relationship> relationshipsMap = new HashMap<>();
         List<AssetSpecification> assetSpecifications = new ArrayList<>();
         UUID defaultProfileId = UUID.fromString(datasetRequest.getDefaultProfileId());
+
         DatasetSpecificationModel datasetSpecification = datasetRequest.getSchema();
         datasetSpecification.getTables().forEach(tableModel ->
                 tablesMap.put(tableModel.getName(), tableModelToTable(tableModel)));
@@ -52,10 +54,14 @@ public final class DatasetJsonConversion {
                 assetSpecifications.add(assetModelToAssetSpecification(asset, tablesMap, relationshipsMap)));
         }
 
+        StorageSpecificationModel storageSpecification = datasetRequest.getStorage();
+        Storage storage = new Storage().region(storageSpecification.getRegion());
+
         return new Dataset(new DatasetSummary()
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
-                .defaultProfileId(defaultProfileId))
+                .defaultProfileId(defaultProfileId)
+                .storage(storage))
                 .tables(new ArrayList<>(tablesMap.values()))
                 .relationships(new ArrayList<>(relationshipsMap.values()))
                 .assetSpecifications(assetSpecifications);
@@ -68,7 +74,7 @@ public final class DatasetJsonConversion {
                 .description(dataset.getDescription())
                 .createdDate(dataset.getCreatedDate().toString())
                 .defaultProfileId(dataset.getDefaultProfileId().toString());
-
+                //.storage(datasetStorageSpecificationModelFromDataset(dataset))
     }
 
     public static DatasetModel populateDatasetModelFromDataset(Dataset dataset) {
@@ -80,6 +86,7 @@ public final class DatasetJsonConversion {
                 .createdDate(dataset.getCreatedDate().toString())
                 .schema(datasetSpecificationModelFromDatasetSchema(dataset))
                 .dataProject(dataset.getProjectResource().getGoogleProjectId());
+                //.storage(datasetStorageSpecificationModelFromDataset(dataset))
     }
 
     public static DatasetSpecificationModel datasetSpecificationModelFromDatasetSchema(Dataset dataset) {

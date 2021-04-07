@@ -316,6 +316,7 @@ public class DatasetDao {
         tableDao.createTables(dataset.getId(), dataset.getTables());
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
+        // storageDao.createDatasetStorage -- insert into dataset_storage table
 
         logger.debug("end of createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
     }
@@ -448,6 +449,7 @@ public class DatasetDao {
                 sql += " AND flightid IS NULL";
             }
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+            // would need storage info here (to enable querying)
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for id " + id.toString());
@@ -465,6 +467,8 @@ public class DatasetDao {
             throw new DatasetNotFoundException("Dataset not found for name " + name);
         }
     }
+
+    // public DatasetSummary retrieveSummaryByRegion(String region)
 
     /**
      * Fetch a list of all the available datasets.
@@ -528,7 +532,6 @@ public class DatasetDao {
                 .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class))
                 .createdDate(rs.getTimestamp("created_date").toInstant());
-
         }
     }
 

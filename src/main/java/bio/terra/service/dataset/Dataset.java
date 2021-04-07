@@ -132,6 +132,15 @@ public class Dataset implements FSContainerInterface {
         return this;
     }
 
+    public Storage getStorage() {
+        return datasetSummary.getStorage();
+    }
+
+    public Dataset storage(Storage storage) {
+        datasetSummary.storage(storage);
+        return this;
+    }
+
     public UUID getDefaultProfileId() {
         return datasetSummary.getDefaultProfileId();
     }
@@ -167,4 +176,6 @@ public class Dataset implements FSContainerInterface {
         this.projectResource = projectResource;
         return this;
     }
+
+
 }

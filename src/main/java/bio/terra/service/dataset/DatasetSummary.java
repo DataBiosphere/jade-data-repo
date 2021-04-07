@@ -10,6 +10,7 @@ public class DatasetSummary {
     private UUID defaultProfileId;
     private UUID projectResourceId;
     private Instant createdDate;
+    private Storage storage;
 
     public UUID getId() {
         return id;
@@ -62,6 +63,15 @@ public class DatasetSummary {
 
     public DatasetSummary createdDate(Instant createdDate) {
         this.createdDate = createdDate;
+        return this;
+    }
+
+    public Storage getStorage() {
+        return storage;
+    }
+
+    public DatasetSummary storage (Storage storage) {
+        this.storage = storage;
         return this;
     }
 }

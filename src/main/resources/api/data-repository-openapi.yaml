@@ -2669,6 +2669,8 @@ components:
           $ref: '#/components/schemas/UniqueIdProperty'
         schema:
           $ref: '#/components/schemas/DatasetSpecificationModel'
+        storage:
+          $ref: '#/components/schemas/StorageSpecificationModel'
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     EnumerateDatasetModel:
@@ -2834,6 +2836,15 @@ components:
         as the unique identifier. The list of relationships provides the instructions
         for how to connect the tables. Asset tables have to be connected in a relationship
         hierarchy. So there cannot be two paths to the same table from the root.
+    StorageSpecificationModel:
+      type: object
+      properties:
+        region:
+          type: string
+          default: 'us-central1'
+        provider:
+          type: string
+          default: 'gcp'
     DatasetSpecificationModel:
       required:
         - tables

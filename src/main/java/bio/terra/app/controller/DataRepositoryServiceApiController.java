@@ -12,8 +12,10 @@ import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
 import bio.terra.service.filedata.DrsService;
+import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
+import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -99,6 +101,18 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     public ResponseEntity<DRSError> iAmUnauthorizedExceptionHandler(IamUnauthorizedException ex) {
         DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.UNAUTHORIZED.value());
         return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> iAmForbiddenExceptionHandler(IamForbiddenException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.FORBIDDEN.value());
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> invalidDrsIdException(InvalidDrsIdException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler

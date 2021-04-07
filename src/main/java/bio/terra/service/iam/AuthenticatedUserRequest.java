@@ -1,6 +1,5 @@
 package bio.terra.service.iam;
 
-import bio.terra.app.controller.exception.ApiException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang.builder.HashCodeBuilder;

@@ -69,7 +69,7 @@ public class ResourceService {
             dataLocationSelector.projectIdForFile(datasetName, billingProfile),
             billingProfile,
             null);
-
+        // need storage info here, not just datasetName
         return bucketService.getOrCreateBucket(
             dataLocationSelector.bucketForFile(datasetName, billingProfile),
             projectResource,

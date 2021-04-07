@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Profile;
 @ConfigurationProperties(prefix = "datarepo.gcs")
 public class GcsConfiguration {
     private String bucket;
-    private String region;
+    private String region;  // this value is currently set by the application property datarepo.gcs.region
     private int connectTimeoutSeconds;
     private int readTimeoutSeconds;
 

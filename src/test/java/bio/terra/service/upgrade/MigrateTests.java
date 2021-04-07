@@ -52,6 +52,10 @@ public class MigrateTests {
     public void testAllowDropAllOnStartFalse() {
         googleResourceConfiguration.setSingleDataProjectId("terra-datarepo-alpha-data");
         boolean allowDropAllOnStart = migrate.allowDropAllOnStart();
-        assertFalse("allowDropAllOnStart should be false for broad-jade-dev-data", allowDropAllOnStart);
+        assertFalse("allowDropAllOnStart should be false for terra-datarepo-alpha-data", allowDropAllOnStart);
+
+        googleResourceConfiguration.setSingleDataProjectId(singleDataProject);
+        allowDropAllOnStart = migrate.allowDropAllOnStart();
+        assertTrue("allowDropAllOnStart should be true for test data project", allowDropAllOnStart);
     }
 }

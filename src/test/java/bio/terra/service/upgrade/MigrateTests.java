@@ -11,7 +11,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -26,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 public class MigrateTests {
 
     @Autowired
-    Migrate migrate;
+    private Migrate migrate;
 
     @Autowired
     private GoogleResourceConfiguration googleResourceConfiguration;
@@ -39,20 +38,19 @@ public class MigrateTests {
 
     @After
     public void teardown() {
-        if (singleDataProject != null){
+        if (singleDataProject != null) {
             googleResourceConfiguration.setSingleDataProjectId(singleDataProject);
         }
     }
     @Test
-    public void testAllowDropAllOnStartTrue(){
+    public void testAllowDropAllOnStartTrue() {
         boolean allowDropAllOnStart = migrate.allowDropAllOnStart();
         assertTrue("allowDropAllOnStart should be true on test environments", allowDropAllOnStart);
     }
 
-    @Ignore("If it doesn't properly clean up, then will have set the tests to use the dev-data project")
     @Test
-    public void testAllowDropAllOnStartFalse(){
-        googleResourceConfiguration.setSingleDataProjectId("broad-jade-dev-data");
+    public void testAllowDropAllOnStartFalse() {
+        googleResourceConfiguration.setSingleDataProjectId("terra-datarepo-alpha-data");
         boolean allowDropAllOnStart = migrate.allowDropAllOnStart();
         assertFalse("allowDropAllOnStart should be false for broad-jade-dev-data", allowDropAllOnStart);
     }

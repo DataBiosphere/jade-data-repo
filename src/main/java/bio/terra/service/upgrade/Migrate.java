@@ -17,7 +17,6 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Provides methods for upgrading the data repository metadata and stairway databases.
@@ -84,7 +83,8 @@ public class Migrate {
         boolean allowedProfile = Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
             || env.contains("test") || env.contains("int"));
 
-        boolean blacklistedDataProject = resourceConfiguration.getSingleDataProjectId().equals("broad-jade-dev-data");
+        boolean blacklistedDataProject = migrateConfiguration.getDataProjectNoDropAll().contains(
+            resourceConfiguration.getSingleDataProjectId());
         return allowedProfile && !blacklistedDataProject;
     }
 

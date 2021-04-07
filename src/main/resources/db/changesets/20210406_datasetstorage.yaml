@@ -1,0 +1,28 @@
+databaseChangeLog:
+  - changeSet:
+      id: dataset_storage
+      author: se
+      changes:
+        - createTable:
+            tableName: dataset_storage
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_storage_dataset
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: region
+                  type: ${identifier_type}
+                  constraints:
+                    nullable: false

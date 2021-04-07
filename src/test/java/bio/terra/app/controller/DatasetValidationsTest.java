@@ -122,6 +122,25 @@ public class DatasetValidationsTest {
     }
 
     @Test
+    public void testJsonParsingErrors() throws Exception {
+        String invalidSchema = "{\"name\":\"no_response\"," +
+            "\"description\":\"Invalid dataset schema leads to no response body\"," +
+            "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\"," +
+            "\"schema\":{\"tables\":[{\"name\":\"table\",\"columns\":" +
+            "[{\"name\":\"column\",\"datatype\":\"fileref\",\"is_array\":true}]}]}}";
+        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(invalidSchema))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        MockHttpServletResponse response = result.getResponse();
+        String responseBody = response.getContentAsString();
+        assertTrue("Json parsing errors are logged and returned",
+            responseBody.contains("JSON parse error: Unrecognized field \\\"is_array\\\""));
+    }
+
+    @Test
     public void testDuplicateTableNames() throws Exception {
         ColumnModel column = new ColumnModel().name("id").datatype("string");
         TableModel table = new TableModel()

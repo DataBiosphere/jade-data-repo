@@ -71,6 +71,10 @@ public final class TestUtils {
         return false;
     }
 
+    /*
+    XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and any
+    consequences downstream to DRS clients.
+    */
     public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods,
                                                   String token) throws IOException {
         assertThat("Two access methods", accessMethods.size(), equalTo(2));
@@ -111,6 +115,10 @@ public final class TestUtils {
         return gsuri;
     }
 
+    /*
+    XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and any
+    consequences downstream to DRS clients.
+    */
     public static Map<String, List<Acl>> readDrsGCSAcls(List<DRSAccessMethod> accessMethods) {
         assertThat("Two access methods", accessMethods.size(), equalTo(2));
         for (DRSAccessMethod accessMethod : accessMethods) {

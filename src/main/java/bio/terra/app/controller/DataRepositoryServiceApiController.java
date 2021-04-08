@@ -118,6 +118,10 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         return new ResponseEntity<>(drsObject, HttpStatus.OK);
     }
 
+    /*
+    XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and any
+    consequences downstream to DRS clients.
+    */
     @Override
     public ResponseEntity<DRSServiceInfo> getServiceInfo() {
         DRSServiceInfo info = new DRSServiceInfo()

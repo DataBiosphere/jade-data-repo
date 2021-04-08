@@ -4,6 +4,7 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.integration.BigQueryFixtures;
+import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DRSAccessMethod;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -71,6 +73,7 @@ import static org.junit.Assert.assertTrue;
 public class DrsTest extends UsersBase {
     private static final Logger logger = LoggerFactory.getLogger(DrsTest.class);
 
+    @Autowired private DataRepoClient dataRepoClient;
     @Autowired private DataRepoFixtures dataRepoFixtures;
     @Autowired private EncodeFixture encodeFixture;
     @Autowired private AuthService authService;
@@ -236,6 +239,52 @@ public class DrsTest extends UsersBase {
         DrsResponse<DRSObject> failureResponse = dataRepoFixtures.drsGetObjectRaw(reader(), drsObjectId);
         assertThat("object is not successfully retrieved",
             failureResponse.getStatusCode(), equalTo(HttpStatus.TOO_MANY_REQUESTS));
+    }
+
+    @Test
+    public void testDrsErrorResponses() throws Exception {
+        dataRepoFixtures.resetConfig(steward());
+
+        // Get a DRS ID from the dataset using the custodianToken.
+        // Note: the reader does not have permission to run big query jobs anywhere.
+        BigQuery bigQueryCustodian = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
+        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryCustodian,
+            snapshotModel,
+            "file",
+            "file_ref");
+
+        String invalidDrsObjectId = drsObjectId.substring(1);
+
+        // DRS lookup the file and validate
+        logger.info("Invalid DRS Object Id - file: {}", invalidDrsObjectId);
+        DrsResponse<DRSObject> badRequestResponse = dataRepoFixtures.drsGetObjectRaw(reader(), invalidDrsObjectId);
+        assertThat("a 400 BAD_REQUEST response is returned",
+            badRequestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+
+        DrsResponse<DRSObject> unauthorizedRequest = dataRepoClient.madeUnauthenticatedDrsRequest(
+            "/ga4gh/drs/v1/objects/" + drsObjectId,
+            HttpMethod.GET,
+            DRSObject.class);
+        assertThat("a 401 UNAUTHORIZED response is returned",
+            badRequestResponse.getStatusCode(), equalTo(HttpStatus.UNAUTHORIZED));
+
+        DrsResponse<DRSObject> forbiddenResponse = dataRepoFixtures.drsGetObjectRaw(discoverer(), drsObjectId);
+        assertThat("a 403 FORBIDDEN response is returned",
+            forbiddenResponse.getStatusCode(), equalTo(HttpStatus.FORBIDDEN));
+
+        String nonExistentFileDrsObjectId = String.format("v1_{%s}_{%s}", snapshotModel.getId(), UUID.randomUUID());
+        logger.info("Non-existent file DRS Object Id - file: {}", nonExistentFileDrsObjectId);
+        DrsResponse<DRSObject> badFileResponse = dataRepoFixtures.drsGetObjectRaw(reader(), nonExistentFileDrsObjectId);
+        assertThat("a 404 NOT_FOUND response is returned",
+            badFileResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
+
+        String nonExistentSnapshotObjectId = drsObjectId.replace(snapshotModel.getId(), UUID.randomUUID().toString());
+        logger.info("Non-existent snapshot DRS Object Id - file: {}", nonExistentSnapshotObjectId);
+        DrsResponse<DRSObject> badSnapshotResponse = dataRepoFixtures.drsGetObjectRaw(reader(), nonExistentSnapshotObjectId);
+        assertThat("a 404 NOT_FOUND response is returned",
+            badSnapshotResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
+
+
     }
 
     private void validateDrsObject(DRSObject drsObject, String drsObjectId) {

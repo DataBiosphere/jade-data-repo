@@ -186,6 +186,12 @@ public class DataRepoClient {
         return makeDrsRequest(path, HttpMethod.GET, entity, responseClass);
     }
 
+    public <T> DrsResponse<T> madeUnauthenticatedDrsRequest(String path,
+                                                            HttpMethod method,
+                                                            Class<T> responseClass) throws Exception {
+        return new DrsResponse<T>(makeRequest(path, method, HttpEntity.EMPTY, responseClass, DRSError.class));
+    }
+
     private <T> DrsResponse<T> makeDrsRequest(String path,
                                               HttpMethod method,
                                               HttpEntity entity,

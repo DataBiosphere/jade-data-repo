@@ -280,7 +280,8 @@ public class DrsTest extends UsersBase {
 
         String nonExistentSnapshotObjectId = drsObjectId.replace(snapshotModel.getId(), UUID.randomUUID().toString());
         logger.info("Non-existent snapshot DRS Object Id - file: {}", nonExistentSnapshotObjectId);
-        DrsResponse<DRSObject> badSnapshotResponse = dataRepoFixtures.drsGetObjectRaw(reader(), nonExistentSnapshotObjectId);
+        DrsResponse<DRSObject> badSnapshotResponse = dataRepoFixtures.drsGetObjectRaw(reader(),
+            nonExistentSnapshotObjectId);
         assertThat("a 404 NOT_FOUND response is returned",
             badSnapshotResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
 

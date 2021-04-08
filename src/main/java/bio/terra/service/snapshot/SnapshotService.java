@@ -21,7 +21,6 @@ import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
-import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;

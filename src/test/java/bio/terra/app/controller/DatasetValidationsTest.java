@@ -327,7 +327,9 @@ public class DatasetValidationsTest {
         MockHttpServletResponse response = result.getResponse();
         String responseBody = response.getContentAsString();
         assertTrue("Invalid DataTypes are logged and returned",
-            responseBody.contains("invalid datatype in table column(s): bad_column1, bad_column2, valid DataTypes are [boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, numeric, record, string, text, time, timestamp]"));
+            responseBody.contains("invalid datatype in table column(s): bad_column1, bad_column2, " +
+                "valid DataTypes are [boolean, bytes, date, datetime, dirref, fileref, " +
+                "float, float64, integer, int64, numeric, record, string, text, time, timestamp]"));
     }
 
     @Test

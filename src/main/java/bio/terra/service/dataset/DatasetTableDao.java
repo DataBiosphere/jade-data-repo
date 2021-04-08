@@ -94,7 +94,7 @@ public class DatasetTableDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (Column column : columns) {
             params.addValue("name", column.getName());
-            params.addValue("type", column.getType());
+            params.addValue("type", column.getType().toString());
             params.addValue("array_of", column.isArrayOf());
             jdbcTemplate.update(sqlInsertColumn, params, keyHolder);
             UUID columnId = keyHolder.getId();

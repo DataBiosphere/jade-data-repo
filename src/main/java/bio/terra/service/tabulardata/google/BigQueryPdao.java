@@ -130,7 +130,7 @@ public class BigQueryPdao {
                     datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
                 bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
             }
-            // todo: don't catch generic exceptions
+            // TODO: don't catch generic exceptions
         } catch (Exception ex) {
             throw new PdaoException("create dataset failed for " + datasetName, ex);
         }

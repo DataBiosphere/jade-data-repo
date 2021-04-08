@@ -266,7 +266,7 @@ public class DrsTest extends UsersBase {
             HttpMethod.GET,
             DRSObject.class);
         assertThat("a 401 UNAUTHORIZED response is returned",
-            badRequestResponse.getStatusCode(), equalTo(HttpStatus.UNAUTHORIZED));
+            unauthorizedRequest.getStatusCode(), equalTo(HttpStatus.UNAUTHORIZED));
 
         DrsResponse<DRSObject> forbiddenResponse = dataRepoFixtures.drsGetObjectRaw(discoverer(), drsObjectId);
         assertThat("a 403 FORBIDDEN response is returned",

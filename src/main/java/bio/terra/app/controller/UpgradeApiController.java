@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.Optional;
 
-import static bio.terra.app.utils.ControllerUtils.jobToResponse;
+import bio.terra.app.utils.ControllerUtils;
 
 @Controller
 @Api(tags = {"upgrade"})
@@ -86,6 +86,6 @@ public class UpgradeApiController implements UpgradeApi {
     public ResponseEntity<JobModel> upgrade(@Valid @RequestBody UpgradeModel request) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
         String jobId = upgradeService.upgrade(request, userReq);
-        return jobToResponse(jobService.retrieveJob(jobId, userReq));
+        return ControllerUtils.jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 }

@@ -272,7 +272,7 @@ public class DrsTest extends UsersBase {
         assertThat("a 403 FORBIDDEN response is returned",
             forbiddenResponse.getStatusCode(), equalTo(HttpStatus.FORBIDDEN));
 
-        String nonExistentFileDrsObjectId = String.format("v1_{%s}_{%s}", snapshotModel.getId(), UUID.randomUUID());
+        String nonExistentFileDrsObjectId = String.format("v1_%s_%s", snapshotModel.getId(), UUID.randomUUID());
         logger.info("Non-existent file DRS Object Id - file: {}", nonExistentFileDrsObjectId);
         DrsResponse<DRSObject> badFileResponse = dataRepoFixtures.drsGetObjectRaw(reader(), nonExistentFileDrsObjectId);
         assertThat("a 404 NOT_FOUND response is returned",

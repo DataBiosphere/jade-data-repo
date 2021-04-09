@@ -1315,6 +1315,10 @@ public class BigQueryPdao {
         bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
     }
 
+    /*
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     private String sourceSelectSql(String snapshotId, Column targetColumn, SnapshotMapTable mapTable) {
         // In the future, there may not be a column map for a given target column; it might not exist
         // in the table. The logic here covers these cases:

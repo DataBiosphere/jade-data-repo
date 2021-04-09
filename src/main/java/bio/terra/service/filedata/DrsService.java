@@ -38,6 +38,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/*
+ * WARNING: if making any changes to this class make sure to notify the #dsp-batch channel! Describe the change and
+ * any consequences downstream to DRS clients.
+ */
 @Component
 public class DrsService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.filedata.DrsService");

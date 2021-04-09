@@ -186,10 +186,13 @@ public class DataRepoClient {
         return makeDrsRequest(path, HttpMethod.GET, entity, responseClass);
     }
 
-    public <T> DrsResponse<T> madeUnauthenticatedDrsRequest(String path,
-                                                            HttpMethod method,
-                                                            Class<T> responseClass) throws Exception {
-        return new DrsResponse<T>(makeRequest(path, method, HttpEntity.EMPTY, responseClass, DRSError.class));
+    public ResponseEntity<String> madeUnauthenticatedDrsRequest(String path,
+                                                            HttpMethod method) {
+        return restTemplate.exchange(
+            testConfig.getJadeApiUrl() + path,
+            method,
+            HttpEntity.EMPTY,
+            String.class);
     }
 
     private <T> DrsResponse<T> makeDrsRequest(String path,

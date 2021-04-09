@@ -37,6 +37,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -263,10 +264,9 @@ public class DrsTest extends UsersBase {
 
         // We need to return a string here so that the test passes both locally and in kubernetes
         // Locally, we get a json, but in the cloud, we get an HTML response from the proxy
-        DrsResponse<String> unauthorizedRequest = dataRepoClient.madeUnauthenticatedDrsRequest(
+        ResponseEntity<String> unauthorizedRequest = dataRepoClient.madeUnauthenticatedDrsRequest(
             "/ga4gh/drs/v1/objects/" + drsObjectId,
-            HttpMethod.GET,
-            String.class);
+            HttpMethod.GET);
         assertThat("a 401 UNAUTHORIZED response is returned",
             unauthorizedRequest.getStatusCode(), equalTo(HttpStatus.UNAUTHORIZED));
 

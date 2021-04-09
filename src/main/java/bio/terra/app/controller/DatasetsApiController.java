@@ -180,7 +180,7 @@ public class DatasetsApiController implements DatasetsApi {
     @Override
     public ResponseEntity<JobModel> applyDatasetDataDeletion(
         String id,
-        @RequestBody @Valid bio.terra.model.DataDeletionRequest dataDeletionRequest) {
+        @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
         String jobId = datasetService.deleteTabularData(id, dataDeletionRequest, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));

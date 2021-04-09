@@ -9,6 +9,7 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;

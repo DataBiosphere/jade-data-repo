@@ -1,7 +1,8 @@
 package scripts.testscripts.baseclasses;
 
-import bio.terra.datarepo.api.RepositoryApi;
-import bio.terra.datarepo.api.ResourcesApi;
+import bio.terra.datarepo.api.DatasetsApi;
+import bio.terra.datarepo.api.JobsApi;
+import bio.terra.datarepo.api.ProfilesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
@@ -42,14 +43,14 @@ public class SimpleDataset extends runner.TestScript {
 
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
-    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
+    ProfilesApi profilesApi = new ProfilesApi(datasetCreatorClient);
+    JobsApi jobsApi = new JobsApi(datasetCreatorClient);
+    DatasetsApi datasetsApi = new DatasetsApi(datasetCreatorClient);
 
     // create a new profile
     if (billingProfileModel == null) {
       billingProfileModel =
-          DataRepoUtils.createProfile(
-              resourcesApi, repositoryApi, billingAccount, "profile-simple", true);
+          DataRepoUtils.createProfile(profilesApi, jobsApi, billingAccount, "profile-simple", true);
       logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
     } else {
       logger.info("Using existing profile: {}", billingProfileModel.getProfileName());
@@ -58,12 +59,12 @@ public class SimpleDataset extends runner.TestScript {
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
         DataRepoUtils.createDataset(
-            repositoryApi, billingProfileModel.getId(), "dataset-simple.json", true);
+            datasetsApi, jobsApi, billingProfileModel.getId(), "dataset-simple.json", true);
 
     // save a reference to the dataset summary model so we can delete it in cleanup()
     datasetSummaryModel =
         DataRepoUtils.expectJobSuccess(
-            repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
+            jobsApi, createDatasetJobResponse, DatasetSummaryModel.class);
     logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
 
     // add users as custodians
@@ -77,7 +78,7 @@ public class SimpleDataset extends runner.TestScript {
           try {
             logger.info("Adding user {} as custodian", u.userEmail);
             PolicyResponse policyResponse =
-                repositoryApi.addDatasetPolicyMember(
+                datasetsApi.addDatasetPolicyMember(
                     datasetSummaryModel.getId(),
                     "custodian",
                     new PolicyMemberRequest().email(u.userEmail));
@@ -90,20 +91,19 @@ public class SimpleDataset extends runner.TestScript {
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
-    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
+    ProfilesApi profilesApi = new ProfilesApi(datasetCreatorClient);
+    DatasetsApi repositoryApi = new DatasetsApi(datasetCreatorClient);
+    JobsApi jobsApi = new JobsApi(datasetCreatorClient);
 
     // make the delete dataset request and wait for the job to finish
     JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
-    deleteDatasetJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
-    DataRepoUtils.expectJobSuccess(
-        repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
+    deleteDatasetJobResponse = DataRepoUtils.waitForJobToFinish(jobsApi, deleteDatasetJobResponse);
+    DataRepoUtils.expectJobSuccess(jobsApi, deleteDatasetJobResponse, DeleteResponseModel.class);
     logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
 
     // delete the profile
     if (deleteProfile) {
-      resourcesApi.deleteProfile(billingProfileModel.getId());
+      profilesApi.deleteProfile(billingProfileModel.getId());
       logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
     } else {
       logger.info("Skipping profile delete because test is using a shared profile");

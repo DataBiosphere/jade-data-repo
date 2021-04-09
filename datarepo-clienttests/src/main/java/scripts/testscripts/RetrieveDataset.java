@@ -1,6 +1,6 @@
 package scripts.testscripts;
 
-import bio.terra.datarepo.api.RepositoryApi;
+import bio.terra.datarepo.api.DatasetsApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.DatasetModel;
 import org.slf4j.Logger;
@@ -19,8 +19,8 @@ public class RetrieveDataset extends SimpleDataset {
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
-    DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetSummaryModel.getId());
+    DatasetsApi datasetsApi = new DatasetsApi(apiClient);
+    DatasetModel datasetModel = datasetsApi.retrieveDataset(datasetSummaryModel.getId());
     logger.info(
         "Successfully retrieved dataset: name = {}, data project = {}",
         datasetModel.getName(),

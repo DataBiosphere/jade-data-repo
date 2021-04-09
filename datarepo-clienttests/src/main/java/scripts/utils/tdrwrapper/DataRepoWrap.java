@@ -6,8 +6,10 @@ package scripts.utils.tdrwrapper;
 // 2. Futures for waiting for and retrieving results of async calls.
 // 3. Methods that automatically wait.
 
-import bio.terra.datarepo.api.RepositoryApi;
-import bio.terra.datarepo.api.ResourcesApi;
+import bio.terra.datarepo.api.DatasetsApi;
+import bio.terra.datarepo.api.JobsApi;
+import bio.terra.datarepo.api.ProfilesApi;
+import bio.terra.datarepo.api.SnapshotsApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
@@ -51,12 +53,20 @@ public class DataRepoWrap {
   private static final Logger logger = LoggerFactory.getLogger(DataRepoWrap.class);
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
-  private final RepositoryApi repositoryApi;
-  private final ResourcesApi resourcesApi;
+  private final JobsApi jobsApi;
+  private final ProfilesApi profilesApi;
+  private final SnapshotsApi snapshotsApi;
+  private final DatasetsApi datasetsApi;
 
-  public DataRepoWrap(RepositoryApi repositoryApi, ResourcesApi resourcesApi) {
-    this.repositoryApi = repositoryApi;
-    this.resourcesApi = resourcesApi;
+  public DataRepoWrap(
+      JobsApi jobsApi,
+      ProfilesApi profilesApi,
+      SnapshotsApi snapshotsApi,
+      DatasetsApi datasetsApi) {
+    this.jobsApi = jobsApi;
+    this.profilesApi = profilesApi;
+    this.snapshotsApi = snapshotsApi;
+    this.datasetsApi = datasetsApi;
   }
 
   public static DataRepoWrap wrapFactory(TestUserSpecification testUser, ServerSpecification server)
@@ -64,7 +74,10 @@ public class DataRepoWrap {
 
     ApiClient ownerUser1Client = DataRepoUtils.getClientForTestUser(testUser, server);
     return new DataRepoWrap(
-        new RepositoryApi(ownerUser1Client), new ResourcesApi(ownerUser1Client));
+        new JobsApi(ownerUser1Client),
+        new ProfilesApi(ownerUser1Client),
+        new SnapshotsApi(ownerUser1Client),
+        new DatasetsApi(ownerUser1Client));
   }
 
   /**
@@ -135,7 +148,7 @@ public class DataRepoWrap {
       String profileId, String policyName, String userEmail) {
     PolicyMemberRequest addRequest = new PolicyMemberRequest().email(userEmail);
     return apiCallThrow(
-        () -> resourcesApi.addProfilePolicyMember(addRequest, profileId, policyName));
+        () -> profilesApi.addProfilePolicyMember(addRequest, profileId, policyName));
   }
 
   public BillingProfileModel createProfile(
@@ -162,9 +175,9 @@ public class DataRepoWrap {
             .profileName(profileName)
             .description(profileName + " created in TestRunner RunTests");
 
-    JobModel jobResponse = apiCallThrow(() -> resourcesApi.createProfile(createProfileRequest));
+    JobModel jobResponse = apiCallThrow(() -> profilesApi.createProfile(createProfileRequest));
 
-    return new WrapFuture<>(jobResponse.getId(), repositoryApi, BillingProfileModel.class);
+    return new WrapFuture<>(jobResponse.getId(), jobsApi, BillingProfileModel.class);
   }
 
   public DeleteResponseModel deleteProfile(String profileId) throws Exception {
@@ -173,34 +186,34 @@ public class DataRepoWrap {
   }
 
   public WrapFuture<DeleteResponseModel> deleteProfileFuture(String profileId) {
-    JobModel jobResponse = apiCallThrow(() -> resourcesApi.deleteProfile(profileId));
-    return new WrapFuture<>(jobResponse.getId(), repositoryApi, DeleteResponseModel.class);
+    JobModel jobResponse = apiCallThrow(() -> profilesApi.deleteProfile(profileId));
+    return new WrapFuture<>(jobResponse.getId(), jobsApi, DeleteResponseModel.class);
   }
 
   public PolicyResponse deleteProfilePolicyMember(
       String profileId, String policyName, String userEmail) {
 
     return apiCallThrow(
-        () -> resourcesApi.deleteProfilePolicyMember(profileId, policyName, userEmail));
+        () -> profilesApi.deleteProfilePolicyMember(profileId, policyName, userEmail));
   }
 
   public EnumerateBillingProfileModel enumerateProfiles(Integer offset, Integer limit) {
-    return DataRepoWrap.apiCallThrow(() -> resourcesApi.enumerateProfiles(offset, limit));
+    return DataRepoWrap.apiCallThrow(() -> profilesApi.enumerateProfiles(offset, limit));
   }
 
   public BillingProfileModel retrieveProfile(String profileId) {
-    return DataRepoWrap.apiCallThrow(() -> resourcesApi.retrieveProfile(profileId));
+    return DataRepoWrap.apiCallThrow(() -> profilesApi.retrieveProfile(profileId));
   }
 
   public PolicyResponse retrieveProfilePolicies(String id) {
-    return apiCallThrow(() -> resourcesApi.retrieveProfilePolicies(id));
+    return apiCallThrow(() -> profilesApi.retrieveProfilePolicies(id));
   }
 
   // -- dataset --
 
   public PolicyResponse addDatasetPolicyMember(String id, String policyName, String userEmail) {
     PolicyMemberRequest addRequest = new PolicyMemberRequest().email(userEmail);
-    return apiCallThrow(() -> repositoryApi.addDatasetPolicyMember(id, policyName, addRequest));
+    return apiCallThrow(() -> datasetsApi.addDatasetPolicyMember(id, policyName, addRequest));
   }
 
   public DatasetSummaryModel createDataset(
@@ -225,9 +238,9 @@ public class DataRepoWrap {
       createDatasetRequest.setName(FileUtils.randomizeName(createDatasetRequest.getName()));
     }
 
-    JobModel jobResponse = apiCallThrow(() -> repositoryApi.createDataset(createDatasetRequest));
+    JobModel jobResponse = apiCallThrow(() -> datasetsApi.createDataset(createDatasetRequest));
 
-    return new WrapFuture<>(jobResponse.getId(), repositoryApi, DatasetSummaryModel.class);
+    return new WrapFuture<>(jobResponse.getId(), jobsApi, DatasetSummaryModel.class);
   }
 
   public DeleteResponseModel deleteDataset(String id) throws Exception {
@@ -236,9 +249,9 @@ public class DataRepoWrap {
   }
 
   public WrapFuture<DeleteResponseModel> deleteDatasetFuture(String id) throws Exception {
-    JobModel jobResponse = apiCallThrow(() -> repositoryApi.deleteDataset(id));
+    JobModel jobResponse = apiCallThrow(() -> datasetsApi.deleteDataset(id));
 
-    return new WrapFuture<>(jobResponse.getId(), repositoryApi, DeleteResponseModel.class);
+    return new WrapFuture<>(jobResponse.getId(), jobsApi, DeleteResponseModel.class);
   }
 
   // -- snapshot --
@@ -268,9 +281,9 @@ public class DataRepoWrap {
       createSnapshotRequest.setName(FileUtils.randomizeName(createSnapshotRequest.getName()));
     }
 
-    JobModel jobResponse = apiCallThrow(() -> repositoryApi.createSnapshot(createSnapshotRequest));
+    JobModel jobResponse = apiCallThrow(() -> snapshotsApi.createSnapshot(createSnapshotRequest));
 
-    return new WrapFuture<>(jobResponse.getId(), repositoryApi, SnapshotSummaryModel.class);
+    return new WrapFuture<>(jobResponse.getId(), jobsApi, SnapshotSummaryModel.class);
   }
 
   public DeleteResponseModel deleteSnapshot(String id) throws Exception {
@@ -279,8 +292,8 @@ public class DataRepoWrap {
   }
 
   public WrapFuture<DeleteResponseModel> deleteSnapshotFuture(String id) throws Exception {
-    JobModel jobResponse = apiCallThrow(() -> repositoryApi.deleteSnapshot(id));
+    JobModel jobResponse = apiCallThrow(() -> snapshotsApi.deleteSnapshot(id));
 
-    return new WrapFuture<>(jobResponse.getId(), repositoryApi, DeleteResponseModel.class);
+    return new WrapFuture<>(jobResponse.getId(), jobsApi, DeleteResponseModel.class);
   }
 }

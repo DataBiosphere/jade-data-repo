@@ -1,6 +1,6 @@
 package scripts.disruptivescripts;
 
-import bio.terra.datarepo.api.RepositoryApi;
+import bio.terra.datarepo.api.ConfigsApi;
 import bio.terra.datarepo.client.ApiClient;
 import java.util.List;
 import org.slf4j.Logger;
@@ -31,15 +31,15 @@ public class EnableFaults extends DisruptiveScript {
 
     // just pick the first test user
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUsers.get(0), server);
-    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
+    ConfigsApi configsApi = new ConfigsApi(apiClient);
 
     // reset the config
-    repositoryApi.resetConfig();
+    configsApi.resetConfig();
     logger.info("Config reset");
 
     // enable the faults
     for (String faultName : faultNames) {
-      DataRepoUtils.enableFault(repositoryApi, faultName);
+      DataRepoUtils.enableFault(configsApi, faultName);
       logger.info("Fault enabled: {}", faultName);
     }
   }

@@ -1,6 +1,6 @@
 package scripts.utils;
 
-import bio.terra.datarepo.api.RepositoryApi;
+import bio.terra.datarepo.api.JobsApi;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
@@ -76,13 +76,12 @@ public class BulkLoadUtils {
   }
 
   public static BulkLoadResultModel getAndDisplayResults(
-      RepositoryApi repositoryApi, JobModel bulkLoadArrayJobResponse) throws Exception {
-    bulkLoadArrayJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse);
+      JobsApi jobsApi, JobModel bulkLoadArrayJobResponse) throws Exception {
+    bulkLoadArrayJobResponse = DataRepoUtils.waitForJobToFinish(jobsApi, bulkLoadArrayJobResponse);
 
     BulkLoadArrayResultModel result =
         DataRepoUtils.expectJobSuccess(
-            repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
+            jobsApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
 
     BulkLoadResultModel loadSummary = result.getLoadSummary();
 

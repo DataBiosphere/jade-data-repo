@@ -1,7 +1,10 @@
 package scripts.utils;
 
-import bio.terra.datarepo.api.RepositoryApi;
-import bio.terra.datarepo.api.ResourcesApi;
+import bio.terra.datarepo.api.ConfigsApi;
+import bio.terra.datarepo.api.DatasetsApi;
+import bio.terra.datarepo.api.JobsApi;
+import bio.terra.datarepo.api.ProfilesApi;
+import bio.terra.datarepo.api.SnapshotsApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
@@ -92,13 +95,12 @@ public final class DataRepoUtils {
    * DataRepoUtils#maximumSecondsToWaitForJob} seconds. Polls in intervals of {@link
    * DataRepoUtils#secondsIntervalToPollJob} seconds.
    *
-   * @param repositoryApi the api object to use
+   * @param jobsApi the api object to use
    * @param job the job model to poll
    */
-  public static JobModel waitForJobToFinish(RepositoryApi repositoryApi, JobModel job)
-      throws Exception {
+  public static JobModel waitForJobToFinish(JobsApi jobsApi, JobModel job) throws Exception {
     logger.debug("Waiting for Data Repo job to finish");
-    job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob);
+    job = pollForRunningJob(jobsApi, job, maximumSecondsToWaitForJob);
 
     if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       throw new RuntimeException(
@@ -111,20 +113,20 @@ public final class DataRepoUtils {
   /**
    * Poll for running job. Polls for designated time.
    *
-   * @param repositoryApi the api object to use
+   * @param jobsApi the api object to use
    * @param job the job model to poll
    * @param pollTime time in seconds for the job to poll before returning
    */
-  public static JobModel pollForRunningJob(RepositoryApi repositoryApi, JobModel job, int pollTime)
+  public static JobModel pollForRunningJob(JobsApi jobsApi, JobModel job, int pollTime)
       throws Exception {
     int pollCtr = Math.floorDiv(pollTime, secondsIntervalToPollJob);
-    job = repositoryApi.retrieveJob(job.getId());
+    job = jobsApi.retrieveJob(job.getId());
     int tryCount = 1;
 
     while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
       logger.debug("Sleeping. try #" + tryCount + " For Job: " + job.getDescription());
       TimeUnit.SECONDS.sleep(secondsIntervalToPollJob);
-      job = repositoryApi.retrieveJob(job.getId());
+      job = jobsApi.retrieveJob(job.getId());
       tryCount++;
       pollCtr--;
     }
@@ -137,15 +139,15 @@ public final class DataRepoUtils {
    * Fetch the job result and de-serialize it to the specified result class. This method expects
    * that the job has already completed, either successfully or not.
    *
-   * @param repositoryApi the api object to use
+   * @param jobsApi the api object to use
    * @param job the job model that has completed
    * @param resultClass the expected (model) class of the result
    * @return the de-serialized result
    */
-  public static <T> T getJobResult(RepositoryApi repositoryApi, JobModel job, Class<T> resultClass)
+  public static <T> T getJobResult(JobsApi jobsApi, JobModel job, Class<T> resultClass)
       throws Exception {
     logger.debug("Fetching Data Repo job result");
-    Object jobResult = repositoryApi.retrieveJobResult(job.getId());
+    Object jobResult = jobsApi.retrieveJobResult(job.getId());
 
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.convertValue(jobResult, resultClass);
@@ -156,22 +158,21 @@ public final class DataRepoUtils {
    * result class. If failed, throw an exception that includes the error model. This method expects
    * that the job has already completed.
    *
-   * @param repositoryApi the api object to use
+   * @param jobsApi the api object to use
    * @param jobResponse the job model that has completed
    * @param resultClass the expected (model) class of the result
    * @return the de-serialized result
    * @throws RuntimeException if the job status is failed
    */
-  public static <T> T expectJobSuccess(
-      RepositoryApi repositoryApi, JobModel jobResponse, Class<T> resultClass) throws Exception {
+  public static <T> T expectJobSuccess(JobsApi jobsApi, JobModel jobResponse, Class<T> resultClass)
+      throws Exception {
 
     if (jobResponse.getJobStatus().equals(JobModel.JobStatusEnum.FAILED)) {
-      ErrorModel errorModel =
-          DataRepoUtils.getJobResult(repositoryApi, jobResponse, ErrorModel.class);
+      ErrorModel errorModel = DataRepoUtils.getJobResult(jobsApi, jobResponse, ErrorModel.class);
       throw new RuntimeException("Job failed unexpectedly. " + errorModel);
     }
 
-    return DataRepoUtils.getJobResult(repositoryApi, jobResponse, resultClass);
+    return DataRepoUtils.getJobResult(jobsApi, jobResponse, resultClass);
   }
 
   // ====================================================================
@@ -180,7 +181,7 @@ public final class DataRepoUtils {
   /**
    * Create a dataset and wait for the job to finish.
    *
-   * @param repositoryApi the api object to use
+   * @param datasetsApi the api object to use
    * @param profileId the billing profile id
    * @param apipayloadFilename the name of the create dataset payload file in the apipayloads
    *     resources directory
@@ -189,7 +190,8 @@ public final class DataRepoUtils {
    * @return the completed job model
    */
   public static JobModel createDataset(
-      RepositoryApi repositoryApi,
+      DatasetsApi datasetsApi,
+      JobsApi jobsApi,
       String profileId,
       String apipayloadFilename,
       boolean randomizeName)
@@ -208,14 +210,14 @@ public final class DataRepoUtils {
     }
 
     // make the create request and wait for the job to finish
-    JobModel createDatasetJobResponse = repositoryApi.createDataset(createDatasetRequest);
-    return DataRepoUtils.waitForJobToFinish(repositoryApi, createDatasetJobResponse);
+    JobModel createDatasetJobResponse = datasetsApi.createDataset(createDatasetRequest);
+    return DataRepoUtils.waitForJobToFinish(jobsApi, createDatasetJobResponse);
   }
 
   /**
    * Create a snapshot and wait for the job to finish.
    *
-   * @param repositoryApi the api object to use
+   * @param snapshotsApi the api object to use
    * @param datasetSummaryModel the summary of the dataset used by the snapshot
    * @param apipayloadFilename the name of the create snapshot payload file in the apipayloads
    *     resources directory
@@ -224,7 +226,8 @@ public final class DataRepoUtils {
    * @return the completed job model
    */
   public static JobModel createSnapshot(
-      RepositoryApi repositoryApi,
+      SnapshotsApi snapshotsApi,
+      JobsApi jobsApi,
       DatasetSummaryModel datasetSummaryModel,
       String apipayloadFilename,
       boolean randomizeName)
@@ -246,14 +249,14 @@ public final class DataRepoUtils {
     }
 
     // make the create request and wait for the job to finish
-    JobModel createSnapshotJobResponse = repositoryApi.createSnapshot(createSnapshotRequest);
-    return DataRepoUtils.waitForJobToFinish(repositoryApi, createSnapshotJobResponse);
+    JobModel createSnapshotJobResponse = snapshotsApi.createSnapshot(createSnapshotRequest);
+    return DataRepoUtils.waitForJobToFinish(jobsApi, createSnapshotJobResponse);
   }
 
   /**
    * Create a billing profile.
    *
-   * @param resourcesApi the api object to use
+   * @param profilesApi the api object to use
    * @param billingAccount the Google billing account id
    * @param profileName the name of the new profile
    * @param randomizeName true to append a random number at the end of the profile name, false
@@ -261,8 +264,8 @@ public final class DataRepoUtils {
    * @return the created billing profile model
    */
   public static BillingProfileModel createProfile(
-      ResourcesApi resourcesApi,
-      RepositoryApi repositoryApi,
+      ProfilesApi profilesApi,
+      JobsApi jobsApi,
       String billingAccount,
       String profileName,
       boolean randomizeName)
@@ -282,16 +285,16 @@ public final class DataRepoUtils {
             .description(profileName + " created in TestRunner RunTests");
 
     // make the create request and wait for the job to finish
-    JobModel jobModel = resourcesApi.createProfile(createProfileRequest);
-    jobModel = DataRepoUtils.waitForJobToFinish(repositoryApi, jobModel);
+    JobModel jobModel = profilesApi.createProfile(createProfileRequest);
+    jobModel = DataRepoUtils.waitForJobToFinish(jobsApi, jobModel);
 
     BillingProfileModel billingProfile =
-        DataRepoUtils.expectJobSuccess(repositoryApi, jobModel, BillingProfileModel.class);
+        DataRepoUtils.expectJobSuccess(jobsApi, jobModel, BillingProfileModel.class);
 
     return billingProfile;
   }
 
-  public static void setConfigParameter(RepositoryApi repositoryApi, String name, int value)
+  public static void setConfigParameter(ConfigsApi configsApi, String name, int value)
       throws Exception {
     ConfigGroupModel groupModel =
         new ConfigGroupModel()
@@ -302,13 +305,12 @@ public final class DataRepoUtils {
                     .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
                     .parameter(new ConfigParameterModel().value(String.valueOf(value))));
 
-    repositoryApi.setConfigList(groupModel);
+    configsApi.setConfigList(groupModel);
   }
 
   /** Set a fault to enabled. */
-  public static void enableFault(RepositoryApi repositoryApi, String faultName)
-      throws ApiException {
-    repositoryApi.setFault(faultName, new ConfigEnableModel().enabled(true));
+  public static void enableFault(ConfigsApi configsApi, String faultName) throws ApiException {
+    configsApi.setFault(faultName, new ConfigEnableModel().enabled(true));
   }
 
   /**

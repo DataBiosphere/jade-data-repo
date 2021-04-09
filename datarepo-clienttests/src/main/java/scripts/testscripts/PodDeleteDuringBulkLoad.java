@@ -3,7 +3,8 @@ package scripts.testscripts;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import bio.terra.datarepo.api.RepositoryApi;
+import bio.terra.datarepo.api.DatasetsApi;
+import bio.terra.datarepo.api.JobsApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadResultModel;
@@ -41,20 +42,21 @@ public class PodDeleteDuringBulkLoad extends SimpleDataset {
   // while we delete a random pod.
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
+    DatasetsApi datasetsApi = new DatasetsApi(apiClient);
+    JobsApi jobsApi = new JobsApi(apiClient);
 
     // set up and start bulk load job
     BulkLoadArrayRequestModel arrayLoad =
         BulkLoadUtils.buildBulkLoadFileRequest(filesToLoad, billingProfileModel.getId());
     JobModel bulkLoadArrayJobResponse =
-        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
+        datasetsApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
 
     // =========================================================================
     /* Manipulating kubernetes pods during file ingest */
 
     // initial poll as file ingest begins
     bulkLoadArrayJobResponse =
-        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+        DataRepoUtils.pollForRunningJob(jobsApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       KubernetesClientUtils.deleteRandomPod();
@@ -65,7 +67,7 @@ public class PodDeleteDuringBulkLoad extends SimpleDataset {
 
     // wait for the job to complete and print out results to debug log level
     BulkLoadResultModel loadSummary =
-        BulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
+        BulkLoadUtils.getAndDisplayResults(jobsApi, bulkLoadArrayJobResponse);
 
     assertThat(
         "Number of successful files loaded should equal total files.",

@@ -180,8 +180,8 @@ public class EncodeFileTest {
             datasetSummary, "encodefiletest-snapshot.json", "");
 
         /*
-         * WARNING: if making any changes to this test make sure to notify the #dsp-batch channel! Describe the change and
-         * any consequences downstream to DRS clients.
+         * WARNING: if making any changes to this test make sure to notify the #dsp-batch channel! Describe the change
+         * and any consequences downstream to DRS clients.
          */
         String fileUri = getFileRefIdFromSnapshot(snapshotSummary);
         DrsId drsId = drsIdService.fromUri(fileUri);

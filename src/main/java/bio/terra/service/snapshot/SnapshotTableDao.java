@@ -52,7 +52,7 @@ public class SnapshotTableDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (Column column : columns) {
             params.addValue("name", column.getName());
-            params.addValue("type", column.getType());
+            params.addValue("type", column.getType().toString());
             params.addValue("array_of", column.isArrayOf());
             jdbcTemplate.update(sqlInsertColumn, params, keyHolder);
             UUID columnId = keyHolder.getId();
@@ -80,7 +80,7 @@ public class SnapshotTableDao {
                     .id(rs.getObject("id", UUID.class))
                     .table(table)
                     .name(rs.getString("name"))
-                    .type(TableDataType.valueOf(rs.getString("type")))
+                    .type(TableDataType.fromValue(rs.getString("type")))
                     .arrayOf(rs.getBoolean("array_of")));
     }
 }

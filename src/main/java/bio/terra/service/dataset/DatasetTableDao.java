@@ -149,7 +149,7 @@ public class DatasetTableDao {
                     .id(rs.getObject("id", UUID.class))
                     .table(table)
                     .name(rs.getString("name"))
-                    .type(TableDataType.valueOf(rs.getString("type")))
+                    .type(TableDataType.fromValue(rs.getString("type")))
                     .arrayOf(rs.getBoolean("array_of")));
     }
 }

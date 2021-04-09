@@ -96,8 +96,7 @@ public class ConfigsApiController implements ConfigsApi {
             IamResourceType.DATAREPO,
             appConfig.getResourceId(),
             IamAction.CONFIGURE);
-        ConfigModel configModel = configurationService.getConfig(name);
-        return new ResponseEntity<>(configModel, HttpStatus.OK);
+        return ResponseEntity.ok(configurationService.getConfig(name));
     }
 
     @Override

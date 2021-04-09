@@ -37,7 +37,7 @@ import java.util.Optional;
 @Api(tags = {"configs"})
 public class ConfigsApiController implements ConfigsApi {
 
-    private Logger logger = LoggerFactory.getLogger(ConfigsApiController.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConfigsApiController.class);
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;

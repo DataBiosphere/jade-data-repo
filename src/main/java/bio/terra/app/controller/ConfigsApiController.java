@@ -91,43 +91,26 @@ public class ConfigsApiController implements ConfigsApi {
 
     @Override
     public ResponseEntity<ConfigModel> getConfig(@PathVariable("name") String name) {
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            IamAction.CONFIGURE);
         return ResponseEntity.ok(configurationService.getConfig(name));
     }
 
     @Override
     public ResponseEntity<ConfigListModel> getConfigList() {
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            IamAction.CONFIGURE);
+        verifyAuthorization();
         ConfigListModel configModelList = configurationService.getConfigList();
         return new ResponseEntity<>(configModelList, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<Void> resetConfig() {
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            IamAction.CONFIGURE);
+        verifyAuthorization();
         configurationService.reset();
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @Override
     public ResponseEntity<ConfigListModel> setConfigList(@Valid @RequestBody ConfigGroupModel configModel) {
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            IamAction.CONFIGURE);
+        verifyAuthorization();
         ConfigListModel configModelList = configurationService.setConfig(configModel);
         return new ResponseEntity<>(configModelList, HttpStatus.OK);
     }
@@ -135,13 +118,16 @@ public class ConfigsApiController implements ConfigsApi {
     @Override
     public ResponseEntity<Void> setFault(@PathVariable("name") String name,
                                          @Valid @RequestBody ConfigEnableModel configEnable) {
+        verifyAuthorization();
+        configurationService.setFault(name, configEnable.isEnabled());
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    private void verifyAuthorization() {
         iamService.verifyAuthorization(
             getAuthenticatedInfo(),
             IamResourceType.DATAREPO,
             appConfig.getResourceId(),
             IamAction.CONFIGURE);
-        configurationService.setFault(name, configEnable.isEnabled());
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
-
 }

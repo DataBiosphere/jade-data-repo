@@ -261,10 +261,12 @@ public class DrsTest extends UsersBase {
         assertThat("a 400 BAD_REQUEST response is returned",
             badRequestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
 
-        DrsResponse<DRSObject> unauthorizedRequest = dataRepoClient.madeUnauthenticatedDrsRequest(
+        // We need to return a string here so that the test passes both locally and in kubernetes
+        // Locally, we get a json, but in the cloud, we get an HTML response from the proxy
+        DrsResponse<String> unauthorizedRequest = dataRepoClient.madeUnauthenticatedDrsRequest(
             "/ga4gh/drs/v1/objects/" + drsObjectId,
             HttpMethod.GET,
-            DRSObject.class);
+            String.class);
         assertThat("a 401 UNAUTHORIZED response is returned",
             unauthorizedRequest.getStatusCode(), equalTo(HttpStatus.UNAUTHORIZED));
 

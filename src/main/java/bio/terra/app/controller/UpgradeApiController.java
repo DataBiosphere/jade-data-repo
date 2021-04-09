@@ -38,9 +38,6 @@ public class UpgradeApiController implements UpgradeApi {
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
     private final JobService jobService;
-    private final DatasetRequestValidator datasetRequestValidator;
-    private final SnapshotRequestValidator snapshotRequestValidator;
-    private final IngestRequestValidator ingestRequestValidator;
     private final PolicyMemberValidator policyMemberValidator;
     private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
     private final AssetModelValidator assetModelValidator;
@@ -51,9 +48,6 @@ public class UpgradeApiController implements UpgradeApi {
             ObjectMapper objectMapper,
             HttpServletRequest request,
             JobService jobService,
-            DatasetRequestValidator datasetRequestValidator,
-            SnapshotRequestValidator snapshotRequestValidator,
-            IngestRequestValidator ingestRequestValidator,
             PolicyMemberValidator policyMemberValidator,
             AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
             AssetModelValidator assetModelValidator,
@@ -62,9 +56,6 @@ public class UpgradeApiController implements UpgradeApi {
         this.objectMapper = objectMapper;
         this.request = request;
         this.jobService = jobService;
-        this.datasetRequestValidator = datasetRequestValidator;
-        this.snapshotRequestValidator = snapshotRequestValidator;
-        this.ingestRequestValidator = ingestRequestValidator;
         this.policyMemberValidator = policyMemberValidator;
         this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
         this.assetModelValidator = assetModelValidator;

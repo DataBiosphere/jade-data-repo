@@ -596,7 +596,7 @@ public class DataRepoFixtures {
     }
 
     /*
-     * XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
      * any consequences downstream to DRS clients.
      */
     public DrsResponse<DRSObject> drsGetObjectRaw(TestConfiguration.User user, String drsObjectId) throws Exception {
@@ -607,7 +607,7 @@ public class DataRepoFixtures {
     }
 
     /*
-     * XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
      * any consequences downstream to DRS clients.
      */
     public DRSObject drsGetObject(TestConfiguration.User user, String drsObjectId) throws Exception {

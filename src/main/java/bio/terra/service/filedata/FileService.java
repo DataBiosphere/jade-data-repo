@@ -246,7 +246,7 @@ public class FileService {
     // We use the DRSChecksum model to represent the checksums in the repository
     // API's FileModel to return the set of checksums for a file.
     /*
-     * XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
      * any consequences downstream to DRS clients.
      */
     List<DRSChecksum> makeChecksums(FSItem fsItem) {

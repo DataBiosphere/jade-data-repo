@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.net.URI;
 
 /*
- * XXX: if making any changes to this class make sure to notify the #dsp-batch channel. Describe the change and
+ * WARNING: if making any changes to this class make sure to notify the #dsp-batch channel. Describe the change and
  * any consequences downstream to DRS clients.
  */
 /**

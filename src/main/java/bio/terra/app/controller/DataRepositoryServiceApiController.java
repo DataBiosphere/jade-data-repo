@@ -119,7 +119,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     }
 
     /*
-     * XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
      * any consequences downstream to DRS clients.
      */
     @Override

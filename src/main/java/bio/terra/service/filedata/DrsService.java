@@ -39,7 +39,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /*
- * XXX: if making any changes to this class make sure to notify the #dsp-batch channel! Describe the change and
+ * WARNING: if making any changes to this class make sure to notify the #dsp-batch channel! Describe the change and
  * any consequences downstream to DRS clients.
  */
 @Component

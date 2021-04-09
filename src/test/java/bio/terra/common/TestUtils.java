@@ -72,7 +72,7 @@ public final class TestUtils {
     }
 
     /*
-    XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and any
+    WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and any
     consequences downstream to DRS clients.
     */
     public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods,
@@ -116,7 +116,7 @@ public final class TestUtils {
     }
 
     /*
-     * XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
      * any consequences downstream to DRS clients.
      */
     public static Map<String, List<Acl>> readDrsGCSAcls(List<DRSAccessMethod> accessMethods) {

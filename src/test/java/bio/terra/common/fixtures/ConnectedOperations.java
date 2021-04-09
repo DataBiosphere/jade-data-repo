@@ -574,7 +574,7 @@ public class ConnectedOperations {
     }
 
     /*
-     * XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
      * any consequences downstream to DRS clients.
      */
     private void checkSuccessfulFileLoad(FileLoadModel fileLoadModel, FileModel fileModel, String datasetId) {
@@ -726,7 +726,7 @@ public class ConnectedOperations {
     }
 
     /*
-     * XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
      * any consequences downstream to DRS clients.
      */
     public DRSObject drsGetObjectSuccess(String drsObjectId, boolean expand) throws Exception {

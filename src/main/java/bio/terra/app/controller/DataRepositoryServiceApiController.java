@@ -15,6 +15,7 @@ import bio.terra.service.filedata.DrsService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.annotations.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 
 @Controller
+@Api(tags = {"DataRepositoryService"})
 public class DataRepositoryServiceApiController implements DataRepositoryServiceApi {
 
     private Logger logger = LoggerFactory.getLogger(DataRepositoryServiceApiController.class);

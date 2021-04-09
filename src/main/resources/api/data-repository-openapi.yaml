@@ -115,7 +115,7 @@ paths:
   /api/resources/v1/profiles:
     get:
       tags:
-        - resources
+        - profiles
       description: >
         Returns a list of all of the billing profiles
       operationId: enumerateProfiles
@@ -142,7 +142,7 @@ paths:
                 $ref: '#/components/schemas/EnumerateBillingProfileModel'
     post:
       tags:
-        - resources
+        - profiles
       description: >
         Creates a new profile associated with a billing account. This is asynchronous.
         The final return is of type definitions/BillingProfileModel.
@@ -192,7 +192,7 @@ paths:
       x-codegen-request-body-name: billingProfileRequest
     put:
       tags:
-        - resources
+        - profiles
       description: >
         Update a billing profile by id. This is asynchronous.
         The final return is of type definitions/BillingProfileModel.
@@ -248,7 +248,7 @@ paths:
   /api/resources/v1/profiles/{id}:
     get:
       tags:
-        - resources
+        - profiles
       description: Retrieve a billing profile by id
       operationId: retrieveProfile
       parameters:
@@ -285,7 +285,7 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     delete:
       tags:
-        - resources
+        - profiles
       description: >
         Delete a billing profile by id. This is asynchronous.
         The final return is of type definitions/DeleteResponseModel.
@@ -349,7 +349,7 @@ paths:
   /api/resources/v1/profiles/{id}/policies:
     get:
       tags:
-        - resources
+        - profiles
       description: Retrieve the read and discover policies for the profile
       operationId: retrieveProfilePolicies
       parameters:
@@ -388,7 +388,7 @@ paths:
   /api/resources/v1/profiles/{id}/policies/{policyName}/members:
     post:
       tags:
-        - resources
+        - profiles
       description: Adds a member to the specified policy for the snapshot
       operationId: addProfilePolicyMember
       requestBody:
@@ -429,7 +429,7 @@ paths:
   /api/resources/v1/profiles/{id}/policies/{policyName}/members/{memberEmail}:
     delete:
       tags:
-        - resources
+        - profiles
       description: Removes a member from the specified policy for the profile
       operationId: deleteProfilePolicyMember
       parameters:
@@ -483,7 +483,7 @@ paths:
   /api/repository/v1/snapshots:
     get:
       tags:
-        - repository
+        - snapshots
       description: >
         Returns a list of all of the snapshots the caller has access to
       operationId: enumerateSnapshots
@@ -545,7 +545,7 @@ paths:
                 $ref: '#/components/schemas/EnumerateSnapshotModel'
     post:
       tags:
-        - repository
+        - snapshots
       description: Create a new snapshot
       operationId: createSnapshot
       requestBody:
@@ -602,7 +602,7 @@ paths:
   /api/repository/v1/snapshots/{id}:
     get:
       tags:
-        - repository
+        - snapshots
       description: Retrieve a snapshot by id
       operationId: retrieveSnapshot
       parameters:
@@ -639,7 +639,7 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     delete:
       tags:
-        - repository
+        - snapshots
       description: Delete a snapshot by id
       operationId: deleteSnapshot
       parameters:
@@ -700,7 +700,7 @@ paths:
   /api/repository/v1/snapshots/{id}/files/{fileid}:
     get:
       tags:
-        - repository
+        - snapshots
       description: Lookup metadata for one file
       operationId: lookupSnapshotFileById
       parameters:
@@ -757,7 +757,7 @@ paths:
   /api/repository/v1/snapshots/{id}/filesystem/objects:
     get:
       tags:
-        - repository
+        - snapshots
       description: Lookup metadata for one file
       operationId: lookupSnapshotFileByPath
       parameters:
@@ -814,7 +814,7 @@ paths:
   /api/repository/v1/snapshots/{id}/policies:
     get:
       tags:
-        - repository
+        - snapshots
       description: Retrieve the read and discover policies for the snapshot
       operationId: retrieveSnapshotPolicies
       parameters:
@@ -852,7 +852,7 @@ paths:
   /api/repository/v1/snapshots/{id}/policies/{policyName}/members:
     post:
       tags:
-        - repository
+        - snapshots
       description: Adds a member to the specified policy for the snapshot
       operationId: addSnapshotPolicyMember
       parameters:
@@ -908,7 +908,7 @@ paths:
   /api/repository/v1/snapshots/{id}/policies/{policyName}/members/{memberEmail}:
     delete:
       tags:
-        - repository
+        - snapshots
       description: Removes a member from the specified policy for the snapshot
       operationId: deleteSnapshotPolicyMember
       parameters:
@@ -962,7 +962,7 @@ paths:
   /api/repository/v1/datasets:
     get:
       tags:
-        - repository
+        - datasets
       description: >
         Returns a list of all of the datasets the caller has access to
       operationId: enumerateDatasets
@@ -1014,7 +1014,7 @@ paths:
                 $ref: '#/components/schemas/EnumerateDatasetModel'
     post:
       tags:
-        - repository
+        - datasets
       description: Create a new dataset asynchronously. The async result is DatasetSummaryModel.
       operationId: createDataset
       requestBody:
@@ -1064,7 +1064,7 @@ paths:
   /api/repository/v1/datasets/{id}:
     get:
       tags:
-        - repository
+        - datasets
       description: Retrieve a dataset by id
       operationId: retrieveDataset
       parameters:
@@ -1101,7 +1101,7 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     delete:
       tags:
-        - repository
+        - datasets
       description: Delete a dataset by id
       operationId: deleteDataset
       parameters:
@@ -1162,7 +1162,7 @@ paths:
   /api/repository/v1/datasets/{id}/policies:
     get:
       tags:
-        - repository
+        - datasets
       description: Retrieve the read and discover policies for the snapshot
       operationId: retrieveDatasetPolicies
       parameters:
@@ -1200,7 +1200,7 @@ paths:
   /api/repository/v1/datasets/{id}/policies/{policyName}/members:
     post:
       tags:
-        - repository
+        - datasets
       description: Adds a member to the specified policy for the dataset
       operationId: addDatasetPolicyMember
       parameters:
@@ -1256,7 +1256,7 @@ paths:
   /api/repository/v1/datasets/{id}/policies/{policyName}/members/{memberEmail}:
     delete:
       tags:
-        - repository
+        - datasets
       description: Removes the member from the specified policy for the dataset
       operationId: deleteDatasetPolicyMember
       parameters:
@@ -1310,7 +1310,7 @@ paths:
   /api/repository/v1/datasets/{id}/ingest:
     post:
       tags:
-        - repository
+        - datasets
       description: Ingest data into a dataset table
       operationId: ingestDataset
       parameters:
@@ -1373,7 +1373,7 @@ paths:
   /api/repository/v1/datasets/{id}/assets:
     post:
       tags:
-        - repository
+        - datasets
       description: Add an asset definiion to a dataset
       operationId: addDatasetAssetSpecifications
       parameters:
@@ -1430,7 +1430,7 @@ paths:
   /api/repository/v1/datasets/{id}/assets/{assetid}:
     delete:
       tags:
-        - repository
+        - datasets
       description: Remove an asset definition from a dataset
       operationId: removeDatasetAssetSpecifications
       parameters:
@@ -1484,7 +1484,7 @@ paths:
   /api/repository/v1/datasets/{id}/deletes:
     post:
       tags:
-        - repository
+        - datasets
       description: Applies deletes to primary tabular data in a dataset
       operationId: applyDatasetDataDeletion
       parameters:
@@ -1531,7 +1531,7 @@ paths:
   /api/repository/v1/register/user:
     get:
       tags:
-        - repository
+        - register
       description: >
         Returns whether the user is registered with terra
       operationId: user
@@ -1545,7 +1545,7 @@ paths:
   /api/repository/v1/datasets/{id}/files:
     post:
       tags:
-        - repository
+        - datasets
       description: Ingest one file into the dataset file system; async returns a FileModel
       operationId: ingestFile
       parameters:
@@ -1608,7 +1608,7 @@ paths:
   /api/repository/v1/datasets/{id}/files/bulk:
     post:
       tags:
-        - repository
+        - datasets
       description: >-
         Load many files into the dataset file system; async returns a BulkLoadResultModel
         Note that this endpoint is not a single transaction. Some files may be loaded and
@@ -1677,7 +1677,7 @@ paths:
   /api/repository/v1/datasets/{id}/files/bulk/{loadtag}:
     get:
       tags:
-        - repository
+        - datasets
       description: >-
         Retrieve the results of a bulk file load. The results of each bulk load are stored
         in the dataset. They can be queried directly or retrieved with this paginated
@@ -1751,7 +1751,7 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     delete:
       tags:
-        - repository
+        - datasets
       description: >-
         Delete results from the bulk file load table of the dataset.
         If jobId is specified, then only the results for the loadTag plus that jobId are
@@ -1813,7 +1813,7 @@ paths:
   /api/repository/v1/datasets/{id}/files/bulk/array:
     post:
       tags:
-        - repository
+        - datasets
       description: >-
         Load many files into the dataset file system; async returns a BulkLoadArrayResultModel
         Note that this endpoint is not a single transaction. Some files may be loaded and
@@ -1882,7 +1882,7 @@ paths:
   /api/repository/v1/datasets/{id}/files/{fileid}:
     get:
       tags:
-        - repository
+        - datasets
       description: Lookup metadata for one file
       operationId: lookupFileById
       parameters:
@@ -1938,7 +1938,7 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     delete:
       tags:
-        - repository
+        - datasets
       description: >
         Hard delete of a file by id. The file is deleted even if it is in use by
         a dataset. Subsequent lookups will give not found errors.
@@ -2001,7 +2001,7 @@ paths:
   /api/repository/v1/datasets/{id}/filesystem/objects:
     get:
       tags:
-        - repository
+        - datasets
       description: Lookup metadata for one file
       operationId: lookupFileByPath
       parameters:
@@ -2058,7 +2058,7 @@ paths:
   /api/repository/v1/jobs:
     get:
       tags:
-        - repository
+        - jobs
       description: >
         Returns a list of all of the jobs the caller has access to
       operationId: enumerateJobs
@@ -2088,7 +2088,7 @@ paths:
   /api/repository/v1/jobs/{id}:
     get:
       tags:
-        - repository
+        - jobs
       description: Retrieve a job's status by id
       operationId: retrieveJob
       parameters:
@@ -2141,7 +2141,7 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     delete:
       tags:
-        - repository
+        - jobs
       description: Delete the job and data associated with it
       operationId: deleteJob
       parameters:
@@ -2158,7 +2158,7 @@ paths:
   /api/repository/v1/jobs/{id}/result:
     get:
       tags:
-        - repository
+        - jobs
       description: Retrieve a job's result by id
       operationId: retrieveJobResult
       parameters:
@@ -2179,7 +2179,7 @@ paths:
   /api/repository/v1/configs/{name}:
     get:
       tags:
-        - repository
+        - configs
       description: Get one configuration
       operationId: getConfig
       parameters:
@@ -2204,7 +2204,7 @@ paths:
                 $ref: '#/components/schemas/ErrorModel'
     put:
       tags:
-        - repository
+        - configs
       description: >
         Enable or disable the named fault. Performing the put on a config that
         is not a fault is an error.
@@ -2242,7 +2242,7 @@ paths:
   /api/repository/v1/configs:
     get:
       tags:
-        - repository
+        - configs
       description: Get all configurations
       operationId: getConfigList
       responses:
@@ -2254,7 +2254,7 @@ paths:
                 $ref: '#/components/schemas/ConfigListModel'
     put:
       tags:
-        - repository
+        - configs
       description: Set the a group of configurations
       operationId: setConfigList
       requestBody:
@@ -2286,7 +2286,7 @@ paths:
   /api/repository/v1/configs/reset:
     put:
       tags:
-        - repository
+        - configs
       description: Reset the configuration to original settings
       operationId: resetConfig
       responses:
@@ -2297,7 +2297,7 @@ paths:
   /api/repository/v1/upgrade:
     post:
       tags:
-        - repository
+        - upgrade
       description: >-
         Extensible endpoint for triggering upgrade tasks in the data repository.
         The asynchronous result is UpgradeResponseModel

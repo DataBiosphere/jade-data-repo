@@ -7,6 +7,7 @@ import bio.terra.model.RepositoryStatusModel;
 import bio.terra.service.configuration.StatusService;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.annotations.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import java.util.Optional;
 import java.util.Properties;
 
 @Controller
+@Api(tags = {"unauthenticated"})
 public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     private final ObjectMapper objectMapper;

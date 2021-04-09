@@ -9,9 +9,9 @@ import org.springframework.stereotype.Component;
 import java.net.URI;
 
 /*
-XXX: if making any changes to this class make sure to notify the #dsp-batch channel. Describe the change and any
-consequences downstream to DRS clients.
-*/
+ * XXX: if making any changes to this class make sure to notify the #dsp-batch channel. Describe the change and
+ * any consequences downstream to DRS clients.
+ */
 /**
  * This class provides DRS id parsing and building methods
  */

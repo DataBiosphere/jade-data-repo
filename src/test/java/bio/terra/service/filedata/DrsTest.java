@@ -63,9 +63,9 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /*
-XXX: if making any changes to these tests make sure to notify the #dsp-batch channel! Describe the change and any
-consequences downstream to DRS clients.
-*/
+ * XXX: if making any changes to these tests make sure to notify the #dsp-batch channel! Describe the change and
+ * any consequences downstream to DRS clients.
+ */
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc

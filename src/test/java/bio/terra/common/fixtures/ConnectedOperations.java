@@ -574,9 +574,9 @@ public class ConnectedOperations {
     }
 
     /*
-    XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and any
-    consequences downstream to DRS clients.
-    */
+     * XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     private void checkSuccessfulFileLoad(FileLoadModel fileLoadModel, FileModel fileModel, String datasetId) {
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
@@ -726,9 +726,9 @@ public class ConnectedOperations {
     }
 
     /*
-    XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and any
-    consequences downstream to DRS clients.
-    */
+     * XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     public DRSObject drsGetObjectSuccess(String drsObjectId, boolean expand) throws Exception {
         String url = "/ga4gh/drs/v1/objects/" + drsObjectId;
         MvcResult result = mvc.perform(get(url)

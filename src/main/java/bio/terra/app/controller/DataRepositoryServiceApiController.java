@@ -119,9 +119,9 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     }
 
     /*
-    XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and any
-    consequences downstream to DRS clients.
-    */
+     * XXX: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     @Override
     public ResponseEntity<DRSServiceInfo> getServiceInfo() {
         DRSServiceInfo info = new DRSServiceInfo()

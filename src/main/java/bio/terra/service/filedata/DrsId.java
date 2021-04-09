@@ -7,9 +7,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 /*
-XXX: if making any changes to this class make sure to notify the #dsp-batch channel. Describe the change and any
-consequences downstream to DRS clients.
-*/
+ * XXX: if making any changes to this class make sure to notify the #dsp-batch channel. Describe the change and
+ * any consequences downstream to DRS clients.
+ */
 public class DrsId {
     private final String dnsname;
     private final String version;

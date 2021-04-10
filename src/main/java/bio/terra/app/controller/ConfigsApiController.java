@@ -91,6 +91,7 @@ public class ConfigsApiController implements ConfigsApi {
 
     @Override
     public ResponseEntity<ConfigModel> getConfig(@PathVariable("name") String name) {
+        verifyAuthorization();
         return ResponseEntity.ok(configurationService.getConfig(name));
     }
 

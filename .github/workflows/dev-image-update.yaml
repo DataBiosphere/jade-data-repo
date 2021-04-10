@@ -91,15 +91,15 @@ jobs:
         with:
           workflow: Update API Helm Image Tags
           token: ${{ secrets.WORKFLOW_DISPATCH }}
-      - name: Slack job status
-        if: always()
-        uses: broadinstitute/action-slack@v3.8.0
-        with:
-          status: ${{ job.status }}
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-          author_name: Integration Test
-          mention: fb,muscles
-          if_mention: failure
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      # - name: Slack job status
+      #   if: always()
+      #   uses: broadinstitute/action-slack@v3.8.0
+      #   with:
+      #     status: ${{ job.status }}
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      #     author_name: Integration Test
+      #     mention: fb,muscles
+      #     if_mention: failure
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

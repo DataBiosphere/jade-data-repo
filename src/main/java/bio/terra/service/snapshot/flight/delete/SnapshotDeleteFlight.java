@@ -1,7 +1,10 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -34,6 +37,7 @@ public class SnapshotDeleteFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
         IamService iamClient = (IamService)appContext.getBean("iamService");
+        DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
 
@@ -43,6 +47,13 @@ public class SnapshotDeleteFlight extends Flight {
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
         addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
+
+        // Lock the source dataset while deleting ACLs to avoid a race condition
+        // TODO note that with multi-dataset snapshots this will need to change
+        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotId(snapshotId);
+        UUID datasetId = sourceDatasetIds.get(0);
+        addStep(new LockDatasetStep(datasetDao, datasetId, false));
+
         // Delete access control on objects that were explicitly added by data repo operations.  Do this before delete
         // resource from SAM to ensure we can get the metadata needed to perform the operation
         addStep(new DeleteSnapshotAuthzBqAclsStep(
@@ -55,6 +66,10 @@ public class SnapshotDeleteFlight extends Flight {
         // Google auto-magically removes the ACLs from BQ objects when SAM
         // deletes the snapshot group, so no ACL cleanup is needed beyond that.
         addStep(new DeleteSnapshotAuthzResource(iamClient, snapshotId, userReq));
+
+        // Unlock dataset
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
+
         // Must delete primary data before metadata; it relies on being able to retrieve the
         // snapshot object from the metadata to know what to delete.
         addStep(new DeleteSnapshotPrimaryDataStep(
@@ -66,7 +81,6 @@ public class SnapshotDeleteFlight extends Flight {
             datasetService,
             configService));
         addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
-        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotId(snapshotId);
-        addStep(new UnlockSnapshotStep(datasetService, snapshotDao, snapshotId, sourceDatasetIds));
+        addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
     }
 }

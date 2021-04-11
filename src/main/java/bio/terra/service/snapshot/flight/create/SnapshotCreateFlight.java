@@ -3,7 +3,10 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -42,6 +45,7 @@ public class SnapshotCreateFlight extends Flight {
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         IamService iamClient = (IamService)appContext.getBean("iamService");
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
+        DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
         ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
@@ -63,10 +67,9 @@ public class SnapshotCreateFlight extends Flight {
         addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, snapshotReq));
 
         // create the snapshot metadata object in postgres and lock it
-        // also lock the source dataset
         // mint a snapshot id and put it in the working map
         addStep(new CreateSnapshotIdStep(snapshotReq));
-        addStep(new CreateSnapshotMetadataStep(datasetService, snapshotDao, snapshotService, snapshotReq));
+        addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
 
         // Make the big query dataset with views and populate row id filtering tables.
         // Depending on the type of snapshot, the primary data step will differ:
@@ -112,6 +115,12 @@ public class SnapshotCreateFlight extends Flight {
         // operation timeout is generous.
         RetryRule pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
 
+        // Lock the source dataset while adding ACLs to avoid a race condition
+        // TODO note that with multi-dataset snapshots this will need to change
+        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotReq);
+        UUID datasetId = sourceDatasetIds.get(0);
+        addStep(new LockDatasetStep(datasetDao, datasetId, false));
+
         // Apply the IAM readers to the BQ dataset
         addStep(new SnapshotAuthzTabularAclStep(bigQueryPdao, snapshotService, configService), pdaoAclRetryRule);
 
@@ -128,8 +137,10 @@ public class SnapshotCreateFlight extends Flight {
             resourceService,
             snapshotName));
 
+        // Unlock dataset
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
+
        // unlock the snapshot metadata row
-        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotReq);
-        addStep(new UnlockSnapshotStep(datasetService, snapshotDao, null, sourceDatasetIds));
+        addStep(new UnlockSnapshotStep(snapshotDao, null));
     }
 }

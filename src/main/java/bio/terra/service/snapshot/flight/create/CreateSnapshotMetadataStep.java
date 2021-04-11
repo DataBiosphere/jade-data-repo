@@ -3,8 +3,6 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -24,7 +22,6 @@ import org.springframework.http.HttpStatus;
 import java.util.UUID;
 
 public class CreateSnapshotMetadataStep implements Step {
-    private final DatasetService datasetService;
     private final SnapshotDao snapshotDao;
     private final SnapshotService snapshotService;
     private final SnapshotRequestModel snapshotReq;
@@ -32,11 +29,9 @@ public class CreateSnapshotMetadataStep implements Step {
     private static final Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
 
     public CreateSnapshotMetadataStep(
-        DatasetService datasetService,
         SnapshotDao snapshotDao,
         SnapshotService snapshotService,
         SnapshotRequestModel snapshotReq) {
-        this.datasetService = datasetService;
         this.snapshotDao = snapshotDao;
         this.snapshotService = snapshotService;
         this.snapshotReq = snapshotReq;
@@ -53,11 +48,6 @@ public class CreateSnapshotMetadataStep implements Step {
                 .id(snapshotId)
                 .projectResourceId(projectResourceId);
             snapshotDao.createAndLock(snapshot, context.getFlightId());
-            // lock the source dataset to avoid an ACL race condition
-            // how should the workflow go if locking the dataset fails?
-            // TODO note that with multi-dataset snapshots this will need to change
-            Dataset sourceDataset = snapshot.getSnapshotSources().get(0).getDataset();
-            datasetService.lockDataset(sourceDataset.getId(), context.getFlightId());
 
             SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(snapshotId);
             SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);

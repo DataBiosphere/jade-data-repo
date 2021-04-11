@@ -175,12 +175,4 @@ public class DatasetService {
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .submit();
     }
-
-    public void lockDataset(UUID datasetId, String flightId) {
-        datasetDao.lockExclusive(datasetId, flightId);
-    }
-
-    public void unlockDataset(UUID datasetId, String flightId) {
-        datasetDao.unlockExclusive(datasetId, flightId);
-    }
 }

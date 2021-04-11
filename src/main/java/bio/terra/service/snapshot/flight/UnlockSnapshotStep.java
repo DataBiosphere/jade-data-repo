@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight;
 
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.stairway.FlightContext;
@@ -10,25 +9,19 @@ import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.UUID;
 
 
 public class UnlockSnapshotStep implements Step {
 
-    private DatasetService datasetService;
     private SnapshotDao snapshotDao;
     private UUID snapshotId;
-    private List<UUID> datasetIds;
 
     private static Logger logger = LoggerFactory.getLogger(UnlockSnapshotStep.class);
 
-    public UnlockSnapshotStep(
-        DatasetService datasetService, SnapshotDao snapshotDao, UUID snapshotId, List<UUID> datasetIds) {
-        this.datasetService = datasetService;
+    public UnlockSnapshotStep(SnapshotDao snapshotDao, UUID snapshotId) {
         this.snapshotDao = snapshotDao;
         this.snapshotId = snapshotId;
-        this.datasetIds = datasetIds;
     }
 
     @Override
@@ -42,8 +35,6 @@ public class UnlockSnapshotStep implements Step {
             }
         }
         boolean rowUpdated = snapshotDao.unlock(snapshotId, context.getFlightId());
-        // TODO once snapshots can have multiple source datasets, this will need to be adjusted
-        datasetService.unlockDataset(datasetIds.get(0), context.getFlightId());
         logger.debug("rowUpdated on unlock = " + rowUpdated);
 
         return StepResult.getStepResultSuccess();

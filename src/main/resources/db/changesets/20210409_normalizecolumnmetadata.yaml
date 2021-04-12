@@ -4,7 +4,7 @@ databaseChangeLog:
       # In step 1 we update snapshot columns with an empty type and get their type and array status from the matching dataset column
       # In step 2 we make sure that all dataset columns have lower case types
       # In step 3 we make sure that all snapshot columns have lower case types
-      author: dd
+      author: nm
       changes:
         - sql:
             comment: update snapshot columns with an empty type to the type and array status from the matching dataset column

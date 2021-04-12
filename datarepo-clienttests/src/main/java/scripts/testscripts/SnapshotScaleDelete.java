@@ -73,13 +73,13 @@ public class SnapshotScaleDelete extends SimpleDataset {
     }
 
     for (int i = 0; i < deleteList.size(); i++) {
-    // Now check the delete of each snapshot
+      // Now check the delete of each snapshot
       JobModel deleteSnapshotJobResponse =
           DataRepoUtils.waitForJobToFinish(repositoryApi, deleteList.get(i));
-    //  ^ Shelby makes the great point that this wait is v artificial
-    DataRepoUtils.expectJobSuccess(
-        repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-     logger.info("Successfully deleted snapshot: {}, index: {}", snapshotList.get(i).getName(), i);
+      //  ^ Shelby makes the great point that this wait is v artificial
+      DataRepoUtils.expectJobSuccess(
+          repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+      logger.info("Successfully deleted snapshot: {}, index: {}", snapshotList.get(i).getName(), i);
     }
   }
 

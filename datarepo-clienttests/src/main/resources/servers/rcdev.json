@@ -15,5 +15,6 @@
     "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/rc/datarepo-api.yaml"]
   },
   "testRunnerServiceAccountFile": "jade-k8-sa.json",
-  "skipDeployment": true
+  "skipDeployment": true,
+  "dbDropAllOnStart": true
 }

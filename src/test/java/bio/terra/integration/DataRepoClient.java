@@ -180,6 +180,10 @@ public class DataRepoClient {
 
     // -- DataRepositoryServerController Client --
 
+    /*
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     public <T> DrsResponse<T> drsGet(TestConfiguration.User user, String path, Class<T> responseClass)
         throws Exception {
         HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
@@ -195,6 +199,10 @@ public class DataRepoClient {
             String.class);
     }
 
+    /*
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     private <T> DrsResponse<T> makeDrsRequest(String path,
                                               HttpMethod method,
                                               HttpEntity entity,

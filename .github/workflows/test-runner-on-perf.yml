@@ -3,6 +3,7 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_CLOUD_PROJECT: broad-jade-perf
   GOOGLE_CLOUD_DATA_PROJECT: broad-jade-perf-data2
+  JADE_USER_EMAIL: dev-tdr-user@notarealemail.org
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1

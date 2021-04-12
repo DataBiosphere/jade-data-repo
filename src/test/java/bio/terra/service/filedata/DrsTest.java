@@ -267,7 +267,7 @@ public class DrsTest extends UsersBase {
 
         // We need to return a string here so that the test passes both locally and in kubernetes
         // Locally, we get a json, but in the cloud, we get an HTML response from the proxy
-        ResponseEntity<String> unauthorizedRequest = dataRepoClient.madeUnauthenticatedDrsRequest(
+        ResponseEntity<String> unauthorizedRequest = dataRepoClient.makeUnauthenticatedDrsRequest(
             "/ga4gh/drs/v1/objects/" + drsObjectId,
             HttpMethod.GET);
         assertThat("a 401 UNAUTHORIZED response is returned",

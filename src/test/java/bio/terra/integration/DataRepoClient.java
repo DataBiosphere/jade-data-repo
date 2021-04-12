@@ -190,7 +190,7 @@ public class DataRepoClient {
         return makeDrsRequest(path, HttpMethod.GET, entity, responseClass);
     }
 
-    public ResponseEntity<String> madeUnauthenticatedDrsRequest(String path,
+    public ResponseEntity<String> makeUnauthenticatedDrsRequest(String path,
                                                             HttpMethod method) {
         return restTemplate.exchange(
             testConfig.getJadeApiUrl() + path,

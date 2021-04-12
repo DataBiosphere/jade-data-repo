@@ -25,8 +25,6 @@ repositories {
     mavenCentral()
 }
 
-version = '1.53.0-LOCAL'
-
 dependencies {
     ext {
         jersey = "2.30.1"

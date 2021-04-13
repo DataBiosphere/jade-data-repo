@@ -190,6 +190,15 @@ public class DataRepoClient {
         return makeDrsRequest(path, HttpMethod.GET, entity, responseClass);
     }
 
+    public ResponseEntity<String> makeUnauthenticatedDrsRequest(String path,
+                                                            HttpMethod method) {
+        return restTemplate.exchange(
+            testConfig.getJadeApiUrl() + path,
+            method,
+            HttpEntity.EMPTY,
+            String.class);
+    }
+
     /*
      * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
      * any consequences downstream to DRS clients.

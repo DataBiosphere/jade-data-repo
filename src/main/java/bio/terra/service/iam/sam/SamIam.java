@@ -1,5 +1,6 @@
 package bio.terra.service.iam.sam;
 
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;

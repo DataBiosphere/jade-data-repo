@@ -13,6 +13,7 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.exception.IamBadRequestException;
 import bio.terra.service.iam.exception.IamConflictException;
+import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
 import bio.terra.service.iam.exception.IamNotFoundException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
@@ -545,8 +546,7 @@ public class SamIam implements IamProviderInterface {
                 return new IamUnauthorizedException(message, samEx);
             }
             case HttpStatusCodes.STATUS_CODE_FORBIDDEN: {
-                // TODO: This is the wrong exception. See https://broadworkbench.atlassian.net/browse/DR-1482
-                return new IamUnauthorizedException(message, samEx);
+                return new IamForbiddenException(message, samEx);
             }
             case HttpStatusCodes.STATUS_CODE_NOT_FOUND: {
                 return new IamNotFoundException(message, samEx);

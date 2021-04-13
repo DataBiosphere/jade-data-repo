@@ -1,6 +1,6 @@
 package bio.terra.service.iam;
 
-import bio.terra.app.controller.exception.ApiException;
+import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 
@@ -55,7 +55,7 @@ public class AuthenticatedUserRequest {
     @JsonIgnore
     public String getRequiredToken() {
         if (!token.isPresent()) {
-            throw new ApiException("Token required");
+            throw new IamUnauthorizedException("An OAuth token is required.");
         }
         return token.get();
     }

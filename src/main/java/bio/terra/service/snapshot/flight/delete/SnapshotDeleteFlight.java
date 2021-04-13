@@ -13,6 +13,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.snapshot.flight.LockSnapshotStep;
 import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -45,14 +46,22 @@ public class SnapshotDeleteFlight extends Flight {
             JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+        UUID datasetId;
 
         addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
 
         // Lock the source dataset while deleting ACLs to avoid a race condition
         // TODO note that with multi-dataset snapshots this will need to change
-        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotId(snapshotId);
-        UUID datasetId = sourceDatasetIds.get(0);
-        addStep(new LockDatasetStep(datasetDao, datasetId, false));
+        List<UUID> sourceDatasetIds;
+        try {
+            sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotId(snapshotId);
+            datasetId = sourceDatasetIds.get(0);
+        } catch (SnapshotNotFoundException notFoundEx) {
+            datasetId = null;
+        }
+        if (datasetId != null) {
+            addStep(new LockDatasetStep(datasetDao, datasetId, false));
+        }
 
         // Delete access control on objects that were explicitly added by data repo operations.  Do this before delete
         // resource from SAM to ensure we can get the metadata needed to perform the operation
@@ -68,7 +77,9 @@ public class SnapshotDeleteFlight extends Flight {
         addStep(new DeleteSnapshotAuthzResource(iamClient, snapshotId, userReq));
 
         // Unlock dataset
-        addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
+        if (datasetId != null) {
+            addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
+        }
 
         // Must delete primary data before metadata; it relies on being able to retrieve the
         // snapshot object from the metadata to know what to delete.

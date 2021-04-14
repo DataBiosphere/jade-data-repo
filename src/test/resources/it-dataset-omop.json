@@ -9,31 +9,31 @@
                 "columns": [
                     {
                         "name": "concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "concept_name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "domain_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "vocabulary_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "concept_class_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "standard_concept",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "concept_code",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "valid_start_date",
@@ -45,7 +45,7 @@
                     },
                     {
                         "name": "invalid_reason",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -54,23 +54,23 @@
                 "columns": [
                     {
                         "name": "vocabulary_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "vocabulary_name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "vocabulary_reference",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "vocabulary_version",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "vocabulary_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -79,15 +79,15 @@
                 "columns": [
                     {
                         "name": "domain_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "domain_name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "domain_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -96,15 +96,15 @@
                 "columns": [
                     {
                         "name": "concept_class_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "concept_class_name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "concept_class_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -113,15 +113,15 @@
                 "columns": [
                     {
                         "name": "concept_id_1",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "concept_id_2",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "relationship_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "valid_start_date",
@@ -133,7 +133,7 @@
                     },
                     {
                         "name": "invalid_reason",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -142,27 +142,27 @@
                 "columns": [
                     {
                         "name": "relationship_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "relationship_name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "is_hierarchical",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "defines_ancestry",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "reverse_relationship_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "relationship_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -171,15 +171,15 @@
                 "columns": [
                     {
                         "name": "concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "concept_synonym_name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "language_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -188,19 +188,19 @@
                 "columns": [
                     {
                         "name": "ancestor_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "descendant_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "min_levels_of_separation",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "max_levels_of_separation",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -209,27 +209,27 @@
                 "columns": [
                     {
                         "name": "source_code",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "source_vocabulary_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "source_code_description",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "target_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "target_vocabulary_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "valid_start_date",
@@ -241,7 +241,7 @@
                     },
                     {
                         "name": "invalid_reason",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -250,39 +250,39 @@
                 "columns": [
                     {
                         "name": "drug_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "ingredient_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "amount_value",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "amount_unit_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "numerator_value",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "numerator_unit_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "denominator_value",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "denominator_unit_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "box_size",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "valid_start_date",
@@ -294,7 +294,7 @@
                     },
                     {
                         "name": "invalid_reason",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -303,27 +303,27 @@
                 "columns": [
                     {
                         "name": "cdm_source_name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "cdm_source_abbreviation",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "cdm_holder",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "source_description",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "source_documentation_reference",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "cdm_etl_reference",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "source_release_date",
@@ -335,11 +335,11 @@
                     },
                     {
                         "name": "cdm_version",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "vocabulary_version",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -348,23 +348,23 @@
                 "columns": [
                     {
                         "name": "metadata_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "metadata_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "value_as_string",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "value_as_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "metadata_date",
@@ -372,7 +372,7 @@
                     },
                     {
                         "name": "metadata_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     }
                 ]
             },
@@ -381,79 +381,79 @@
                 "columns": [
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "gender_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "year_of_birth",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "month_of_birth",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "day_of_birth",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "birth_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "death_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "race_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "ethnicity_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "location_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "care_site_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "gender_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "gender_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "race_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "race_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "ethnicity_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "ethnicity_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -462,11 +462,11 @@
                 "columns": [
                     {
                         "name": "observation_period_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "observation_period_start_date",
@@ -478,7 +478,7 @@
                     },
                     {
                         "name": "period_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -487,19 +487,19 @@
                 "columns": [
                     {
                         "name": "specimen_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "specimen_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "specimen_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "specimen_date",
@@ -507,43 +507,43 @@
                     },
                     {
                         "name": "specimen_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "quantity",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "unit_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "anatomic_site_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "disease_status_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "specimen_source_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "specimen_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "unit_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "anatomic_site_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "disease_status_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -552,15 +552,15 @@
                 "columns": [
                     {
                         "name": "visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_start_date",
@@ -568,7 +568,7 @@
                     },
                     {
                         "name": "visit_start_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "visit_end_date",
@@ -576,47 +576,47 @@
                     },
                     {
                         "name": "visit_end_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "visit_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "care_site_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "visit_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "admitted_from_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "admitted_from_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "discharge_to_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "discharge_to_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "preceding_visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -625,15 +625,15 @@
                 "columns": [
                     {
                         "name": "visit_detail_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_start_date",
@@ -641,7 +641,7 @@
                     },
                     {
                         "name": "visit_detail_start_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "visit_detail_end_date",
@@ -649,55 +649,55 @@
                     },
                     {
                         "name": "visit_detail_end_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "visit_detail_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "care_site_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "discharge_to_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "admitted_from_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "admitted_from_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "visit_detail_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "visit_detail_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "discharge_to_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "preceding_visit_detail_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_parent_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -706,15 +706,15 @@
                 "columns": [
                     {
                         "name": "procedure_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "procedure_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "procedure_date",
@@ -722,43 +722,43 @@
                     },
                     {
                         "name": "procedure_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "procedure_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "modifier_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "quantity",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "procedure_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "procedure_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "modifier_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -767,15 +767,15 @@
                 "columns": [
                     {
                         "name": "drug_exposure_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "drug_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "drug_exposure_start_date",
@@ -783,7 +783,7 @@
                     },
                     {
                         "name": "drug_exposure_start_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "drug_exposure_end_date",
@@ -791,7 +791,7 @@
                     },
                     {
                         "name": "drug_exposure_end_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "verbatim_end_date",
@@ -799,63 +799,63 @@
                     },
                     {
                         "name": "drug_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "stop_reason",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "refills",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "quantity",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "days_supply",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "sig",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "route_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "lot_number",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "drug_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "drug_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "route_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "dose_unit_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -864,15 +864,15 @@
                 "columns": [
                     {
                         "name": "device_exposure_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "device_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "device_exposure_start_date",
@@ -880,7 +880,7 @@
                     },
                     {
                         "name": "device_exposure_start_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "device_exposure_end_date",
@@ -888,39 +888,39 @@
                     },
                     {
                         "name": "device_exposure_end_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "device_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "unique_device_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "quantity",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "device_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "device_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -929,15 +929,15 @@
                 "columns": [
                     {
                         "name": "condition_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "condition_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "condition_start_date",
@@ -945,7 +945,7 @@
                     },
                     {
                         "name": "condition_start_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "condition_end_date",
@@ -953,43 +953,43 @@
                     },
                     {
                         "name": "condition_end_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "condition_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "condition_status_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "stop_reason",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "condition_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "condition_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "condition_status_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -998,15 +998,15 @@
                 "columns": [
                     {
                         "name": "measurement_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "measurement_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "measurement_date",
@@ -1014,67 +1014,67 @@
                     },
                     {
                         "name": "measurement_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "measurement_time",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "measurement_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "operator_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "value_as_number",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "value_as_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "unit_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "range_low",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "range_high",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "measurement_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "measurement_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "unit_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "value_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -1083,19 +1083,19 @@
                 "columns": [
                     {
                         "name": "note_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "note_event_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "note_event_field_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "note_date",
@@ -1103,47 +1103,47 @@
                     },
                     {
                         "name": "note_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "note_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "note_class_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "note_title",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "note_text",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "encoding_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "language_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "note_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -1152,35 +1152,35 @@
                 "columns": [
                     {
                         "name": "note_nlp_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "note_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "section_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "snippet",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "snippet_offset",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "lexical_variant",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "note_nlp_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "nlp_system",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "nlp_date",
@@ -1188,23 +1188,23 @@
                     },
                     {
                         "name": "nlp_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "term_exists",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "term_temporal",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "term_modifiers",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "note_nlp_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -1213,15 +1213,15 @@
                 "columns": [
                     {
                         "name": "observation_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "observation_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "observation_date",
@@ -1229,71 +1229,71 @@
                     },
                     {
                         "name": "observation_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "observation_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "value_as_number",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "value_as_string",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "value_as_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "qualifier_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "unit_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "observation_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "observation_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "unit_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "qualifier_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "observation_event_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "obs_event_field_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "value_as_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     }
                 ]
             },
@@ -1302,15 +1302,15 @@
                 "columns": [
                     {
                         "name": "survey_conduct_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "survey_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "survey_start_date",
@@ -1318,7 +1318,7 @@
                     },
                     {
                         "name": "survey_start_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "survey_end_date",
@@ -1326,79 +1326,79 @@
                     },
                     {
                         "name": "survey_end_datetime",
-                        "datatype": "DATETIME"
+                        "datatype": "datetime"
                     },
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "assisted_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "respondent_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "timing_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "collection_method_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "assisted_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "respondent_type_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "timing_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "collection_method_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "survey_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "survey_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "survey_source_identifier",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "validated_survey_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "validated_survey_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "survey_version_number",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "visit_detail_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "response_visit_occurrence_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -1407,23 +1407,23 @@
                 "columns": [
                     {
                         "name": "domain_concept_id_1",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "fact_id_1",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "domain_concept_id_2",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "fact_id_2",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "relationship_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -1432,47 +1432,47 @@
                 "columns": [
                     {
                         "name": "location_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "address_1",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "address_2",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "city",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "state",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "zip",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "county",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "country",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "location_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "latitude",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "longitude",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     }
                 ]
             },
@@ -1481,23 +1481,23 @@
                 "columns": [
                     {
                         "name": "location_history_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "location_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "relationship_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "domain_id",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "entity_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "start_date",
@@ -1514,27 +1514,27 @@
                 "columns": [
                     {
                         "name": "care_site_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "care_site_name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "place_of_service_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "location_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "care_site_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "place_of_service_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     }
                 ]
             },
@@ -1543,55 +1543,55 @@
                 "columns": [
                     {
                         "name": "provider_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "provider_name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "npi",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "dea",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "specialty_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "care_site_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "year_of_birth",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "gender_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "provider_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "specialty_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "specialty_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "gender_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "gender_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -1600,15 +1600,15 @@
                 "columns": [
                     {
                         "name": "payer_plan_period_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "contract_person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "payer_plan_period_start_date",
@@ -1620,67 +1620,67 @@
                     },
                     {
                         "name": "payer_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "plan_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "contract_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "sponsor_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "stop_reason_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "payer_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "payer_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "plan_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "plan_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "contract_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "contract_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "sponsor_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "sponsor_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "family_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "stop_reason_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "stop_reason_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -1689,35 +1689,35 @@
                 "columns": [
                     {
                         "name": "cost_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "cost_event_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "cost_event_field_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "cost_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "cost_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "currency_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "cost",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "incurred_date",
@@ -1733,31 +1733,31 @@
                     },
                     {
                         "name": "revenue_code_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "drg_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "cost_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "cost_source_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "revenue_code_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "drg_source_value",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "payer_plan_period_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -1766,15 +1766,15 @@
                 "columns": [
                     {
                         "name": "drug_era_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "drug_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "drug_era_start_datetime",
@@ -1786,11 +1786,11 @@
                     },
                     {
                         "name": "drug_exposure_count",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "gap_days",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -1799,23 +1799,23 @@
                 "columns": [
                     {
                         "name": "dose_era_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "drug_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "unit_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "dose_value",
-                        "datatype": "FLOAT64"
+                        "datatype": "float64"
                     },
                     {
                         "name": "dose_era_start_datetime",
@@ -1832,15 +1832,15 @@
                 "columns": [
                     {
                         "name": "condition_era_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "person_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "condition_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "condition_era_start_datetime",
@@ -1852,7 +1852,7 @@
                     },
                     {
                         "name": "condition_occurrence_count",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     }
                 ]
             },
@@ -1861,11 +1861,11 @@
                 "columns": [
                     {
                         "name": "cohort_definition_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "subject_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "cohort_start_date",
@@ -1882,27 +1882,27 @@
                 "columns": [
                     {
                         "name": "cohort_definition_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "cohort_definition_name",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "cohort_definition_description",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "definition_type_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "cohort_definition_syntax",
-                        "datatype": "STRING"
+                        "datatype": "string"
                     },
                     {
                         "name": "subject_concept_id",
-                        "datatype": "INT64"
+                        "datatype": "int64"
                     },
                     {
                         "name": "cohort_initiation_date",

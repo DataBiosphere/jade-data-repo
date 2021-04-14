@@ -1,4 +1,4 @@
-package bio.terra.service.iam.sam;
+package bio.terra.app.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

@@ -3,6 +3,7 @@ package bio.terra.service.iam;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.iam.exception.IamUnavailableException;
 import org.apache.commons.collections4.map.LRUMap;
@@ -99,7 +100,7 @@ public class IamService {
                                     IamAction action) {
         String userEmail = userReq.getEmail();
         if (!isAuthorized(userReq, iamResourceType, resourceId, action)) {
-            throw new IamUnauthorizedException("User '" + userEmail + "' does not have required action: " + action);
+            throw new IamForbiddenException("User '" + userEmail + "' does not have required action: " + action);
         }
     }
 

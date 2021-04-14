@@ -2510,6 +2510,11 @@ paths:
                 $ref: '#/components/schemas/DRSError'
 components:
   schemas:
+    TableDataType:
+      type: string
+      enum: [ boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, numeric, record, string, text, time, timestamp ]
+      description: >
+        The type of a column in a table.
     ObjectNameProperty:
       maxLength: 63
       minLength: 1
@@ -2692,7 +2697,7 @@ components:
         name:
           $ref: '#/components/schemas/ObjectNameProperty'
         datatype:
-          type: string
+          $ref: '#/components/schemas/TableDataType'
         array_of:
           type: boolean
           description: if true, make this column an array of type datatype.
@@ -3571,6 +3576,10 @@ components:
         gitHash:
           type: string
           description: the git hash of the data repository
+        samUrl:
+          type: string
+          format: uri
+          description: the URI of SAM this instance uses
     ConfigModel:
       type: object
       properties:

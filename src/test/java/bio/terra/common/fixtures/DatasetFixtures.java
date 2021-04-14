@@ -8,6 +8,7 @@ import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 
 import java.util.Arrays;
@@ -32,17 +33,17 @@ public final class DatasetFixtures {
         return new TableModel()
             .name("participant")
             .columns(Arrays.asList(
-                new ColumnModel().name("id").datatype("string"),
-                new ColumnModel().name("age").datatype("integer")));
+                new ColumnModel().name("id").datatype(TableDataType.STRING),
+                new ColumnModel().name("age").datatype(TableDataType.INTEGER)));
     }
 
     public static TableModel buildSampleTable() {
         return new TableModel()
             .name("sample")
             .columns(Arrays.asList(
-                new ColumnModel().name("id").datatype("string"),
-                new ColumnModel().name("participant_id").datatype("string"),
-                new ColumnModel().name("date_collected").datatype("date")));
+                new ColumnModel().name("id").datatype(TableDataType.STRING),
+                new ColumnModel().name("participant_id").datatype(TableDataType.STRING),
+                new ColumnModel().name("date_collected").datatype(TableDataType.DATE)));
     }
 
     public static RelationshipTermModel buildParticipantTerm() {

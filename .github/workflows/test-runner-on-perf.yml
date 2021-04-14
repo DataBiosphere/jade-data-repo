@@ -25,6 +25,9 @@ jobs:
           LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Latest Version: $LATEST_VERSION"
           echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
+          LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+          echo "Latest git hash: $LATEST_GITHASH"
+          echo "::set-output name=LATEST_GITHASH::$LATEST_GITHASH"
       - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_VERSION }} branch"
         uses: actions/checkout@v2
         with:
@@ -141,40 +144,32 @@ jobs:
           echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
           sleep 45
       - name: "Wait for Perf Cluster to come back up with correct version"
-        run: |
-          PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-          RETRY_COUNT=0
-          until [[ "$PERF_VERSION" == "${{ steps.read_property.outputs.LATEST_VERSION }}" ]]; do
-            if [[ ${RETRY_COUNT} -gt 20 ]]; then
-              echo "Failed to match perf $PERF_VERSION to dev version ${{ steps.read_property.outputs.LATEST_VERSION }}"
-              exit 1
-            fi
-            echo "Retry #${RETRY_COUNT}: Waiting for $PERF_VERSION to equal ${{ steps.read_property.outputs.LATEST_VERSION }}"
-            sleep 15
-            PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-            ((RETRY_COUNT=RETRY_COUNT+1))
-          done;
-          echo "Perf successfully running on new version: $PERF_VERSION"
-      - name: "Build and run Test Runner"
-        run: |
-          cd ${GITHUB_WORKSPACE}/${workingDir}
-          echo "Building Data Repo client library"
-          export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
-          ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
-          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
-          export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
-          echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@sh-dr-1739-increase-wait
+        env:
+          NAMESPACEINUSE: perf
+          API_URL: "https://jade-perf.datarepo-perf.broadinstitute.org"
+          DESIRED_GITHASH: ${{ steps.read_property.outputs.LATEST_GITHASH }}
+          DEPLOYMENT_TYPE: 'api'
+      # - name: "Build and run Test Runner"
+      #   run: |
+      #     cd ${GITHUB_WORKSPACE}/${workingDir}
+      #     echo "Building Data Repo client library"
+      #     export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
+      #     ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
+      #     cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
+      #     export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
+      #     echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
-          echo "Running test suite"
-          ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
+      #     echo "Running test suite"
+      #     ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
-          echo "Collecting measurements"
-          ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
+      #     echo "Collecting measurements"
+      #     ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
-          echo "Uploading results"
-          ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
+      #     echo "Uploading results"
+      #     ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
-          cd ${GITHUB_WORKSPACE}/${workingDir}
+      #     cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.57.0
@@ -183,27 +178,27 @@ jobs:
         with:
           actions_subcommand: 'gcp_whitelist_clean'
           google_project: broad-jade-perf
-      - name: "Notify Jade Slack"
-        if: always()
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#jade-alerts"
-          username: "Data Repo tests"
-          text: "Perf tests"
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-      - name: "Notify QA Slack"
-        if: ${{ github.event_name != 'workflow_dispatch' && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#dsde-qa"
-          username: "Data Repo tests"
-          text: "Perf tests"
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      # - name: "Notify Jade Slack"
+      #   if: always()
+      #   uses: broadinstitute/action-slack@v3.8.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: "#jade-alerts"
+      #     username: "Data Repo tests"
+      #     text: "Perf tests"
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      # - name: "Notify QA Slack"
+      #   if: ${{ github.event_name != 'workflow_dispatch' && always() }}
+      #   uses: broadinstitute/action-slack@v3.8.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: "#dsde-qa"
+      #     username: "Data Repo tests"
+      #     text: "Perf tests"
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

@@ -109,13 +109,11 @@ jobs:
           echo "::set-output name=git_hash::$git_hash"
           echo "Latest git hash for this branch: $git_hash"
       - name: "Wait for deployment to come back online"
-        uses: broadinstitute/datarepo-actions/actions/main@sh-dr-1739-increase-wait
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@sh-dr-1739-increase-wait
         env:
           API_URL: ${{ steps.namespace.outputs.api_url }}
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
-        with:
-          actions_subcommand: 'waitfordeployment'
       # - name: "Run Test Runner smoke tests via Gradle"
       #   uses: broadinstitute/datarepo-actions/actions/main@0.57.0
       #   with:

@@ -101,10 +101,16 @@ jobs:
           helm_datarepo_ui_chart_version: 0.0.55
           helm_gcloud_sqlproxy_chart_version: 0.19.7
           helm_oidc_proxy_chart_version: 0.0.20
+      - name: "Fetch gitHash for deployed integration version"
+        id: configuration
+        run:
+          git_hash=$(git rev-parse --short HEAD)
+          echo "::set-output name=git_hash::$git_hash"
+          echo "Latest git hash for this rnach: $git_hash"
       - name: "Wait for deployment to come back online"
         uses: broadinstitute/datarepo-actions/actions/main@sh-dr-1739-increase-wait
         env:
-          DESIRED_GITHASH: ${{ git rev-parse --short HEAD }}
+          DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           API_URL: ${IT_JADE_API_URL}
           DEPLOYMENT_TYPE: 'api'
         with:

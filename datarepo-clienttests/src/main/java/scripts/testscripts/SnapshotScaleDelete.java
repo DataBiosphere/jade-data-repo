@@ -4,6 +4,7 @@ import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,9 +37,8 @@ public class SnapshotScaleDelete extends SimpleDataset {
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
-
-    // DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
     List<JobModel> deleteList = new ArrayList<>();
+
     for (int i = 0; i < numSnapshots; i++) {
       // make the create snapshot request and wait for the job to finish
       // the name of the snapshot will already be randomized based on the bool
@@ -80,13 +80,16 @@ public class SnapshotScaleDelete extends SimpleDataset {
 
     // If the test fails before it deletes the snapshots, delete them here
     for (int i = 0; i < snapshotList.size(); i++) {
-      JobModel deleteSnapshotJobResponse =
-          repositoryApi.deleteSnapshot(snapshotList.get(i).getId());
-      deleteSnapshotJobResponse =
-          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
-      DataRepoUtils.expectJobSuccess(
-          repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
-      logger.info("Successfully deleted snapshot: {}", snapshotList.get(i).getName());
+      SnapshotModel snapshot = repositoryApi.retrieveSnapshot(snapshotList.get(i).getId());
+      if (snapshot != null) {
+        JobModel deleteSnapshotJobResponse =
+            repositoryApi.deleteSnapshot(snapshotList.get(i).getId());
+        deleteSnapshotJobResponse =
+            DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+        DataRepoUtils.expectJobSuccess(
+            repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+        logger.info("Successfully deleted snapshot: {}", snapshotList.get(i).getName());
+      }
     }
 
     // delete the profile and dataset

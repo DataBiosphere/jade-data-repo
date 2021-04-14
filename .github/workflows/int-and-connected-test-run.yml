@@ -111,7 +111,7 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@sh-dr-1739-increase-wait
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
-          API_URL: ${IT_JADE_API_URL}
+          API_URL: ${{ IT_JADE_API_URL }}
           DEPLOYMENT_TYPE: 'api'
         with:
           actions_subcommand: 'waitfordeployment'

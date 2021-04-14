@@ -103,7 +103,7 @@ jobs:
           helm_oidc_proxy_chart_version: 0.0.20
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
-        run:
+        run: |
           git_hash=$(git rev-parse --short HEAD)
           echo "::set-output name=git_hash::$git_hash"
           echo "Latest git hash for this rnach: $git_hash"

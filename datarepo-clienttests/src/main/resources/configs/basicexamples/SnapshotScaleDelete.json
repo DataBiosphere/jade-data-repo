@@ -10,12 +10,12 @@
   "testScripts": [
     {
       "name": "SnapshotScaleDelete",
-      "parameters": [2],
-      "numberOfUserJourneyThreadsToRun": 50,
-      "userJourneyThreadPoolSize": 3,
-      "expectedTimeForEach": 20,
-      "expectedTimeForEachUnit": "SECONDS"
+      "parameters": [50],
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 1,
+      "expectedTimeForEach": 1,
+      "expectedTimeForEachUnit": "HOURS"
     }
   ],
-  "testUserFiles": ["dumbledore.json", "voldemort.json"]
+  "testUserFiles": ["dumbledore.json"]
 }

@@ -3,7 +3,7 @@ package bio.terra.app.controller;
 
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.ErrorModel;
-import org.apache.commons.lang.exception.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;

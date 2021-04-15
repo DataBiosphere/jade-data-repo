@@ -292,9 +292,6 @@ public class SnapshotTest extends UsersBase {
         SnapshotRequestModel requestModel =
             jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
 
-        String snapshotName = "mysnapshot12345";
-
-        requestModel.setName(snapshotName);
         requestModel.setReaders(Collections.singletonList("bad-user@not-a-real-domain.com"));
         DataRepoResponse<JobModel> jobResponse =
             dataRepoFixtures.createSnapshotRaw(
@@ -303,6 +300,8 @@ public class SnapshotTest extends UsersBase {
                 profileId,
                 requestModel,
                 false);
+        logger.info("Attempting to create the snapshot with the name: {}", requestModel.getName());
+
         DataRepoResponse<ErrorModel> snapshotResponse =
             dataRepoClient.waitForResponse(steward(), jobResponse, ErrorModel.class);
 
@@ -314,6 +313,7 @@ public class SnapshotTest extends UsersBase {
         // There's not a good way in the test to select the snapshots in the DB.  We want to make sure that we can
         // create the snapshot with the same name, proving that, at least, the database doesn't contain an
         // orphaned entry
+        logger.info("Attempting to recreate the snapshot with the same name: {}", requestModel.getName());
         requestModel.setReaders(Collections.emptyList());
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshotWithRequest(steward(), datasetSummaryModel.getName(), profileId,

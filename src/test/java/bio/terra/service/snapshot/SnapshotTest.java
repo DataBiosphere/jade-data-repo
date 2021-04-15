@@ -379,7 +379,8 @@ public class SnapshotTest extends UsersBase {
             wait_interval = maxDelayInSeconds < delayInSeconds ?
                 (int)maxDelayInSeconds : (int)delayInSeconds;
             totalWaitTime += wait_interval;
-            logger.info("retryACLUpdate: sleeping {} seconds, totaling {} seconds waiting", wait_interval, totalWaitTime);
+            logger.info("retryACLUpdate: sleeping {} seconds, totaling {} seconds waiting",
+                wait_interval, totalWaitTime);
             TimeUnit.SECONDS.sleep(wait_interval);
             n++;
         }

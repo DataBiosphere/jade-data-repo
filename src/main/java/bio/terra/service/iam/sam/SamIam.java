@@ -595,7 +595,7 @@ public class SamIam implements IamProviderInterface {
         String openParen = (causes.size() > 1 ? "(" : "");
         String closeParen = (causes.size() > 1 ? ")" : "");
         return errorReport.getMessage() + separator +
-            openParen + StringUtils.join(causes, ", ") + closeParen;
+            openParen + String.join(", ", causes) + closeParen;
     }
 
 }

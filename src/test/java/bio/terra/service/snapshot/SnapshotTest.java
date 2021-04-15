@@ -297,7 +297,12 @@ public class SnapshotTest extends UsersBase {
         requestModel.setName(snapshotName);
         requestModel.setReaders(Collections.singletonList("bad-user@not-a-real-domain.com"));
         DataRepoResponse<JobModel> jobResponse =
-            dataRepoFixtures.createSnapshotRaw(steward(), datasetSummaryModel.getName(), profileId, requestModel, false);
+            dataRepoFixtures.createSnapshotRaw(
+                steward(),
+                datasetSummaryModel.getName(),
+                profileId,
+                requestModel,
+                false);
         DataRepoResponse<ErrorModel> snapshotResponse =
             dataRepoClient.waitForResponse(steward(), jobResponse, ErrorModel.class);
 

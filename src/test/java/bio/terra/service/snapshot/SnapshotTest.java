@@ -314,7 +314,6 @@ public class SnapshotTest extends UsersBase {
                 datasetName,
                 profileId,
                 requestModel);
-        TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
         SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
@@ -322,18 +321,14 @@ public class SnapshotTest extends UsersBase {
 
         // fetch ACLs
         logger.info("---- Dataset ACLs after snapshot create-----");
-        int datasetPlusSnapshotCount = fetchSourceDatasetAcls(datasetName);
+        int datasetPlusSnapshotCount = retryACLUpdate(datasetName, datasetAclCount, ACLCheck.GREATERTHAN);
         assertThat("There should be more ACLs on the dataset after snapshot create",
             datasetPlusSnapshotCount, greaterThan(datasetAclCount));
 
         //-----------delete snapshot------------
         dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
-
-        // Give ACLs a second to update in big query
-        TimeUnit.SECONDS.sleep(10);
-
         logger.info("---- Dataset ACLs after snapshot delete-----");
-        int datasetMinusSnapshotACLCount = fetchSourceDatasetAcls(datasetName);
+        int datasetMinusSnapshotACLCount = retryACLUpdate(datasetName, datasetAclCount, ACLCheck.EQUALTO);
         assertEquals("We should be back to the same number of ACLs on the dataset after snapshot delete",
             datasetAclCount, datasetMinusSnapshotACLCount);
     }
@@ -353,4 +348,40 @@ public class SnapshotTest extends UsersBase {
         acls.forEach(acl ->  logger.info("Acl: {}", acl));
         return aclCount;
     }
+
+    enum ACLCheck {
+        GREATERTHAN,
+        EQUALTO
+    }
+
+    private int retryACLUpdate(String datasetName, int datasetAclCount, ACLCheck check) throws Exception {
+        int multiplier = 2;
+        int base = 10;
+        int wait_interval = 10;
+        // Google claims it can take up to 7 minutes to update ACLs
+        int sevenMinutePlusBuffer = (7 * 60) + 20;
+        int datasetPlusSnapshotCount = 0;
+        int n = 1;
+        while (wait_interval < sevenMinutePlusBuffer) {
+            datasetPlusSnapshotCount = fetchSourceDatasetAcls(datasetName);
+            if (check.equals(ACLCheck.GREATERTHAN)) {
+                if (datasetPlusSnapshotCount > datasetAclCount) {
+                    break;
+                }
+            } else if (check.equals(ACLCheck.EQUALTO)) {
+                if (datasetPlusSnapshotCount == datasetAclCount) {
+                    break;
+                }
+            } else {
+                logger.error("Not a valid enum value for ACLCheck");
+            }
+            wait_interval =  base * multiplier ^ n;
+            logger.info("RetryAClUpdate sleeping {} seconds", wait_interval);
+            TimeUnit.SECONDS.sleep(wait_interval);
+            n++;
+        }
+        return datasetPlusSnapshotCount;
+    }
+
+
 }

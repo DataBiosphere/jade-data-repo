@@ -114,6 +114,7 @@ jobs:
           API_URL: ${{ steps.namespace.outputs.api_url }}
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
+          NAMESPACEINUSE: ${{ steps.namespace.outputs.namespace }}
       # - name: "Run Test Runner smoke tests via Gradle"
       #   uses: broadinstitute/datarepo-actions/actions/main@0.57.0
       #   with:

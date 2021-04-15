@@ -20,5 +20,6 @@ public class EnumerateSortByParamConverter
             String error = String.format("sort must be one of: %s.", Arrays.toString(EnumerateSortByParam.values()));
             throw new ValidationException("Invalid enumerate parameter(s).", Collections.singletonList(error));
         }
-        return result;    }
+        return result;
+    }
 }

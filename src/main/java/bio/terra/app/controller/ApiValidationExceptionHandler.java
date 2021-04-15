@@ -3,6 +3,7 @@ package bio.terra.app.controller;
 
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.ErrorModel;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
@@ -72,16 +73,18 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
     @Override
     protected ResponseEntity<Object> handleTypeMismatch(
         TypeMismatchException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
-        String message = status + " - see error details";
-        List<String> details = Collections.emptyList();
-        for (Throwable cause = ex.getCause(); cause != null; cause = cause.getCause()) {
-            if (cause instanceof DataRepoException) {
-                message = cause.getMessage();
-                details = ((DataRepoException) cause).getErrorDetails();
-            } else {
-                details = Collections.singletonList(cause.getMessage());
-            }
+        final String message;
+        final List<String> details;
+        Throwable rootCause = ExceptionUtils.getRootCause(ex);
+
+        if (rootCause instanceof DataRepoException) {
+            message = rootCause.getMessage();
+            details = ((DataRepoException) rootCause).getErrorDetails();
+        } else {
+            message = status + " - see error details";
+            details = Collections.singletonList(rootCause.getMessage());
         }
+
         ErrorModel errorModel = new ErrorModel().message(message)
             .errorDetail(details);
 

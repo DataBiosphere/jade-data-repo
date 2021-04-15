@@ -48,7 +48,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Run Connected test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-dr-1739-increase-wait
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -116,11 +116,11 @@ jobs:
           DEPLOYMENT_TYPE: 'api'
           NAMESPACEINUSE: ${{ steps.namespace.outputs.namespace }}
       - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-dr-1739-increase-wait
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run Integration test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-dr-1739-increase-wait
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}

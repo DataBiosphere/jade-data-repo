@@ -317,7 +317,7 @@ public class SnapshotTest extends UsersBase {
         createdSnapshotIds.add(snapshotSummary.getId());
         SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-        assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
+        assertEquals("There should be 5 snapshot relationships", snapshot.getRelationships().size(), 5);
 
         // fetch ACLs
         logger.info("---- Dataset ACLs after snapshot create-----");
@@ -355,14 +355,14 @@ public class SnapshotTest extends UsersBase {
     }
 
     private int retryACLUpdate(String datasetName, int datasetAclCount, ACLCheck check) throws Exception {
-        int multiplier = 2;
-        int base = 10;
-        int wait_interval = 10;
+        double maxDelayInSeconds = 60;
+        int wait_interval;
         // Google claims it can take up to 7 minutes to update ACLs
         int sevenMinutePlusBuffer = (7 * 60) + 20;
         int datasetPlusSnapshotCount = 0;
-        int n = 1;
-        while (wait_interval < sevenMinutePlusBuffer) {
+        int totalWaitTime = 0;
+        double n = 1;
+        while (totalWaitTime < sevenMinutePlusBuffer) {
             datasetPlusSnapshotCount = fetchSourceDatasetAcls(datasetName);
             if (check.equals(ACLCheck.GREATERTHAN)) {
                 if (datasetPlusSnapshotCount > datasetAclCount) {
@@ -375,8 +375,11 @@ public class SnapshotTest extends UsersBase {
             } else {
                 logger.error("Not a valid enum value for ACLCheck");
             }
-            wait_interval =  base * multiplier ^ n;
-            logger.info("RetryAClUpdate sleeping {} seconds", wait_interval);
+            double delayInSeconds =  ((1d / 2d) * (Math.pow(2d, n) - 1d));
+            wait_interval = maxDelayInSeconds < delayInSeconds ?
+                (int)maxDelayInSeconds : (int)delayInSeconds;
+            totalWaitTime += wait_interval;
+            logger.info("retryACLUpdate: sleeping {} seconds, totaling {} seconds waiting", wait_interval, totalWaitTime);
             TimeUnit.SECONDS.sleep(wait_interval);
             n++;
         }

@@ -1,11 +1,11 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.iam.exception.IamNotFoundException;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -59,7 +59,7 @@ public class SnapshotAuthzIamStep implements Step {
             // suppress exception
             logger.error("NEEDS CLEANUP: delete sam resource for snapshot " + snapshotId.toString());
             logger.warn(ex.getMessage());
-        } catch (IamNotFoundException ex) {
+        } catch (NotFoundException ex) {
             // suppress exception
             logger.warn("Snapshot resource wasn't found to delete", ex);
         }

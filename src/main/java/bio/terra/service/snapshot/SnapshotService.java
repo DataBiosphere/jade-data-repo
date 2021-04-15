@@ -9,6 +9,7 @@ import bio.terra.grammar.Query;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
+import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SnapshotModel;
@@ -20,6 +21,7 @@ import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
@@ -123,8 +125,8 @@ public class SnapshotService {
     public EnumerateSnapshotModel enumerateSnapshots(
         int offset,
         int limit,
-        String sort,
-        String direction,
+        EnumerateSortByParam sort,
+        SqlSortDirection direction,
         String filter,
         List<UUID> datasetIds,
         List<UUID> resources) {

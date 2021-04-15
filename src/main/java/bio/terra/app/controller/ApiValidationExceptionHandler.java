@@ -1,8 +1,10 @@
 package bio.terra.app.controller;
 
 
+import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.ErrorModel;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,7 @@ import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import org.springframework.web.util.WebUtils;
 
+import java.util.Collections;
 import java.util.List;
 
 import static java.util.stream.Collectors.toList;
@@ -64,6 +67,25 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
             .errorDetail(errorDetails);
 
         return new ResponseEntity<>(errorModel, HttpStatus.BAD_REQUEST);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleTypeMismatch(
+        TypeMismatchException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+        String message = status + " - see error details";
+        List<String> details = Collections.emptyList();
+        for (Throwable cause = ex.getCause(); cause != null; cause = cause.getCause()) {
+            if (cause instanceof DataRepoException) {
+                message = cause.getMessage();
+                details = ((DataRepoException) cause).getErrorDetails();
+            } else {
+                details = Collections.singletonList(cause.getMessage());
+            }
+        }
+        ErrorModel errorModel = new ErrorModel().message(message)
+            .errorDetail(details);
+
+        return new ResponseEntity<>(errorModel, headers, status);
     }
 
     private String formatFieldError(FieldError error) {

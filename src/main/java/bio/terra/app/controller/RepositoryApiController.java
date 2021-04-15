@@ -17,6 +17,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSnapshotModel;
+import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
@@ -26,6 +27,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.model.UpgradeModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigurationService;
@@ -178,10 +180,14 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<EnumerateDatasetModel> enumerateDatasets(
             @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-            @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
-            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
+            @Valid @RequestParam(value = "sort",
+                required = false,
+                defaultValue = "CREATED_DATE") EnumerateSortByParam sort,
+            @Valid @RequestParam(value = "direction",
+                required = false,
+                defaultValue = "ASC") SqlSortDirection direction,
             @Valid @RequestParam(value = "filter", required = false) String filter) {
-        ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
+        ControllerUtils.validateEnumerateParams(offset, limit);
         List<UUID> resources = iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
         EnumerateDatasetModel esm = datasetService.enumerate(offset, limit, sort, direction, filter, resources);
         return new ResponseEntity<>(esm, HttpStatus.OK);
@@ -361,11 +367,11 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<EnumerateSnapshotModel> enumerateSnapshots(
         @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
         @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-        @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
-        @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
+        @Valid @RequestParam(value = "sort", required = false, defaultValue = "CREATED_DATE") EnumerateSortByParam sort,
+        @Valid @RequestParam(value = "direction", required = false, defaultValue = "ASC") SqlSortDirection direction,
         @Valid @RequestParam(value = "filter", required = false) String filter,
         @Valid @RequestParam(value = "datasetIds", required = false) List<String> datasetIds) {
-        ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
+        ControllerUtils.validateEnumerateParams(offset, limit);
         List<UUID> resources = iamService.listAuthorizedResources(
             getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
         List<UUID> datasetUUIDs = ListUtils.emptyIfNull(datasetIds).stream()

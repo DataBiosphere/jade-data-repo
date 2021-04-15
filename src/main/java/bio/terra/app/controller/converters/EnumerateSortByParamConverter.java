@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.stream.Collectors;
 
 @Component
 public class EnumerateSortByParamConverter
@@ -18,10 +17,7 @@ public class EnumerateSortByParamConverter
     public EnumerateSortByParam convert(String source) {
         EnumerateSortByParam result = EnumerateSortByParam.fromValue(source.toLowerCase());
         if (result == null) {
-            String error = String.format("sort must be one of: (%s).",
-                Arrays.stream(EnumerateSortByParam.values())
-                    .map(EnumerateSortByParam::toString)
-                    .collect(Collectors.joining(", ")));
+            String error = String.format("sort must be one of: %s.", Arrays.toString(EnumerateSortByParam.values()));
             throw new ValidationException("Invalid enumerate parameter(s).", Collections.singletonList(error));
         }
         return result;    }

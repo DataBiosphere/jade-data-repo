@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.stream.Collectors;
 
 @Component
 public class SqlSortDirectionConverter
@@ -17,10 +16,7 @@ public class SqlSortDirectionConverter
     public SqlSortDirection convert(String source) {
         SqlSortDirection result = SqlSortDirection.fromValue(source.toLowerCase());
         if (result == null) {
-            String error = String.format("direction must be one of: (%s).",
-                Arrays.stream(SqlSortDirection.values())
-                    .map(SqlSortDirection::toString)
-                    .collect(Collectors.joining(", ")));
+            String error = String.format("direction must be one of: %s.", Arrays.toString(SqlSortDirection.values()));
             throw new ValidationException("Invalid enumerate parameter(s).", Collections.singletonList(error));
         }
         return result;

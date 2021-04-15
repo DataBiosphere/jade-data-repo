@@ -4,7 +4,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -26,6 +25,9 @@ public class MigrateTests {
 
     @Autowired
     private Migrate migrate;
+
+    @Autowired
+    private MigrateConfiguration migrateConfiguration;
 
     @Autowired
     private GoogleResourceConfiguration googleResourceConfiguration;
@@ -50,12 +52,14 @@ public class MigrateTests {
 
     @Test
     public void testAllowDropAllOnStartFalse() {
-        googleResourceConfiguration.setSingleDataProjectId("terra-datarepo-alpha-data");
+        String testDataProject = migrateConfiguration.getDataProjectNoDropAll().get(0);
+        googleResourceConfiguration.setSingleDataProjectId(testDataProject);
         boolean allowDropAllOnStart = migrate.allowDropAllOnStart();
-        assertFalse("allowDropAllOnStart should be false for terra-datarepo-alpha-data", allowDropAllOnStart);
+        assertFalse("allowDropAllOnStart should be false for " + testDataProject, allowDropAllOnStart);
 
         googleResourceConfiguration.setSingleDataProjectId(singleDataProject);
         allowDropAllOnStart = migrate.allowDropAllOnStart();
-        assertTrue("allowDropAllOnStart should be true for test data project", allowDropAllOnStart);
+        assertTrue("allowDropAllOnStart should be true for test data project " + singleDataProject,
+            allowDropAllOnStart);
     }
 }

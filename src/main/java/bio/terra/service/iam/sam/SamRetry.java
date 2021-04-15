@@ -5,6 +5,7 @@ import bio.terra.common.exception.DataRepoException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
+import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.google.api.client.http.HttpStatusCodes;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -65,6 +66,8 @@ class SamRetry {
                 return function.apply();
             } catch (ApiException ex) {
                 handleApiException(ex);
+            } catch (IamUnauthorizedException ex) {
+                throw ex;
             } catch (Exception ex) {
                 throw new IamInternalServerErrorException("Unexpected exception type: " + ex.toString(), ex);
             }
@@ -81,6 +84,8 @@ class SamRetry {
                 return;
             } catch (ApiException ex) {
                 handleApiException(ex);
+            } catch (IamUnauthorizedException ex) {
+                throw ex;
             } catch (Exception ex) {
                 throw new IamInternalServerErrorException("Unexpected exception type: " + ex.toString(), ex);
             }

@@ -32,6 +32,10 @@ import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
 import scripts.utils.DataRepoUtils;
 
+/*
+ * WARNING: if making any changes to this class make sure to notify the #dsp-batch channel! Describe the change and
+ * any consequences downstream to DRS clients.
+ */
 public class DRSLookup extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(DRSLookup.class);
 

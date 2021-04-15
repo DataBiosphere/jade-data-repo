@@ -4,6 +4,7 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/staging-test-runner.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-staging
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-staging-data
+  JADE_USER_EMAIL: staging-tdr-user@notarealemail.org
   TDR_LOG_APPENDER: Console-Standard
 on:
   workflow_dispatch: {}

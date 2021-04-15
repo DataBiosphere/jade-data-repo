@@ -19,15 +19,44 @@ those to gradle by setting these environment variables:
 - ARTIFACTORY_USER
 - ARTIFACTORY_PASSWORD
 
-## Versioning
-The version number for the client code is **independent** of the of the data repo version.
-Right now, it is always a SNAPSHOT version. I suggest that for now we bump the
-patch version with every backward compatible change made to the API. We bump the
-minor version when we make an incompatible change. And we keep the major version matching
-the `v1` in the paths from the OpenAPI.
+## Using the targets
 
-Until we figure out something more clever, you must manually bump the version number
-by editing the gradle.build file.
+These targets must be run from the top level data repo directory. To run them:
+
+```shell
+ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:build
+```
+
+## Testing
+
+One way to test this library is to push it to your local maven repository. This command must be run
+in the top level data repo directory.
+
+```shell
+ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:publishToMavenLocal
+```
+
+Once it's published, you can add your local repo to your maven dependency sources in your test
+project. To do this in Gradle, add this line to your `build.gradle`'s `repositories` declaration.
+
+```
+    mavenLocal()
+```
+
+You may also want to change the library version to a different version to ensure that you're not
+getting a cached version. To do this, change `version` in the root `build.gradle`:
+
+```
+    version '1.46.0-localtest'
+```
+
+
+## Versioning
+The version number for the client code is the same as the data repo version, and a new library is built
+whenever the data repo version is changed. The artifact for this library is automatically built
+and pushed to a [Broad local repo](https://broadinstitute.jfrog.io/ui/packages/gav:%2F%2Fbio.terra:datarepo-client)
+when a branch is merged to develop,
+by the "Publish to Artifactory" step in [this github action](.github/workflows/dev-image-update.yaml).
 
 ## Why is there junk in the tdrclient directory after a build?
 The swagger codegen creates a pile of extraneous files. I don't know how to turn them off.

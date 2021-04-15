@@ -3,6 +3,7 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/jade-dev-account.json
   GOOGLE_CLOUD_PROJECT: broad-jade-perf
   GOOGLE_CLOUD_DATA_PROJECT: broad-jade-perf-data2
+  JADE_USER_EMAIL: dev-tdr-user@notarealemail.org
   TEST_RUNNER_SERVER_SPECIFICATION_FILE: perf.json
   GOOGLE_ZONE: us-central1
   K8_CLUSTER: jade-master-us-central1
@@ -70,7 +71,7 @@ jobs:
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
@@ -92,7 +93,7 @@ jobs:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/datarepo-actions/actions/merger@0.39.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.57.0
         env:
           COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
           GITHUB_REPO: datarepo-helm-definitions
@@ -109,10 +110,33 @@ jobs:
           echo "Apply helm updates, including updated data-repo version"
           helmfile apply
           cd ${GITHUB_WORKSPACE}/${workingDir}
-      - name: "Cycle pods to clear lingering artifacts if not doing version bump"
-        if: ${{ steps.read_property.outputs.LATEST_VERSION == steps.read_property.outputs.CURRENT_SEMVER }}
+      - name: "[Clear Perf Database] Import Perf Database Secret"
+        uses: hashicorp/vault-action@v2.1.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.PERF_ROLE_ID }}
+          secretId: ${{ secrets.PERF_SECRET_ID }}
+          #Yes, they both point to the stairway database password
+          secrets: |
+            secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | ORG_GRADLE_PROJECT_dbDatarepoPassword ;
+            secret/dsde/datarepo/perf/datarepo-sql-db stairwaypassword | ORG_GRADLE_PROJECT_dbStairwayPassword ;
+      - name: "[Clear Perf Database] Perform DropAll"
+        env:
+          ORG_GRADLE_PROJECT_dbDatarepoUri: jdbc:postgresql://localhost:5434/datarepo
+          ORG_GRADLE_PROJECT_dbStairwayUri: jdbc:postgresql://localhost:5434/stairway
         run: |
-          echo "Cycle API pods to trigger migrations to run and clear out database"
+          # port foward to perf database
+          kubectl port-forward --namespace perf svc/perf-jade-gcloud-sqlproxy 5434:5432 &
+          PID=$!
+          sleep 10
+          echo "After giving the proxy 10 seconds to spin up, run drop all on perf database"
+          cd ${GITHUB_WORKSPACE}/${workingDir}
+          ./gradlew dropAll
+          kill ${PID}
+      - name: "[Clear Perf Database] Cycle pods to initialize databases"
+        run: |
+          echo "Cycle API pods to trigger migrations to initialize databases"
           kubectl delete pods -n perf -l app.kubernetes.io/name=datarepo-api
           echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
           sleep 45
@@ -153,7 +177,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.39.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:

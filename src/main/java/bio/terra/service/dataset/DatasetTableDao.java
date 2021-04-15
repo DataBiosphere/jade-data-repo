@@ -5,6 +5,7 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.Column;
 import bio.terra.common.Table;
+import bio.terra.model.TableDataType;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -93,7 +94,7 @@ public class DatasetTableDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (Column column : columns) {
             params.addValue("name", column.getName());
-            params.addValue("type", column.getType());
+            params.addValue("type", column.getType().toString());
             params.addValue("array_of", column.isArrayOf());
             jdbcTemplate.update(sqlInsertColumn, params, keyHolder);
             UUID columnId = keyHolder.getId();
@@ -148,7 +149,7 @@ public class DatasetTableDao {
                     .id(rs.getObject("id", UUID.class))
                     .table(table)
                     .name(rs.getString("name"))
-                    .type(rs.getString("type"))
+                    .type(TableDataType.fromValue(rs.getString("type")))
                     .arrayOf(rs.getBoolean("array_of")));
     }
 }

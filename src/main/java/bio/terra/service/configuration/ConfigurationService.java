@@ -9,7 +9,7 @@ import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import bio.terra.service.configuration.exception.DuplicateConfigNameException;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
-import bio.terra.service.iam.sam.SamConfiguration;
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

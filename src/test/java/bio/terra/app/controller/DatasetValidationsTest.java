@@ -11,6 +11,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
@@ -122,8 +123,27 @@ public class DatasetValidationsTest {
     }
 
     @Test
+    public void testJsonParsingErrors() throws Exception {
+        String invalidSchema = "{\"name\":\"no_response\"," +
+            "\"description\":\"Invalid dataset schema leads to no response body\"," +
+            "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\"," +
+            "\"schema\":{\"tables\":[{\"name\":\"table\",\"columns\":" +
+            "[{\"name\":\"column\",\"datatype\":\"fileref\",\"is_array\":true}]}]}}";
+        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(invalidSchema))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        MockHttpServletResponse response = result.getResponse();
+        String responseBody = response.getContentAsString();
+        assertTrue("Json parsing errors are logged and returned",
+            responseBody.contains("JSON parse error: Unrecognized field \\\"is_array\\\""));
+    }
+
+    @Test
     public void testDuplicateTableNames() throws Exception {
-        ColumnModel column = new ColumnModel().name("id").datatype("string");
+        ColumnModel column = new ColumnModel().name("id").datatype(TableDataType.STRING);
         TableModel table = new TableModel()
             .name("duplicate")
             .columns(Collections.singletonList(column));
@@ -139,7 +159,7 @@ public class DatasetValidationsTest {
 
     @Test
     public void testDuplicateColumnNames() throws Exception {
-        ColumnModel column = new ColumnModel().name("id").datatype("string");
+        ColumnModel column = new ColumnModel().name("id").datatype(TableDataType.STRING);
         TableModel table = new TableModel()
             .name("table")
             .columns(Arrays.asList(column, column));
@@ -215,7 +235,7 @@ public class DatasetValidationsTest {
         ColumnModel arrayColumn = new ColumnModel()
             .name("array_data")
             .arrayOf(true)
-            .datatype("string");
+            .datatype(TableDataType.STRING);
 
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema().getTables().stream()
@@ -291,6 +311,28 @@ public class DatasetValidationsTest {
     }
 
     @Test
+    public void testTableSchemaInvalidDataType() throws Exception {
+        String invalidSchema = "{\"name\":\"no_response\"," +
+            "\"description\":\"Invalid datatype in dataset schema leads to no response body\"," +
+            "\"defaultProfileId\":\"390e7a85-d47f-4531-b612-165fc977d3bd\"," +
+            "\"schema\":{\"tables\":[{\"name\":\"table\",\"columns\":" +
+            "[{\"name\":\"bad_column1\",\"datatype\":\"bad_datatype\"}, " +
+            "{\"name\":\"bad_column2\",\"datatype\":\"bad_datatype\"}]}]}}";
+        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(invalidSchema))
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        MockHttpServletResponse response = result.getResponse();
+        String responseBody = response.getContentAsString();
+        assertTrue("Invalid DataTypes are logged and returned",
+            responseBody.contains("invalid datatype in table column(s): bad_column1, bad_column2, " +
+                "valid DataTypes are [boolean, bytes, date, datetime, dirref, fileref, " +
+                "float, float64, integer, int64, numeric, record, string, text, time, timestamp]"));
+    }
+
+    @Test
     public void testDatasetNameInvalid() throws Exception {
         ErrorModel errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name("no spaces"));
         checkValidationErrorModel(errorModel, new String[]{"Pattern"});
@@ -348,7 +390,7 @@ public class DatasetValidationsTest {
     public void testArrayPrimaryKeyColumn() throws Exception {
         ColumnModel column = new ColumnModel()
             .name("array_column")
-            .datatype("string")
+            .datatype(TableDataType.STRING)
             .arrayOf(true);
         TableModel table = new TableModel()
             .name("table")
@@ -403,7 +445,7 @@ public class DatasetValidationsTest {
     public void testDatePartitionWithMismatchedType() throws Exception {
         ColumnModel column = new ColumnModel()
             .name("column")
-            .datatype("int64");
+            .datatype(TableDataType.INT64);
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.singletonList(column))
@@ -458,7 +500,7 @@ public class DatasetValidationsTest {
     public void testIntPartitionWithMismatchedType() throws Exception {
         ColumnModel column = new ColumnModel()
             .name("column")
-            .datatype("timestamp");
+            .datatype(TableDataType.TIMESTAMP);
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.singletonList(column))
@@ -478,7 +520,7 @@ public class DatasetValidationsTest {
     public void testIntPartitionWithBadRange() throws Exception {
         ColumnModel column = new ColumnModel()
             .name("column")
-            .datatype("int64");
+            .datatype(TableDataType.INT64);
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.singletonList(column))
@@ -499,7 +541,7 @@ public class DatasetValidationsTest {
     public void testIntPartitionTooManyPartitions() throws Exception {
         ColumnModel column = new ColumnModel()
             .name("column")
-            .datatype("int64");
+            .datatype(TableDataType.INT64);
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.singletonList(column))

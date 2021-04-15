@@ -25,7 +25,7 @@ jobs:
           LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Latest Version: $LATEST_VERSION"
           echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
-          LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+          LATEST_GITHASH=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
           echo "Latest git hash: $LATEST_GITHASH"
           echo "::set-output name=LATEST_GITHASH::$LATEST_GITHASH"
       - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_VERSION }} branch"

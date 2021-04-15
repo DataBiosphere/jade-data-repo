@@ -43,7 +43,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.49.0-SNAPSHOT'
+    version '1.56.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -393,7 +393,16 @@ liquibase {
             url project.ext.dbDatarepoUri
             username project.ext.dbDatarepoUsername
             password project.ext.dbDatarepoPassword
-            logLevel 'debug'
+            logLevel 'info'
+        }
+        // This is setup only to run "dropAll", not commands that require the changelog, like "update"
+        // To setup more functionality, see notes in this doc:
+        // https://docs.google.com/document/d/1hxT7ZOAY4MKPhjoLLZNJE4IB_3WncsDDYEg8m1myL-I/edit?usp=sharing
+        stairway {
+            url project.ext.dbStairwayUri
+            username project.ext.dbStairwayUsername
+            password project.ext.dbStairwayPassword
+            logLevel 'info'
         }
     }
 }

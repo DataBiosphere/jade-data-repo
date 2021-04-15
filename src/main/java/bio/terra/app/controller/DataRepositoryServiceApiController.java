@@ -12,8 +12,11 @@ import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
 import bio.terra.service.filedata.DrsService;
+import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
+import bio.terra.service.iam.exception.IamForbiddenException;
+import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -95,6 +98,24 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     }
 
     @ExceptionHandler
+    public ResponseEntity<DRSError> iAmUnauthorizedExceptionHandler(IamUnauthorizedException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.UNAUTHORIZED.value());
+        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> iAmForbiddenExceptionHandler(IamForbiddenException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.FORBIDDEN.value());
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> invalidDrsIdException(InvalidDrsIdException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler
     public ResponseEntity<DRSError> exceptionHandler(Exception ex) {
         DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
         logger.error("Uncaught exception", ex);
@@ -118,6 +139,10 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         return new ResponseEntity<>(drsObject, HttpStatus.OK);
     }
 
+    /*
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     @Override
     public ResponseEntity<DRSServiceInfo> getServiceInfo() {
         DRSServiceInfo info = new DRSServiceInfo()

@@ -13,6 +13,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
@@ -129,6 +130,7 @@ public class BigQueryPdao {
                     datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
                 bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
             }
+            // TODO: don't catch generic exceptions
         } catch (Exception ex) {
             throw new PdaoException("create dataset failed for " + datasetName, ex);
         }
@@ -1315,6 +1317,10 @@ public class BigQueryPdao {
         bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
     }
 
+    /*
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     private String sourceSelectSql(String snapshotId, Column targetColumn, SnapshotMapTable mapTable) {
         // In the future, there may not be a column map for a given target column; it might not exist
         // in the table. The logic here covers these cases:
@@ -1331,11 +1337,10 @@ public class BigQueryPdao {
         if (mapColumn == null) {
             return "NULL AS " + targetColumnName;
         } else {
-            String colType = mapColumn.getFromColumn().getType();
+            TableDataType colType = mapColumn.getFromColumn().getType();
             String mapName = mapColumn.getFromColumn().getName();
 
-            if (StringUtils.equalsIgnoreCase(colType, "FILEREF") ||
-                StringUtils.equalsIgnoreCase(colType, "DIRREF")) {
+            if (colType == TableDataType.FILEREF || colType ==  TableDataType.DIRREF) {
 
                 String drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshotId + "_'";
 
@@ -1425,26 +1430,24 @@ public class BigQueryPdao {
         return null;
     }
 
-    // TODO: Make an enum for the datatypes in swagger
-    private LegacySQLTypeName translateType(String datatype) {
-        String uptype = StringUtils.upperCase(datatype);
-        switch (uptype) {
-            case "BOOLEAN":   return LegacySQLTypeName.BOOLEAN;
-            case "BYTES":     return LegacySQLTypeName.BYTES;
-            case "DATE":      return LegacySQLTypeName.DATE;
-            case "DATETIME":  return LegacySQLTypeName.DATETIME;
-            case "DIRREF":    return LegacySQLTypeName.STRING;
-            case "FILEREF":   return LegacySQLTypeName.STRING;
-            case "FLOAT":     return LegacySQLTypeName.FLOAT;
-            case "FLOAT64":   return LegacySQLTypeName.FLOAT;  // match the SQL type
-            case "INTEGER":   return LegacySQLTypeName.INTEGER;
-            case "INT64":     return LegacySQLTypeName.INTEGER;  // match the SQL type
-            case "NUMERIC":   return LegacySQLTypeName.NUMERIC;
-            //case "RECORD":    return LegacySQLTypeName.RECORD;
-            case "STRING":    return LegacySQLTypeName.STRING;
-            case "TEXT":      return LegacySQLTypeName.STRING;   // match the Postgres type
-            case "TIME":      return LegacySQLTypeName.TIME;
-            case "TIMESTAMP": return LegacySQLTypeName.TIMESTAMP;
+    private LegacySQLTypeName translateType(TableDataType datatype) {
+        switch (datatype) {
+            case BOOLEAN:   return LegacySQLTypeName.BOOLEAN;
+            case BYTES:     return LegacySQLTypeName.BYTES;
+            case DATE:      return LegacySQLTypeName.DATE;
+            case DATETIME:  return LegacySQLTypeName.DATETIME;
+            case DIRREF:    return LegacySQLTypeName.STRING;
+            case FILEREF:   return LegacySQLTypeName.STRING;
+            case FLOAT:     return LegacySQLTypeName.FLOAT;
+            case FLOAT64:   return LegacySQLTypeName.FLOAT;  // match the SQL type
+            case INTEGER:   return LegacySQLTypeName.INTEGER;
+            case INT64:     return LegacySQLTypeName.INTEGER;  // match the SQL type
+            case NUMERIC:   return LegacySQLTypeName.NUMERIC;
+            //case RECORD:    return LegacySQLTypeName.RECORD;
+            case STRING:    return LegacySQLTypeName.STRING;
+            case TEXT:      return LegacySQLTypeName.STRING;   // match the Postgres type
+            case TIME:      return LegacySQLTypeName.TIME;
+            case TIMESTAMP: return LegacySQLTypeName.TIMESTAMP;
             default: throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
         }
     }

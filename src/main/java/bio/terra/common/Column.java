@@ -1,12 +1,14 @@
 package bio.terra.common;
 
 import java.util.UUID;
+import bio.terra.model.ColumnModel;
+import bio.terra.model.TableDataType;
 
 public class Column {
     private UUID id;
     private Table table;
     private String name;
-    private String type;
+    private TableDataType type;
     private boolean arrayOf;
 
     public Column() {
@@ -54,11 +56,11 @@ public class Column {
         return this;
     }
 
-    public String getType() {
+    public TableDataType getType() {
         return type;
     }
 
-    public Column type(String type) {
+    public Column type(TableDataType type) {
         this.type = type;
         return this;
     }
@@ -70,5 +72,12 @@ public class Column {
     public Column arrayOf(boolean arrayOf) {
         this.arrayOf = arrayOf;
         return this;
+    }
+
+    public ColumnModel toColumnModel() {
+        return new ColumnModel()
+            .name(name)
+            .datatype(type)
+            .arrayOf(arrayOf);
     }
 }

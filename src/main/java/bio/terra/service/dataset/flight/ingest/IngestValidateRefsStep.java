@@ -10,8 +10,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import org.apache.commons.lang3.StringUtils;
-
+import bio.terra.model.TableDataType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,7 +41,7 @@ public class IngestValidateRefsStep implements Step {
 
         List<String> invalidRefIds = new ArrayList<>();
         for (Column column : table.getColumns()) {
-            if (StringUtils.equalsIgnoreCase(column.getType(), "FILEREF")) {
+            if (column.getType() == TableDataType.FILEREF) {
                 List<String> refIdArray = bigQueryPdao.getRefIds(dataset, stagingTableName, column);
                 List<String> badRefIds = fileDao.validateRefIds(dataset, refIdArray);
                 if (badRefIds != null) {

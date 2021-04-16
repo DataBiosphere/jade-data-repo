@@ -1,5 +1,6 @@
 package bio.terra.service.iam.sam;
 
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.integration.DataRepoFixtures;

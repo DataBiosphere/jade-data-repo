@@ -4,6 +4,7 @@ env:
   GOOGLE_APPLICATION_CREDENTIALS: /tmp/alpha-test-runner.json
   GOOGLE_CLOUD_PROJECT: terra-datarepo-alpha
   GOOGLE_CLOUD_DATA_PROJECT: terra-datarepo-alpha-data
+  JADE_USER_EMAIL: alpha-tdr-user@notarealemail.org
   TDR_LOG_APPENDER: Console-Standard
   GCR_DEV_URL: gcr.io/broad-jade-dev
   GCR_PUBLIC_URL: gcr.io/datarepo-public-gcr
@@ -75,14 +76,14 @@ jobs:
         export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
         echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
-          
+
         echo "[INFO] Running spotless and spotbugs"
         ./gradlew spotlessCheck
         ./gradlew spotbugsMain
 
         outputDir="/tmp/TestRunnerResults"
         echo "Output directory set to: $outputDir"
-  
+
         echo "[INFO] Running tests"
         ./gradlew runTest --args="suites/AlphaSmokeTests.json $outputDir" ||
           (echo "Running tests FAILED" &&
@@ -130,7 +131,7 @@ jobs:
         repository: 'broadinstitute/datarepo-helm'
         token: ${{ secrets.BROADBOT_TOKEN }}
         path: datarepo-helm
-    - name: "[UI][Cherry-pick to public GCR] Read UI version from datarepo-helm" 
+    - name: "[UI][Cherry-pick to public GCR] Read UI version from datarepo-helm"
       id: datarepohelm
       run: |
         alpha_version_ui=$(docker run --rm -v ${PWD}:/workdir mikefarah/yq:3 yq r datarepo-helm/charts/datarepo-ui/values.yaml image.tag)

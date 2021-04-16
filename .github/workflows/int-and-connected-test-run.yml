@@ -97,10 +97,10 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.59
-          helm_datarepo_ui_chart_version: 0.0.53
+          helm_datarepo_api_chart_version: 0.0.65
+          helm_datarepo_ui_chart_version: 0.0.61
           helm_gcloud_sqlproxy_chart_version: 0.19.7
-          helm_oidc_proxy_chart_version: 0.0.20
+          helm_oidc_proxy_chart_version: 0.0.22
       - name: "Wait for deployment to come back online"
         uses: broadinstitute/datarepo-actions/actions/main@0.57.0
         with:

@@ -5,6 +5,7 @@ import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
 import bio.terra.model.RepositoryStatusModel;
 import bio.terra.service.configuration.StatusService;
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
@@ -35,6 +36,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     private final JobService jobService;
     private final Environment env;
     private final StatusService statusService;
+    private final SamConfiguration samConfiguration;
 
     private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
     private static final String DEFAULT_GITHASH = "00000000";
@@ -49,7 +51,8 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         OauthConfiguration oauthConfig,
         JobService jobService,
         Environment env,
-        StatusService statusService
+        StatusService statusService,
+        SamConfiguration samConfiguration
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -57,6 +60,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         this.jobService = jobService;
         this.env = env;
         this.statusService = statusService;
+        this.samConfiguration = samConfiguration;
 
         Properties properties = new Properties();
         try (InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties")) {
@@ -91,7 +95,8 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
             .clientId(oauthConfig.getClientId())
             .activeProfiles(Arrays.asList(env.getActiveProfiles()))
             .semVer(semVer)
-            .gitHash(gitHash);
+            .gitHash(gitHash)
+            .samUrl(samConfiguration.getBasePath());
 
         return new ResponseEntity<>(configurationModel, HttpStatus.OK);
     }

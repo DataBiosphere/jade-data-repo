@@ -348,6 +348,7 @@ export DATAREPO_USEREMAIL={your dev gmail account}
 export GOOGLE_CLOUD_PROJECT=broad-jade-ZZ
 export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-ZZ-data
 export PROXY_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org
+export JADE_USER_EMAIL=<EMAIL_YOU_CREATED_FOR_DEVELOPMENT>
 
 # Integration test setting: change this to http://localhost:8080/ to run against a local instance
 export IT_JADE_API_URL=https://jade-ZZ.datarepo-dev.broadinstitute.org

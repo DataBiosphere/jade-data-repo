@@ -315,6 +315,10 @@ public class ApplicationConfiguration {
         this.firestoreQueryBatchSize = firestoreQueryBatchSize;
     }
 
+    /*
+     * WARNING: if making any changes to these methods make sure to notify the #dsp-batch channel! Describe the change
+     * and any consequences downstream to DRS clients.
+     */
     public int getMaxDrsLookups() {
         return maxDrsLookups;
     }

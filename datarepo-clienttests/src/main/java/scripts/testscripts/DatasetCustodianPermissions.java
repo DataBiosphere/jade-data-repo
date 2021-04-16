@@ -2,7 +2,7 @@ package scripts.testscripts;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import bio.terra.datarepo.api.DatasetsApi;
+import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.DatasetModel;
@@ -38,7 +38,7 @@ public class DatasetCustodianPermissions extends SimpleDataset {
 
     // fetch the full dataset model, which has the data project property
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    DatasetsApi repositoryApi = new DatasetsApi(datasetCreatorClient);
+    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
     datasetModel = repositoryApi.retrieveDataset(datasetSummaryModel.getId());
   }
 
@@ -51,9 +51,9 @@ public class DatasetCustodianPermissions extends SimpleDataset {
 
     // try #1 to retrieve the dataset
     ApiClient datarepoClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    DatasetsApi datasetsApi = new DatasetsApi(datarepoClient);
+    RepositoryApi repositoryApi = new RepositoryApi(datarepoClient);
     boolean retrieveDatasetIsUnauthorized =
-        retrieveDatasetIsUnauthorized(datasetsApi, datasetSummaryModel.getId());
+        retrieveDatasetIsUnauthorized(repositoryApi, datasetSummaryModel.getId());
 
     // try #1 to select from the bigquery table
     BigQuery bigQueryClient =
@@ -91,7 +91,7 @@ public class DatasetCustodianPermissions extends SimpleDataset {
     // add test user as a custodian
     ApiClient datasetCreatorDatarepoClient =
         DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    DatasetsApi datasetCreatorRepositoryApi = new DatasetsApi(datasetCreatorDatarepoClient);
+    RepositoryApi datasetCreatorRepositoryApi = new RepositoryApi(datasetCreatorDatarepoClient);
     PolicyResponse policyResponse =
         datasetCreatorRepositoryApi.addDatasetPolicyMember(
             datasetSummaryModel.getId(),
@@ -101,7 +101,7 @@ public class DatasetCustodianPermissions extends SimpleDataset {
 
     // try #2 to retrieve the dataset
     retrieveDatasetIsUnauthorized =
-        retrieveDatasetIsUnauthorized(datasetsApi, datasetSummaryModel.getId());
+        retrieveDatasetIsUnauthorized(repositoryApi, datasetSummaryModel.getId());
     assertThat(
         "Test user " + testUser.name + " is a custodian and can retrieve the dataset",
         !retrieveDatasetIsUnauthorized);
@@ -114,14 +114,14 @@ public class DatasetCustodianPermissions extends SimpleDataset {
   /**
    * Check if retrieving a dataset returns an unauthorized error.
    *
-   * @param datasetsApi the api object to query
+   * @param repositoryApi the api object to query
    * @return true if the endpoint returns an unauthorized error, false if it does not
    */
-  private static boolean retrieveDatasetIsUnauthorized(DatasetsApi datasetsApi, String datasetId)
-      throws ApiException {
+  private static boolean retrieveDatasetIsUnauthorized(
+      RepositoryApi repositoryApi, String datasetId) throws ApiException {
     boolean caughtAccessException = false;
     try {
-      DatasetModel datasetModel = datasetsApi.retrieveDataset(datasetId);
+      DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId);
       logger.debug(
           "Successfully retrieved dataset: name = {}, data project = {}",
           datasetModel.getName(),

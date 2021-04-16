@@ -3,8 +3,7 @@ package scripts.testscripts;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import bio.terra.datarepo.api.DatasetsApi;
-import bio.terra.datarepo.api.JobsApi;
+import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadResultModel;
@@ -40,18 +39,17 @@ public class BulkLoad extends SimpleDataset {
   // The purpose of this test is to measure scaling of bulk load.
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    DatasetsApi datasetsApi = new DatasetsApi(apiClient);
-    JobsApi jobsApi = new JobsApi(apiClient);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     // set up and start bulk load job
     BulkLoadArrayRequestModel arrayLoad =
         BulkLoadUtils.buildBulkLoadFileRequest(filesToLoad, billingProfileModel.getId());
     JobModel bulkLoadArrayJobResponse =
-        datasetsApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
 
     // wait for the job to complete and print out results to debug log level
     BulkLoadResultModel loadSummary =
-        BulkLoadUtils.getAndDisplayResults(jobsApi, bulkLoadArrayJobResponse);
+        BulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
 
     assertThat(
         "Number of successful files loaded should equal total files.",

@@ -1,9 +1,7 @@
 package scripts.testscripts;
 
-import bio.terra.datarepo.api.DatasetsApi;
-import bio.terra.datarepo.api.JobsApi;
-import bio.terra.datarepo.api.ProfilesApi;
-import bio.terra.datarepo.api.SnapshotsApi;
+import bio.terra.datarepo.api.RepositoryApi;
+import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
@@ -62,14 +60,12 @@ public class RetrieveSnapshot extends SimpleDataset {
 
     // get the ApiClient for the snapshot creator, same as the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    DatasetsApi datasetsApi = new DatasetsApi(datasetCreatorClient);
-    ProfilesApi profilesApi = new ProfilesApi(datasetCreatorClient);
-    SnapshotsApi snapshotsApi = new SnapshotsApi(datasetCreatorClient);
-    JobsApi jobsApi = new JobsApi(datasetCreatorClient);
+    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
+    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     billingProfileModel = null;
     if (profileName.isPresent()) {
       billingProfileModel =
-          profilesApi.enumerateProfiles(0, 100).getItems().stream()
+          resourcesApi.enumerateProfiles(0, 100).getItems().stream()
               .filter(p -> StringUtils.equalsIgnoreCase(profileName.get(), p.getProfileName()))
               .findFirst()
               .orElseThrow(
@@ -102,11 +98,11 @@ public class RetrieveSnapshot extends SimpleDataset {
     fileLoadModelArray.addLoadArrayItem(fileLoadModel);
 
     JobModel ingestFileJobResponse =
-        datasetsApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
-    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(jobsApi, ingestFileJobResponse);
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
+    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
+            repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
     String fileId = bulkLoadArrayResultModel.getLoadFileResults().get(0).getFileId();
 
     // ingest the tabular data from the JSON file we just generated
@@ -136,24 +132,24 @@ public class RetrieveSnapshot extends SimpleDataset {
             .table("vcf_file")
             .path(gsPath);
     JobModel ingestTabularDataJobResponse =
-        datasetsApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
+        repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(jobsApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, ingestTabularDataJobResponse, IngestResponseModel.class);
+            repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
     // make the create snapshot request and wait for the job to finish
     JobModel createSnapshotJobResponse =
         DataRepoUtils.createSnapshot(
-            snapshotsApi, jobsApi, datasetSummaryModel, "snapshot-simple.json", true);
+            repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
 
     // save a reference to the snapshot summary model so we can delete it in cleanup()
     snapshotSummaryModel =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
+            repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
     logger.info(
         "Successfully created snapshot: {} with user {} ",
         snapshotSummaryModel.getName(),
@@ -162,9 +158,9 @@ public class RetrieveSnapshot extends SimpleDataset {
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    SnapshotsApi snapshotsApi = new SnapshotsApi(apiClient);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
-    SnapshotModel snapshotModel = snapshotsApi.retrieveSnapshot(snapshotSummaryModel.getId());
+    SnapshotModel snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
     logger.debug(
         "Successfully retrieved snaphot: {}, data project: {}",
         snapshotModel.getName(),
@@ -174,14 +170,14 @@ public class RetrieveSnapshot extends SimpleDataset {
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    SnapshotsApi snapshotsApi = new SnapshotsApi(datasetCreatorClient);
-    JobsApi jobsApi = new JobsApi(datasetCreatorClient);
+    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // make the delete request and wait for the job to finish
-    JobModel deleteSnapshotJobResponse = snapshotsApi.deleteSnapshot(snapshotSummaryModel.getId());
+    JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
     deleteSnapshotJobResponse =
-        DataRepoUtils.waitForJobToFinish(jobsApi, deleteSnapshotJobResponse);
-    DataRepoUtils.expectJobSuccess(jobsApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+    DataRepoUtils.expectJobSuccess(
+        repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
     logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
 
     // delete the profile and dataset

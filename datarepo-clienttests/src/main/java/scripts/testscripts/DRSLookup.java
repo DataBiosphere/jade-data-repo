@@ -1,9 +1,7 @@
 package scripts.testscripts;
 
 import bio.terra.datarepo.api.DataRepositoryServiceApi;
-import bio.terra.datarepo.api.DatasetsApi;
-import bio.terra.datarepo.api.JobsApi;
-import bio.terra.datarepo.api.SnapshotsApi;
+import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
@@ -34,6 +32,10 @@ import runner.config.TestUserSpecification;
 import scripts.testscripts.baseclasses.SimpleDataset;
 import scripts.utils.DataRepoUtils;
 
+/*
+ * WARNING: if making any changes to this class make sure to notify the #dsp-batch channel! Describe the change and
+ * any consequences downstream to DRS clients.
+ */
 public class DRSLookup extends SimpleDataset {
   private static final Logger logger = LoggerFactory.getLogger(DRSLookup.class);
 
@@ -62,9 +64,7 @@ public class DRSLookup extends SimpleDataset {
 
     // get the ApiClient for the snapshot creator, same as the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    DatasetsApi datasetsApi = new DatasetsApi(datasetCreatorClient);
-    JobsApi jobsApi = new JobsApi(datasetCreatorClient);
-    SnapshotsApi snapshotsApi = new SnapshotsApi(datasetCreatorClient);
+    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // load data into the new dataset
     // note that there's a fileref in the dataset
@@ -88,11 +88,11 @@ public class DRSLookup extends SimpleDataset {
     fileLoadModelArray.addLoadArrayItem(fileLoadModel);
 
     JobModel ingestFileJobResponse =
-        datasetsApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
-    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(jobsApi, ingestFileJobResponse);
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
+    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
+            repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
     String fileId = bulkLoadArrayResultModel.getLoadFileResults().get(0).getFileId();
 
     // ingest the tabular data from the JSON file we just generated
@@ -122,29 +122,29 @@ public class DRSLookup extends SimpleDataset {
             .table("vcf_file")
             .path(gsPath);
     JobModel ingestTabularDataJobResponse =
-        datasetsApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
+        repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(jobsApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, ingestTabularDataJobResponse, IngestResponseModel.class);
+            repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
     // make the create snapshot request and wait for the job to finish
     JobModel createSnapshotJobResponse =
         DataRepoUtils.createSnapshot(
-            snapshotsApi, jobsApi, datasetSummaryModel, "snapshot-simple.json", true);
+            repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
 
     // save a reference to the snapshot summary model so we can delete it in cleanup()
     SnapshotSummaryModel snapshotSummaryModel =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
+            repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
     logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
 
     for (TestUserSpecification user : testUsers) {
       if (!StringUtils.equals(datasetCreator.userEmail, user.userEmail)) {
-        snapshotsApi.addSnapshotPolicyMember(
+        repositoryApi.addSnapshotPolicyMember(
             snapshotSummaryModel.getId(),
             "steward",
             new PolicyMemberRequest().email(user.userEmail));
@@ -156,7 +156,7 @@ public class DRSLookup extends SimpleDataset {
     }
 
     // now go and retrieve the file Id that should be stored in the snapshot
-    snapshotModel = snapshotsApi.retrieveSnapshot(snapshotSummaryModel.getId());
+    snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
 
     TableModel tableModel =
         snapshotModel.getTables().get(0); // There is only 1 table, so just grab the first
@@ -197,14 +197,14 @@ public class DRSLookup extends SimpleDataset {
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    SnapshotsApi snapshotsApi = new SnapshotsApi(datasetCreatorClient);
-    JobsApi jobsApi = new JobsApi(datasetCreatorClient);
+    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // make the delete request and wait for the job to finish
-    JobModel deleteSnapshotJobResponse = snapshotsApi.deleteSnapshot(snapshotModel.getId());
+    JobModel deleteSnapshotJobResponse = repositoryApi.deleteSnapshot(snapshotModel.getId());
     deleteSnapshotJobResponse =
-        DataRepoUtils.waitForJobToFinish(jobsApi, deleteSnapshotJobResponse);
-    DataRepoUtils.expectJobSuccess(jobsApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+    DataRepoUtils.expectJobSuccess(
+        repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
     logger.info("Successfully deleted snapshot: {}", snapshotModel.getName());
 
     // delete the profile and dataset

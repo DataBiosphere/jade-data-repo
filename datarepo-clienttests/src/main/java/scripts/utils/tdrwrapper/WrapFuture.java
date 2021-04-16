@@ -1,6 +1,6 @@
 package scripts.utils.tdrwrapper;
 
-import bio.terra.datarepo.api.JobsApi;
+import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
@@ -19,12 +19,12 @@ public class WrapFuture<T> implements Future<T> {
   private static final int POLL_INTERVALS_SECONDS = 5;
 
   private final String jobId;
-  private final JobsApi jobsApi;
+  private final RepositoryApi repositoryApi;
   private final Class<T> targetClass;
 
-  public WrapFuture(String jobId, JobsApi repositoryApi, Class<T> targetClass) {
+  public WrapFuture(String jobId, RepositoryApi repositoryApi, Class<T> targetClass) {
     this.jobId = jobId;
-    this.jobsApi = repositoryApi;
+    this.repositoryApi = repositoryApi;
     this.targetClass = targetClass;
   }
 
@@ -40,7 +40,7 @@ public class WrapFuture<T> implements Future<T> {
 
   @Override
   public boolean isDone() {
-    JobModel job = DataRepoWrap.apiCallThrow(() -> jobsApi.retrieveJob(jobId));
+    JobModel job = DataRepoWrap.apiCallThrow(() -> repositoryApi.retrieveJob(jobId));
     return !job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING);
   }
 
@@ -59,7 +59,7 @@ public class WrapFuture<T> implements Future<T> {
     Instant endTime = Instant.now().plusSeconds(TimeUnit.SECONDS.convert(timeout, unit));
     int tryCount = 0;
     while (endTime.isAfter(Instant.now())) {
-      JobModel job = DataRepoWrap.apiCallThrow(() -> jobsApi.retrieveJob(jobId));
+      JobModel job = DataRepoWrap.apiCallThrow(() -> repositoryApi.retrieveJob(jobId));
       if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
         tryCount++;
         logger.debug(
@@ -70,7 +70,7 @@ public class WrapFuture<T> implements Future<T> {
       }
     }
 
-    Object result = DataRepoWrap.apiCallThrow(() -> jobsApi.retrieveJobResult(jobId));
+    Object result = DataRepoWrap.apiCallThrow(() -> repositoryApi.retrieveJobResult(jobId));
     return objectMapper.convertValue(result, targetClass);
   }
 }

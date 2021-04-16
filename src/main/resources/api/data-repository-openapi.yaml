@@ -116,6 +116,7 @@ paths:
     get:
       tags:
         - profiles
+        - resources
       description: >
         Returns a list of all of the billing profiles
       operationId: enumerateProfiles
@@ -143,6 +144,7 @@ paths:
     post:
       tags:
         - profiles
+        - resources
       description: >
         Creates a new profile associated with a billing account. This is asynchronous.
         The final return is of type definitions/BillingProfileModel.
@@ -193,6 +195,7 @@ paths:
     put:
       tags:
         - profiles
+        - resources
       description: >
         Update a billing profile by id. This is asynchronous.
         The final return is of type definitions/BillingProfileModel.
@@ -249,6 +252,7 @@ paths:
     get:
       tags:
         - profiles
+        - resources
       description: Retrieve a billing profile by id
       operationId: retrieveProfile
       parameters:
@@ -286,6 +290,7 @@ paths:
     delete:
       tags:
         - profiles
+        - resources
       description: >
         Delete a billing profile by id. This is asynchronous.
         The final return is of type definitions/DeleteResponseModel.
@@ -350,6 +355,7 @@ paths:
     get:
       tags:
         - profiles
+        - resources
       description: Retrieve the read and discover policies for the profile
       operationId: retrieveProfilePolicies
       parameters:
@@ -389,6 +395,7 @@ paths:
     post:
       tags:
         - profiles
+        - resources
       description: Adds a member to the specified policy for the snapshot
       operationId: addProfilePolicyMember
       requestBody:
@@ -430,6 +437,7 @@ paths:
     delete:
       tags:
         - profiles
+        - resources
       description: Removes a member from the specified policy for the profile
       operationId: deleteProfilePolicyMember
       parameters:
@@ -484,6 +492,7 @@ paths:
     get:
       tags:
         - snapshots
+        - repository
       description: >
         Returns a list of all of the snapshots the caller has access to
       operationId: enumerateSnapshots
@@ -546,6 +555,7 @@ paths:
     post:
       tags:
         - snapshots
+        - repository
       description: Create a new snapshot
       operationId: createSnapshot
       requestBody:
@@ -603,6 +613,7 @@ paths:
     get:
       tags:
         - snapshots
+        - repository
       description: Retrieve a snapshot by id
       operationId: retrieveSnapshot
       parameters:
@@ -640,6 +651,7 @@ paths:
     delete:
       tags:
         - snapshots
+        - repository
       description: Delete a snapshot by id
       operationId: deleteSnapshot
       parameters:
@@ -701,6 +713,7 @@ paths:
     get:
       tags:
         - snapshots
+        - repository
       description: Lookup metadata for one file
       operationId: lookupSnapshotFileById
       parameters:
@@ -758,6 +771,7 @@ paths:
     get:
       tags:
         - snapshots
+        - repository
       description: Lookup metadata for one file
       operationId: lookupSnapshotFileByPath
       parameters:
@@ -815,6 +829,7 @@ paths:
     get:
       tags:
         - snapshots
+        - repository
       description: Retrieve the read and discover policies for the snapshot
       operationId: retrieveSnapshotPolicies
       parameters:
@@ -853,6 +868,7 @@ paths:
     post:
       tags:
         - snapshots
+        - repository
       description: Adds a member to the specified policy for the snapshot
       operationId: addSnapshotPolicyMember
       parameters:
@@ -909,6 +925,7 @@ paths:
     delete:
       tags:
         - snapshots
+        - repository
       description: Removes a member from the specified policy for the snapshot
       operationId: deleteSnapshotPolicyMember
       parameters:
@@ -963,6 +980,7 @@ paths:
     get:
       tags:
         - datasets
+        - repository
       description: >
         Returns a list of all of the datasets the caller has access to
       operationId: enumerateDatasets
@@ -1015,6 +1033,7 @@ paths:
     post:
       tags:
         - datasets
+        - repository
       description: Create a new dataset asynchronously. The async result is DatasetSummaryModel.
       operationId: createDataset
       requestBody:
@@ -1065,6 +1084,7 @@ paths:
     get:
       tags:
         - datasets
+        - repository
       description: Retrieve a dataset by id
       operationId: retrieveDataset
       parameters:
@@ -1102,6 +1122,7 @@ paths:
     delete:
       tags:
         - datasets
+        - repository
       description: Delete a dataset by id
       operationId: deleteDataset
       parameters:
@@ -1163,6 +1184,7 @@ paths:
     get:
       tags:
         - datasets
+        - repository
       description: Retrieve the read and discover policies for the snapshot
       operationId: retrieveDatasetPolicies
       parameters:
@@ -1201,6 +1223,7 @@ paths:
     post:
       tags:
         - datasets
+        - repository
       description: Adds a member to the specified policy for the dataset
       operationId: addDatasetPolicyMember
       parameters:
@@ -1257,6 +1280,7 @@ paths:
     delete:
       tags:
         - datasets
+        - repository
       description: Removes the member from the specified policy for the dataset
       operationId: deleteDatasetPolicyMember
       parameters:
@@ -1311,6 +1335,7 @@ paths:
     post:
       tags:
         - datasets
+        - repository
       description: Ingest data into a dataset table
       operationId: ingestDataset
       parameters:
@@ -1374,6 +1399,7 @@ paths:
     post:
       tags:
         - datasets
+        - repository
       description: Add an asset definiion to a dataset
       operationId: addDatasetAssetSpecifications
       parameters:
@@ -1431,6 +1457,7 @@ paths:
     delete:
       tags:
         - datasets
+        - repository
       description: Remove an asset definition from a dataset
       operationId: removeDatasetAssetSpecifications
       parameters:
@@ -1485,6 +1512,7 @@ paths:
     post:
       tags:
         - datasets
+        - repository
       description: Applies deletes to primary tabular data in a dataset
       operationId: applyDatasetDataDeletion
       parameters:
@@ -1532,6 +1560,7 @@ paths:
     get:
       tags:
         - register
+        - repository
       description: >
         Returns whether the user is registered with terra
       operationId: user
@@ -1546,6 +1575,7 @@ paths:
     post:
       tags:
         - datasets
+        - repository
       description: Ingest one file into the dataset file system; async returns a FileModel
       operationId: ingestFile
       parameters:
@@ -1609,6 +1639,7 @@ paths:
     post:
       tags:
         - datasets
+        - repository
       description: >-
         Load many files into the dataset file system; async returns a BulkLoadResultModel
         Note that this endpoint is not a single transaction. Some files may be loaded and
@@ -1678,6 +1709,7 @@ paths:
     get:
       tags:
         - datasets
+        - repository
       description: >-
         Retrieve the results of a bulk file load. The results of each bulk load are stored
         in the dataset. They can be queried directly or retrieved with this paginated
@@ -1752,6 +1784,7 @@ paths:
     delete:
       tags:
         - datasets
+        - repository
       description: >-
         Delete results from the bulk file load table of the dataset.
         If jobId is specified, then only the results for the loadTag plus that jobId are
@@ -1814,6 +1847,7 @@ paths:
     post:
       tags:
         - datasets
+        - repository
       description: >-
         Load many files into the dataset file system; async returns a BulkLoadArrayResultModel
         Note that this endpoint is not a single transaction. Some files may be loaded and
@@ -1883,6 +1917,7 @@ paths:
     get:
       tags:
         - datasets
+        - repository
       description: Lookup metadata for one file
       operationId: lookupFileById
       parameters:
@@ -1939,6 +1974,7 @@ paths:
     delete:
       tags:
         - datasets
+        - repository
       description: >
         Hard delete of a file by id. The file is deleted even if it is in use by
         a dataset. Subsequent lookups will give not found errors.
@@ -2002,6 +2038,7 @@ paths:
     get:
       tags:
         - datasets
+        - repository
       description: Lookup metadata for one file
       operationId: lookupFileByPath
       parameters:
@@ -2059,6 +2096,7 @@ paths:
     get:
       tags:
         - jobs
+        - repository
       description: >
         Returns a list of all of the jobs the caller has access to
       operationId: enumerateJobs
@@ -2089,6 +2127,7 @@ paths:
     get:
       tags:
         - jobs
+        - repository
       description: Retrieve a job's status by id
       operationId: retrieveJob
       parameters:
@@ -2142,6 +2181,7 @@ paths:
     delete:
       tags:
         - jobs
+        - repository
       description: Delete the job and data associated with it
       operationId: deleteJob
       parameters:
@@ -2159,6 +2199,7 @@ paths:
     get:
       tags:
         - jobs
+        - repository
       description: Retrieve a job's result by id
       operationId: retrieveJobResult
       parameters:
@@ -2180,6 +2221,7 @@ paths:
     get:
       tags:
         - configs
+        - repository
       description: Get one configuration
       operationId: getConfig
       parameters:
@@ -2205,6 +2247,7 @@ paths:
     put:
       tags:
         - configs
+        - repository
       description: >
         Enable or disable the named fault. Performing the put on a config that
         is not a fault is an error.
@@ -2243,6 +2286,7 @@ paths:
     get:
       tags:
         - configs
+        - repository
       description: Get all configurations
       operationId: getConfigList
       responses:
@@ -2255,6 +2299,7 @@ paths:
     put:
       tags:
         - configs
+        - repository
       description: Set the a group of configurations
       operationId: setConfigList
       requestBody:
@@ -2287,6 +2332,7 @@ paths:
     put:
       tags:
         - configs
+        - repository
       description: Reset the configuration to original settings
       operationId: resetConfig
       responses:
@@ -2298,6 +2344,7 @@ paths:
     post:
       tags:
         - upgrade
+        - repository
       description: >-
         Extensible endpoint for triggering upgrade tasks in the data repository.
         The asynchronous result is UpgradeResponseModel

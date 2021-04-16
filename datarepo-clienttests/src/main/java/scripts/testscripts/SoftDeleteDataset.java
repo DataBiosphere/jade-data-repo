@@ -1,7 +1,6 @@
 package scripts.testscripts;
 
-import bio.terra.datarepo.api.DatasetsApi;
-import bio.terra.datarepo.api.JobsApi;
+import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
@@ -52,8 +51,7 @@ public class SoftDeleteDataset extends SimpleDataset {
 
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
-    DatasetsApi datasetsApi = new DatasetsApi(datasetCreatorClient);
-    JobsApi jobsApi = new JobsApi(datasetCreatorClient);
+    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
     // load data into the new dataset
     // note that there's a fileref in the dataset
@@ -77,11 +75,11 @@ public class SoftDeleteDataset extends SimpleDataset {
     fileLoadModelArray.addLoadArrayItem(fileLoadModel);
 
     JobModel ingestFileJobResponse =
-        datasetsApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
-    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(jobsApi, ingestFileJobResponse);
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
+    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
+            repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
 
     String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
     String dirInCloud = "scratch/softDel";
@@ -99,17 +97,17 @@ public class SoftDeleteDataset extends SimpleDataset {
     scratchFiles.add(scratchFileTabularData); // make sure the scratch file gets cleaned up later
 
     JobModel ingestTabularDataJobResponse =
-        datasetsApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
+        repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(jobsApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, ingestTabularDataJobResponse, IngestResponseModel.class);
+            repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
     String datasetId = datasetSummaryModel.getId();
-    DatasetModel datasetModel = datasetsApi.retrieveDataset(datasetId);
+    DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId);
     String dataProject = datasetModel.getDataProject();
     String tableName = datasetModel.getSchema().getTables().get(0).getName();
 
@@ -168,15 +166,15 @@ public class SoftDeleteDataset extends SimpleDataset {
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    DatasetsApi datasetsApi = new DatasetsApi(apiClient);
-    JobsApi jobsApi = new JobsApi(apiClient);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     // send off the soft delete request
     JobModel softDeleteJobResponse =
-        datasetsApi.applyDatasetDataDeletion(datasetSummaryModel.getId(), dataDeletionRequest);
-    softDeleteJobResponse = DataRepoUtils.waitForJobToFinish(jobsApi, softDeleteJobResponse);
+        repositoryApi.applyDatasetDataDeletion(datasetSummaryModel.getId(), dataDeletionRequest);
+    softDeleteJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, softDeleteJobResponse);
     DeleteResponseModel deleteResponseModel =
-        DataRepoUtils.expectJobSuccess(jobsApi, softDeleteJobResponse, DeleteResponseModel.class);
+        DataRepoUtils.expectJobSuccess(
+            repositoryApi, softDeleteJobResponse, DeleteResponseModel.class);
     logger.debug(
         "Successfully soft deleted rows from dataset: {} with state {}",
         datasetSummaryModel.getName(),

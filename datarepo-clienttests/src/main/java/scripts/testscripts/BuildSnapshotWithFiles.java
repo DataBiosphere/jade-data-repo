@@ -3,10 +3,7 @@ package scripts.testscripts;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import bio.terra.datarepo.api.ConfigsApi;
-import bio.terra.datarepo.api.DatasetsApi;
-import bio.terra.datarepo.api.JobsApi;
-import bio.terra.datarepo.api.SnapshotsApi;
+import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
@@ -59,10 +56,7 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
   // The purpose of this test is to measure the performance of building the snapshot file system
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    DatasetsApi repositoryApi = new DatasetsApi(apiClient);
-    JobsApi jobsApi = new JobsApi(apiClient);
-    ConfigsApi configsApi = new ConfigsApi(apiClient);
-    SnapshotsApi snapshotsApi = new SnapshotsApi(apiClient);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     // set up and start bulk load job of small local files
     BulkLoadArrayRequestModel arrayLoad =
@@ -71,10 +65,11 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
 
     // wait for the job to complete
-    bulkLoadArrayJobResponse = DataRepoUtils.waitForJobToFinish(jobsApi, bulkLoadArrayJobResponse);
+    bulkLoadArrayJobResponse =
+        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse);
     BulkLoadArrayResultModel result =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
+            repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
     BulkLoadResultModel loadSummary = result.getLoadSummary();
     assertThat(
         "Number of successful files loaded should equal total files.",
@@ -96,25 +91,25 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
         repositoryApi.ingestDataset(datasetSummaryModel.getId(), ingestRequest);
 
     ingestTabularDataJobResponse =
-        DataRepoUtils.waitForJobToFinish(jobsApi, ingestTabularDataJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
     IngestResponseModel ingestResponse =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, ingestTabularDataJobResponse, IngestResponseModel.class);
+            repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
     for (Integer batchSize : batchSizes) {
       logger.info("Setting batch size to {}", batchSize);
-      DataRepoUtils.setConfigParameter(configsApi, "FIRESTORE_SNAPSHOT_BATCH_SIZE", batchSize);
+      DataRepoUtils.setConfigParameter(repositoryApi, "FIRESTORE_SNAPSHOT_BATCH_SIZE", batchSize);
 
       // create the snapshots with all of the files
       for (int i = 0; i < snapshotsToCreate; i++) {
         JobModel createSnapshotJobResponse =
             DataRepoUtils.createSnapshot(
-                snapshotsApi, jobsApi, datasetSummaryModel, "snapshot-simple.json", true);
+                repositoryApi, datasetSummaryModel, "snapshot-simple.json", true);
 
         SnapshotSummaryModel snapshotSummaryModel =
             DataRepoUtils.expectJobSuccess(
-                jobsApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
+                repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
         logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
         snapshotSummaryModels.add(snapshotSummaryModel);
       }
@@ -124,15 +119,15 @@ public class BuildSnapshotWithFiles extends SimpleDataset {
   @Override
   public void cleanup(List<TestUserSpecification> testUsers) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUsers.get(0), server);
-    SnapshotsApi snapshotsApi = new SnapshotsApi(apiClient);
-    JobsApi jobsApi = new JobsApi(apiClient);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     for (SnapshotSummaryModel snapshotSummaryModel : snapshotSummaryModels) {
       JobModel deleteSnapshotJobResponse =
-          snapshotsApi.deleteSnapshot(snapshotSummaryModel.getId());
+          repositoryApi.deleteSnapshot(snapshotSummaryModel.getId());
       deleteSnapshotJobResponse =
-          DataRepoUtils.waitForJobToFinish(jobsApi, deleteSnapshotJobResponse);
-      DataRepoUtils.expectJobSuccess(jobsApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+          DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
+      DataRepoUtils.expectJobSuccess(
+          repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
       logger.info("Successfully deleted snapshot: {}", snapshotSummaryModel.getName());
     }
 

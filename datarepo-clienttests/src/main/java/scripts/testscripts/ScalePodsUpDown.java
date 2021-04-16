@@ -3,8 +3,7 @@ package scripts.testscripts;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import bio.terra.datarepo.api.DatasetsApi;
-import bio.terra.datarepo.api.JobsApi;
+import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.*;
 import common.utils.KubernetesClientUtils;
@@ -40,21 +39,20 @@ public class ScalePodsUpDown extends SimpleDataset {
   // while we delete pods and have them recover.
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    DatasetsApi datasetsApi = new DatasetsApi(apiClient);
-    JobsApi jobsApi = new JobsApi(apiClient);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     // set up and start bulk load job
     BulkLoadArrayRequestModel arrayLoad =
         BulkLoadUtils.buildBulkLoadFileRequest(filesToLoad, billingProfileModel.getId());
     JobModel bulkLoadArrayJobResponse =
-        datasetsApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
 
     // =========================================================================
     /* Manipulating kubernetes pods during file ingest */
 
     // initial poll as file ingest begins
     bulkLoadArrayJobResponse =
-        DataRepoUtils.pollForRunningJob(jobsApi, bulkLoadArrayJobResponse, 30);
+        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       logger.debug("Scaling pods down to 1");
@@ -62,7 +60,7 @@ public class ScalePodsUpDown extends SimpleDataset {
 
       // allow job to run on scaled down pods for interval
       bulkLoadArrayJobResponse =
-          DataRepoUtils.pollForRunningJob(jobsApi, bulkLoadArrayJobResponse, 30);
+          DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
       // if job still running, scale back up
       if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
@@ -74,7 +72,7 @@ public class ScalePodsUpDown extends SimpleDataset {
 
     // wait for the job to complete and print out results to debug log level
     BulkLoadResultModel loadSummary =
-        BulkLoadUtils.getAndDisplayResults(jobsApi, bulkLoadArrayJobResponse);
+        BulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
 
     assertThat(
         "Number of successful files loaded should equal total files.",

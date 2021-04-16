@@ -1,6 +1,6 @@
 package scripts.disruptivescripts;
 
-import bio.terra.datarepo.api.ConfigsApi;
+import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -34,11 +34,11 @@ public class FailLivenessCheck extends DisruptiveScript {
 
   public void disrupt(List<TestUserSpecification> testUsers) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUsers.get(0), server);
-    ConfigsApi configsApi = new ConfigsApi(apiClient);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     logger.info("Liveness check disruption will start in {} seconds", secondsBeforeDisruption);
     TimeUnit.SECONDS.sleep(secondsBeforeDisruption);
     logger.info("Liveness check disruption starting");
-    DataRepoUtils.enableFault(configsApi, "LIVENESS_FAULT");
+    DataRepoUtils.enableFault(repositoryApi, "LIVENESS_FAULT");
   }
 }

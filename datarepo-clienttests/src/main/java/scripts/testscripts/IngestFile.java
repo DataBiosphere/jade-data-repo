@@ -1,7 +1,6 @@
 package scripts.testscripts;
 
-import bio.terra.datarepo.api.DatasetsApi;
-import bio.terra.datarepo.api.JobsApi;
+import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
@@ -43,8 +42,7 @@ public class IngestFile extends SimpleDataset {
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    DatasetsApi datasetsApi = new DatasetsApi(apiClient);
-    JobsApi jobsApi = new JobsApi(apiClient);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
 
@@ -64,13 +62,13 @@ public class IngestFile extends SimpleDataset {
     fileLoadModelArray.addLoadArrayItem(fileLoadModel);
 
     JobModel ingestFileJobResponse =
-        datasetsApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), fileLoadModelArray);
 
-    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(jobsApi, ingestFileJobResponse);
+    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
 
     BulkLoadArrayResultModel bulkLoadArrayResultModel =
         DataRepoUtils.expectJobSuccess(
-            jobsApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
+            repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
     BulkLoadFileResultModel fileInfo = bulkLoadArrayResultModel.getLoadFileResults().get(0);
 
     logger.debug(

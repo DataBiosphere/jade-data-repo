@@ -3,8 +3,7 @@ package scripts.testscripts;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import bio.terra.datarepo.api.DatasetsApi;
-import bio.terra.datarepo.api.JobsApi;
+import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.*;
@@ -42,21 +41,20 @@ public class ScalePodsToZero extends SimpleDataset {
   // while we scale pods to zero and then scale them back up.
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    DatasetsApi datasetsApi = new DatasetsApi(apiClient);
-    JobsApi jobsApi = new JobsApi(apiClient);
+    RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
     // set up and start bulk load job
     BulkLoadArrayRequestModel arrayLoad =
         BulkLoadUtils.buildBulkLoadFileRequest(filesToLoad, billingProfileModel.getId());
     JobModel bulkLoadArrayJobResponse =
-        datasetsApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
 
     // =========================================================================
     /* Manipulating kubernetes pods during file ingest */
 
     // initial poll as file ingest begins
     bulkLoadArrayJobResponse =
-        DataRepoUtils.pollForRunningJob(jobsApi, bulkLoadArrayJobResponse, 30);
+        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       logger.debug("Scaling pods down to 0");
@@ -64,7 +62,7 @@ public class ScalePodsToZero extends SimpleDataset {
 
       try {
         bulkLoadArrayJobResponse =
-            DataRepoUtils.pollForRunningJob(jobsApi, bulkLoadArrayJobResponse, 30);
+            DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
       } catch (ApiException ex) {
         logger.debug(
             "Catching expected exception while pod size = 0, Job Status: {}",
@@ -81,7 +79,7 @@ public class ScalePodsToZero extends SimpleDataset {
         retryCounter++;
         try {
           bulkLoadArrayJobResponse =
-              DataRepoUtils.pollForRunningJob(jobsApi, bulkLoadArrayJobResponse, 30);
+              DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
           lastException = null;
         } catch (ApiException ex) {
           logger.debug(
@@ -99,7 +97,7 @@ public class ScalePodsToZero extends SimpleDataset {
 
     // wait for the job to complete and print out results to debug log level
     BulkLoadResultModel loadSummary =
-        BulkLoadUtils.getAndDisplayResults(jobsApi, bulkLoadArrayJobResponse);
+        BulkLoadUtils.getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
 
     assertThat(
         "Number of successful files loaded should equal total files.",

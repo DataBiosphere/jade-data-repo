@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 public class SnapshotCreateFlight extends Flight {
 
@@ -51,6 +53,10 @@ public class SnapshotCreateFlight extends Flight {
         ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
         PerformanceLogger performanceLogger = (PerformanceLogger) appContext.getBean("performanceLogger");
         ProfileService profileService = (ProfileService) appContext.getBean("profileService");
+        ApplicationConfiguration appConfig =
+            (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
+
+        RetryRule randomBackoffRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         SnapshotRequestModel snapshotReq = inputParameters.get(
             JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -58,6 +64,12 @@ public class SnapshotCreateFlight extends Flight {
 
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
+        // Lock the source dataset while adding ACLs to avoid a race condition
+        // TODO note that with multi-dataset snapshots this will need to change
+        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotReq);
+        UUID datasetId = sourceDatasetIds.get(0);
+        addStep(new LockDatasetStep(datasetDao, datasetId, false), randomBackoffRetry);
 
         // Make sure this user is allowed to use the billing profile and that the underlying
         // billing information remains valid.
@@ -115,12 +127,6 @@ public class SnapshotCreateFlight extends Flight {
         // operation timeout is generous.
         RetryRule pdaoAclRetryRule = getDefaultExponentialBackoffRetryRule();
 
-        // Lock the source dataset while adding ACLs to avoid a race condition
-        // TODO note that with multi-dataset snapshots this will need to change
-        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotReq);
-        UUID datasetId = sourceDatasetIds.get(0);
-        addStep(new LockDatasetStep(datasetDao, datasetId, false));
-
         // Apply the IAM readers to the BQ dataset
         addStep(new SnapshotAuthzTabularAclStep(bigQueryPdao, snapshotService, configService), pdaoAclRetryRule);
 
@@ -137,10 +143,10 @@ public class SnapshotCreateFlight extends Flight {
             resourceService,
             snapshotName));
 
-        // Unlock dataset
-        addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
-
        // unlock the snapshot metadata row
         addStep(new UnlockSnapshotStep(snapshotDao, null));
+
+        // Unlock dataset
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, false), randomBackoffRetry);
     }
 }

@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
@@ -19,10 +20,13 @@ import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRule;
 import org.springframework.context.ApplicationContext;
 
 import java.util.List;
 import java.util.UUID;
+
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 public class SnapshotDeleteFlight extends Flight {
 
@@ -41,13 +45,15 @@ public class SnapshotDeleteFlight extends Flight {
         DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
+        ApplicationConfiguration appConfig =
+            (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
+
+        RetryRule randomBackoffRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
         UUID snapshotId = UUID.fromString(inputParameters.get(
             JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-
-        addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
 
         // Lock the source dataset while deleting ACLs to avoid a race condition
         // Skip this step if the snapshot was already deleted
@@ -60,8 +66,10 @@ public class SnapshotDeleteFlight extends Flight {
             datasetId = null;
         }
         if (datasetId != null) {
-            addStep(new LockDatasetStep(datasetDao, datasetId, false));
+            addStep(new LockDatasetStep(datasetDao, datasetId, false), randomBackoffRetry);
         }
+
+        addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
 
         // Delete access control on objects that were explicitly added by data repo operations.  Do this before delete
         // resource from SAM to ensure we can get the metadata needed to perform the operation
@@ -76,11 +84,6 @@ public class SnapshotDeleteFlight extends Flight {
         // deletes the snapshot group, so no ACL cleanup is needed beyond that.
         addStep(new DeleteSnapshotAuthzResource(iamClient, snapshotId, userReq));
 
-        // Unlock dataset
-        if (datasetId != null) {
-            addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
-        }
-
         // Must delete primary data before metadata; it relies on being able to retrieve the
         // snapshot object from the metadata to know what to delete.
         addStep(new DeleteSnapshotPrimaryDataStep(
@@ -93,5 +96,10 @@ public class SnapshotDeleteFlight extends Flight {
             configService));
         addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
         addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
+
+        // Unlock dataset
+        if (datasetId != null) {
+            addStep(new UnlockDatasetStep(datasetDao, datasetId, false), randomBackoffRetry);
+        }
     }
 }

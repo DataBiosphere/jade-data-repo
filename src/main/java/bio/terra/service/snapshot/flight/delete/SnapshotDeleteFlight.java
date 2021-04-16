@@ -93,7 +93,7 @@ public class SnapshotDeleteFlight extends Flight {
             fileDao,
             snapshotId,
             datasetService,
-            configService));
+            configService), randomBackoffRetry);
         addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
         addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
 

@@ -84,7 +84,7 @@ jobs:
           actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          alpharelease: ${{ steps.bumperstep.outputs.tag }}
+          alpharelease: '1.57.0'
           gcr_google_project: 'broad-jade-dev'
       - name: "Update Version for Integration Namespaces and Helm Charts"
         uses: broadinstitute/workflow-dispatch@v1

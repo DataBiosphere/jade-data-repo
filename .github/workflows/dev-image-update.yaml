@@ -32,45 +32,45 @@ jobs:
         with:
           ref: develop
           token: ${{ secrets.BROADBOT_TOKEN }}
-      # - name: 'Checkout datarepo-helm-definitions repo'
-      #   uses: actions/checkout@v2
-      #   with:
-      #     repository: 'broadinstitute/datarepo-helm-definitions'
-      #     token: ${{ secrets.BROADBOT_TOKEN }}
-      #     path: datarepo-helm-definitions
-      # - name: "Bump the tag to a new version"
-      #   id: bumperstep
-      #   uses: broadinstitute/datarepo-actions/actions/main@0.57.0
-      #   with:
-      #     actions_subcommand: 'bumper'
-      #     role_id: ${{ secrets.ROLE_ID }}
-      #     secret_id: ${{ secrets.SECRET_ID }}
-      #     version_file_path: build.gradle
-      #     version_variable_name: version
-      #     GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
-      # - name: "Publish to Artifactory"
-      #   uses: broadinstitute/gradle-command-action@v1
-      #   with:
-      #     arguments: ':datarepo-client:artifactoryPublish'
-      #   env:
-      #     ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
-      #     ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-      #     ENABLE_SUBPROJECT_TASKS: true
-      # - name: "Build new delevop docker image"
-      #   uses: broadinstitute/datarepo-actions/actions/main@0.57.0
-      #   with:
-      #     actions_subcommand: 'gradlebuild'
-      #     role_id: ${{ secrets.ROLE_ID }}
-      #     secret_id: ${{ secrets.SECRET_ID }}
-      # - name: "Update Version in helm for Dev Env"
-      #   uses: broadinstitute/datarepo-actions/actions/main@0.57.0
-      #   with:
-      #     actions_subcommand: 'deploytagupdate'
-      #     helm_env_prefix: dev
+      - name: 'Checkout datarepo-helm-definitions repo'
+        uses: actions/checkout@v2
+        with:
+          repository: 'broadinstitute/datarepo-helm-definitions'
+          token: ${{ secrets.BROADBOT_TOKEN }}
+          path: datarepo-helm-definitions
+      - name: "Bump the tag to a new version"
+        id: bumperstep
+        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        with:
+          actions_subcommand: 'bumper'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+          version_file_path: build.gradle
+          version_variable_name: version
+          GITHUB_TOKEN: ${{ secrets.BROADBOT_TOKEN }}
+      - name: "Publish to Artifactory"
+        uses: broadinstitute/gradle-command-action@v1
+        with:
+          arguments: ':datarepo-client:artifactoryPublish'
+        env:
+          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          ENABLE_SUBPROJECT_TASKS: true
+      - name: "Build new delevop docker image"
+        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        with:
+          actions_subcommand: 'gradlebuild'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+      - name: "Update Version in helm for Dev Env"
+        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        with:
+          actions_subcommand: 'deploytagupdate'
+          helm_env_prefix: dev
       - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
         run: |
-          git fetch --all --tags
-          git checkout 1.57.0
+          git fetch --all -tags
+          git checkout ${{ steps.bumperstep.outputs.tag }}
       - name: 'Release Candidate Container Build: Checkout DataBiosphere/jade-data-repo-ui repo'
         uses: actions/checkout@v2
         with:

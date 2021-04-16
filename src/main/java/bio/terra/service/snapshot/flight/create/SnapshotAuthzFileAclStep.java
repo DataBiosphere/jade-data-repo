@@ -74,7 +74,7 @@ public class SnapshotAuthzFileAclStep implements Step {
             // be a 400 - bad request and the docs indicate the reason will be "badRequest". So for now
             // we will log alot and retry on that.
             if (ex.getCode() == 400 && (StringUtils.equals(ex.getReason(), "badRequest") ||
-                 StringUtils.equals(ex.getReason(), "invalid"))) {
+                 ex.getMessage().contains("Could not find group"))) {
                 logger.info("Maybe caught an ACL propagation error: " + ex.getMessage()
                     + " reason: " + ex.getReason(), ex);
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);

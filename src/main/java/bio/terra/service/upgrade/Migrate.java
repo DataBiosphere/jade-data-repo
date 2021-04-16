@@ -83,9 +83,9 @@ public class Migrate {
         boolean allowedProfile = Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
             || env.contains("test") || env.contains("int"));
 
-        boolean blacklistedDataProject = migrateConfiguration.getDataProjectNoDropAll().contains(
+        boolean noDeleteDataProject = migrateConfiguration.getDataProjectNoDropAll().contains(
             resourceConfiguration.getSingleDataProjectId());
-        return allowedProfile && !blacklistedDataProject;
+        return allowedProfile && !noDeleteDataProject;
     }
 
 }

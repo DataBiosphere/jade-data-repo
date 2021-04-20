@@ -382,8 +382,17 @@ public class SnapshotTest extends UsersBase {
     }
 
     enum AclCheck {
-        GREATERTHAN,
-        EQUALTO
+        GREATERTHAN {
+            boolean compare(int snapshotCount, int aclCount) {
+                return snapshotCount > aclCount;
+            }
+        },
+        EQUALTO {
+            boolean compare(int snapshotCount, int aclCount) {
+                return snapshotCount == aclCount;
+            }
+        };
+        abstract boolean compare(int snapshotCount, int aclCount);
     }
 
     private int retryAclUpdate(String datasetName, int datasetAclCount, AclCheck check) throws Exception {
@@ -396,16 +405,8 @@ public class SnapshotTest extends UsersBase {
         int n = 1;
         while (totalWaitTime < sevenMinutePlusBuffer) {
             datasetPlusSnapshotCount = fetchSourceDatasetAcls(datasetName).size();
-            if (check.equals(AclCheck.GREATERTHAN)) {
-                if (datasetPlusSnapshotCount > datasetAclCount) {
-                    break;
-                }
-            } else if (check.equals(AclCheck.EQUALTO)) {
-                if (datasetPlusSnapshotCount == datasetAclCount) {
-                    break;
-                }
-            } else {
-                logger.error("Not a valid enum value for AclCheck");
+            if (check.compare(datasetPlusSnapshotCount, datasetAclCount)) {
+                break;
             }
             double delayInSeconds =  ((1d / 2d) * (Math.pow(2d, n) - 1d));
             waitInterval = (int)Math.min(maxDelayInSeconds, delayInSeconds);

@@ -18,7 +18,6 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.tabulardata.google.BigQueryPdao;

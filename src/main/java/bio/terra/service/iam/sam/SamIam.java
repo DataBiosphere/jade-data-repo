@@ -20,6 +20,7 @@ import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.http.HttpStatusCodes;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -526,13 +527,13 @@ public class SamIam implements IamProviderInterface {
         logger.warn("SAM client exception message: {}", samEx.getMessage());
         logger.warn("SAM client exception details: {}", samEx.getResponseBody());
 
-        // Sometimes the sam message is buried one level down inside of the error report object.
+        // Sometimes the sam message is buried several levels down inside of the error report object.
         // If we find an empty message then we try to deserialize the error report and use that message.
         String message = samEx.getMessage();
         if (StringUtils.isEmpty(message)) {
             try {
                 ErrorReport errorReport = objectMapper.readValue(samEx.getResponseBody(), ErrorReport.class);
-                message = errorReport.getMessage();
+                message = extractErrorMessage(errorReport);
             } catch (JsonProcessingException ex) {
                 logger.debug("Unable to deserialize sam exception response body");
             }
@@ -581,6 +582,20 @@ public class SamIam implements IamProviderInterface {
                 .ok(false)
                 .message(errorMsg + ": " + ex.toString());
         }
+    }
+
+    @VisibleForTesting
+    static String extractErrorMessage(final ErrorReport errorReport) {
+        List<String> causes = new ArrayList<>();
+        for (ErrorReport cause: errorReport.getCauses()) {
+            causes.add(extractErrorMessage(cause));
+        }
+
+        String separator = (causes.isEmpty() ? "" : ": ");
+        String openParen = (causes.size() > 1 ? "(" : "");
+        String closeParen = (causes.size() > 1 ? ")" : "");
+        return errorReport.getMessage() + separator +
+            openParen + String.join(", ", causes) + closeParen;
     }
 
 }

@@ -297,9 +297,12 @@ public class DataRepoFixtures {
         TestConfiguration.User user,
         String datasetName,
         String profileId,
-        SnapshotRequestModel requestModel) throws Exception {
+        SnapshotRequestModel requestModel,
+        boolean randomizeName) throws Exception {
 
-        requestModel.setName(Names.randomizeName(requestModel.getName()));
+        if (randomizeName) {
+            requestModel.setName(Names.randomizeName(requestModel.getName()));
+        }
         requestModel.getContents().get(0).setDatasetName(datasetName);
         requestModel.setProfileId(profileId);
         String json = TestUtils.mapToJson(requestModel);
@@ -316,7 +319,17 @@ public class DataRepoFixtures {
         String datasetName,
         String profileId,
         SnapshotRequestModel snapshotRequest) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createSnapshotRaw(user, datasetName, profileId, snapshotRequest);
+        return createSnapshotWithRequest(user, datasetName, profileId, snapshotRequest, true);
+    }
+
+    public SnapshotSummaryModel createSnapshotWithRequest(
+        TestConfiguration.User user,
+        String datasetName,
+        String profileId,
+        SnapshotRequestModel snapshotRequest,
+        boolean randomizeName) throws Exception {
+        DataRepoResponse<JobModel> jobResponse =
+            createSnapshotRaw(user, datasetName, profileId, snapshotRequest, randomizeName);
         return finishCreateSnapshot(user, jobResponse);
     }
 
@@ -325,8 +338,18 @@ public class DataRepoFixtures {
         String datasetName,
         String profileId,
         String filename) throws Exception {
+        return createSnapshot(user, datasetName, profileId, filename, true);
+    }
+
+    public SnapshotSummaryModel createSnapshot(
+        TestConfiguration.User user,
+        String datasetName,
+        String profileId,
+        String filename,
+        boolean randomizeName) throws Exception {
         SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
-        DataRepoResponse<JobModel> jobResponse = createSnapshotRaw(user, datasetName, profileId, requestModel);
+        DataRepoResponse<JobModel> jobResponse =
+            createSnapshotRaw(user, datasetName, profileId, requestModel, randomizeName);
         return finishCreateSnapshot(user, jobResponse);
     }
 

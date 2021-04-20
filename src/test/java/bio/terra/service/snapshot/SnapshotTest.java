@@ -12,6 +12,7 @@ import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
@@ -132,8 +133,8 @@ public class SnapshotTest extends UsersBase {
             jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
 
         DataRepoResponse<JobModel> createSnapLaunchResp =
-            dataRepoFixtures.createSnapshotRaw(reader(), datasetSummaryModel.getName(), profileId, requestModel);
-        assertThat("Reader is not authorized to create a dataSnapshot",
+            dataRepoFixtures.createSnapshotRaw(reader(), datasetSummaryModel.getName(), profileId, requestModel, true);
+        assertThat("Reader is not authorized on the billing profile to create a dataSnapshot",
             createSnapLaunchResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
@@ -295,6 +296,41 @@ public class SnapshotTest extends UsersBase {
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
 
+        @Test
+    public void snapshotInvalidEmailTest() throws Exception {
+        SnapshotRequestModel requestModel =
+            jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
+
+        requestModel.setReaders(Collections.singletonList("bad-user@not-a-real-domain.com"));
+        DataRepoResponse<JobModel> jobResponse =
+            dataRepoFixtures.createSnapshotRaw(
+                steward(),
+                datasetSummaryModel.getName(),
+                profileId,
+                requestModel,
+                false);
+        logger.info("Attempting to create the snapshot with the name: {}", requestModel.getName());
+
+        DataRepoResponse<ErrorModel> snapshotResponse =
+            dataRepoClient.waitForResponse(steward(), jobResponse, ErrorModel.class);
+
+        assertThat("error is present", snapshotResponse.getErrorObject().isPresent(), equalTo(true));
+        assertThat("get the correct error", snapshotResponse.getErrorObject().get().getMessage(),
+            equalTo("Cannot create resource: You have specified an invalid policy: You have " +
+                "specified at least one invalid member email: Invalid member email: bad-user@not-a-real-domain.com"));
+
+        // There's not a good way in the test to select the snapshots in the DB.  We want to make sure that we can
+        // create the snapshot with the same name, proving that, at least, the database doesn't contain an
+        // orphaned entry
+        logger.info("Attempting to recreate the snapshot with the same name: {}", requestModel.getName());
+        requestModel.setReaders(Collections.emptyList());
+        SnapshotSummaryModel snapshotSummary =
+            dataRepoFixtures.createSnapshotWithRequest(steward(), datasetSummaryModel.getName(), profileId,
+            requestModel, false);
+
+        createdSnapshotIds.add(snapshotSummary.getId());
+    }
+    
     @Test
     public void snapshotACLTest() throws Exception {
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
@@ -386,6 +422,5 @@ public class SnapshotTest extends UsersBase {
         }
         return datasetPlusSnapshotCount;
     }
-
 
 }

@@ -60,7 +60,7 @@ public class LockDatasetStep implements Step {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
             }
         } catch (DatasetLockException ex) {
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
         } catch (RetryQueryException retryQueryException) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
         }

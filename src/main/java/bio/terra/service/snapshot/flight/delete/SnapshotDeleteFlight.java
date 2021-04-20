@@ -66,7 +66,7 @@ public class SnapshotDeleteFlight extends Flight {
             datasetId = null;
         }
         if (datasetId != null) {
-            addStep(new LockDatasetStep(datasetDao, datasetId, false), randomBackoffRetry);
+            addStep(new LockDatasetStep(datasetDao, datasetId, false));
         }
 
         addStep(new LockSnapshotStep(snapshotDao, snapshotId, true));
@@ -99,7 +99,7 @@ public class SnapshotDeleteFlight extends Flight {
 
         // Unlock dataset
         if (datasetId != null) {
-            addStep(new UnlockDatasetStep(datasetDao, datasetId, false), randomBackoffRetry);
+            addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
         }
     }
 }

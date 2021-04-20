@@ -6,6 +6,7 @@ import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
 import bio.terra.model.RepositoryStatusModel;
 import bio.terra.service.configuration.StatusService;
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     private final JobService jobService;
     private final Environment env;
     private final StatusService statusService;
+    private final SamConfiguration samConfiguration;
     private final TerraConfiguration terraConfiguration;
 
     private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
@@ -50,7 +52,8 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         JobService jobService,
         Environment env,
         StatusService statusService,
-        TerraConfiguration terraConfiguration
+        TerraConfiguration terraConfiguration,
+        SamConfiguration samConfiguration
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -59,6 +62,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         this.env = env;
         this.statusService = statusService;
         this.terraConfiguration = terraConfiguration;
+        this.samConfiguration = samConfiguration;
 
         Properties properties = new Properties();
         try (InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties")) {
@@ -94,7 +98,8 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
             .activeProfiles(Arrays.asList(env.getActiveProfiles()))
             .semVer(semVer)
             .gitHash(gitHash)
-            .terraUrl(terraConfiguration.getBasePath());
+            .terraUrl(terraConfiguration.getBasePath())
+            .samUrl(samConfiguration.getBasePath());
 
         return new ResponseEntity<>(configurationModel, HttpStatus.OK);
     }

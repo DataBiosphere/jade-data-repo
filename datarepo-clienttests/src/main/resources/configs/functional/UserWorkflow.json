@@ -1,0 +1,17 @@
+{
+  "name": "UserWorkflow",
+  "description": "Use billing profile to create dataset, ingest data and create snapshot",
+  "serverSpecificationFile": "perf.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "application": {},
+  "testScripts": [
+    {
+      "name": "RetrieveSnapshot",
+      "numberOfUserJourneyThreadsToRun": 1,
+      "userJourneyThreadPoolSize": 1,
+      "expectedTimeForEach": 20,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json", "voldemort.json"]
+}

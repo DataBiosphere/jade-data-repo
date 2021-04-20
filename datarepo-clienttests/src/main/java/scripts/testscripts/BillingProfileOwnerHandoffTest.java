@@ -40,13 +40,11 @@ public class BillingProfileOwnerHandoffTest extends BillingProfileUsers {
     try {
       profile = ownerUser1Api.createProfile(billingAccount, "profile_permission_test", true);
       String profileId = profile.getId();
-      // Remove stewards from the owner list. Otherwise, voldemort has access by default :(
-      ownerUser1Api.deleteProfilePolicyMember(profileId, "owner", stewardsEmail);
 
       ownerUser1Api.addProfilePolicyMember(profileId, "owner", userUser.userEmail);
-      userUserApi.deleteProfilePolicyMember(profileId, "owner", ownerUser1.userEmail);
+      userUserApi.deleteProfilePolicyMember(profileId, "owner", ownerUser2.userEmail);
       // Make sure removed owner can perform none of the operations
-      testOperations(ownerUser1Api, RoleState.NONE, profileId);
+      testOperations(ownerUser2Api, RoleState.NONE, profileId);
 
       userUserApi.addProfilePolicyMember(profileId, "owner", ownerUser2.userEmail);
       testOperations(ownerUser2Api, RoleState.OWNER, profileId);

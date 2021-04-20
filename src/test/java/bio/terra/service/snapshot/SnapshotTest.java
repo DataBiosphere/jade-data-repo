@@ -1,5 +1,9 @@
 package bio.terra.service.snapshot;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -12,6 +16,7 @@ import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
@@ -21,6 +26,13 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,16 +46,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -121,8 +123,8 @@ public class SnapshotTest extends UsersBase {
             jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
 
         DataRepoResponse<JobModel> createSnapLaunchResp =
-            dataRepoFixtures.createSnapshotRaw(reader(), datasetSummaryModel.getName(), profileId, requestModel);
-        assertThat("Reader is not authorized to create a dataSnapshot",
+            dataRepoFixtures.createSnapshotRaw(reader(), datasetSummaryModel.getName(), profileId, requestModel, true);
+        assertThat("Reader is not authorized on the billing profile to create a dataSnapshot",
             createSnapLaunchResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
@@ -131,7 +133,6 @@ public class SnapshotTest extends UsersBase {
                 datasetSummaryModel.getName(),
                 profileId,
                 "ingest-test-snapshot.json");
-        createdSnapshotIds.add(snapshotSummary.getId());
 
         DataRepoResponse<JobModel> deleteSnapResp =
             dataRepoFixtures.deleteSnapshotLaunch(reader(), snapshotSummary.getId());
@@ -149,6 +150,37 @@ public class SnapshotTest extends UsersBase {
         assertThat("Discoverer does not have access to dataSnapshots",
             enumSnap.getTotal(),
             equalTo(0));
+
+        assertThat("Discoverer does not have access to dataSnapshots",
+            enumSnap.getTotal(),
+            equalTo(0));
+
+        EnumerateSnapshotModel enumSnapByDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
+            steward(),
+            Collections.singletonList(datasetSummaryModel.getId()));
+
+        assertThat("Dataset filters to dataSnapshots",
+            enumSnapByDatasetId.getTotal(),
+            equalTo(1));
+
+        EnumerateSnapshotModel enumSnapByNoDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
+            steward(),
+            Collections.emptyList());
+
+        assertThat("Dataset filters to dataSnapshots",
+            enumSnapByNoDatasetId.getTotal(),
+            equalTo(1));
+
+        EnumerateSnapshotModel enumSnapByBadDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
+            steward(),
+            Collections.singletonList(UUID.randomUUID().toString()));
+
+        assertThat("Dataset filters to dataSnapshots",
+            enumSnapByBadDatasetId.getTotal(),
+            equalTo(0));
+
+        // Delete snapshot as custodian for this test since teardown uses steward
+        dataRepoFixtures.deleteSnapshot(custodian(), snapshotSummary.getId());
     }
 
     @Test
@@ -253,4 +285,40 @@ public class SnapshotTest extends UsersBase {
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
+
+    @Test
+    public void snapshotInvalidEmailTest() throws Exception {
+        SnapshotRequestModel requestModel =
+            jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
+
+        requestModel.setReaders(Collections.singletonList("bad-user@not-a-real-domain.com"));
+        DataRepoResponse<JobModel> jobResponse =
+            dataRepoFixtures.createSnapshotRaw(
+                steward(),
+                datasetSummaryModel.getName(),
+                profileId,
+                requestModel,
+                false);
+        logger.info("Attempting to create the snapshot with the name: {}", requestModel.getName());
+
+        DataRepoResponse<ErrorModel> snapshotResponse =
+            dataRepoClient.waitForResponse(steward(), jobResponse, ErrorModel.class);
+
+        assertThat("error is present", snapshotResponse.getErrorObject().isPresent(), equalTo(true));
+        assertThat("get the correct error", snapshotResponse.getErrorObject().get().getMessage(),
+            equalTo("Cannot create resource: You have specified an invalid policy: You have " +
+                "specified at least one invalid member email: Invalid member email: bad-user@not-a-real-domain.com"));
+
+        // There's not a good way in the test to select the snapshots in the DB.  We want to make sure that we can
+        // create the snapshot with the same name, proving that, at least, the database doesn't contain an
+        // orphaned entry
+        logger.info("Attempting to recreate the snapshot with the same name: {}", requestModel.getName());
+        requestModel.setReaders(Collections.emptyList());
+        SnapshotSummaryModel snapshotSummary =
+            dataRepoFixtures.createSnapshotWithRequest(steward(), datasetSummaryModel.getName(), profileId,
+            requestModel, false);
+
+        createdSnapshotIds.add(snapshotSummary.getId());
+    }
+
 }

@@ -1,7 +1,7 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.iam.sam.SamConfiguration;
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;

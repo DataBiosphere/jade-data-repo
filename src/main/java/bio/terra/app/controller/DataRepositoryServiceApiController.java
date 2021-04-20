@@ -1,6 +1,7 @@
 package bio.terra.app.controller;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.exception.BadRequestException;
@@ -11,8 +12,11 @@ import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
 import bio.terra.service.filedata.DrsService;
+import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
+import bio.terra.service.iam.exception.IamForbiddenException;
+import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +91,30 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         return new ResponseEntity<>(error, HttpStatus.NOT_IMPLEMENTED);
     }
 
+    @ExceptionHandler     // -- cautionary errors to limit overload
+    public ResponseEntity<DRSError> tooManyRequestsExceptionHandler(TooManyRequestsException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.TOO_MANY_REQUESTS.value());
+        return new ResponseEntity<>(error, HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> iAmUnauthorizedExceptionHandler(IamUnauthorizedException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.UNAUTHORIZED.value());
+        return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> iAmForbiddenExceptionHandler(IamForbiddenException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.FORBIDDEN.value());
+        return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> invalidDrsIdException(InvalidDrsIdException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler
     public ResponseEntity<DRSError> exceptionHandler(Exception ex) {
         DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -107,9 +135,14 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand) {
         // The incoming object id is a DRS object id, not a file id.
         AuthenticatedUserRequest authUser = getAuthenticatedInfo();
-        return new ResponseEntity<>(drsService.lookupObjectByDrsId(authUser, objectId, expand), HttpStatus.OK);
+        DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, objectId, expand);
+        return new ResponseEntity<>(drsObject, HttpStatus.OK);
     }
 
+    /*
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     @Override
     public ResponseEntity<DRSServiceInfo> getServiceInfo() {
         DRSServiceInfo info = new DRSServiceInfo()

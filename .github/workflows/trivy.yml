@@ -1,0 +1,43 @@
+name: dsp-appsec-trivy
+on: [pull_request]
+
+jobs:
+  appsec-trivy:
+    # Parse Dockerfile and build, scan image if a "blessed" base image is not used
+    name: DSP AppSec Trivy check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      # fetch JDK
+      - uses: actions/setup-java@v1
+        with:
+          java-version: '11'
+
+      # set up Gradle cache
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key:
+            gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            gradle-
+
+      # build the image
+      - name: Build
+        id: build
+        run: |
+          # build sources and store the plain log without colors
+          ./gradlew jibDockerBuild --console=plain \
+            | perl -pe 's/\x1b\[[0-9;]*[mG]//g' | tee build.log
+
+          # export image name from the log
+          image=$(grep 'Built image' build.log | awk '{print $NF}')
+          echo "::set-output name=image::${image}"
+
+      # scan the image
+      - uses: broadinstitute/dsp-appsec-trivy-action@v1
+        with:
+          image: ${{ steps.build.outputs.image }}

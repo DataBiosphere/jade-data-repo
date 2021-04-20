@@ -1,4 +1,4 @@
-package bio.terra.service.iam.sam;
+package bio.terra.app.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 public class SamConfiguration {
     private String basePath;
     private String stewardsGroupEmail;
+    private String adminsGroupEmail;
     private int retryInitialWaitSeconds;
     private int retryMaximumWaitSeconds;
     private int operationTimeoutSeconds;
@@ -28,6 +29,14 @@ public class SamConfiguration {
 
     public void setStewardsGroupEmail(String stewardsGroupEmail) {
         this.stewardsGroupEmail = stewardsGroupEmail;
+    }
+
+    public String getAdminsGroupEmail() {
+        return adminsGroupEmail;
+    }
+
+    public void setAdminsGroupEmail(String adminsGroupEmail) {
+        this.adminsGroupEmail = adminsGroupEmail;
     }
 
     // SAM Retry notes:

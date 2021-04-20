@@ -39,11 +39,16 @@ import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
@@ -292,9 +297,12 @@ public class DataRepoFixtures {
         TestConfiguration.User user,
         String datasetName,
         String profileId,
-        SnapshotRequestModel requestModel) throws Exception {
+        SnapshotRequestModel requestModel,
+        boolean randomizeName) throws Exception {
 
-        requestModel.setName(Names.randomizeName(requestModel.getName()));
+        if (randomizeName) {
+            requestModel.setName(Names.randomizeName(requestModel.getName()));
+        }
         requestModel.getContents().get(0).setDatasetName(datasetName);
         requestModel.setProfileId(profileId);
         String json = TestUtils.mapToJson(requestModel);
@@ -311,7 +319,17 @@ public class DataRepoFixtures {
         String datasetName,
         String profileId,
         SnapshotRequestModel snapshotRequest) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createSnapshotRaw(user, datasetName, profileId, snapshotRequest);
+        return createSnapshotWithRequest(user, datasetName, profileId, snapshotRequest, true);
+    }
+
+    public SnapshotSummaryModel createSnapshotWithRequest(
+        TestConfiguration.User user,
+        String datasetName,
+        String profileId,
+        SnapshotRequestModel snapshotRequest,
+        boolean randomizeName) throws Exception {
+        DataRepoResponse<JobModel> jobResponse =
+            createSnapshotRaw(user, datasetName, profileId, snapshotRequest, randomizeName);
         return finishCreateSnapshot(user, jobResponse);
     }
 
@@ -320,8 +338,18 @@ public class DataRepoFixtures {
         String datasetName,
         String profileId,
         String filename) throws Exception {
+        return createSnapshot(user, datasetName, profileId, filename, true);
+    }
+
+    public SnapshotSummaryModel createSnapshot(
+        TestConfiguration.User user,
+        String datasetName,
+        String profileId,
+        String filename,
+        boolean randomizeName) throws Exception {
         SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
-        DataRepoResponse<JobModel> jobResponse = createSnapshotRaw(user, datasetName, profileId, requestModel);
+        DataRepoResponse<JobModel> jobResponse =
+            createSnapshotRaw(user, datasetName, profileId, requestModel, randomizeName);
         return finishCreateSnapshot(user, jobResponse);
     }
 
@@ -347,6 +375,27 @@ public class DataRepoFixtures {
         DataRepoResponse<SnapshotModel> response = getSnapshotRaw(user, snapshotId);
         assertThat("dataset is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("dataset get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public DataRepoResponse<EnumerateSnapshotModel> enumerateSnapshotsByDatasetIdsRaw(
+        TestConfiguration.User user, List<String> datasetIds) throws Exception {
+        String datasetIdsString;
+        List<String> datasetIdsQuery = ListUtils.emptyIfNull(datasetIds).stream()
+            .map(id -> "datasetIds=" + id).collect(Collectors.toList());
+        datasetIdsString = StringUtils.join(datasetIdsQuery, "&");
+        return dataRepoClient.get(user,
+            "/api/repository/v1/snapshots?" +
+                datasetIdsString +
+                "&sort=created_date&direction=desc",
+            EnumerateSnapshotModel.class);
+    }
+
+    public EnumerateSnapshotModel enumerateSnapshotsByDatasetIds(
+        TestConfiguration.User user, List<String> datasetIds) throws Exception {
+        DataRepoResponse<EnumerateSnapshotModel> response = enumerateSnapshotsByDatasetIdsRaw(user, datasetIds);
+        assertThat("snapshot enumeration is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("snapshot get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
@@ -569,6 +618,10 @@ public class DataRepoFixtures {
         assertGoodDeleteResponse(deleteResponse);
     }
 
+    /*
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     public DrsResponse<DRSObject> drsGetObjectRaw(TestConfiguration.User user, String drsObjectId) throws Exception {
         return dataRepoClient.drsGet(
             user,
@@ -576,6 +629,10 @@ public class DataRepoFixtures {
             DRSObject.class);
     }
 
+    /*
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     public DRSObject drsGetObject(TestConfiguration.User user, String drsObjectId) throws Exception {
         DrsResponse<DRSObject> response = drsGetObjectRaw(user, drsObjectId);
         assertThat("object is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));

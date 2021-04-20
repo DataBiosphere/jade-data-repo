@@ -175,7 +175,7 @@ public final class DatasetJsonConversion {
             .datePartitionOptions(dateOptions)
             .intPartitionOptions(intOptions)
             .columns(datasetTable.getColumns().stream()
-                .map(DatasetJsonConversion::columnModelFromDatasetColumn)
+                .map(Column::toColumnModel)
                 .collect(Collectors.toList()));
     }
 
@@ -184,13 +184,6 @@ public final class DatasetJsonConversion {
                 .name(columnModel.getName())
                 .type(columnModel.getDatatype())
                 .arrayOf(columnModel.isArrayOf());
-    }
-
-    public static ColumnModel columnModelFromDatasetColumn(Column tableColumn) {
-        return new ColumnModel()
-                .name(tableColumn.getName())
-                .datatype(tableColumn.getType())
-                .arrayOf(tableColumn.isArrayOf());
     }
 
     public static Relationship relationshipModelToDatasetRelationship(

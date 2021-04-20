@@ -114,13 +114,12 @@ public class ConnectedOperations {
 
     public void stubOutSamCalls(IamProviderInterface samService) throws Exception {
         Map<IamRole, String> snapshotPolicies = new HashMap<>();
-        snapshotPolicies.put(IamRole.CUSTODIAN, "hi@hi.com");
         snapshotPolicies.put(IamRole.STEWARD, "hi@hi.com");
         snapshotPolicies.put(IamRole.READER,  "hi@hi.com");
         Map<IamRole, String> datasetPolicies = new HashMap<>();
         datasetPolicies.put(IamRole.CUSTODIAN, "hi@hi.com");
         datasetPolicies.put(IamRole.STEWARD,  "hi@hi.com");
-        datasetPolicies.put(IamRole.INGESTER,  "hi@hi.com");
+        datasetPolicies.put(IamRole.SNAPSHOT_CREATOR,  "hi@hi.com");
 
         when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
@@ -574,6 +573,10 @@ public class ConnectedOperations {
         }
     }
 
+    /*
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     private void checkSuccessfulFileLoad(FileLoadModel fileLoadModel, FileModel fileModel, String datasetId) {
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
@@ -722,6 +725,10 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
     }
 
+    /*
+     * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
+     * any consequences downstream to DRS clients.
+     */
     public DRSObject drsGetObjectSuccess(String drsObjectId, boolean expand) throws Exception {
         String url = "/ga4gh/drs/v1/objects/" + drsObjectId;
         MvcResult result = mvc.perform(get(url)

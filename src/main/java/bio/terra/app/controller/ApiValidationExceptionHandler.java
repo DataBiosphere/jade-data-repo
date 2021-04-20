@@ -6,12 +6,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.util.WebUtils;
 
 import java.util.List;
 
@@ -19,6 +21,28 @@ import static java.util.stream.Collectors.toList;
 
 @ControllerAdvice
 public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandler {
+
+    /**
+     * Since the default {@link ResponseEntityExceptionHandler#handleExceptionInternal}
+     * method is often passed a null body, we override it and substitute the exception's error message
+     * into an ErrorModel and return that in the response instead.
+     */
+    @Override
+    protected ResponseEntity<Object> handleExceptionInternal(
+        Exception ex, @Nullable Object body, HttpHeaders headers, HttpStatus status, WebRequest request) {
+
+        if (HttpStatus.INTERNAL_SERVER_ERROR == status) {
+            request.setAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE, ex, WebRequest.SCOPE_REQUEST);
+        }
+
+        Object responseBody = body;
+        if (responseBody == null) {
+            responseBody = new ErrorModel().message(status + " - see error details")
+                .addErrorDetailItem(ex.getMessage());
+        }
+
+        return new ResponseEntity<>(responseBody, headers, status);
+    }
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
@@ -52,4 +76,3 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
         return builder.toString();
     }
 }
-

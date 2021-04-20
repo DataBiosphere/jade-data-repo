@@ -2,6 +2,7 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -18,7 +19,10 @@ public class BatchOperationTest {
 
     @Before
     public void setup() {
-        fireStoreUtils = new FireStoreUtils();
+        GoogleResourceConfiguration resourceConfiguration = new GoogleResourceConfiguration();
+        resourceConfiguration.setFirestoreRetries(4);
+
+        fireStoreUtils = new FireStoreUtils(resourceConfiguration);
     }
 
     @Test

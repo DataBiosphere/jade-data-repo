@@ -3,6 +3,7 @@ package bio.terra.service.job;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.kubernetes.KubeService;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
@@ -16,7 +17,6 @@ import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.service.job.exception.JobServiceShutdownException;
 import bio.terra.service.job.exception.JobServiceStartupException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
-import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.upgrade.Migrate;
 import bio.terra.service.upgrade.MigrateConfiguration;
@@ -46,6 +46,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class JobService {
@@ -53,6 +54,7 @@ public class JobService {
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
     private static final int MIN_SHUTDOWN_TIMEOUT = 14;
     private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
+    private static final String API_POD_FILTER = "datarepo-api";
 
     private final Stairway stairway;
     private final IamService samService;
@@ -60,7 +62,7 @@ public class JobService {
     private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
     private final KubeService kubeService;
-    private final JobShutdownState jobShutdownState;
+    private final AtomicBoolean isRunning;
     private final Migrate migrate;
 
 
@@ -71,18 +73,18 @@ public class JobService {
                       MigrateConfiguration migrateConfiguration,
                       GoogleResourceConfiguration googleResourceConfiguration,
                       ApplicationContext applicationContext,
-                      KubeService kubeService,
-                      JobShutdownState jobShutdownState,
                       Migrate migrate,
                       ObjectMapper objectMapper,
                       PerformanceLogger performanceLogger) throws StairwayExecutionException {
         this.samService = samService;
         this.appConfig = appConfig;
-        this.kubeService = kubeService;
+
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
-        this.jobShutdownState = jobShutdownState;
+        this.isRunning = new AtomicBoolean(true);
         this.migrate = migrate;
+
+        this.kubeService = new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
 
         String projectId = googleResourceConfiguration.getProjectId();
         String stairwayClusterName = kubeService.getNamespace() + "-stairwaycluster";
@@ -112,19 +114,13 @@ public class JobService {
     public void initialize() {
         try {
             List<String> recordedStairways;
-            boolean weMigrated = false;
-            try {
-                weMigrated = migrate.migrateDatabase();
+            migrate.migrateDatabase();
 
-                // Initialize stairway - only do the stairway migration if we did the data repo migration
-                recordedStairways = stairway.initialize(stairwayJdbcConfiguration.getDataSource(),
-                    (weMigrated && migrateConfiguration.getDropAllOnStart()),
-                    (weMigrated && migrateConfiguration.getUpdateAllOnStart()));
-            } finally {
-                if (weMigrated) {
-                    migrate.releaseMigrateLock();
-                }
-            }
+            // Initialize stairway - only do the stairway migration if we did the data repo migration
+            recordedStairways = stairway.initialize(stairwayJdbcConfiguration.getDataSource(),
+                migrateConfiguration.getDropAllOnStart(),
+                migrateConfiguration.getUpdateAllOnStart());
+
 
             // Order is important here. There are two concerns we need to handle:
             // 1. We need to avoid a window where a running pod could get onto the Stairway list, but not be
@@ -137,7 +133,7 @@ public class JobService {
             kubeService.startPodListener(stairway);
 
             // Lookup all of the stairway instances we know about
-            Set<String> existingStairways = kubeService.getApiPodList();
+            Set<String> existingStairways = kubeService.getPodSet();
             List<String> obsoleteStairways = new LinkedList<>();
 
             // Any instances that stairway knows about, but we cannot see are obsolete.
@@ -167,11 +163,11 @@ public class JobService {
      */
     public boolean shutdown() throws InterruptedException {
         logger.info("JobService received shutdown request");
-        if (jobShutdownState.isShutdown()) {
+        boolean currentlyRunning = isRunning.getAndSet(false);
+        if (!currentlyRunning) {
             logger.warn("Ignoring duplicate shutdown request");
             return true; // allow this to be success
         }
-        jobShutdownState.setShutdown();
 
         // We enforce a minimum shutdown time. Otherwise, there is no point in trying the shutdown.
         // We allocate 3/4 of the time for graceful shutdown. Then call terminate for the rest of the time.
@@ -195,6 +191,10 @@ public class JobService {
         }
         logger.info("JobService finished shutdown?: " + finishedShutdown);
         return finishedShutdown;
+    }
+
+    public int getActivePodCount() {
+        return kubeService.getActivePodCount();
     }
 
     public static class JobResultWithStatus<T> {
@@ -229,20 +229,19 @@ public class JobService {
     // submit a new job to stairway
     // protected method intended to be called only from JobBuilder
     protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap) {
-        if (jobShutdownState.isShutdown()) {
-            throw new JobServiceShutdownException("Job service is shut down. Cannot accept a flight");
+        if (isRunning.get()) {
+            String jobId = createJobId();
+            try {
+                stairway.submit(jobId, flightClass, parameterMap);
+            } catch (StairwayException stairwayEx) {
+                throw new InternalStairwayException(stairwayEx);
+            } catch (InterruptedException ex) {
+                throw new JobServiceShutdownException("Job service interrupted", ex);
+            }
+            return jobId;
         }
 
-        String jobId = createJobId();
-        try {
-            stairway.submit(jobId, flightClass, parameterMap);
-        } catch (StairwayException stairwayEx) {
-            throw new InternalStairwayException(stairwayEx);
-        } catch (InterruptedException ex) {
-            throw new JobServiceShutdownException("Job service interrupted", ex);
-        }
-
-        return jobId;
+        throw new JobServiceShutdownException("Job service is shut down. Cannot accept a flight");
     }
 
     // submit a new job to stairway, wait for it to finish, then return the result
@@ -319,12 +318,12 @@ public class JobService {
         }
 
         JobModel jobModel = new JobModel()
-                .id(flightState.getFlightId())
-                .description(description)
-                .jobStatus(jobStatus)
-                .statusCode(statusCode.value())
-                .submitted(submittedDate)
-                .completed(completedDate);
+            .id(flightState.getFlightId())
+            .description(description)
+            .jobStatus(jobStatus)
+            .statusCode(statusCode.value())
+            .submitted(submittedDate)
+            .completed(completedDate);
 
         return jobModel;
     }
@@ -408,6 +407,7 @@ public class JobService {
      *     handler, we retrieve the Throwable and use the error text from that in the error model</li>
      *     <li> Failed flight: no exception present. We throw InvalidResultState exception</li>
      * </ol>
+     *
      * @param jobId to process
      * @return object of the result class pulled from the result map
      */
@@ -434,6 +434,7 @@ public class JobService {
     /**
      * In general, we keep Stairway encapsulated in the JobService. KubeService also needs access,
      * so we provide this accessor.
+     *
      * @return stairway instance
      */
     public Stairway getStairway() {
@@ -456,7 +457,7 @@ public class JobService {
                 if (flightState.getException().isPresent()) {
                     Exception exception = flightState.getException().get();
                     if (exception instanceof RuntimeException) {
-                        throw (RuntimeException)exception;
+                        throw (RuntimeException) exception;
                     } else {
                         throw new JobResponseException("wrap non-runtime exception", exception);
                     }
@@ -468,7 +469,7 @@ public class JobService {
                 if (statusCode == null) {
                     statusCode = HttpStatus.OK;
                 }
-                return  new JobResultWithStatus<T>()
+                return new JobResultWithStatus<T>()
                     .statusCode(statusCode)
                     .result(resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass));
 
@@ -523,6 +524,5 @@ public class JobService {
             throw new JobServiceShutdownException("Job service interrupted", ex);
         }
     }
-
 
 }

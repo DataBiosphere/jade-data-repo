@@ -126,12 +126,13 @@ public class SnapshotService {
         String sort,
         String direction,
         String filter,
+        List<UUID> datasetIds,
         List<UUID> resources) {
         if (resources.isEmpty()) {
-            return new EnumerateSnapshotModel().total(0);
+            return new EnumerateSnapshotModel().total(0).items(Collections.emptyList());
         }
         MetadataEnumeration<SnapshotSummary> enumeration = snapshotDao.retrieveSnapshots(offset, limit, sort, direction,
-            filter, resources);
+            filter, datasetIds, resources);
         List<SnapshotSummaryModel> models = enumeration.getItems()
                 .stream()
                 .map(this::makeSummaryModelFromSummary)
@@ -415,13 +416,13 @@ public class SnapshotService {
                 .toTable(snapshotTable)
                 .snapshotMapColumns(mapColumnList));
 
-            // for each dataset column specified in the request, create a column in the snapshot with the same name
+            // for each dataset column specified in the request, create a column in the snapshot w the same name & array
             Set<String> requestColumns = new HashSet<>(requestTableLookup.get(datasetTable.getName()).getColumns());
             datasetTable.getColumns()
                 .stream()
                 .filter(c -> requestColumns.contains(c.getName()))
                 .forEach(datasetColumn -> {
-                    Column snapshotColumn = new Column().name(datasetColumn.getName());
+                    Column snapshotColumn = Column.toSnapshotColumn(datasetColumn);
                     SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
                         .fromColumn(datasetColumn)
                         .toColumn(snapshotColumn);
@@ -443,9 +444,9 @@ public class SnapshotService {
             List<Column> columnList = new ArrayList<>();
             List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
 
-            // for each dataset column specified in the request, create a column in the snapshot with the same name
+            // for each dataset column specified in the request, create a column in the snapshot w the same name & array
             for (Column datasetColumn : datasetTable.getColumns()) {
-                Column snapshotColumn = new Column().name(datasetColumn.getName());
+                Column snapshotColumn = Column.toSnapshotColumn(datasetColumn);
                 SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
                     .fromColumn(datasetColumn)
                     .toColumn(snapshotColumn);

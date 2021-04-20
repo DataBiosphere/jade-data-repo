@@ -9,15 +9,15 @@
         "columns": [
           {
             "name": "VCF_File_Name",
-            "datatype": "STRING"
+            "datatype": "string"
           },
           {
             "name": "Description",
-            "datatype": "STRING"
+            "datatype": "string"
           },
           {
             "name": "VCF_File_Ref",
-            "datatype": "FILEREF"
+            "datatype": "fileref"
           }
         ]
       }

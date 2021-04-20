@@ -48,6 +48,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -101,7 +102,7 @@ public class FileTest extends UsersBase {
     @After
     public void tearDown() throws Exception {
         if (snapshotId != null) {
-            dataRepoFixtures.deleteSnapshot(steward(), snapshotId);
+            dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
         }
         if (datasetId != null) {
             fileIds.forEach(f -> {
@@ -201,12 +202,6 @@ public class FileTest extends UsersBase {
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         String filePath = "/foo/bar";
 
-        DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
-            custodian(), datasetId, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
-        assertThat("Custodian is not authorized to ingest a file",
-            launchResp.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
-
         FileModel fileModel = dataRepoFixtures.ingestFile(
             steward(), datasetId, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
         String fileId = fileModel.getFileId();
@@ -265,13 +260,8 @@ public class FileTest extends UsersBase {
             job.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
-        job = dataRepoFixtures.deleteFileLaunch(custodian(), datasetId, fileId);
-        assertThat("Custodian is not authorized to delete file",
-            job.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
-
         // validates success
-        dataRepoFixtures.deleteFile(steward(), datasetId, fileId);
+        dataRepoFixtures.deleteFile(custodian(), datasetId, fileId);
     }
 
     @Test
@@ -312,14 +302,20 @@ public class FileTest extends UsersBase {
             "file-acl-test-snapshot.json");
         snapshotId = snapshotSummaryModel.getId();
 
+        /*
+         * WARNING: if making any changes to this test make sure to notify the #dsp-batch channel! Describe the change
+         * and any consequences downstream to DRS clients.
+         */
         // Use DRS API to lookup the file by DRS ID
         String drsObjectId = String.format("v1_%s_%s", snapshotId, fileId);
-        DRSObject drsObject = dataRepoFixtures.drsGetObject(steward(), drsObjectId);
+        // Should fail due to insufficient permissions
+        assertThatThrownBy(() -> dataRepoFixtures.drsGetObject(steward(), drsObjectId));
+        DRSObject drsObject = dataRepoFixtures.drsGetObject(custodian(), drsObjectId);
 
         logger.info("Drs Object: {}", drsObject);
 
         TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods(),
-            authService.getDirectAccessAuthToken(steward().getEmail()));
+            authService.getDirectAccessAuthToken(custodian().getEmail()));
     }
 
 }

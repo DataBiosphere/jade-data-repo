@@ -1,3 +1,5 @@
+import java.text.SimpleDateFormat
+
 /*
  * Data Repository Building Notes
  *
@@ -28,7 +30,7 @@ plugins {
     id 'org.liquibase.gradle' version '2.0.1'
     id "org.gradle.test-retry" version "1.2.0"
     id 'antlr'
-    id 'com.github.spotbugs' version '4.5.1'
+    id 'com.github.spotbugs' version '4.7.0'
     id "org.hidetake.swagger.generator" version "2.18.2"
     id "org.springframework.boot" version "2.3.4.RELEASE"
     id "idea"
@@ -41,7 +43,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.0.196-SNAPSHOT'
+    version '1.58.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -69,7 +71,8 @@ subprojects.each { s ->
     }
 }
 
-sourceCompatibility = 1.8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 if (hasProperty('buildScan')) {
     buildScan {
@@ -161,6 +164,7 @@ dependencies {
     compile 'com.google.cloud:google-cloud-billing:1.1.6'
     compile 'com.google.cloud:google-cloud-resourcemanager:0.118.2-alpha'
     compile 'com.google.apis:google-api-services-serviceusage:v1-rev20201021-1.30.10'
+    compile 'com.google.apis:google-api-services-appengine:v1-rev20201201-1.31.0'
     compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
     compile 'com.google.cloud:google-cloud-storage:1.108.0'
     compile 'com.google.cloud:google-cloud-firestore:1.22.0'
@@ -174,6 +178,8 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
     implementation "org.springframework.boot:spring-boot-starter-web"
     implementation group: "javax.validation", name: "validation-api"
+    // Fix to this version
+    compile 'com.google.http-client:google-http-client:1.38.0'
 
     implementation group: "io.swagger.core.v3", name: "swagger-annotations"
     swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"
@@ -196,10 +202,20 @@ dependencies {
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
         implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
     } else {
-        implementation 'bio.terra:stairway:0.0.24-SNAPSHOT'
+        implementation 'bio.terra:stairway:0.0.36-SNAPSHOT'
+    }
+
+    // Similar development mode for pointing to terra common library
+    if (project.hasProperty("commonlibjar")) {
+        implementation files(project.ext.get("commonlibjar"))
+        implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
+        implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
+    } else {
+        implementation 'bio.terra:terra-common-lib:0.0.16-SNAPSHOT'
     }
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
 
     // Forcing this due to vulnerability issues
     compile ('com.fasterxml.jackson.core:jackson-databind:2.11.0.rc1') {
@@ -210,10 +226,11 @@ dependencies {
     }
 
     antlr "org.antlr:antlr4:4.8"
+    spotbugs 'com.github.spotbugs:spotbugs:4.2.2'
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
-    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
+    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '3.0.7'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
@@ -237,6 +254,21 @@ dependencies {
     generatedCompile group: "io.swagger.core.v3", name: "swagger-annotations"
 
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+    constraints {
+        compile('org.bouncycastle:bcpg-jdk15on:1.68') {
+            because '1.66 has security vulnerabilities'
+        }
+        compile('org.bouncycastle:bcpkix-jdk15on:1.68') {
+            because '1.66 has security vulnerabilities'
+        }
+        compile('org.bouncycastle:bcprov-ext-jdk15on:1.68') {
+            because '1.66 has security vulnerabilities'
+        }
+        compile('org.bouncycastle:bcprov-jdk15on:1.68') {
+            because '1.66 has security vulnerabilities'
+        }
+    }
 }
 
 def getGitHash = { ->
@@ -329,12 +361,22 @@ jar {
 
 jib {
     extraDirectories.paths = ['build/gen-expanded']
+    from {
+        image = "gcr.io/distroless/java-debian10:11"
+    }
     to {
         image = "gcr.io/broad-jade-dev/jade-data-repo:" + (System.env.GCR_TAG ?: getGitHash())
     }
     container {
-        jvmFlags = ["-Xms2g", "-Xmx2g"]
+        jvmFlags = ["-Xms1g", "-Xmx2g"]
     }
+    container.creationTime = buildTime()
+}
+
+def buildTime() {
+    def df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'") // you can change it
+    df.setTimeZone(TimeZone.getTimeZone("UTC"))
+    return df.format(new Date())
 }
 // jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories
 // setting above will ensure that the generated classes end up in the right place when jib builds.
@@ -351,7 +393,16 @@ liquibase {
             url project.ext.dbDatarepoUri
             username project.ext.dbDatarepoUsername
             password project.ext.dbDatarepoPassword
-            logLevel 'debug'
+            logLevel 'info'
+        }
+        // This is setup only to run "dropAll", not commands that require the changelog, like "update"
+        // To setup more functionality, see notes in this doc:
+        // https://docs.google.com/document/d/1hxT7ZOAY4MKPhjoLLZNJE4IB_3WncsDDYEg8m1myL-I/edit?usp=sharing
+        stairway {
+            url project.ext.dbStairwayUri
+            username project.ext.dbStairwayUsername
+            password project.ext.dbStairwayPassword
+            logLevel 'info'
         }
     }
 }
@@ -404,8 +455,19 @@ task testUnit(type: Test) {
     outputs.upToDateWhen { false }
 }
 
+task testOnDemand(type: Test) {
+    useJUnit {
+        includeCategories 'bio.terra.common.category.OnDemand'
+    }
+    testLogging {
+        events = ["passed", "failed", "skipped", "started", "standard_out"]
+    }
+    outputs.upToDateWhen { false }
+}
+
 task testAll(type: Test) {
     useJUnit {
+        // Note: explicitly not including OnDemand tests
         includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }

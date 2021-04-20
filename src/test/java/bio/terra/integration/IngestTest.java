@@ -28,6 +28,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -134,19 +135,18 @@ public class IngestTest extends UsersBase {
     }
 
     @Test
-    public void ingestUnauthorizedTest() throws Exception {
+    public void ingestAuthorizationTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
-        DataRepoResponse<JobModel> ingestCustResp = dataRepoFixtures.ingestJsonDataLaunch(
+        IngestResponseModel ingestCustodianResp = dataRepoFixtures.ingestJsonData(
             custodian(), datasetId, request);
-        assertThat("Custodian is not authorized to ingest data",
-            ingestCustResp.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
+        assertThat("Custodian was able to ingest", ingestCustodianResp.getRowCount(), greaterThan(0L));
         DataRepoResponse<JobModel> ingestReadResp = dataRepoFixtures.ingestJsonDataLaunch(
-                reader(), datasetId, request);
+            reader(), datasetId, request);
         assertThat("Reader is not authorized to ingest data",
             ingestReadResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
+
     }
 
     @Test

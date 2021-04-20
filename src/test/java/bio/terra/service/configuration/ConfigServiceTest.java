@@ -9,7 +9,7 @@ import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import bio.terra.service.configuration.exception.DuplicateConfigNameException;
-import bio.terra.service.iam.sam.SamConfiguration;
+import bio.terra.app.configuration.SamConfiguration;
 import org.apache.commons.codec.binary.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

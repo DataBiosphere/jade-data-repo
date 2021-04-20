@@ -296,7 +296,7 @@ public class SnapshotTest extends UsersBase {
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
 
-        @Test
+    @Test
     public void snapshotInvalidEmailTest() throws Exception {
         SnapshotRequestModel requestModel =
             jsonLoader.loadObject("ingest-test-snapshot.json", SnapshotRequestModel.class);
@@ -330,14 +330,14 @@ public class SnapshotTest extends UsersBase {
 
         createdSnapshotIds.add(snapshotSummary.getId());
     }
-    
+
     @Test
-    public void snapshotACLTest() throws Exception {
+    public void snapshotAclTest() throws Exception {
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
 
         String datasetName = dataset.getName();
 
-        logger.info("---- Dataset ACLs before snapshot create-----");
+        logger.info("---- Dataset Acls before snapshot create-----");
         int datasetAclCount = fetchSourceDatasetAcls(datasetName);
 
         //-------------------Create Snapshot----------------
@@ -355,18 +355,18 @@ public class SnapshotTest extends UsersBase {
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("There should be 5 snapshot relationships", snapshot.getRelationships().size(), 5);
 
-        // fetch ACLs
-        logger.info("---- Dataset ACLs after snapshot create-----");
-        int datasetPlusSnapshotCount = retryACLUpdate(datasetName, datasetAclCount, ACLCheck.GREATERTHAN);
-        assertThat("There should be more ACLs on the dataset after snapshot create",
+        // fetch Acls
+        logger.info("---- Dataset Acls after snapshot create-----");
+        int datasetPlusSnapshotCount = retryAclUpdate(datasetName, datasetAclCount, AclCheck.GREATERTHAN);
+        assertThat("There should be more Acls on the dataset after snapshot create",
             datasetPlusSnapshotCount, greaterThan(datasetAclCount));
 
         //-----------delete snapshot------------
         dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
-        logger.info("---- Dataset ACLs after snapshot delete-----");
-        int datasetMinusSnapshotACLCount = retryACLUpdate(datasetName, datasetAclCount, ACLCheck.EQUALTO);
-        assertEquals("We should be back to the same number of ACLs on the dataset after snapshot delete",
-            datasetAclCount, datasetMinusSnapshotACLCount);
+        logger.info("---- Dataset Acls after snapshot delete-----");
+        int datasetMinusSnapshotAclCount = retryAclUpdate(datasetName, datasetAclCount, AclCheck.EQUALTO);
+        assertEquals("We should be back to the same number of Acls on the dataset after snapshot delete",
+            datasetAclCount, datasetMinusSnapshotAclCount);
     }
 
     private int fetchSourceDatasetAcls(String datasetName) throws Exception {
@@ -377,7 +377,7 @@ public class SnapshotTest extends UsersBase {
         String bqDatasetName = bigQueryPdao.prefixName(datasetName);
         Dataset bq_dataset = bigQuery.getDataset(bqDatasetName);
 
-        // fetch ACLs
+        // fetch Acls
         List<Acl> acls = bq_dataset.getAcl();
         int aclCount = acls.size();
 
@@ -385,37 +385,37 @@ public class SnapshotTest extends UsersBase {
         return aclCount;
     }
 
-    enum ACLCheck {
+    enum AclCheck {
         GREATERTHAN,
         EQUALTO
     }
 
-    private int retryACLUpdate(String datasetName, int datasetAclCount, ACLCheck check) throws Exception {
+    private int retryAclUpdate(String datasetName, int datasetAclCount, AclCheck check) throws Exception {
         double maxDelayInSeconds = 60;
         int wait_interval;
-        // Google claims it can take up to 7 minutes to update ACLs
+        // Google claims it can take up to 7 minutes to update Acls
         int sevenMinutePlusBuffer = (7 * 60) + 20;
         int datasetPlusSnapshotCount = 0;
         int totalWaitTime = 0;
         double n = 1;
         while (totalWaitTime < sevenMinutePlusBuffer) {
             datasetPlusSnapshotCount = fetchSourceDatasetAcls(datasetName);
-            if (check.equals(ACLCheck.GREATERTHAN)) {
+            if (check.equals(AclCheck.GREATERTHAN)) {
                 if (datasetPlusSnapshotCount > datasetAclCount) {
                     break;
                 }
-            } else if (check.equals(ACLCheck.EQUALTO)) {
+            } else if (check.equals(AclCheck.EQUALTO)) {
                 if (datasetPlusSnapshotCount == datasetAclCount) {
                     break;
                 }
             } else {
-                logger.error("Not a valid enum value for ACLCheck");
+                logger.error("Not a valid enum value for AclCheck");
             }
             double delayInSeconds =  ((1d / 2d) * (Math.pow(2d, n) - 1d));
             wait_interval = maxDelayInSeconds < delayInSeconds ?
                 (int)maxDelayInSeconds : (int)delayInSeconds;
             totalWaitTime += wait_interval;
-            logger.info("retryACLUpdate: sleeping {} seconds, totaling {} seconds waiting",
+            logger.info("retryAclUpdate: sleeping {} seconds, totaling {} seconds waiting",
                 wait_interval, totalWaitTime);
             TimeUnit.SECONDS.sleep(wait_interval);
             n++;

@@ -375,7 +375,7 @@ public class SnapshotTest extends UsersBase {
 
         // Fetch BQ Dataset
         String bqDatasetName = bigQueryPdao.prefixName(datasetName);
-        Dataset bq_dataset = bigQuery.getDataset(bqDatasetName);
+        Dataset bqDataset = bigQuery.getDataset(bqDatasetName);
 
         // fetch Acls
         List<Acl> acls = bq_dataset.getAcl();

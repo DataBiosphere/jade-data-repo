@@ -25,36 +25,36 @@ on:
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
 jobs:
-  test_connected:
-    timeout-minutes: 180
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
-    runs-on: ${{ matrix.os }}
-    ## skips if pr label is 'skip-ci'
-    # run a local Postgres container in Docker for the basic check tests
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    steps:
-      - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "Run Connected test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
-        with:
-          actions_subcommand: 'gradleinttest'
-          pgport: ${{ job.services.postgres.ports[5432] }}
-          test_to_run: 'testConnected'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+  # test_connected:
+  #   timeout-minutes: 180
+  #   strategy:
+  #     matrix:
+  #       os: [ubuntu-latest]
+  #   if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
+  #   runs-on: ${{ matrix.os }}
+  #   ## skips if pr label is 'skip-ci'
+  #   # run a local Postgres container in Docker for the basic check tests
+  #   services:
+  #     postgres:
+  #       image: postgres:11
+  #       env:
+  #         POSTGRES_USER: postgres
+  #         POSTGRES_PASSWORD: postgres
+  #         POSTGRES_DB: postgres
+  #       ports:
+  #         - 5432:5432
+  #       options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+  #   steps:
+  #     - name: "Checkout code"
+  #       uses: actions/checkout@v2
+  #     - name: "Run Connected test via Gradle"
+  #       uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
+  #       with:
+  #         actions_subcommand: 'gradleinttest'
+  #         pgport: ${{ job.services.postgres.ports[5432] }}
+  #         test_to_run: 'testConnected'
+  #         role_id: ${{ secrets.ROLE_ID }}
+  #         secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_integration:
     timeout-minutes: 180
     strategy:
@@ -78,22 +78,22 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:
           actions_subcommand: 'gcp_whitelist'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
       - name: "Check for an available namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:
           actions_subcommand: 'k8_checknamespace'
           k8_namespaces: 'integration-1,integration-2,integration-3,integration-6'
       - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:
           actions_subcommand: 'gradlebuild'
       - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
@@ -102,27 +102,27 @@ jobs:
           helm_gcloud_sqlproxy_chart_version: 0.19.7
           helm_oidc_proxy_chart_version: 0.0.22
       - name: "Wait for deployment to come back online"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:
           actions_subcommand: 'waitfordeployment'
       - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run Integration test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:
           actions_subcommand: 'k8_checknamespace_clean'
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:
           actions_subcommand: 'gcp_whitelist_clean'
       - name: "Notify Jade Slack on nightly test run"

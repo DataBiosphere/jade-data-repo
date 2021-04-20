@@ -71,9 +71,7 @@ public class SnapshotTest extends UsersBase {
     @Autowired
     private AuthService authService;
     @Autowired private BigQueryPdao bigQueryPdao;
-    @Autowired private DatasetDao datasetDao;
 
-    private BigQuery bigQuery;
 
     private static final Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
     private String profileId;
@@ -338,7 +336,7 @@ public class SnapshotTest extends UsersBase {
         String datasetName = dataset.getName();
 
         logger.info("---- Dataset Acls before snapshot create-----");
-        int datasetAclCount = fetchSourceDatasetAcls(datasetName);
+        int datasetAclCount = fetchSourceDatasetAcls(datasetName).size();
 
         //-------------------Create Snapshot----------------
         SnapshotRequestModel requestModel =
@@ -369,20 +367,19 @@ public class SnapshotTest extends UsersBase {
             datasetAclCount, datasetMinusSnapshotAclCount);
     }
 
-    private int fetchSourceDatasetAcls(String datasetName) throws Exception {
+    private List<Acl> fetchSourceDatasetAcls(String datasetName) throws Exception {
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-        bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+        BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
 
         // Fetch BQ Dataset
         String bqDatasetName = bigQueryPdao.prefixName(datasetName);
         Dataset bqDataset = bigQuery.getDataset(bqDatasetName);
 
         // fetch Acls
-        List<Acl> acls = bq_dataset.getAcl();
-        int aclCount = acls.size();
+        List<Acl> acls = bqDataset.getAcl();
 
         acls.forEach(acl ->  logger.info("Acl: {}", acl));
-        return aclCount;
+        return acls;
     }
 
     enum AclCheck {
@@ -392,14 +389,14 @@ public class SnapshotTest extends UsersBase {
 
     private int retryAclUpdate(String datasetName, int datasetAclCount, AclCheck check) throws Exception {
         double maxDelayInSeconds = 60;
-        int wait_interval;
+        int waitInterval;
         // Google claims it can take up to 7 minutes to update Acls
-        int sevenMinutePlusBuffer = (7 * 60) + 20;
+        int sevenMinutePlusBuffer = (int)TimeUnit.MINUTES.toSeconds(7) + 20;
         int datasetPlusSnapshotCount = 0;
         int totalWaitTime = 0;
-        double n = 1;
+        int n = 1;
         while (totalWaitTime < sevenMinutePlusBuffer) {
-            datasetPlusSnapshotCount = fetchSourceDatasetAcls(datasetName);
+            datasetPlusSnapshotCount = fetchSourceDatasetAcls(datasetName).size();
             if (check.equals(AclCheck.GREATERTHAN)) {
                 if (datasetPlusSnapshotCount > datasetAclCount) {
                     break;
@@ -412,12 +409,11 @@ public class SnapshotTest extends UsersBase {
                 logger.error("Not a valid enum value for AclCheck");
             }
             double delayInSeconds =  ((1d / 2d) * (Math.pow(2d, n) - 1d));
-            wait_interval = maxDelayInSeconds < delayInSeconds ?
-                (int)maxDelayInSeconds : (int)delayInSeconds;
-            totalWaitTime += wait_interval;
+            waitInterval = (int)Math.min(maxDelayInSeconds, delayInSeconds);
+            totalWaitTime += waitInterval;
             logger.info("retryAclUpdate: sleeping {} seconds, totaling {} seconds waiting",
-                wait_interval, totalWaitTime);
-            TimeUnit.SECONDS.sleep(wait_interval);
+                waitInterval, totalWaitTime);
+            TimeUnit.SECONDS.sleep(waitInterval);
             n++;
         }
         return datasetPlusSnapshotCount;

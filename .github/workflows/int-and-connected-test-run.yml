@@ -110,10 +110,8 @@ jobs:
       - name: "Wait for deployment to come back online"
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@sh-dr-1739-increase-wait
         env:
-          #API_URL: ${{ steps.namespace.outputs.api_url }}
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
-          #NAMESPACEINUSE: ${{ steps.namespace.outputs.namespace }}
       - name: "Run Test Runner smoke tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@sh-dr-1739-increase-wait
         with:

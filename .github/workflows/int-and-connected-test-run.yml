@@ -105,10 +105,10 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:
           actions_subcommand: 'waitfordeployment'
-      - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
-        with:
-          actions_subcommand: 'gradletestrunnersmoketest'
+      # - name: "Run Test Runner smoke tests via Gradle"
+      #   uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
+      #   with:
+      #     actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run Integration test via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@sh-drs-test-only
         with:

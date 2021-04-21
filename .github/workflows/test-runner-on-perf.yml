@@ -147,29 +147,29 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@sh-dr-1739-increase-wait
         env:
           NAMESPACEINUSE: perf
-          API_URL: "https://jade-perf.datarepo-perf.broadinstitute.org"
+          IT_JADE_API_URL: "https://jade-perf.datarepo-perf.broadinstitute.org"
           DESIRED_GITHASH: ${{ steps.read_property.outputs.LATEST_GITHASH }}
           DEPLOYMENT_TYPE: 'api'
-      - name: "Build and run Test Runner"
-        run: |
-          cd ${GITHUB_WORKSPACE}/${workingDir}
-          echo "Building Data Repo client library"
-          export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
-          ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
-          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
-          export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
-          echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
+      # - name: "Build and run Test Runner"
+      #   run: |
+      #     cd ${GITHUB_WORKSPACE}/${workingDir}
+      #     echo "Building Data Repo client library"
+      #     export TEST_RUNNER_SERVER_SPECIFICATION_FILE="perf.json"
+      #     ENABLE_SUBPROJECT_TASKS=1 ./gradlew :datarepo-client:clean :datarepo-client:assemble
+      #     cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-clienttests
+      #     export ORG_GRADLE_PROJECT_datarepoclientjar=$(find .. -type f -name "datarepo-client*.jar")
+      #     echo "ORG_GRADLE_PROJECT_datarepoclientjar = ${ORG_GRADLE_PROJECT_datarepoclientjar}"
 
-          echo "Running test suite"
-          ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
+      #     echo "Running test suite"
+      #     ./gradlew lockAndRunTest --args="suites/NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
-          echo "Collecting measurements"
-          ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
+      #     echo "Collecting measurements"
+      #     ./gradlew collectMeasurements --args="NightlyPerfWorkflow.json tmp/TestRunnerResults"
 
-          echo "Uploading results"
-          ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
+      #     echo "Uploading results"
+      #     ./gradlew uploadResults --args="BroadJadeDev.json tmp/TestRunnerResults"
 
-          cd ${GITHUB_WORKSPACE}/${workingDir}
+      #     cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@sh-dr-1739-increase-wait

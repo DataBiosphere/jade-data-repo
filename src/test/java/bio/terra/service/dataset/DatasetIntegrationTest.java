@@ -160,6 +160,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     @Test
     public void datasetUnauthorizedPermissionsTest() throws Exception {
+        // These should fail because they don't have access to the billing profile
         dataRepoFixtures.createDatasetError(custodian(), profileId, "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
         dataRepoFixtures.createDatasetError(reader(), profileId, "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
 

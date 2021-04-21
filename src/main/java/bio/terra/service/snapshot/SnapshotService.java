@@ -278,6 +278,14 @@ public class SnapshotService {
             .collect(Collectors.toList());
     }
 
+    public List<UUID> getSourceDatasetIdsFromSnapshotId(UUID snapshotId) {
+        SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId);
+        return snapshotModel.getSource()
+            .stream()
+            .map(s -> UUID.fromString(s.getDataset().getId()))
+            .collect(Collectors.toList());
+    }
+
     private AssetSpecification getAssetSpecificationFromRequest(
         SnapshotRequestContentsModel requestContents) {
         SnapshotRequestAssetModel requestAssetModel = requestContents.getAssetSpec();

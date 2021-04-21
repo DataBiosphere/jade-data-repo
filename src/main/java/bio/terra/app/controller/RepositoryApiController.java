@@ -182,10 +182,10 @@ public class RepositoryApiController implements RepositoryApi {
             @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
             @Valid @RequestParam(value = "sort",
                 required = false,
-                defaultValue = "CREATED_DATE") EnumerateSortByParam sort,
+                defaultValue = "created_date") EnumerateSortByParam sort,
             @Valid @RequestParam(value = "direction",
                 required = false,
-                defaultValue = "ASC") SqlSortDirection direction,
+                defaultValue = "asc") SqlSortDirection direction,
             @Valid @RequestParam(value = "filter", required = false) String filter) {
         ControllerUtils.validateEnumerateParams(offset, limit);
         List<UUID> resources = iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASET);
@@ -367,8 +367,8 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<EnumerateSnapshotModel> enumerateSnapshots(
         @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
         @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-        @Valid @RequestParam(value = "sort", required = false, defaultValue = "CREATED_DATE") EnumerateSortByParam sort,
-        @Valid @RequestParam(value = "direction", required = false, defaultValue = "ASC") SqlSortDirection direction,
+        @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") EnumerateSortByParam sort,
+        @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") SqlSortDirection direction,
         @Valid @RequestParam(value = "filter", required = false) String filter,
         @Valid @RequestParam(value = "datasetIds", required = false) List<String> datasetIds) {
         ControllerUtils.validateEnumerateParams(offset, limit);

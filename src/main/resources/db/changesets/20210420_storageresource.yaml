@@ -1,0 +1,54 @@
+databaseChangeLog:
+  - changeSet:
+      id: storage_resource
+      author: se
+      changes:
+        - createTable:
+            tableName: storage_resource
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: cloud_platform
+                  type: varchar(16)
+                  constraints:
+                    unique: true
+                    nullable: false
+              - column:
+                  name: region
+                  type: varchar(127)
+                  constraints:
+                    nullable: false
+        - addColumn:
+            tableName: dataset
+            columns:
+              - column:
+                  name: storage_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_storage_resource
+                    references: storage_resource(id)
+                    deleteCascade: false
+        - addColumn:
+            tableName: bucket_resource
+            columns:
+              - column:
+                  name: storage_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bucket_resource_storage_resource
+                    references: storage_resource(id)
+                    deleteCascade: false
+        - dropColumn:
+            tableName: bucket_resource
+            columns:
+              - column:
+                  name: region
+                  type: text

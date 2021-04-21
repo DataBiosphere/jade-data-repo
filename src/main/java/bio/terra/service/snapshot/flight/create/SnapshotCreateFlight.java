@@ -3,7 +3,10 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -23,6 +26,9 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import org.springframework.context.ApplicationContext;
 
+import java.util.List;
+import java.util.UUID;
+
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 
 public class SnapshotCreateFlight extends Flight {
@@ -39,6 +45,7 @@ public class SnapshotCreateFlight extends Flight {
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         IamService iamClient = (IamService)appContext.getBean("iamService");
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
+        DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
         ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
@@ -51,6 +58,12 @@ public class SnapshotCreateFlight extends Flight {
 
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
+        // Lock the source dataset while adding ACLs to avoid a race condition
+        // TODO note that with multi-dataset snapshots this will need to change
+        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotReq);
+        UUID datasetId = sourceDatasetIds.get(0);
+        addStep(new LockDatasetStep(datasetDao, datasetId, false));
 
         // Make sure this user is allowed to use the billing profile and that the underlying
         // billing information remains valid.
@@ -126,5 +139,8 @@ public class SnapshotCreateFlight extends Flight {
 
        // unlock the snapshot metadata row
         addStep(new UnlockSnapshotStep(snapshotDao, null));
+
+        // Unlock dataset
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
     }
 }

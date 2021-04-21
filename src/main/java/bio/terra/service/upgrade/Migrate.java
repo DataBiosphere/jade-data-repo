@@ -80,8 +80,8 @@ public class Migrate {
      * Helper function to block "drop all on start" from happening on undesired databases
      */
     public boolean allowDropAllOnStart() {
-        boolean allowedProfile = Arrays.stream(env.getActiveProfiles()).anyMatch(env -> env.contains("dev")
-            || env.contains("test") || env.contains("int"));
+        boolean allowedProfile = Arrays.stream(env.getActiveProfiles()).anyMatch(e -> e.contains("dev")
+            || e.contains("test") || e.contains("int"));
 
         boolean noDeleteDataProject = migrateConfiguration.getDataProjectNoDropAll().contains(
             resourceConfiguration.getSingleDataProjectId());

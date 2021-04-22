@@ -56,7 +56,7 @@ public class DatasetDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
     private static final String summaryQueryColumns =
-        " id, name, description, default_profile_id, project_resource_id, created_date ";
+        " id, name, description, default_profile_id, project_resource_id, created_date, region ";
 
     @Autowired
     public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,

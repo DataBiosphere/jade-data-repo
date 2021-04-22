@@ -31,10 +31,7 @@ databaseChangeLog:
                   name: storage_resource_id
                   type: ${uuid_type}
                   constraints:
-                    nullable: false
-                    foreignKeyName: fk_dataset_storage_resource
-                    references: storage_resource(id)
-                    deleteCascade: false
+                    nullable: true
         - addColumn:
             tableName: bucket_resource
             columns:
@@ -42,10 +39,7 @@ databaseChangeLog:
                   name: storage_resource_id
                   type: ${uuid_type}
                   constraints:
-                    nullable: false
-                    foreignKeyName: fk_bucket_resource_storage_resource
-                    references: storage_resource(id)
-                    deleteCascade: false
+                    nullable: true
         - dropColumn:
             tableName: bucket_resource
             columns:

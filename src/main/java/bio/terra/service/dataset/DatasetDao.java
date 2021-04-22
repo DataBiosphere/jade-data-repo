@@ -544,11 +544,6 @@ public class DatasetDao {
         params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
 
-        //TODO - Add query to gather regions
-        List<String> allowedRegions = new ArrayList<>();
-        allowedRegions.add("us-central1");
-        summaries.forEach(summary -> summary.allowedStorageRegions(allowedRegions));
-
         return new MetadataEnumeration<DatasetSummary>()
             .items(summaries)
             .total(total);
@@ -564,7 +559,8 @@ public class DatasetDao {
                 .description(rs.getString("description"))
                 .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class))
-                .createdDate(rs.getTimestamp("created_date").toInstant());
+                .createdDate(rs.getTimestamp("created_date").toInstant())
+                .datasetRegion(rs.getString("region"));
 
         }
     }

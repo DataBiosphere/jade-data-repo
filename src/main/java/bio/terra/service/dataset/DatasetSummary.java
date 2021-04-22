@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public class DatasetSummary {
@@ -10,6 +11,7 @@ public class DatasetSummary {
     private UUID defaultProfileId;
     private UUID projectResourceId;
     private Instant createdDate;
+    private List<String> allowedStorageRegions;
 
     public UUID getId() {
         return id;
@@ -62,6 +64,13 @@ public class DatasetSummary {
 
     public DatasetSummary createdDate(Instant createdDate) {
         this.createdDate = createdDate;
+        return this;
+    }
+
+    public List<String> getAllowedStorageRegions() { return allowedStorageRegions; }
+
+    public DatasetSummary allowedStorageRegions(List<String> allowedStorageRegions) {
+        this.allowedStorageRegions = allowedStorageRegions;
         return this;
     }
 }

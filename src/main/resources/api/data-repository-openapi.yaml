@@ -505,21 +505,14 @@ paths:
           in: query
           description: The field to use for sorting.
           schema:
-            type: string
             default: created_date
-            enum:
-              - name
-              - description
-              - created_date
+            $ref: '#/components/schemas/EnumerateSortByParam'
         - name: direction
           in: query
           description: The direction to sort.
           schema:
-            type: string
-            default: desc
-            enum:
-              - asc
-              - desc
+            default: asc
+            $ref: '#/components/schemas/SqlSortDirection'
         - name: filter
           in: query
           description: Filter the results where this string is a case insensitive match
@@ -984,21 +977,14 @@ paths:
           in: query
           description: The field to use for sorting.
           schema:
-            type: string
             default: created_date
-            enum:
-              - name
-              - description
-              - created_date
+            $ref: '#/components/schemas/EnumerateSortByParam'
         - name: direction
           in: query
           description: The direction to sort.
           schema:
-            type: string
-            default: desc
-            enum:
-              - asc
-              - desc
+            default: asc
+            $ref: '#/components/schemas/SqlSortDirection'
         - name: filter
           in: query
           description: Filter the results where this string is a case insensitive match
@@ -2515,6 +2501,16 @@ components:
       enum: [ boolean, bytes, date, datetime, dirref, fileref, float, float64, integer, int64, numeric, record, string, text, time, timestamp ]
       description: >
         The type of a column in a table.
+    SqlSortDirection:
+      type: string
+      enum: [ asc, desc ]
+      description: >
+        The sort direction of a query result
+    EnumerateSortByParam:
+      type: string
+      enum: [ name, description, created_date ]
+      description: >
+        Fields datasets and snapshots can be sorted by.
     ObjectNameProperty:
       maxLength: 63
       minLength: 1
@@ -2656,6 +2652,10 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
+        allowedStorageRegions:
+          type: array
+          items:
+            type: string
       description: >
         Summary of a dataset.
     DatasetRequestModel:

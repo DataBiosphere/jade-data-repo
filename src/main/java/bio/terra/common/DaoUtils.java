@@ -1,5 +1,7 @@
 package bio.terra.common;
 
+import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.SqlSortDirection;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.dao.DataAccessException;
@@ -20,8 +22,8 @@ public final class DaoUtils {
     private DaoUtils() {
     }
 
-    public static String orderByClause(String sort, String direction) {
-        if (sort == null || sort.isEmpty() || direction == null || direction.isEmpty()) {
+    public static String orderByClause(EnumerateSortByParam sort, SqlSortDirection direction) {
+        if (sort == null || direction == null) {
             return "";
         }
         return new StringBuilder(" ORDER BY ")

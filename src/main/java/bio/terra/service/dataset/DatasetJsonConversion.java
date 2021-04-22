@@ -67,7 +67,8 @@ public final class DatasetJsonConversion {
                 .name(dataset.getName())
                 .description(dataset.getDescription())
                 .createdDate(dataset.getCreatedDate().toString())
-                .defaultProfileId(dataset.getDefaultProfileId().toString());
+                .defaultProfileId(dataset.getDefaultProfileId().toString())
+                .allowedStorageRegions(dataset.getAllowedStorageRegions());
 
     }
 

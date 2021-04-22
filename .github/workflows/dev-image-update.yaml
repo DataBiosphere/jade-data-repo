@@ -69,7 +69,7 @@ jobs:
           helm_env_prefix: dev
       - name: 'Release Candidate Container Build: Checkout tag for DataBiosphere/jade-data-repo'
         run: |
-          git pull origin develop
+          git fetch --all --tags
           git checkout ${{ steps.bumperstep.outputs.tag }}
       - name: 'Release Candidate Container Build: Checkout DataBiosphere/jade-data-repo-ui repo'
         uses: actions/checkout@v2

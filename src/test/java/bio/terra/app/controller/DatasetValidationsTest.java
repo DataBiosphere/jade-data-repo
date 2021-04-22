@@ -365,9 +365,9 @@ public class DatasetValidationsTest {
         expectBadDatasetEnumerateRequest(-1, 0, null, null, expected,
             Arrays.asList("offset must be greater than or equal to 0.", "limit must be greater than or equal to 1."));
         expectBadDatasetEnumerateRequest(0, 10, "invalid", null, expected,
-            Collections.singletonList("sort must be one of: (name, description, created_date)."));
+            Collections.singletonList("sort must be one of: [name, description, created_date]."));
         expectBadDatasetEnumerateRequest(0, 10, "name", "invalid", expected,
-            Collections.singletonList("direction must be one of: (asc, desc)."));
+            Collections.singletonList("direction must be one of: [asc, desc]."));
     }
 
     @Test

@@ -450,7 +450,12 @@ public class DatasetDao {
                 sql += " AND flightid IS NULL";
             }
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-            return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
+            DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
+            // TODO - REPLACE THIS WITH DATABASE QUERY!
+            List<String> allowedRegions = new ArrayList();
+            allowedRegions.add("us-central1");
+            summary.allowedStorageRegions(allowedRegions);
+            return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for id " + id.toString());
         }
@@ -462,7 +467,12 @@ public class DatasetDao {
                 summaryQueryColumns +
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
-            return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
+            DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
+            // TODO - REPLACE THIS WITH DATABASE QUERY!
+            List<String> allowedRegions = new ArrayList();
+            allowedRegions.add("us-central1");
+            summary.allowedStorageRegions(allowedRegions);
+            return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for name " + name);
         }
@@ -515,6 +525,11 @@ public class DatasetDao {
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
+
+        //TODO - Add query to gather regions
+        List<String> allowedRegions = new ArrayList<>();
+        allowedRegions.add("us-central1");
+        summaries.forEach(summary -> summary.allowedStorageRegions(allowedRegions));
 
         return new MetadataEnumeration<DatasetSummary>()
             .items(summaries)

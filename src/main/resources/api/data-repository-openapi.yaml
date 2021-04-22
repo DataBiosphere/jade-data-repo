@@ -2652,6 +2652,10 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
+        allowedStorageRegions:
+          type: array
+            items:
+              type: string
       description: >
         Summary of a dataset.
     DatasetRequestModel:

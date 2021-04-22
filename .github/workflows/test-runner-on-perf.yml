@@ -22,7 +22,7 @@ jobs:
           CURRENT_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Current Version: $CURRENT_VERSION"
           echo "::set-output name=CURRENT_SEMVER::$CURRENT_VERSION"
-          read  -d "\n" LATEST_GITHASH LATEST_VERSION <<<$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash,.semVer|rtrimstr("-SNAPSHOT")')
+          read LATEST_GITHASH LATEST_VERSION <<<$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash,.semVer|rtrimstr("-SNAPSHOT")')
           echo "Latest Version: $LATEST_VERSION"
           echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
           echo "Latest git hash: $LATEST_GITHASH"

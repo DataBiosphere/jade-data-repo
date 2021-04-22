@@ -177,27 +177,27 @@ jobs:
         with:
           actions_subcommand: 'gcp_whitelist_clean'
           google_project: broad-jade-perf
-      - name: "Notify Jade Slack"
-        if: always()
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#jade-alerts"
-          username: "Data Repo tests"
-          text: "Perf tests"
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
-      - name: "Notify QA Slack"
-        if: ${{ github.event_name != 'workflow_dispatch' && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#dsde-qa"
-          username: "Data Repo tests"
-          text: "Perf tests"
-          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      # - name: "Notify Jade Slack"
+      #   if: always()
+      #   uses: broadinstitute/action-slack@v3.8.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: "#jade-alerts"
+      #     username: "Data Repo tests"
+      #     text: "Perf tests"
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+      # - name: "Notify QA Slack"
+      #   if: ${{ github.event_name != 'workflow_dispatch' && always() }}
+      #   uses: broadinstitute/action-slack@v3.8.0
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      #   with:
+      #     status: ${{ job.status }}
+      #     channel: "#dsde-qa"
+      #     username: "Data Repo tests"
+      #     text: "Perf tests"
+      #     fields: repo,message,commit,author,action,eventName,ref,workflow,job,took

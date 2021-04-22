@@ -11,6 +11,9 @@ public class DatasetSummary {
     private UUID defaultProfileId;
     private UUID projectResourceId;
     private Instant createdDate;
+    //TODO - Use enum instead
+    //Q: do we still need these both?
+    private String datasetRegion;
     private List<String> allowedStorageRegions;
 
     public UUID getId() {
@@ -64,6 +67,15 @@ public class DatasetSummary {
 
     public DatasetSummary createdDate(Instant createdDate) {
         this.createdDate = createdDate;
+        return this;
+    }
+
+    public String getDatasetRegion() {
+        return datasetRegion;
+    }
+
+    public DatasetSummary datasetRegion(String datasetRegion) {
+        this.datasetRegion = datasetRegion;
         return this;
     }
 

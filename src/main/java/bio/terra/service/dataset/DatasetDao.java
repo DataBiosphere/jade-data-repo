@@ -14,6 +14,7 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import com.google.cloud.storage.Storage;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +39,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
@@ -451,10 +453,7 @@ public class DatasetDao {
             }
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            // TODO - REPLACE THIS WITH DATABASE QUERY!
-            List<String> allowedRegions = new ArrayList();
-            allowedRegions.add("us-central1");
-            summary.allowedStorageRegions(allowedRegions);
+            setAllowedRegionsForDataset(summary);
             return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for id " + id.toString());
@@ -468,13 +467,32 @@ public class DatasetDao {
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            // TODO - REPLACE THIS WITH DATABASE QUERY!
-            List<String> allowedRegions = new ArrayList();
-            allowedRegions.add("us-central1");
-            summary.allowedStorageRegions(allowedRegions);
+            setAllowedRegionsForDataset(summary);
             return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for name " + name);
+        }
+    }
+
+
+    /**
+     *
+     */
+    public void setAllowedRegionsForDataset(DatasetSummary summary){
+        // TODO - Discuss - this might be over-complicated - do we still need to gather the regions on the buckets?
+        String sql = "Select b.region from bucket_resource b JOIN dataset_bucket db on b.id = db.bucket_resource_id\n" +
+            "JOIN dataset d on db.dataset_id = d.id where d.id=:id;";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", summary.getId());
+        // TODO - Use Enum for storage object
+        List<String> regions = jdbcTemplate.queryForObject(sql, params, new RegionMapper());
+        regions.add(summary.getDatasetRegion());
+        summary.allowedStorageRegions(regions.stream().distinct().collect(Collectors.toList()));
+    }
+
+    //TODO - convert to enum!!!
+    private static class RegionMapper implements RowMapper<List<String>> {
+        public List<String> mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new ArrayList<>();
         }
     }
 
@@ -535,6 +553,8 @@ public class DatasetDao {
             .items(summaries)
             .total(total);
     }
+
+
 
     private static class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
         public DatasetSummary mapRow(ResultSet rs, int rowNum) throws SQLException {

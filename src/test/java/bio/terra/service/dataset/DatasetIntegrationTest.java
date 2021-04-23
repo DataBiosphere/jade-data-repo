@@ -138,6 +138,7 @@ public class DatasetIntegrationTest extends UsersBase {
                     assertThat(oneDataset.getName(), startsWith(omopDatasetName));
                     assertThat(oneDataset.getDescription(), equalTo(omopDatasetDesc));
                     assertThat(oneDataset.getDatasetRegion(), equalTo(omopDatasetRegion));
+                    //assertThat(oneDataset.getAllowedStorageRegions().get(0), equalTo(omopDatasetRegion));
                     found = true;
                     break;
                 }

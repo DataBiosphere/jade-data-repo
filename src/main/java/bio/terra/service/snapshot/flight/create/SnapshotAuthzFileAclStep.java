@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.app.controller.exception.ApiException;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -75,15 +76,22 @@ public class SnapshotAuthzFileAclStep implements Step {
             // we will log alot and retry on that.
             logger.info("Caught Storage Exception: " + ex.getMessage()
                 + " reason: " + ex.getReason(), ex);
-            if (ex.getCode() == 400 && (StringUtils.equals(ex.getReason(), "badRequest") ||
-                 ex.getMessage().contains("Could not find group"))) {
+            if (ex.getCode() == 400 && (StringUtils.equals(ex.getReason(), "badRequest"))) {
                 logger.info("Maybe caught an ACL propagation error: " + ex.getMessage()
                     + " reason: " + ex.getReason(), ex);
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
             }
+            throw ex;
+        } catch (ApiException ex) {
+            logger.info("ApiException, potentially catching an ACL propagation error.");
+            logger.info("Cause: {}", ex.getCause());
+            if (ex.getCause().getMessage().contains("Could not find group")) {
+                logger.info("retrying! Could not find group ACL exception");
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+            }
+            throw ex;
         } catch (Exception ex) {
-            logger.info("Caught Storage Exception: " + ex.getMessage()
-                + " localized message: " + ex.getLocalizedMessage(), ex);
+            logger.info("OTHER exception. cause: {}", ex.getCause());
             throw ex;
         }
 

@@ -14,7 +14,6 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import com.google.cloud.storage.Storage;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +38,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
@@ -482,8 +480,9 @@ public class DatasetDao {
      */
 //    public void setAllowedRegionsForDataset(DatasetSummary summary){
 //        // TODO - Discuss - this might be over-complicated - do we still need to gather the regions on the buckets?
-//        String sql = "Select b.region from bucket_resource b JOIN dataset_bucket db on b.id = db.bucket_resource_id\n" +
-//            "JOIN dataset d on db.dataset_id = d.id where d.id=:id;";
+//        String sql = "Select b.region from bucket_resource b JOIN dataset_bucket db" +
+//              " on b.id = db.bucket_resource_id\n" +
+//              "JOIN dataset d on db.dataset_id = d.id where d.id=:id;";
 //        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", summary.getId());
 //        // TODO - Use Enum for storage object
 //        List<String> regions = jdbcTemplate.queryForObject(sql, params, new RegionMapper());

@@ -307,7 +307,7 @@ public class DatasetDao {
             .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
             .addValue("description", dataset.getDescription())
-            .addValue("region", "us-central1"); //TODO - pull in from create request
+            .addValue("region", "us-central1"); //TODO - DR-1751 - pull in from create request
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
             jdbcTemplate.update(sql, params, keyHolder);

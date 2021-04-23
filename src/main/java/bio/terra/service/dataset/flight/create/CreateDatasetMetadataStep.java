@@ -17,8 +17,6 @@ import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 
@@ -47,10 +45,6 @@ public class CreateDatasetMetadataStep implements Step {
 
             DatasetSummaryModel datasetSummary =
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(newDataset.getDatasetSummary());
-            // TODO - set as part of request for dataset create
-            List<String> allowedRegions = new ArrayList();
-            allowedRegions.add("us-central1");
-            datasetSummary.setAllowedStorageRegions(allowedRegions);
 
             workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);
             return StepResult.getStepResultSuccess();

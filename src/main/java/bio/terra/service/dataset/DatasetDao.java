@@ -539,7 +539,7 @@ public class DatasetDao {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
         String sql = "SELECT " +
-            "id, name, description, default_profile_id, project_resource_id, created_date " +
+            "id, name, description, default_profile_id, project_resource_id, created_date, region " +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
@@ -562,7 +562,6 @@ public class DatasetDao {
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class))
                 .createdDate(rs.getTimestamp("created_date").toInstant())
                 .datasetRegion(rs.getString("region"));
-
         }
     }
 

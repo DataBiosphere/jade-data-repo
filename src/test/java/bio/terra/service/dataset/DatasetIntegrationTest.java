@@ -74,6 +74,7 @@ public class DatasetIntegrationTest extends UsersBase {
     private static final String omopDatasetName = "it_dataset_omop";
     private static final String omopDatasetDesc =
         "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
+    private static final String omopDatasetRegion = "us-central1";
     private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 
     @Autowired private DataRepoClient dataRepoClient;
@@ -136,6 +137,7 @@ public class DatasetIntegrationTest extends UsersBase {
                 if (oneDataset.getId().equals(datasetModel.getId())) {
                     assertThat(oneDataset.getName(), startsWith(omopDatasetName));
                     assertThat(oneDataset.getDescription(), equalTo(omopDatasetDesc));
+                    assertThat(oneDataset.getDatasetRegion(), equalTo(omopDatasetRegion));
                     found = true;
                     break;
                 }

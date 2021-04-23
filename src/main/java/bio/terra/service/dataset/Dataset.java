@@ -150,6 +150,15 @@ public class Dataset implements FSContainerInterface {
         return this;
     }
 
+    public String getDatasetRegion() {
+        return datasetSummary.getDatasetRegion();
+    }
+
+    public Dataset datasetRegion(String datasetRegion) {
+        datasetSummary.datasetRegion(datasetRegion);
+        return this;
+    }
+
     public UUID getProjectResourceId() {
         return datasetSummary.getProjectResourceId();
     }

@@ -14,7 +14,7 @@ public class DatasetSummary {
     //TODO - Use enum instead
     //Q: do we still need these both?
     private String datasetRegion;
-    private List<String> allowedStorageRegions;
+    //private List<String> allowedStorageRegions;
 
     public UUID getId() {
         return id;
@@ -79,10 +79,10 @@ public class DatasetSummary {
         return this;
     }
 
-    public List<String> getAllowedStorageRegions() { return allowedStorageRegions; }
-
-    public DatasetSummary allowedStorageRegions(List<String> allowedStorageRegions) {
-        this.allowedStorageRegions = allowedStorageRegions;
-        return this;
-    }
+//    public List<String> getAllowedStorageRegions() { return allowedStorageRegions; }
+//
+//    public DatasetSummary allowedStorageRegions(List<String> allowedStorageRegions) {
+//        this.allowedStorageRegions = allowedStorageRegions;
+//        return this;
+//    }
 }

@@ -2635,6 +2635,9 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
+        datasetRegion:
+          type: string
+          description: Storage region for big query dataset
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -2652,10 +2655,14 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
+        datasetRegion:
+          type: string
+          description: Storage region for big query dataset
         allowedStorageRegions:
           type: array
           items:
             type: string
+          description: List of storage regions for dataset and all connected buckets
       description: >
         Summary of a dataset.
     DatasetRequestModel:

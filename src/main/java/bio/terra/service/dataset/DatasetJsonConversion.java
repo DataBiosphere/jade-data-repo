@@ -68,7 +68,8 @@ public final class DatasetJsonConversion {
                 .description(dataset.getDescription())
                 .createdDate(dataset.getCreatedDate().toString())
                 .defaultProfileId(dataset.getDefaultProfileId().toString())
-                .allowedStorageRegions(dataset.getAllowedStorageRegions());
+                .datasetRegion(dataset.getDatasetRegion());
+                //.allowedStorageRegions(dataset.getAllowedStorageRegions());
 
     }
 
@@ -80,7 +81,8 @@ public final class DatasetJsonConversion {
                 .defaultProfileId(dataset.getDefaultProfileId().toString())
                 .createdDate(dataset.getCreatedDate().toString())
                 .schema(datasetSpecificationModelFromDatasetSchema(dataset))
-                .dataProject(dataset.getProjectResource().getGoogleProjectId());
+                .dataProject(dataset.getProjectResource().getGoogleProjectId())
+                 .datasetRegion(dataset.getDatasetRegion());
     }
 
     public static DatasetSpecificationModel datasetSpecificationModelFromDatasetSchema(Dataset dataset) {

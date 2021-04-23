@@ -298,8 +298,9 @@ public class DatasetDao {
     public void createAndLock(Dataset dataset, String flightId) throws IOException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
-            "(name, default_profile_id, id, project_resource_id, flightid, description, sharedlock) " +
-            "VALUES (:name, :default_profile_id, :id, :project_resource_id, :flightid, :description, ARRAY[]::TEXT[]) ";
+            "(name, default_profile_id, id, project_resource_id, flightid, description, sharedlock, region) " +
+            "VALUES (:name, :default_profile_id, :id, :project_resource_id, :flightid, :description," +
+            " ARRAY[]::TEXT[], :region) ";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
@@ -307,7 +308,8 @@ public class DatasetDao {
             .addValue("project_resource_id", dataset.getProjectResourceId())
             .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
-            .addValue("description", dataset.getDescription());
+            .addValue("description", dataset.getDescription())
+            .addValue("region", "us-central1"); //TODO - pull in from create request
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
             jdbcTemplate.update(sql, params, keyHolder);
@@ -453,7 +455,7 @@ public class DatasetDao {
             }
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            setAllowedRegionsForDataset(summary);
+            //setAllowedRegionsForDataset(summary);
             return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for id " + id.toString());
@@ -467,7 +469,7 @@ public class DatasetDao {
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            setAllowedRegionsForDataset(summary);
+            //setAllowedRegionsForDataset(summary);
             return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for name " + name);
@@ -478,23 +480,23 @@ public class DatasetDao {
     /**
      *
      */
-    public void setAllowedRegionsForDataset(DatasetSummary summary){
-        // TODO - Discuss - this might be over-complicated - do we still need to gather the regions on the buckets?
-        String sql = "Select b.region from bucket_resource b JOIN dataset_bucket db on b.id = db.bucket_resource_id\n" +
-            "JOIN dataset d on db.dataset_id = d.id where d.id=:id;";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", summary.getId());
-        // TODO - Use Enum for storage object
-        List<String> regions = jdbcTemplate.queryForObject(sql, params, new RegionMapper());
-        regions.add(summary.getDatasetRegion());
-        summary.allowedStorageRegions(regions.stream().distinct().collect(Collectors.toList()));
-    }
-
-    //TODO - convert to enum!!!
-    private static class RegionMapper implements RowMapper<List<String>> {
-        public List<String> mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new ArrayList<>();
-        }
-    }
+//    public void setAllowedRegionsForDataset(DatasetSummary summary){
+//        // TODO - Discuss - this might be over-complicated - do we still need to gather the regions on the buckets?
+//        String sql = "Select b.region from bucket_resource b JOIN dataset_bucket db on b.id = db.bucket_resource_id\n" +
+//            "JOIN dataset d on db.dataset_id = d.id where d.id=:id;";
+//        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", summary.getId());
+//        // TODO - Use Enum for storage object
+//        List<String> regions = jdbcTemplate.queryForObject(sql, params, new RegionMapper());
+//        regions.add(summary.getDatasetRegion());
+//        summary.allowedStorageRegions(regions.stream().distinct().collect(Collectors.toList()));
+//    }
+//
+//    //TODO - convert to enum!!!
+//    private static class RegionMapper implements RowMapper<List<String>> {
+//        public List<String> mapRow(ResultSet rs, int rowNum) throws SQLException {
+//            return new ArrayList<>();
+//        }
+//    }
 
     /**
      * Fetch a list of all the available datasets.

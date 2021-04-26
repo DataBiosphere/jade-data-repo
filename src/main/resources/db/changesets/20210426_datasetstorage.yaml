@@ -1,10 +1,10 @@
 databaseChangeLog:
   - changeSet:
-      id: dataset_storage
+      id: storage_resource
       author: se
       changes:
         - createTable:
-            tableName: dataset_storage
+            tableName: storage_resource
             columns:
               - column:
                   name: id
@@ -27,7 +27,12 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: storage_type
+                  name: cloud_resource
+                  type: string
+                  constraints:
+                    nullable: false
+              - column:
+                  name: cloud_platform
                   type: string
                   constraints:
                     nullable: false

@@ -23,17 +23,17 @@ databaseChangeLog:
                     deleteCascade: true
               - column:
                   name: region
-                  type: ${identifier_type}
+                  type: text
                   constraints:
                     nullable: false
               - column:
                   name: cloud_resource
-                  type: string
+                  type: text
                   constraints:
                     nullable: false
               - column:
                   name: cloud_platform
-                  type: string
+                  type: text
                   constraints:
                     nullable: false
         - dropColumn:

@@ -36,3 +36,9 @@ databaseChangeLog:
                   type: string
                   constraints:
                     nullable: false
+        - dropColumn:
+            tableName: bucket_resource
+            columns:
+              - column:
+                  name: region
+                  type: text

@@ -10,6 +10,8 @@ import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.profile.ProfileDao;
@@ -113,8 +115,8 @@ public class DatasetDaoTest {
         datasetIds.add(dataset1);
         datasetIds.add(dataset2);
 
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.enumerate(0, 2, "created_date",
-            "asc", null, datasetIds);
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.enumerate(0, 2,
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null, datasetIds);
         List<DatasetSummary> datasets = summaryEnum.getItems();
         assertThat("dataset enumerate limit param works",
             datasets.size(),
@@ -127,7 +129,8 @@ public class DatasetDaoTest {
         // this is skipping the first item returned above
         // so compare the id from the previous retrieve
         assertThat("dataset enumerate offset param works",
-            datasetDao.enumerate(1, 1, "created_date", "asc", null, datasetIds)
+            datasetDao.enumerate(1, 1, EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC,
+                null, datasetIds)
                 .getItems().get(0).getId(),
             equalTo(datasets.get(1).getId()));
 

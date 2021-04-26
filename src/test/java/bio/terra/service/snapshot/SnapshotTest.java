@@ -20,7 +20,10 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
+import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.TableResult;
 import org.junit.After;
 import org.junit.Before;
@@ -45,6 +48,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -65,6 +69,8 @@ public class SnapshotTest extends UsersBase {
 
     @Autowired
     private AuthService authService;
+    @Autowired private BigQueryPdao bigQueryPdao;
+
 
     private static final Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
     private String profileId;
@@ -320,6 +326,97 @@ public class SnapshotTest extends UsersBase {
             requestModel, false);
 
         createdSnapshotIds.add(snapshotSummary.getId());
+    }
+
+    @Test
+    public void snapshotAclTest() throws Exception {
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+
+        String datasetName = dataset.getName();
+
+        logger.info("---- Dataset Acls before snapshot create-----");
+        int datasetAclCount = fetchSourceDatasetAcls(datasetName).size();
+
+        //-------------------Create Snapshot----------------
+        SnapshotRequestModel requestModel =
+            jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
+        // swap in the correct dataset name (with the id at the end)
+        requestModel.getContents().get(0).setDatasetName(datasetName);
+        SnapshotSummaryModel snapshotSummary =
+            dataRepoFixtures.createSnapshotWithRequest(steward(),
+                datasetName,
+                profileId,
+                requestModel);
+        createdSnapshotIds.add(snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+        assertEquals("There should be 5 snapshot relationships", snapshot.getRelationships().size(), 5);
+
+        // fetch Acls
+        logger.info("---- Dataset Acls after snapshot create-----");
+        int datasetPlusSnapshotCount = retryAclUpdate(datasetName, datasetAclCount, AclCheck.GREATERTHAN);
+        assertThat("There should be more Acls on the dataset after snapshot create",
+            datasetPlusSnapshotCount, greaterThan(datasetAclCount));
+
+        //-----------delete snapshot------------
+        dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
+        logger.info("---- Dataset Acls after snapshot delete-----");
+        int datasetMinusSnapshotAclCount = retryAclUpdate(datasetName, datasetAclCount, AclCheck.EQUALTO);
+        assertEquals("We should be back to the same number of Acls on the dataset after snapshot delete",
+            datasetAclCount, datasetMinusSnapshotAclCount);
+    }
+
+    private List<Acl> fetchSourceDatasetAcls(String datasetName) throws Exception {
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+        BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+
+        // Fetch BQ Dataset
+        String bqDatasetName = bigQueryPdao.prefixName(datasetName);
+        Dataset bqDataset = bigQuery.getDataset(bqDatasetName);
+
+        // fetch Acls
+        List<Acl> acls = bqDataset.getAcl();
+
+        acls.forEach(acl ->  logger.info("Acl: {}", acl));
+        return acls;
+    }
+
+    enum AclCheck {
+        GREATERTHAN {
+            boolean compare(int snapshotCount, int aclCount) {
+                return snapshotCount > aclCount;
+            }
+        },
+        EQUALTO {
+            boolean compare(int snapshotCount, int aclCount) {
+                return snapshotCount == aclCount;
+            }
+        };
+        abstract boolean compare(int snapshotCount, int aclCount);
+    }
+
+    private int retryAclUpdate(String datasetName, int datasetAclCount, AclCheck check) throws Exception {
+        double maxDelayInSeconds = 60;
+        int waitInterval;
+        // Google claims it can take up to 7 minutes to update Acls
+        int sevenMinutePlusBuffer = (int)TimeUnit.MINUTES.toSeconds(7) + 20;
+        int datasetPlusSnapshotCount = 0;
+        int totalWaitTime = 0;
+        int n = 1;
+        while (totalWaitTime < sevenMinutePlusBuffer) {
+            datasetPlusSnapshotCount = fetchSourceDatasetAcls(datasetName).size();
+            if (check.compare(datasetPlusSnapshotCount, datasetAclCount)) {
+                break;
+            }
+            double delayInSeconds =  ((1d / 2d) * (Math.pow(2d, n) - 1d));
+            waitInterval = (int)Math.min(maxDelayInSeconds, delayInSeconds);
+            totalWaitTime += waitInterval;
+            logger.info("retryAclUpdate: sleeping {} seconds, totaling {} seconds waiting",
+                waitInterval, totalWaitTime);
+            TimeUnit.SECONDS.sleep(waitInterval);
+            n++;
+        }
+        return datasetPlusSnapshotCount;
     }
 
 }

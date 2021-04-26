@@ -38,6 +38,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
@@ -54,7 +55,7 @@ public class DatasetDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
     private static final String summaryQueryColumns =
-        " id, name, description, default_profile_id, project_resource_id, created_date ";
+        " id, name, description, default_profile_id, project_resource_id, created_date, region ";
 
     @Autowired
     public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,
@@ -296,8 +297,9 @@ public class DatasetDao {
     public void createAndLock(Dataset dataset, String flightId) throws IOException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
-            "(name, default_profile_id, id, project_resource_id, flightid, description, sharedlock) " +
-            "VALUES (:name, :default_profile_id, :id, :project_resource_id, :flightid, :description, ARRAY[]::TEXT[]) ";
+            "(name, default_profile_id, id, project_resource_id, flightid, description, sharedlock, region) " +
+            "VALUES (:name, :default_profile_id, :id, :project_resource_id, :flightid, :description," +
+            " ARRAY[]::TEXT[], :region) ";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
@@ -305,7 +307,8 @@ public class DatasetDao {
             .addValue("project_resource_id", dataset.getProjectResourceId())
             .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
-            .addValue("description", dataset.getDescription());
+            .addValue("description", dataset.getDescription())
+            .addValue("region", "us-central1"); //TODO - DR-1751 - pull in from create request
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
             jdbcTemplate.update(sql, params, keyHolder);
@@ -451,10 +454,7 @@ public class DatasetDao {
             }
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            // TODO - REPLACE THIS WITH DATABASE QUERY!
-            List<String> allowedRegions = new ArrayList();
-            allowedRegions.add("us-central1");
-            summary.allowedStorageRegions(allowedRegions);
+            setAllowedRegionsForDataset(summary);
             return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for id " + id.toString());
@@ -468,13 +468,38 @@ public class DatasetDao {
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            // TODO - REPLACE THIS WITH DATABASE QUERY!
-            List<String> allowedRegions = new ArrayList();
-            allowedRegions.add("us-central1");
-            summary.allowedStorageRegions(allowedRegions);
+            setAllowedRegionsForDataset(summary);
             return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for name " + name);
+        }
+    }
+
+
+    /**
+     *
+     */
+    public void setAllowedRegionsForDataset(DatasetSummary summary) {
+        // TODO - Discuss - this might be over-complicated - do we still need to gather the regions on the buckets?
+        List<String> regions = new ArrayList<>();
+        try {
+            String sql = "Select b.region from bucket_resource b JOIN dataset_bucket db" +
+                " on b.id = db.bucket_resource_id\n" +
+                "JOIN dataset d on db.dataset_id = d.id where d.id=:id;";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", summary.getId());
+            // TODO - Use Enum for storage object
+            regions = jdbcTemplate.queryForObject(sql, params, new RegionMapper());
+        } catch (Exception ex) {
+            logger.info("Unable to retrieve any buckets for this dataset.", ex.getMessage());
+        }
+        regions.add(summary.getDatasetRegion());
+        summary.allowedStorageRegions(regions.stream().distinct().collect(Collectors.toList()));
+    }
+
+    //TODO - convert to enum!!!
+    private static class RegionMapper implements RowMapper<List<String>> {
+        public List<String> mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new ArrayList<>();
         }
     }
 
@@ -520,21 +545,18 @@ public class DatasetDao {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
         String sql = "SELECT " +
-            "id, name, description, default_profile_id, project_resource_id, created_date " +
+            "id, name, description, default_profile_id, project_resource_id, created_date, region " +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
 
-        //TODO - Add query to gather regions
-        List<String> allowedRegions = new ArrayList<>();
-        allowedRegions.add("us-central1");
-        summaries.forEach(summary -> summary.allowedStorageRegions(allowedRegions));
-
         return new MetadataEnumeration<DatasetSummary>()
             .items(summaries)
             .total(total);
     }
+
+
 
     private static class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
         public DatasetSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -544,8 +566,8 @@ public class DatasetDao {
                 .description(rs.getString("description"))
                 .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class))
-                .createdDate(rs.getTimestamp("created_date").toInstant());
-
+                .createdDate(rs.getTimestamp("created_date").toInstant())
+                .datasetRegion(rs.getString("region"));
         }
     }
 

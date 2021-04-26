@@ -168,6 +168,12 @@ public class DatasetDaoTest {
                 fromDB.getAssetSpecifications().size(),
                 equalTo(2));
             fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+
+            //TODO - DR-1751 - set region and create and verify set correctly
+            // verify the region is set
+            assertThat("dataset region is set",
+                fromDB.getDatasetRegion(),
+                equalTo("us-central1"));
         } finally {
             datasetDao.delete(datasetId);
         }

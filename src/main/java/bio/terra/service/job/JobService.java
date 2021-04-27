@@ -124,7 +124,6 @@ public class JobService {
             List<String> recordedStairways;
 
             boolean dropAllOnStart = getDropAllOnStart();
-            
             migrate.migrateDatabase(dropAllOnStart);
 
             // Initialize stairway - only do the stairway migration if we did the data repo migration

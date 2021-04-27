@@ -80,30 +80,6 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
-      - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.59.0
-        with:
-          actions_subcommand: 'gcp_whitelist'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
-      - name: "Check for an available namespace to deploy API to and set state lock"
-        uses: broadinstitute/datarepo-actions/actions/main@0.59.0
-        with:
-          actions_subcommand: 'k8_checknamespace'
-          k8_namespaces: 'integration-2'
-      - name: "Build docker container via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.59.0
-        with:
-          actions_subcommand: 'gradlebuild'
-      # - name: "Deploy to cluster with Helm"
-      #   uses: broadinstitute/datarepo-actions/actions/main@0.59.0
-      #   with:
-      #     actions_subcommand: 'helmdeploy'
-      #     helm_create_secret_manager_secret_version: '0.0.6'
-      #     helm_datarepo_api_chart_version: 0.0.74
-      #     helm_datarepo_ui_chart_version: 0.0.68
-      #     helm_gcloud_sqlproxy_chart_version: 0.19.7
-      #     helm_oidc_proxy_chart_version: 0.0.22
       - name: "Import Vault dev secrets"
         uses: hashicorp/vault-action@v2.1.0
         with:
@@ -128,6 +104,30 @@ jobs:
           if [[ -n "${K8_CLUSTER}" ]]; then
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
+      - name: "Whitelist Runner IP"
+        uses: broadinstitute/datarepo-actions/actions/main@0.59.0
+        with:
+          actions_subcommand: 'gcp_whitelist'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
+      - name: "Check for an available namespace to deploy API to and set state lock"
+        uses: broadinstitute/datarepo-actions/actions/main@0.59.0
+        with:
+          actions_subcommand: 'k8_checknamespace'
+          k8_namespaces: 'integration-2'
+      - name: "Build docker container via Gradle"
+        uses: broadinstitute/datarepo-actions/actions/main@0.59.0
+        with:
+          actions_subcommand: 'gradlebuild'
+      # - name: "Deploy to cluster with Helm"
+      #   uses: broadinstitute/datarepo-actions/actions/main@0.59.0
+      #   with:
+      #     actions_subcommand: 'helmdeploy'
+      #     helm_create_secret_manager_secret_version: '0.0.6'
+      #     helm_datarepo_api_chart_version: 0.0.74
+      #     helm_datarepo_ui_chart_version: 0.0.68
+      #     helm_gcloud_sqlproxy_chart_version: 0.19.7
+      #     helm_oidc_proxy_chart_version: 0.0.22
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |
@@ -162,29 +162,8 @@ jobs:
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
-      - name: "Configure credentials for smoke tests"
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
-          GOOGLE_SA_CERT: 'jade-dev-account.pem'
-        run: |
-          # write vault tokens
-          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
-
-          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
-          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
-
-          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
-
-          gcloud auth configure-docker  --quiet
-
-          if [[ -n "${K8_CLUSTER}" ]]; then
-            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
-          fi
       - name: "Run Test Runner smoke tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.59.0
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
-          GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run Integration test via Gradle"

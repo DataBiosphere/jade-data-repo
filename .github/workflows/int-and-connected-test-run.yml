@@ -2,9 +2,9 @@ name: Integration test and Connected tests
 env:
   K8_CLUSTER: 'integration-master'
   # This must be defined for the bash redirection
-  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+  GOOGLE_APPLICATION_CREDENTIALS: '/tmp/jade-dev-account.json'
   # This must be defined for the bash redirection
-  GOOGLE_SA_CERT: 'jade-dev-account.pem'
+  GOOGLE_SA_CERT: '/tmp/jade-dev-account.pem'
   # This will make test logs not use JSON
   TDR_LOG_APPENDER: 'Console-Standard'
   GOOGLE_ZONE: 'us-central1'
@@ -162,8 +162,29 @@ jobs:
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
+      - name: "Configure credentials for smoke tests"
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+          GOOGLE_SA_CERT: 'jade-dev-account.pem'
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
+          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          gcloud auth configure-docker  --quiet
+
+          if [[ -n "${K8_CLUSTER}" ]]; then
+            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
+          fi
       - name: "Run Test Runner smoke tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.59.0
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
+          GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
           actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run Integration test via Gradle"

@@ -25,36 +25,36 @@ on:
   schedule:
     - cron: '0 4 * * *' # run at 4 AM UTC, 12PM EST.
 jobs:
-  test_connected:
-    timeout-minutes: 180
-    strategy:
-      matrix:
-        os: [ubuntu-latest]
-    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
-    runs-on: ${{ matrix.os }}
-    ## skips if pr label is 'skip-ci'
-    # run a local Postgres container in Docker for the basic check tests
-    services:
-      postgres:
-        image: postgres:11
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    steps:
-      - name: "Checkout code"
-        uses: actions/checkout@v2
-      - name: "Run Connected test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.59.0
-        with:
-          actions_subcommand: 'gradleinttest'
-          pgport: ${{ job.services.postgres.ports[5432] }}
-          test_to_run: 'testConnected'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+  # test_connected:
+  #   timeout-minutes: 180
+  #   strategy:
+  #     matrix:
+  #       os: [ubuntu-latest]
+  #   if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
+  #   runs-on: ${{ matrix.os }}
+  #   ## skips if pr label is 'skip-ci'
+  #   # run a local Postgres container in Docker for the basic check tests
+  #   services:
+  #     postgres:
+  #       image: postgres:11
+  #       env:
+  #         POSTGRES_USER: postgres
+  #         POSTGRES_PASSWORD: postgres
+  #         POSTGRES_DB: postgres
+  #       ports:
+  #         - 5432:5432
+  #       options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+  #   steps:
+  #     - name: "Checkout code"
+  #       uses: actions/checkout@v2
+  #     - name: "Run Connected test via Gradle"
+  #       uses: broadinstitute/datarepo-actions/actions/main@0.59.0
+  #       with:
+  #         actions_subcommand: 'gradleinttest'
+  #         pgport: ${{ job.services.postgres.ports[5432] }}
+  #         test_to_run: 'testConnected'
+  #         role_id: ${{ secrets.ROLE_ID }}
+  #         secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_integration:
     timeout-minutes: 180
     strategy:
@@ -97,8 +97,8 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.74
-          helm_datarepo_ui_chart_version: 0.0.68
+          helm_datarepo_api_chart_version: 0.0.73
+          helm_datarepo_ui_chart_version: 0.0.66
           helm_gcloud_sqlproxy_chart_version: 0.19.7
           helm_oidc_proxy_chart_version: 0.0.22
       - name: "Fetch gitHash for deployed integration version"
@@ -109,6 +109,7 @@ jobs:
           echo "Latest git hash for this branch: $git_hash"
       - name: "Wait for deployment to come back online"
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.59.0
+        timeout-minutes: 15
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'

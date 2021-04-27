@@ -122,10 +122,9 @@ public class JobService {
     public void initialize() {
         try {
             List<String> recordedStairways;
-            // check if we should allow DropAllOnStart
 
             boolean dropAllOnStart = getDropAllOnStart();
-
+            
             migrate.migrateDatabase(dropAllOnStart);
 
             // Initialize stairway - only do the stairway migration if we did the data repo migration

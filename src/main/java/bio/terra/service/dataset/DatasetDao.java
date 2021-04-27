@@ -7,6 +7,7 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetLockException;
@@ -14,10 +15,13 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.storage.StorageDao;
+import bio.terra.service.storage.exception.StorageResourceNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -454,7 +458,7 @@ public class DatasetDao {
             }
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            setAllowedRegionsForDataset(summary);
+            setStorage(summary);
             return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for id " + id.toString());
@@ -468,40 +472,48 @@ public class DatasetDao {
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            setAllowedRegionsForDataset(summary);
+            setStorage(summary);
             return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for name " + name);
         }
     }
 
-
-    /**
-     *
-     */
-    public void setAllowedRegionsForDataset(DatasetSummary summary) {
-        // TODO - Discuss - this might be over-complicated - do we still need to gather the regions on the buckets?
-        List<String> regions = new ArrayList<>();
-        try {
-            String sql = "Select b.region from bucket_resource b JOIN dataset_bucket db" +
-                " on b.id = db.bucket_resource_id\n" +
-                "JOIN dataset d on db.dataset_id = d.id where d.id=:id;";
-            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", summary.getId());
-            // TODO - Use Enum for storage object
-            regions = jdbcTemplate.queryForObject(sql, params, new RegionMapper());
-        } catch (Exception ex) {
-            logger.info("Unable to retrieve any buckets for this dataset.", ex.getMessage());
-        }
-        regions.add(summary.getDatasetRegion());
-        summary.allowedStorageRegions(regions.stream().distinct().collect(Collectors.toList()));
+    public void setStorage(DatasetSummary summary) {
+        StorageResourceModel testStorage = new StorageResourceModel()
+            .id("390e7a85-d47f-4531-b612-165fc977d3bd")
+            .datasetId("575d68d9-3c84-4f73-a999-4b7154cc2dd5")
+            .cloudPlatform(StorageResourceModel.CloudPlatformEnum.valueOf("gcp"))
+            .cloudResource(StorageResourceModel.CloudResourceEnum.valueOf("firestore"))
+            .region("us-central1");
+        summary.storage(testStorage);
     }
 
-    //TODO - convert to enum!!!
-    private static class RegionMapper implements RowMapper<List<String>> {
-        public List<String> mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new ArrayList<>();
-        }
-    }
+
+//    public void setAllowedRegionsForDataset(DatasetSummary summary) {
+//        // TODO - Discuss - this might be over-complicated - do we still need to gather the regions on the buckets?
+//        List<String> regions = new ArrayList<>();
+//        try {
+//            String sql = "Select b.region from bucket_resource b JOIN dataset_bucket db" +
+//                " on b.id = db.bucket_resource_id\n" +
+//                "JOIN dataset d on db.dataset_id = d.id where d.id=:id;";
+//            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", summary.getId());
+//            // TODO - Use Enum for storage object
+//            regions = jdbcTemplate.queryForObject(sql, params, new RegionMapper());
+//        } catch (Exception ex) {
+//            logger.info("Unable to retrieve any buckets for this dataset.", ex.getMessage());
+//        }
+//        regions.add(summary.getDatasetRegion());
+//        summary.allowedStorageRegions(regions.stream().distinct().collect(Collectors.toList()));
+//    }
+//
+//    //TODO - convert to enum!!!
+//    private static class RegionMapper implements RowMapper<List<String>> {
+//        public List<String> mapRow(ResultSet rs, int rowNum) throws SQLException {
+//            return new ArrayList<>();
+//        }
+//    }
+
 
     /**
      * Fetch a list of all the available datasets.
@@ -566,8 +578,7 @@ public class DatasetDao {
                 .description(rs.getString("description"))
                 .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class))
-                .createdDate(rs.getTimestamp("created_date").toInstant())
-                .datasetRegion(rs.getString("region"));
+                .createdDate(rs.getTimestamp("created_date").toInstant());
         }
     }
 

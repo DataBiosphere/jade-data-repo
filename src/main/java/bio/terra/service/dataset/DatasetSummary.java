@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import bio.terra.model.StorageResourceModel;
 
 public class DatasetSummary {
     private UUID id;
@@ -13,8 +14,8 @@ public class DatasetSummary {
     private Instant createdDate;
     //TODO - Use enum instead
     //Q: do we still need these both?
-    private String datasetRegion;
-    private List<String> allowedStorageRegions;
+    private StorageResourceModel storage;
+//    private List<String> allowedStorageRegions;
 
     public UUID getId() {
         return id;
@@ -70,21 +71,21 @@ public class DatasetSummary {
         return this;
     }
 
-    public String getDatasetRegion() {
-        return datasetRegion;
+    public StorageResourceModel getStorage() {
+        return storage;
     }
 
-    public DatasetSummary datasetRegion(String datasetRegion) {
-        this.datasetRegion = datasetRegion;
+    public DatasetSummary storage(StorageResourceModel storage) {
+        this.storage = storage;
         return this;
     }
 
-    public List<String> getAllowedStorageRegions() {
-        return allowedStorageRegions;
-    }
-
-    public DatasetSummary allowedStorageRegions(List<String> allowedStorageRegions) {
-        this.allowedStorageRegions = allowedStorageRegions;
-        return this;
-    }
+//    public List<String> getAllowedStorageRegions() {
+//        return allowedStorageRegions;
+//    }
+//
+//    public DatasetSummary allowedStorageRegions(List<String> allowedStorageRegions) {
+//        this.allowedStorageRegions = allowedStorageRegions;
+//        return this;
+//    }
 }

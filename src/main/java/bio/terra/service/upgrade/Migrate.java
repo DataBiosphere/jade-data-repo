@@ -53,7 +53,6 @@ public class Migrate {
                 new ClassLoaderResourceAccessor(),
                 new JdbcConnection(connection));
 
-            logger.info(String.format("dropAllOnStart is set to %s", dropAllOnStart));
             if (dropAllOnStart) {
                 logger.info("Dropping all db objects in the default schema");
                 liquibase.dropAll(); // drops everything in the default schema. The migrate schema should be OK

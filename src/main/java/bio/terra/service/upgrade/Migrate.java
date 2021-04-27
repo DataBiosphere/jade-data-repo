@@ -1,7 +1,6 @@
 package bio.terra.service.upgrade;
 
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.upgrade.exception.MigrateException;
 import liquibase.Contexts;
 import liquibase.Liquibase;
@@ -11,10 +10,8 @@ import liquibase.resource.ClassLoaderResourceAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -37,18 +34,12 @@ public class Migrate {
     private static final Logger logger = LoggerFactory.getLogger("bio.terra.service.upgrade");
     private final DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
-    private final GoogleResourceConfiguration resourceConfiguration;
-
-    @Autowired
-    private Environment env;
 
     @Autowired
     public Migrate(DataRepoJdbcConfiguration dataRepoJdbcConfiguration,
-                   MigrateConfiguration migrateConfiguration,
-                   GoogleResourceConfiguration resourceConfiguration) {
+                   MigrateConfiguration migrateConfiguration) {
         this.dataRepoJdbcConfiguration = dataRepoJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
-        this.resourceConfiguration = resourceConfiguration;
     }
 
     /**
@@ -74,18 +65,6 @@ public class Migrate {
         } catch (LiquibaseException | SQLException ex) {
             throw new MigrateException("Failed to migrate database from " + changesetFile, ex);
         }
-    }
-
-    /**
-     * Helper function to block "drop all on start" from happening on undesired databases
-     */
-    public boolean allowDropAllOnStart() {
-        boolean allowedProfile = Arrays.stream(env.getActiveProfiles()).anyMatch(e -> e.contains("dev")
-            || e.contains("test") || e.contains("int"));
-
-        boolean noDeleteDataProject = migrateConfiguration.getDataProjectNoDropAll().contains(
-            resourceConfiguration.getSingleDataProjectId());
-        return allowedProfile && !noDeleteDataProject;
     }
 
 }

@@ -38,10 +38,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -64,6 +66,8 @@ public class JobService {
     private final KubeService kubeService;
     private final AtomicBoolean isRunning;
     private final Migrate migrate;
+    private final Environment environment;
+    private final GoogleResourceConfiguration resourceConfiguration;
 
 
     @Autowired
@@ -75,14 +79,18 @@ public class JobService {
                       ApplicationContext applicationContext,
                       Migrate migrate,
                       ObjectMapper objectMapper,
-                      PerformanceLogger performanceLogger) throws StairwayExecutionException {
+                      PerformanceLogger performanceLogger,
+                      Environment environment,
+                      GoogleResourceConfiguration resourceConfiguration) throws StairwayExecutionException {
         this.samService = samService;
         this.appConfig = appConfig;
 
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
+        this.environment = environment;
         this.isRunning = new AtomicBoolean(true);
         this.migrate = migrate;
+        this.resourceConfiguration = resourceConfiguration;
 
         this.kubeService = new KubeService(appConfig.getPodName(), appConfig.isInKubernetes(), API_POD_FILTER);
 
@@ -116,11 +124,7 @@ public class JobService {
             List<String> recordedStairways;
             // check if we should allow DropAllOnStart
 
-            boolean allowDropAllOnStart = migrate.allowDropAllOnStart();
-            boolean dropAllOnStartConfig = migrateConfiguration.getDropAllOnStart();
-            boolean dropAllOnStart = allowDropAllOnStart && dropAllOnStartConfig;
-            logger.info("DropAllOnStart? {} => allowDropAllOnStart = {} && dropAllOnStartConfig = {}",
-                dropAllOnStart, allowDropAllOnStart, dropAllOnStartConfig);
+            boolean dropAllOnStart = getDropAllOnStart();
 
             migrate.migrateDatabase(dropAllOnStart);
 
@@ -165,6 +169,35 @@ public class JobService {
             throw new JobServiceStartupException("Stairway startup process interrupted", ex);
         }
     }
+
+    /**
+     * Helper function to block "drop all on start" from happening on undesired databases
+     */
+    public boolean allowDropAllOnStart() {
+        boolean allowedProfile = Arrays.stream(environment.getActiveProfiles()).anyMatch(e -> e.contains("dev")
+            || e.contains("test") || e.contains("int"));
+
+        List<String> dataProjectNoDrop = migrateConfiguration.getDataProjectNoDropAll();
+        boolean noDeleteDataProject = dataProjectNoDrop != null &&
+            dataProjectNoDrop.contains(resourceConfiguration.getSingleDataProjectId());
+        return allowedProfile && !noDeleteDataProject;
+    }
+
+    /**
+     * Helper function to set "drop all on start" only when two conditions are met:
+     * 1. We allow drop all on start according to allowDropAllOnStart()
+     * 2. "drop all on start" configuration set to true
+     */
+    public boolean getDropAllOnStart() {
+        boolean allowDropAllOnStart = allowDropAllOnStart();
+        boolean dropAllOnStartConfig = migrateConfiguration.getDropAllOnStart();
+        boolean dropAllOnStart = allowDropAllOnStart && dropAllOnStartConfig;
+        logger.info("DropAllOnStart? {} => allowDropAllOnStart = {} && dropAllOnStartConfig = {}",
+            dropAllOnStart, allowDropAllOnStart, dropAllOnStartConfig);
+        return dropAllOnStart;
+    }
+
+
 
     /**
      * Stop accepting jobs and shutdown stairway

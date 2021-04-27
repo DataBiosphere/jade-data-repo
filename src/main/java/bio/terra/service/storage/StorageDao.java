@@ -1,5 +1,5 @@
 package bio.terra.service.storage;
-
+import bio.terra.model.StorageResourceModel;
 import bio.terra.service.storage.exception.StorageResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -28,13 +28,13 @@ public class StorageDao {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public StorageResourceModel getStorageResourceById(UUID id) {
+    public StorageResourceModel getStorageResourceByDatasetId(UUID datasetId) {
         try {
             MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("id", id);
+                .addValue("dataset_id", datasetId);
             return jdbcTemplate.queryForObject(SQL_GET, params, new StorageDao.StorageResourceMapper());
         } catch (EmptyResultDataAccessException ex) {
-            throw new StorageResourceNotFoundException("Storage resource not found for id: " + id.toString());
+            throw new StorageResourceNotFoundException("Storage resource not found for dataset: " + datasetId.toString());
         }
     }
 
@@ -42,11 +42,11 @@ public class StorageDao {
     private static class StorageResourceMapper implements RowMapper<StorageResourceModel> {
         public StorageResourceModel mapRow(ResultSet rs, int rowNum) throws SQLException {
             String profileId = rs.getObject("id", UUID.class).toString();
-            return StorageResourceModel()
+            return new StorageResourceModel()
                 .id(profileId)
-                .datasetId(rs.getObject("dataset_id", UUID.class))
-                .cloudPlatform(rs.getString("cloud_platform"))
-                .cloudResource(rs.getString("cloud_resource"))
+                .datasetId(rs.getObject("dataset_id", UUID.class).toString())
+                .cloudPlatform(StorageResourceModel.CloudPlatformEnum.valueOf(rs.getString("cloud_platform")))
+                .cloudResource(StorageResourceModel.CloudResourceEnum.valueOf(rs.getString("cloud_resource")))
                 .region(rs.getString("region"));
         }
     }

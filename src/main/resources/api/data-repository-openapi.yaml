@@ -2635,9 +2635,8 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
-        datasetRegion:
-          type: string
-          description: Storage region for big query dataset
+        storage:
+          $ref: '#/components/schemas/StorageResourceModel'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -2655,14 +2654,8 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
-        datasetRegion:
-          type: string
-          description: Storage region for big query dataset
-        allowedStorageRegions:
-          type: array
-          items:
-            type: string
-          description: List of storage regions for dataset and all connected buckets
+        storage:
+          $ref: '#/components/schemas/StorageResourceModel'
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -2846,6 +2839,23 @@ components:
         as the unique identifier. The list of relationships provides the instructions
         for how to connect the tables. Asset tables have to be connected in a relationship
         hierarchy. So there cannot be two paths to the same table from the root.
+    StorageResourceModel:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        datasetId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+        region:
+          type: string
+          default: us-central1
+        cloudResource:
+          type: string
+          enum: [bigquery, bucket, firestore]
+        cloudPlatform:
+          type: string
+          enum: [gcp, aws]
+          default: gcp
     DatasetSpecificationModel:
       required:
         - tables

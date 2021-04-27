@@ -7,6 +7,9 @@ env:
   GOOGLE_SA_CERT: 'jade-dev-account.pem'
   # This will make test logs not use JSON
   TDR_LOG_APPENDER: 'Console-Standard'
+  GOOGLE_ZONE: 'us-central1'
+  GOOGLE_CLOUD_PROJECT: 'broad-jade-integration'
+  JADE_USER_EMAIL: dev-tdr-user@notarealemail.org
 on:
   pull_request:
     branches:
@@ -101,6 +104,30 @@ jobs:
       #     helm_datarepo_ui_chart_version: 0.0.68
       #     helm_gcloud_sqlproxy_chart_version: 0.19.7
       #     helm_oidc_proxy_chart_version: 0.0.22
+      - name: "Import Vault dev secrets"
+        uses: hashicorp/vault-action@v2.1.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.ROLE_ID }}
+          secretId: ${{ secrets.SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
+      - name: "Configure credentials"
+        run: |
+          # write vault tokens
+          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
+          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
+
+          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
+
+          gcloud auth configure-docker  --quiet
+
+          if [[ -n "${K8_CLUSTER}" ]]; then
+            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
+          fi
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |

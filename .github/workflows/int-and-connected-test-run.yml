@@ -109,7 +109,7 @@ jobs:
           echo "Latest git hash for this branch: $git_hash"
       - name: "Wait for deployment to come back online"
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.59.0
-        timeout-minutes: 1
+        timeout-minutes: 10
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'

@@ -92,21 +92,40 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.59.0
         with:
           actions_subcommand: 'gradlebuild'
-      - name: "Deploy to cluster with Helm"
-        uses: broadinstitute/datarepo-actions/actions/main@0.59.0
-        with:
-          actions_subcommand: 'helmdeploy'
-          helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.74
-          helm_datarepo_ui_chart_version: 0.0.68
-          helm_gcloud_sqlproxy_chart_version: 0.19.7
-          helm_oidc_proxy_chart_version: 0.0.22
+      # - name: "Deploy to cluster with Helm"
+      #   uses: broadinstitute/datarepo-actions/actions/main@0.59.0
+      #   with:
+      #     actions_subcommand: 'helmdeploy'
+      #     helm_create_secret_manager_secret_version: '0.0.6'
+      #     helm_datarepo_api_chart_version: 0.0.74
+      #     helm_datarepo_ui_chart_version: 0.0.68
+      #     helm_gcloud_sqlproxy_chart_version: 0.19.7
+      #     helm_oidc_proxy_chart_version: 0.0.22
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |
           git_hash=$(git rev-parse --short HEAD)
           echo "::set-output name=git_hash::$git_hash"
           echo "Latest git hash for this branch: $git_hash"
+      - name: '[Deploy] Checkout datarepo-helm-definitions repo'
+        uses: actions/checkout@v2
+        with:
+          repository: 'broadinstitute/datarepo-helm-definitions'
+          token: ${{ secrets.BROADBOT_TOKEN }}
+          path: datarepo-helm-definitions
+      - name: "[Deploy] Update perf image tag with semVer"
+        uses: docker://mikefarah/yq:3.3.4
+        with:
+          args: yq w -i datarepo-helm-definitions/integration/${NAMESPACEINUSE}/datarepo-api.yaml image.tag ${{ steps.configuration.outputs.git_hash }}
+      - name: "[Deploy] Install Helmfile"
+        uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
+      - name: "[Deploy] Use helmfile reapply helm for api pod to update version"
+        run: |
+          helmfile --version
+          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/integration
+          echo "Apply helm updates, including updated data-repo version"
+          helmfile -e ${NAMESPACEINUSE} apply
+          cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Wait for deployment to come back online"
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.59.0
         timeout-minutes: 20

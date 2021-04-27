@@ -7,14 +7,14 @@ databaseChangeLog:
             comment: create storage records for existing bigquery datasets
             sql: >
               INSERT INTO storage_resource (dataset_id, region, cloud_resource, cloud_platform)
-              SELECT dataset.id 'US' 'bigquery' 'gcp' FROM dataset
+              SELECT dataset.id, 'US', 'bigquery', 'gcp' FROM dataset
         - sql:
             comment: create storage records for existing gcs buckets
             sql: >
               INSERT INTO storage_resource (dataset_id, region, cloud_resource, cloud_platform)
-              SELECT dataset.id 'us-central1' 'bucket' 'gcp' FROM dataset
+              SELECT dataset.id, 'us-central1', 'bucket', 'gcp' FROM dataset
         - sql:
             comment: create storage records for existing firestore databases
             sql: >
               INSERT INTO storage_resource (dataset_id, region, cloud_resource, cloud_platform)
-              SELECT dataset.id 'us-central1' 'firestore' 'gcp' FROM dataset
+              SELECT dataset.id, 'us-central1', 'firestore', 'gcp' FROM dataset

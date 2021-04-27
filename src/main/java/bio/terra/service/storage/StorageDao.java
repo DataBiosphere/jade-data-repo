@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
+import java.util.List;
 
 @Repository
 public class StorageDao {
@@ -28,11 +29,11 @@ public class StorageDao {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public StorageResourceModel getStorageResourceByDatasetId(UUID datasetId) {
+    public List<StorageResourceModel> getStorageResourcesByDatasetId(UUID datasetId) {
         try {
             MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("dataset_id", datasetId);
-            return jdbcTemplate.queryForObject(SQL_GET, params, new StorageDao.StorageResourceMapper());
+            return jdbcTemplate.query(SQL_GET, params, new StorageDao.StorageResourceMapper());
         } catch (EmptyResultDataAccessException ex) {
             throw new StorageResourceNotFoundException("Storage resource not found for dataset: " + datasetId.toString());
         }

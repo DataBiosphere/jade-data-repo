@@ -2,14 +2,11 @@ name: Integration test and Connected tests
 env:
   K8_CLUSTER: 'integration-master'
   # This must be defined for the bash redirection
-  GOOGLE_APPLICATION_CREDENTIALS: '/tmp/jade-dev-account.json'
+  GOOGLE_APPLICATION_CREDENTIALS: 'jade-dev-account.json'
   # This must be defined for the bash redirection
-  GOOGLE_SA_CERT: '/tmp/jade-dev-account.pem'
+  GOOGLE_SA_CERT: 'jade-dev-account.pem'
   # This will make test logs not use JSON
   TDR_LOG_APPENDER: 'Console-Standard'
-  GOOGLE_ZONE: 'us-central1'
-  GOOGLE_CLOUD_PROJECT: 'broad-jade-integration'
-  JADE_USER_EMAIL: dev-tdr-user@notarealemail.org
 on:
   pull_request:
     branches:
@@ -80,30 +77,6 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
-      - name: "Import Vault dev secrets"
-        uses: hashicorp/vault-action@v2.1.0
-        with:
-          url: ${{ secrets.VAULT_ADDR }}
-          method: approle
-          roleId: ${{ secrets.ROLE_ID }}
-          secretId: ${{ secrets.SECRET_ID }}
-          secrets: |
-            secret/dsde/datarepo/dev/sa-key-b64 sa | B64_APPLICATION_CREDENTIALS ;
-      - name: "Configure credentials"
-        run: |
-          # write vault tokens
-          base64 --decode <<< ${B64_APPLICATION_CREDENTIALS} > ${GOOGLE_APPLICATION_CREDENTIALS}
-
-          gcloud config set project ${GOOGLE_CLOUD_PROJECT} --quiet
-          gcloud config set compute/zone ${GOOGLE_ZONE} --quiet
-
-          gcloud auth activate-service-account --key-file ${GOOGLE_APPLICATION_CREDENTIALS}
-
-          gcloud auth configure-docker  --quiet
-
-          if [[ -n "${K8_CLUSTER}" ]]; then
-            gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
-          fi
       - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions/actions/main@0.59.0
         with:
@@ -114,48 +87,26 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.59.0
         with:
           actions_subcommand: 'k8_checknamespace'
-          k8_namespaces: 'integration-2'
+          k8_namespaces: 'integration-3'
       - name: "Build docker container via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.59.0
         with:
           actions_subcommand: 'gradlebuild'
-      # - name: "Deploy to cluster with Helm"
-      #   uses: broadinstitute/datarepo-actions/actions/main@0.59.0
-      #   with:
-      #     actions_subcommand: 'helmdeploy'
-      #     helm_create_secret_manager_secret_version: '0.0.6'
-      #     helm_datarepo_api_chart_version: 0.0.74
-      #     helm_datarepo_ui_chart_version: 0.0.68
-      #     helm_gcloud_sqlproxy_chart_version: 0.19.7
-      #     helm_oidc_proxy_chart_version: 0.0.22
+      - name: "Deploy to cluster with Helm"
+        uses: broadinstitute/datarepo-actions/actions/main@0.59.0
+        with:
+          actions_subcommand: 'helmdeploy'
+          helm_create_secret_manager_secret_version: '0.0.6'
+          helm_datarepo_api_chart_version: 0.0.74
+          helm_datarepo_ui_chart_version: 0.0.68
+          helm_gcloud_sqlproxy_chart_version: 0.19.7
+          helm_oidc_proxy_chart_version: 0.0.22
       - name: "Fetch gitHash for deployed integration version"
         id: configuration
         run: |
           git_hash=$(git rev-parse --short HEAD)
           echo "::set-output name=git_hash::$git_hash"
           echo "Latest git hash for this branch: $git_hash"
-          #Don't know why this is needed, but just to get things running
-          echo "::set-output name=namespace_in_use::${NAMESPACEINUSE}"
-          echo "Namespace in use: ${NAMESPACEINUSE}"
-      - name: '[Deploy] Checkout datarepo-helm-definitions repo'
-        uses: actions/checkout@v2
-        with:
-          repository: 'broadinstitute/datarepo-helm-definitions'
-          token: ${{ secrets.BROADBOT_TOKEN }}
-          path: datarepo-helm-definitions
-      - name: "[Deploy] Update perf image tag with semVer"
-        uses: docker://mikefarah/yq:3.3.4
-        with:
-          args: yq w -i datarepo-helm-definitions/integration/${{ steps.configuration.outputs.namespace_in_use }}/datarepo-api.yaml image.tag ${{ steps.configuration.outputs.git_hash }}
-      - name: "[Deploy] Install Helmfile"
-        uses: broadinstitute/setup-helmfile@v0.6.0 #Forked from mamezou-tech/setup-helmfile
-      - name: "[Deploy] Use helmfile reapply helm for api pod to update version"
-        run: |
-          helmfile --version
-          cd ${GITHUB_WORKSPACE}/${workingDir}/datarepo-helm-definitions/integration
-          echo "Apply helm updates, including updated data-repo version"
-          helmfile -e ${NAMESPACEINUSE} apply
-          cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Wait for deployment to come back online"
         uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.59.0
         timeout-minutes: 20

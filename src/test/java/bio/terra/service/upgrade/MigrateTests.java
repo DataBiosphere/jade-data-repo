@@ -7,7 +7,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
@@ -96,7 +95,7 @@ public class MigrateTests {
 
 
     @Test
-    public void dropAllOnStartTrue() throws StairwayExecutionException {
+    public void dropAllOnStartTrue() {
         ((StandardEnvironment) environment).setActiveProfiles("test");
         migrateConfiguration.setDropAllOnStart(true);
 
@@ -110,7 +109,7 @@ public class MigrateTests {
     }
 
     @Test
-    public void dropAllOnStartFalse() throws StairwayExecutionException {
+    public void dropAllOnStartFalse() {
         ((StandardEnvironment) environment).setActiveProfiles("test");
         migrateConfiguration.setDropAllOnStart(false);
 
@@ -124,7 +123,7 @@ public class MigrateTests {
     }
 
     @Test
-    public void nonTestEnvironment() throws StairwayExecutionException {
+    public void nonTestEnvironment() {
         ((StandardEnvironment) environment).setActiveProfiles("Staging");
         migrateConfiguration.setDropAllOnStart(true);
 
@@ -138,7 +137,7 @@ public class MigrateTests {
     }
 
     @Test
-    public void dataProjectNoDrop() throws StairwayExecutionException {
+    public void dataProjectNoDrop() {
         ((StandardEnvironment) environment).setActiveProfiles("test");
         migrateConfiguration.setDropAllOnStart(true);
         String testNoDropDataProjectName =  "testNoDropDataProject";

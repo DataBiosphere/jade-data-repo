@@ -33,7 +33,7 @@ public class StorageDao {
         try {
             MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("dataset_id", datasetId);
-            return jdbcTemplate.query(SQL_GET, params, new StorageDao.StorageResourceMapper());
+            return jdbcTemplate.query(SQL_GET, params, new StorageResourceMapper());
         } catch (EmptyResultDataAccessException ex) {
             throw new StorageResourceNotFoundException("Storage resource not found for dataset: " + datasetId.toString());
         }
@@ -46,8 +46,8 @@ public class StorageDao {
             return new StorageResourceModel()
                 .id(profileId)
                 .datasetId(rs.getObject("dataset_id", UUID.class).toString())
-                .cloudPlatform(StorageResourceModel.CloudPlatformEnum.valueOf(rs.getString("cloud_platform")))
-                .cloudResource(StorageResourceModel.CloudResourceEnum.valueOf(rs.getString("cloud_resource")))
+                .cloudPlatform(StorageResourceModel.CloudPlatformEnum.fromValue(rs.getString("cloud_platform")))
+                .cloudResource(StorageResourceModel.CloudResourceEnum.fromValue(rs.getString("cloud_resource")))
                 .region(rs.getString("region"));
         }
     }

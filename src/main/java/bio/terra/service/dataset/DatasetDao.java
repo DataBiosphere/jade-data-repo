@@ -15,13 +15,10 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import bio.terra.service.storage.StorageDao;
-import bio.terra.service.storage.exception.StorageResourceNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -59,7 +56,14 @@ public class DatasetDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
     private static final String summaryQueryColumns =
-        " id, name, description, default_profile_id, project_resource_id, created_date, region ";
+        " id, name, description, default_profile_id, project_resource_id, created_date";
+
+    private static final StorageResourceModel testStorage = new StorageResourceModel()
+        .id("390e7a85-d47f-4531-b612-165fc977d3bd")
+        .datasetId("575d68d9-3c84-4f73-a999-4b7154cc2dd5")
+        .cloudPlatform(StorageResourceModel.CloudPlatformEnum.valueOf("gcp"))
+        .cloudResource(StorageResourceModel.CloudResourceEnum.valueOf("firestore"))
+        .region("us-central1");
 
     @Autowired
     public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,
@@ -458,7 +462,9 @@ public class DatasetDao {
             }
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            setStorage(summary);
+            if (summary != null) {
+                summary.storage(testStorage);
+            }
             return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for id " + id.toString());
@@ -472,23 +478,14 @@ public class DatasetDao {
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            setStorage(summary);
+            if (summary != null) {
+                summary.storage(testStorage);
+            }
             return summary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for name " + name);
         }
     }
-
-    public void setStorage(DatasetSummary summary) {
-        StorageResourceModel testStorage = new StorageResourceModel()
-            .id("390e7a85-d47f-4531-b612-165fc977d3bd")
-            .datasetId("575d68d9-3c84-4f73-a999-4b7154cc2dd5")
-            .cloudPlatform(StorageResourceModel.CloudPlatformEnum.valueOf("gcp"))
-            .cloudResource(StorageResourceModel.CloudResourceEnum.valueOf("firestore"))
-            .region("us-central1");
-        summary.storage(testStorage);
-    }
-
 
 //    public void setAllowedRegionsForDataset(DatasetSummary summary) {
 //        // TODO - Discuss - this might be over-complicated - do we still need to gather the regions on the buckets?

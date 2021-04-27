@@ -70,28 +70,29 @@ public class SnapshotAuthzFileAclStep implements Step {
             }
 
             gcsPdao.setAclOnFiles(dataset, fileIds, policies);
+            logger.info("[ExceptionDebugging] Success.");
         } catch (StorageException ex) {
             // Now, how to figure out if the failure is due to IAM propagation delay. We know it will
             // be a 400 - bad request and the docs indicate the reason will be "badRequest". So for now
             // we will log alot and retry on that.
-            logger.info("Caught Storage Exception: " + ex.getMessage()
+            logger.info("[ExceptionDebugging] Caught Storage Exception: " + ex.getMessage()
                 + " reason: " + ex.getReason(), ex);
             if (ex.getCode() == 400 && (StringUtils.equals(ex.getReason(), "badRequest"))) {
-                logger.info("Maybe caught an ACL propagation error: " + ex.getMessage()
+                logger.info("[ExceptionDebugging] Maybe caught an ACL propagation error: " + ex.getMessage()
                     + " reason: " + ex.getReason(), ex);
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
             }
             throw ex;
         } catch (ApiException ex) {
-            logger.info("ApiException, potentially catching an ACL propagation error.");
-            logger.info("Cause: {}", ex.getCause());
+            logger.info("[ExceptionDebugging] ApiException, potentially catching an ACL propagation error.");
+            logger.info("[ExceptionDebugging] Cause: {}", ex.getCause());
             if (ex.getCause().getMessage().contains("Could not find group")) {
-                logger.info("retrying! Could not find group ACL exception");
+                logger.info("[ExceptionDebugging] retrying! Could not find group ACL exception");
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
             }
             throw ex;
         } catch (Exception ex) {
-            logger.info("OTHER exception. cause: {}", ex.getCause());
+            logger.info("[ExceptionDebugging] OTHER exception. cause: {}", ex.getCause());
             throw ex;
         }
 

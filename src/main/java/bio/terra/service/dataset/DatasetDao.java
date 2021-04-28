@@ -61,8 +61,8 @@ public class DatasetDao {
     private static final StorageResourceModel testStorage = new StorageResourceModel()
         .id("390e7a85-d47f-4531-b612-165fc977d3bd")
         .datasetId("575d68d9-3c84-4f73-a999-4b7154cc2dd5")
-        .cloudPlatform(StorageResourceModel.CloudPlatformEnum.valueOf("gcp"))
-        .cloudResource(StorageResourceModel.CloudResourceEnum.valueOf("firestore"))
+        .cloudPlatform(StorageResourceModel.CloudPlatformEnum.GCP)
+        .cloudResource(StorageResourceModel.CloudResourceEnum.FIRESTORE)
         .region("us-central1");
 
     @Autowired
@@ -305,9 +305,9 @@ public class DatasetDao {
     public void createAndLock(Dataset dataset, String flightId) throws IOException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
-            "(name, default_profile_id, id, project_resource_id, flightid, description, sharedlock, region) " +
+            "(name, default_profile_id, id, project_resource_id, flightid, description, sharedlock) " +
             "VALUES (:name, :default_profile_id, :id, :project_resource_id, :flightid, :description," +
-            " ARRAY[]::TEXT[], :region) ";
+            " ARRAY[]::TEXT[]) ";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
@@ -315,8 +315,8 @@ public class DatasetDao {
             .addValue("project_resource_id", dataset.getProjectResourceId())
             .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
-            .addValue("description", dataset.getDescription())
-            .addValue("region", "us-central1"); //TODO - DR-1751 - pull in from create request
+            .addValue("description", dataset.getDescription());
+//            .addValue("region", "us-central1"); //TODO - DR-1751 - pull in from create request
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
             jdbcTemplate.update(sql, params, keyHolder);
@@ -554,7 +554,7 @@ public class DatasetDao {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
         String sql = "SELECT " +
-            "id, name, description, default_profile_id, project_resource_id, created_date, region " +
+            "id, name, description, default_profile_id, project_resource_id, created_date " +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);

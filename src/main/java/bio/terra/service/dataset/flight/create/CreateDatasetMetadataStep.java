@@ -37,7 +37,7 @@ public class CreateDatasetMetadataStep implements Step {
         try {
             FlightMap workingMap = context.getWorkingMap();
             UUID projectResourceId = workingMap.get(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, UUID.class);
-            UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+            final UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
             Dataset newDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
                 .projectResourceId(projectResourceId)
                 .id(datasetId);

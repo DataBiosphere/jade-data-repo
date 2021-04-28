@@ -358,15 +358,18 @@ public class DatasetValidationsTest {
     @Test
     public void testDatasetEnumerateValidations() throws Exception {
         String expected = "Invalid enumerate parameter(s).";
+        String expectedEnum = "Invalid enum parameter: '%s'.";
         expectBadDatasetEnumerateRequest(-1, 3, null, null, expected,
             Collections.singletonList("offset must be greater than or equal to 0."));
         expectBadDatasetEnumerateRequest(1, 0, null, null, expected,
             Collections.singletonList("limit must be greater than or equal to 1."));
         expectBadDatasetEnumerateRequest(-1, 0, null, null, expected,
             Arrays.asList("offset must be greater than or equal to 0.", "limit must be greater than or equal to 1."));
-        expectBadDatasetEnumerateRequest(0, 10, "invalid", null, expected,
+        expectBadDatasetEnumerateRequest(0, 10, "invalid", null,
+            String.format(expectedEnum, "invalid"),
             Collections.singletonList("sort must be one of: [name, description, created_date]."));
-        expectBadDatasetEnumerateRequest(0, 10, "name", "invalid", expected,
+        expectBadDatasetEnumerateRequest(0, 10, "name", "invalid",
+            String.format(expectedEnum, "invalid"),
             Collections.singletonList("direction must be one of: [asc, desc]."));
     }
 

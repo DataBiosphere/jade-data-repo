@@ -6,18 +6,23 @@ import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DatePartitionOptionsModel;
+import bio.terra.model.GoogleCloudResource;
+import bio.terra.model.GoogleRegion;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +32,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public final class DatasetJsonConversion {
+
+    private static GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_CENTRAL1;
+    private static CloudPlatform DEFAULT_CLOUD_PLATFORM = CloudPlatform.GCP;
 
     // only allow use of static methods
     private DatasetJsonConversion() {}
@@ -52,23 +60,49 @@ public final class DatasetJsonConversion {
                 assetSpecifications.add(assetModelToAssetSpecification(asset, tablesMap, relationshipsMap)));
         }
 
+        CloudPlatform cloudPlatform = Optional.ofNullable(datasetRequest.getCloudPlatform())
+            .orElse(DEFAULT_CLOUD_PLATFORM);
+
+        final List<StorageResource> storageResources;
+        switch (cloudPlatform) {
+            case GCP:
+                storageResources = instantiateGcpResources(datasetRequest.getRegion());
+                break;
+            case AZURE:
+                throw new UnsupportedOperationException("Azure is not yet supported");
+            default:
+                throw new UnsupportedOperationException(cloudPlatform + " is not a valid Cloud Platform");
+        }
+
         return new Dataset(new DatasetSummary()
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
+                .storage(storageResources)
                 .defaultProfileId(defaultProfileId))
                 .tables(new ArrayList<>(tablesMap.values()))
                 .relationships(new ArrayList<>(relationshipsMap.values()))
                 .assetSpecifications(assetSpecifications);
     }
 
-    public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(DatasetSummary dataset) {
+    private static List<StorageResource> instantiateGcpResources(String providedRegion) {
+        final GoogleRegion region = Optional.ofNullable(providedRegion)
+            .map(s -> GoogleRegion.fromValue(s.toLowerCase()))
+            .orElse(DEFAULT_GOOGLE_REGION);
+        return Arrays.stream(GoogleCloudResource.values()).map(resource -> new StorageResource()
+            .cloudPlatform(CloudPlatform.GCP)
+            .region(region.name())
+            .cloudResource(resource.name()))
+            .collect(Collectors.toList());
+    }
+
+    public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(DatasetSummary datasetSummary) {
         return new DatasetSummaryModel()
-                .id(dataset.getId().toString())
-                .name(dataset.getName())
-                .description(dataset.getDescription())
-                .createdDate(dataset.getCreatedDate().toString())
-                .defaultProfileId(dataset.getDefaultProfileId().toString())
-                .storage(dataset.getStorage());
+                .id(datasetSummary.getId().toString())
+                .name(datasetSummary.getName())
+                .description(datasetSummary.getDescription())
+                .createdDate(datasetSummary.getCreatedDate().toString())
+                .defaultProfileId(datasetSummary.getDefaultProfileId().toString())
+                .storage(storageResourceModelFromDatasetSummary(datasetSummary));
 
     }
 
@@ -81,7 +115,16 @@ public final class DatasetJsonConversion {
                 .createdDate(dataset.getCreatedDate().toString())
                 .schema(datasetSpecificationModelFromDatasetSchema(dataset))
                 .dataProject(dataset.getProjectResource().getGoogleProjectId())
-                .storage(dataset.getStorage());
+                .storage(storageResourceModelFromDatasetSummary(dataset.getDatasetSummary()));
+    }
+
+    private static List<StorageResourceModel> storageResourceModelFromDatasetSummary(DatasetSummary datasetSummary) {
+        return datasetSummary.getStorage().stream().map(storage ->
+            new StorageResourceModel()
+                .cloudResource(storage.getCloudResource())
+                .region(storage.getRegion())
+                .cloudPlatform(storage.getCloudPlatform()))
+            .collect(Collectors.toList());
     }
 
     public static DatasetSpecificationModel datasetSpecificationModelFromDatasetSchema(Dataset dataset) {

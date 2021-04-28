@@ -20,12 +20,14 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.GoogleCloudResource;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
@@ -55,7 +57,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -137,8 +141,16 @@ public class DatasetIntegrationTest extends UsersBase {
                 if (oneDataset.getId().equals(datasetModel.getId())) {
                     assertThat(oneDataset.getName(), startsWith(omopDatasetName));
                     assertThat(oneDataset.getDescription(), equalTo(omopDatasetDesc));
-                    assertThat(oneDataset.getDatasetRegion(), equalTo(omopDatasetRegion));
-                    //assertThat(oneDataset.getAllowedStorageRegions().get(0), equalTo(omopDatasetRegion));
+                    Map<String, StorageResourceModel> storageMap = datasetModel.getStorage().stream()
+                        .collect(Collectors.toMap(StorageResourceModel::getCloudResource, Function.identity()));
+
+                    for (GoogleCloudResource cloudResource : GoogleCloudResource.values()) {
+                        StorageResourceModel storage = storageMap.get(cloudResource.toString());
+                        assertThat(String.format("dataset %s region is set", storage.getCloudResource()),
+                            storage.getRegion(),
+                            equalTo(omopDatasetRegion));
+                    }
+
                     found = true;
                     break;
                 }

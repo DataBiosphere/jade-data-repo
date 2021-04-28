@@ -2636,7 +2636,9 @@ components:
           type: string
           description: Date the dataset was created
         storage:
-          $ref: '#/components/schemas/StorageResourceModel'
+          type: array
+          items:
+            $ref: '#/components/schemas/StorageResourceModel'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -2655,7 +2657,9 @@ components:
           type: string
           description: Date the dataset was created
         storage:
-          $ref: '#/components/schemas/StorageResourceModel'
+          type: array
+          items:
+            $ref: '#/components/schemas/StorageResourceModel'
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -2663,6 +2667,9 @@ components:
         - defaultProfileId
         - name
         - schema
+      optional:
+        - region
+        - cloudPlatform
       type: object
       properties:
         name:
@@ -2674,6 +2681,12 @@ components:
           $ref: '#/components/schemas/UniqueIdProperty'
         schema:
           $ref: '#/components/schemas/DatasetSpecificationModel'
+        region:
+          type: String
+          default: us-central1
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
+          default: gcp
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     EnumerateDatasetModel:
@@ -2842,20 +2855,12 @@ components:
     StorageResourceModel:
       type: object
       properties:
-        id:
-          $ref: '#/components/schemas/UniqueIdProperty'
-        datasetId:
-          $ref: '#/components/schemas/UniqueIdProperty'
         region:
           type: string
-          default: us-central1
         cloudResource:
           type: string
-          enum: [bigquery, bucket, firestore]
         cloudPlatform:
-          type: string
-          enum: [gcp, aws]
-          default: gcp
+          $ref: '#/components/schemas/CloudPlatform'
     DatasetSpecificationModel:
       required:
         - tables
@@ -3755,6 +3760,27 @@ components:
         endTime:
           type: string
           description: Timestamp the upgrade completed
+
+    GoogleRegion:
+      type: string
+      enum: [ asia_east1, asia_east2, asia_northeast1, asia_northeast2, asia_south1, asia_southeast1,
+              australia_southeast1,
+              europe_north1, europe_west1, europe_west2, europe_west3, europe_west4, europe_west6,
+              northamerica_northeast1, southamerica_east1,
+              us_central1, us_east1, us_east4, us_west1, us_west2 ]
+      default: us_central1
+      description: Valid regions in Google.
+
+    GoogleCloudResource:
+      type: string
+      enum: [ bigquery, firestore, bucket ]
+      description: Google cloud resources used by TDR.
+
+    CloudPlatform:
+      type: string
+      enum: [ gcp, azure ]
+      default: gcp
+      description: Cloud platforms supported by TDR.
 
     ##############################################################################
     ## DRS STANDARD MODELS

@@ -7,7 +7,6 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.model.StorageResourceModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetLockException;
@@ -39,7 +38,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
@@ -52,18 +50,12 @@ public class DatasetDao {
     private final AssetDao assetDao;
     private final ConfigurationService configurationService;
     private final ResourceService resourceService;
+    private final StorageDao storageDao;
 
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
     private static final String summaryQueryColumns =
         " id, name, description, default_profile_id, project_resource_id, created_date ";
-
-    private static final StorageResourceModel testStorage = new StorageResourceModel()
-        .id("390e7a85-d47f-4531-b612-165fc977d3bd")
-        .datasetId("575d68d9-3c84-4f73-a999-4b7154cc2dd5")
-        .cloudPlatform(StorageResourceModel.CloudPlatformEnum.GCP)
-        .cloudResource(StorageResourceModel.CloudResourceEnum.FIRESTORE)
-        .region("us-central1");
 
     @Autowired
     public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,
@@ -71,13 +63,15 @@ public class DatasetDao {
                       DatasetRelationshipDao relationshipDao,
                       AssetDao assetDao,
                       ConfigurationService configurationService,
-                      ResourceService resourceService) throws SQLException {
+                      ResourceService resourceService,
+                      StorageDao storageDao) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;
         this.assetDao = assetDao;
         this.configurationService = configurationService;
         this.resourceService = resourceService;
+        this.storageDao = storageDao;
     }
 
     /**
@@ -316,7 +310,6 @@ public class DatasetDao {
             .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
             .addValue("description", dataset.getDescription());
-//            .addValue("region", "us-central1"); //TODO - DR-1751 - pull in from create request
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         try {
             jdbcTemplate.update(sql, params, keyHolder);
@@ -329,6 +322,7 @@ public class DatasetDao {
         tableDao.createTables(dataset.getId(), dataset.getTables());
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
+        storageDao.createStorageAttributes(dataset.getDatasetSummary().getStorage(), dataset.getId());
 
         logger.debug("end of createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
     }
@@ -461,11 +455,7 @@ public class DatasetDao {
                 sql += " AND flightid IS NULL";
             }
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-            DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            if (summary != null) {
-                summary.storage(testStorage);
-            }
-            return summary;
+            return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for id " + id.toString());
         }
@@ -477,40 +467,11 @@ public class DatasetDao {
                 summaryQueryColumns +
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
-            DatasetSummary summary = jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
-            if (summary != null) {
-                summary.storage(testStorage);
-            }
-            return summary;
+            return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found for name " + name);
         }
     }
-
-//    public void setAllowedRegionsForDataset(DatasetSummary summary) {
-//        // TODO - Discuss - this might be over-complicated - do we still need to gather the regions on the buckets?
-//        List<String> regions = new ArrayList<>();
-//        try {
-//            String sql = "Select b.region from bucket_resource b JOIN dataset_bucket db" +
-//                " on b.id = db.bucket_resource_id\n" +
-//                "JOIN dataset d on db.dataset_id = d.id where d.id=:id;";
-//            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", summary.getId());
-//            // TODO - Use Enum for storage object
-//            regions = jdbcTemplate.queryForObject(sql, params, new RegionMapper());
-//        } catch (Exception ex) {
-//            logger.info("Unable to retrieve any buckets for this dataset.", ex.getMessage());
-//        }
-//        regions.add(summary.getDatasetRegion());
-//        summary.allowedStorageRegions(regions.stream().distinct().collect(Collectors.toList()));
-//    }
-//
-//    //TODO - convert to enum!!!
-//    private static class RegionMapper implements RowMapper<List<String>> {
-//        public List<String> mapRow(ResultSet rs, int rowNum) throws SQLException {
-//            return new ArrayList<>();
-//        }
-//    }
-
 
     /**
      * Fetch a list of all the available datasets.

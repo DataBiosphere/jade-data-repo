@@ -11,6 +11,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.GoogleCloudResource;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
@@ -34,7 +35,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -169,11 +172,15 @@ public class DatasetDaoTest {
                 equalTo(2));
             fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
 
-            //TODO - DR-1751 - set region and create and verify set correctly
-            // verify the region is set
-            assertThat("dataset region is set",
-                fromDB.getDatasetRegion(),
-                equalTo("us-central1"));
+            Map<String, StorageResource> storageMap = fromDB.getDatasetSummary().getStorage().stream()
+                .collect(Collectors.toMap(StorageResource::getCloudResource, Function.identity()));
+
+            for (GoogleCloudResource cloudResource : GoogleCloudResource.values()) {
+                StorageResource storage = storageMap.get(cloudResource.toString());
+                assertThat(String.format("dataset %s region is set", storage.getCloudResource()),
+                    storage.getRegion(),
+                    equalTo("us-central1"));
+            }
         } finally {
             datasetDao.delete(datasetId);
         }

@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
-import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import org.apache.commons.lang3.StringUtils;
@@ -148,15 +147,6 @@ public class Dataset implements FSContainerInterface {
 
     public Dataset createdDate(Instant createdDate) {
         datasetSummary.createdDate(createdDate);
-        return this;
-    }
-
-    public StorageResourceModel getStorage() {
-        return datasetSummary.getStorage();
-    }
-
-    public Dataset storage(StorageResourceModel storage) {
-        datasetSummary.storage(storage);
         return this;
     }
 

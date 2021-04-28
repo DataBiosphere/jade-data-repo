@@ -1,4 +1,4 @@
-package bio.terra.service.storage.exception;
+package bio.terra.service.dataset.exception;
 
 import bio.terra.common.exception.NotFoundException;
 

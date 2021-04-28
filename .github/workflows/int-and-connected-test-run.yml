@@ -109,7 +109,7 @@ jobs:
           echo "Latest git hash for this branch: $git_hash"
       #TODO - switch back to actions step when fix int deployment
       - name : "Wait for deployment"
-      - run: |
+        run: |
           sleep 10m
       # - name: "Wait for deployment to come back online"
       #   uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.59.0

@@ -56,7 +56,7 @@ public class DatasetDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
     private static final String summaryQueryColumns =
-        " id, name, description, default_profile_id, project_resource_id, created_date";
+        " id, name, description, default_profile_id, project_resource_id, created_date ";
 
     private static final StorageResourceModel testStorage = new StorageResourceModel()
         .id("390e7a85-d47f-4531-b612-165fc977d3bd")

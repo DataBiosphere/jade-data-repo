@@ -90,8 +90,8 @@ public final class DatasetJsonConversion {
             .orElse(DEFAULT_GOOGLE_REGION);
         return Arrays.stream(GoogleCloudResource.values()).map(resource -> new StorageResource()
             .cloudPlatform(CloudPlatform.GCP)
-            .region(region.name())
-            .cloudResource(resource.name()))
+            .region(region.toString())
+            .cloudResource(resource.toString()))
             .collect(Collectors.toList());
     }
 

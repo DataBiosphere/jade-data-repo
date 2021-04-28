@@ -38,6 +38,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
@@ -413,6 +414,7 @@ public class DatasetDao {
         Dataset dataset = null;
         try {
             if (summary != null) {
+                summary.storage(storageDao.getStorageResourcesByDatasetId(summary.getId()));
                 dataset = new Dataset(summary);
                 dataset.tables(tableDao.retrieveTables(dataset.getId()));
                 relationshipDao.retrieve(dataset);
@@ -519,7 +521,9 @@ public class DatasetDao {
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
-        List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
+        List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper())
+            .stream().map(summary -> summary.storage(storageDao.getStorageResourcesByDatasetId(summary.getId())))
+            .collect(Collectors.toList());
 
         return new MetadataEnumeration<DatasetSummary>()
             .items(summaries)

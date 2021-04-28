@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.common.DaoKeyHolder;
+import bio.terra.service.dataset.StorageDao;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.profile.exception.ProfileInUseException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 public class GoogleResourceDao {
     private static final Logger logger = LoggerFactory.getLogger(GoogleResourceDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final StorageDao storageDao;
     private final String defaultRegion;
 
     private static final String sqlProjectRetrieve = "SELECT id, google_project_id, google_project_number, profile_id" +
@@ -40,7 +42,7 @@ public class GoogleResourceDao {
 
     private static final String sqlBucketRetrieve =
         "SELECT p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
-            " b.id AS bucket_resource_id, name, region, flightid" +
+            " b.id AS bucket_resource_id, name, flightid" +
             " FROM bucket_resource b JOIN project_resource p ON b.project_resource_id = p.id " +
             " WHERE b.marked_for_delete = false";
     private static final String sqlBucketRetrievedById = sqlBucketRetrieve + " AND b.id = :id";
@@ -86,9 +88,11 @@ public class GoogleResourceDao {
 
     @Autowired
     public GoogleResourceDao(NamedParameterJdbcTemplate jdbcTemplate,
-                             GcsConfiguration gcsConfiguration) throws SQLException {
+                             GcsConfiguration gcsConfiguration,
+                             StorageDao storageDao) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.defaultRegion = gcsConfiguration.getRegion();
+        this.storageDao = storageDao;
     }
 
     // -- project resource methods --
@@ -229,20 +233,18 @@ public class GoogleResourceDao {
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public GoogleBucketResource createAndLockBucket(String bucketName,
-                                                    String region,
                                                     GoogleProjectResource projectResource,
                                                     String flightId) {
         // Put an end to serialization errors here. We only come through here if we really need to create
         // the bucket, so this is not on the path of most bucket lookups.
         jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE bucket_resource IN EXCLUSIVE MODE");
 
-        String sql = "INSERT INTO bucket_resource (project_resource_id, name, region, flightid) VALUES " +
-            "(:project_resource_id, :name, :region, :flightid) " +
+        String sql = "INSERT INTO bucket_resource (project_resource_id, name, flightid) VALUES " +
+            "(:project_resource_id, :name, :flightid) " +
             "ON CONFLICT ON CONSTRAINT bucket_resource_name_key DO NOTHING";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("project_resource_id", projectResource.getId())
             .addValue("name", bucketName)
-            .addValue("region", region)
             .addValue("flightid", flightId);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
 
@@ -348,13 +350,14 @@ public class GoogleResourceDao {
         List<GoogleBucketResource> bucketResources =
             jdbcTemplate.query(sql, params, (rs, rowNum) -> {
                 // Make project resource and a bucket resource from the query result
+                UUID bucketResourceId = rs.getObject("project_resource_id", UUID.class);
                 GoogleProjectResource projectResource = new GoogleProjectResource()
-                    .id(rs.getObject("project_resource_id", UUID.class))
+                    .id(bucketResourceId)
                     .googleProjectId(rs.getString("google_project_id"))
                     .googleProjectNumber(rs.getString("google_project_number"))
                     .profileId(rs.getObject("profile_id", UUID.class));
 
-                String region = rs.getString("region");
+                String region = storageDao.getBucketStorageFromBucketResourceId(bucketResourceId);
 
                 // Since storing the region was not in the original data, we supply the
                 // default if a value is not present.

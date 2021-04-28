@@ -1,7 +1,6 @@
 package bio.terra.service.dataset;
 
 import bio.terra.model.CloudPlatform;
-import bio.terra.model.StorageResourceModel;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.service.dataset.exception.InvalidStorageException;
@@ -23,15 +22,22 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public class StorageDao {
 
     private static final String STORAGE_COLUMNS = "id, dataset_id, cloud_platform, " +
-        "cloud_resource, region";
+        "cloud_resource, region ";
     private static final String SQL_GET = "SELECT " + STORAGE_COLUMNS +
-        "FROM storage_resource WHERE id = :id";
+        "FROM storage_resource WHERE dataset_id = :dataset_id";
+    private static final String SQL_GET_BUCKET = "SELECT sr.region " +
+        "FROM storage_resource sr, " +
+        "dataset_bucket db " +
+        "WHERE sr.dataset_id = db.dataset_id " +
+        "AND db.bucket_resource_id = :bucket_resource_id " +
+        "AND sr.cloud_resource = 'bucket'";
     private static final Logger logger = LoggerFactory.getLogger(StorageDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -41,7 +47,7 @@ public class StorageDao {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<bio.terra.model.StorageResourceModel> getStorageResourcesByDatasetId(UUID datasetId) {
+    public List<StorageResource> getStorageResourcesByDatasetId(UUID datasetId) {
         try {
             MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("dataset_id", datasetId);
@@ -52,11 +58,21 @@ public class StorageDao {
         }
     }
 
-    // TODO: update based on the open api schema
-    private static class StorageResourceMapper implements RowMapper<StorageResourceModel> {
-        public StorageResourceModel mapRow(ResultSet rs, int rowNum) throws SQLException {
-            String profileId = rs.getObject("id", UUID.class).toString();
-            return new StorageResourceModel()
+    public String getBucketStorageFromBucketResourceId(UUID bucketResourceId) {
+        try {
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("bucket_resource_id", bucketResourceId);
+            return Optional.ofNullable(jdbcTemplate.queryForObject(SQL_GET_BUCKET, params, new StorageResourceMapper()))
+                .map(StorageResource::getRegion).orElse(null);
+        } catch (EmptyResultDataAccessException ex) {
+            throw new StorageResourceNotFoundException("Storage resource not found for bucket: "
+                + bucketResourceId.toString());
+        }
+    }
+
+    private static class StorageResourceMapper implements RowMapper<StorageResource> {
+        public StorageResource mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new StorageResource()
                 .cloudPlatform(CloudPlatform.fromValue(rs.getString("cloud_platform")))
                 .cloudResource(rs.getString("cloud_resource"))
                 .region(rs.getString("region"));

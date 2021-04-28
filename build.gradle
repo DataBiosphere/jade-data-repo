@@ -245,6 +245,8 @@ dependencies {
     testCompile 'org.postgresql:postgresql:42.2.8'
     testCompile 'com.google.code.findbugs:annotations:3.0.1'
 
+    testImplementation 'org.awaitility:awaitility:4.0.3'
+
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     // boot-starter-validation required for javax.validation.Valid references, @Valid tags
     generatedCompile 'org.springframework.boot:spring-boot-starter-validation'

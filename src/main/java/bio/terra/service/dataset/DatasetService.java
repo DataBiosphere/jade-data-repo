@@ -7,7 +7,9 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
@@ -102,8 +104,12 @@ public class DatasetService {
         return DatasetJsonConversion.populateDatasetModelFromDataset(dataset);
     }
 
-    public EnumerateDatasetModel enumerate(
-        int offset, int limit, String sort, String direction, String filter, List<UUID> resources) {
+    public EnumerateDatasetModel enumerate(int offset,
+                                           int limit,
+                                           EnumerateSortByParam sort,
+                                           SqlSortDirection direction,
+                                           String filter,
+                                           List<UUID> resources) {
         if (resources.isEmpty()) {
             return new EnumerateDatasetModel().total(0).items(Collections.emptyList());
         }

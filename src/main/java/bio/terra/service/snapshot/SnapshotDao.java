@@ -6,6 +6,8 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -389,8 +391,8 @@ public class SnapshotDao {
     public MetadataEnumeration<SnapshotSummary> retrieveSnapshots(
         int offset,
         int limit,
-        String sort,
-        String direction,
+        EnumerateSortByParam sort,
+        SqlSortDirection direction,
         String filter,
         List<UUID> datasetIds,
         List<UUID> accessibleSnapshotIds) {

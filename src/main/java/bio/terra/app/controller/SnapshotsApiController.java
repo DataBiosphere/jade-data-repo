@@ -5,6 +5,7 @@ import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.controller.SnapshotsApi;
 import bio.terra.model.EnumerateSnapshotModel;
+import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
@@ -12,6 +13,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.IngestRequestValidator;
 import bio.terra.service.filedata.FileService;
@@ -154,11 +156,11 @@ public class SnapshotsApiController implements SnapshotsApi {
     public ResponseEntity<EnumerateSnapshotModel> enumerateSnapshots(
         @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
         @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-        @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
-        @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
+        @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") EnumerateSortByParam sort,
+        @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") SqlSortDirection direction,
         @Valid @RequestParam(value = "filter", required = false) String filter,
         @Valid @RequestParam(value = "datasetIds", required = false) List<String> datasetIds) {
-        ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
+        ControllerUtils.validateEnumerateParams(offset, limit);
         List<UUID> resources = iamService.listAuthorizedResources(
             getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
         List<UUID> datasetUUIDs = ListUtils.emptyIfNull(datasetIds).stream()

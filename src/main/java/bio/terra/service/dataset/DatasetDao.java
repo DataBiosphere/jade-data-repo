@@ -5,6 +5,8 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
+import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetLockException;
@@ -483,8 +485,8 @@ public class DatasetDao {
     public MetadataEnumeration<DatasetSummary> enumerate(
         int offset,
         int limit,
-        String sort,
-        String direction,
+        EnumerateSortByParam sort,
+        SqlSortDirection direction,
         String filter,
         List<UUID> accessibleDatasetIds
     ) {

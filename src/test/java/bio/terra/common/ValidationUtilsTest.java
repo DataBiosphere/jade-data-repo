@@ -28,4 +28,10 @@ public class ValidationUtilsTest {
         assert !ValidationUtils.isValidEmail("john@.");
         assert !ValidationUtils.isValidEmail(".@somewhere.com");
     }
+
+    @Test
+    public void testUUID() {
+        assert ValidationUtils.isValidUUID("2c297e7c-b303-4243-af6a-76cd9d3b0ca8");
+        assert !ValidationUtils.isValidUUID("not a uuid");
+    }
 }

@@ -1,6 +1,7 @@
 package bio.terra.service.iam.sam;
 
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
@@ -80,7 +81,8 @@ public class SamIam implements IamProviderInterface {
         return apiClient;
     }
 
-    private ResourcesApi samResourcesApi(String accessToken) {
+    @VisibleForTesting
+    ResourcesApi samResourcesApi(String accessToken) {
         return new ResourcesApi(getApiClient(accessToken));
     }
 
@@ -133,6 +135,7 @@ public class SamIam implements IamProviderInterface {
         try (Stream<ResourceAndAccessPolicy> resultStream =
                  samResourceApi.listResourcesAndPolicies(iamResourceType.toString()).stream()) {
             return resultStream
+                .filter(resource -> ValidationUtils.isValidUUID(resource.getResourceId()))
                 .map(resource -> UUID.fromString(resource.getResourceId()))
                 .collect(Collectors.toList());
         }

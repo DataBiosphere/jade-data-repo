@@ -19,7 +19,6 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.configuration.ConfigEnum;

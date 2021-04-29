@@ -534,7 +534,14 @@ public class SnapshotService {
                 .name(dataset.getName())
                 .description(dataset.getDescription())
                 .defaultProfileId(dataset.getDefaultProfileId().toString())
-                .createdDate(dataset.getCreatedDate().toString());
+                .createdDate(dataset.getCreatedDate().toString())
+                .storage(dataset.getDatasetSummary().getStorage()
+                    .stream()
+                    .map(sr -> new bio.terra.model.StorageResourceModel()
+                        .region(sr.getRegion())
+                        .cloudPlatform(sr.getCloudPlatform())
+                        .cloudResource(sr.getCloudResource()))
+                    .collect(Collectors.toList()));
 
         SnapshotSourceModel sourceModel = new SnapshotSourceModel()
                 .dataset(summaryModel);

@@ -7,6 +7,8 @@
       "basicexamples/BasicAuthenticated.json",
       "basicexamples/BasicUnauthenticated.json",
       "basicexamples/LookupDataset.json",
-      "functional/BillingProfileInUse.json"
+      "functional/BillingProfileAccess.json",
+      "functional/BillingProfileInUse.json",
+      "functional/BillingProfileOwnerHandoff.json"
     ]
 }

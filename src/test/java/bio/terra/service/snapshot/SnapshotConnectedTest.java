@@ -19,6 +19,7 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.configuration.ConfigEnum;
@@ -858,8 +859,9 @@ public class SnapshotConnectedTest {
         assertThat("source array has one element",
                 snapshotModel.getSource().size(), equalTo(1));
 //        snapshot source model needs to include storage
+        SnapshotSourceModel sourceModel = snapshotModel.getSource().get(0);
 //        assertThat("snapshot dataset summary is the same as from dataset",
-//            snapshotModel.getSource(), equalTo(datasetSummary));
+//            sourceModel.getDataset(), equalTo(datasetSummary));
 
         return snapshotModel;
     }

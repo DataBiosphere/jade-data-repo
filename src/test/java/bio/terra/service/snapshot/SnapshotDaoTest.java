@@ -10,7 +10,9 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
@@ -256,17 +258,17 @@ public class SnapshotDaoTest {
         testOneEnumerateRange(snapshotIdList, snapshotName, 3, 5);
         testOneEnumerateRange(snapshotIdList, snapshotName, 4, 7);
 
-        testSortingNames(snapshotIdList, snapshotName, 0, 10, "asc");
-        testSortingNames(snapshotIdList, snapshotName, 0, 3, "asc");
-        testSortingNames(snapshotIdList, snapshotName, 1, 3, "asc");
-        testSortingNames(snapshotIdList, snapshotName, 2, 5, "asc");
-        testSortingNames(snapshotIdList, snapshotName, 0, 10, "desc");
-        testSortingNames(snapshotIdList, snapshotName, 0, 3, "desc");
-        testSortingNames(snapshotIdList, snapshotName, 1, 3, "desc");
-        testSortingNames(snapshotIdList, snapshotName, 2, 5, "desc");
+        testSortingNames(snapshotIdList, snapshotName, 0, 10, SqlSortDirection.ASC);
+        testSortingNames(snapshotIdList, snapshotName, 0, 3, SqlSortDirection.ASC);
+        testSortingNames(snapshotIdList, snapshotName, 1, 3, SqlSortDirection.ASC);
+        testSortingNames(snapshotIdList, snapshotName, 2, 5, SqlSortDirection.ASC);
+        testSortingNames(snapshotIdList, snapshotName, 0, 10, SqlSortDirection.DESC);
+        testSortingNames(snapshotIdList, snapshotName, 0, 3, SqlSortDirection.DESC);
+        testSortingNames(snapshotIdList, snapshotName, 1, 3, SqlSortDirection.DESC);
+        testSortingNames(snapshotIdList, snapshotName, 2, 5, SqlSortDirection.DESC);
 
-        testSortingDescriptions(snapshotIdList, "desc");
-        testSortingDescriptions(snapshotIdList, "asc");
+        testSortingDescriptions(snapshotIdList, SqlSortDirection.DESC);
+        testSortingDescriptions(snapshotIdList, SqlSortDirection.ASC);
 
 
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 2, null,
@@ -308,27 +310,27 @@ public class SnapshotDaoTest {
         String snapshotName,
         int offset,
         int limit,
-        String direction) {
-        MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit, "name",
-            direction, null, datasetIds, snapshotIds);
+        SqlSortDirection direction) {
+        MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit,
+            EnumerateSortByParam.NAME, direction, null, datasetIds, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
-        int index = (direction.equals("asc")) ? offset : snapshotIds.size() - offset - 1;
+        int index = (direction.equals(SqlSortDirection.ASC)) ? offset : snapshotIds.size() - offset - 1;
         for (SnapshotSummary summary : summaryList) {
             assertThat("correct id", snapshotIds.get(index), equalTo(summary.getId()));
             assertThat("correct name", makeName(snapshotName, index), equalTo(summary.getName()));
-            index += (direction.equals("asc")) ? 1 : -1;
+            index += (direction.equals(SqlSortDirection.ASC)) ? 1 : -1;
         }
     }
 
-    private void testSortingDescriptions(List<UUID> snapshotIds, String direction) {
+    private void testSortingDescriptions(List<UUID> snapshotIds, SqlSortDirection direction) {
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 6,
-            "description", direction, null, datasetIds, snapshotIds);
+            EnumerateSortByParam.DESCRIPTION, direction, null, datasetIds, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("the full list comes back", summaryList.size(), equalTo(6));
         String previous = summaryList.get(0).getDescription();
         for (int i = 1; i < summaryList.size(); i++) {
             String next = summaryList.get(i).getDescription();
-            if (direction.equals("asc")) {
+            if (direction.equals(SqlSortDirection.ASC)) {
                 assertThat("ascending order", previous, lessThan(next));
             } else {
                 assertThat("descending order", previous, greaterThan(next));
@@ -343,8 +345,8 @@ public class SnapshotDaoTest {
                                        int offset,
                                        int limit) {
         // We expect the snapshots to be returned in their created order
-        MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit, "created_date",
-            "asc", null, datasetIds, snapshotIds);
+        MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit,
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null, datasetIds, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         int index = offset;
         for (SnapshotSummary summary : summaryList) {

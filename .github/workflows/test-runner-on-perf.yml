@@ -25,6 +25,9 @@ jobs:
           LATEST_VERSION=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
           echo "Latest Version: $LATEST_VERSION"
           echo "::set-output name=LATEST_VERSION::$LATEST_VERSION"
+          LATEST_GITHASH=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.gitHash')
+          echo "Latest git hash: $LATEST_GITHASH"
+          echo "::set-output name=LATEST_GITHASH::$LATEST_GITHASH"
       - name: "Checkout jade-data-repo ${{ steps.read_property.outputs.LATEST_VERSION }} branch"
         uses: actions/checkout@v2
         with:
@@ -71,7 +74,7 @@ jobs:
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.60.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
@@ -93,7 +96,7 @@ jobs:
           args: yq w -i datarepo-helm-definitions/perf/datarepo/datarepo-api.yaml image.tag ${{ steps.read_property.outputs.LATEST_VERSION }}
       - name: "[Update API version on Perf] [datarepo-helm-definitions] Merge version update"
         if: ${{ steps.read_property.outputs.LATEST_VERSION != steps.read_property.outputs.CURRENT_SEMVER }}
-        uses: broadinstitute/datarepo-actions/actions/merger@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/merger@0.60.0
         env:
           COMMIT_MESSAGE:  "Perf Datarepo version update: ${{ steps.read_property.outputs.LATEST_VERSION }}"
           GITHUB_REPO: datarepo-helm-definitions
@@ -141,20 +144,12 @@ jobs:
           echo "Sleep 45 seconds to give the pods a chance to start cycling before checking if up and on correct version"
           sleep 45
       - name: "Wait for Perf Cluster to come back up with correct version"
-        run: |
-          PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-          RETRY_COUNT=0
-          until [[ "$PERF_VERSION" == "${{ steps.read_property.outputs.LATEST_VERSION }}" ]]; do
-            if [[ ${RETRY_COUNT} -gt 20 ]]; then
-              echo "Failed to match perf $PERF_VERSION to dev version ${{ steps.read_property.outputs.LATEST_VERSION }}"
-              exit 1
-            fi
-            echo "Retry #${RETRY_COUNT}: Waiting for $PERF_VERSION to equal ${{ steps.read_property.outputs.LATEST_VERSION }}"
-            sleep 15
-            PERF_VERSION=$(curl -s -X GET "https://jade-perf.datarepo-perf.broadinstitute.org/configuration" -H "accept: application/json" | jq -R '. | try fromjson catch {"semVer":"failedToContact"}' | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-            ((RETRY_COUNT=RETRY_COUNT+1))
-          done;
-          echo "Perf successfully running on new version: $PERF_VERSION"
+        uses: broadinstitute/datarepo-actions/actions/wait-for-deployment@0.60.0
+        env:
+          NAMESPACEINUSE: perf
+          IT_JADE_API_URL: "https://jade-perf.datarepo-perf.broadinstitute.org"
+          DESIRED_GITHASH: ${{ steps.read_property.outputs.LATEST_GITHASH }}
+          DEPLOYMENT_TYPE: 'api'
       - name: "Build and run Test Runner"
         run: |
           cd ${GITHUB_WORKSPACE}/${workingDir}
@@ -177,7 +172,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.57.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.60.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:

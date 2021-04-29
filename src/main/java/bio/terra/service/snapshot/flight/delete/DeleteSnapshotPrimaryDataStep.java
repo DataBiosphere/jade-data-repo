@@ -1,5 +1,7 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.common.FlightUtils;
+import bio.terra.common.exception.PdaoException;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -16,6 +18,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.google.cloud.bigquery.BigQueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,6 +77,11 @@ public class DeleteSnapshotPrimaryDataStep implements Step {
                     snapshotId.toString());
             }
             fileDao.deleteFilesFromSnapshot(snapshot);
+        } catch (BigQueryException ex) {
+            if (FlightUtils.isBigQueryIamPropagationError(ex)) {
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+            }
+            throw new PdaoException("Caught BQ exception while deleting snapshot", ex);
         } catch (SnapshotNotFoundException | DatasetNotFoundException nfe) {
             // If we do not find the snapshot or dataset, we assume things are already clean
         }

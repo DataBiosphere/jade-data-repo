@@ -46,6 +46,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -388,6 +389,7 @@ public class SnapshotConnectedTest {
         connectedOperations.getSnapshotExpectError(summaryModelSequel.getId(), HttpStatus.NOT_FOUND);
     }
 
+    @Ignore("Remove ignore after DR-1770 is addressed")
     @Test
     public void testOverlappingDeletes() throws Exception {
         // create a snapshot

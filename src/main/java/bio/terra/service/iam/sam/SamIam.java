@@ -86,11 +86,18 @@ public class SamIam implements IamProviderInterface {
         return new ResourcesApi(getApiClient(accessToken));
     }
 
-    private GoogleApi samGoogleApi(String accessToken) {
+    @VisibleForTesting
+    StatusApi samStatusApi() {
+        return new StatusApi(getUnauthApiClient());
+    }
+
+    @VisibleForTesting
+    GoogleApi samGoogleApi(String accessToken) {
         return new GoogleApi(getApiClient(accessToken));
     }
 
-    private UsersApi samUsersApi(String accessToken) {
+    @VisibleForTesting
+    UsersApi samUsersApi(String accessToken) {
         return new UsersApi(getApiClient(accessToken));
     }
 
@@ -315,6 +322,7 @@ public class SamIam implements IamProviderInterface {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug("SAM request: " + req.toString());
 
+        // Simply ensure that the call can complete
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.SPEND_PROFILE.toString(), req);
     }
 
@@ -572,7 +580,7 @@ public class SamIam implements IamProviderInterface {
     public RepositoryStatusModelSystems samStatus() {
         try {
             return SamRetry.retry(configurationService, () -> {
-                StatusApi samApi = new StatusApi(getUnauthApiClient());
+                StatusApi samApi = samStatusApi();
                 SystemStatus status = samApi.getSystemStatus();
                 return new RepositoryStatusModelSystems()
                     .ok(status.getOk())

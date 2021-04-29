@@ -3,6 +3,7 @@ package bio.terra.common;
 import bio.terra.common.category.Unit;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IterableUtils;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -76,7 +77,9 @@ public class FutureUtilsTest {
 
         final List<Integer> resolved = FutureUtils.waitFor(futures);
         assertThat(resolved).containsAll(IntStream.range(0, 10).boxed().collect(Collectors.toList()));
-        assertThat(executorService.getActiveCount()).isZero();
+        // Note: adding a sleep since getActiveCount represents an approximation of the number of threads active.
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+            assertThat(executorService.getActiveCount()).isZero());
     }
 
     @Test
@@ -165,9 +168,8 @@ public class FutureUtilsTest {
 
         assertThatThrownBy(() -> FutureUtils.waitFor(futures)).hasMessage("Error executing thread");
         // Note: adding a sleep since getActiveCount represents an approximation of the number of threads active.
-        // Pausing gives the thread executor a chance to learn that the thread has been canceled
-        TimeUnit.MILLISECONDS.sleep(50);
-        assertThat(executorService.getActiveCount()).isZero();
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+            assertThat(executorService.getActiveCount()).isZero());
 
         // Make sure that some tasks after the failure were cancelled
         assertThat(IterableUtils.countMatches(futures, Future::isCancelled)).isPositive();
@@ -203,9 +205,8 @@ public class FutureUtilsTest {
         assertThatThrownBy(() -> FutureUtils.waitFor(futures, Optional.of(Duration.ofMillis(100))))
             .hasMessage("Thread timed out");
         // Note: adding a sleep since getActiveCount represents an approximation of the number of threads active.
-        // Pausing gives the thread executor a chance to learn that the thread has been canceled
-        TimeUnit.MILLISECONDS.sleep(50);
-        assertThat(executorService.getActiveCount()).isZero();
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+            assertThat(executorService.getActiveCount()).isZero());
     }
 
     @Test
@@ -241,6 +242,8 @@ public class FutureUtilsTest {
         final List<Integer> resolvedSecondRound = FutureUtils.waitFor(futures);
         assertThat(resolvedSecondRound).containsAll(IntStream.range(13, 23).boxed().collect(Collectors.toList()));
 
-        assertThat(executorService.getActiveCount()).isZero();
+        // Note: adding a sleep since getActiveCount represents an approximation of the number of threads active.
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).untilAsserted(() ->
+            assertThat(executorService.getActiveCount()).isZero());
     }
 }

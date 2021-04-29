@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.service.dataset.StorageDao;
+import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.profile.exception.ProfileInUseException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
@@ -357,7 +358,12 @@ public class GoogleResourceDao {
                     .googleProjectNumber(rs.getString("google_project_number"))
                     .profileId(rs.getObject("profile_id", UUID.class));
 
-                String region = storageDao.getBucketStorageFromBucketResourceId(bucketResourceId);
+                String region;
+                try {
+                    region = storageDao.getBucketStorageFromBucketResourceId(bucketResourceId);
+                } catch (StorageResourceNotFoundException e) {
+                    region = defaultRegion;
+                }
 
                 // Since storing the region was not in the original data, we supply the
                 // default if a value is not present.
@@ -366,7 +372,7 @@ public class GoogleResourceDao {
                     .resourceId(rs.getObject("bucket_resource_id", UUID.class))
                     .name(rs.getString("name"))
                     .flightId(rs.getString("flightid"))
-                    .region(region == null ? defaultRegion : region);
+                    .region(region);
             });
 
         if (bucketResources.size() > 1) {

@@ -21,6 +21,7 @@ import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.GoogleCloudResource;
+import bio.terra.model.GoogleRegion;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
@@ -78,7 +79,7 @@ public class DatasetIntegrationTest extends UsersBase {
     private static final String omopDatasetName = "it_dataset_omop";
     private static final String omopDatasetDesc =
         "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
-    private static final String omopDatasetRegion = "us-central1";
+    private static final String omopDatasetRegion = GoogleRegion.US_CENTRAL1.toString();
     private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 
     @Autowired private DataRepoClient dataRepoClient;

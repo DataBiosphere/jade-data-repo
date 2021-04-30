@@ -22,6 +22,7 @@ import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
@@ -537,7 +538,7 @@ public class SnapshotService {
                 .createdDate(dataset.getCreatedDate().toString())
                 .storage(dataset.getDatasetSummary().getStorage()
                     .stream()
-                    .map(sr -> new bio.terra.model.StorageResourceModel()
+                    .map(sr -> new StorageResourceModel()
                         .region(sr.getRegion())
                         .cloudPlatform(sr.getCloudPlatform())
                         .cloudResource(sr.getCloudResource()))

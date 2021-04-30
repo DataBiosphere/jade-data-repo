@@ -382,7 +382,7 @@ public class DatasetRequestValidator implements Validator {
 
     private void validateRegion(DatasetRequestModel datasetRequest, Errors errors) {
         if (datasetRequest.getRegion() != null) {
-            if (datasetRequest.getCloudPlatform() == null){
+            if (datasetRequest.getCloudPlatform() == null) {
                 errors.rejectValue("region", "InvalidRegionForPlatform",
                     "Cannot set a region when a cloudPlatform is not provided.");
             }

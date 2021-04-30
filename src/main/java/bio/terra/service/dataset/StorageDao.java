@@ -23,6 +23,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -61,15 +62,15 @@ public class StorageDao {
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public String getBucketStorageFromBucketResourceId(UUID bucketResourceId) {
+        String errorMsg = "Storage resource not found for bucket: " + bucketResourceId.toString();
         try {
             MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("bucket_resource_id", bucketResourceId)
                 .addValue("cloud_resource", GoogleCloudResource.BUCKET.toString());
             return Optional.ofNullable(jdbcTemplate.queryForObject(SQL_GET_BUCKET, params, new StorageResourceMapper()))
-                .map(StorageResource::getRegion).orElse(null);
-        } catch (EmptyResultDataAccessException ex) {
-            throw new StorageResourceNotFoundException("Storage resource not found for bucket: "
-                + bucketResourceId.toString());
+                .map(StorageResource::getRegion).orElseThrow();
+        } catch (EmptyResultDataAccessException | NoSuchElementException ex) {
+            throw new StorageResourceNotFoundException(errorMsg);
         }
     }
 

@@ -358,6 +358,8 @@ public class GoogleResourceDao {
                     .googleProjectNumber(rs.getString("google_project_number"))
                     .profileId(rs.getObject("profile_id", UUID.class));
 
+                // Since storing the region was not in the original data, we supply the
+                // default if a value is not present.
                 String region;
                 try {
                     region = storageDao.getBucketStorageFromBucketResourceId(bucketResourceId);
@@ -365,8 +367,6 @@ public class GoogleResourceDao {
                     region = defaultRegion;
                 }
 
-                // Since storing the region was not in the original data, we supply the
-                // default if a value is not present.
                 return new GoogleBucketResource()
                     .projectResource(projectResource)
                     .resourceId(rs.getObject("bucket_resource_id", UUID.class))

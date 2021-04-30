@@ -1,6 +1,7 @@
 package bio.terra.app.controller;
 
 import bio.terra.app.configuration.OauthConfiguration;
+import bio.terra.app.configuration.TerraConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
 import bio.terra.model.RepositoryStatusModel;
@@ -8,6 +9,7 @@ import bio.terra.service.configuration.StatusService;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.annotations.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,7 @@ import java.util.Optional;
 import java.util.Properties;
 
 @Controller
+@Api(tags = {"unauthenticated"})
 public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     private final ObjectMapper objectMapper;
@@ -35,6 +38,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     private final Environment env;
     private final StatusService statusService;
     private final SamConfiguration samConfiguration;
+    private final TerraConfiguration terraConfiguration;
 
     private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
     private static final String DEFAULT_GITHASH = "00000000";
@@ -50,6 +54,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         JobService jobService,
         Environment env,
         StatusService statusService,
+        TerraConfiguration terraConfiguration,
         SamConfiguration samConfiguration
     ) {
         this.objectMapper = objectMapper;
@@ -58,6 +63,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         this.jobService = jobService;
         this.env = env;
         this.statusService = statusService;
+        this.terraConfiguration = terraConfiguration;
         this.samConfiguration = samConfiguration;
 
         Properties properties = new Properties();
@@ -94,6 +100,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
             .activeProfiles(Arrays.asList(env.getActiveProfiles()))
             .semVer(semVer)
             .gitHash(gitHash)
+            .terraUrl(terraConfiguration.getBasePath())
             .samUrl(samConfiguration.getBasePath());
 
         return new ResponseEntity<>(configurationModel, HttpStatus.OK);

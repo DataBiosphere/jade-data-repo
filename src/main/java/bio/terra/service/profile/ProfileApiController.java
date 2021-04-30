@@ -1,7 +1,7 @@
 package bio.terra.service.profile;
 
 import bio.terra.app.utils.ControllerUtils;
-import bio.terra.controller.ResourcesApi;
+import bio.terra.controller.ProfilesApi;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
@@ -15,6 +15,7 @@ import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import bio.terra.service.iam.PolicyMemberValidator;
 import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +35,8 @@ import java.util.Optional;
 import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
 @Controller
-public class ProfileApiController implements ResourcesApi {
+@Api(tags = {"profiles"})
+public class ProfileApiController implements ProfilesApi {
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;

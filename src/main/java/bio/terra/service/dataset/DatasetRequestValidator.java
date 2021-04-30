@@ -390,6 +390,7 @@ public class DatasetRequestValidator implements Validator {
             switch (datasetRequest.getCloudPlatform()) {
                 case GCP:
                     supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
+                    break;
                 case AZURE:
                     errors.rejectValue("cloudPlatform", "InvalidCloudPlatform",
                         "Azure is not supported yet");

@@ -36,6 +36,7 @@ import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
@@ -161,7 +162,9 @@ public class BigQueryPdaoTest {
             String bucket = (String) tuple[1];
             String regionMessage = (String) tuple[2];
 
-            String region = dataset.getDatasetSummary().getStorage().get(0).getRegion();
+            String region = dataset.getDatasetSummary().getStorage().stream()
+                .collect(Collectors.toMap(StorageResource::getCloudResource, StorageResource::getRegion))
+                .get(GoogleCloudResource.BIGQUERY.toString());
 
             connectedOperations.addDataset(dataset.getId().toString());
 

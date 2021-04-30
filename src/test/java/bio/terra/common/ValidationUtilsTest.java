@@ -51,8 +51,11 @@ public class ValidationUtilsTest {
     }
 
     @Test
-    public void testUUIDFormats() {
-        assertThat(ValidationUtils.isValidUUID("2c297e7c-b303-4243-af6a-76cd9d3b0ca8")).isTrue();
-        assertThat(ValidationUtils.isValidUUID("not a uuid")).isFalse();
+    public void testUuidFormats() {
+        assertThat(ValidationUtils.isValidUuid("2c297e7c-b303-4243-af6a-76cd9d3b0ca8")).isTrue();
+        assertThat(ValidationUtils.convertToUuid("2c297e7c-b303-4243-af6a-76cd9d3b0ca8")).isPresent();
+        assertThat(ValidationUtils.isValidUuid("not a uuid")).isFalse();
+        assertThat(ValidationUtils.convertToUuid("not a uuid")).isEmpty();
+
     }
 }

@@ -46,6 +46,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -142,8 +143,13 @@ public class SamIam implements IamProviderInterface {
         try (Stream<ResourceAndAccessPolicy> resultStream =
                  samResourceApi.listResourcesAndPolicies(iamResourceType.toString()).stream()) {
             return resultStream
-                .filter(resource -> ValidationUtils.isValidUUID(resource.getResourceId()))
-                .map(resource -> UUID.fromString(resource.getResourceId()))
+                .map(ResourceAndAccessPolicy::getResourceId)
+                // Convert valid UUID's to Optional<UUID> objects
+                .map(ValidationUtils::convertToUuid)
+                // Only return valid values
+                .filter(Optional::isPresent)
+                // Unbox the UUID
+                .map(Optional::get)
                 .collect(Collectors.toList());
         }
     }

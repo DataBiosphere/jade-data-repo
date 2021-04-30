@@ -208,114 +208,139 @@ public class BigQueryPdaoTest {
 
     @Test
     public void datasetTest() throws Exception {
-        Dataset dataset = readDataset("ingest-test-dataset.json");
-        connectedOperations.addDataset(dataset.getId().toString());
+        Dataset defaultDataset = readDataset("ingest-test-dataset.json");
+        Dataset eastDataset = readDataset("ingest-test-dataset.json");
+        eastDataset.getDatasetSummary().getStorage().forEach(s -> s.region("us-east1"));
+        List<Object[]> testCases = Arrays.asList(
+            new Object[]{defaultDataset, testConfig.getIngestbucket(), "us-central1",
+                "BiqQuery datasets are instantiated in us-central1 by default."},
+            new Object[]{eastDataset, testConfig.getNonDefaultRegionIngestBucket(), "us-east1",
+                "BiqQuery datasets can be set to the non-default region."});
 
-        // Stage tabular data for ingest.
-        String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
+        for (Object[] tuple : testCases) {
+            String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
+            Dataset dataset = (Dataset) tuple[0];
+            String bucket = (String) tuple[1];
+            String region = (String) tuple[2];
+            String regionMessage = (String) tuple[3];
 
-        String bucket = testConfig.getIngestbucket();
+            connectedOperations.addDataset(dataset.getId().toString());
 
-        BlobInfo participantBlob = BlobInfo
-            .newBuilder(bucket, targetPath + "ingest-test-participant.json")
-            .build();
-        BlobInfo sampleBlob = BlobInfo
-            .newBuilder(bucket, targetPath + "ingest-test-sample.json")
-            .build();
-        BlobInfo fileBlob = BlobInfo
-            .newBuilder(bucket, targetPath + "ingest-test-file.json")
-            .build();
+            // Stage tabular data for ingest.
+            BlobInfo participantBlob = BlobInfo
+                .newBuilder(bucket, targetPath + "ingest-test-participant.json")
+                .build();
+            BlobInfo sampleBlob = BlobInfo
+                .newBuilder(bucket, targetPath + "ingest-test-sample.json")
+                .build();
+            BlobInfo fileBlob = BlobInfo
+                .newBuilder(bucket, targetPath + "ingest-test-file.json")
+                .build();
 
-        BlobInfo missingPkBlob = BlobInfo
-            .newBuilder(bucket, targetPath + "ingest-test-sample-no-id.json")
-            .build();
-        BlobInfo nullPkBlob = BlobInfo
-            .newBuilder(bucket, targetPath + "ingest-test-sample-null-id.json")
-            .build();
+            BlobInfo missingPkBlob = BlobInfo
+                .newBuilder(bucket, targetPath + "ingest-test-sample-no-id.json")
+                .build();
+            BlobInfo nullPkBlob = BlobInfo
+                .newBuilder(bucket, targetPath + "ingest-test-sample-null-id.json")
+                .build();
 
-        try {
-            bigQueryPdao.createDataset(dataset);
+            try {
+                bigQueryPdao.createDataset(dataset);
 
-            storage.create(participantBlob, readFile("ingest-test-participant.json"));
-            storage.create(sampleBlob, readFile("ingest-test-sample.json"));
-            storage.create(fileBlob, readFile("ingest-test-file.json"));
-            storage.create(missingPkBlob, readFile("ingest-test-sample-no-id.json"));
-            storage.create(nullPkBlob, readFile("ingest-test-sample-null-id.json"));
+                com.google.cloud.bigquery.Dataset bqDataset =
+                    bigQueryPdao.bigQueryDataset(dataset);
+                assertThat(regionMessage, bqDataset.getLocation(), equalTo(region));
 
-            // Ingest staged data into the new dataset.
-            IngestRequestModel ingestRequest = new IngestRequestModel()
-                .format(IngestRequestModel.FormatEnum.JSON);
+                storage.create(participantBlob, readFile("ingest-test-participant.json"));
+                storage.create(sampleBlob, readFile("ingest-test-sample.json"));
+                storage.create(fileBlob, readFile("ingest-test-file.json"));
+                storage.create(missingPkBlob, readFile("ingest-test-sample-no-id.json"));
+                storage.create(nullPkBlob, readFile("ingest-test-sample-null-id.json"));
 
-            String datasetId = dataset.getId().toString();
-            connectedOperations.ingestTableSuccess(datasetId,
-                ingestRequest.table("participant").path(gsPath(participantBlob)));
-            connectedOperations.ingestTableSuccess(datasetId,
-                ingestRequest.table("sample").path(gsPath(sampleBlob)));
-            connectedOperations.ingestTableSuccess(datasetId,
-                ingestRequest.table("file").path(gsPath(fileBlob)));
+                // Ingest staged data into the new dataset.
+                IngestRequestModel ingestRequest = new IngestRequestModel()
+                    .format(IngestRequestModel.FormatEnum.JSON);
 
-            // Check primary key non-nullability is enforced.
-            connectedOperations.ingestTableFailure(datasetId,
-                ingestRequest.table("sample").path(gsPath(missingPkBlob)));
-            connectedOperations.ingestTableFailure(datasetId,
-                ingestRequest.table("sample").path(gsPath(nullPkBlob)));
+                String datasetId = dataset.getId().toString();
+                connectedOperations.ingestTableSuccess(datasetId,
+                    ingestRequest.table("participant").path(gsPath(participantBlob)));
+                connectedOperations.ingestTableSuccess(datasetId,
+                    ingestRequest.table("sample").path(gsPath(sampleBlob)));
+                connectedOperations.ingestTableSuccess(datasetId,
+                    ingestRequest.table("file").path(gsPath(fileBlob)));
 
-            // Create a snapshot!
-            DatasetSummaryModel datasetSummaryModel =
-                DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
-            SnapshotSummaryModel snapshotSummary =
-                connectedOperations.createSnapshot(datasetSummaryModel,
-                    "ingest-test-snapshot.json", "");
-            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
+                // Check primary key non-nullability is enforced.
+                connectedOperations.ingestTableFailure(datasetId,
+                    ingestRequest.table("sample").path(gsPath(missingPkBlob)));
+                connectedOperations.ingestTableFailure(datasetId,
+                    ingestRequest.table("sample").path(gsPath(nullPkBlob)));
 
-            BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-                datasetDao, dataset.getName());
-            Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
-            List<String> participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
-            List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
-            List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
+                // Create a snapshot!
+                DatasetSummaryModel datasetSummaryModel =
+                    DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
+                SnapshotSummaryModel snapshotSummary =
+                    connectedOperations.createSnapshot(datasetSummaryModel,
+                        "ingest-test-snapshot.json", "");
+                SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-            Assert.assertThat(participantIds, containsInAnyOrder(
-                "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
-            Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
-            Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+                com.google.cloud.bigquery.Dataset bqSnapshotDataset =
+                    bigQueryPdao.bigQuerySnapshot(dataset, snapshot.getName());
 
-            // Simulate soft-deleting some rows.
-            // TODO: Replace this with a call to the soft-delete API once it exists?
-            softDeleteRows(bigQueryProject, bigQueryPdao.prefixName(dataset.getName()),
-                getTable(dataset, "participant"), Arrays.asList("participant_3", "participant_4"));
-            softDeleteRows(
-                bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable(dataset, "sample"),
-                Collections.singletonList("sample5"));
-            softDeleteRows(
-                bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable(dataset, "file"),
-                Collections.singletonList("file1"));
+                assertThat(
+                    String.format("Snapshot for dataset in region %s should also also be in region %s",
+                        region, region),
+                    region, equalTo(bqSnapshotDataset.getLocation()));
 
-            // Create another snapshot.
-            snapshotSummary = connectedOperations.createSnapshot(
-                datasetSummaryModel, "ingest-test-snapshot.json", "");
-            SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId());
-            Assert.assertThat(snapshot2.getTables().size(), is(equalTo(3)));
+                BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+                    datasetDao, dataset.getName());
+                Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
+                List<String> participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
+                List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
+                List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
 
-            participantIds = queryForIds(snapshot2.getName(), "participant", bigQueryProject);
-            sampleIds = queryForIds(snapshot2.getName(), "sample", bigQueryProject);
-            fileIds = queryForIds(snapshot2.getName(), "file", bigQueryProject);
-            Assert.assertThat(participantIds, containsInAnyOrder(
-                "participant_1", "participant_2", "participant_5"));
-            Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2"));
-            Assert.assertThat(fileIds, is(empty()));
+                Assert.assertThat(participantIds, containsInAnyOrder(
+                    "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
+                Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
+                Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
 
-            // Make sure the old snapshot wasn't changed.
-            participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
-            sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
-            fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
-            Assert.assertThat(participantIds, containsInAnyOrder(
-                "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
-            Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
-            Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
-        } finally {
-            storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
-                fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());
+                // Simulate soft-deleting some rows.
+                // TODO: Replace this with a call to the soft-delete API once it exists?
+                softDeleteRows(bigQueryProject, bigQueryPdao.prefixName(dataset.getName()),
+                    getTable(dataset, "participant"), Arrays.asList("participant_3", "participant_4"));
+                softDeleteRows(
+                    bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable(dataset, "sample"),
+                    Collections.singletonList("sample5"));
+                softDeleteRows(
+                    bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable(dataset, "file"),
+                    Collections.singletonList("file1"));
+
+                // Create another snapshot.
+                snapshotSummary = connectedOperations.createSnapshot(
+                    datasetSummaryModel, "ingest-test-snapshot.json", "");
+                SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId());
+                Assert.assertThat(snapshot2.getTables().size(), is(equalTo(3)));
+
+                participantIds = queryForIds(snapshot2.getName(), "participant", bigQueryProject);
+                sampleIds = queryForIds(snapshot2.getName(), "sample", bigQueryProject);
+                fileIds = queryForIds(snapshot2.getName(), "file", bigQueryProject);
+                Assert.assertThat(participantIds, containsInAnyOrder(
+                    "participant_1", "participant_2", "participant_5"));
+                Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2"));
+                Assert.assertThat(fileIds, is(empty()));
+
+                // Make sure the old snapshot wasn't changed.
+                participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
+                sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
+                fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
+                Assert.assertThat(participantIds, containsInAnyOrder(
+                    "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
+                Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
+                Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+            } finally {
+                datasetDao.delete(dataset.getId());
+                storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
+                    fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());
+            }
         }
     }
 

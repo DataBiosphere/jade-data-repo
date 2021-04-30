@@ -9,6 +9,7 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
+import bio.terra.model.GoogleCloudResource;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -19,9 +20,10 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
-import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
+import bio.terra.app.configuration.BigQueryConfiguration;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotMapColumn;
@@ -98,12 +100,20 @@ public class BigQueryPdao {
         this.bigQueryConfiguration = bigQueryConfiguration;
     }
 
-    public BigQueryProject bigQueryProjectForDataset(Dataset dataset) throws InterruptedException {
+    public BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
         return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
     }
 
-    private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) throws InterruptedException {
+    private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) {
         return BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
+    }
+
+    public com.google.cloud.bigquery.Dataset bigQueryDataset(Dataset dataset) {
+        return bigQueryProjectForDataset(dataset).getBigQuery().getDataset(prefixName(dataset.getName()));
+    }
+
+    public com.google.cloud.bigquery.Dataset bigQuerySnapshot(Dataset dataset, String datasetName) {
+        return bigQueryProjectForDataset(dataset).getBigQuery().getDataset(datasetName);
     }
 
     public void createDataset(Dataset dataset) throws InterruptedException {
@@ -120,7 +130,11 @@ public class BigQueryPdao {
                 bigQueryProject.deleteDataset(datasetName);
             }
 
-            bigQueryProject.createDataset(datasetName, dataset.getDescription());
+            String region = dataset.getDatasetSummary().getStorage().stream()
+                .collect(Collectors.toMap(StorageResource::getCloudResource, StorageResource::getRegion))
+                .get(GoogleCloudResource.BIGQUERY.toString());
+
+            bigQueryProject.createDataset(datasetName, dataset.getDescription(), region);
             bigQueryProject.createTable(
                 datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
             for (DatasetTable table : dataset.getTables()) {
@@ -347,8 +361,18 @@ public class BigQueryPdao {
         if (bigQueryProject.datasetExists(snapshotName)) {
             bigQueryProject.deleteDataset(snapshotName);
         }
+
+        // TODO: When we support multiple datasets per snapshot, this will need to be reworked
+        String representativeRegion = snapshot.getSnapshotSources()
+            .get(0)
+            .getDataset()
+            .getDatasetSummary()
+            .getStorage()
+            .stream()
+            .collect(Collectors.toMap(StorageResource::getCloudResource, StorageResource::getRegion))
+            .get(GoogleCloudResource.BIGQUERY.toString());
         // create snapshot BQ dataset
-        bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
+        bigQueryProject.createDataset(snapshotName, snapshot.getDescription(), representativeRegion);
     }
 
     public void snapshotViewCreation(

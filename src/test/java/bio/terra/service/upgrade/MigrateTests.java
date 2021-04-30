@@ -12,11 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
-import org.springframework.core.env.Environment;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -29,33 +25,16 @@ import static org.mockito.Mockito.mock;
 
 @RunWith(SpringRunner.class)
 @Category(Unit.class)
-@SpringBootTest
 @ActiveProfiles({"google", "test"})
-@AutoConfigureMockMvc
 public class MigrateTests {
 
-    @Autowired
     private IamService samService;
-
-    @Autowired
     private ApplicationConfiguration appConfig;
-
-    @Autowired
     private StairwayJdbcConfiguration stairwayJdbcConfiguration;
-
-    @Autowired
     private ApplicationContext applicationContext;
-
-    @Autowired
     private ObjectMapper objectMapper;
-
-    @Autowired
     private PerformanceLogger performanceLogger;
-
-    @Autowired
     private Migrate migrate;
-
-    //Defined in setup
     private JobService jobService;
     private MigrateConfiguration migrateConfiguration;
     private StandardEnvironment environment;
@@ -96,7 +75,7 @@ public class MigrateTests {
 
     @Test
     public void dropAllOnStartTrue() {
-        ((StandardEnvironment) environment).setActiveProfiles("test");
+        environment.setActiveProfiles("test");
         migrateConfiguration.setDropAllOnStart(true);
 
         boolean allowDropAllOnStart = jobService.allowDropAllOnStart();
@@ -110,7 +89,7 @@ public class MigrateTests {
 
     @Test
     public void dropAllOnStartFalse() {
-        ((StandardEnvironment) environment).setActiveProfiles("test");
+        environment.setActiveProfiles("test");
         migrateConfiguration.setDropAllOnStart(false);
 
         boolean allowDropAllOnStart = jobService.allowDropAllOnStart();
@@ -124,7 +103,7 @@ public class MigrateTests {
 
     @Test
     public void nonTestEnvironment() {
-        ((StandardEnvironment) environment).setActiveProfiles("Staging");
+        environment.setActiveProfiles("Staging");
         migrateConfiguration.setDropAllOnStart(true);
 
         boolean allowDropAllOnStart = jobService.allowDropAllOnStart();
@@ -138,7 +117,7 @@ public class MigrateTests {
 
     @Test
     public void dataProjectNoDrop() {
-        ((StandardEnvironment) environment).setActiveProfiles("test");
+        environment.setActiveProfiles("test");
         migrateConfiguration.setDropAllOnStart(true);
         String testNoDropDataProjectName =  "testNoDropDataProject";
         migrateConfiguration.setDataProjectNoDropAll(Collections.singletonList(testNoDropDataProjectName));

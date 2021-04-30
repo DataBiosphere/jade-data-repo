@@ -108,14 +108,6 @@ public class BigQueryPdao {
         return BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
     }
 
-    public com.google.cloud.bigquery.Dataset bigQueryDataset(Dataset dataset) {
-        return bigQueryProjectForDataset(dataset).getBigQuery().getDataset(prefixName(dataset.getName()));
-    }
-
-    public com.google.cloud.bigquery.Dataset bigQuerySnapshot(Dataset dataset, String datasetName) {
-        return bigQueryProjectForDataset(dataset).getBigQuery().getDataset(datasetName);
-    }
-
     public void createDataset(Dataset dataset) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         BigQuery bigQuery = bigQueryProject.getBigQuery();

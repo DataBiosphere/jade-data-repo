@@ -95,67 +95,6 @@ public class BigQueryPdaoTest {
         connectedOperations.teardown();
     }
 
-    private String makeDatasetName() {
-        return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
-    }
-
-    // NOTE: This method bypasses the `connectedOperations` object, and creates a dataset
-    // using lower-level method calls. This means that the dataset entry isn't auto-cleaned
-    // as part of `connectedOperations.teardown()`. If you forget to manually delete any
-    // datasets from the DAO at the end of a test, you'll see a FK violation when `connectedOperations`
-    // tries to delete the resource profile generated in `setup()`.
-    private Dataset readDataset(String requestFile) throws Exception {
-        String datasetName = makeDatasetName();
-        DatasetRequestModel datasetRequest = jsonLoader.loadObject(requestFile, DatasetRequestModel.class);
-        datasetRequest
-            .defaultProfileId(profileModel.getId())
-            .name(datasetName);
-        UUID projectId = resourceService.getOrCreateDatasetProject(datasetName, profileModel);
-        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
-            .projectResourceId(projectId)
-            .projectResource(resourceService.getProjectResource(projectId));
-
-        String createFlightId = UUID.randomUUID().toString();
-        UUID datasetId = UUID.randomUUID();
-        dataset
-            .id(datasetId);
-        datasetDao.createAndLock(dataset, createFlightId);
-        datasetDao.unlockExclusive(dataset.getId(), createFlightId);
-        return dataset;
-    }
-
-    private DatasetTable getTable(Dataset dataset, String name) {
-        return dataset.getTableByName(name)
-            .orElseThrow(() -> new IllegalStateException("Expected table " + name + " not found!"));
-    }
-
-    private void assertThatDatasetAndTablesShouldExist(Dataset dataset, boolean shouldExist)
-        throws InterruptedException {
-
-        boolean datasetExists = bigQueryPdao.tableExists(dataset, "participant");
-        assertThat(
-            String.format("Dataset: %s, exists", dataset.getName()),
-            datasetExists,
-            equalTo(shouldExist));
-
-        boolean loadTableExists = bigQueryPdao.tableExists(dataset, PDAO_LOAD_HISTORY_TABLE);
-        assertThat(
-            String.format("Load Table: %s, exists", PDAO_LOAD_HISTORY_TABLE),
-            loadTableExists,
-            equalTo(shouldExist));
-
-        for (String name : Arrays.asList("participant", "sample", "file")) {
-            DatasetTable table = getTable(dataset, name);
-            for (String t : Arrays.asList(table.getName(), table.getRawTableName(), table.getSoftDeleteTableName())) {
-                assertThat(
-                    "Table: " + dataset.getName() + "." + t + ", exists",
-                    bigQueryPdao.tableExists(dataset, t),
-                    equalTo(shouldExist));
-            }
-        }
-    }
-
-
     private String insertExample = "INSERT INTO `broad-jade-dev.datarepo_hca_ebi.datarepo_load_history_staging_x` " +
         "(load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c, checksum_md5, error) " +
         "VALUES ('ebi_2020_08_15-0', '2020-08-16T01:27:54.733370Z', 'gs://broad-dsp-storage/blahblah.fastq.gz', " +
@@ -209,20 +148,20 @@ public class BigQueryPdaoTest {
     @Test
     public void datasetTest() throws Exception {
         Dataset defaultDataset = readDataset("ingest-test-dataset.json");
-        Dataset eastDataset = readDataset("ingest-test-dataset.json");
-        eastDataset.getDatasetSummary().getStorage().forEach(s -> s.region("us-east1"));
+        Dataset eastDataset = readDataset("ingest-test-dataset-east.json");
         List<Object[]> testCases = Arrays.asList(
-            new Object[]{defaultDataset, testConfig.getIngestbucket(), "us-central1",
+            new Object[]{defaultDataset, testConfig.getIngestbucket(),
                 "BiqQuery datasets are instantiated in us-central1 by default."},
-            new Object[]{eastDataset, testConfig.getNonDefaultRegionIngestBucket(), "us-east1",
+            new Object[]{eastDataset, testConfig.getNonDefaultRegionIngestBucket(),
                 "BiqQuery datasets can be set to the non-default region."});
 
         for (Object[] tuple : testCases) {
             String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
             Dataset dataset = (Dataset) tuple[0];
             String bucket = (String) tuple[1];
-            String region = (String) tuple[2];
-            String regionMessage = (String) tuple[3];
+            String regionMessage = (String) tuple[2];
+
+            String region = dataset.getDatasetSummary().getStorage().get(0).getRegion();
 
             connectedOperations.addDataset(dataset.getId().toString());
 
@@ -247,8 +186,7 @@ public class BigQueryPdaoTest {
             try {
                 bigQueryPdao.createDataset(dataset);
 
-                com.google.cloud.bigquery.Dataset bqDataset =
-                    bigQueryPdao.bigQueryDataset(dataset);
+                com.google.cloud.bigquery.Dataset bqDataset = bigQueryDataset(dataset);
                 assertThat(regionMessage, bqDataset.getLocation(), equalTo(region));
 
                 storage.create(participantBlob, readFile("ingest-test-participant.json"));
@@ -283,8 +221,7 @@ public class BigQueryPdaoTest {
                         "ingest-test-snapshot.json", "");
                 SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-                com.google.cloud.bigquery.Dataset bqSnapshotDataset =
-                    bigQueryPdao.bigQuerySnapshot(dataset, snapshot.getName());
+                com.google.cloud.bigquery.Dataset bqSnapshotDataset = bigQuerySnapshot(dataset, snapshot.getName());
 
                 assertThat(
                     String.format("Snapshot for dataset in region %s should also also be in region %s",
@@ -337,7 +274,6 @@ public class BigQueryPdaoTest {
                 Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
                 Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
             } finally {
-                datasetDao.delete(dataset.getId());
                 storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
                     fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());
             }
@@ -407,22 +343,6 @@ public class BigQueryPdaoTest {
         }
     }
 
-    /* BigQuery Legacy SQL supports querying a "meta-table" about partitions
-     * for any partitioned table.
-     *
-     * The table won't exist if the real table is unpartitioned, so we can
-     * query it for a quick check to see if we enabled the expected options
-     * on table creation.
-     *
-     * https://cloud.google.com/bigquery/docs/
-     *   creating-partitioned-tables#listing_partitions_in_ingestion-time_partitioned_tables
-     */
-    private static final String queryPartitionsSummaryTemplate =
-        "SELECT * FROM [<project>.<dataset>.<table>$__PARTITIONS_SUMMARY__]";
-
-    private static final String queryIngestDateTemplate =
-        "SELECT " + PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS + " FROM `<project>.<dataset>.<table>`";
-
     @Test
     public void partitionTest() throws Exception {
         Dataset dataset = readDataset("ingest-test-partitioned-dataset.json");
@@ -465,62 +385,6 @@ public class BigQueryPdaoTest {
             // `connectedOperations` object, so we can't rely on its auto-teardown logic.
             datasetDao.delete(dataset.getId());
         }
-    }
-
-    private byte[] readFile(String fileName) throws IOException {
-        return IOUtils.toByteArray(getClass().getClassLoader().getResource(fileName));
-    }
-
-    private String gsPath(BlobInfo blob) {
-        return "gs://" + blob.getBucket() + "/" + blob.getName();
-    }
-
-    private static final String queryAllRowIdsTemplate =
-        "SELECT " + PdaoConstant.PDAO_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<table>` " +
-            "WHERE id IN UNNEST([<ids:{id|'<id>'}; separator=\",\">])";
-
-    private void softDeleteRows(BigQueryProject bq,
-                                String datasetName,
-                                DatasetTable table,
-                                List<String> ids) throws Exception {
-
-        ST sqlTemplate = new ST(queryAllRowIdsTemplate);
-        sqlTemplate.add("project", bq.getProjectId());
-        sqlTemplate.add("dataset", datasetName);
-        sqlTemplate.add("table", table.getRawTableName());
-        sqlTemplate.add("ids", ids);
-
-        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render())
-            .setDestinationTable(TableId.of(datasetName, table.getSoftDeleteTableName()))
-            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
-            .build();
-
-        bq.getBigQuery().query(queryConfig);
-    }
-
-    private static final String queryForIdsTemplate =
-        "SELECT id FROM `<project>.<snapshot>.<table>` ORDER BY id";
-
-    // Get the count of rows in a table or view
-    private List<String> queryForIds(
-        String snapshotName,
-        String tableName,
-        BigQueryProject bigQueryProject) throws Exception {
-        String bigQueryProjectId = bigQueryProject.getProjectId();
-        BigQuery bigQuery = bigQueryProject.getBigQuery();
-
-        ST sqlTemplate = new ST(queryForIdsTemplate);
-        sqlTemplate.add("project", bigQueryProjectId);
-        sqlTemplate.add("snapshot", snapshotName);
-        sqlTemplate.add("table", tableName);
-
-        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
-        TableResult result = bigQuery.query(queryConfig);
-
-        ArrayList<String> ids = new ArrayList<>();
-        result.iterateAll().forEach(r -> ids.add(r.get("id").getStringValue()));
-
-        return ids;
     }
 
     @Test
@@ -601,6 +465,147 @@ public class BigQueryPdaoTest {
             // Need to manually clean up the DAO because `readDataset` bypasses the
             // `connectedOperations` object, so we can't rely on its auto-teardown logic.
             datasetDao.delete(dataset.getId());
+        }
+    }
+
+    public com.google.cloud.bigquery.Dataset bigQueryDataset(Dataset dataset) {
+        return bigQueryPdao.bigQueryProjectForDataset(dataset)
+            .getBigQuery().getDataset(bigQueryPdao.prefixName(dataset.getName()));
+    }
+
+    public com.google.cloud.bigquery.Dataset bigQuerySnapshot(Dataset dataset, String datasetName) {
+        return bigQueryPdao.bigQueryProjectForDataset(dataset).getBigQuery().getDataset(datasetName);
+    }
+
+    private byte[] readFile(String fileName) throws IOException {
+        return IOUtils.toByteArray(getClass().getClassLoader().getResource(fileName));
+    }
+
+    private String gsPath(BlobInfo blob) {
+        return "gs://" + blob.getBucket() + "/" + blob.getName();
+    }
+
+    private static final String queryAllRowIdsTemplate =
+        "SELECT " + PdaoConstant.PDAO_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<table>` " +
+            "WHERE id IN UNNEST([<ids:{id|'<id>'}; separator=\",\">])";
+
+    private void softDeleteRows(BigQueryProject bq,
+                                String datasetName,
+                                DatasetTable table,
+                                List<String> ids) throws Exception {
+
+        ST sqlTemplate = new ST(queryAllRowIdsTemplate);
+        sqlTemplate.add("project", bq.getProjectId());
+        sqlTemplate.add("dataset", datasetName);
+        sqlTemplate.add("table", table.getRawTableName());
+        sqlTemplate.add("ids", ids);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render())
+            .setDestinationTable(TableId.of(datasetName, table.getSoftDeleteTableName()))
+            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+            .build();
+
+        bq.getBigQuery().query(queryConfig);
+    }
+
+    private static final String queryForIdsTemplate =
+        "SELECT id FROM `<project>.<snapshot>.<table>` ORDER BY id";
+
+    // Get the count of rows in a table or view
+    private List<String> queryForIds(
+        String snapshotName,
+        String tableName,
+        BigQueryProject bigQueryProject) throws Exception {
+        String bigQueryProjectId = bigQueryProject.getProjectId();
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+        ST sqlTemplate = new ST(queryForIdsTemplate);
+        sqlTemplate.add("project", bigQueryProjectId);
+        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("table", tableName);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
+        TableResult result = bigQuery.query(queryConfig);
+
+        ArrayList<String> ids = new ArrayList<>();
+        result.iterateAll().forEach(r -> ids.add(r.get("id").getStringValue()));
+
+        return ids;
+    }
+
+    /* BigQuery Legacy SQL supports querying a "meta-table" about partitions
+     * for any partitioned table.
+     *
+     * The table won't exist if the real table is unpartitioned, so we can
+     * query it for a quick check to see if we enabled the expected options
+     * on table creation.
+     *
+     * https://cloud.google.com/bigquery/docs/
+     *   creating-partitioned-tables#listing_partitions_in_ingestion-time_partitioned_tables
+     */
+    private static final String queryPartitionsSummaryTemplate =
+        "SELECT * FROM [<project>.<dataset>.<table>$__PARTITIONS_SUMMARY__]";
+
+    private static final String queryIngestDateTemplate =
+        "SELECT " + PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS + " FROM `<project>.<dataset>.<table>`";
+
+    private String makeDatasetName() {
+        return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
+    }
+
+    // NOTE: This method bypasses the `connectedOperations` object, and creates a dataset
+    // using lower-level method calls. This means that the dataset entry isn't auto-cleaned
+    // as part of `connectedOperations.teardown()`. If you forget to manually delete any
+    // datasets from the DAO at the end of a test, you'll see a FK violation when `connectedOperations`
+    // tries to delete the resource profile generated in `setup()`.
+    private Dataset readDataset(String requestFile) throws Exception {
+        String datasetName = makeDatasetName();
+        DatasetRequestModel datasetRequest = jsonLoader.loadObject(requestFile, DatasetRequestModel.class);
+        datasetRequest
+            .defaultProfileId(profileModel.getId())
+            .name(datasetName);
+        UUID projectId = resourceService.getOrCreateDatasetProject(datasetName, profileModel);
+        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
+            .projectResourceId(projectId)
+            .projectResource(resourceService.getProjectResource(projectId));
+
+        String createFlightId = UUID.randomUUID().toString();
+        UUID datasetId = UUID.randomUUID();
+        dataset
+            .id(datasetId);
+        datasetDao.createAndLock(dataset, createFlightId);
+        datasetDao.unlockExclusive(dataset.getId(), createFlightId);
+        return dataset;
+    }
+
+    private DatasetTable getTable(Dataset dataset, String name) {
+        return dataset.getTableByName(name)
+            .orElseThrow(() -> new IllegalStateException("Expected table " + name + " not found!"));
+    }
+
+    private void assertThatDatasetAndTablesShouldExist(Dataset dataset, boolean shouldExist)
+        throws InterruptedException {
+
+        boolean datasetExists = bigQueryPdao.tableExists(dataset, "participant");
+        assertThat(
+            String.format("Dataset: %s, exists", dataset.getName()),
+            datasetExists,
+            equalTo(shouldExist));
+
+        boolean loadTableExists = bigQueryPdao.tableExists(dataset, PDAO_LOAD_HISTORY_TABLE);
+        assertThat(
+            String.format("Load Table: %s, exists", PDAO_LOAD_HISTORY_TABLE),
+            loadTableExists,
+            equalTo(shouldExist));
+
+        for (String name : Arrays.asList("participant", "sample", "file")) {
+            DatasetTable table = getTable(dataset, name);
+            for (String t : Arrays.asList(table.getName(), table.getRawTableName(), table.getSoftDeleteTableName())) {
+                assertThat(
+                    "Table: " + dataset.getName() + "." + t + ", exists",
+                    bigQueryPdao.tableExists(dataset, t),
+                    equalTo(shouldExist));
+            }
         }
     }
 }

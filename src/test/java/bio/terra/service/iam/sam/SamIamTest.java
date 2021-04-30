@@ -12,7 +12,6 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
-import org.assertj.core.util.Maps;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
@@ -30,16 +29,15 @@ import org.junit.experimental.categories.Category;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -55,13 +53,13 @@ public class SamIamTest {
     @Mock
     private ApiClient apiClient;
     @Mock
-    private ResourcesApi samResourceApi = mock(ResourcesApi.class);
+    private ResourcesApi samResourceApi;
     @Mock
-    private StatusApi samStatusApi = mock(StatusApi.class);
+    private StatusApi samStatusApi;
     @Mock
-    private GoogleApi samGoogleApi = mock(GoogleApi.class);
+    private GoogleApi samGoogleApi;
     @Mock
-    private UsersApi samUsersApi = mock(UsersApi.class);
+    private UsersApi samUsersApi;
 
     @Mock
     private AuthenticatedUserRequest userReq;
@@ -141,7 +139,7 @@ public class SamIamTest {
         final String goodId = UUID.randomUUID().toString();
         final String badId = "badUUID";
         when(samResourceApi.listResourcesAndPolicies(IamResourceType.SPEND_PROFILE.getSamResourceName()))
-            .thenReturn(Arrays.asList(
+            .thenReturn(List.of(
                 new ResourceAndAccessPolicy().resourceId(goodId),
                 new ResourceAndAccessPolicy().resourceId(badId)
             ));
@@ -172,7 +170,7 @@ public class SamIamTest {
     public void testGetStatus() throws ApiException {
         when(samStatusApi.getSystemStatus()).thenReturn(new SystemStatus()
             .ok(true)
-            .systems(Maps.newHashMap("GooglePubSub", Maps.newHashMap("ok", true)))
+            .systems(Map.of("GooglePubSub", Map.of("ok", true)))
         );
         assertThat(samIam.samStatus()).isEqualTo(
             new RepositoryStatusModelSystems()
@@ -271,20 +269,20 @@ public class SamIamTest {
             ));
 
         assertThat(samIam.retrievePolicyEmails(userReq, IamResourceType.SPEND_PROFILE, id))
-            .isEqualTo(Maps.newHashMap(IamRole.CUSTODIAN, policyEmail));
+            .isEqualTo(Map.of(IamRole.CUSTODIAN, policyEmail));
     }
 
     @Test
     public void testCreateDataset() throws InterruptedException, ApiException {
         final UUID datasetId = UUID.randomUUID();
         // Note: in our case, policies have a 1:1 relationship with roles
-        final List<IamRole> allPolicies = Arrays.asList(
+        final List<IamRole> allPolicies = List.of(
             IamRole.ADMIN,
             IamRole.STEWARD,
             IamRole.CUSTODIAN,
             IamRole.SNAPSHOT_CREATOR
         );
-        final List<IamRole> syncedPolicies = Arrays.asList(
+        final List<IamRole> syncedPolicies = List.of(
             IamRole.STEWARD,
             IamRole.CUSTODIAN,
             IamRole.SNAPSHOT_CREATOR
@@ -295,7 +293,7 @@ public class SamIamTest {
                 IamResourceType.DATASET.getSamResourceName(),
                 datasetId.toString(),
                 policy.toString())
-            ).thenReturn(Maps.newHashMap("policygroup-" + policy + "@firecloud.org", Collections.emptyList()));
+            ).thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", Collections.emptyList()));
         }
 
         assertThat(samIam.createDatasetResource(userReq, datasetId))
@@ -309,13 +307,13 @@ public class SamIamTest {
     public void testCreateSnapshot() throws InterruptedException, ApiException {
         final UUID snapshotId = UUID.randomUUID();
         // Note: in our case, policies have a 1:1 relationship with roles
-        final List<IamRole> allPolicies = Arrays.asList(
+        final List<IamRole> allPolicies = List.of(
             IamRole.ADMIN,
             IamRole.STEWARD,
             IamRole.READER,
             IamRole.DISCOVERER
         );
-        final List<IamRole> syncedPolicies = Arrays.asList(
+        final List<IamRole> syncedPolicies = List.of(
             IamRole.STEWARD,
             IamRole.READER
         );
@@ -325,7 +323,7 @@ public class SamIamTest {
                 IamResourceType.DATASNAPSHOT.getSamResourceName(),
                 snapshotId.toString(),
                 policy.toString())
-            ).thenReturn(Maps.newHashMap("policygroup-" + policy + "@firecloud.org", Collections.emptyList()));
+            ).thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", Collections.emptyList()));
         }
 
         assertThat(samIam.createSnapshotResource(userReq, snapshotId, Collections.emptyList()))
@@ -339,7 +337,7 @@ public class SamIamTest {
     public void testCreateProfile() throws InterruptedException, ApiException {
         final UUID profileId = UUID.randomUUID();
         // Note: in our case, policies have a 1:1 relationship with roles
-        final List<IamRole> allPolicies = Arrays.asList(
+        final List<IamRole> allPolicies = List.of(
             IamRole.ADMIN,
             IamRole.OWNER,
             IamRole.USER
@@ -350,7 +348,7 @@ public class SamIamTest {
                 IamResourceType.DATASNAPSHOT.getSamResourceName(),
                 profileId.toString(),
                 policy.toString())
-            ).thenReturn(Maps.newHashMap("policygroup-" + policy + "@firecloud.org", Collections.emptyList()));
+            ).thenReturn(Map.of("policygroup-" + policy + "@firecloud.org", Collections.emptyList()));
         }
 
         samIam.createProfileResource(userReq, profileId.toString());

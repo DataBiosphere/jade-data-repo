@@ -147,9 +147,7 @@ public class SamIam implements IamProviderInterface {
                 // Convert valid UUID's to Optional<UUID> objects
                 .map(ValidationUtils::convertToUuid)
                 // Only return valid values
-                .filter(Optional::isPresent)
-                // Unbox the UUID
-                .map(Optional::get)
+                .flatMap(Optional::stream)
                 .collect(Collectors.toList());
         }
     }

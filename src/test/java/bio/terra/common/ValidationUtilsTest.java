@@ -1,7 +1,7 @@
 package bio.terra.common;
 
 import bio.terra.common.category.Unit;
-import org.apache.commons.lang3.RandomStringUtils;
+import liquibase.util.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -41,7 +41,7 @@ public class ValidationUtilsTest {
     @Test
     public void testDescriptionFormats() throws Exception {
         assertThat(ValidationUtils.isValidDescription("somedescription")).isTrue();
-        assertThat(ValidationUtils.isValidDescription(RandomStringUtils.randomAlphanumeric(5_000))).isFalse();
+        assertThat(ValidationUtils.isValidDescription(StringUtils.repeat("X", 5_000))).isFalse();
     }
 
     @Test

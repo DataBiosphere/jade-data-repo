@@ -58,7 +58,7 @@ public class MigrateTests {
     //Defined in setup
     private JobService jobService;
     private MigrateConfiguration migrateConfiguration;
-    private Environment environment;
+    private StandardEnvironment environment;
     private GoogleResourceConfiguration resourceConfiguration;
 
 

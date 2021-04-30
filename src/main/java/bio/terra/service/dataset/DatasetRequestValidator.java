@@ -5,6 +5,7 @@ import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatePartitionOptionsModel;
+import bio.terra.model.GoogleRegion;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
@@ -38,6 +39,9 @@ import java.util.stream.Collectors;
  */
 @Component
 public class DatasetRequestValidator implements Validator {
+
+    private static final List<String> SUPPORTED_GOOGLE_REGIONS =
+        Arrays.stream(GoogleRegion.values()).map(GoogleRegion::toString).collect(Collectors.toList());
 
     @Override
     public boolean supports(Class<?> clazz) {
@@ -371,6 +375,30 @@ public class DatasetRequestValidator implements Validator {
             DatasetSpecificationModel schema = datasetRequest.getSchema();
             if (schema != null) {
                 validateSchema(schema, errors);
+            }
+            validateRegion(datasetRequest, errors);
+        }
+    }
+
+    private void validateRegion(DatasetRequestModel datasetRequest, Errors errors) {
+        if (datasetRequest.getRegion() != null) {
+            if (datasetRequest.getCloudPlatform() == null){
+                errors.rejectValue("region", "InvalidRegionForPlatform",
+                    "Cannot set a region when a cloudPlatform is not provided.");
+            }
+            boolean supported = false;
+            switch (datasetRequest.getCloudPlatform()) {
+                case GCP:
+                    supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
+                case AZURE:
+                    errors.rejectValue("cloudPlatform", "InvalidCloudPlatform",
+                        "Azure is not supported yet");
+            }
+            if (!supported) {
+                errors.rejectValue("region", "InvalidRegionForPlatform",
+                    "Valid regions for " +
+                        datasetRequest.getCloudPlatform() +
+                        " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
             }
         }
     }

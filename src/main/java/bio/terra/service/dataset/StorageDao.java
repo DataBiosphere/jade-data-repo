@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import bio.terra.model.CloudPlatform;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
+import bio.terra.model.GoogleCloudResource;
 import bio.terra.service.dataset.exception.InvalidStorageException;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import org.slf4j.Logger;
@@ -37,7 +38,7 @@ public class StorageDao {
         "dataset_bucket db " +
         "WHERE sr.dataset_id = db.dataset_id " +
         "AND db.bucket_resource_id = :bucket_resource_id " +
-        "AND sr.cloud_resource = 'bucket'";
+        "AND sr.cloud_resource = :cloud_resource";
     private static final Logger logger = LoggerFactory.getLogger(StorageDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -58,10 +59,12 @@ public class StorageDao {
         }
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
     public String getBucketStorageFromBucketResourceId(UUID bucketResourceId) {
         try {
             MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("bucket_resource_id", bucketResourceId);
+                .addValue("bucket_resource_id", bucketResourceId)
+                .addValue("cloud_resource", GoogleCloudResource.BUCKET.toString());
             return Optional.ofNullable(jdbcTemplate.queryForObject(SQL_GET_BUCKET, params, new StorageResourceMapper()))
                 .map(StorageResource::getRegion).orElse(null);
         } catch (EmptyResultDataAccessException ex) {

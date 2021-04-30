@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 
 public final class DatasetJsonConversion {
 
-    private static GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_CENTRAL1;
-    private static CloudPlatform DEFAULT_CLOUD_PLATFORM = CloudPlatform.GCP;
+    private static final GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_CENTRAL1;
+    private static final CloudPlatform DEFAULT_CLOUD_PLATFORM = CloudPlatform.GCP;
 
     // only allow use of static methods
     private DatasetJsonConversion() {}
@@ -64,14 +64,10 @@ public final class DatasetJsonConversion {
             .orElse(DEFAULT_CLOUD_PLATFORM);
 
         final List<StorageResource> storageResources;
-        switch (cloudPlatform) {
-            case GCP:
-                storageResources = instantiateGcpResources(datasetRequest.getRegion());
-                break;
-            case AZURE:
-                throw new UnsupportedOperationException("Azure is not yet supported");
-            default:
-                throw new UnsupportedOperationException(cloudPlatform + " is not a valid Cloud Platform");
+        if (cloudPlatform == CloudPlatform.GCP) {
+            storageResources = instantiateGcpResources(datasetRequest.getRegion());
+        } else {
+            throw new UnsupportedOperationException(cloudPlatform + " is not a valid Cloud Platform");
         }
 
         return new Dataset(new DatasetSummary()

@@ -22,7 +22,6 @@ import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
@@ -30,6 +29,7 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
@@ -538,10 +538,7 @@ public class SnapshotService {
                 .createdDate(dataset.getCreatedDate().toString())
                 .storage(dataset.getDatasetSummary().getStorage()
                     .stream()
-                    .map(sr -> new StorageResourceModel()
-                        .region(sr.getRegion())
-                        .cloudPlatform(sr.getCloudPlatform())
-                        .cloudResource(sr.getCloudResource()))
+                    .map(StorageResource::toModel)
                     .collect(Collectors.toList()));
 
         SnapshotSourceModel sourceModel = new SnapshotSourceModel()

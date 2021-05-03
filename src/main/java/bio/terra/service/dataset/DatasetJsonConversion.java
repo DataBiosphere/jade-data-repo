@@ -120,12 +120,7 @@ public final class DatasetJsonConversion {
     }
 
     private static List<StorageResourceModel> storageResourceModelFromDatasetSummary(DatasetSummary datasetSummary) {
-        return datasetSummary.getStorage().stream().map(storage ->
-            new StorageResourceModel()
-                .cloudResource(storage.getCloudResource())
-                .region(storage.getRegion())
-                .cloudPlatform(storage.getCloudPlatform()))
-            .collect(Collectors.toList());
+        return datasetSummary.getStorage().stream().map(StorageResource::toModel).collect(Collectors.toList());
     }
 
     public static DatasetSpecificationModel datasetSpecificationModelFromDatasetSchema(Dataset dataset) {

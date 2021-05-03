@@ -351,12 +351,13 @@ public class GoogleResourceDao {
         List<GoogleBucketResource> bucketResources =
             jdbcTemplate.query(sql, params, (rs, rowNum) -> {
                 // Make project resource and a bucket resource from the query result
-                UUID bucketResourceId = rs.getObject("project_resource_id", UUID.class);
                 GoogleProjectResource projectResource = new GoogleProjectResource()
-                    .id(bucketResourceId)
+                    .id(rs.getObject("project_resource_id", UUID.class))
                     .googleProjectId(rs.getString("google_project_id"))
                     .googleProjectNumber(rs.getString("google_project_number"))
                     .profileId(rs.getObject("profile_id", UUID.class));
+
+                UUID bucketResourceId = rs.getObject("bucket_resource_id", UUID.class);
 
                 // Since storing the region was not in the original data, we supply the
                 // default if a value is not present.

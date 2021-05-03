@@ -34,7 +34,7 @@ public class StorageDao {
         "cloud_resource, region ";
     private static final String SQL_GET = "SELECT " + STORAGE_COLUMNS +
         "FROM storage_resource WHERE dataset_id = :dataset_id";
-    private static final String SQL_GET_BUCKET = "SELECT sr.region " +
+    private static final String SQL_GET_BUCKET = "SELECT sr.cloud_resource, sr.cloud_platform, sr.region " +
         "FROM storage_resource sr, " +
         "dataset_bucket db " +
         "WHERE sr.dataset_id = db.dataset_id " +

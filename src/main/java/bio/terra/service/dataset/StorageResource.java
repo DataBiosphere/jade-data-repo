@@ -1,12 +1,20 @@
 package bio.terra.service.dataset;
 
 import bio.terra.model.CloudPlatform;
+import bio.terra.model.StorageResourceModel;
 
 public class StorageResource {
 
     private CloudPlatform cloudPlatform;
     private String cloudResource;
     private String region;
+
+    public StorageResourceModel toModel() {
+        return new StorageResourceModel()
+            .cloudPlatform(this.cloudPlatform)
+            .cloudResource(this.cloudResource)
+            .region(this.region);
+    }
 
     public CloudPlatform getCloudPlatform() {
         return cloudPlatform;

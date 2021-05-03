@@ -367,19 +367,6 @@ public class DatasetRequestValidator implements Validator {
         }
     }
 
-    @Override
-    public void validate(@NotNull Object target, Errors errors) {
-        if (target != null && target instanceof DatasetRequestModel) {
-            DatasetRequestModel datasetRequest = (DatasetRequestModel) target;
-            validateDatasetName(datasetRequest.getName(), errors);
-            DatasetSpecificationModel schema = datasetRequest.getSchema();
-            if (schema != null) {
-                validateSchema(schema, errors);
-            }
-            validateRegion(datasetRequest, errors);
-        }
-    }
-
     private void validateRegion(DatasetRequestModel datasetRequest, Errors errors) {
         if (datasetRequest.getRegion() != null) {
             if (datasetRequest.getCloudPlatform() == null) {
@@ -401,6 +388,19 @@ public class DatasetRequestValidator implements Validator {
                         datasetRequest.getCloudPlatform() +
                         " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
             }
+        }
+    }
+
+    @Override
+    public void validate(@NotNull Object target, Errors errors) {
+        if (target != null && target instanceof DatasetRequestModel) {
+            DatasetRequestModel datasetRequest = (DatasetRequestModel) target;
+            validateDatasetName(datasetRequest.getName(), errors);
+            DatasetSpecificationModel schema = datasetRequest.getSchema();
+            if (schema != null) {
+                validateSchema(schema, errors);
+            }
+            validateRegion(datasetRequest, errors);
         }
     }
 }

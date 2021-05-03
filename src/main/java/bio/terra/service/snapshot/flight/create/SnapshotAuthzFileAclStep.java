@@ -76,21 +76,20 @@ public class SnapshotAuthzFileAclStep implements Step {
             // be a 400 - bad request and the docs indicate the reason will be "badRequest". So for now
             // we will log alot and retry on that.
             // Note from DR-1760 - Potentially could remove this catch, should be handled with ApiException below
-            logger.info("[SnapshotACLException] StorageException, potentially an ACL propagation error. Message: ",
-                ex.getMessage());
+            logger.error("[SnapshotACLException] StorageException, potentially an ACL propagation error. " +
+                "Message: {}, Reason: {}", ex.getMessage(), ex.getReason());
             if (ex.getCode() == 400 && (StringUtils.equals(ex.getReason(), "badRequest"))) {
-                logger.info("[SnapshotACLException] Bad Request. Message: " + ex.getMessage()
-                    + " reason: " + ex.getReason(), ex);
+                logger.error("[SnapshotACLException] Retrying! Bad Request.");
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
             }
             throw ex;
         } catch (ApiException ex) {
             // Most likely ACL propagation error
             // Have example of the failure and then retry successfully completed in DR-1760
-            logger.info("[SnapshotACLException] ApiException, potentially an ACL propagation error. Cause: ",
-                ex.getCause());
+            logger.error("[SnapshotACLException] ApiException. Message: {}, Cause: {}", ex.getMessage(), ex.getCause());
             if (ex.getCause().getMessage().contains("Could not find group")) {
-                logger.info("[SnapshotACLException] Retrying! 'Could not find group' exception.");
+                logger.error("[SnapshotACLException] Retrying! 'Could not find group' exception - potentially" +
+                    "ACL propagation error.");
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
             }
             throw ex;

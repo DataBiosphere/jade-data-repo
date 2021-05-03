@@ -2,6 +2,8 @@ package bio.terra.common;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 public final class ValidationUtils {
@@ -33,5 +35,17 @@ public final class ValidationUtils {
 
     public static boolean isValidPath(String path) {
         return Pattern.matches(VALID_PATH, path);
+    }
+
+    public static boolean isValidUuid(String uuid) {
+        return convertToUuid(uuid).isPresent();
+    }
+
+    public static Optional<UUID> convertToUuid(String uuid) {
+        try {
+            return Optional.of(UUID.fromString(uuid));
+        } catch (IllegalArgumentException e) {
+            return Optional.empty();
+        }
     }
 }

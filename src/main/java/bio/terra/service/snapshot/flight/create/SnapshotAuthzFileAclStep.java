@@ -70,32 +70,31 @@ public class SnapshotAuthzFileAclStep implements Step {
             }
 
             gcsPdao.setAclOnFiles(dataset, fileIds, policies);
-            //logger.info("[ExceptionDebugging] Success.");
+
         } catch (StorageException ex) {
             // Now, how to figure out if the failure is due to IAM propagation delay. We know it will
             // be a 400 - bad request and the docs indicate the reason will be "badRequest". So for now
             // we will log alot and retry on that.
-            logger.info("[ExceptionDebugging] Caught Storage Exception: " + ex.getMessage()
-                + " reason: " + ex.getReason(), ex);
+            // Note from DR-1760 - Potentially could remove this catch, should be handled with ApiException below
+            logger.info("[SnapshotACLException] StorageException, potentially an ACL propagation error. Message: ",
+                ex.getMessage());
             if (ex.getCode() == 400 && (StringUtils.equals(ex.getReason(), "badRequest"))) {
-                logger.info("[ExceptionDebugging] Maybe caught an ACL propagation error: " + ex.getMessage()
+                logger.info("[SnapshotACLException] Bad Request. Message: " + ex.getMessage()
                     + " reason: " + ex.getReason(), ex);
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
             }
             throw ex;
         } catch (ApiException ex) {
-            logger.info("[ExceptionDebugging] ApiException, potentially catching an ACL propagation error.");
-            logger.info("[ExceptionDebugging] Cause: {}", ex.getCause());
+            // Most likely ACL propagation error
+            // Have example of the failure and then retry successfully completed in DR-1760
+            logger.info("[SnapshotACLException] ApiException, potentially an ACL propagation error. Cause: ",
+                ex.getCause());
             if (ex.getCause().getMessage().contains("Could not find group")) {
-                logger.info("[ExceptionDebugging] retrying! Could not find group ACL exception");
+                logger.info("[SnapshotACLException] Retrying! 'Could not find group' exception.");
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
             }
             throw ex;
-        } catch (Exception ex) {
-            logger.info("[ExceptionDebugging] OTHER exception. cause: {}", ex.getCause());
-            throw ex;
         }
-
         return StepResult.getStepResultSuccess();
     }
 

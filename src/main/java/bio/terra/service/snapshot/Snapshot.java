@@ -81,6 +81,11 @@ public class Snapshot implements FSContainerInterface {
         return this;
     }
 
+    // TODO: When we support more than one dataset per snapshot, all uses of this will need refactoring.
+    public SnapshotSource getFirstSnapshotSource() {
+        return snapshotSources.get(0);
+    }
+
     public Optional<SnapshotTable> getTableById(UUID id) {
         for (SnapshotTable tryTable : getTables()) {
             if (tryTable.getId().equals(id)) {

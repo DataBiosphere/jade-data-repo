@@ -58,7 +58,7 @@ public class SnapshotAuthzFileAclStep implements Step {
         //  step: one for each dataset. That is because each dataset keeps its file dependencies
         //  in its own scope. For now, we know there is exactly one dataset and we take shortcuts.
 
-        SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(0);
+        SnapshotSource snapshotSource = snapshot.getFirstSnapshotSource();
         String datasetId = snapshotSource.getDataset().getId().toString();
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 
@@ -96,7 +96,7 @@ public class SnapshotAuthzFileAclStep implements Step {
         //  step: one for each dataset. That is because each dataset keeps its file dependencies
         //  in its own scope. For now, we know there is exactly one dataset and we take shortcuts.
 
-        SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(0);
+        SnapshotSource snapshotSource = snapshot.getFirstSnapshotSource();
         String datasetId = snapshotSource.getDataset().getId().toString();
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 

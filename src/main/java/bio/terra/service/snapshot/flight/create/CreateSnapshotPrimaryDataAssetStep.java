@@ -44,7 +44,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
         SnapshotRequestAssetModel assetSpec = contentsModel.getAssetSpec();
 
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-        SnapshotSource source = snapshot.getSnapshotSources().get(0);
+        SnapshotSource source = snapshot.getFirstSnapshotSource();
         RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(snapshot, source, assetSpec.getRootValues());
         if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
             String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());

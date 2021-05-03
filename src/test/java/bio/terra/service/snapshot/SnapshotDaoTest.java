@@ -159,7 +159,7 @@ public class SnapshotDaoTest {
             equalTo(1));
 
         // verify source and map
-        SnapshotSource source = fromDB.getSnapshotSources().get(0);
+        SnapshotSource source = fromDB.getFirstSnapshotSource();
         assertThat("source points back to snapshot",
             source.getSnapshot().getId(),
             equalTo(snapshot.getId()));

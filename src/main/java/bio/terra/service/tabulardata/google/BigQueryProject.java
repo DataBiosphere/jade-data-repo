@@ -83,9 +83,10 @@ public final class BigQueryProject {
         }
     }
 
-    public DatasetId createDataset(String name, String description) {
+    public DatasetId createDataset(String name, String description, String region) {
         DatasetInfo datasetInfo = DatasetInfo.newBuilder(name)
             .setDescription(description)
+            .setLocation(region)
             .build();
         return bigQuery.create(datasetInfo).getDatasetId();
     }

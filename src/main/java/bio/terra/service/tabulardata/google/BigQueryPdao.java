@@ -9,6 +9,7 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
+import bio.terra.model.GoogleCloudResource;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -19,6 +20,7 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
@@ -98,11 +100,11 @@ public class BigQueryPdao {
         this.bigQueryConfiguration = bigQueryConfiguration;
     }
 
-    public BigQueryProject bigQueryProjectForDataset(Dataset dataset) throws InterruptedException {
+    public BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
         return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
     }
 
-    private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) throws InterruptedException {
+    private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) {
         return BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
     }
 
@@ -120,7 +122,9 @@ public class BigQueryPdao {
                 bigQueryProject.deleteDataset(datasetName);
             }
 
-            bigQueryProject.createDataset(datasetName, dataset.getDescription());
+            String region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
+
+            bigQueryProject.createDataset(datasetName, dataset.getDescription(), region);
             bigQueryProject.createTable(
                 datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
             for (DatasetTable table : dataset.getTables()) {
@@ -347,8 +351,15 @@ public class BigQueryPdao {
         if (bigQueryProject.datasetExists(snapshotName)) {
             bigQueryProject.deleteDataset(snapshotName);
         }
+
+        // TODO: When we support multiple datasets per snapshot, this will need to be reworked
+        String representativeRegion = snapshot.getSnapshotSources()
+            .get(0)
+            .getDataset()
+            .getDatasetSummary()
+            .getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
         // create snapshot BQ dataset
-        bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
+        bigQueryProject.createDataset(snapshotName, snapshot.getDescription(), representativeRegion);
     }
 
     public void snapshotViewCreation(
@@ -392,7 +403,7 @@ public class BigQueryPdao {
 
         // populate root row ids. Must happen before the relationship walk.
         // NOTE: when we have multiple sources, we can put this into a loop
-        SnapshotSource source = snapshot.getSnapshotSources().get(0);
+        SnapshotSource source = snapshot.getFirstSnapshotSource();
         String datasetBqDatasetName = prefixName(source.getDataset().getName());
 
         AssetSpecification asset = source.getAssetSpecification();
@@ -540,7 +551,7 @@ public class BigQueryPdao {
 
         // populate root row ids. Must happen before the relationship walk.
         // NOTE: when we have multiple sources, we can put this into a loop
-        SnapshotSource source = snapshot.getSnapshotSources().get(0);
+        SnapshotSource source = snapshot.getFirstSnapshotSource();
         String datasetBqDatasetName = prefixName(source.getDataset().getName());
 
         for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
@@ -1064,7 +1075,7 @@ public class BigQueryPdao {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         BigQuery bigQuery = bigQueryProject.getBigQuery();
         String snapshotName = snapshot.getName();
-        Dataset dataset = snapshot.getSnapshotSources().get(0).getDataset();
+        Dataset dataset = snapshot.getFirstSnapshotSource().getDataset();
         String datasetBqDatasetName = prefixName(dataset.getName());
         String projectId = bigQueryProject.getProjectId();
         // TODO add additional validation that the col is the root col
@@ -1253,7 +1264,7 @@ public class BigQueryPdao {
         return snapshot.getTables().stream().map(table -> {
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
-            SnapshotSource source = snapshot.getSnapshotSources().get(0);
+            SnapshotSource source = snapshot.getFirstSnapshotSource();
             String snapshotName = snapshot.getName();
 
             // Find the table map for the table. If there is none, we skip it.
@@ -1297,7 +1308,7 @@ public class BigQueryPdao {
         List<String> viewsToDelete = snapshot.getTables().stream().map(table -> {
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
-            SnapshotSource source = snapshot.getSnapshotSources().get(0);
+            SnapshotSource source = snapshot.getFirstSnapshotSource();
 
             // Find the table map for the table. If there is none, we skip it.
             // NOTE: for now, we know that there will be one, because we generate it directly.

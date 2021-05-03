@@ -10,12 +10,21 @@ import org.springframework.stereotype.Component;
 public class ConnectedTestConfiguration {
 
     private String ingestbucket;
+    private String nonDefaultRegionIngestBucket;
     private String ingestRequesterPaysBucket;
     private String googleBillingAccountId;
     private String noSpendGoogleBillingAccountId;
 
     public String getIngestbucket() {
         return ingestbucket;
+    }
+
+    public String getNonDefaultRegionIngestBucket() {
+        return nonDefaultRegionIngestBucket;
+    }
+
+    public void setNonDefaultRegionIngestBucket(String nonDefaultRegionIngestBucket) {
+        this.nonDefaultRegionIngestBucket = nonDefaultRegionIngestBucket;
     }
 
     public void setIngestbucket(String ingestbucket) {

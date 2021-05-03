@@ -403,7 +403,7 @@ public class BigQueryPdao {
 
         // populate root row ids. Must happen before the relationship walk.
         // NOTE: when we have multiple sources, we can put this into a loop
-        SnapshotSource source = snapshot.getSnapshotSources().get(0);
+        SnapshotSource source = snapshot.getFirstSnapshotSource();
         String datasetBqDatasetName = prefixName(source.getDataset().getName());
 
         AssetSpecification asset = source.getAssetSpecification();
@@ -551,7 +551,7 @@ public class BigQueryPdao {
 
         // populate root row ids. Must happen before the relationship walk.
         // NOTE: when we have multiple sources, we can put this into a loop
-        SnapshotSource source = snapshot.getSnapshotSources().get(0);
+        SnapshotSource source = snapshot.getFirstSnapshotSource();
         String datasetBqDatasetName = prefixName(source.getDataset().getName());
 
         for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
@@ -1075,7 +1075,7 @@ public class BigQueryPdao {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         BigQuery bigQuery = bigQueryProject.getBigQuery();
         String snapshotName = snapshot.getName();
-        Dataset dataset = snapshot.getSnapshotSources().get(0).getDataset();
+        Dataset dataset = snapshot.getFirstSnapshotSource().getDataset();
         String datasetBqDatasetName = prefixName(dataset.getName());
         String projectId = bigQueryProject.getProjectId();
         // TODO add additional validation that the col is the root col
@@ -1264,7 +1264,7 @@ public class BigQueryPdao {
         return snapshot.getTables().stream().map(table -> {
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
-            SnapshotSource source = snapshot.getSnapshotSources().get(0);
+            SnapshotSource source = snapshot.getFirstSnapshotSource();
             String snapshotName = snapshot.getName();
 
             // Find the table map for the table. If there is none, we skip it.
@@ -1308,7 +1308,7 @@ public class BigQueryPdao {
         List<String> viewsToDelete = snapshot.getTables().stream().map(table -> {
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
-            SnapshotSource source = snapshot.getSnapshotSources().get(0);
+            SnapshotSource source = snapshot.getFirstSnapshotSource();
 
             // Find the table map for the table. If there is none, we skip it.
             // NOTE: for now, we know that there will be one, because we generate it directly.

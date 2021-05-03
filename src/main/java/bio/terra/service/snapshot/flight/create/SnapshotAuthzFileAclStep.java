@@ -70,7 +70,6 @@ public class SnapshotAuthzFileAclStep implements Step {
             }
 
             gcsPdao.setAclOnFiles(dataset, fileIds, policies);
-
         } catch (StorageException ex) {
             // Now, how to figure out if the failure is due to IAM propagation delay. We know it will
             // be a 400 - bad request and the docs indicate the reason will be "badRequest". So for now
@@ -94,6 +93,7 @@ public class SnapshotAuthzFileAclStep implements Step {
             }
             throw ex;
         }
+        
         return StepResult.getStepResultSuccess();
     }
 

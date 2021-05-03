@@ -93,7 +93,7 @@ public class SnapshotAuthzFileAclStep implements Step {
             }
             throw ex;
         }
-        
+
         return StepResult.getStepResultSuccess();
     }
 

@@ -3,7 +3,6 @@ package bio.terra.service.dataset;
 import bio.terra.model.GoogleCloudResource;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 
-import javax.swing.plaf.synth.Region;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

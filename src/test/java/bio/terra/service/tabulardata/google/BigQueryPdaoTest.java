@@ -36,7 +36,6 @@ import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;

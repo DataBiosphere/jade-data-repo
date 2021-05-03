@@ -1,29 +1,32 @@
 package bio.terra.service.resourcemanagement;
 
 
+import bio.terra.buffer.api.BufferApi;
 import bio.terra.buffer.api.UnauthenticatedApi;
 import bio.terra.app.configuration.ResourceBufferServiceConfiguration;
 import bio.terra.buffer.client.ApiClient;
 import bio.terra.buffer.client.ApiException;
+import bio.terra.buffer.model.PoolInfo;
 import bio.terra.buffer.model.SystemStatus;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.buffer.model.SystemStatusSystems;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 //import com.google.protobuf.Api;
 import org.apache.commons.lang3.StringUtils;
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** A service for integrating with the Resource Buffer Service. */
 @Component
 public class BufferService {
-    //private final Logger logger = LoggerFactory.getLogger(BufferService.class);
+    private final Logger logger = LoggerFactory.getLogger(BufferService.class);
 
     private final ResourceBufferServiceConfiguration bufferServiceConfiguration;
 
@@ -32,11 +35,12 @@ public class BufferService {
         this.bufferServiceConfiguration = bufferServiceConfiguration;
     }
 
-//    private ApiClient getApiClient(String accessToken) {
-//        ApiClient client = new ApiClient();
-//        client.setAccessToken(accessToken);
-//        return client;
-//    }
+    private ApiClient getApiClient(String accessToken) {
+        ApiClient client = new ApiClient();
+        client.setAccessToken(accessToken);
+        client.setBasePath(bufferServiceConfiguration.getInstanceUrl());
+        return client;
+    }
 
     private ApiClient getUnAuthApiClient() {
         ApiClient client = new ApiClient();
@@ -44,31 +48,31 @@ public class BufferService {
         return client;
     }
 //
-//    private BufferApi bufferApi(String instanceUrl) throws IOException {
-//        return new BufferApi(
-//            getApiClient(bufferServiceConfiguration.getAccessToken()).setBasePath(instanceUrl));
-//    }
+    private BufferApi bufferApi(String instanceUrl) throws IOException {
+        return new BufferApi(
+            getApiClient(bufferServiceConfiguration.getAccessToken()).setBasePath(instanceUrl));
+    }
 //
-//    /**
-//     * Return the PoolInfo object for the ResourceBuffer pool that we are using to create Google Cloud
-//     * projects. Note that this is configured once per Workspace Manager instance (both the instance
-//     * of RBS to use and which pool) so no configuration happens here.
-//     *
-//     * @return PoolInfo
-//     */
-//    @Traced
-//    public PoolInfo getPoolInfo() {
+    /**
+     * Return the PoolInfo object for the ResourceBuffer pool that we are using to create Google Cloud
+     * projects. Note that this is configured once per Workspace Manager instance (both the instance
+     * of RBS to use and which pool) so no configuration happens here.
+     *
+     * @return PoolInfo
+     */
+    public PoolInfo getPoolInfo() throws IOException, ApiException {
 //        try {
-//            BufferApi bufferApi = bufferApi(bufferServiceConfiguration.getInstanceUrl());
-//            PoolInfo info = bufferApi.getPoolInfo(bufferServiceConfiguration.getPoolId());
-//            logger.info(
-//                "Retrieved pool {} on Buffer Service instance {}",
-//                bufferServiceConfiguration.getPoolId(),
-//                bufferServiceConfiguration.getInstanceUrl());
-//            return info;
+            BufferApi bufferApi = bufferApi(bufferServiceConfiguration.getInstanceUrl());
+            PoolInfo info = bufferApi.getPoolInfo(bufferServiceConfiguration.getPoolId());
+            logger.info(
+                "Retrieved pool {} on Buffer Service instance {}",
+                bufferServiceConfiguration.getPoolId(),
+                bufferServiceConfiguration.getInstanceUrl());
+            return info;
 //        } catch (IOException e) {
-//            throw new BufferServiceAuthorizationException(
-//                "Error reading or parsing credentials file", e.getCause());
+//            logger.info("IOEX")
+//            //            throw new BufferServiceAuthorizationException(
+////                "Error reading or parsing credentials file", e.getCause());
 //        } catch (ApiException e) {
 //            if (e.getCode() == HttpStatus.UNAUTHORIZED.value()) {
 //                throw new BufferServiceAuthorizationException(
@@ -77,7 +81,7 @@ public class BufferService {
 //                throw new BufferServiceAPIException(e);
 //            }
 //        }
-//    }
+    }
 //
 //    /**
 //     * Retrieve a single resource from the Buffer Service. The instance and pool are already
@@ -115,16 +119,10 @@ public class BufferService {
             SystemStatus status = unauthenticatedApi.serviceStatus();
             Map<String, SystemStatusSystems> subsystemStatusMap =
                 status.getSystems();
-            List<String> subsystemStatusMessages =
-                subsystemStatusMap.entrySet().stream()
-                    .map(
-                        (entry) ->
-                            entry.getKey() + ": " + StringUtils.join(entry.getValue().getMessages()))
-                    .collect(Collectors.toList());
             return new RepositoryStatusModelSystems()
                 .ok(status.isOk())
                 .critical(false)
-                .message(subsystemStatusMessages.toString());
+                .message(subsystemStatusMap.toString());
         } catch (ApiException e) {
             return new RepositoryStatusModelSystems()
                 .ok(false)

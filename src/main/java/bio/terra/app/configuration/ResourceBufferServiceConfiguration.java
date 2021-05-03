@@ -16,12 +16,13 @@ package bio.terra.app.configuration;
 @ConfigurationProperties(prefix = "rbs")
 public class ResourceBufferServiceConfiguration {
 
-    // TODO(PF-302): Clean up once fully using Buffer Service in all environments.
-    private boolean enabled = false;
-    private String instanceUrl;
+    // TODO - Pull these into env variables
+    private boolean enabled = true;
+    private String instanceUrl = "https://buffer.dsde-dev.broadinstitute.org";
     private String poolId;
     private String clientCredentialFilePath;
 
+    //I think we'd want to re-use our app scopes.
     private static final ImmutableList<String> BUFFER_SCOPES =
         ImmutableList.of("openid", "email", "profile");
 

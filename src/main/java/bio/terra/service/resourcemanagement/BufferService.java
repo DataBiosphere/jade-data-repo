@@ -7,20 +7,23 @@ import bio.terra.buffer.client.ApiClient;
 import bio.terra.buffer.client.ApiException;
 import bio.terra.buffer.model.SystemStatus;
 import bio.terra.model.RepositoryStatusModelSystems;
+import bio.terra.buffer.model.SystemStatusSystems;
 
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+//import com.google.protobuf.Api;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+//import org.slf4j.Logger;
+//import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /** A service for integrating with the Resource Buffer Service. */
 @Component
 public class BufferService {
-    private final Logger logger = LoggerFactory.getLogger(BufferService.class);
+    //private final Logger logger = LoggerFactory.getLogger(BufferService.class);
 
     private final ResourceBufferServiceConfiguration bufferServiceConfiguration;
 
@@ -29,9 +32,15 @@ public class BufferService {
         this.bufferServiceConfiguration = bufferServiceConfiguration;
     }
 
-    private ApiClient getApiClient(String accessToken) {
+//    private ApiClient getApiClient(String accessToken) {
+//        ApiClient client = new ApiClient();
+//        client.setAccessToken(accessToken);
+//        return client;
+//    }
+
+    private ApiClient getUnAuthApiClient() {
         ApiClient client = new ApiClient();
-        client.setAccessToken(accessToken);
+        client.setBasePath(bufferServiceConfiguration.getInstanceUrl());
         return client;
     }
 //
@@ -101,12 +110,10 @@ public class BufferService {
 //    }
 //
     public RepositoryStatusModelSystems status() {
-        UnauthenticatedApi unauthenticatedApi =
-            new UnauthenticatedApi(
-                getApiClient(null).setBasePath(bufferServiceConfiguration.getInstanceUrl()));
+        UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(getUnAuthApiClient());
         try {
             SystemStatus status = unauthenticatedApi.serviceStatus();
-            Map<String, bio.terra.buffer.model.SystemStatusSystems> subsystemStatusMap =
+            Map<String, SystemStatusSystems> subsystemStatusMap =
                 status.getSystems();
             List<String> subsystemStatusMessages =
                 subsystemStatusMap.entrySet().stream()
@@ -114,9 +121,15 @@ public class BufferService {
                         (entry) ->
                             entry.getKey() + ": " + StringUtils.join(entry.getValue().getMessages()))
                     .collect(Collectors.toList());
-            return new RepositoryStatusModelSystems().ok(status.isOk()).message(subsystemStatusMessages.toString());
+            return new RepositoryStatusModelSystems()
+                .ok(status.isOk())
+                .critical(false)
+                .message(subsystemStatusMessages.toString());
         } catch (ApiException e) {
-            return new RepositoryStatusModelSystems().ok(false).message(e.getResponseBody());
+            return new RepositoryStatusModelSystems()
+                .ok(false)
+                .critical(false)
+                .message(e.getResponseBody());
         }
     }
 }

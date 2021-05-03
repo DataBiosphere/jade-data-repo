@@ -214,6 +214,8 @@ dependencies {
         implementation 'bio.terra:terra-common-lib:0.0.16-SNAPSHOT'
     }
 
+    implementation group: "bio.terra", name: "terra-resource-buffer-client", version: "0.4.3-SNAPSHOT"
+
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
 

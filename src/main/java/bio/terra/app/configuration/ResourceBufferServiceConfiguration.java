@@ -23,7 +23,10 @@ public class ResourceBufferServiceConfiguration {
 
     // TODO - Pull these into env variables
     private boolean enabled = true;
+    //dev
     private String instanceUrl = "https://buffer.dsde-dev.broadinstitute.org";
+    //integration
+    //private String instanceUrl = "https://buffer.tools.integ.envs.broadinstitute.org";
     private String poolId = "testPoolId";
     private String clientCredentialFilePath = "/tmp/buffer-client-sa-account.json";
 

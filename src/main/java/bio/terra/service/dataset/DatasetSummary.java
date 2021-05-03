@@ -83,7 +83,7 @@ public class DatasetSummary {
         return this.storage.stream()
             .filter(resource -> resource.getCloudResource().equals(storageResource.toString()))
             .findFirst()
-            .map(Object::toString)
+            .map(StorageResource::getRegion)
             .orElseThrow(() -> new StorageResourceNotFoundException(
                 String.format("%s could not be found for %s ", storageResource.toString(), id.toString())));
     }

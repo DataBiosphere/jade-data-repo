@@ -4,6 +4,7 @@ import bio.terra.model.RepositoryStatusModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.resourcemanagement.BufferService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,15 +18,18 @@ public class StatusService {
     private final ConfigurationService configurationService;
     private final DatasetDao datasetDao;
     private final IamProviderInterface iamProviderInterface;
+    private final BufferService bufferService;
 
     @Autowired
     public StatusService(
         ConfigurationService configurationService,
         DatasetDao datasetDao,
-        IamProviderInterface iamProviderInterface) {
+        IamProviderInterface iamProviderInterface,
+        BufferService bufferService) {
         this.configurationService = configurationService;
         this.datasetDao = datasetDao;
         this.iamProviderInterface = iamProviderInterface;
+        this.bufferService = bufferService;
     }
 
     public RepositoryStatusModel getStatus() {
@@ -40,6 +44,7 @@ public class StatusService {
 
         statusModel.putSystemsItem("Postgres", postgresStatus(true));
         statusModel.putSystemsItem("Sam", iamProviderInterface.samStatus().critical(true));
+        statusModel.putSystemsItem("ResourceBufferService", bufferService.status());
 
         // if all critical systems are ok, then isOk = true
         // if any one critical system is down, then isOk = false

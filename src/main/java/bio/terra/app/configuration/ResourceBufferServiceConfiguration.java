@@ -53,6 +53,7 @@ public class ResourceBufferServiceConfiguration {
         this.clientCredentialFilePath = clientCredentialFilePath;
     }
 
+    //TODO - not sure if this is actually how we want to do this, just copying wsm's implementation for now
     public String getAccessToken() throws IOException {
         try (FileInputStream fileInputStream = new FileInputStream(clientCredentialFilePath)) {
             GoogleCredentials credentials =

@@ -84,7 +84,7 @@ public class SnapshotAuthzFileAclStep implements Step {
             throw ex;
         } catch (ApiException ex) {
             // Most likely ACL propagation error
-            // Have example of the failure and then retry successfully completed in DR-1760
+            // DR-1760 - Documents example of failure and successful retry
             logger.error("[SnapshotACLException] ApiException. Message: {}, Cause: {}", ex.getMessage(), ex.getCause());
             if (ex.getCause().getMessage().contains("Could not find group")) {
                 logger.error("[SnapshotACLException] Retrying! 'Could not find group' exception - potentially" +

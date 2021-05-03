@@ -1,4 +1,4 @@
-package bio.terra.app.configuration;
+package bio.terra.service.filedata.google.bq;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

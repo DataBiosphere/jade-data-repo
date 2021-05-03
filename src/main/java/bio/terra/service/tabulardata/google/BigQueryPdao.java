@@ -23,7 +23,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
-import bio.terra.app.configuration.BigQueryConfiguration;
+import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotMapColumn;
@@ -122,9 +122,7 @@ public class BigQueryPdao {
                 bigQueryProject.deleteDataset(datasetName);
             }
 
-            String region = dataset.getDatasetSummary().getStorage().stream()
-                .collect(Collectors.toMap(StorageResource::getCloudResource, StorageResource::getRegion))
-                .get(GoogleCloudResource.BIGQUERY.toString());
+            String region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription(), region);
             bigQueryProject.createTable(
@@ -359,10 +357,7 @@ public class BigQueryPdao {
             .get(0)
             .getDataset()
             .getDatasetSummary()
-            .getStorage()
-            .stream()
-            .collect(Collectors.toMap(StorageResource::getCloudResource, StorageResource::getRegion))
-            .get(GoogleCloudResource.BIGQUERY.toString());
+            .getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
         // create snapshot BQ dataset
         bigQueryProject.createDataset(snapshotName, snapshot.getDescription(), representativeRegion);
     }

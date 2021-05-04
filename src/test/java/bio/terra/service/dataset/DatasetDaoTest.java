@@ -113,10 +113,13 @@ public class DatasetDaoTest {
     @Test
     public void enumerateTest() throws Exception {
         UUID dataset1 = createDataset("dataset-minimal.json");
-        UUID dataset2 = createDataset("dataset-create-test.json");
+        UUID dataset2 = createDataset("ingest-test-dataset-east.json");
         List<UUID> datasetIds = new ArrayList<>();
         datasetIds.add(dataset1);
         datasetIds.add(dataset2);
+
+        String dataset1Description = "description_" + UUID.randomUUID().toString();
+        Dataset dataset1FromDB = datasetDao.retrieve(dataset1).description(dataset1Description);
 
         MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.enumerate(0, 2,
             EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null, datasetIds);
@@ -136,6 +139,36 @@ public class DatasetDaoTest {
                 null, datasetIds)
                 .getItems().get(0).getId(),
             equalTo(datasets.get(1).getId()));
+
+        MetadataEnumeration<DatasetSummary> filterNameEnum = datasetDao.enumerate(0, 2,
+        EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getName(), datasetIds);
+        List<DatasetSummary> filteredDatasets = filterNameEnum.getItems();
+        assertThat("dataset filter by name returns correct total",
+            filteredDatasets.size(),
+            equalTo(1));
+        assertThat("dataset filter by name returns correct dataset",
+            filteredDatasets.get(0).getName(),
+            equalTo(dataset1FromDB.getName()));
+
+        MetadataEnumeration<DatasetSummary> filterDescriptionEnum = datasetDao.enumerate(0, 2,
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getDescription(), datasetIds);
+        List<DatasetSummary> filteredDescriptionDatasets = filterDescriptionEnum.getItems();
+        assertThat("dataset filter by description returns correct total",
+            filteredDescriptionDatasets.size(),
+            equalTo(1));
+        assertThat("dataset filter by name returns correct dataset",
+            filteredDescriptionDatasets.get(0).getDescription(),
+            equalTo(dataset1FromDB.getDescription()));
+
+        MetadataEnumeration<DatasetSummary> filterRegionEnum = datasetDao.enumerate(0, 2,
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, "us-east1", datasetIds);
+        List<DatasetSummary> filteredRegionDatasets = filterRegionEnum.getItems();
+        assertThat("dataset filter by region returns correct total",
+            filteredRegionDatasets.size(),
+            equalTo(1));
+        assertThat("dataset filter by region returns correct dataset",
+            filteredRegionDatasets.get(0).getStorage().get(0).getRegion(),
+            equalTo(dataset1FromDB.getDatasetSummary().getStorage().get(0).getRegion()));
 
         datasetDao.delete(dataset1);
         datasetDao.delete(dataset2);

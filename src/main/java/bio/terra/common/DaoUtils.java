@@ -35,13 +35,13 @@ public final class DaoUtils {
     public static void addFilterClause(String filter, MapSqlParameterSource params, List<String> clauses) {
         if (!StringUtils.isEmpty(filter)) {
             params.addValue("filter", DaoUtils.escapeFilter(filter));
-            clauses.add(" (name ILIKE :filter OR description ILIKE :filter) ");
+            clauses.add(" (name ILIKE :filter OR description ILIKE :filter OR storage_resource.region ILIKE :filter) ");
         }
     }
 
     public static void addAuthzIdsClause(List<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
         params.addValue("idlist", authzIds);
-        clauses.add(" id in (:idlist) ");
+        clauses.add(" dataset.id in (:idlist) ");
     }
 
     public static void addAuthzSnapshotIdsClause(

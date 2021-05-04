@@ -512,13 +512,16 @@ public class DatasetDao {
 
         // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
+
+        // results in 3x the dataset records
+        String joinSql = "LEFT JOIN storage_resource WHERE storage_resource.dataset_id = dataset.id";
         String whereSql = "";
         if (!whereClauses.isEmpty()) {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
         String sql = "SELECT " +
-            "id, name, description, default_profile_id, project_resource_id, created_date " +
-            "FROM dataset " + whereSql +
+            "dataset.id, name, description, default_profile_id, project_resource_id, created_date " +
+            "FROM dataset " + joinSql + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper())

@@ -1,8 +1,6 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.common.DaoKeyHolder;
-import bio.terra.service.dataset.StorageDao;
-import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.profile.exception.ProfileInUseException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
@@ -27,7 +25,6 @@ import java.util.stream.Collectors;
 public class GoogleResourceDao {
     private static final Logger logger = LoggerFactory.getLogger(GoogleResourceDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final StorageDao storageDao;
     private final String defaultRegion;
 
     private static final String sqlProjectRetrieve = "SELECT id, google_project_id, google_project_number, profile_id" +
@@ -43,9 +40,13 @@ public class GoogleResourceDao {
 
     private static final String sqlBucketRetrieve =
         "SELECT p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
-            " b.id AS bucket_resource_id, name, flightid" +
-            " FROM bucket_resource b JOIN project_resource p ON b.project_resource_id = p.id " +
-            " WHERE b.marked_for_delete = false";
+            " b.id AS bucket_resource_id, name, flightid, sr.region as region " +
+            "FROM bucket_resource b " +
+            "JOIN project_resource p ON b.project_resource_id = p.id, " +
+            "dataset_bucket db, " +
+            "storage_resource sr " +
+            "WHERE b.marked_for_delete = false " +
+            "AND db.bucket_resource_id = b.id AND sr.dataset_id = db.dataset_id AND sr.cloud_resource = 'bucket'";
     private static final String sqlBucketRetrievedById = sqlBucketRetrieve + " AND b.id = :id";
     private static final String sqlBucketRetrievedByName = sqlBucketRetrieve + " AND b.name = :name";
 
@@ -89,11 +90,9 @@ public class GoogleResourceDao {
 
     @Autowired
     public GoogleResourceDao(NamedParameterJdbcTemplate jdbcTemplate,
-                             GcsConfiguration gcsConfiguration,
-                             StorageDao storageDao) throws SQLException {
+                             GcsConfiguration gcsConfiguration) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.defaultRegion = gcsConfiguration.getRegion();
-        this.storageDao = storageDao;
     }
 
     // -- project resource methods --
@@ -357,23 +356,16 @@ public class GoogleResourceDao {
                     .googleProjectNumber(rs.getString("google_project_number"))
                     .profileId(rs.getObject("profile_id", UUID.class));
 
-                UUID bucketResourceId = rs.getObject("bucket_resource_id", UUID.class);
+                String region = rs.getString("region");
 
                 // Since storing the region was not in the original data, we supply the
                 // default if a value is not present.
-                String region;
-                try {
-                    region = storageDao.getBucketStorageFromBucketResourceId(bucketResourceId);
-                } catch (StorageResourceNotFoundException e) {
-                    region = defaultRegion;
-                }
-
                 return new GoogleBucketResource()
                     .projectResource(projectResource)
                     .resourceId(rs.getObject("bucket_resource_id", UUID.class))
                     .name(rs.getString("name"))
                     .flightId(rs.getString("flightid"))
-                    .region(region);
+                    .region(region == null ? defaultRegion : region);
             });
 
         if (bucketResources.size() > 1) {

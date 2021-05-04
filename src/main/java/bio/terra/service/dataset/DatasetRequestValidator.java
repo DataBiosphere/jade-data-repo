@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class DatasetRequestValidator implements Validator {
 
     private static final List<String> SUPPORTED_GOOGLE_REGIONS =
-        Arrays.stream(GoogleRegion.values()).map(GoogleRegion::toString).collect(Collectors.toList());
+        Arrays.stream(GoogleRegion.values()).map(GoogleRegion::toString).collect(Collectors.toUnmodifiableList());
 
     @Override
     public boolean supports(Class<?> clazz) {
@@ -372,21 +372,22 @@ public class DatasetRequestValidator implements Validator {
             if (datasetRequest.getCloudPlatform() == null) {
                 errors.rejectValue("region", "InvalidRegionForPlatform",
                     "Cannot set a region when a cloudPlatform is not provided.");
-            }
-            boolean supported = false;
-            switch (datasetRequest.getCloudPlatform()) {
-                case GCP:
-                    supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
-                    break;
-                case AZURE:
-                    errors.rejectValue("cloudPlatform", "InvalidCloudPlatform",
-                        "Azure is not supported yet");
-            }
-            if (!supported) {
-                errors.rejectValue("region", "InvalidRegionForPlatform",
-                    "Valid regions for " +
-                        datasetRequest.getCloudPlatform() +
-                        " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
+            } else {
+                boolean supported = false;
+                switch (datasetRequest.getCloudPlatform()) {
+                    case GCP:
+                        supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
+                        break;
+                    case AZURE:
+                        errors.rejectValue("cloudPlatform", "InvalidCloudPlatform",
+                            "Azure is not supported yet");
+                }
+                if (!supported) {
+                    errors.rejectValue("region", "InvalidRegionForPlatform",
+                        "Valid regions for " +
+                            datasetRequest.getCloudPlatform() +
+                            " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
+                }
             }
         }
     }

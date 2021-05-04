@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.exception.RetryQueryException;
 import bio.terra.model.CloudPlatform;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
@@ -27,6 +28,8 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 
+import static bio.terra.common.DaoUtils.retryQuery;
+
 @Repository
 public class StorageDao {
 
@@ -40,6 +43,8 @@ public class StorageDao {
         "WHERE sr.dataset_id = db.dataset_id " +
         "AND db.bucket_resource_id = :bucket_resource_id " +
         "AND sr.cloud_resource = :cloud_resource";
+    private static final String SQL_DELETE_STORAGE = "DELETE FROM storage_resource " +
+        "WHERE dataset_id = :dataset_id";
     private static final Logger logger = LoggerFactory.getLogger(StorageDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -73,6 +78,8 @@ public class StorageDao {
             throw new StorageResourceNotFoundException(errorMsg);
         }
     }
+
+
 
     private static class StorageResourceMapper implements RowMapper<StorageResource> {
         public StorageResource mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -114,5 +121,21 @@ public class StorageDao {
         }
 
         logger.debug("end of createStorageAttributes datasetId: {}", datasetId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public void deleteStorageAttributes(UUID datasetId) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("dataset_id", datasetId);
+        try {
+            jdbcTemplate.update(SQL_DELETE_STORAGE, params);
+        } catch (DataAccessException dataAccessException) {
+            if (retryQuery(dataAccessException)) {
+                logger.error("Storage delete failed with retryable exception.");
+                throw new RetryQueryException("Retry", dataAccessException);
+            }
+            logger.error("Storage delete failed with fatal exception.");
+            throw dataAccessException;
+        }
     }
 }

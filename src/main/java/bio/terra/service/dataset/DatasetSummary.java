@@ -85,6 +85,6 @@ public class DatasetSummary {
             .findFirst()
             .map(StorageResource::getRegion)
             .orElseThrow(() -> new StorageResourceNotFoundException(
-                String.format("%s could not be found for %s ", storageResource.toString(), id.toString())));
+                String.format("%s could not be found for %s ", storageResource, id)));
     }
 }

@@ -2714,9 +2714,6 @@ components:
         - defaultProfileId
         - name
         - schema
-      optional:
-        - region
-        - cloudPlatform
       type: object
       properties:
         name:
@@ -2729,11 +2726,9 @@ components:
         schema:
           $ref: '#/components/schemas/DatasetSpecificationModel'
         region:
-          type: String
-          default: us-central1
+          type: string
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
-          default: gcp
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     EnumerateDatasetModel:

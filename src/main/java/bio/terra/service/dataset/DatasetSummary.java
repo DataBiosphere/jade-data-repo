@@ -1,6 +1,6 @@
 package bio.terra.service.dataset;
 
-import bio.terra.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 
 import java.time.Instant;

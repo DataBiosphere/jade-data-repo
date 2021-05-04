@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.Relationship;
@@ -13,8 +14,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DatePartitionOptionsModel;
-import bio.terra.model.GoogleCloudResource;
-import bio.terra.model.GoogleRegion;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;

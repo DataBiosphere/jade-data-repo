@@ -4,7 +4,7 @@ import bio.terra.common.exception.RetryQueryException;
 import bio.terra.model.CloudPlatform;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
-import bio.terra.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.service.dataset.exception.InvalidStorageException;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import org.slf4j.Logger;

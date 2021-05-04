@@ -1,11 +1,11 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.PdaoConstant;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatePartitionOptionsModel;
-import bio.terra.model.GoogleRegion;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
@@ -381,6 +381,7 @@ public class DatasetRequestValidator implements Validator {
                     case AZURE:
                         errors.rejectValue("cloudPlatform", "InvalidCloudPlatform",
                             "Azure is not supported yet");
+                        return;
                 }
                 if (!supported) {
                     errors.rejectValue("region", "InvalidRegionForPlatform",

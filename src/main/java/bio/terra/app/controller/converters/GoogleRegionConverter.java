@@ -1,6 +1,6 @@
 package bio.terra.app.controller.converters;
 
-import bio.terra.model.GoogleRegion;
+import bio.terra.app.model.GoogleRegion;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;

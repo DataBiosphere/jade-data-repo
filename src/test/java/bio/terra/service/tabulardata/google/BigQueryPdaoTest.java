@@ -1,6 +1,7 @@
 package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;

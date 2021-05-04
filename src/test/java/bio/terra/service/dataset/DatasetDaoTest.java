@@ -11,7 +11,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;

@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -20,8 +21,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.GoogleCloudResource;
-import bio.terra.model.GoogleRegion;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;

@@ -51,7 +51,7 @@ public class DatasetDao {
     private final AssetDao assetDao;
     private final ConfigurationService configurationService;
     private final ResourceService resourceService;
-    private final StorageDao storageDao;
+    private final StorageResourceDao storageResourceDao;
 
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
@@ -65,14 +65,14 @@ public class DatasetDao {
                       AssetDao assetDao,
                       ConfigurationService configurationService,
                       ResourceService resourceService,
-                      StorageDao storageDao) throws SQLException {
+                      StorageResourceDao storageResourceDao) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;
         this.assetDao = assetDao;
         this.configurationService = configurationService;
         this.resourceService = resourceService;
-        this.storageDao = storageDao;
+        this.storageResourceDao = storageResourceDao;
     }
 
     /**
@@ -323,7 +323,7 @@ public class DatasetDao {
         tableDao.createTables(dataset.getId(), dataset.getTables());
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
-        storageDao.createStorageAttributes(dataset.getDatasetSummary().getStorage(), dataset.getId());
+        storageResourceDao.createStorageAttributes(dataset.getDatasetSummary().getStorage(), dataset.getId());
 
         logger.debug("end of createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
     }
@@ -414,7 +414,7 @@ public class DatasetDao {
         Dataset dataset = null;
         try {
             if (summary != null) {
-                summary.storage(storageDao.getStorageResourcesByDatasetId(summary.getId()));
+                summary.storage(storageResourceDao.getStorageResourcesByDatasetId(summary.getId()));
                 dataset = new Dataset(summary);
                 dataset.tables(tableDao.retrieveTables(dataset.getId()));
                 relationshipDao.retrieve(dataset);
@@ -522,7 +522,8 @@ public class DatasetDao {
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper())
-            .stream().map(summary -> summary.storage(storageDao.getStorageResourcesByDatasetId(summary.getId())))
+            .stream().map(summary ->
+                summary.storage(storageResourceDao.getStorageResourcesByDatasetId(summary.getId())))
             .collect(Collectors.toList());
 
         return new MetadataEnumeration<DatasetSummary>()

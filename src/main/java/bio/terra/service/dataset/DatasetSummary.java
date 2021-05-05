@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 
 import java.time.Instant;
@@ -79,9 +80,9 @@ public class DatasetSummary {
         return this;
     }
 
-    public String getStorageResourceRegion(GoogleCloudResource storageResource) {
+    public GoogleRegion getStorageResourceRegion(GoogleCloudResource storageResource) {
         return storage.stream()
-            .filter(resource -> resource.getCloudResource().equals(storageResource.toString()))
+            .filter(resource -> resource.getCloudResource() == storageResource)
             .findFirst()
             .map(StorageResource::getRegion)
             .orElseThrow(() -> new StorageResourceNotFoundException(

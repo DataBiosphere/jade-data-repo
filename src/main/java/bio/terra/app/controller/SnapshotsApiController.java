@@ -58,6 +58,8 @@ public class SnapshotsApiController implements SnapshotsApi {
 
     private Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
 
+    public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE = "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT";
+
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
     private final JobService jobService;
@@ -177,7 +179,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         @Valid @RequestParam(
             value = "include",
             required = false,
-            defaultValue = "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
+            defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE
         ) List<SnapshotRequestAccessInclude> include
     ) {
         iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);

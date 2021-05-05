@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
@@ -43,11 +44,13 @@ import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -176,7 +179,7 @@ public class SnapshotService {
      * @return a SnapshotModel = API output-friendly representation of the Snapshot
      */
     public SnapshotModel retrieveAvailableSnapshotModel(UUID id) {
-        return retrieveAvailableSnapshotModel(id, Collections.emptyList());
+        return retrieveAvailableSnapshotModel(id, getDefaultIncludes());
     }
 
     /**
@@ -524,31 +527,36 @@ public class SnapshotService {
             .description(snapshot.getDescription())
             .createdDate(snapshot.getCreatedDate().toString());
 
-        if (doInclude(include, SnapshotRequestAccessInclude.SOURCES, true)) {
+        // In case NONE is specified, this should supersede any other value being passed in
+        if (include.contains(SnapshotRequestAccessInclude.NONE)) {
+            return snapshotModel;
+        }
+
+        if (include.contains(SnapshotRequestAccessInclude.SOURCES)) {
             snapshotModel.source(snapshot.getSnapshotSources()
                 .stream()
                 .map(this::makeSourceModelFromSource)
                 .collect(Collectors.toList()));
         }
-        if (doInclude(include, SnapshotRequestAccessInclude.TABLES, true)) {
+        if (include.contains(SnapshotRequestAccessInclude.TABLES)) {
             snapshotModel.tables(snapshot.getTables()
                 .stream()
                 .map(this::makeTableModelFromTable)
                 .collect(Collectors.toList()));
         }
-        if (doInclude(include, SnapshotRequestAccessInclude.RELATIONSHIPS, true)) {
+        if (include.contains(SnapshotRequestAccessInclude.RELATIONSHIPS)) {
             snapshotModel.relationships(snapshot.getRelationships()
                 .stream()
                 .map(this::makeRelationshipModelFromRelationship)
                 .collect(Collectors.toList()));
         }
-        if (doInclude(include, SnapshotRequestAccessInclude.PROFILE, true)) {
+        if (include.contains(SnapshotRequestAccessInclude.PROFILE)) {
             snapshotModel.profileId(snapshot.getProfileId().toString());
         }
-        if (doInclude(include, SnapshotRequestAccessInclude.DATA_PROJECT, true)) {
+        if (include.contains(SnapshotRequestAccessInclude.DATA_PROJECT)) {
             snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
         }
-        if (doInclude(include, SnapshotRequestAccessInclude.ACCESS_INFORMATION, false)) {
+        if (include.contains(SnapshotRequestAccessInclude.ACCESS_INFORMATION)) {
             snapshotModel.accessInformation(makeSnapshotAccessInfoModelFromSnapshot(snapshot));
         }
         return snapshotModel;
@@ -637,18 +645,9 @@ public class SnapshotService {
             .arrayOf(column.isArrayOf());
     }
 
-    private boolean doInclude(List<SnapshotRequestAccessInclude> include,
-                              SnapshotRequestAccessInclude check,
-                              boolean includeByDefault) {
-        // Return the default if no values were passed in
-        if (include.isEmpty()) {
-            return includeByDefault;
-        }
-        // In case NONE is specified, this should supersede any other value being passed in
-        if (include.contains(SnapshotRequestAccessInclude.NONE)) {
-            return false;
-        }
-        // Perform the standard check
-        return include.contains(check);
+    private static List<SnapshotRequestAccessInclude> getDefaultIncludes() {
+        return Arrays.stream(StringUtils.split(SnapshotsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
+            .map(SnapshotRequestAccessInclude::fromValue)
+            .collect(Collectors.toList());
     }
 }

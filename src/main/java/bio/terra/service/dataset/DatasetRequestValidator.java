@@ -1,11 +1,11 @@
 package bio.terra.service.dataset;
 
 import bio.terra.common.PdaoConstant;
+import static bio.terra.common.StorageRegions.SUPPORTED_GOOGLE_REGIONS;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatePartitionOptionsModel;
-import bio.terra.model.GoogleRegion;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
@@ -39,9 +39,6 @@ import java.util.stream.Collectors;
  */
 @Component
 public class DatasetRequestValidator implements Validator {
-
-    private static final List<String> SUPPORTED_GOOGLE_REGIONS =
-        Arrays.stream(GoogleRegion.values()).map(GoogleRegion::toString).collect(Collectors.toList());
 
     @Override
     public boolean supports(Class<?> clazz) {

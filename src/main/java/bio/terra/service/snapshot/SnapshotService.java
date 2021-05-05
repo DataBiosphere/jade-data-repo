@@ -65,8 +65,10 @@ import java.util.stream.Collectors;
 @Component
 public class SnapshotService {
 
-    private static final String BIGQUERY_BASE_LINK = "https://console.cloud.google.com/bigquery?project=<project>";
-    private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<project>.<dataset>.<table>` LIMIT 1000";
+    private static final String BIGQUERY_BASE_LINK = "https://console.cloud.google.com/bigquery?project=<project>&" +
+        "ws=!<dataset>&d=<dataset>&p=<project>&page=dataset";
+    private static final String BIGQUERY_TABLE_ADDRESS = "<project>.<dataset>.<table>";
+    private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>` LIMIT 1000";
 
     private final JobService jobService;
     private final DatasetService datasetService;
@@ -608,18 +610,23 @@ public class SnapshotService {
             .datasetName(snapshot.getName())
             .projectId(snapshot.getProjectResource().getGoogleProjectId())
             .link(new ST(BIGQUERY_BASE_LINK)
-                .add("project", snapshot.getProjectResource().getGoogleProjectId()).render())
+                .add("project", snapshot.getProjectResource().getGoogleProjectId())
+                .add("dataset", snapshot.getName())
+                .render())
             .tables(snapshot.getTables().stream()
                 .map(t -> new SnapshotAccessInfoModelBigQueryTable()
                     .name(t.getName())
-                    .sampleQuery(new ST(BIGQUERY_BASE_QUERY)
+                    .address(new ST(BIGQUERY_TABLE_ADDRESS)
                         .add("project", snapshot.getProjectResource().getGoogleProjectId())
                         .add("dataset", snapshot.getName())
                         .add("table", t.getName())
                         .render())
                 )
-
-
+                // Use the address that was already rendered
+                .map(st -> st.sampleQuery(new ST(BIGQUERY_BASE_QUERY)
+                        .add("table_address", st.getAddress())
+                        .render())
+                )
                 .collect(Collectors.toList()))
         );
 

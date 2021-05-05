@@ -121,9 +121,12 @@ public class SnapshotServiceTest {
                     .bigQuery(new SnapshotAccessInfoModelBigQuery()
                         .datasetName(SNAPSHOT_NAME)
                         .projectId(SNAPSHOT_DATA_PROJECT)
-                        .link("https://console.cloud.google.com/bigquery?project=" + SNAPSHOT_DATA_PROJECT)
+                        .link("https://console.cloud.google.com/bigquery?project=" + SNAPSHOT_DATA_PROJECT +
+                            "&ws=!" + SNAPSHOT_NAME + "&d=" + SNAPSHOT_NAME + "&p=" + SNAPSHOT_DATA_PROJECT +
+                            "&page=dataset")
                         .tables(List.of(new SnapshotAccessInfoModelBigQueryTable()
                             .name(SNAPSHOT_TABLE_NAME)
+                            .address(SNAPSHOT_DATA_PROJECT + "." + SNAPSHOT_NAME + "." + SNAPSHOT_TABLE_NAME)
                             .sampleQuery("SELECT * FROM `" + SNAPSHOT_DATA_PROJECT + "." + SNAPSHOT_NAME + "." +
                                 SNAPSHOT_TABLE_NAME + "` LIMIT 1000")
                         ))
@@ -135,7 +138,7 @@ public class SnapshotServiceTest {
     public void testRetrieveSnapshotMultiInfo() {
         mockSnapshot();
         assertThat(service.retrieveAvailableSnapshotModel(snapshotId, List.of(
-            SnapshotRequestAccessInclude.ACCESS_INFORMATION,
+            SnapshotRequestAccessInclude.PROFILE,
             SnapshotRequestAccessInclude.SOURCES
             )),
             equalTo(new SnapshotModel()
@@ -144,18 +147,7 @@ public class SnapshotServiceTest {
                 .description(SNAPSHOT_DESCRIPTION)
                 .createdDate(createdDate.toString())
                 .source(Collections.emptyList())
-                .accessInformation(new SnapshotAccessInfoModel()
-                    .bigQuery(new SnapshotAccessInfoModelBigQuery()
-                        .datasetName(SNAPSHOT_NAME)
-                        .projectId(SNAPSHOT_DATA_PROJECT)
-                        .link("https://console.cloud.google.com/bigquery?project=" + SNAPSHOT_DATA_PROJECT)
-                        .tables(List.of(new SnapshotAccessInfoModelBigQueryTable()
-                            .name(SNAPSHOT_TABLE_NAME)
-                            .sampleQuery("SELECT * FROM `" + SNAPSHOT_DATA_PROJECT + "." + SNAPSHOT_NAME + "." +
-                                SNAPSHOT_TABLE_NAME + "` LIMIT 1000")
-                        ))
-                    )
-                )));
+                .profileId(profileId.toString())));
     }
 
     private void mockSnapshot() {

@@ -3467,31 +3467,54 @@ components:
         bigQuery:
           $ref: '#/components/schemas/SnapshotAccessInfoModelBigQuery'
     SnapshotAccessInfoModelBigQuery:
+      description: >
+        General information on where snapshot tabular data lives in BigQuery
       type: object
+      required:
+        - datasetName
+        - projectId
+        - link
+        - tables
       properties:
         datasetName:
           type: string
-          required: true
+          description: >
+            Name of the BigQuery dataset where snapshot tabular data lives
         projectId:
           type: string
-          required: true
+          description: >
+            Project id of the project where tabular data in BigQuery lives
         link:
           type: string
-          required: true
+          description: >
+            The link to access BigQuery in the Google Cloud console
         tables:
           type: array
+          description: >
+            Information on each table in the BigQuery dataset
           items:
             $ref: '#/components/schemas/SnapshotAccessInfoModelBigQueryTable'
-          required: true
     SnapshotAccessInfoModelBigQueryTable:
       type: object
+      description: >
+        Information on a snapshot table in a BigQuery dataset
+      required:
+        - name
+        - sampleQuery
+        - address
       properties:
         name:
           type: string
-          required: true
+          description: >
+            The name of the BigQuery table
+        address:
+          type: string
+          description: >
+            The fully qualified name of the BigQuery table
         sampleQuery:
           type: string
-          required: true
+          description: >
+            An example query that can be used to select data from this table
     SnapshotSourceModel:
       required:
         - asset

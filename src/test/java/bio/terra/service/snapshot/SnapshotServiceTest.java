@@ -1,11 +1,11 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.common.category.Unit;
-import bio.terra.model.SnapshotAccessInfoModel;
-import bio.terra.model.SnapshotAccessInfoModelBigQuery;
-import bio.terra.model.SnapshotAccessInfoModelBigQueryTable;
+import bio.terra.model.AccessInfoModel;
+import bio.terra.model.AccessInfoBigQueryModel;
+import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessInclude;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
@@ -41,6 +41,7 @@ public class SnapshotServiceTest {
     @Mock
     private DatasetService datasetService;
     @Mock
+
     private FireStoreDependencyDao dependencyDao;
     @Mock
     private BigQueryPdao bigQueryPdao;
@@ -87,7 +88,7 @@ public class SnapshotServiceTest {
     @Test
     public void testRetrieveSnapshotNoFields() {
         mockSnapshot();
-        assertThat(service.retrieveAvailableSnapshotModel(snapshotId, List.of(SnapshotRequestAccessInclude.NONE)),
+        assertThat(service.retrieveAvailableSnapshotModel(snapshotId, List.of(SnapshotRequestAccessIncludeModel.NONE)),
             equalTo(new SnapshotModel()
                 .id(snapshotId.toString())
                 .name(SNAPSHOT_NAME)
@@ -99,11 +100,11 @@ public class SnapshotServiceTest {
     public void testRetrieveSnapshotDefaultFields() {
         mockSnapshot();
         assertThat(service.retrieveAvailableSnapshotModel(snapshotId, List.of(
-            SnapshotRequestAccessInclude.SOURCES,
-            SnapshotRequestAccessInclude.TABLES,
-            SnapshotRequestAccessInclude.RELATIONSHIPS,
-            SnapshotRequestAccessInclude.PROFILE,
-            SnapshotRequestAccessInclude.DATA_PROJECT)),
+            SnapshotRequestAccessIncludeModel.SOURCES,
+            SnapshotRequestAccessIncludeModel.TABLES,
+            SnapshotRequestAccessIncludeModel.RELATIONSHIPS,
+            SnapshotRequestAccessIncludeModel.PROFILE,
+            SnapshotRequestAccessIncludeModel.DATA_PROJECT)),
             equalTo(service.retrieveAvailableSnapshotModel(snapshotId)));
     }
 
@@ -111,20 +112,20 @@ public class SnapshotServiceTest {
     public void testRetrieveSnapshotOnlyAccessInfo() {
         mockSnapshot();
         assertThat(service.retrieveAvailableSnapshotModel(snapshotId, List.of(
-            SnapshotRequestAccessInclude.ACCESS_INFORMATION)),
+            SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION)),
             equalTo(new SnapshotModel()
                 .id(snapshotId.toString())
                 .name(SNAPSHOT_NAME)
                 .description(SNAPSHOT_DESCRIPTION)
                 .createdDate(createdDate.toString())
-                .accessInformation(new SnapshotAccessInfoModel()
-                    .bigQuery(new SnapshotAccessInfoModelBigQuery()
+                .accessInformation(new AccessInfoModel()
+                    .bigQuery(new AccessInfoBigQueryModel()
                         .datasetName(SNAPSHOT_NAME)
                         .projectId(SNAPSHOT_DATA_PROJECT)
                         .link("https://console.cloud.google.com/bigquery?project=" + SNAPSHOT_DATA_PROJECT +
                             "&ws=!" + SNAPSHOT_NAME + "&d=" + SNAPSHOT_NAME + "&p=" + SNAPSHOT_DATA_PROJECT +
                             "&page=dataset")
-                        .tables(List.of(new SnapshotAccessInfoModelBigQueryTable()
+                        .tables(List.of(new AccessInfoBigQueryModelTable()
                             .name(SNAPSHOT_TABLE_NAME)
                             .address(SNAPSHOT_DATA_PROJECT + "." + SNAPSHOT_NAME + "." + SNAPSHOT_TABLE_NAME)
                             .sampleQuery("SELECT * FROM `" + SNAPSHOT_DATA_PROJECT + "." + SNAPSHOT_NAME + "." +
@@ -138,8 +139,8 @@ public class SnapshotServiceTest {
     public void testRetrieveSnapshotMultiInfo() {
         mockSnapshot();
         assertThat(service.retrieveAvailableSnapshotModel(snapshotId, List.of(
-            SnapshotRequestAccessInclude.PROFILE,
-            SnapshotRequestAccessInclude.SOURCES
+            SnapshotRequestAccessIncludeModel.PROFILE,
+            SnapshotRequestAccessIncludeModel.SOURCES
             )),
             equalTo(new SnapshotModel()
                 .id(snapshotId.toString())

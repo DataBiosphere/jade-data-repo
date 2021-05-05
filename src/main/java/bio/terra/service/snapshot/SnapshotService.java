@@ -13,11 +13,11 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
-import bio.terra.model.SnapshotAccessInfoModel;
-import bio.terra.model.SnapshotAccessInfoModelBigQuery;
-import bio.terra.model.SnapshotAccessInfoModelBigQueryTable;
+import bio.terra.model.AccessInfoModel;
+import bio.terra.model.AccessInfoBigQueryModel;
+import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessInclude;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -196,7 +196,7 @@ public class SnapshotService {
      * @return a SnapshotModel = API output-friendly representation of the Snapshot
      */
     public SnapshotModel retrieveAvailableSnapshotModel(UUID id,
-                                                        List<SnapshotRequestAccessInclude> include) {
+                                                        List<SnapshotRequestAccessIncludeModel> include) {
         Snapshot snapshot = retrieveAvailable(id);
         return populateSnapshotModelFromSnapshot(snapshot, include);
     }
@@ -522,7 +522,7 @@ public class SnapshotService {
     }
 
     private SnapshotModel populateSnapshotModelFromSnapshot(Snapshot snapshot,
-                                                            List<SnapshotRequestAccessInclude> include) {
+                                                            List<SnapshotRequestAccessIncludeModel> include) {
         SnapshotModel snapshotModel = new SnapshotModel()
             .id(snapshot.getId().toString())
             .name(snapshot.getName())
@@ -530,36 +530,36 @@ public class SnapshotService {
             .createdDate(snapshot.getCreatedDate().toString());
 
         // In case NONE is specified, this should supersede any other value being passed in
-        if (include.contains(SnapshotRequestAccessInclude.NONE)) {
+        if (include.contains(SnapshotRequestAccessIncludeModel.NONE)) {
             return snapshotModel;
         }
 
-        if (include.contains(SnapshotRequestAccessInclude.SOURCES)) {
+        if (include.contains(SnapshotRequestAccessIncludeModel.SOURCES)) {
             snapshotModel.source(snapshot.getSnapshotSources()
                 .stream()
                 .map(this::makeSourceModelFromSource)
                 .collect(Collectors.toList()));
         }
-        if (include.contains(SnapshotRequestAccessInclude.TABLES)) {
+        if (include.contains(SnapshotRequestAccessIncludeModel.TABLES)) {
             snapshotModel.tables(snapshot.getTables()
                 .stream()
                 .map(this::makeTableModelFromTable)
                 .collect(Collectors.toList()));
         }
-        if (include.contains(SnapshotRequestAccessInclude.RELATIONSHIPS)) {
+        if (include.contains(SnapshotRequestAccessIncludeModel.RELATIONSHIPS)) {
             snapshotModel.relationships(snapshot.getRelationships()
                 .stream()
                 .map(this::makeRelationshipModelFromRelationship)
                 .collect(Collectors.toList()));
         }
-        if (include.contains(SnapshotRequestAccessInclude.PROFILE)) {
+        if (include.contains(SnapshotRequestAccessIncludeModel.PROFILE)) {
             snapshotModel.profileId(snapshot.getProfileId().toString());
         }
-        if (include.contains(SnapshotRequestAccessInclude.DATA_PROJECT)) {
+        if (include.contains(SnapshotRequestAccessIncludeModel.DATA_PROJECT)) {
             snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
         }
-        if (include.contains(SnapshotRequestAccessInclude.ACCESS_INFORMATION)) {
-            snapshotModel.accessInformation(makeSnapshotAccessInfoModelFromSnapshot(snapshot));
+        if (include.contains(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION)) {
+            snapshotModel.accessInformation(makeAccessInfoModelFromSnapshot(snapshot));
         }
         return snapshotModel;
     }
@@ -602,11 +602,11 @@ public class SnapshotService {
         return sourceModel;
     }
 
-    private SnapshotAccessInfoModel makeSnapshotAccessInfoModelFromSnapshot(Snapshot snapshot) {
-        SnapshotAccessInfoModel accessInfoModel = new SnapshotAccessInfoModel();
+    private AccessInfoModel makeAccessInfoModelFromSnapshot(Snapshot snapshot) {
+        AccessInfoModel accessInfoModel = new AccessInfoModel();
 
         // Currently, only BigQuery is supported.  Parquet specific information will be added here
-        accessInfoModel.bigQuery(new SnapshotAccessInfoModelBigQuery()
+        accessInfoModel.bigQuery(new AccessInfoBigQueryModel()
             .datasetName(snapshot.getName())
             .projectId(snapshot.getProjectResource().getGoogleProjectId())
             .link(new ST(BIGQUERY_BASE_LINK)
@@ -614,7 +614,7 @@ public class SnapshotService {
                 .add("dataset", snapshot.getName())
                 .render())
             .tables(snapshot.getTables().stream()
-                .map(t -> new SnapshotAccessInfoModelBigQueryTable()
+                .map(t -> new AccessInfoBigQueryModelTable()
                     .name(t.getName())
                     .address(new ST(BIGQUERY_TABLE_ADDRESS)
                         .add("project", snapshot.getProjectResource().getGoogleProjectId())
@@ -652,9 +652,9 @@ public class SnapshotService {
             .arrayOf(column.isArrayOf());
     }
 
-    private static List<SnapshotRequestAccessInclude> getDefaultIncludes() {
+    private static List<SnapshotRequestAccessIncludeModel> getDefaultIncludes() {
         return Arrays.stream(StringUtils.split(SnapshotsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
-            .map(SnapshotRequestAccessInclude::fromValue)
+            .map(SnapshotRequestAccessIncludeModel::fromValue)
             .collect(Collectors.toList());
     }
 }

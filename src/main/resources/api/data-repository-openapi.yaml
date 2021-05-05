@@ -624,7 +624,7 @@ paths:
             type: array
             items:
               default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
-              $ref: '#/components/schemas/SnapshotRequestAccessInclude'
+              $ref: '#/components/schemas/SnapshotRequestAccessIncludeModel'
       responses:
         200:
           description: Snapshot
@@ -3391,7 +3391,7 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
-    SnapshotRequestAccessInclude:
+    SnapshotRequestAccessIncludeModel:
       type: string
       description: >
         Type of information to include in the response
@@ -3457,18 +3457,20 @@ components:
           type: string
           description: Project id of the snapshot data project
         accessInformation:
-          $ref: '#/components/schemas/SnapshotAccessInfoModel'
+          $ref: '#/components/schemas/AccessInfoModel'
           description: How to access the metadata for the snapshot
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
-    SnapshotAccessInfoModel:
+    AccessInfoModel:
       type: object
+      description: >
+        How to access the metadata for a snapshot or dataset
       properties:
         bigQuery:
-          $ref: '#/components/schemas/SnapshotAccessInfoModelBigQuery'
-    SnapshotAccessInfoModelBigQuery:
+          $ref: '#/components/schemas/AccessInfoBigQueryModel'
+    AccessInfoBigQueryModel:
       description: >
-        General information on where snapshot tabular data lives in BigQuery
+        General information on where snapshot or dataset tabular data lives in BigQuery
       type: object
       required:
         - datasetName
@@ -3479,7 +3481,7 @@ components:
         datasetName:
           type: string
           description: >
-            Name of the BigQuery dataset where snapshot tabular data lives
+            Name of the BigQuery dataset where snapshot or dataset tabular data lives
         projectId:
           type: string
           description: >
@@ -3493,11 +3495,11 @@ components:
           description: >
             Information on each table in the BigQuery dataset
           items:
-            $ref: '#/components/schemas/SnapshotAccessInfoModelBigQueryTable'
-    SnapshotAccessInfoModelBigQueryTable:
+            $ref: '#/components/schemas/AccessInfoBigQueryModelTable'
+    AccessInfoBigQueryModelTable:
       type: object
       description: >
-        Information on a snapshot table in a BigQuery dataset
+        Information on a snapshot or dataset table in a BigQuery dataset
       required:
         - name
         - sampleQuery

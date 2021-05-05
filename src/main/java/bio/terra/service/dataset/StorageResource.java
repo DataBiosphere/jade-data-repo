@@ -16,6 +16,13 @@ public class StorageResource {
             .region(this.region);
     }
 
+    public static StorageResource fromModel(StorageResourceModel model) {
+        return new StorageResource()
+            .cloudPlatform(model.getCloudPlatform())
+            .cloudResource(model.getCloudResource())
+            .region(model.getRegion());
+    }
+
     public CloudPlatform getCloudPlatform() {
         return cloudPlatform;
     }

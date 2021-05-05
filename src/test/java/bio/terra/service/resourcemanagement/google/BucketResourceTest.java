@@ -3,9 +3,14 @@ package bio.terra.service.resourcemanagement.google;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.load.LoadDao;
 import bio.terra.service.profile.ProfileService;
@@ -53,6 +58,8 @@ public class BucketResourceTest {
 
     @Autowired private LoadDao loadDao;
     @Autowired private ConfigurationService configService;
+    @Autowired private DatasetBucketDao datasetBucketDao;
+    @Autowired private JsonLoader jsonLoader;
     @Autowired private GoogleResourceConfiguration resourceConfiguration;
     @Autowired private GoogleBucketService bucketService;
     @Autowired private GoogleProjectService projectService;
@@ -66,27 +73,39 @@ public class BucketResourceTest {
     private BucketResourceUtils bucketResourceUtils = new BucketResourceUtils();
     private BillingProfileModel profile;
     private Storage storage;
-    private List<String> bucketNames;
+    private List<GoogleBucketResource> bucketResources;
     private boolean allowReuseExistingBuckets;
     private GoogleProjectResource projectResource;
+    private UUID datasetId;
     @Before
     public void setup() throws Exception {
         logger.info("property allowReuseExistingBuckets = {}",
             bucketResourceUtils.getAllowReuseExistingBuckets(configService));
 
+        configService.reset();
         profile = connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
         connectedOperations.stubOutSamCalls(samService);
         storage = StorageOptions.getDefaultInstance().getService();
-        bucketNames = new ArrayList<>();
+        bucketResources = new ArrayList<>();
 
         // get or created project in which to do the bucket work
         projectResource = buildProjectResource();
+
+        String resourcePath = "snapshot-test-dataset.json";
+        DatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
+        datasetRequest
+            .name(Names.randomizeName(datasetRequest.getName()))
+            .defaultProfileId(profile.getId());
+
+        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
+        datasetId = UUID.fromString(summaryModel.getId());
     }
 
     @After
     public void teardown() throws Exception {
-        for (String bucketName : bucketNames) {
-            deleteBucket(bucketName);
+        for (GoogleBucketResource bucketResource : bucketResources) {
+            deleteBucket(bucketResource);
+            datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResource.getResourceId());
         }
         // Connected operations resets the configuration
         connectedOperations.teardown();
@@ -97,16 +116,15 @@ public class BucketResourceTest {
     public void createAndDeleteBucketTest() throws Exception {
         String bucketName = "testbucket_createanddeletebuckettest";
         String flightId = "createAndDeleteBucketTest";
-        bucketNames.add(bucketName);
 
         // create the bucket and metadata
-        GoogleBucketResource bucketResource = bucketService.getOrCreateBucket(bucketName, projectResource, flightId);
+        GoogleBucketResource bucketResource = createBucket(bucketName, projectResource, flightId);
 
         // check the bucket and metadata exist
         checkBucketExists(bucketResource.getResourceId());
 
         // delete the bucket and metadata
-        deleteBucket(bucketResource.getName());
+        deleteBucket(bucketResource);
         checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
     }
 
@@ -116,14 +134,16 @@ public class BucketResourceTest {
     public void twoThreadsCompeteForLockTest() throws Exception {
         String flightIdBase = "twoThreadsCompeteForLockTest";
         String bucketName = "twothreadscompeteforlocktest";
-        bucketNames.add(bucketName);
 
         BucketResourceLockTester resourceLockA = new BucketResourceLockTester(
-            bucketService, bucketName, projectResource, flightIdBase + "A");
+            bucketService, datasetBucketDao, datasetId,
+            bucketName, projectResource, flightIdBase + "A", true);
         BucketResourceLockTester resourceLockB = new BucketResourceLockTester(
-            bucketService, bucketName, projectResource, flightIdBase + "B");
+            bucketService, datasetBucketDao, datasetId,
+            bucketName, projectResource, flightIdBase + "B", false);
         BucketResourceLockTester resourceLockC = new BucketResourceLockTester(
-            bucketService, bucketName, projectResource, flightIdBase + "C");
+            bucketService, datasetBucketDao, datasetId,
+            bucketName, projectResource, flightIdBase + "C", false);
 
         Thread threadA = new Thread(resourceLockA);
         Thread threadB = new Thread(resourceLockB);
@@ -142,6 +162,7 @@ public class BucketResourceTest {
         assertFalse("Thread A did not get a lock exception", resourceLockA.gotLockException());
 
         GoogleBucketResource bucketResource = resourceLockA.getBucketResource();
+        bucketResources.add(bucketResource);
         assertNotNull("Thread A did create the bucket", bucketResource);
 
         checkBucketExists(bucketResource.getResourceId());
@@ -151,7 +172,7 @@ public class BucketResourceTest {
         assertFalse("Thread C did not get a lock exception", resourceLockC.gotLockException());
         assertNotNull("Thread C did get the bucket", resourceLockC.getBucketResource());
 
-        deleteBucket(bucketResource.getName());
+        deleteBucket(bucketResource);
         checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
     }
 
@@ -164,10 +185,9 @@ public class BucketResourceTest {
 
         String bucketName = "testbucket_bucketexistsbeforemetadatatest";
         String flightIdA = "bucketExistsBeforeMetadataTestA";
-        bucketNames.add(bucketName);
 
         // create the bucket and metadata
-        GoogleBucketResource bucketResource = bucketService.getOrCreateBucket(bucketName, projectResource, flightIdA);
+        GoogleBucketResource bucketResource = createBucket(bucketName, projectResource, flightIdA);
         checkBucketExists(bucketResource.getResourceId());
 
         // delete the metadata only
@@ -189,7 +209,7 @@ public class BucketResourceTest {
         String flightIdB = "bucketExistsBeforeMetadataTestB";
         boolean caughtCorruptMetadataException = false;
         try {
-            bucketService.getOrCreateBucket(bucketName, projectResource, flightIdB);
+            createBucket(bucketName, projectResource, flightIdB);
         } catch (CorruptMetadataException cmEx) {
             caughtCorruptMetadataException = true;
         }
@@ -199,13 +219,13 @@ public class BucketResourceTest {
         // try to create bucket again, check succeeds
         bucketResourceUtils.setAllowReuseExistingBuckets(configService, true);
         String flightIdC = "bucketExistsBeforeMetadataTestC";
-        bucketResource = bucketService.getOrCreateBucket(bucketName, projectResource, flightIdC);
+        bucketResource = createBucket(bucketName, projectResource, flightIdC);
 
         // check the bucket and metadata exist
         checkBucketExists(bucketResource.getResourceId());
 
         // delete the bucket and metadata
-        deleteBucket(bucketResource.getName());
+        deleteBucket(bucketResource);
         checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
     }
 
@@ -218,10 +238,9 @@ public class BucketResourceTest {
 
         String bucketName = "testbucket_nobucketbutmetadataexiststest";
         String flightIdA = "noBucketButMetadataExistsTestA";
-        bucketNames.add(bucketName);
 
         // create the bucket and metadata
-        GoogleBucketResource bucketResource = bucketService.getOrCreateBucket(bucketName, projectResource, flightIdA);
+        GoogleBucketResource bucketResource = createBucket(bucketName, projectResource, flightIdA);
         checkBucketExists(bucketResource.getResourceId());
 
         // delete the bucket cloud resource only
@@ -242,7 +261,7 @@ public class BucketResourceTest {
         String flightIdB = "bucketExistsBeforeMetadataTestB";
         caughtCorruptMetadataException = false;
         try {
-            bucketService.getOrCreateBucket(bucketName, projectResource, flightIdB);
+            createBucket(bucketName, projectResource, flightIdB);
         } catch (CorruptMetadataException cmEx) {
             caughtCorruptMetadataException = true;
         }
@@ -251,6 +270,18 @@ public class BucketResourceTest {
         // update the metadata to match the cloud state, check that everything is deleted
         bucketService.updateBucketMetadata(bucketName, null);
         checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
+    }
+
+    private GoogleBucketResource createBucket(String bucketName,
+                                              GoogleProjectResource projectResource,
+                                              String flightId) throws InterruptedException {
+
+        GoogleBucketResource bucketResource = bucketService.getOrCreateBucket(bucketName, projectResource, flightId);
+
+        bucketResources.add(bucketResource);
+        datasetBucketDao.createDatasetBucketLink(datasetId, bucketResource.getResourceId());
+
+        return bucketResource;
     }
 
     private void checkBucketExists(UUID bucketResourceId) {
@@ -263,10 +294,11 @@ public class BucketResourceTest {
         assertNotNull("bucket exists in the cloud", bucket);
     }
 
-    private void deleteBucket(String bucketName) {
+    private void deleteBucket(GoogleBucketResource bucketResource) {
         // delete the bucket and update the metadata
-        storage.delete(bucketName);
-        bucketService.updateBucketMetadata(bucketName, null);
+        storage.delete(bucketResource.getName());
+        bucketService.updateBucketMetadata(bucketResource.getName(), null);
+        datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResource.getResourceId());
     }
 
     private void checkBucketDeleted(String bucketName, UUID bucketResourceId) {

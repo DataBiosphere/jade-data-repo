@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.Relationship;
@@ -13,8 +14,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DatePartitionOptionsModel;
-import bio.terra.model.GoogleCloudResource;
-import bio.terra.model.GoogleRegion;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 
 public final class DatasetJsonConversion {
 
-    private static final GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_CENTRAL1;
     private static final CloudPlatform DEFAULT_CLOUD_PLATFORM = CloudPlatform.GCP;
 
     // only allow use of static methods
@@ -83,11 +82,11 @@ public final class DatasetJsonConversion {
     private static List<StorageResource> createGcpStorageResourceValues(String providedRegion) {
         final GoogleRegion region = Optional.ofNullable(providedRegion)
             .map(s -> GoogleRegion.fromValue(s.toLowerCase()))
-            .orElse(DEFAULT_GOOGLE_REGION);
+            .orElse(GoogleRegion.getDefaultGoogleRegion());
         return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
             // TODO: Firestore will always be in us-central1 for now, but will likely change in the future.
             String dbRegion = (resource.equals(GoogleCloudResource.FIRESTORE)) ?
-                DEFAULT_GOOGLE_REGION.toString() :
+                GoogleRegion.getDefaultGoogleRegion().toString() :
                 region.toString();
             return new StorageResource()
                 .cloudPlatform(CloudPlatform.GCP)

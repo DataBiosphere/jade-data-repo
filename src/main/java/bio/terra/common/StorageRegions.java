@@ -12,5 +12,5 @@ public final class StorageRegions {
     public static final List<String> SUPPORTED_GOOGLE_REGIONS =
         Arrays.stream(GoogleRegion.values())
             .map(GoogleRegion::toString)
-            .collect(Collectors.toList());
+            .collect(Collectors.toUnmodifiableList());
 }

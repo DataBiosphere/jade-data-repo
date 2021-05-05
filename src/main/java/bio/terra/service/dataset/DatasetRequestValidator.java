@@ -369,21 +369,23 @@ public class DatasetRequestValidator implements Validator {
             if (datasetRequest.getCloudPlatform() == null) {
                 errors.rejectValue("region", "InvalidRegionForPlatform",
                     "Cannot set a region when a cloudPlatform is not provided.");
-            }
-            boolean supported = false;
-            switch (datasetRequest.getCloudPlatform()) {
-                case GCP:
-                    supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
-                    break;
-                case AZURE:
-                    errors.rejectValue("cloudPlatform", "InvalidCloudPlatform",
-                        "Azure is not supported yet");
-            }
-            if (!supported) {
-                errors.rejectValue("region", "InvalidRegionForPlatform",
-                    "Valid regions for " +
-                        datasetRequest.getCloudPlatform() +
-                        " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
+            } else {
+                boolean supported = false;
+                switch (datasetRequest.getCloudPlatform()) {
+                    case GCP:
+                        supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
+                        break;
+                    case AZURE:
+                        errors.rejectValue("cloudPlatform", "InvalidCloudPlatform",
+                            "Azure is not supported yet");
+                        return;
+                }
+                if (!supported) {
+                    errors.rejectValue("region", "InvalidRegionForPlatform",
+                        "Valid regions for " +
+                            datasetRequest.getCloudPlatform() +
+                            " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
+                }
             }
         }
     }

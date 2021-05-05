@@ -616,6 +616,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: include
+          in: query
+          description: A list of what to include with the snapshot object
+          required: false
+          schema:
+            type: array
+            items:
+              default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
+              $ref: '#/components/schemas/SnapshotRequestAccessInclude'
       responses:
         200:
           description: Snapshot
@@ -3382,6 +3391,12 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
+    SnapshotRequestAccessInclude:
+      type: string
+      description: >
+        Type of information to include in the response
+      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT ]
+
     SnapshotSummaryModel:
       type: object
       properties:
@@ -3441,8 +3456,42 @@ components:
         dataProject:
           type: string
           description: Project id of the snapshot data project
+        accessInformation:
+          $ref: '#/components/schemas/SnapshotAccessInfoModel'
+          description: How to access the metadata for the snapshot
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
+    SnapshotAccessInfoModel:
+      type: object
+      properties:
+        bigQuery:
+          $ref: '#/components/schemas/SnapshotAccessInfoModelBigQuery'
+    SnapshotAccessInfoModelBigQuery:
+      type: object
+      properties:
+        datasetName:
+          type: string
+          required: true
+        projectId:
+          type: string
+          required: true
+        link:
+          type: string
+          required: true
+        tables:
+          type: array
+          items:
+            $ref: '#/components/schemas/SnapshotAccessInfoModelBigQueryTable'
+          required: true
+    SnapshotAccessInfoModelBigQueryTable:
+      type: object
+      properties:
+        name:
+          type: string
+          required: true
+        sampleQuery:
+          type: string
+          required: true
     SnapshotSourceModel:
       required:
         - asset

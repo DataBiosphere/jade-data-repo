@@ -12,7 +12,11 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.SnapshotAccessInfoModel;
+import bio.terra.model.SnapshotAccessInfoModelBigQuery;
+import bio.terra.model.SnapshotAccessInfoModelBigQueryTable;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestAccessInclude;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -41,6 +45,7 @@ import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.stringtemplate.v4.ST;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,6 +61,10 @@ import java.util.stream.Collectors;
 
 @Component
 public class SnapshotService {
+
+    private static final String BIGQUERY_BASE_LINK = "https://console.cloud.google.com/bigquery?project=<project>";
+    private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<project>.<dataset>.<table>` LIMIT 1000";
+
     private final JobService jobService;
     private final DatasetService datasetService;
     private final FireStoreDependencyDao dependencyDao;
@@ -167,8 +176,24 @@ public class SnapshotService {
      * @return a SnapshotModel = API output-friendly representation of the Snapshot
      */
     public SnapshotModel retrieveAvailableSnapshotModel(UUID id) {
+        return retrieveAvailableSnapshotModel(id, Collections.emptyList());
+    }
+
+    /**
+     * Convenience wrapper around fetching an existing Snapshot object and converting it to a Model object.
+     * Unlike the Snapshot object, the Model object includes a reference to the associated cloud project.
+     *
+     * Note that this method will only return a snapshot if it is NOT exclusively locked.
+     * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
+     * an exclusively locked snapshot to be returned (e.g. snapshot deletion).
+     * @param id in UUID formant
+     * @param include a list of what information to include
+     * @return a SnapshotModel = API output-friendly representation of the Snapshot
+     */
+    public SnapshotModel retrieveAvailableSnapshotModel(UUID id,
+                                                        List<SnapshotRequestAccessInclude> include) {
         Snapshot snapshot = retrieveAvailable(id);
-        return populateSnapshotModelFromSnapshot(snapshot);
+        return populateSnapshotModelFromSnapshot(snapshot, include);
     }
 
     /**
@@ -491,27 +516,42 @@ public class SnapshotService {
         return summaryModel;
     }
 
-    private SnapshotModel populateSnapshotModelFromSnapshot(Snapshot snapshot) {
-        return new SnapshotModel()
-                .id(snapshot.getId().toString())
-                .name(snapshot.getName())
-                .description(snapshot.getDescription())
-                .createdDate(snapshot.getCreatedDate().toString())
-                .profileId(snapshot.getProfileId().toString())
-                .source(snapshot.getSnapshotSources()
-                        .stream()
-                        .map(this::makeSourceModelFromSource)
-                        .collect(Collectors.toList()))
-                .tables(snapshot.getTables()
-                        .stream()
-                        .map(this::makeTableModelFromTable)
-                        .collect(Collectors.toList()))
-                .relationships(snapshot.getRelationships()
-                        .stream()
-                        .map(this::makeRelationshipModelFromRelationship)
-                        .collect(Collectors.toList()))
-                .dataProject(snapshot.getProjectResource().getGoogleProjectId());
+    private SnapshotModel populateSnapshotModelFromSnapshot(Snapshot snapshot,
+                                                            List<SnapshotRequestAccessInclude> include) {
+        SnapshotModel snapshotModel = new SnapshotModel()
+            .id(snapshot.getId().toString())
+            .name(snapshot.getName())
+            .description(snapshot.getDescription())
+            .createdDate(snapshot.getCreatedDate().toString());
 
+        if (doInclude(include, SnapshotRequestAccessInclude.SOURCES, true)) {
+            snapshotModel.source(snapshot.getSnapshotSources()
+                .stream()
+                .map(this::makeSourceModelFromSource)
+                .collect(Collectors.toList()));
+        }
+        if (doInclude(include, SnapshotRequestAccessInclude.TABLES, true)) {
+            snapshotModel.tables(snapshot.getTables()
+                .stream()
+                .map(this::makeTableModelFromTable)
+                .collect(Collectors.toList()));
+        }
+        if (doInclude(include, SnapshotRequestAccessInclude.RELATIONSHIPS, true)) {
+            snapshotModel.relationships(snapshot.getRelationships()
+                .stream()
+                .map(this::makeRelationshipModelFromRelationship)
+                .collect(Collectors.toList()));
+        }
+        if (doInclude(include, SnapshotRequestAccessInclude.PROFILE, true)) {
+            snapshotModel.profileId(snapshot.getProfileId().toString());
+        }
+        if (doInclude(include, SnapshotRequestAccessInclude.DATA_PROJECT, true)) {
+            snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
+        }
+        if (doInclude(include, SnapshotRequestAccessInclude.ACCESS_INFORMATION, false)) {
+            snapshotModel.accessInformation(makeSnapshotAccessInfoModelFromSnapshot(snapshot));
+        }
+        return snapshotModel;
     }
 
     private RelationshipModel makeRelationshipModelFromRelationship(Relationship relationship) {
@@ -552,6 +592,32 @@ public class SnapshotService {
         return sourceModel;
     }
 
+    private SnapshotAccessInfoModel makeSnapshotAccessInfoModelFromSnapshot(Snapshot snapshot) {
+        SnapshotAccessInfoModel accessInfoModel = new SnapshotAccessInfoModel();
+
+        // Currently, only BigQuery is supported.  Parquet specific information will be added here
+        accessInfoModel.bigQuery(new SnapshotAccessInfoModelBigQuery()
+            .datasetName(snapshot.getName())
+            .projectId(snapshot.getProjectResource().getGoogleProjectId())
+            .link(new ST(BIGQUERY_BASE_LINK)
+                .add("project", snapshot.getProjectResource().getGoogleProjectId()).render())
+            .tables(snapshot.getTables().stream()
+                .map(t -> new SnapshotAccessInfoModelBigQueryTable()
+                    .name(t.getName())
+                    .sampleQuery(new ST(BIGQUERY_BASE_QUERY)
+                        .add("project", snapshot.getProjectResource().getGoogleProjectId())
+                        .add("dataset", snapshot.getName())
+                        .add("table", t.getName())
+                        .render())
+                )
+
+
+                .collect(Collectors.toList()))
+        );
+
+        return accessInfoModel;
+    }
+
     // TODO: share these methods with dataset table in some common place
     private TableModel makeTableModelFromTable(Table table) {
         Long rowCount = table.getRowCount();
@@ -569,5 +635,20 @@ public class SnapshotService {
             .name(column.getName())
             .datatype(column.getType())
             .arrayOf(column.isArrayOf());
+    }
+
+    private boolean doInclude(List<SnapshotRequestAccessInclude> include,
+                              SnapshotRequestAccessInclude check,
+                              boolean includeByDefault) {
+        // Return the default if no values were passed in
+        if (include.isEmpty()) {
+            return includeByDefault;
+        }
+        // In case NONE is specified, this should supersede any other value being passed in
+        if (include.contains(SnapshotRequestAccessInclude.NONE)) {
+            return false;
+        }
+        // Perform the standard check
+        return include.contains(check);
     }
 }

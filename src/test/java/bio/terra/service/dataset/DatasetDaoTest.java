@@ -24,7 +24,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.platform.commons.util.StringUtils;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -90,6 +89,14 @@ public class DatasetDaoTest {
         return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
     }
 
+    private boolean checkDatasetStorageContainsRegion(DatasetSummary datasetSummary, String region) {
+        Dataset dataset = datasetDao.retrieve(datasetSummary.getId());
+        return dataset.getDatasetSummary()
+            .getStorage()
+            .stream()
+            .anyMatch(storageResource -> storageResource.getRegion().equals(region));
+    }
+
     @Before
     public void setup() {
         BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
@@ -141,7 +148,7 @@ public class DatasetDaoTest {
             equalTo(datasets.get(1).getId()));
 
         MetadataEnumeration<DatasetSummary> filterNameEnum = datasetDao.enumerate(0, 2,
-        EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getName(), datasetIds);
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getName(), datasetIds);
         List<DatasetSummary> filteredDatasets = filterNameEnum.getItems();
         assertThat("dataset filter by name returns correct total",
             filteredDatasets.size(),
@@ -151,8 +158,7 @@ public class DatasetDaoTest {
             equalTo(dataset1FromDB.getName()));
 
         MetadataEnumeration<DatasetSummary> filterDefaultRegionEnum = datasetDao.enumerate(0, 2,
-            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, GoogleRegion.US_CENTRAL1.toString()
-            , datasetIds);
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, GoogleRegion.US_CENTRAL1.toString(), datasetIds);
         List<DatasetSummary> filteredDefaultRegionDatasets = filterDefaultRegionEnum.getItems();
         assertThat("dataset filter by default GCS region returns correct total",
             filteredDefaultRegionDatasets.size(),
@@ -177,14 +183,6 @@ public class DatasetDaoTest {
 
         datasetDao.delete(dataset1);
         datasetDao.delete(dataset2);
-    }
-
-    public boolean checkDatasetStorageContainsRegion(DatasetSummary datasetSummary, String region) {
-        Dataset dataset = datasetDao.retrieve(datasetSummary.getId());
-        return dataset.getDatasetSummary()
-            .getStorage()
-            .stream()
-            .anyMatch(storageResource -> storageResource.getRegion().equals(region));
     }
 
     @Test

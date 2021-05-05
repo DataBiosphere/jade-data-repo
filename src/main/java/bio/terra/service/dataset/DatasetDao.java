@@ -518,7 +518,7 @@ public class DatasetDao {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
         String sql = "SELECT " +
-            "dataset.id, name, description, default_profile_id, project_resource_id, created_date " +
+            "id, name, description, default_profile_id, project_resource_id, created_date " +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);

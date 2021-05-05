@@ -24,6 +24,7 @@ import common.utils.StorageUtils;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -156,7 +157,8 @@ public class DRSLookup extends SimpleDataset {
     }
 
     // now go and retrieve the file Id that should be stored in the snapshot
-    snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
+    snapshotModel =
+        repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId(), Collections.emptyList());
 
     TableModel tableModel =
         snapshotModel.getTables().get(0); // There is only 1 table, so just grab the first

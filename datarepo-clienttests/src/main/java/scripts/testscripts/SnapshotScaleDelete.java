@@ -8,6 +8,7 @@ import bio.terra.datarepo.model.JobModel;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +80,8 @@ public class SnapshotScaleDelete extends SimpleDataset {
     for (int i = 0; i < snapshotList.size(); i++) {
       SnapshotModel snapshot;
       try {
-        snapshot = repositoryApi.retrieveSnapshot(snapshotList.get(i).getId());
+        snapshot =
+            repositoryApi.retrieveSnapshot(snapshotList.get(i).getId(), Collections.emptyList());
       } catch (ApiException e) {
         snapshot = null;
         logger.info("Snapshot already deleted: {}", snapshotList.get(i).getName());

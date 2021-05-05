@@ -18,6 +18,7 @@ import com.google.cloud.storage.BlobId;
 import common.utils.FileUtils;
 import common.utils.StorageUtils;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,7 +122,8 @@ public class CreateSnapshot extends SimpleDataset {
       logger.info("Successfully created snapshot: {}", snapshotSummaryModel.getName());
 
       // now go and retrieve the file Id that should be stored in the snapshot
-      snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
+      snapshotModel =
+          repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId(), Collections.emptyList());
     } catch (Exception e) {
       logger.error("Error in journey", e);
       e.printStackTrace();

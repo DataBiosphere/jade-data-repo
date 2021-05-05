@@ -14,6 +14,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.TableResult;
 import common.utils.BigQueryUtils;
+import java.util.Collections;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,7 +40,8 @@ public class DatasetCustodianPermissions extends SimpleDataset {
     // fetch the full dataset model, which has the data project property
     ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
-    datasetModel = repositoryApi.retrieveDataset(datasetSummaryModel.getId());
+    datasetModel =
+        repositoryApi.retrieveDataset(datasetSummaryModel.getId(), Collections.emptyList());
   }
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
@@ -121,7 +123,7 @@ public class DatasetCustodianPermissions extends SimpleDataset {
       RepositoryApi repositoryApi, String datasetId) throws ApiException {
     boolean caughtAccessException = false;
     try {
-      DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId);
+      DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId, Collections.emptyList());
       logger.debug(
           "Successfully retrieved dataset: name = {}, data project = {}",
           datasetModel.getName(),

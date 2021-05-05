@@ -107,7 +107,7 @@ public class SoftDeleteDataset extends SimpleDataset {
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
     String datasetId = datasetSummaryModel.getId();
-    DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId);
+    DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId, Collections.emptyList());
     String dataProject = datasetModel.getDataProject();
     String tableName = datasetModel.getSchema().getTables().get(0).getName();
 

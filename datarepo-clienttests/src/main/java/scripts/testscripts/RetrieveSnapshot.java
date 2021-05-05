@@ -18,6 +18,7 @@ import common.utils.StorageUtils;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
@@ -160,7 +161,8 @@ public class RetrieveSnapshot extends SimpleDataset {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
-    SnapshotModel snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
+    SnapshotModel snapshotModel =
+        repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId(), Collections.emptyList());
     logger.debug(
         "Successfully retrieved snaphot: {}, data project: {}",
         snapshotModel.getName(),

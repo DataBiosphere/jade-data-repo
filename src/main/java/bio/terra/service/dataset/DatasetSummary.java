@@ -80,7 +80,7 @@ public class DatasetSummary {
     }
 
     public String getStorageResourceRegion(GoogleCloudResource storageResource) {
-        return this.storage.stream()
+        return storage.stream()
             .filter(resource -> resource.getCloudResource().equals(storageResource.toString()))
             .findFirst()
             .map(StorageResource::getRegion)

@@ -12,6 +12,7 @@ import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.GoogleCloudResource;
+import bio.terra.model.GoogleRegion;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
@@ -23,6 +24,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.platform.commons.util.StringUtils;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -117,9 +119,7 @@ public class DatasetDaoTest {
         List<UUID> datasetIds = new ArrayList<>();
         datasetIds.add(dataset1);
         datasetIds.add(dataset2);
-
-        String dataset1Description = "description_" + UUID.randomUUID().toString();
-        Dataset dataset1FromDB = datasetDao.retrieve(dataset1).description(dataset1Description);
+        Dataset dataset1FromDB = datasetDao.retrieve(dataset1);
 
         MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.enumerate(0, 2,
             EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null, datasetIds);
@@ -150,28 +150,41 @@ public class DatasetDaoTest {
             filteredDatasets.get(0).getName(),
             equalTo(dataset1FromDB.getName()));
 
-        MetadataEnumeration<DatasetSummary> filterDescriptionEnum = datasetDao.enumerate(0, 2,
-            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getDescription(), datasetIds);
-        List<DatasetSummary> filteredDescriptionDatasets = filterDescriptionEnum.getItems();
-        assertThat("dataset filter by description returns correct total",
-            filteredDescriptionDatasets.size(),
-            equalTo(1));
-        assertThat("dataset filter by name returns correct dataset",
-            filteredDescriptionDatasets.get(0).getDescription(),
-            equalTo(dataset1FromDB.getDescription()));
+        MetadataEnumeration<DatasetSummary> filterDefaultRegionEnum = datasetDao.enumerate(0, 2,
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, GoogleRegion.US_CENTRAL1.toString()
+            , datasetIds);
+        List<DatasetSummary> filteredDefaultRegionDatasets = filterDefaultRegionEnum.getItems();
+        assertThat("dataset filter by default GCS region returns correct total",
+            filteredDefaultRegionDatasets.size(),
+            equalTo(2));
+        assertThat("dataset filter by default GCS region returns correct datasets",
+            filteredDefaultRegionDatasets.stream()
+                .allMatch(datasetSummary ->
+                    checkDatasetStorageContainsRegion(datasetSummary, GoogleRegion.US_CENTRAL1.toString())),
+            equalTo(true));
 
         MetadataEnumeration<DatasetSummary> filterRegionEnum = datasetDao.enumerate(0, 2,
-            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, "us-east1", datasetIds);
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, GoogleRegion.US_EAST1.toString(), datasetIds);
         List<DatasetSummary> filteredRegionDatasets = filterRegionEnum.getItems();
-        assertThat("dataset filter by region returns correct total",
+        assertThat("dataset filter by non-default GCS region returns correct total",
             filteredRegionDatasets.size(),
             equalTo(1));
-        assertThat("dataset filter by region returns correct dataset",
-            filteredRegionDatasets.get(0).getStorage().get(0).getRegion(),
-            equalTo(dataset1FromDB.getDatasetSummary().getStorage().get(0).getRegion()));
+        assertThat("dataset filter by non-default region returns correct dataset",
+            filteredRegionDatasets.stream()
+                .allMatch(datasetSummary ->
+                    checkDatasetStorageContainsRegion(datasetSummary, GoogleRegion.US_EAST1.toString())),
+            equalTo(true));
 
         datasetDao.delete(dataset1);
         datasetDao.delete(dataset2);
+    }
+
+    public boolean checkDatasetStorageContainsRegion(DatasetSummary datasetSummary, String region) {
+        Dataset dataset = datasetDao.retrieve(datasetSummary.getId());
+        return dataset.getDatasetSummary()
+            .getStorage()
+            .stream()
+            .anyMatch(storageResource -> storageResource.getRegion().equals(region));
     }
 
     @Test

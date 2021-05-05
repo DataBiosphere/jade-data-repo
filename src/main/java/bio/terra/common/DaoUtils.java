@@ -1,6 +1,7 @@
 package bio.terra.common;
 
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.model.GoogleRegion;
 import bio.terra.model.SqlSortDirection;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -16,8 +17,14 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public final class DaoUtils {
+
+    private static final List<String> SUPPORTED_GOOGLE_REGIONS =
+        Arrays.stream(GoogleRegion.values())
+            .map(GoogleRegion::toString)
+            .collect(Collectors.toList());
 
     private DaoUtils() {
     }
@@ -35,7 +42,13 @@ public final class DaoUtils {
     public static void addFilterClause(String filter, MapSqlParameterSource params, List<String> clauses) {
         if (!StringUtils.isEmpty(filter)) {
             params.addValue("filter", DaoUtils.escapeFilter(filter));
-            clauses.add(" (name ILIKE :filter OR description ILIKE :filter OR storage_resource.region ILIKE :filter) ");
+            if (SUPPORTED_GOOGLE_REGIONS.contains(filter.toLowerCase())) {
+                clauses.add("'" + filter.toLowerCase() +
+                    "' in (SELECT storage_resource.region FROM storage_resource" +
+                    " WHERE storage_resource.dataset_id = dataset.id) ");
+            } else {
+                clauses.add(" (name ILIKE :filter OR description ILIKE :filter) ");
+            }
         }
     }
 

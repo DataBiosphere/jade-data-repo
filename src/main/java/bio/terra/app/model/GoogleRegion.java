@@ -25,12 +25,16 @@ public enum GoogleRegion {
     US_WEST1("us-west1"),
     US_WEST2("us-west2");
 
-    public static GoogleRegion defaultGoogleRegion = GoogleRegion.US_CENTRAL1;
+    private static GoogleRegion defaultGoogleRegion = GoogleRegion.US_CENTRAL1;
 
     private String value;
 
     GoogleRegion(String value) {
         this.value = value;
+    }
+
+    public static GoogleRegion getDefaultGoogleRegion() {
+        return GoogleRegion.defaultGoogleRegion;
     }
 
     public String toString() {

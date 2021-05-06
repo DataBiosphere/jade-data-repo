@@ -11,8 +11,8 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.GoogleCloudResource;
-import bio.terra.model.GoogleRegion;
+import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
@@ -94,7 +94,7 @@ public class DatasetDaoTest {
         return dataset.getDatasetSummary()
             .getStorage()
             .stream()
-            .anyMatch(storageResource -> storageResource.getRegion().equals(region));
+            .anyMatch(sr -> sr.getRegion().toString().equals(region));
     }
 
     @Before

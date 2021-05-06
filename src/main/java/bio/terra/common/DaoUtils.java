@@ -35,6 +35,13 @@ public final class DaoUtils {
     public static void addFilterClause(String filter, MapSqlParameterSource params, List<String> clauses) {
         if (!StringUtils.isEmpty(filter)) {
             params.addValue("filter", DaoUtils.escapeFilter(filter));
+            clauses.add(" (name ILIKE :filter OR description ILIKE :filter) ");
+        }
+    }
+
+    public static void addDatasetFilterClause(String filter, MapSqlParameterSource params, List<String> clauses) {
+        if (!StringUtils.isEmpty(filter)) {
+            params.addValue("filter", DaoUtils.escapeFilter(filter));
             if (StorageRegions.SUPPORTED_GOOGLE_REGIONS.contains(filter.toLowerCase())) {
                 clauses.add("'" + filter.toLowerCase() +
                     "' in (SELECT storage_resource.region FROM storage_resource" +

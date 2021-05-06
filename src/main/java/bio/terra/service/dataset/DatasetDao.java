@@ -511,7 +511,7 @@ public class DatasetDao {
         }
 
         // add the filters to the clause to get the actual items
-        DaoUtils.addFilterClause(filter, params, whereClauses);
+        DaoUtils.addDatasetFilterClause(filter, params, whereClauses);
 
         String whereSql = "";
         if (!whereClauses.isEmpty()) {

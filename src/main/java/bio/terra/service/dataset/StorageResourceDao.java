@@ -33,14 +33,6 @@ public class StorageResourceDao {
         "cloud_resource, region ";
     private static final String SQL_GET = "SELECT " + STORAGE_COLUMNS +
         "FROM storage_resource WHERE dataset_id = :dataset_id";
-    private static final String SQL_GET_BUCKET = "SELECT sr.cloud_resource, sr.cloud_platform, sr.region " +
-        "FROM storage_resource sr, " +
-        "dataset_bucket db " +
-        "WHERE sr.dataset_id = db.dataset_id " +
-        "AND db.bucket_resource_id = :bucket_resource_id " +
-        "AND sr.cloud_resource = :cloud_resource";
-    private static final String SQL_DELETE_STORAGE = "DELETE FROM storage_resource " +
-        "WHERE dataset_id = :dataset_id";
     private static final Logger logger = LoggerFactory.getLogger(StorageResourceDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
 

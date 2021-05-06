@@ -189,7 +189,7 @@ public class DrsService {
         DRSAccessMethod gsAccessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
             .accessUrl(gsAccessURL)
-            .region(bucketResource.getRegion());
+            .region(bucketResource.getRegion().toString());
 
         DRSAccessURL httpsAccessURL = new DRSAccessURL()
             .url(makeHttpsFromGs(fsFile.getGspath()))
@@ -198,7 +198,7 @@ public class DrsService {
         DRSAccessMethod httpsAccessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessUrl(httpsAccessURL)
-            .region(bucketResource.getRegion());
+            .region(bucketResource.getRegion().toString());
 
         List<DRSAccessMethod> accessMethods = new ArrayList<>();
         accessMethods.add(gsAccessMethod);

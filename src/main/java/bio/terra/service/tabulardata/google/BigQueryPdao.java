@@ -1,6 +1,7 @@
 package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.PdaoLoadStatistics;
@@ -121,7 +122,7 @@ public class BigQueryPdao {
                 bigQueryProject.deleteDataset(datasetName);
             }
 
-            String region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
+            GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription(), region);
             bigQueryProject.createTable(
@@ -352,7 +353,7 @@ public class BigQueryPdao {
         }
 
         // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-        String representativeRegion = snapshot.getSnapshotSources()
+        GoogleRegion representativeRegion = snapshot.getSnapshotSources()
             .get(0)
             .getDataset()
             .getDatasetSummary()

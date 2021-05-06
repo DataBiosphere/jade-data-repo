@@ -216,13 +216,13 @@ public class DatasetDaoTest {
                 equalTo(2));
             fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
 
-            Map<String, StorageResource> storageMap = fromDB.getDatasetSummary().getStorage().stream()
+            Map<GoogleCloudResource, StorageResource> storageMap = fromDB.getDatasetSummary().getStorage().stream()
                 .collect(Collectors.toMap(StorageResource::getCloudResource, Function.identity()));
 
             for (GoogleCloudResource cloudResource : GoogleCloudResource.values()) {
-                StorageResource storage = storageMap.get(cloudResource.toString());
+                StorageResource storage = storageMap.get(cloudResource);
                 assertThat(String.format("dataset %s region is set", storage.getCloudResource()),
-                    storage.getRegion(),
+                    storage.getRegion().toString(),
                     equalTo("us-central1"));
             }
         } finally {

@@ -1,6 +1,6 @@
 package bio.terra.service.dataset;
 
-import bio.terra.common.exception.RetryQueryException;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.CloudPlatform;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
@@ -24,14 +24,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.Optional;
 import java.util.UUID;
 
-import static bio.terra.common.DaoUtils.retryQuery;
-
 @Repository
-public class StorageDao {
+public class StorageResourceDao {
 
     private static final String STORAGE_COLUMNS = "id, dataset_id, cloud_platform, " +
         "cloud_resource, region ";
@@ -45,11 +41,11 @@ public class StorageDao {
         "AND sr.cloud_resource = :cloud_resource";
     private static final String SQL_DELETE_STORAGE = "DELETE FROM storage_resource " +
         "WHERE dataset_id = :dataset_id";
-    private static final Logger logger = LoggerFactory.getLogger(StorageDao.class);
+    private static final Logger logger = LoggerFactory.getLogger(StorageResourceDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public StorageDao(DataRepoJdbcConfiguration jdbcConfiguration) {
+    public StorageResourceDao(DataRepoJdbcConfiguration jdbcConfiguration) {
         jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
     }
 
@@ -65,28 +61,12 @@ public class StorageDao {
         }
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public String getBucketStorageFromBucketResourceId(UUID bucketResourceId) {
-        String errorMsg = "Storage resource not found for bucket: " + bucketResourceId.toString();
-        try {
-            MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("bucket_resource_id", bucketResourceId)
-                .addValue("cloud_resource", GoogleCloudResource.BUCKET.toString());
-            return Optional.ofNullable(jdbcTemplate.queryForObject(SQL_GET_BUCKET, params, new StorageResourceMapper()))
-                .map(StorageResource::getRegion).orElseThrow();
-        } catch (EmptyResultDataAccessException | NoSuchElementException ex) {
-            throw new StorageResourceNotFoundException(errorMsg);
-        }
-    }
-
-
-
     private static class StorageResourceMapper implements RowMapper<StorageResource> {
         public StorageResource mapRow(ResultSet rs, int rowNum) throws SQLException {
             return new StorageResource()
-                .cloudPlatform(CloudPlatform.fromValue(rs.getString("cloud_platform")))
-                .cloudResource(rs.getString("cloud_resource"))
-                .region(rs.getString("region"));
+                .cloudPlatform(CloudPlatform.valueOf(rs.getString("cloud_platform")))
+                .cloudResource(GoogleCloudResource.valueOf(rs.getString("cloud_resource")))
+                .region(GoogleRegion.valueOf(rs.getString("region")));
         }
     }
 
@@ -104,9 +84,9 @@ public class StorageDao {
             String platformParam = storageResource.getCloudResource() + "_cloudPlatform";
             valuesList.add(String.format("(:dataset_id, :%s, :%s, :%s)",
                 regionParam, cloudResourceParam, platformParam));
-            params.addValue(regionParam, storageResource.getRegion());
-            params.addValue(cloudResourceParam, storageResource.getCloudResource());
-            params.addValue(platformParam, storageResource.getCloudPlatform().toString());
+            params.addValue(regionParam, storageResource.getRegion().name());
+            params.addValue(cloudResourceParam, storageResource.getCloudResource().name());
+            params.addValue(platformParam, storageResource.getCloudPlatform().name());
         }
 
         String sql = "INSERT INTO storage_resource " +
@@ -121,21 +101,5 @@ public class StorageDao {
         }
 
         logger.debug("end of createStorageAttributes datasetId: {}", datasetId);
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public void deleteStorageAttributes(UUID datasetId) {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("dataset_id", datasetId);
-        try {
-            jdbcTemplate.update(SQL_DELETE_STORAGE, params);
-        } catch (DataAccessException dataAccessException) {
-            if (retryQuery(dataAccessException)) {
-                logger.error("Storage delete failed with retryable exception.");
-                throw new RetryQueryException("Retry", dataAccessException);
-            }
-            logger.error("Storage delete failed with fatal exception.");
-            throw dataAccessException;
-        }
     }
 }

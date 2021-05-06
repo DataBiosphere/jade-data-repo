@@ -85,13 +85,13 @@ public final class DatasetJsonConversion {
             .orElse(GoogleRegion.getDefaultGoogleRegion());
         return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
             // TODO: Firestore will always be in us-central1 for now, but will likely change in the future.
-            String dbRegion = (resource.equals(GoogleCloudResource.FIRESTORE)) ?
-                GoogleRegion.getDefaultGoogleRegion().toString() :
-                region.toString();
+            GoogleRegion dbRegion = (resource.equals(GoogleCloudResource.FIRESTORE)) ?
+                GoogleRegion.getDefaultGoogleRegion() :
+                region;
             return new StorageResource()
                 .cloudPlatform(CloudPlatform.GCP)
                 .region(dbRegion)
-                .cloudResource(resource.toString());
+                .cloudResource(resource);
         }).collect(Collectors.toList());
     }
 

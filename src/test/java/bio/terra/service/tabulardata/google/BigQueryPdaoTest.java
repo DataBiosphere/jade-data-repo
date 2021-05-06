@@ -162,7 +162,9 @@ public class BigQueryPdaoTest {
             String bucket = (String) tuple[1];
             String regionMessage = (String) tuple[2];
 
-            String region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
+            String region = dataset.getDatasetSummary()
+                .getStorageResourceRegion(GoogleCloudResource.BIGQUERY)
+                .toString();
 
             connectedOperations.addDataset(dataset.getId().toString());
 

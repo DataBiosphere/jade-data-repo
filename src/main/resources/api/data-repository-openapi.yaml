@@ -3806,11 +3806,6 @@ components:
           type: string
           description: Timestamp the upgrade completed
 
-    GoogleCloudResource:
-      type: string
-      enum: [ bigquery, firestore, bucket ]
-      description: Google cloud resources used by TDR.
-
     CloudPlatform:
       type: string
       enum: [ gcp, azure ]

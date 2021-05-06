@@ -46,7 +46,7 @@ public class GoogleResourceDao {
             "dataset_bucket db, " +
             "storage_resource sr " +
             "WHERE b.marked_for_delete = false " +
-            "AND db.bucket_resource_id = b.id AND sr.dataset_id = db.dataset_id AND sr.cloud_resource = 'bucket'";
+            "AND db.bucket_resource_id = b.id AND sr.dataset_id = db.dataset_id AND sr.cloud_resource = 'BUCKET'";
     private static final String sqlBucketRetrievedById = sqlBucketRetrieve + " AND b.id = :id";
     private static final String sqlBucketRetrievedByName = sqlBucketRetrieve + " AND b.name = :name";
 

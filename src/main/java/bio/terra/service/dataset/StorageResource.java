@@ -1,26 +1,21 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.StorageResourceModel;
 
 public class StorageResource {
 
     private CloudPlatform cloudPlatform;
-    private String cloudResource;
-    private String region;
+    private GoogleCloudResource cloudResource;
+    private GoogleRegion region;
 
     public StorageResourceModel toModel() {
         return new StorageResourceModel()
             .cloudPlatform(this.cloudPlatform)
-            .cloudResource(this.cloudResource)
-            .region(this.region);
-    }
-
-    public static StorageResource fromModel(StorageResourceModel model) {
-        return new StorageResource()
-            .cloudPlatform(model.getCloudPlatform())
-            .cloudResource(model.getCloudResource())
-            .region(model.getRegion());
+            .cloudResource(this.cloudResource.toString())
+            .region(this.region.toString());
     }
 
     public CloudPlatform getCloudPlatform() {
@@ -32,20 +27,20 @@ public class StorageResource {
         return this;
     }
 
-    public String getCloudResource() {
+    public GoogleCloudResource getCloudResource() {
         return cloudResource;
     }
 
-    public StorageResource cloudResource(String cloudResource) {
+    public StorageResource cloudResource(GoogleCloudResource cloudResource) {
         this.cloudResource = cloudResource;
         return this;
     }
 
-    public String getRegion() {
+    public GoogleRegion getRegion() {
         return region;
     }
 
-    public StorageResource region(String region) {
+    public StorageResource region(GoogleRegion region) {
         this.region = region;
         return this;
     }

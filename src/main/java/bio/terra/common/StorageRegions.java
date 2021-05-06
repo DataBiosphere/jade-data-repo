@@ -1,6 +1,6 @@
 package bio.terra.common;
 
-import bio.terra.model.GoogleRegion;
+import bio.terra.app.model.GoogleRegion;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.List;

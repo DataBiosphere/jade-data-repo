@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
@@ -178,8 +179,8 @@ public class DatasetDaoTest {
             for (GoogleCloudResource cloudResource : GoogleCloudResource.values()) {
                 StorageResource storage = storageMap.get(cloudResource);
                 assertThat(String.format("dataset %s region is set", storage.getCloudResource()),
-                    storage.getRegion().toString(),
-                    equalTo("us-central1"));
+                    storage.getRegion(),
+                    equalTo(GoogleRegion.US_CENTRAL1));
             }
         } finally {
             datasetDao.delete(datasetId);

@@ -1,23 +1,28 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DatePartitionOptionsModel;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +32,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public final class DatasetJsonConversion {
+
+    private static final CloudPlatform DEFAULT_CLOUD_PLATFORM = CloudPlatform.GCP;
 
     // only allow use of static methods
     private DatasetJsonConversion() {}
@@ -52,22 +59,50 @@ public final class DatasetJsonConversion {
                 assetSpecifications.add(assetModelToAssetSpecification(asset, tablesMap, relationshipsMap)));
         }
 
+        CloudPlatform cloudPlatform = Optional.ofNullable(datasetRequest.getCloudPlatform())
+            .orElse(DEFAULT_CLOUD_PLATFORM);
+
+        final List<StorageResource> storageResources;
+        if (cloudPlatform == CloudPlatform.GCP) {
+            storageResources = createGcpStorageResourceValues(datasetRequest.getRegion());
+        } else {
+            throw new UnsupportedOperationException(cloudPlatform + " is not a recognized Cloud Platform");
+        }
+
         return new Dataset(new DatasetSummary()
                 .name(datasetRequest.getName())
                 .description(datasetRequest.getDescription())
+                .storage(storageResources)
                 .defaultProfileId(defaultProfileId))
                 .tables(new ArrayList<>(tablesMap.values()))
                 .relationships(new ArrayList<>(relationshipsMap.values()))
                 .assetSpecifications(assetSpecifications);
     }
 
-    public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(DatasetSummary dataset) {
+    private static List<StorageResource> createGcpStorageResourceValues(String providedRegion) {
+        final GoogleRegion region = Optional.ofNullable(providedRegion)
+            .map(GoogleRegion::fromValue)
+            .orElse(GoogleRegion.DEFAULT_GOOGLE_REGION);
+        return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
+            // TODO: Firestore will always be in us-central1 for now, but will likely change in the future.
+            GoogleRegion dbRegion = (resource.equals(GoogleCloudResource.FIRESTORE)) ?
+                GoogleRegion.DEFAULT_GOOGLE_REGION :
+                region;
+            return new StorageResource()
+                .cloudPlatform(CloudPlatform.GCP)
+                .region(dbRegion)
+                .cloudResource(resource);
+        }).collect(Collectors.toList());
+    }
+
+    public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(DatasetSummary datasetSummary) {
         return new DatasetSummaryModel()
-                .id(dataset.getId().toString())
-                .name(dataset.getName())
-                .description(dataset.getDescription())
-                .createdDate(dataset.getCreatedDate().toString())
-                .defaultProfileId(dataset.getDefaultProfileId().toString());
+                .id(datasetSummary.getId().toString())
+                .name(datasetSummary.getName())
+                .description(datasetSummary.getDescription())
+                .createdDate(datasetSummary.getCreatedDate().toString())
+                .defaultProfileId(datasetSummary.getDefaultProfileId().toString())
+                .storage(storageResourceModelFromDatasetSummary(datasetSummary));
 
     }
 
@@ -79,7 +114,12 @@ public final class DatasetJsonConversion {
                 .defaultProfileId(dataset.getDefaultProfileId().toString())
                 .createdDate(dataset.getCreatedDate().toString())
                 .schema(datasetSpecificationModelFromDatasetSchema(dataset))
-                .dataProject(dataset.getProjectResource().getGoogleProjectId());
+                .dataProject(dataset.getProjectResource().getGoogleProjectId())
+                .storage(storageResourceModelFromDatasetSummary(dataset.getDatasetSummary()));
+    }
+
+    private static List<StorageResourceModel> storageResourceModelFromDatasetSummary(DatasetSummary datasetSummary) {
+        return datasetSummary.getStorage().stream().map(StorageResource::toModel).collect(Collectors.toList());
     }
 
     public static DatasetSpecificationModel datasetSpecificationModelFromDatasetSchema(Dataset dataset) {

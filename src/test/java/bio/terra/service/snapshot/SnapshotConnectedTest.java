@@ -718,7 +718,7 @@ public class SnapshotConnectedTest {
         DatasetSummaryModel datasetMinimalSummary = createTestDataset("dataset-minimal.json");
         loadCsvData(datasetMinimalSummary.getId(), "participant", "dataset-minimal-participant.csv");
         loadCsvData(datasetMinimalSummary.getId(), "sample", "dataset-minimal-sample.csv");
-        return  datasetMinimalSummary;
+        return datasetMinimalSummary;
     }
 
     private DatasetSummaryModel setupArrayStructDataset() throws Exception {
@@ -797,8 +797,8 @@ public class SnapshotConnectedTest {
         return mvc.perform(post("/api/repository/v1/snapshots")
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
-// TODO: swagger field validation errors do not set content type; they log and return nothing
-//                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            // TODO: swagger field validation errors do not set content type; they log and return nothing
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andReturn();
     }
 
@@ -862,7 +862,7 @@ public class SnapshotConnectedTest {
                 snapshotModel.getSource().size(), equalTo(1));
         SnapshotSourceModel sourceModel = snapshotModel.getSource().get(0);
         assertThat("snapshot dataset summary is the same as from dataset",
-                sourceModel.getDataset(), equalTo(datasetSummary));
+            sourceModel.getDataset(), equalTo(datasetSummary));
 
         return snapshotModel;
     }

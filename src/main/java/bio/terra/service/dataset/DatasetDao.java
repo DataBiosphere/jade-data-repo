@@ -37,7 +37,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
@@ -50,6 +52,7 @@ public class DatasetDao {
     private final AssetDao assetDao;
     private final ConfigurationService configurationService;
     private final ResourceService resourceService;
+    private final StorageResourceDao storageResourceDao;
 
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
@@ -62,13 +65,15 @@ public class DatasetDao {
                       DatasetRelationshipDao relationshipDao,
                       AssetDao assetDao,
                       ConfigurationService configurationService,
-                      ResourceService resourceService) throws SQLException {
+                      ResourceService resourceService,
+                      StorageResourceDao storageResourceDao) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;
         this.assetDao = assetDao;
         this.configurationService = configurationService;
         this.resourceService = resourceService;
+        this.storageResourceDao = storageResourceDao;
     }
 
     /**
@@ -297,7 +302,8 @@ public class DatasetDao {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
             "(name, default_profile_id, id, project_resource_id, flightid, description, sharedlock) " +
-            "VALUES (:name, :default_profile_id, :id, :project_resource_id, :flightid, :description, ARRAY[]::TEXT[]) ";
+            "VALUES (:name, :default_profile_id, :id, :project_resource_id, :flightid, :description," +
+            " ARRAY[]::TEXT[]) ";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
@@ -318,6 +324,7 @@ public class DatasetDao {
         tableDao.createTables(dataset.getId(), dataset.getTables());
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
+        storageResourceDao.createStorageAttributes(dataset.getDatasetSummary().getStorage(), dataset.getId());
 
         logger.debug("end of createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
     }
@@ -408,6 +415,7 @@ public class DatasetDao {
         Dataset dataset = null;
         try {
             if (summary != null) {
+                summary.storage(storageResourceDao.getStorageResourcesByDatasetId(summary.getId()));
                 dataset = new Dataset(summary);
                 dataset.tables(tableDao.retrieveTables(dataset.getId()));
                 relationshipDao.retrieve(dataset);
@@ -514,12 +522,26 @@ public class DatasetDao {
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
-        List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
+        List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper())
+            .stream().map(summary ->
+                summary.storage(storageResourceDao.getStorageResourcesByDatasetId(summary.getId())))
+            .collect(Collectors.toList());
+
+        List<UUID> datasetIds = summaries.stream().map(DatasetSummary::getId).collect(Collectors.toList());
+        Map<UUID, List<StorageResource>> datasetIdToStorages = storageResourceDao
+            .getStorageResourcesForDatasetIds(datasetIds).stream()
+            .collect(Collectors.groupingBy(StorageResource::getDatasetId));
+
+        List<DatasetSummary> summariesWithStorage = summaries.stream()
+            .map(summary -> summary.storage(datasetIdToStorages.get(summary.getId())))
+            .collect(Collectors.toList());
 
         return new MetadataEnumeration<DatasetSummary>()
-            .items(summaries)
+            .items(summariesWithStorage)
             .total(total);
     }
+
+
 
     private static class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
         public DatasetSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -530,7 +552,6 @@ public class DatasetDao {
                 .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class))
                 .createdDate(rs.getTimestamp("created_date").toInstant());
-
         }
     }
 

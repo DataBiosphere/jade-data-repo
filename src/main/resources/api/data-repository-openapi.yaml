@@ -2682,6 +2682,10 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
+        storage:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorageResourceModel'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -2699,6 +2703,10 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
+        storage:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorageResourceModel'
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -2717,6 +2725,10 @@ components:
           $ref: '#/components/schemas/UniqueIdProperty'
         schema:
           $ref: '#/components/schemas/DatasetSpecificationModel'
+        region:
+          type: string
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
     EnumerateDatasetModel:
@@ -2882,6 +2894,18 @@ components:
         as the unique identifier. The list of relationships provides the instructions
         for how to connect the tables. Asset tables have to be connected in a relationship
         hierarchy. So there cannot be two paths to the same table from the root.
+    StorageResourceModel:
+      type: object
+      properties:
+        region:
+          type: string
+        cloudResource:
+          type: string
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
+      description: A model representing the cloud platform, region, and resource of a dataset's
+        infrastructure asset. This is only ever returned to the user, and at this point, is not
+        parsed or pased in as a post body.
     DatasetSpecificationModel:
       required:
         - tables
@@ -3784,6 +3808,12 @@ components:
         endTime:
           type: string
           description: Timestamp the upgrade completed
+
+    CloudPlatform:
+      type: string
+      enum: [ gcp, azure ]
+      default: gcp
+      description: Cloud platforms supported by TDR.
 
     ##############################################################################
     ## DRS STANDARD MODELS

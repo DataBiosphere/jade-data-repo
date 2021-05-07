@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
@@ -20,12 +21,14 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
@@ -55,7 +58,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -74,6 +79,7 @@ public class DatasetIntegrationTest extends UsersBase {
     private static final String omopDatasetName = "it_dataset_omop";
     private static final String omopDatasetDesc =
         "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
+    private static final String omopDatasetRegion = GoogleRegion.US_CENTRAL1.toString();
     private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 
     @Autowired private DataRepoClient dataRepoClient;
@@ -136,6 +142,16 @@ public class DatasetIntegrationTest extends UsersBase {
                 if (oneDataset.getId().equals(datasetModel.getId())) {
                     assertThat(oneDataset.getName(), startsWith(omopDatasetName));
                     assertThat(oneDataset.getDescription(), equalTo(omopDatasetDesc));
+                    Map<String, StorageResourceModel> storageMap = datasetModel.getStorage().stream()
+                        .collect(Collectors.toMap(StorageResourceModel::getCloudResource, Function.identity()));
+
+                    for (GoogleCloudResource cloudResource : GoogleCloudResource.values()) {
+                        StorageResourceModel storage = storageMap.get(cloudResource.toString());
+                        assertThat(String.format("dataset %s region is set", storage.getCloudResource()),
+                            storage.getRegion(),
+                            equalTo(omopDatasetRegion));
+                    }
+
                     found = true;
                     break;
                 }

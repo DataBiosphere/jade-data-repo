@@ -29,6 +29,7 @@ import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
@@ -534,7 +535,11 @@ public class SnapshotService {
                 .name(dataset.getName())
                 .description(dataset.getDescription())
                 .defaultProfileId(dataset.getDefaultProfileId().toString())
-                .createdDate(dataset.getCreatedDate().toString());
+                .createdDate(dataset.getCreatedDate().toString())
+                .storage(dataset.getDatasetSummary().getStorage()
+                    .stream()
+                    .map(StorageResource::toModel)
+                    .collect(Collectors.toList()));
 
         SnapshotSourceModel sourceModel = new SnapshotSourceModel()
                 .dataset(summaryModel);

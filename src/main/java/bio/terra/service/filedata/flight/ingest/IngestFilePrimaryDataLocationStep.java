@@ -38,6 +38,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
                 GoogleBucketResource bucketForFile =
                     resourceService.getOrCreateBucketForFile(
                         dataset.getName(),
+                        dataset.getId().toString(),
                         billingProfile,
                         context.getFlightId());
                 workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
@@ -57,7 +58,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
         BillingProfileModel billingProfile =
             workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
-        resourceService.updateBucketMetadata(dataset.getName(), billingProfile, context.getFlightId());
+        resourceService.updateBucketMetadata(dataset.getId().toString(), billingProfile, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 }

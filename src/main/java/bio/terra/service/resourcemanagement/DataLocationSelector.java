@@ -10,5 +10,5 @@ public interface DataLocationSelector {
 
     String projectIdForFile(String datasetName, BillingProfileModel billingProfile);
 
-    String bucketForFile(String datasetName, BillingProfileModel billingProfile);
+    String bucketForFile(String datasetId, BillingProfileModel billingProfile);
 }

@@ -1,18 +1,16 @@
 package bio.terra.service.resourcemanagement;
 
-import bio.terra.model.BillingProfileModel;
+import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS;
+import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
+
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,9 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS;
-import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Component
 public class ResourceService {
@@ -62,6 +61,7 @@ public class ResourceService {
      * </ol>
      */
     public GoogleBucketResource getOrCreateBucketForFile(String datasetName,
+                                                         String datasetId,
                                                          BillingProfileModel billingProfile,
                                                          String flightId) throws InterruptedException {
         // Every bucket needs to live in a project, so we get or create a project first
@@ -71,7 +71,7 @@ public class ResourceService {
             null);
 
         return bucketService.getOrCreateBucket(
-            dataLocationSelector.bucketForFile(datasetName, billingProfile),
+            dataLocationSelector.bucketForFile(datasetId, billingProfile),
             projectResource,
             flightId);
     }
@@ -109,12 +109,12 @@ public class ResourceService {
      * - If the bucket does not exist, then the metadata row should not exist.
      * If the metadata row is locked, then only the locking flight can unlock or delete the row.
      *
-     * @param datasetName    name of the dataset that is storing files into the bucket
+     * @param datasetId    id of the dataset that is storing files into the bucket
      * @param billingProfile an authorized billing profile
      * @param flightId       flight doing the updating
      */
-    public void updateBucketMetadata(String datasetName, BillingProfileModel billingProfile, String flightId) {
-        String bucketName = dataLocationSelector.bucketForFile(datasetName, billingProfile);
+    public void updateBucketMetadata(String datasetId, BillingProfileModel billingProfile, String flightId) {
+        String bucketName = dataLocationSelector.bucketForFile(datasetId, billingProfile);
         bucketService.updateBucketMetadata(bucketName, flightId);
     }
 

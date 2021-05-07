@@ -127,7 +127,10 @@ public class SnapshotServiceTest {
                             "&page=dataset")
                         .tables(List.of(new AccessInfoBigQueryModelTable()
                             .name(SNAPSHOT_TABLE_NAME)
-                            .address(SNAPSHOT_DATA_PROJECT + "." + SNAPSHOT_NAME + "." + SNAPSHOT_TABLE_NAME)
+                            .qualifiedName(SNAPSHOT_DATA_PROJECT + "." + SNAPSHOT_NAME + "." + SNAPSHOT_TABLE_NAME)
+                            .link("https://console.cloud.google.com/bigquery?project=" + SNAPSHOT_DATA_PROJECT +
+                                "&ws=!" + SNAPSHOT_NAME + "&d=" + SNAPSHOT_NAME + "&p=" + SNAPSHOT_DATA_PROJECT +
+                                "&page=table&t=" + SNAPSHOT_TABLE_NAME)
                             .sampleQuery("SELECT * FROM `" + SNAPSHOT_DATA_PROJECT + "." + SNAPSHOT_NAME + "." +
                                 SNAPSHOT_TABLE_NAME + "` LIMIT 1000")
                         ))

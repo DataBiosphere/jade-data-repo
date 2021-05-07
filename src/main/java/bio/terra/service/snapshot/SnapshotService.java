@@ -13,9 +13,6 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
-import bio.terra.model.AccessInfoModel;
-import bio.terra.model.AccessInfoBigQueryModel;
-import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestAssetModel;
@@ -39,6 +36,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
@@ -47,7 +45,6 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.stringtemplate.v4.ST;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,11 +61,6 @@ import java.util.stream.Collectors;
 
 @Component
 public class SnapshotService {
-
-    private static final String BIGQUERY_BASE_LINK = "https://console.cloud.google.com/bigquery?project=<project>&" +
-        "ws=!<dataset>&d=<dataset>&p=<project>&page=dataset";
-    private static final String BIGQUERY_TABLE_ADDRESS = "<project>.<dataset>.<table>";
-    private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>` LIMIT 1000";
 
     private final JobService jobService;
     private final DatasetService datasetService;
@@ -559,7 +551,7 @@ public class SnapshotService {
             snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
         }
         if (include.contains(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION)) {
-            snapshotModel.accessInformation(makeAccessInfoModelFromSnapshot(snapshot));
+            snapshotModel.accessInformation(MetadataDataAccessUtils.accessInfoFromSnapshot(snapshot));
         }
         return snapshotModel;
     }
@@ -600,37 +592,6 @@ public class SnapshotService {
         }
 
         return sourceModel;
-    }
-
-    private AccessInfoModel makeAccessInfoModelFromSnapshot(Snapshot snapshot) {
-        AccessInfoModel accessInfoModel = new AccessInfoModel();
-
-        // Currently, only BigQuery is supported.  Parquet specific information will be added here
-        accessInfoModel.bigQuery(new AccessInfoBigQueryModel()
-            .datasetName(snapshot.getName())
-            .projectId(snapshot.getProjectResource().getGoogleProjectId())
-            .link(new ST(BIGQUERY_BASE_LINK)
-                .add("project", snapshot.getProjectResource().getGoogleProjectId())
-                .add("dataset", snapshot.getName())
-                .render())
-            .tables(snapshot.getTables().stream()
-                .map(t -> new AccessInfoBigQueryModelTable()
-                    .name(t.getName())
-                    .address(new ST(BIGQUERY_TABLE_ADDRESS)
-                        .add("project", snapshot.getProjectResource().getGoogleProjectId())
-                        .add("dataset", snapshot.getName())
-                        .add("table", t.getName())
-                        .render())
-                )
-                // Use the address that was already rendered
-                .map(st -> st.sampleQuery(new ST(BIGQUERY_BASE_QUERY)
-                        .add("table_address", st.getAddress())
-                        .render())
-                )
-                .collect(Collectors.toList()))
-        );
-
-        return accessInfoModel;
     }
 
     // TODO: share these methods with dataset table in some common place

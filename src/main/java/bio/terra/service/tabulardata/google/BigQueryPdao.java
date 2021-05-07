@@ -874,7 +874,7 @@ public class BigQueryPdao {
         return refIdArray;
     }
 
-    public String prefixName(String name) {
+    public static String prefixName(String name) {
         return PDAO_PREFIX + name;
     }
 

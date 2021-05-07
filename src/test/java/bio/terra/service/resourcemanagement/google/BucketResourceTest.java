@@ -105,7 +105,6 @@ public class BucketResourceTest {
     public void teardown() throws Exception {
         for (GoogleBucketResource bucketResource : bucketResources) {
             deleteBucket(bucketResource);
-            datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResource.getResourceId());
         }
         // Connected operations resets the configuration
         connectedOperations.teardown();

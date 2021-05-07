@@ -66,7 +66,7 @@ public final class DatasetJsonConversion {
         if (cloudPlatform == CloudPlatform.GCP) {
             storageResources = createGcpStorageResourceValues(datasetRequest.getRegion());
         } else {
-            throw new UnsupportedOperationException(cloudPlatform + " is not a valid Cloud Platform");
+            throw new UnsupportedOperationException(cloudPlatform + " is not a recognized Cloud Platform");
         }
 
         return new Dataset(new DatasetSummary()
@@ -81,12 +81,12 @@ public final class DatasetJsonConversion {
 
     private static List<StorageResource> createGcpStorageResourceValues(String providedRegion) {
         final GoogleRegion region = Optional.ofNullable(providedRegion)
-            .map(s -> GoogleRegion.fromValue(s.toLowerCase()))
-            .orElse(GoogleRegion.getDefaultGoogleRegion());
+            .map(GoogleRegion::fromValue)
+            .orElse(GoogleRegion.DEFAULT_GOOGLE_REGION);
         return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
             // TODO: Firestore will always be in us-central1 for now, but will likely change in the future.
             GoogleRegion dbRegion = (resource.equals(GoogleCloudResource.FIRESTORE)) ?
-                GoogleRegion.getDefaultGoogleRegion() :
+                GoogleRegion.DEFAULT_GOOGLE_REGION :
                 region;
             return new StorageResource()
                 .cloudPlatform(CloudPlatform.GCP)

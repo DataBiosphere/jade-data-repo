@@ -5,17 +5,30 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.StorageResourceModel;
 
+import java.util.Objects;
+import java.util.UUID;
+
 public class StorageResource {
 
+    private UUID datasetId;
     private CloudPlatform cloudPlatform;
     private GoogleCloudResource cloudResource;
     private GoogleRegion region;
 
     public StorageResourceModel toModel() {
         return new StorageResourceModel()
-            .cloudPlatform(this.cloudPlatform)
-            .cloudResource(this.cloudResource.toString())
-            .region(this.region.toString());
+            .cloudPlatform(cloudPlatform)
+            .cloudResource(cloudResource.toString())
+            .region(region.toString());
+    }
+
+    public UUID getDatasetId() {
+        return datasetId;
+    }
+
+    public StorageResource datasetId(UUID datasetId) {
+        this.datasetId = datasetId;
+        return this;
     }
 
     public CloudPlatform getCloudPlatform() {
@@ -43,5 +56,31 @@ public class StorageResource {
     public StorageResource region(GoogleRegion region) {
         this.region = region;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        StorageResource that = (StorageResource) o;
+        return Objects.equals(datasetId, that.datasetId) &&
+            cloudPlatform == that.cloudPlatform &&
+            cloudResource == that.cloudResource &&
+            region == that.region;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(datasetId, cloudPlatform, cloudResource, region);
+    }
+
+    @Override
+    public String toString() {
+        return "StorageResource{" +
+            "datasetId=" + datasetId +
+            ", cloudPlatform=" + cloudPlatform +
+            ", cloudResource=" + cloudResource +
+            ", region=" + region +
+            '}';
     }
 }

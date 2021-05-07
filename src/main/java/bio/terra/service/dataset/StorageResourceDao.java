@@ -23,16 +23,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class StorageResourceDao {
 
-    private static final String STORAGE_COLUMNS = "id, dataset_id, cloud_platform, " +
+    private static final String STORAGE_COLUMNS = "dataset_id, cloud_platform, " +
         "cloud_resource, region ";
     private static final String SQL_GET = "SELECT " + STORAGE_COLUMNS +
         "FROM storage_resource WHERE dataset_id = :dataset_id";
+    private static final String SQL_GET_LIST = "SELECT " + STORAGE_COLUMNS +
+        "FROM storage_resource where dataset_id in (:dataset_ids)";
     private static final Logger logger = LoggerFactory.getLogger(StorageResourceDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -49,13 +53,29 @@ public class StorageResourceDao {
             return jdbcTemplate.query(SQL_GET, params, new StorageResourceMapper());
         } catch (EmptyResultDataAccessException ex) {
             throw new StorageResourceNotFoundException("Storage resource not found for dataset: "
-                + datasetId.toString());
+                + datasetId);
         }
     }
+
+    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    public List<StorageResource> getStorageResourcesForDatasetIds(List<UUID> datasetIds) {
+        if (datasetIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        try {
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("dataset_ids", datasetIds);
+            return jdbcTemplate.query(SQL_GET_LIST, params, new StorageResourceMapper());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new StorageResourceNotFoundException("Storage resources not found for dataset enumerate query");
+        }
+    }
+
 
     private static class StorageResourceMapper implements RowMapper<StorageResource> {
         public StorageResource mapRow(ResultSet rs, int rowNum) throws SQLException {
             return new StorageResource()
+                .datasetId(UUID.fromString(rs.getString("dataset_id")))
                 .cloudPlatform(CloudPlatform.valueOf(rs.getString("cloud_platform")))
                 .cloudResource(GoogleCloudResource.valueOf(rs.getString("cloud_resource")))
                 .region(GoogleRegion.valueOf(rs.getString("region")));

@@ -2903,6 +2903,9 @@ components:
           type: string
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
+      description: A model representing the cloud platform, region, and resource of a dataset's
+        infrastructure asset. This is only ever returned to the user, and at this point, is not
+        parsed or pased in as a post body.
     DatasetSpecificationModel:
       required:
         - tables

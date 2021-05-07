@@ -10,7 +10,7 @@ public class GoogleRegionConverter extends OpenApiEnumConverter<GoogleRegion> {
 
     @Override
     GoogleRegion fromValue(String source) {
-        return GoogleRegion.fromValue(source.toLowerCase());
+        return GoogleRegion.fromValue(source);
     }
 
     @Override

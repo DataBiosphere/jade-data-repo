@@ -25,26 +25,22 @@ public enum GoogleRegion {
     US_WEST1("us-west1"),
     US_WEST2("us-west2");
 
-    private static GoogleRegion defaultGoogleRegion = GoogleRegion.US_CENTRAL1;
+    public static final GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_CENTRAL1;
 
-    private String value;
+    private final String value;
 
     GoogleRegion(String value) {
         this.value = value;
     }
 
-    public static GoogleRegion getDefaultGoogleRegion() {
-        return GoogleRegion.defaultGoogleRegion;
-    }
-
     public String toString() {
-        return String.valueOf(value);
+        return value;
     }
 
     public static GoogleRegion fromValue(String text) {
-        for (GoogleRegion b : GoogleRegion.values()) {
-            if (String.valueOf(b.value).equals(text)) {
-                return b;
+        for (GoogleRegion region : GoogleRegion.values()) {
+            if (region.value.equalsIgnoreCase(text)) {
+                return region;
             }
         }
         return null;

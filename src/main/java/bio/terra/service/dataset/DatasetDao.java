@@ -37,6 +37,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -526,8 +527,17 @@ public class DatasetDao {
                 summary.storage(storageResourceDao.getStorageResourcesByDatasetId(summary.getId())))
             .collect(Collectors.toList());
 
+        List<UUID> datasetIds = summaries.stream().map(DatasetSummary::getId).collect(Collectors.toList());
+        Map<UUID, List<StorageResource>> datasetIdToStorages = storageResourceDao
+            .getStorageResourcesForDatasetIds(datasetIds).stream()
+            .collect(Collectors.groupingBy(StorageResource::getDatasetId));
+
+        List<DatasetSummary> summariesWithStorage = summaries.stream()
+            .map(summary -> summary.storage(datasetIdToStorages.get(summary.getId())))
+            .collect(Collectors.toList());
+
         return new MetadataEnumeration<DatasetSummary>()
-            .items(summaries)
+            .items(summariesWithStorage)
             .total(total);
     }
 

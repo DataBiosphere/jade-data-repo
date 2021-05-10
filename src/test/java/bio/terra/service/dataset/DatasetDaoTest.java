@@ -89,14 +89,6 @@ public class DatasetDaoTest {
         return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
     }
 
-    private boolean checkDatasetStorageContainsRegion(DatasetSummary datasetSummary, String region) {
-        Dataset dataset = datasetDao.retrieve(datasetSummary.getId());
-        return dataset.getDatasetSummary()
-            .getStorage()
-            .stream()
-            .anyMatch(sr -> sr.getRegion().toString().equals(region));
-    }
-
     @Before
     public void setup() {
         BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
@@ -163,11 +155,11 @@ public class DatasetDaoTest {
         assertThat("dataset filter by default GCS region returns correct total",
             filteredDefaultRegionDatasets.size(),
             equalTo(2));
-        assertThat("dataset filter by default GCS region returns correct datasets",
-            filteredDefaultRegionDatasets.stream()
+        assertTrue("dataset filter by default GCS region returns correct datasets",
+            filteredDefaultRegionDatasets
+                .stream()
                 .allMatch(datasetSummary ->
-                    checkDatasetStorageContainsRegion(datasetSummary, GoogleRegion.US_CENTRAL1.toString())),
-            equalTo(true));
+                    datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1.toString())));
 
         MetadataEnumeration<DatasetSummary> filterRegionEnum = datasetDao.enumerate(0, 2,
             EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, GoogleRegion.US_EAST1.toString(), datasetIds);
@@ -175,11 +167,11 @@ public class DatasetDaoTest {
         assertThat("dataset filter by non-default GCS region returns correct total",
             filteredRegionDatasets.size(),
             equalTo(1));
-        assertThat("dataset filter by non-default region returns correct dataset",
-            filteredRegionDatasets.stream()
+        assertTrue("dataset filter by non-default region returns correct dataset",
+            filteredRegionDatasets
+                .stream()
                 .allMatch(datasetSummary ->
-                    checkDatasetStorageContainsRegion(datasetSummary, GoogleRegion.US_EAST1.toString())),
-            equalTo(true));
+                    datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_EAST1.toString())));
 
         datasetDao.delete(dataset1);
         datasetDao.delete(dataset2);

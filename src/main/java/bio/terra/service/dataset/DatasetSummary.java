@@ -88,4 +88,9 @@ public class DatasetSummary {
             .orElseThrow(() -> new StorageResourceNotFoundException(
                 String.format("%s could not be found for %s ", storageResource, id)));
     }
+
+    public boolean datasetStorageContainsRegion(String region) {
+        return storage.stream()
+            .anyMatch(sr -> sr.getRegion().toString().equals(region));
+    }
 }

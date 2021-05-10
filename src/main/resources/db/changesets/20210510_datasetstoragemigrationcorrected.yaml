@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: storage_resource_migration
+      id: storage_resource_migration_corrected
       author: se
       changes:
         - sql:

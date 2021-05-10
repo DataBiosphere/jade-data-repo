@@ -41,7 +41,7 @@ public class GoogleResourceDao {
         " WHERE marked_for_delete = false AND profile_id = :profile_id";
 
     private static final String sqlBucketRetrieve =
-        "SELECT p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
+        "SELECT distinct p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
             " b.id AS bucket_resource_id, name, sr.region as region, flightid " +
             "FROM bucket_resource b " +
             "JOIN project_resource p ON b.project_resource_id = p.id " +

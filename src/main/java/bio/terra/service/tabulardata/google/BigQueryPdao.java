@@ -353,8 +353,7 @@ public class BigQueryPdao {
         }
 
         // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-        GoogleRegion representativeRegion = snapshot.getSnapshotSources()
-            .get(0)
+        GoogleRegion representativeRegion = snapshot.getFirstSnapshotSource()
             .getDataset()
             .getDatasetSummary()
             .getStorageResourceRegion(GoogleCloudResource.BIGQUERY);

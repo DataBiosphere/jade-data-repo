@@ -6,20 +6,20 @@ package bio.terra.app.model;
 public enum GoogleCloudResource {
     BIGQUERY("bigquery"), FIRESTORE("firestore"), BUCKET("bucket");
 
-    private String value;
+    private final String value;
 
     GoogleCloudResource(String value) {
         this.value = value;
     }
 
     public String toString() {
-        return String.valueOf(value);
+        return value;
     }
 
     public static GoogleCloudResource fromValue(String text) {
-        for (GoogleCloudResource b : GoogleCloudResource.values()) {
-            if (String.valueOf(b.value).equals(text)) {
-                return b;
+        for (GoogleCloudResource resource : GoogleCloudResource.values()) {
+            if (resource.value.equalsIgnoreCase(text)) {
+                return resource;
             }
         }
         return null;

@@ -4,6 +4,7 @@ import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -83,6 +84,9 @@ public class Snapshot implements FSContainerInterface {
 
     // TODO: When we support more than one dataset per snapshot, all uses of this will need refactoring.
     public SnapshotSource getFirstSnapshotSource() {
+        if (snapshotSources.isEmpty()) {
+            throw new CorruptMetadataException("Snapshot sources should never be empty!");
+        }
         return snapshotSources.get(0);
     }
 

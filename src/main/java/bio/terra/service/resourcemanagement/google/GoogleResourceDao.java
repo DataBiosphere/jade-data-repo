@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement.google;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.profile.exception.ProfileInUseException;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,7 +27,7 @@ import java.util.stream.Collectors;
 public class GoogleResourceDao {
     private static final Logger logger = LoggerFactory.getLogger(GoogleResourceDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final String defaultRegion;
+    private final GoogleRegion defaultRegion;
 
     private static final String sqlProjectRetrieve = "SELECT id, google_project_id, google_project_number, profile_id" +
         " FROM project_resource";
@@ -40,13 +42,12 @@ public class GoogleResourceDao {
 
     private static final String sqlBucketRetrieve =
         "SELECT p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
-            " b.id AS bucket_resource_id, name, flightid, sr.region as region " +
+            " b.id AS bucket_resource_id, name, sr.region as region, flightid " +
             "FROM bucket_resource b " +
-            "JOIN project_resource p ON b.project_resource_id = p.id, " +
-            "dataset_bucket db, " +
-            "storage_resource sr " +
-            "WHERE b.marked_for_delete = false " +
-            "AND db.bucket_resource_id = b.id AND sr.dataset_id = db.dataset_id AND sr.cloud_resource = 'BUCKET'";
+            "JOIN project_resource p ON b.project_resource_id = p.id " +
+            "LEFT JOIN dataset_bucket db on b.id = db.bucket_resource_id " +
+            "LEFT JOIN storage_resource sr on db.dataset_id = sr.dataset_id AND sr.cloud_resource = 'BUCKET' " +
+            "WHERE b.marked_for_delete = false";
     private static final String sqlBucketRetrievedById = sqlBucketRetrieve + " AND b.id = :id";
     private static final String sqlBucketRetrievedByName = sqlBucketRetrieve + " AND b.name = :name";
 
@@ -92,7 +93,7 @@ public class GoogleResourceDao {
     public GoogleResourceDao(NamedParameterJdbcTemplate jdbcTemplate,
                              GcsConfiguration gcsConfiguration) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
-        this.defaultRegion = gcsConfiguration.getRegion();
+        this.defaultRegion = GoogleRegion.fromValue(gcsConfiguration.getRegion());
     }
 
     // -- project resource methods --
@@ -356,7 +357,9 @@ public class GoogleResourceDao {
                     .googleProjectNumber(rs.getString("google_project_number"))
                     .profileId(rs.getObject("profile_id", UUID.class));
 
-                String region = rs.getString("region");
+                GoogleRegion region = Optional.ofNullable(rs.getString("region"))
+                    .map(GoogleRegion::valueOf)
+                    .orElse(defaultRegion);
 
                 // Since storing the region was not in the original data, we supply the
                 // default if a value is not present.
@@ -365,7 +368,7 @@ public class GoogleResourceDao {
                     .resourceId(rs.getObject("bucket_resource_id", UUID.class))
                     .name(rs.getString("name"))
                     .flightId(rs.getString("flightid"))
-                    .region(region == null ? defaultRegion : region);
+                    .region(region);
             });
 
         if (bucketResources.size() > 1) {

@@ -404,11 +404,10 @@ public class SnapshotDao {
         whereClauses.add(" flightid IS NULL"); // exclude snapshots that are exclusively locked
 
         // add the filter to the clause to get the actual items
-        DaoUtils.addFilterClause(filter, params, whereClauses);
-        String joinSql = "";
+        DaoUtils.addFilterClause(filter, params, whereClauses, "snapshot_source.dataset_id");
+        String joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
 
         if (!datasetIds.isEmpty()) {
-            joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
             String datasetMatchSql = "snapshot_source.dataset_id IN (:datasetIds)";
             whereClauses.add(datasetMatchSql);
             params.addValue("datasetIds", datasetIds);

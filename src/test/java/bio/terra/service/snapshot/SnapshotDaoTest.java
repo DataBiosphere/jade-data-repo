@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
@@ -39,7 +40,7 @@ import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -164,6 +165,11 @@ public class SnapshotDaoTest {
             source.getSnapshot().getId(),
             equalTo(snapshot.getId()));
 
+        // verify snapshot source region includes the default region
+        assertTrue("source dataset info includes default region",
+            source.getDataset().getDatasetSummary().getStorage().stream()
+                .allMatch(sr -> sr.getRegion().toString().equals(GoogleRegion.US_CENTRAL1.toString())));
+
         assertThat("source points to the asset spec",
             source.getAssetSpecification().getId(),
             equalTo(dataset.getAssetSpecifications().get(0).getId()));
@@ -270,6 +276,18 @@ public class SnapshotDaoTest {
         testSortingDescriptions(snapshotIdList, SqlSortDirection.DESC);
         testSortingDescriptions(snapshotIdList, SqlSortDirection.ASC);
 
+        MetadataEnumeration<SnapshotSummary> filterDefaultRegionEnum = snapshotDao.retrieveSnapshots(0, 6, null,
+            null, GoogleRegion.US_CENTRAL1.toString(), datasetIds, snapshotIdList);
+        List<SnapshotSummary> filteredRegionSnapshots = filterDefaultRegionEnum.getItems();
+        assertThat("snapshot filter by default GCS region returns correct total",
+            filteredRegionSnapshots.size(),
+            equalTo(snapshotIdList.size()));
+        for (SnapshotSummary s : filteredRegionSnapshots) {
+            Snapshot snapshot = snapshotDao.retrieveSnapshot(s.getId());
+            assertTrue("snapshot filter by default GCS region returns correct items",
+                snapshot.getFirstSnapshotSource().getDataset().getDatasetSummary()
+                    .datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1.toString()));
+        }
 
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 2, null,
             null, "==foo==", datasetIds, snapshotIdList);

@@ -50,8 +50,6 @@ public class BucketResourceLockTester implements Runnable {
             gotLockException = true;
         } catch (InterruptedException e) {
             gotLockException = false;
-        } catch (Exception e) {
-            System.out.println("eeek");
         }
     }
 

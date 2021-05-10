@@ -28,7 +28,8 @@ public enum GoogleRegion {
         US_WEST1("us-west1"),
         US_WEST2("us-west2"),
         US_WEST3("us-west3"),
-        US_WEST4("us-west4");
+        US_WEST4("us-west4"),
+        US("us");
 
 
     public static final GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_CENTRAL1;

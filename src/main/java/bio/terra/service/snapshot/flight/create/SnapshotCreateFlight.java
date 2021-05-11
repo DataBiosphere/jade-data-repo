@@ -76,7 +76,8 @@ public class SnapshotCreateFlight extends Flight {
         addStep(new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
 
         // Get or create the project where the snapshot resources will be created
-        addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, snapshotReq, firestoreRegion));
+        //TODO - put dataset in working map instead
+        addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, snapshotReq, datasetService, datasetId, firestoreRegion));
 
         // create the snapshot metadata object in postgres and lock it
         // mint a snapshot id and put it in the working map

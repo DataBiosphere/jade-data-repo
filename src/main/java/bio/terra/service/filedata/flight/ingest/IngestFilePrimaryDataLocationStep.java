@@ -57,7 +57,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
         BillingProfileModel billingProfile =
             workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
-        resourceService.updateBucketMetadata(dataset.getName(), billingProfile, context.getFlightId());
+        resourceService.updateBucketMetadata(dataset, billingProfile, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 }

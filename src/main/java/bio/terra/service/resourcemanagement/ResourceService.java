@@ -70,14 +70,14 @@ public class ResourceService {
         final String datasetName = dataset.getName();
         final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         // Every bucket needs to live in a project, so we get or create a project first
-        final GoogleProjectResource projectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForFile(datasetName, billingProfile),
+        GoogleProjectResource projectResource = projectService.getOrCreateProject(
+            dataLocationSelector.projectIdForFile(dataset, billingProfile),
             billingProfile,
             null,
             region);
 
         return bucketService.getOrCreateBucket(
-            dataLocationSelector.bucketForFile(datasetName, billingProfile),
+            dataLocationSelector.bucketForFile(dataset, billingProfile),
             projectResource,
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             flightId);
@@ -116,12 +116,12 @@ public class ResourceService {
      * - If the bucket does not exist, then the metadata row should not exist.
      * If the metadata row is locked, then only the locking flight can unlock or delete the row.
      *
-     * @param datasetName    name of the dataset that is storing files into the bucket
+     * @param dataset       dataset that is storing files into the bucket
      * @param billingProfile an authorized billing profile
      * @param flightId       flight doing the updating
      */
-    public void updateBucketMetadata(String datasetName, BillingProfileModel billingProfile, String flightId) {
-        String bucketName = dataLocationSelector.bucketForFile(datasetName, billingProfile);
+    public void updateBucketMetadata(Dataset dataset, BillingProfileModel billingProfile, String flightId) {
+        String bucketName = dataLocationSelector.bucketForFile(dataset, billingProfile);
         bucketService.updateBucketMetadata(bucketName, flightId);
     }
 
@@ -135,12 +135,13 @@ public class ResourceService {
      * @return project resource id
      */
     public UUID getOrCreateSnapshotProject(String snapshotName,
+                                           Dataset sourceDataset,
                                            BillingProfileModel billingProfile,
                                            GoogleRegion firestoreRegion)
         throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForSnapshot(snapshotName, billingProfile),
+            dataLocationSelector.projectIdForSnapshot(snapshotName, sourceDataset, billingProfile),
             billingProfile,
             null,
             firestoreRegion);
@@ -151,17 +152,17 @@ public class ResourceService {
     /**
      * Create a new project for a dataset,  if none exists already.
      *
-     * @param datasetName    name of the dataset
+     * @param dataset    dataset
      * @param billingProfile authorized billing profile to pay for the project
      * @param region         the region to ceraate
      * @return project resource id
      */
-    public UUID getOrCreateDatasetProject(String datasetName,
+    public UUID getOrCreateDatasetProject(Dataset dataset,
                                           BillingProfileModel billingProfile,
                                           GoogleRegion region) throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForDataset(datasetName, billingProfile),
+            dataLocationSelector.projectIdForDataset(dataset, billingProfile),
             billingProfile,
             getStewardPolicy(),
             region);

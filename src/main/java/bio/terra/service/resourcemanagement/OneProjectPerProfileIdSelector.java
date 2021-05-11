@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -17,23 +18,23 @@ public class OneProjectPerProfileIdSelector implements DataLocationSelector {
     }
 
     @Override
-        public String projectIdForDataset(String datasetName, BillingProfileModel billingProfile) {
+        public String projectIdForDataset(Dataset dataset, BillingProfileModel billingProfile) {
         return getSuffixForProfileId(billingProfile);
     }
 
     @Override
-    public String projectIdForSnapshot(String snapshotName, BillingProfileModel billingProfile) {
+    public String projectIdForSnapshot(String snapshotName, Dataset dataset, BillingProfileModel billingProfile) {
         return getSuffixForProfileId(billingProfile);
     }
 
     @Override
-    public String projectIdForFile(String datasetName, BillingProfileModel billingProfile) {
+    public String projectIdForFile(Dataset dataset, BillingProfileModel billingProfile) {
         return getSuffixForProfileId(billingProfile);
     }
 
     @Override
-    public String bucketForFile(String datasetName, BillingProfileModel billingProfile) {
-        return projectIdForFile(datasetName, billingProfile) + "-bucket";
+    public String bucketForFile(Dataset dataset, BillingProfileModel billingProfile) {
+        return projectIdForFile(dataset, billingProfile) + "-bucket";
     }
 
     private String getSuffixForProfileId(BillingProfileModel billingProfile) {

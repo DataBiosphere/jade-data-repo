@@ -44,11 +44,11 @@ public class DatasetCreateFlight extends Flight {
         // billing information remains valid.
         addStep(new AuthorizeBillingProfileUseStep(profileService, datasetRequest.getDefaultProfileId(), userReq));
 
-        // Get or create the project where the dataset resources will be created
-        addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
-
         // Generate the dateset id and stored it in the working map
         addStep(new CreateDatasetIdStep());
+
+        // Get or create the project where the dataset resources will be created
+        addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
 
         // Create dataset metadata objects in postgres and lock the dataset
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));

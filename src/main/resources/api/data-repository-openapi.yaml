@@ -622,8 +622,8 @@ paths:
           required: false
           schema:
             type: array
+            default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
             items:
-              default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
               $ref: '#/components/schemas/SnapshotRequestAccessIncludeModel'
       responses:
         200:
@@ -1089,6 +1089,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: include
+          in: query
+          description: A list of what to include with the dataset object
+          required: false
+          schema:
+            type: array
+            default: "SCHEMA,PROFILE,DATA_PROJECT,STORAGE"
+            items:
+              $ref: '#/components/schemas/DatasetRequestAccessIncludeModel'
       responses:
         200:
           description: Dataset
@@ -2695,6 +2704,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StorageResourceModel'
+        accessInformation:
+          $ref: '#/components/schemas/AccessInfoModel'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -2740,6 +2751,11 @@ components:
           $ref: '#/components/schemas/CloudPlatform'
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
+    DatasetRequestAccessIncludeModel:
+      type: string
+      description: >
+        Type of information to include in the response
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, DATA_PROJECT, STORAGE ]
     EnumerateDatasetModel:
       type: object
       properties:
@@ -3396,7 +3412,6 @@ components:
       description: >
         Type of information to include in the response
       enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT ]
-
     SnapshotSummaryModel:
       type: object
       properties:
@@ -3458,7 +3473,6 @@ components:
           description: Project id of the snapshot data project
         accessInformation:
           $ref: '#/components/schemas/AccessInfoModel'
-          description: How to access the metadata for the snapshot
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
     AccessInfoModel:
@@ -3489,7 +3503,7 @@ components:
         link:
           type: string
           description: >
-            The link to access BigQuery in the Google Cloud console
+            The link to access the BigQuery dataset UI in Google Cloud console
         tables:
           type: array
           description: >
@@ -3503,16 +3517,20 @@ components:
       required:
         - name
         - sampleQuery
-        - address
+        - qualifiedName
       properties:
         name:
           type: string
           description: >
             The name of the BigQuery table
-        address:
+        qualifiedName:
           type: string
           description: >
             The fully qualified name of the BigQuery table
+        link:
+          type: string
+          description: >
+            The link to access the BigQuery table UI in Google Cloud console
         sampleQuery:
           type: string
           description: >

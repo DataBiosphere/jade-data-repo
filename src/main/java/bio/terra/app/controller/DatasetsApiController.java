@@ -7,9 +7,10 @@ import bio.terra.controller.DatasetsApi;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestAccessIncludeModel;
+import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.FileLoadModel;
@@ -59,6 +60,8 @@ import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 public class DatasetsApiController implements DatasetsApi {
 
     private Logger logger = LoggerFactory.getLogger(DatasetsApiController.class);
+
+    public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE = "SCHEMA,PROFILE,DATA_PROJECT,STORAGE";
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
@@ -126,9 +129,14 @@ public class DatasetsApiController implements DatasetsApi {
     }
 
     @Override
-    public ResponseEntity<DatasetModel> retrieveDataset(@PathVariable("id") String id) {
+    public ResponseEntity<DatasetModel> retrieveDataset(
+        @PathVariable("id") String id,
+        @Valid @RequestParam(value = "include", required = false, defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
+            List<DatasetRequestAccessIncludeModel> include
+    ) {
         iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id, IamAction.READ_DATASET);
-        return new ResponseEntity<>(datasetService.retrieveAvailableDatasetModel(UUID.fromString(id)), HttpStatus.OK);
+        return new ResponseEntity<>(datasetService.retrieveAvailableDatasetModel(UUID.fromString(id), include),
+            HttpStatus.OK);
     }
 
     @Override

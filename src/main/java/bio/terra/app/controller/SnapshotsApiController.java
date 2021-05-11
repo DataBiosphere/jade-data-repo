@@ -12,7 +12,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessInclude;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetModelValidator;
@@ -180,7 +180,7 @@ public class SnapshotsApiController implements SnapshotsApi {
             value = "include",
             required = false,
             defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE
-        ) List<SnapshotRequestAccessInclude> include
+        ) List<SnapshotRequestAccessIncludeModel> include
     ) {
         iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
         SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(UUID.fromString(id), include);

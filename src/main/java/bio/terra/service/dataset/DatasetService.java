@@ -1,9 +1,11 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.controller.DatasetsApiController;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.AssetModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
@@ -22,9 +24,11 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -89,9 +93,9 @@ public class DatasetService {
      * @param id in UUID formant
      * @return a DatasetModel = API output-friendly representation of the Dataset
      */
-    public DatasetModel retrieveAvailableDatasetModel(UUID id) {
+    public DatasetModel retrieveAvailableDatasetModel(UUID id, List<DatasetRequestAccessIncludeModel> include) {
         Dataset dataset = retrieveAvailable(id);
-        return retrieveModel(dataset);
+        return retrieveModel(dataset, include);
     }
 
     /**
@@ -101,7 +105,11 @@ public class DatasetService {
      * @return a DatasetModel = API output-friendly representation of the Dataset
      */
     public DatasetModel retrieveModel(Dataset dataset) {
-        return DatasetJsonConversion.populateDatasetModelFromDataset(dataset);
+        return retrieveModel(dataset, getDefaultIncludes());
+    }
+
+    public DatasetModel retrieveModel(Dataset dataset, List<DatasetRequestAccessIncludeModel> include) {
+        return DatasetJsonConversion.populateDatasetModelFromDataset(dataset, include);
     }
 
     public EnumerateDatasetModel enumerate(int offset,
@@ -180,5 +188,11 @@ public class DatasetService {
             .newJob(description, DatasetDataDeleteFlight.class, dataDeletionRequest, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .submit();
+    }
+
+    private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {
+        return Arrays.stream(StringUtils.split(DatasetsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
+            .map(DatasetRequestAccessIncludeModel::fromValue)
+            .collect(Collectors.toList());
     }
 }

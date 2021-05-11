@@ -169,7 +169,7 @@ public class SnapshotDaoTest {
         // verify snapshot source region includes the default region
         assertTrue("source dataset info includes default region",
             source.getDataset().getDatasetSummary().getStorage().stream()
-                .allMatch(sr -> sr.getRegion().toString().equals(GoogleRegion.US_CENTRAL1.toString())));
+                .allMatch(sr -> sr.getRegion().equals(GoogleRegion.US_CENTRAL1)));
 
         assertThat("source points to the asset spec",
             source.getAssetSpecification().getId(),
@@ -287,7 +287,7 @@ public class SnapshotDaoTest {
             Snapshot snapshot = snapshotDao.retrieveSnapshot(s.getId());
             assertTrue("snapshot filter by default GCS region returns correct items",
                 snapshot.getFirstSnapshotSource().getDataset().getDatasetSummary()
-                    .datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1.toString()));
+                    .datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1));
         }
 
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 2, null,

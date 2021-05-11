@@ -89,8 +89,8 @@ public class DatasetSummary {
                 String.format("%s could not be found for %s ", storageResource, id)));
     }
 
-    public boolean datasetStorageContainsRegion(String region) {
+    public boolean datasetStorageContainsRegion(GoogleRegion region) {
         return storage.stream()
-            .anyMatch(sr -> sr.getRegion().toString().equals(region));
+                .anyMatch(sr -> sr.getRegion().equals(region));
     }
 }

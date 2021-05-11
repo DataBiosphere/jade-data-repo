@@ -36,11 +36,11 @@ public final class DaoUtils {
     public static void addFilterClause(String filter, MapSqlParameterSource params, List<String> clauses,
                                               String datasetIdField) {
         if (!StringUtils.isEmpty(filter)) {
-            GoogleRegion regionFilter = GoogleRegion.fromValue(filter.toLowerCase());
+            GoogleRegion regionFilter = GoogleRegion.fromValue(filter);
             if (regionFilter != null) {
                 params.addValue("region", regionFilter.name());
-                clauses.add(":region in (SELECT storage_resource.region FROM storage_resource" +
-                    " WHERE storage_resource.dataset_id = " + datasetIdField + ") ");
+                clauses.add(String.format(":region in (SELECT storage_resource.region FROM storage_resource" +
+                    " WHERE storage_resource.dataset_id = %s) ", datasetIdField));
             } else {
                 params.addValue("filter", DaoUtils.escapeFilter(filter));
                 clauses.add(" (name ILIKE :filter OR description ILIKE :filter) ");

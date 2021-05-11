@@ -159,7 +159,7 @@ public class DatasetDaoTest {
             filteredDefaultRegionDatasets
                 .stream()
                 .allMatch(datasetSummary ->
-                    datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1.toString())));
+                    datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1)));
 
         MetadataEnumeration<DatasetSummary> filterRegionEnum = datasetDao.enumerate(0, 2,
             EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, GoogleRegion.US_EAST1.toString(), datasetIds);
@@ -171,7 +171,7 @@ public class DatasetDaoTest {
             filteredRegionDatasets
                 .stream()
                 .allMatch(datasetSummary ->
-                    datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_EAST1.toString())));
+                    datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_EAST1)));
 
         datasetDao.delete(dataset1);
         datasetDao.delete(dataset2);

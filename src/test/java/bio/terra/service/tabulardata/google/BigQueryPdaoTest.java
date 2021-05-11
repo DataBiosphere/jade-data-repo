@@ -20,6 +20,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetJsonConversion;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
@@ -35,7 +36,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
@@ -284,7 +285,7 @@ public class BigQueryPdaoTest {
                 Assert.assertThat(participantIds, containsInAnyOrder(
                     "participant_1", "participant_2", "participant_5"));
                 Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2"));
-                Assert.assertThat(fileIds, is(Matchers.empty()));
+                Assert.assertThat(fileIds, is(Optional.empty()));
 
                 // Make sure the old snapshot wasn't changed.
                 participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
@@ -437,7 +438,7 @@ public class BigQueryPdaoTest {
 
             // Ingest staged data into the new dataset.
             IngestRequestModel ingestRequest = new IngestRequestModel()
-                .format(IngestRequestModel.FormatEnum.JSON);
+                .format(bio.terra.model.IngestRequestModel.FormatEnum.JSON);
 
             String datasetId = dataset.getId().toString();
             connectedOperations.ingestTableSuccess(datasetId,
@@ -586,15 +587,14 @@ public class BigQueryPdaoTest {
             .defaultProfileId(profileModel.getId())
             .name(datasetName);
         GoogleRegion region = DatasetJsonConversion.getRegionFromDatasetRequestModel(datasetRequest);
-        UUID projectId = resourceService.getOrCreateDatasetProject(datasetName, profileModel, region);
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
+        dataset.id(UUID.randomUUID());
+        UUID projectId = resourceService.getOrCreateDatasetProject(dataset, profileModel, region);
+        dataset
             .projectResourceId(projectId)
             .projectResource(resourceService.getProjectResource(projectId));
 
         String createFlightId = UUID.randomUUID().toString();
-        UUID datasetId = UUID.randomUUID();
-        dataset
-            .id(datasetId);
         datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         return dataset;

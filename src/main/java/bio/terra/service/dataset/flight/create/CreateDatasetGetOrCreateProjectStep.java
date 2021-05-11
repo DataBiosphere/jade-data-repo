@@ -33,7 +33,7 @@ public class CreateDatasetGetOrCreateProjectStep implements Step {
         // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
         // Either the project will have been created and we will find it, or we will create it.
 
-        // We might want to switch to datasetSummary instead since we only need name & id. this will work for this mockup.
+        //Is this the best way to do this?
         Dataset dataset = new Dataset();
         dataset.id(workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class));
         dataset.name(datasetRequestModel.getName());

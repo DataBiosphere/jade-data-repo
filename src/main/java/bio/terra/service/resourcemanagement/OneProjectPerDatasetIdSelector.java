@@ -8,10 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 @Component
-@Profile({"sh"})
+@Profile({"test", "google"}) //TODO - Set this to our prod envs!
 public class OneProjectPerDatasetIdSelector implements DataLocationSelector {
     private final GoogleResourceConfiguration resourceConfiguration;
     private final ResourceService resourceService;
@@ -45,6 +43,7 @@ public class OneProjectPerDatasetIdSelector implements DataLocationSelector {
         return projectIdForFile(dataset, billingProfile) + "-bucket";
     }
 
+    //TODO - Is this how we would want to name them? This looks like "broad-jade-dev-UUID"
     private String getSuffixForDatasetId(String datasetId) {
         String projectDatasetSuffix = "-" + datasetId.replaceAll("[^a-z-0-9]", "-");
         // The project id below is an application level prefix or, if that is empty, the name of the core project

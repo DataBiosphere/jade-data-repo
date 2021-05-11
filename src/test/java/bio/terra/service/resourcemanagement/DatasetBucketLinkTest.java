@@ -108,9 +108,9 @@ public class DatasetBucketLinkTest {
         datasets.add(createDataset(billingProfiles.get(1), projects.get(1).getId()));
 
         String bucketName1 = oneProjectPerProfileIdSelector.bucketForFile(
-            datasets.get(0).getName(), billingProfiles.get(0));
+            datasets.get(0), billingProfiles.get(0));
         String bucketName2 = oneProjectPerProfileIdSelector.bucketForFile(
-            datasets.get(1).getName(), billingProfiles.get(1));
+            datasets.get(1), billingProfiles.get(1));
         logger.info("Bucket 1: {}; Bucket 2: {}", bucketName1, bucketName2);
 
         assertNotEquals("Buckets should be named differently", bucketName1, bucketName2);
@@ -124,9 +124,9 @@ public class DatasetBucketLinkTest {
         datasets.add(createDataset(billingProfiles.get(0), projects.get(0).getId()));
 
         String bucketName1 = oneProjectPerProfileIdSelector.bucketForFile(
-            datasets.get(0).getName(), billingProfiles.get(0));
+            datasets.get(0), billingProfiles.get(0));
         String bucketName2 = oneProjectPerProfileIdSelector.bucketForFile(
-            datasets.get(1).getName(), billingProfiles.get(0));
+            datasets.get(1), billingProfiles.get(0));
         logger.info("Bucket 1: {}; Bucket 2: {}", bucketName1, bucketName2);
 
         assertEquals("Buckets should be named the same", bucketName1, bucketName2);

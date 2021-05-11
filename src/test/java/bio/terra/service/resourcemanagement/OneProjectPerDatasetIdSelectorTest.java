@@ -67,26 +67,26 @@ public class OneProjectPerDatasetIdSelectorTest {
     private GoogleResourceDao resourceDao;
 
     private BillingProfileModel billingProfile;
-    private UUID projectId;
+    private String projectId;
     private String snapshotName;
     private GoogleProjectResource projectResource;
     private String expectedProjectName;
+    private UUID datasetId;
 
-    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws Exception {
+
+    private void createDataset(DatasetRequestModel datasetRequest, String newName) throws Exception {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        dataset.projectResourceId(projectId);
         String createFlightId = UUID.randomUUID().toString();
-        UUID datasetId = UUID.randomUUID();
         dataset.id(datasetId);
+        dataset.projectResourceId(projectResource.getId());
         datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
-        return datasetId;
     }
 
-    private UUID createDataset(String datasetFile) throws Exception  {
+    private void createDataset(String datasetFile) throws Exception  {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
-        return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
+        createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
     }
 
     @Before
@@ -97,15 +97,9 @@ public class OneProjectPerDatasetIdSelectorTest {
         BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
         billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
 
-        projectResource = ResourceFixtures.randomProjectResource(billingProfile);
-        projectId = resourceDao.createProject(projectResource);
-        projectResource.id(projectId);
-
-        createDataset("dataset-minimal.json");
-        snapshotName = "asnapshot";
-        expectedProjectName =
-            resourceConfiguration.getDataProjectPrefixToUse() + "-" + dataset.getId();
-
+        datasetId = UUID.randomUUID();
+        dataset = new Dataset();
+        dataset.id(datasetId);
     }
 
     @After
@@ -115,16 +109,26 @@ public class OneProjectPerDatasetIdSelectorTest {
         resourceConfiguration.setDataProjectPrefix(dataProjectPrefix);
     }
     @Test
-    public void shouldGetCorrectIdForDataset() {
-        String projectId = oneProjectPerDatasetIdSelector.projectIdForDataset(dataset, billingProfile);
+    public void shouldGetCorrectIdForDataset() throws Exception {
+        projectId = oneProjectPerDatasetIdSelector.projectIdForDataset(dataset, billingProfile);
+        expectedProjectName =
+            resourceConfiguration.getDataProjectPrefixToUse() + "-" + dataset.getId();
+
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProjectName));
+
+        projectResource = ResourceFixtures.randomProjectResource(billingProfile);
+        projectResource.googleProjectId(projectId);
+
+        UUID projectResourceId = resourceDao.createProject(projectResource);
+        projectResource.id(projectResourceId);
+
+        createDataset("dataset-minimal.json");
+        snapshotName = "asnapshot";
+
+        String snapshotProjectId = oneProjectPerDatasetIdSelector.projectIdForSnapshot(snapshotName, dataset, billingProfile);
+        assertThat("Project ID is what we expect", snapshotProjectId, equalTo(expectedProjectName));
     }
 
-    @Test
-    public void shouldGetCorrectIdForSnapshot() {
-        String projectId = oneProjectPerDatasetIdSelector.projectIdForSnapshot(snapshotName, dataset, billingProfile);
-        assertThat("Project ID is what we expect", projectId, equalTo(expectedProjectName));
-    }
 
 //    @Test
 //    public void shouldGetCorrectIdForFile() {

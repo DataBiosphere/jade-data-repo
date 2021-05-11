@@ -175,6 +175,7 @@ public class DatasetJsonConversionTest {
                     .bigQuery(new bio.terra.model.AccessInfoBigQueryModel()
                         .datasetName(expectedDatasetName)
                         .projectId(DATASET_DATA_PROJECT)
+                        .datasetId(DATASET_DATA_PROJECT + ":" + expectedDatasetName)
                         .link("https://console.cloud.google.com/bigquery?project=" + DATASET_DATA_PROJECT +
                             "&ws=!" + expectedDatasetName + "&d=" + expectedDatasetName + "&p=" + DATASET_DATA_PROJECT +
                             "&page=dataset")
@@ -184,6 +185,7 @@ public class DatasetJsonConversionTest {
                             .link("https://console.cloud.google.com/bigquery?project=" + DATASET_DATA_PROJECT +
                                 "&ws=!" + expectedDatasetName + "&d=" + expectedDatasetName + "&p=" +
                                 DATASET_DATA_PROJECT + "&page=table&t=" + DATASET_TABLE_NAME)
+                            .id(DATASET_DATA_PROJECT + ":" + expectedDatasetName + "." + DATASET_TABLE_NAME)
                             .sampleQuery("SELECT * FROM `" + DATASET_DATA_PROJECT + "." + expectedDatasetName + "." +
                                 DATASET_TABLE_NAME + "` LIMIT 1000")
                         ))

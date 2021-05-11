@@ -1,6 +1,8 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.common.Table;
+import bio.terra.model.AccessInfoBigQueryModel;
+import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
@@ -18,6 +20,8 @@ public final class MetadataDataAccessUtils {
         "ws=!<dataset>&d=<dataset>&p=<project>&page=<page>";
     private static final String BIGQUERY_TABLE_LINK = BIGQUERY_DATASET_LINK + "&t=<table>";
     private static final String BIGQUERY_TABLE_ADDRESS = "<project>.<dataset>.<table>";
+    private static final String BIGQUERY_DATASET_ID = "<project>:<dataset>";
+    private static final String BIGQUERY_TABLE_ID = "<dataset_id>.<table>";
     private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>` LIMIT 1000";
 
     private MetadataDataAccessUtils() {
@@ -63,9 +67,13 @@ public final class MetadataDataAccessUtils {
         final List<? extends Table> tables
     ) {
         AccessInfoModel accessInfoModel = new AccessInfoModel();
+        String datasetId = new ST(BIGQUERY_DATASET_ID)
+            .add("project", googleProjectId)
+            .add("dataset", bqDatasetName)
+            .render();
 
         // Currently, only BigQuery is supported.  Parquet specific information will be added here
-        accessInfoModel.bigQuery(new bio.terra.model.AccessInfoBigQueryModel()
+        accessInfoModel.bigQuery(new AccessInfoBigQueryModel()
             .datasetName(bqDatasetName)
             .projectId(googleProjectId)
             .link(new ST(BIGQUERY_DATASET_LINK)
@@ -73,8 +81,9 @@ public final class MetadataDataAccessUtils {
                 .add("dataset", bqDatasetName)
                 .add("page", LinkPage.DATASET.value)
                 .render())
+            .datasetId(datasetId)
             .tables(tables.stream()
-                .map(t -> new bio.terra.model.AccessInfoBigQueryModelTable()
+                .map(t -> new AccessInfoBigQueryModelTable()
                     .name(t.getName())
                     .link(new ST(BIGQUERY_TABLE_LINK)
                         .add("project", googleProjectId)
@@ -87,6 +96,11 @@ public final class MetadataDataAccessUtils {
                         .add("dataset", bqDatasetName)
                         .add("table", t.getName())
                         .render())
+                    .id(new ST(BIGQUERY_TABLE_ID)
+                        .add("dataset_id", datasetId)
+                        .add("table", t.getName())
+                        .render()
+                    )
                 )
                 // Use the address that was already rendered
                 .map(st -> st.sampleQuery(new ST(BIGQUERY_BASE_QUERY)

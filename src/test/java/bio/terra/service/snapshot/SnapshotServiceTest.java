@@ -121,6 +121,7 @@ public class SnapshotServiceTest {
                 .accessInformation(new AccessInfoModel()
                     .bigQuery(new AccessInfoBigQueryModel()
                         .datasetName(SNAPSHOT_NAME)
+                        .datasetId(SNAPSHOT_DATA_PROJECT + ":" + SNAPSHOT_NAME)
                         .projectId(SNAPSHOT_DATA_PROJECT)
                         .link("https://console.cloud.google.com/bigquery?project=" + SNAPSHOT_DATA_PROJECT +
                             "&ws=!" + SNAPSHOT_NAME + "&d=" + SNAPSHOT_NAME + "&p=" + SNAPSHOT_DATA_PROJECT +
@@ -131,8 +132,9 @@ public class SnapshotServiceTest {
                             .link("https://console.cloud.google.com/bigquery?project=" + SNAPSHOT_DATA_PROJECT +
                                 "&ws=!" + SNAPSHOT_NAME + "&d=" + SNAPSHOT_NAME + "&p=" + SNAPSHOT_DATA_PROJECT +
                                 "&page=table&t=" + SNAPSHOT_TABLE_NAME)
+                            .id(SNAPSHOT_DATA_PROJECT + ":" + SNAPSHOT_NAME + "." + SNAPSHOT_TABLE_NAME)
                             .sampleQuery("SELECT * FROM `" + SNAPSHOT_DATA_PROJECT + "." + SNAPSHOT_NAME + "." +
-                                SNAPSHOT_TABLE_NAME + "` LIMIT 1000")
+                            SNAPSHOT_TABLE_NAME + "` LIMIT 1000")
                         ))
                     )
                 )));

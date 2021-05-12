@@ -90,7 +90,7 @@ public class DatasetService {
      * Note that this method will only return a dataset if it is NOT exclusively locked.
      * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
      * an exclusively locked dataset to be returned (e.g. dataset deletion).
-     * @param id in UUID formant
+     * @param id in UUID format
      * @return a DatasetModel = API output-friendly representation of the Dataset
      */
     public DatasetModel retrieveAvailableDatasetModel(UUID id, List<DatasetRequestAccessIncludeModel> include) {

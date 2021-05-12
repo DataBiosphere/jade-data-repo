@@ -169,7 +169,7 @@ public class SnapshotService {
      * Note that this method will only return a snapshot if it is NOT exclusively locked.
      * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
      * an exclusively locked snapshot to be returned (e.g. snapshot deletion).
-     * @param id in UUID formant
+     * @param id in UUID format
      * @return a SnapshotModel = API output-friendly representation of the Snapshot
      */
     public SnapshotModel retrieveAvailableSnapshotModel(UUID id) {
@@ -177,15 +177,15 @@ public class SnapshotService {
     }
 
     /**
-     * Convenience wrapper around fetching an existing Snapshot object and converting it to a Model object.
+     * Convenience wrapper around fetching an existing Snapshot object and converting it to a Model object.<p/>
      * Unlike the Snapshot object, the Model object includes a reference to the associated cloud project.
      *
      * Note that this method will only return a snapshot if it is NOT exclusively locked.
      * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
      * an exclusively locked snapshot to be returned (e.g. snapshot deletion).
-     * @param id in UUID formant
+     * @param id in UUID format
      * @param include a list of what information to include
-     * @return a SnapshotModel = API output-friendly representation of the Snapshot
+     * @return an API output-friendly representation of the Snapshot
      */
     public SnapshotModel retrieveAvailableSnapshotModel(UUID id,
                                                         List<SnapshotRequestAccessIncludeModel> include) {

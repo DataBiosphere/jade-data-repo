@@ -46,8 +46,7 @@ public final class MetadataDataAccessUtils {
         return makAccessInfo(
             snapshot.getName(),
             snapshot.getProjectResource().getGoogleProjectId(),
-            snapshot.getTables()
-        );
+            snapshot.getTables());
     }
 
     /**
@@ -57,8 +56,7 @@ public final class MetadataDataAccessUtils {
         return makAccessInfo(
             BigQueryPdao.prefixName(dataset.getName()),
             dataset.getProjectResource().getGoogleProjectId(),
-            dataset.getTables()
-        );
+            dataset.getTables());
     }
 
     private static AccessInfoModel makAccessInfo(
@@ -107,8 +105,7 @@ public final class MetadataDataAccessUtils {
                     .add("table_address", st.getQualifiedName())
                     .render())
                 )
-                .collect(Collectors.toList()))
-        );
+                .collect(Collectors.toList())));
 
         return accessInfoModel;
     }

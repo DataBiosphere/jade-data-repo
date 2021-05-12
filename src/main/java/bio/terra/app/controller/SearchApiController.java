@@ -9,6 +9,7 @@ import io.swagger.annotations.Api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -20,6 +21,7 @@ import javax.validation.Valid;
 
 @Controller
 @Api(tags = {"search"})
+@ConditionalOnProperty(name = "features.search.api", havingValue = "enabled")
 public class SearchApiController implements SearchApi {
     private Logger logger = LoggerFactory.getLogger(RegisterApiController.class);
 

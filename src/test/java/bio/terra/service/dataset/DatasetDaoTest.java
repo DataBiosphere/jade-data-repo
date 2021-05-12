@@ -140,7 +140,8 @@ public class DatasetDaoTest {
             equalTo(datasets.get(1).getId()));
 
         MetadataEnumeration<DatasetSummary> filterNameEnum = datasetDao.enumerate(0, 2,
-            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getName(), null, datasetIds);
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getName(),
+                null, datasetIds);
         List<DatasetSummary> filteredDatasets = filterNameEnum.getItems();
         assertThat("dataset filter by name returns correct total",
             filteredDatasets.size(),
@@ -150,7 +151,8 @@ public class DatasetDaoTest {
             equalTo(dataset1FromDB.getName()));
 
         MetadataEnumeration<DatasetSummary> filterDefaultRegionEnum = datasetDao.enumerate(0, 2,
-            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null, GoogleRegion.US_CENTRAL1.toString(), datasetIds);
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null,
+                GoogleRegion.US_CENTRAL1.toString(), datasetIds);
         List<DatasetSummary> filteredDefaultRegionDatasets = filterDefaultRegionEnum.getItems();
         assertThat("dataset filter by default GCS region returns correct total",
             filteredDefaultRegionDatasets.size(),
@@ -162,7 +164,8 @@ public class DatasetDaoTest {
                     datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1)));
 
         MetadataEnumeration<DatasetSummary> filterNameAndRegionEnum = datasetDao.enumerate(0, 2,
-                EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getName(), GoogleRegion.US_CENTRAL1.toString(), datasetIds);
+                EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getName(),
+                GoogleRegion.US_CENTRAL1.toString(), datasetIds);
         List<DatasetSummary> filteredNameAndRegionDatasets = filterNameAndRegionEnum.getItems();
         assertThat("dataset filter by name and region returns correct total",
                 filteredNameAndRegionDatasets.size(),
@@ -177,7 +180,8 @@ public class DatasetDaoTest {
                                 datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1)));
 
         MetadataEnumeration<DatasetSummary> filterRegionEnum = datasetDao.enumerate(0, 2,
-            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null, GoogleRegion.US_EAST1.toString(), datasetIds);
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null,
+                GoogleRegion.US_EAST1.toString(), datasetIds);
         List<DatasetSummary> filteredRegionDatasets = filterRegionEnum.getItems();
         assertThat("dataset filter by non-default GCS region returns correct total",
             filteredRegionDatasets.size(),

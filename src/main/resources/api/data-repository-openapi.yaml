@@ -616,6 +616,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: include
+          in: query
+          description: A list of what to include with the snapshot object
+          required: false
+          schema:
+            type: array
+            default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
+            items:
+              $ref: '#/components/schemas/SnapshotRequestAccessIncludeModel'
       responses:
         200:
           description: Snapshot
@@ -1080,6 +1089,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: include
+          in: query
+          description: A list of what to include with the dataset object
+          required: false
+          schema:
+            type: array
+            default: "SCHEMA,PROFILE,DATA_PROJECT,STORAGE"
+            items:
+              $ref: '#/components/schemas/DatasetRequestAccessIncludeModel'
       responses:
         200:
           description: Dataset
@@ -2686,6 +2704,8 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StorageResourceModel'
+        accessInformation:
+          $ref: '#/components/schemas/AccessInfoModel'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -2731,6 +2751,11 @@ components:
           $ref: '#/components/schemas/CloudPlatform'
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
+    DatasetRequestAccessIncludeModel:
+      type: string
+      description: >
+        Type of information to include in the response
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, DATA_PROJECT, STORAGE ]
     EnumerateDatasetModel:
       type: object
       properties:
@@ -3382,6 +3407,11 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
+    SnapshotRequestAccessIncludeModel:
+      type: string
+      description: >
+        Type of information to include in the response
+      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT ]
     SnapshotSummaryModel:
       type: object
       properties:
@@ -3441,8 +3471,80 @@ components:
         dataProject:
           type: string
           description: Project id of the snapshot data project
+        accessInformation:
+          $ref: '#/components/schemas/AccessInfoModel'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
+    AccessInfoModel:
+      type: object
+      description: >
+        How to access the metadata for a snapshot or dataset
+      properties:
+        bigQuery:
+          $ref: '#/components/schemas/AccessInfoBigQueryModel'
+    AccessInfoBigQueryModel:
+      description: >
+        General information on where snapshot or dataset tabular data lives in BigQuery
+      type: object
+      required:
+        - datasetName
+        - datasetId
+        - projectId
+        - link
+        - tables
+      properties:
+        datasetName:
+          type: string
+          description: >
+            Name of the BigQuery dataset where snapshot or dataset tabular data lives
+        datasetId:
+          type: string
+          description: >
+            Unique ID of the BigQuery dataset where snapshot or dataset tabular data lives
+        projectId:
+          type: string
+          description: >
+            Project id of the project where tabular data in BigQuery lives
+        link:
+          type: string
+          description: >
+            The link to access the BigQuery dataset UI in Google Cloud console
+        tables:
+          type: array
+          description: >
+            Information on each table in the BigQuery dataset
+          items:
+            $ref: '#/components/schemas/AccessInfoBigQueryModelTable'
+    AccessInfoBigQueryModelTable:
+      type: object
+      description: >
+        Information on a snapshot or dataset table in a BigQuery dataset
+      required:
+        - name
+        - id
+        - sampleQuery
+        - qualifiedName
+      properties:
+        name:
+          type: string
+          description: >
+            The name of the BigQuery table
+        id:
+          type: string
+          description: >
+            The unique id of the BigQuery table
+        qualifiedName:
+          type: string
+          description: >
+            The fully qualified name of the BigQuery table
+        link:
+          type: string
+          description: >
+            The link to access the BigQuery table UI in Google Cloud console
+        sampleQuery:
+          type: string
+          description: >
+            An example query that can be used to select data from this table
     SnapshotSourceModel:
       required:
         - asset

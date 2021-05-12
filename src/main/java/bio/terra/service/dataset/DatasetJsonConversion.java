@@ -10,6 +10,7 @@ import bio.terra.model.AssetTableModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -20,6 +21,7 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.model.TableModel;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -106,16 +108,38 @@ public final class DatasetJsonConversion {
 
     }
 
-    public static DatasetModel populateDatasetModelFromDataset(Dataset dataset) {
-        return new DatasetModel()
-                .id(dataset.getId().toString())
-                .name(dataset.getName())
-                .description(dataset.getDescription())
-                .defaultProfileId(dataset.getDefaultProfileId().toString())
-                .createdDate(dataset.getCreatedDate().toString())
-                .schema(datasetSpecificationModelFromDatasetSchema(dataset))
-                .dataProject(dataset.getProjectResource().getGoogleProjectId())
-                .storage(storageResourceModelFromDatasetSummary(dataset.getDatasetSummary()));
+    public static DatasetModel populateDatasetModelFromDataset(Dataset dataset,
+                                                               List<DatasetRequestAccessIncludeModel> include) {
+        DatasetModel datasetModel = new DatasetModel()
+            .id(dataset.getId().toString())
+            .name(dataset.getName())
+            .description(dataset.getDescription())
+            .createdDate(dataset.getCreatedDate().toString());
+
+        if (include.contains(DatasetRequestAccessIncludeModel.NONE)) {
+            return datasetModel;
+        }
+
+        if (include.contains(DatasetRequestAccessIncludeModel.PROFILE)) {
+            datasetModel.defaultProfileId(dataset.getDefaultProfileId().toString());
+        }
+
+        if (include.contains(DatasetRequestAccessIncludeModel.SCHEMA)) {
+            datasetModel.schema(datasetSpecificationModelFromDatasetSchema(dataset));
+        }
+
+        if (include.contains(DatasetRequestAccessIncludeModel.DATA_PROJECT)) {
+            datasetModel.dataProject(dataset.getProjectResource().getGoogleProjectId());
+        }
+
+        if (include.contains(DatasetRequestAccessIncludeModel.STORAGE)) {
+            datasetModel.storage(storageResourceModelFromDatasetSummary(dataset.getDatasetSummary()));
+        }
+
+        if (include.contains(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION)) {
+            datasetModel.accessInformation(MetadataDataAccessUtils.accessInfoFromDataset(dataset));
+        }
+        return datasetModel;
     }
 
     private static List<StorageResourceModel> storageResourceModelFromDatasetSummary(DatasetSummary datasetSummary) {

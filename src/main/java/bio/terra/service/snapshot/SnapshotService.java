@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.controller.SnapshotsApiController;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
@@ -13,6 +14,7 @@ import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -34,15 +36,18 @@ import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -56,6 +61,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class SnapshotService {
+
     private final JobService jobService;
     private final DatasetService datasetService;
     private final FireStoreDependencyDao dependencyDao;
@@ -163,12 +169,28 @@ public class SnapshotService {
      * Note that this method will only return a snapshot if it is NOT exclusively locked.
      * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
      * an exclusively locked snapshot to be returned (e.g. snapshot deletion).
-     * @param id in UUID formant
+     * @param id in UUID format
      * @return a SnapshotModel = API output-friendly representation of the Snapshot
      */
     public SnapshotModel retrieveAvailableSnapshotModel(UUID id) {
+        return retrieveAvailableSnapshotModel(id, getDefaultIncludes());
+    }
+
+    /**
+     * Convenience wrapper around fetching an existing Snapshot object and converting it to a Model object.<p/>
+     * Unlike the Snapshot object, the Model object includes a reference to the associated cloud project.
+     *
+     * Note that this method will only return a snapshot if it is NOT exclusively locked.
+     * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
+     * an exclusively locked snapshot to be returned (e.g. snapshot deletion).
+     * @param id in UUID format
+     * @param include a list of what information to include
+     * @return an API output-friendly representation of the Snapshot
+     */
+    public SnapshotModel retrieveAvailableSnapshotModel(UUID id,
+                                                        List<SnapshotRequestAccessIncludeModel> include) {
         Snapshot snapshot = retrieveAvailable(id);
-        return populateSnapshotModelFromSnapshot(snapshot);
+        return populateSnapshotModelFromSnapshot(snapshot, include);
     }
 
     /**
@@ -491,27 +513,47 @@ public class SnapshotService {
         return summaryModel;
     }
 
-    private SnapshotModel populateSnapshotModelFromSnapshot(Snapshot snapshot) {
-        return new SnapshotModel()
-                .id(snapshot.getId().toString())
-                .name(snapshot.getName())
-                .description(snapshot.getDescription())
-                .createdDate(snapshot.getCreatedDate().toString())
-                .profileId(snapshot.getProfileId().toString())
-                .source(snapshot.getSnapshotSources()
-                        .stream()
-                        .map(this::makeSourceModelFromSource)
-                        .collect(Collectors.toList()))
-                .tables(snapshot.getTables()
-                        .stream()
-                        .map(this::makeTableModelFromTable)
-                        .collect(Collectors.toList()))
-                .relationships(snapshot.getRelationships()
-                        .stream()
-                        .map(this::makeRelationshipModelFromRelationship)
-                        .collect(Collectors.toList()))
-                .dataProject(snapshot.getProjectResource().getGoogleProjectId());
+    private SnapshotModel populateSnapshotModelFromSnapshot(Snapshot snapshot,
+                                                            List<SnapshotRequestAccessIncludeModel> include) {
+        SnapshotModel snapshotModel = new SnapshotModel()
+            .id(snapshot.getId().toString())
+            .name(snapshot.getName())
+            .description(snapshot.getDescription())
+            .createdDate(snapshot.getCreatedDate().toString());
 
+        // In case NONE is specified, this should supersede any other value being passed in
+        if (include.contains(SnapshotRequestAccessIncludeModel.NONE)) {
+            return snapshotModel;
+        }
+
+        if (include.contains(SnapshotRequestAccessIncludeModel.SOURCES)) {
+            snapshotModel.source(snapshot.getSnapshotSources()
+                .stream()
+                .map(this::makeSourceModelFromSource)
+                .collect(Collectors.toList()));
+        }
+        if (include.contains(SnapshotRequestAccessIncludeModel.TABLES)) {
+            snapshotModel.tables(snapshot.getTables()
+                .stream()
+                .map(this::makeTableModelFromTable)
+                .collect(Collectors.toList()));
+        }
+        if (include.contains(SnapshotRequestAccessIncludeModel.RELATIONSHIPS)) {
+            snapshotModel.relationships(snapshot.getRelationships()
+                .stream()
+                .map(this::makeRelationshipModelFromRelationship)
+                .collect(Collectors.toList()));
+        }
+        if (include.contains(SnapshotRequestAccessIncludeModel.PROFILE)) {
+            snapshotModel.profileId(snapshot.getProfileId().toString());
+        }
+        if (include.contains(SnapshotRequestAccessIncludeModel.DATA_PROJECT)) {
+            snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
+        }
+        if (include.contains(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION)) {
+            snapshotModel.accessInformation(MetadataDataAccessUtils.accessInfoFromSnapshot(snapshot));
+        }
+        return snapshotModel;
     }
 
     private RelationshipModel makeRelationshipModelFromRelationship(Relationship relationship) {
@@ -569,5 +611,11 @@ public class SnapshotService {
             .name(column.getName())
             .datatype(column.getType())
             .arrayOf(column.isArrayOf());
+    }
+
+    private static List<SnapshotRequestAccessIncludeModel> getDefaultIncludes() {
+        return Arrays.stream(StringUtils.split(SnapshotsApiController.RETRIEVE_INCLUDE_DEFAULT_VALUE, ','))
+            .map(SnapshotRequestAccessIncludeModel::fromValue)
+            .collect(Collectors.toList());
     }
 }

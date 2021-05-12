@@ -2385,9 +2385,9 @@ paths:
   /api/repository/v1/search/{id}/index:
     post:
       tags:
+        - search
         - snapshots
         - repository
-        - search
       description: Create a new search index for a snapshot
       operationId: createSearchIndex
       parameters:
@@ -2432,9 +2432,9 @@ paths:
   /api/repository/v1/search/query:
     post:
       tags:
+        - search
         - snapshots
         - repository
-        - search
       description: Run a query on the metadata of one or more snapshots
       operationId: querySearchIndices
       parameters:

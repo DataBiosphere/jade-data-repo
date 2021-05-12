@@ -496,6 +496,7 @@ public class DatasetDao {
         EnumerateSortByParam sort,
         SqlSortDirection direction,
         String filter,
+        String region,
         List<UUID> accessibleDatasetIds
     ) {
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -512,7 +513,8 @@ public class DatasetDao {
         }
 
         // add the filters to the clause to get the actual items
-        DaoUtils.addFilterClause(filter, params, whereClauses, "dataset.id");
+        DaoUtils.addFilterClause(filter, params, whereClauses);
+        DaoUtils.addRegionFilterClause(region, params, whereClauses, "dataset.id");
 
         String whereSql = "";
         if (!whereClauses.isEmpty()) {

@@ -33,17 +33,21 @@ public final class DaoUtils {
             .toString();
     }
 
-    public static void addFilterClause(String filter, MapSqlParameterSource params, List<String> clauses,
-                                              String datasetIdField) {
+    public static void addFilterClause(String filter, MapSqlParameterSource params, List<String> clauses) {
         if (!StringUtils.isEmpty(filter)) {
-            GoogleRegion regionFilter = GoogleRegion.fromValue(filter);
+            params.addValue("filter", DaoUtils.escapeFilter(filter));
+            clauses.add(" (name ILIKE :filter OR description ILIKE :filter) ");
+        }
+    }
+
+    public static void addRegionFilterClause(String region, MapSqlParameterSource params, List<String> clauses,
+                                       String datasetIdField) {
+        if (!StringUtils.isEmpty(region)) {
+            GoogleRegion regionFilter = GoogleRegion.fromValue(region);
             if (regionFilter != null) {
                 params.addValue("region", regionFilter.name());
                 clauses.add(String.format(":region in (SELECT storage_resource.region FROM storage_resource" +
-                    " WHERE storage_resource.dataset_id = %s) ", datasetIdField));
-            } else {
-                params.addValue("filter", DaoUtils.escapeFilter(filter));
-                clauses.add(" (name ILIKE :filter OR description ILIKE :filter) ");
+                        " WHERE storage_resource.dataset_id = %s) ", datasetIdField));
             }
         }
     }

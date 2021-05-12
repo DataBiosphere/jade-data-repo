@@ -528,6 +528,12 @@ paths:
             in the name or description.
           schema:
             type: string
+        - name: region
+          in: query
+          description: Filter the results where this string is a case insensitive match
+            to a cloud storage region used by the source datasets.
+          schema:
+            type: string
         - name: datasetIds
           in: query
           description: Filter the results where these datasetIds are source datasets.

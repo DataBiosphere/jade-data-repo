@@ -45,9 +45,10 @@ public final class DaoUtils {
         if (!StringUtils.isEmpty(region)) {
             GoogleRegion regionFilter = GoogleRegion.fromValue(region);
             if (regionFilter != null) {
-                params.addValue("region", regionFilter.name());
-                clauses.add(String.format(":region in (SELECT storage_resource.region FROM storage_resource" +
-                        " WHERE storage_resource.dataset_id = %s) ", datasetIdField));
+                params.addValue("region", escapeFilter(regionFilter.name()));
+                clauses.add(String.format(" exists (SELECT 1 FROM storage_resource" +
+                        " WHERE storage_resource.dataset_id = %s AND storage_resource.region ILIKE :region) ",
+                        datasetIdField));
             }
         }
     }

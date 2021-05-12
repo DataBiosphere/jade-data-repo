@@ -969,11 +969,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/snapshots/{id}/index:
+  /api/repository/v1/search/{id}/index:
     post:
       tags:
         - snapshots
         - repository
+        - search
       description: Create a new search index for a snapshot
       operationId: createSearchIndex
       parameters:
@@ -1015,12 +1016,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
-  /api/repository/v1/snapshots/query:
+  /api/repository/v1/search/query:
     post:
       tags:
         - snapshots
         - repository
-      description: Search against one or more snapshots
+        - search
+      description: Run a query on the metadata of one or more snapshots
       operationId: querySearchIndices
       parameters:
         - name: offset
@@ -1049,7 +1051,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EnumerateSearchResultsModel'
+                $ref: '#/components/schemas/SearchQueryResultModel'
         400:
           description: Bad request - one or more invalid ids, badly formed
           content:
@@ -3947,7 +3949,7 @@ components:
           type: string
           description: >
             Elasticsearch query to search against snapshot indices
-    EnumerateSearchResultsModel:
+    SearchQueryResultModel:
       type: object
       properties:
         esResult:

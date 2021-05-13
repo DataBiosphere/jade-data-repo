@@ -374,8 +374,6 @@ public class GoogleResourceDao {
                     .region(region);
             });
 
-        if (googleResourceConfiguration.getAllowReuseExistingBuckets())
-
         if (bucketResources.size() > 1) {
             //TODO This is only here because of the dev case. It should be removed when we start using RBS in dev.
             if (googleResourceConfiguration.getAllowReuseExistingBuckets()) {

@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 public class GoogleResourceDao {
     private static final Logger logger = LoggerFactory.getLogger(GoogleResourceDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final GoogleResourceConfiguration googleResourceConfiguration;
     private final GoogleRegion defaultRegion;
 
     private static final String sqlProjectRetrieve = "SELECT id, google_project_id, google_project_number, profile_id" +
@@ -91,9 +92,11 @@ public class GoogleResourceDao {
 
     @Autowired
     public GoogleResourceDao(NamedParameterJdbcTemplate jdbcTemplate,
-                             GcsConfiguration gcsConfiguration) throws SQLException {
+                             GcsConfiguration gcsConfiguration,
+                             GoogleResourceConfiguration googleResourceConfiguration) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.defaultRegion = GoogleRegion.fromValue(gcsConfiguration.getRegion());
+        this.googleResourceConfiguration = googleResourceConfiguration;
     }
 
     // -- project resource methods --
@@ -371,7 +374,13 @@ public class GoogleResourceDao {
                     .region(region);
             });
 
+        if (googleResourceConfiguration.getAllowReuseExistingBuckets())
+
         if (bucketResources.size() > 1) {
+            //TODO This is only here because of the dev case. It should be removed when we start using RBS in dev.
+            if (googleResourceConfiguration.getAllowReuseExistingBuckets()) {
+                return bucketResources.get(0).region(defaultRegion);
+            }
             throw new CorruptMetadataException("Found more than one result for bucket resource: " +
                 bucketResources.get(0).getName());
         }

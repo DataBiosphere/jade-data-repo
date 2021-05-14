@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -237,6 +238,7 @@ public class DatasetBucketDaoTest {
         bucketForFile = googleBucketService.getOrCreateBucket(
             gcsConfiguration.getBucket(),
             projectResource,
+            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             ingestFileFlightId);
         return bucketForFile.getResourceId();
     }

@@ -18,18 +18,15 @@ public class CreateSnapshotGetOrCreateProjectStep implements Step {
     private final ResourceService resourceService;
     private final SnapshotRequestModel snapshotRequestModel;
     private final DatasetService datasetService;
-    private final UUID datasetId;
     private final GoogleRegion firestoreRegion;
 
     public CreateSnapshotGetOrCreateProjectStep(ResourceService resourceService,
                                                 SnapshotRequestModel snapshotRequestModel,
                                                 DatasetService datasetService,
-                                                UUID datasetId,
                                                 GoogleRegion firestoreRegion) {
         this.resourceService = resourceService;
         this.snapshotRequestModel = snapshotRequestModel;
         this.datasetService = datasetService;
-        this.datasetId = datasetId;
         this.firestoreRegion = firestoreRegion;
     }
 
@@ -37,13 +34,12 @@ public class CreateSnapshotGetOrCreateProjectStep implements Step {
     public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         BillingProfileModel profileModel = workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+
+        //TODO - update this comment
         // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
         // Either the project will have been created8and we will find it, or we will create.
-        UUID projectResourceId =
-            resourceService.getOrCreateSnapshotProject(snapshotRequestModel.getName(),
-                datasetService.retrieve(datasetId),
-                profileModel,
-                firestoreRegion);
+        UUID projectResourceId = resourceService.getOrCreateSnapshotProject(snapshotId, profileModel, firestoreRegion);
         workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
         return StepResult.getStepResultSuccess();
     }

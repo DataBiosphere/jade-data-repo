@@ -589,7 +589,7 @@ public class BigQueryPdaoTest {
         GoogleRegion region = DatasetJsonConversion.getRegionFromDatasetRequestModel(datasetRequest);
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
         dataset.id(UUID.randomUUID());
-        UUID projectId = resourceService.getOrCreateDatasetProject(dataset, profileModel, region);
+        UUID projectId = resourceService.getOrCreateDatasetProject(dataset.getId(), profileModel, region);
         dataset
             .projectResourceId(projectId)
             .projectResource(resourceService.getProjectResource(projectId));

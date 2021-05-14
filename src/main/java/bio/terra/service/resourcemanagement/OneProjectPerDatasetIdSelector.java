@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 @Profile({"test", "google"}) //TODO - Set this to our prod envs!
 public class OneProjectPerDatasetIdSelector implements DataLocationSelector {
@@ -22,14 +24,13 @@ public class OneProjectPerDatasetIdSelector implements DataLocationSelector {
     }
 
     @Override
-        public String projectIdForDataset(Dataset dataset, BillingProfileModel billingProfile) {
-        return getSuffixForDatasetId(dataset.getId().toString());
+        public String projectIdForDataset(UUID datasetId, BillingProfileModel billingProfile) {
+        return getSuffixForResourceId(datasetId.toString());
     }
 
     @Override
-    public String projectIdForSnapshot(String snapshotName, Dataset dataset, BillingProfileModel billingProfile) {
-        GoogleProjectResource project = resourceService.getProjectResource(dataset.getProjectResourceId());
-        return project.getGoogleProjectId();
+    public String projectIdForSnapshot(UUID snapshotId, BillingProfileModel billingProfile) {
+        return getSuffixForResourceId(snapshotId.toString());
     }
 
     @Override
@@ -44,8 +45,8 @@ public class OneProjectPerDatasetIdSelector implements DataLocationSelector {
     }
 
     //TODO - Is this how we would want to name them? This looks like "broad-jade-dev-UUID"
-    private String getSuffixForDatasetId(String datasetId) {
-        String projectDatasetSuffix = "-" + datasetId.replaceAll("[^a-z-0-9]", "-");
+    private String getSuffixForResourceId(String resourceId) {
+        String projectDatasetSuffix = "-" + resourceId.replaceAll("[^a-z-0-9]", "-");
         // The project id below is an application level prefix or, if that is empty, the name of the core project
         return resourceConfiguration.getDataProjectPrefixToUse() + projectDatasetSuffix;
     }

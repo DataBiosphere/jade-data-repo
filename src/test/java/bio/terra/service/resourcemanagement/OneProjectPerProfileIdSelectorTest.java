@@ -63,7 +63,7 @@ public class OneProjectPerProfileIdSelectorTest {
     @Test
     public void shouldGetCorrectIdForDataset() {
         BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
-        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset, billingProfile);
+        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset.getId(), billingProfile);
         String expectedProfileId =
             resourceConfiguration.getDataProjectPrefixToUse() + "-" + billingProfile.getProfileName();
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
@@ -73,16 +73,16 @@ public class OneProjectPerProfileIdSelectorTest {
     public void shouldGetCorrectIdForDatasetWithSpecialChars() {
         String oddProfileName = "abc & 123";
         BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile().profileName(oddProfileName);
-        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset, billingProfile);
+        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset.getId(), billingProfile);
         String expectedProfileId = resourceConfiguration.getDataProjectPrefixToUse() + "-abc---123";
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
     }
 
     @Test
     public void shouldGetCorrectIdForSnapshot() {
-        String snapshotName = "asnapshot";
+        UUID snapshotId = UUID.randomUUID();
         BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
-        String projectId = oneProjectPerProfileIdSelector.projectIdForSnapshot(snapshotName, dataset, billingProfile);
+        String projectId = oneProjectPerProfileIdSelector.projectIdForSnapshot(snapshotId, billingProfile);
         String expectedProfileId = resourceConfiguration.getDataProjectPrefixToUse() + "-" +
             billingProfile.getProfileName();
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
@@ -110,12 +110,13 @@ public class OneProjectPerProfileIdSelectorTest {
     @Test
     public void shouldGetCorrectIdForDatasetWithPrefix() {
         BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
-        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset, billingProfile);
+        String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset.getId(), billingProfile);
         String expectedProfileId =
             resourceConfiguration.getProjectId() + "-" + billingProfile.getProfileName();
         assertThat("Project ID is what we expect before changing prefix", projectId, equalTo(expectedProfileId));
         resourceConfiguration.setDataProjectPrefix("PREFIX");
-        String projectIdWithPrefix = oneProjectPerProfileIdSelector.projectIdForDataset(dataset, billingProfile);
+        String projectIdWithPrefix = oneProjectPerProfileIdSelector.projectIdForDataset(dataset.getId(),
+            billingProfile);
         String expectedProfileIdWithPrefix =
             resourceConfiguration.getDataProjectPrefix() + "-" + billingProfile.getProfileName();
         assertThat("Project ID is what we expect after changing prefix", projectIdWithPrefix,

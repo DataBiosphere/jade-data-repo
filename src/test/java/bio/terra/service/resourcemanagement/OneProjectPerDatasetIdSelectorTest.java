@@ -110,7 +110,7 @@ public class OneProjectPerDatasetIdSelectorTest {
     }
     @Test
     public void shouldGetCorrectIdForDataset() throws Exception {
-        projectId = oneProjectPerDatasetIdSelector.projectIdForDataset(dataset, billingProfile);
+        projectId = oneProjectPerDatasetIdSelector.projectIdForDataset(dataset.getId(), billingProfile);
         expectedProjectName =
             resourceConfiguration.getDataProjectPrefixToUse() + "-" + dataset.getId();
 
@@ -123,9 +123,9 @@ public class OneProjectPerDatasetIdSelectorTest {
         projectResource.id(projectResourceId);
 
         createDataset("dataset-minimal.json");
-        snapshotName = "asnapshot";
+        UUID snapshotId = UUID.randomUUID();
 
-        String snapshotProjectId = oneProjectPerDatasetIdSelector.projectIdForSnapshot(snapshotName, dataset, billingProfile);
+        String snapshotProjectId = oneProjectPerDatasetIdSelector.projectIdForSnapshot(snapshotId, billingProfile);
         assertThat("Project ID is what we expect", snapshotProjectId, equalTo(expectedProjectName));
     }
 

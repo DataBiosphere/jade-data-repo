@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 @Profile({"terra", "google"})
 public class OneProjectPerProfileIdSelector implements DataLocationSelector {
@@ -18,12 +20,12 @@ public class OneProjectPerProfileIdSelector implements DataLocationSelector {
     }
 
     @Override
-        public String projectIdForDataset(Dataset dataset, BillingProfileModel billingProfile) {
+        public String projectIdForDataset(UUID datasetId, BillingProfileModel billingProfile) {
         return getSuffixForProfileId(billingProfile);
     }
 
     @Override
-    public String projectIdForSnapshot(String snapshotName, Dataset dataset, BillingProfileModel billingProfile) {
+    public String projectIdForSnapshot(UUID snapshotId, BillingProfileModel billingProfile) {
         return getSuffixForProfileId(billingProfile);
     }
 

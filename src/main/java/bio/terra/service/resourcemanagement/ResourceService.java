@@ -129,19 +129,18 @@ public class ResourceService {
     /**
      * Create a new project for a snapshot, if none exists already.
      *
-     * @param snapshotName      name of the snapshot
-     * @param billingProfile    authorized billing profile to pay for the project
+     * @param snapshotId   id of the snapshot
+     * @param billingProfile authorized billing profile to pay for the project
      * @param firestoreRegion   the region to create the Firestore in
      * @return project resource id
      */
-    public UUID getOrCreateSnapshotProject(String snapshotName,
-                                           Dataset sourceDataset,
+    public UUID getOrCreateSnapshotProject(UUID snapshotId,
                                            BillingProfileModel billingProfile,
                                            GoogleRegion firestoreRegion)
         throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForSnapshot(snapshotName, sourceDataset, billingProfile),
+            dataLocationSelector.projectIdForSnapshot(snapshotId, billingProfile),
             billingProfile,
             null,
             firestoreRegion);
@@ -152,17 +151,17 @@ public class ResourceService {
     /**
      * Create a new project for a dataset,  if none exists already.
      *
-     * @param dataset    dataset
+     * @param datasetId    dataset id
      * @param billingProfile authorized billing profile to pay for the project
      * @param region         the region to ceraate
      * @return project resource id
      */
-    public UUID getOrCreateDatasetProject(Dataset dataset,
+    public UUID getOrCreateDatasetProject(UUID datasetId,
                                           BillingProfileModel billingProfile,
                                           GoogleRegion region) throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForDataset(dataset, billingProfile),
+            dataLocationSelector.projectIdForDataset(datasetId, billingProfile),
             billingProfile,
             getStewardPolicy(),
             region);

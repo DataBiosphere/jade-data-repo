@@ -33,12 +33,10 @@ public class CreateDatasetGetOrCreateProjectStep implements Step {
         // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
         // Either the project will have been created and we will find it, or we will create it.
 
-        //Is this the best way to do this?
-        Dataset dataset = new Dataset();
-        dataset.id(workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class));
-        dataset.name(datasetRequestModel.getName());
+
+        UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
         UUID projectResourceId =
-            resourceService.getOrCreateDatasetProject(dataset, profileModel, region);
+            resourceService.getOrCreateDatasetProject(datasetId, profileModel, region);
         workingMap.put(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
         return StepResult.getStepResultSuccess();
     }

@@ -123,10 +123,29 @@ public class OneProjectPerDatasetIdSelectorTest {
         projectResource.id(projectResourceId);
 
         createDataset("dataset-minimal.json");
+        dataset.projectResource(projectResource);
         UUID snapshotId = UUID.randomUUID();
 
+        String expectedSnapshotProjectName =
+            resourceConfiguration.getDataProjectPrefixToUse() + "-" + snapshotId;
+
         String snapshotProjectId = oneProjectPerDatasetIdSelector.projectIdForSnapshot(snapshotId, billingProfile);
-        assertThat("Project ID is what we expect", snapshotProjectId, equalTo(expectedProjectName));
+        assertThat("Project ID is what we expect", snapshotProjectId, equalTo(expectedSnapshotProjectName));
+
+        //Same billing profile as source dataset
+        String expectedFileProjectName =
+            resourceConfiguration.getDataProjectPrefixToUse() + "-" + dataset.getId();
+
+        String fileProjectId = oneProjectPerDatasetIdSelector.projectIdForFile(dataset, billingProfile);
+        assertThat("Project ID is what we expect", fileProjectId, equalTo(expectedFileProjectName));
+
+        //Different billing profile than source dataset
+        BillingProfileModel newBillingProfile = billingProfile.id(UUID.randomUUID().toString());
+        String expectedDiffFileProjectName =
+            resourceConfiguration.getDataProjectPrefixToUse() + "-" + dataset.getId() + "-storage";
+
+        String diffFileProjectId = oneProjectPerDatasetIdSelector.projectIdForFile(dataset, newBillingProfile);
+        assertThat("Project ID is what we expect", diffFileProjectId, equalTo(expectedDiffFileProjectName));
     }
 
 

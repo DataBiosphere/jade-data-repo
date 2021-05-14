@@ -35,8 +35,15 @@ public class OneProjectPerDatasetIdSelector implements DataLocationSelector {
 
     @Override
     public String projectIdForFile(Dataset dataset, BillingProfileModel billingProfile) {
-        GoogleProjectResource project = resourceService.getProjectResource(dataset.getProjectResourceId());
-        return project.getGoogleProjectId();
+        UUID sourceDatasetBillingProfileId = dataset.getProjectResource().getProfileId();
+        UUID requestedBillingProfileId = UUID.fromString(billingProfile.getId());
+        if (sourceDatasetBillingProfileId.equals(requestedBillingProfileId)) {
+            GoogleProjectResource project = resourceService.getProjectResource(dataset.getProjectResourceId());
+            return project.getGoogleProjectId();
+        } else {
+            return getSuffixForResourceId(dataset.getId().toString()) + "-storage";
+        }
+
     }
 
     @Override

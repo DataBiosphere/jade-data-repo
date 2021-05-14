@@ -6,8 +6,6 @@ import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
 import io.swagger.annotations.Api;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
@@ -23,7 +21,6 @@ import javax.validation.Valid;
 @Api(tags = {"search"})
 @ConditionalOnProperty(name = "features.search.api", havingValue = "enabled")
 public class SearchApiController implements SearchApi {
-    private Logger logger = LoggerFactory.getLogger(RegisterApiController.class);
 
     @Autowired
     public SearchApiController() {

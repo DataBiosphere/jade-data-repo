@@ -3937,7 +3937,7 @@ components:
       properties:
         indexSummary:
           type: string
-          description: Summary of this index
+          description: Summary of this index from Elasticsearch
     SearchQueryRequest:
       required:
         - snapshotIds

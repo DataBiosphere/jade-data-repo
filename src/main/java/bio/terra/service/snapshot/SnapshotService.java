@@ -510,7 +510,11 @@ public class SnapshotService {
                 .name(snapshotSummary.getName())
                 .description(snapshotSummary.getDescription())
                 .createdDate(snapshotSummary.getCreatedDate().toString())
-                .profileId(snapshotSummary.getProfileId().toString());
+                .profileId(snapshotSummary.getProfileId().toString())
+                .source(snapshotSummary.getSource()
+                        .stream()
+                        .map(this::makeSourceModelFromSource)
+                        .collect(Collectors.toList()));
         return summaryModel;
     }
 

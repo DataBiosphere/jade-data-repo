@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class SnapshotDao {
@@ -434,9 +435,12 @@ public class SnapshotDao {
 
         params.addValue("offset", offset).addValue("limit", limit);
         List<SnapshotSummary> summaries = jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
-
+        List<SnapshotSummary> summariesWithSources = summaries
+                .stream()
+                .map(s -> s.source(retrieveSnapshot(s.getId()).getSnapshotSources()))
+                .collect(Collectors.toList());
         return new MetadataEnumeration<SnapshotSummary>()
-            .items(summaries)
+            .items(summariesWithSources)
             .total(total);
     }
 

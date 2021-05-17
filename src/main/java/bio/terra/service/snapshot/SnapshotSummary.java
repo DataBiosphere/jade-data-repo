@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public class SnapshotSummary {
@@ -9,6 +10,7 @@ public class SnapshotSummary {
     private String description;
     private Instant createdDate;
     private UUID profileId;
+    private List<SnapshotSource> source;
 
     public UUID getId() {
         return id;
@@ -52,6 +54,15 @@ public class SnapshotSummary {
 
     public SnapshotSummary profileId(UUID profileId) {
         this.profileId = profileId;
+        return this;
+    }
+
+    public List<SnapshotSource> getSource() {
+        return source;
+    }
+
+    public SnapshotSummary source(List<SnapshotSource> source) {
+        this.source = source;
         return this;
     }
 }

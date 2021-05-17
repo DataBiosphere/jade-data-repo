@@ -386,12 +386,17 @@ public class SnapshotDaoTest {
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         int index = offset;
         for (SnapshotSummary summary : summaryList) {
+            Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotIds.get(index));
+            SnapshotSource source = fromDB.getFirstSnapshotSource();
             assertThat("correct snapshot id",
                 snapshotIds.get(index),
                 equalTo(summary.getId()));
             assertThat("correct snapshot name",
                 makeName(snapshotName, index),
                 equalTo(summary.getName()));
+            assertThat("source points back to snapshot",
+                    source.getSnapshot().getId(),
+                    equalTo(summary.getId()));
             index++;
         }
     }

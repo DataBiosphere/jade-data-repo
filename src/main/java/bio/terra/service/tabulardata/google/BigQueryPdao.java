@@ -1149,8 +1149,10 @@ public class BigQueryPdao {
             String rootTableId = rootTable.getId().toString();
 
             ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
+            sqlTemplate.add("snapshotProject", snapshotProjectId);
             sqlTemplate.add("snapshotDatasetName", snapshotName);
             sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
+            sqlTemplate.add("datasetProject", datasetProjectId);
             sqlTemplate.add("datasetDatasetName", datasetBqDatasetName);
             sqlTemplate.add("datasetTable", datasetTableName);
             sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
@@ -1239,17 +1241,16 @@ public class BigQueryPdao {
         "EXISTS (SELECT 1 FROM UNNEST(F.<fromColumn>) AS flat_from " +
             "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
 
-    //TODO - does this query need to specify the BQ project?
     private static final String joinTablesToTestForMissingRowIds =
-        "SELECT COUNT(*) FROM <snapshotDatasetName>.<tempTable> " +
-            "LEFT JOIN <datasetDatasetName>.<datasetTable> USING ( <commonColumn> ) " +
+        "SELECT COUNT(*) FROM <snapshotProject>.<snapshotDatasetName>.<tempTable> " +
+            "LEFT JOIN <datasetProject>.<datasetDatasetName>.<datasetTable> USING ( <commonColumn> ) " +
             "WHERE <datasetTable>.<commonColumn> IS NULL";
 
     private static final String loadRootRowIdsFromTempTableTemplate =
         "INSERT INTO `<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
             "(" + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + ") " +
             "SELECT '<tableId>' AS " + PDAO_TABLE_ID_COLUMN + ", T.row_id AS " + PDAO_ROW_ID_COLUMN + " FROM (" +
-            "SELECT <commonColumn> AS row_id FROM `<snapshot>.<tempTable>` " +
+            "SELECT <commonColumn> AS row_id FROM `<snapshotProject>.<snapshot>.<tempTable>` " +
             ") AS T";
 
     /**

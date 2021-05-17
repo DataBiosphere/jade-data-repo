@@ -1652,18 +1652,17 @@ public class BigQueryPdao {
     }
 
     // we select from the live view here so that the row counts take into account rows that have been hard deleted
-    private static final String rowCountTemplate = "SELECT COUNT(<rowId>) FROM `<datasetProject>.<dataset>.<table>`";
+    private static final String rowCountTemplate = "SELECT COUNT(<rowId>) FROM `<project>.<snapshot>.<table>`";
 
     public Map<String, Long> getSnapshotTableRowCounts(Snapshot snapshot) throws InterruptedException {
-        //TODO - this needs to happen per source dataset
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(snapshot.getFirstSnapshotSource().getDataset());
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         Map<String, Long> rowCounts = new HashMap<>();
         for (SnapshotTable snapshotTable : snapshot.getTables()) {
             String tableName = snapshotTable.getName();
             String sql = new ST(rowCountTemplate)
                 .add("rowId", PDAO_ROW_ID_COLUMN)
-                .add("datasetProject", bigQueryProject.getProjectId())
-                .add("dataset", snapshot.getName())
+                .add("project", bigQueryProject.getProjectId())
+                .add("snapshot", snapshot.getName())
                 .add("table", tableName)
                 .render();
             TableResult result = bigQueryProject.query(sql);

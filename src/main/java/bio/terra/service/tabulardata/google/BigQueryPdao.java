@@ -398,6 +398,7 @@ public class BigQueryPdao {
         String snapshotProjectId = snapshotBigQueryProject.getProjectId();
 
         //TODO - I think this would need to happen per source dataset
+        //Q: Do we currently support multi-dataset snapshots?
         BigQueryProject datasetBigQueryProject = bigQueryProjectForDataset(
             snapshot.getFirstSnapshotSource().getDataset());
         String datasetProjectId = datasetBigQueryProject.getProjectId();
@@ -475,7 +476,7 @@ public class BigQueryPdao {
 
     private static final String getLiveViewTableTemplate =
         // TODO pull insert out and loop thru rest w UNION ()
-            "(SELECT '<tableId>', <dataRepoRowId> FROM `<project>.<dataset>.<liveView>`)";
+            "(SELECT '<tableId>', <dataRepoRowId> FROM `<datasetProject>.<dataset>.<liveView>`)";
 
     private static final String mergeLiveViewTablesTemplate =
         "<selectStatements; separator=\" UNION ALL \">";
@@ -484,8 +485,8 @@ public class BigQueryPdao {
         "SELECT COUNT(1) FROM <snapshotProject>.<snapshot>.<dataRepoTable>";
 
 
-    public String createSnaphotTableFromLiveViews(
-        BigQueryProject bigQueryProject,
+    public String createSnapshotTableFromLiveViews(
+        BigQueryProject datasetBigQueryProject,
         List<DatasetTable> tables,
         String datasetBqDatasetName) {
 
@@ -499,7 +500,7 @@ public class BigQueryPdao {
             ST sqlTableTemplate = new ST(getLiveViewTableTemplate);
             sqlTableTemplate.add("tableId", table.getId());
             sqlTableTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
-            sqlTableTemplate.add("project", bigQueryProject.getProjectId());
+            sqlTableTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
             sqlTableTemplate.add("dataset", datasetBqDatasetName);
             sqlTableTemplate.add("liveView", liveViewTableName);
             selectStatements.add(sqlTableTemplate.render());
@@ -532,8 +533,7 @@ public class BigQueryPdao {
         List<DatasetTable> tables = dataset.getTables();
 
         // create a snapshot table based on the live view data row ids
-        //TODO - the big query project is used to reference the dataset here
-        String liveViewTables = createSnaphotTableFromLiveViews(snapshotBigQueryProject, tables, datasetBqDatasetName);
+        String liveViewTables = createSnapshotTableFromLiveViews(datasetBigQueryProject, tables, datasetBqDatasetName);
 
 
         ST sqlTemplate = new ST(insertAllLiveViewDataTemplate);

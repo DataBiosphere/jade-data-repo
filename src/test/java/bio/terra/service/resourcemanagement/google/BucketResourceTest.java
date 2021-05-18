@@ -134,7 +134,7 @@ public class BucketResourceTest {
     @Test
     // create buckets in different regions and see if they're actually created there.
     public void createBucketsInDifferentRegionsTest() throws Exception {
-        for (GoogleRegion region : Arrays.asList(GoogleRegion.US_CENTRAL1, GoogleRegion.US_EAST1)) {
+        for (GoogleRegion region : List.of(GoogleRegion.US_CENTRAL1, GoogleRegion.US_EAST1)) {
             String bucketName = "testbucket_bucketregionstest_" + region;
             String flightId = "bucketRegionsTest_" + region;
 

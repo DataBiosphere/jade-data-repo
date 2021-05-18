@@ -1597,8 +1597,16 @@ public class BigQueryPdao {
     public List<Map<String, Object>> getSnapshotTableData(Snapshot snapshot,
                                                           String sql) throws InterruptedException {
         final BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        TableResult result = bigQueryProject.query(sql);
-        return new ArrayList<>();
+        final TableResult result = bigQueryProject.query(sql);
+        final List<Map<String, Object>> values = new ArrayList<>();
+        result.iterateAll().forEach(fieldValueList -> {
+            final Map<String, Object> fieldMap = new HashMap<>();
+            fieldValueList.forEach(fieldValue -> {
+                fieldMap.put(fieldValue.toString(), fieldValue.getValue());
+            });
+            values.add(fieldMap);
+        });
+        return values;
     }
 
     // we select from the live view here so that the row counts take into account rows that have been hard deleted

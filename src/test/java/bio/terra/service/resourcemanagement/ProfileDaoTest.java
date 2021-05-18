@@ -67,23 +67,23 @@ public class ProfileDaoTest {
 
     @Test
     public void profileCloudProvidersTest() throws Exception {
-        BillingProfileModel googleBillingProfile = makeProfile();
-        String tenant = UUID.randomUUID().toString();
-        String subscription = UUID.randomUUID().toString();
-        String resourceGroup = UUID.randomUUID().toString();
-        BillingProfileRequestModel azureBillingProfileRequest = ProfileFixtures.randomBillingProfileRequest()
+        var googleBillingProfile = makeProfile();
+        var tenant = UUID.randomUUID().toString();
+        var subscription = UUID.randomUUID().toString();
+        var resourceGroup = UUID.randomUUID().toString();
+        var azureBillingProfileRequest = ProfileFixtures.randomBillingProfileRequest()
             .cloudPlatform(CloudPlatform.AZURE)
             .tenant(tenant)
             .subscription(subscription)
             .resourceGroup(resourceGroup);
-        BillingProfileModel azureBillingProfile =
+        var azureBillingProfile =
             profileDao.createBillingProfile(azureBillingProfileRequest, "me@me.me");
-        UUID azureProfileId = UUID.fromString(azureBillingProfile.getId());
+        var azureProfileId = UUID.fromString(azureBillingProfile.getId());
         profileIds.add(azureProfileId);
 
-        BillingProfileModel retrievedGoogleBillingProfile =
+        var retrievedGoogleBillingProfile =
             profileDao.getBillingProfileById(UUID.fromString(googleBillingProfile.getId()));
-        BillingProfileModel retrievedAzureBillingProfile =
+        var retrievedAzureBillingProfile =
             profileDao.getBillingProfileById(UUID.fromString(azureBillingProfile.getId()));
 
         assertThat("GCP is the default cloud platform",

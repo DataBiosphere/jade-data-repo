@@ -34,6 +34,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -283,7 +284,7 @@ public class BigQueryPdaoTest {
                 Assert.assertThat(participantIds, containsInAnyOrder(
                     "participant_1", "participant_2", "participant_5"));
                 Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2"));
-                Assert.assertThat(fileIds, is(Optional.empty()));
+                Assert.assertThat(fileIds, is(Matchers.empty()));
 
                 // Make sure the old snapshot wasn't changed.
                 participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);

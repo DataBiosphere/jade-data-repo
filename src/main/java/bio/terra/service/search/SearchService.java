@@ -2,6 +2,7 @@ package bio.terra.service.search;
 
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
+import bio.terra.service.snapshot.Snapshot;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -13,7 +14,8 @@ public class SearchService {
         // empty constructor
     }
 
-    public SearchIndexModel indexSnapshot(SearchIndexRequest searchIndexRequest) {
+    public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest) {
+        String sqlQuery = searchIndexRequest.getSqlQuery();
         return new SearchIndexModel();
     }
 }

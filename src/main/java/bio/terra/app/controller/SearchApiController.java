@@ -11,6 +11,8 @@ import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.search.SearchService;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.Optional;
+import java.util.UUID;
 
 @Controller
 @Api(tags = {"search"})
@@ -36,6 +39,7 @@ public class SearchApiController implements SearchApi {
     private final IamService iamService;
     private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
     private final SearchService searchService;
+    private final SnapshotService snapshotService;
 
     @Autowired
     public SearchApiController(
@@ -43,13 +47,15 @@ public class SearchApiController implements SearchApi {
         HttpServletRequest request,
         IamService iamService,
         AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
-        SearchService searchService
+        SearchService searchService,
+        SnapshotService snapshotService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.iamService = iamService;
         this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
         this.searchService = searchService;
+        this.snapshotService = snapshotService;
     }
 
     @Override
@@ -72,7 +78,8 @@ public class SearchApiController implements SearchApi {
         @Valid @RequestBody SearchIndexRequest searchIndexRequest
     ) {
         iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
-        SearchIndexModel searchIndexModel = searchService.indexSnapshot(searchIndexRequest);
+        Snapshot snapshot = snapshotService.retrieve(UUID.fromString(id));
+        SearchIndexModel searchIndexModel = searchService.indexSnapshot(snapshot, searchIndexRequest);
         return new ResponseEntity<>(searchIndexModel, HttpStatus.OK);
     }
 

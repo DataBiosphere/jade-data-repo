@@ -3,7 +3,6 @@ package bio.terra.service.resourcemanagement.google;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
@@ -35,7 +34,6 @@ public class GoogleBucketService {
 
     private final GoogleResourceDao resourceDao;
     private final GcsProjectFactory gcsProjectFactory;
-    private final GcsConfiguration gcsConfiguration;
     private final ConfigurationService configService;
 
     @Autowired
@@ -45,11 +43,9 @@ public class GoogleBucketService {
     public GoogleBucketService(
         GoogleResourceDao resourceDao,
         GcsProjectFactory gcsProjectFactory,
-        GcsConfiguration gcsConfiguration,
         ConfigurationService configService) {
         this.resourceDao = resourceDao;
         this.gcsProjectFactory = gcsProjectFactory;
-        this.gcsConfiguration = gcsConfiguration;
         this.configService = configService;
     }
 

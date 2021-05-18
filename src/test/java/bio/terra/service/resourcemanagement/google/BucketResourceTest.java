@@ -38,14 +38,14 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.Matchers.equalToIgnoringCase;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -145,11 +145,8 @@ public class BucketResourceTest {
             // Get the Bucket
             Bucket cloudBucket = bucketService.getCloudBucket(bucketName);
 
-            assertThat("Google bucket was created in " + region, cloudBucket.getLocation(), 
+            assertThat("Google bucket was created in " + region, cloudBucket.getLocation(),
                 equalToIgnoringCase(region.toString()));
-
-            // delete the bucket and metadata
-            deleteBucket(bucketResource);
         }
     }
 

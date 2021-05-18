@@ -61,7 +61,7 @@ public class SearchApiController implements SearchApi {
 
     @Override
     public Optional<ObjectMapper> getObjectMapper() {
-        return Optional.ofNullable(objectMapper);
+        return Optional.of(objectMapper);
     }
 
     @Override

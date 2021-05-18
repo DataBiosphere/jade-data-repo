@@ -5,11 +5,13 @@ import static bio.terra.service.resourcemanagement.google.GoogleProjectService.P
 
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,6 +35,8 @@ public class ResourceService {
     private final GoogleProjectService projectService;
     private final GoogleBucketService bucketService;
     private final SamConfiguration samConfiguration;
+    private final DatasetBucketDao datasetBucketDao;
+    private final GoogleResourceDao resourceDao;
 
 
     @Autowired
@@ -40,11 +44,15 @@ public class ResourceService {
         DataLocationSelector dataLocationSelector,
         GoogleProjectService projectService,
         GoogleBucketService bucketService,
-        SamConfiguration samConfiguration) {
+        SamConfiguration samConfiguration,
+        DatasetBucketDao datasetBucketDao,
+        GoogleResourceDao resourceDao) {
         this.dataLocationSelector = dataLocationSelector;
         this.projectService = projectService;
         this.bucketService = bucketService;
         this.samConfiguration = samConfiguration;
+        this.datasetBucketDao = datasetBucketDao;
+        this.resourceDao = resourceDao;
     }
 
     /**
@@ -70,10 +78,26 @@ public class ResourceService {
             billingProfile,
             null);
 
-        return bucketService.getOrCreateBucket(
-            dataLocationSelector.bucketForFile(datasetId, billingProfile),
-            projectResource,
-            flightId);
+        List<UUID> bucketsForDataset = datasetBucketDao.getBucketForDatasetId(UUID.fromString(datasetId));
+        String bucketName = dataLocationSelector.bucketForFile(datasetId, billingProfile);
+
+        List<GoogleBucketResource> bucketsForBillingProfile = bucketsForDataset.stream()
+            .map(bucketUUID -> lookupBucket(bucketUUID.toString()))
+            .filter(bucket -> bucketIsForBillingProfile(bucket, billingProfile))
+        .collect(Collectors.toList());
+
+        if (bucketsForBillingProfile.size() > 0) {
+            GoogleBucketResource bucket = bucketsForBillingProfile.get(0);
+            bucketName = bucket.getName();
+        }
+
+        return bucketService.getOrCreateBucket(bucketName, projectResource, flightId);
+    }
+
+    private boolean bucketIsForBillingProfile(GoogleBucketResource bucket, BillingProfileModel billingProfile) {
+        GoogleProjectResource resource = bucket.getProjectResource();
+        UUID billingProfileId = UUID.fromString(billingProfile.getId());
+        return resource.getProfileId().equals(billingProfileId);
     }
 
     /**

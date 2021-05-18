@@ -1,21 +1,24 @@
 package bio.terra.service.dataset;
 
+import static bio.terra.common.DaoUtils.retryQuery;
+
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.UUID;
-
-import static bio.terra.common.DaoUtils.retryQuery;
 
 /* A NOTE ON CONCURRENCY CONTROL FOR THE DATASET BUCKET TABLE
  * The successful_ingest counter is a concurrency control mechanism to avoid locking the dataset-bucket row.
@@ -59,6 +62,9 @@ public class DatasetBucketDao {
     private static final String sqlDeleteLink =
         "DELETE FROM dataset_bucket" + whereClause;
 
+    private static final String sqlGetBucketResourceId =
+        "SELECT bucket_resource_id FROM dataset_bucket WHERE dataset_id = :dataset_id";
+
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -99,6 +105,12 @@ public class DatasetBucketDao {
         return (count == 1);
     }
 
+    public List<UUID> getBucketForDatasetId(UUID datasetId) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("dataset_id", datasetId);
+        return jdbcTemplate.query(sqlGetBucketResourceId, params, new DatasetBucketMapper());
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     int datasetBucketSuccessfulIngestCount(UUID datasetId, UUID bucketResourceId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -130,5 +142,11 @@ public class DatasetBucketDao {
             throw dataAccessException;
         }
 
+    }
+
+    private static class DatasetBucketMapper implements RowMapper<UUID> {
+        public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return rs.getObject("bucket_resource_id", UUID.class);
+        }
     }
 }

@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UsersBase {
 
     @Autowired
-    private Users users;
+    Users users;
 
     @Autowired
     private AuthService authService;

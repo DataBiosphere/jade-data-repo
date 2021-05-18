@@ -2,7 +2,6 @@ package bio.terra.service.search;
 
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
-<<<<<<< HEAD
 import bio.terra.service.search.exception.SearchException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -116,20 +115,5 @@ public class SearchService {
         createIndexMapping(indexName, values);
         addIndexData(indexName, values);
         return getIndexSummary(indexName);
-=======
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-@Component
-public class SearchService {
-
-    @Autowired
-    public SearchService() {
-        // empty constructor
-    }
-
-    public SearchIndexModel indexSnapshot(SearchIndexRequest searchIndexRequest) {
-        return new SearchIndexModel();
->>>>>>> 9a3a0987 (Add SearchService implementation)
     }
 }

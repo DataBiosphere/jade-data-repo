@@ -402,7 +402,6 @@ public class BigQueryPdao {
         BigQueryProject datasetBigQueryProject = bigQueryProjectForDataset(
             snapshot.getFirstSnapshotSource().getDataset());
         String datasetProjectId = datasetBigQueryProject.getProjectId();
-        BigQuery datasetBigQuery = datasetBigQueryProject.getBigQuery();
 
         String snapshotName = snapshot.getName();
         BigQuery snapshotBigQuery = snapshotBigQueryProject.getBigQuery();

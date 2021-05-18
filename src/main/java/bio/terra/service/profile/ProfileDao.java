@@ -3,6 +3,7 @@ package bio.terra.service.profile;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.service.profile.exception.ProfileInUseException;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -30,7 +32,8 @@ public class ProfileDao {
 
     // SQL select string constants
     private static final String SQL_SELECT_LIST =
-        "id, name, biller, billing_account_id, description, created_date, created_by";
+        "id, name, biller, billing_account_id, description, cloud_platform, " +
+            "tenant, subscription, resource_group, created_date, created_by";
 
     private static final String SQL_GET = "SELECT " + SQL_SELECT_LIST
         + " FROM billing_profile WHERE id = :id";
@@ -55,15 +58,33 @@ public class ProfileDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public BillingProfileModel createBillingProfile(BillingProfileRequestModel profileRequest, String creator) {
         String sql = "INSERT INTO billing_profile"
-            + " (id, name, biller, billing_account_id, description, created_by) VALUES "
-            + " (:id, :name, :biller, :billing_account_id, :description, :created_by)";
+            + " (id, name, biller, billing_account_id, description, cloud_platform, " +
+            "     tenant, subscription, resource_group, created_by) VALUES "
+            + " (:id, :name, :biller, :billing_account_id, :description, :cloud_platform, " +
+            "     :tenant, :subscription, :resource_group, :created_by)";
+
+        String cloudPlatform = Optional.ofNullable(profileRequest.getCloudPlatform())
+            .or(() -> Optional.of(CloudPlatform.GCP))
+            .map(Enum::name)
+            .get();
+        UUID tenant = Optional.ofNullable(profileRequest.getTenant()).map(UUID::fromString).orElse(null);
+        UUID subscription = Optional.ofNullable(profileRequest.getSubscription())
+            .map(UUID::fromString).orElse(null);
+        UUID resourceGroup = Optional.ofNullable(profileRequest.getResourceGroup())
+            .map(UUID::fromString).orElse(null);
+
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("id", UUID.fromString(profileRequest.getId()))
             .addValue("name", profileRequest.getProfileName())
             .addValue("biller", profileRequest.getBiller())
             .addValue("billing_account_id", profileRequest.getBillingAccountId())
             .addValue("description", profileRequest.getDescription())
+            .addValue("cloud_platform", cloudPlatform)
+            .addValue("tenant", tenant)
+            .addValue("subscription", subscription)
+            .addValue("resource_group", resourceGroup)
             .addValue("created_by", creator);
+
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
 
@@ -73,6 +94,10 @@ public class ProfileDao {
             .biller(keyHolder.getString("biller"))
             .billingAccountId(keyHolder.getString("billing_account_id"))
             .description(keyHolder.getString("description"))
+            .cloudPlatform(CloudPlatform.valueOf(keyHolder.getString("cloud_platform")))
+            .tenant(keyHolder.getString("tenant"))
+            .subscription(keyHolder.getString("subscription"))
+            .resourceGroup(keyHolder.getString("resource_group"))
             .createdBy(keyHolder.getString("created_by"))
             .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
     }
@@ -102,6 +127,10 @@ public class ProfileDao {
             .biller(keyHolder.getString("biller"))
             .billingAccountId(keyHolder.getString("billing_account_id"))
             .description(keyHolder.getString("description"))
+            .cloudPlatform(CloudPlatform.valueOf(keyHolder.getString("cloud_platform")))
+            .tenant(keyHolder.getString("tenant"))
+            .subscription(keyHolder.getString("subscription"))
+            .resourceGroup(keyHolder.getString("resource_group"))
             .createdBy(keyHolder.getString("created_by"))
             .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
     }
@@ -171,6 +200,10 @@ public class ProfileDao {
                 .biller(rs.getString("biller"))
                 .billingAccountId(rs.getString("billing_account_id"))
                 .description(rs.getString("description"))
+                .cloudPlatform(CloudPlatform.valueOf(rs.getString("cloud_platform")))
+                .tenant(rs.getString("tenant"))
+                .subscription(rs.getString("subscription"))
+                .resourceGroup(rs.getString("resource_group"))
                 .createdDate(rs.getTimestamp("created_date").toInstant().toString())
                 .createdBy(rs.getString("created_by"));
         }

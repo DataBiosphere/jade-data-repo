@@ -1,6 +1,8 @@
 package bio.terra.service.profile;
 
+import bio.terra.common.ValidationUtils;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.CloudPlatform;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
@@ -34,10 +36,41 @@ public class ProfileRequestValidator implements Validator {
                 errors.rejectValue("id",
                     "The billing profile id must be specified");
             }
+            isValidCloudPlatform(billingProfileRequestModel, errors);
         }
     }
 
     public static boolean isValidAccountId(String billingAccountId) {
         return Pattern.matches(VALID_BILLING_ACCOUNT_ID_REGEX, billingAccountId);
+    }
+
+    public static void isValidCloudPlatform(BillingProfileRequestModel billingProfileRequestModel, Errors errors) {
+        if (billingProfileRequestModel.getCloudPlatform() == CloudPlatform.AZURE) {
+            String errorCode = "For Azure, a valid UUID `%s` must be provided";
+            if (billingProfileRequestModel.getTenant() == null ||
+                !ValidationUtils.isValidUuid(billingProfileRequestModel.getTenant())) {
+                errors.rejectValue("tenant", String.format(errorCode, "tenant"));
+            }
+            if (billingProfileRequestModel.getSubscription() == null ||
+                !ValidationUtils.isValidUuid(billingProfileRequestModel.getSubscription())) {
+                errors.rejectValue("subscription", String.format(errorCode, "subscription"));
+            }
+            if (billingProfileRequestModel.getResourceGroup() == null ||
+                !ValidationUtils.isValidUuid(billingProfileRequestModel.getResourceGroup())) {
+                errors.rejectValue("resourceGroup", String.format(errorCode, "resourceGroup"));
+            }
+        } else {
+            // GCP is the default cloud platform, so there should be no Azure info from here on.
+            String errorCode = "For GCP, no Azure information should be provided";
+            if (billingProfileRequestModel.getTenant() != null) {
+                errors.rejectValue("tenant", errorCode);
+            }
+            if (billingProfileRequestModel.getSubscription() != null) {
+                errors.rejectValue("subscription", errorCode);
+            }
+            if (billingProfileRequestModel.getResourceGroup() != null) {
+                errors.rejectValue("resourceGroup", errorCode);
+            }
+        }
     }
 }

@@ -5,6 +5,7 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.ProfileService;
@@ -25,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -62,6 +63,47 @@ public class ProfileDaoTest {
         UUID profileId = UUID.fromString(billingProfileModel.getId());
         profileIds.add(profileId);
         return billingProfileModel;
+    }
+
+    @Test
+    public void profileCloudProvidersTest() throws Exception {
+        BillingProfileModel googleBillingProfile = makeProfile();
+        String tenant = UUID.randomUUID().toString();
+        String subscription = UUID.randomUUID().toString();
+        String resourceGroup = UUID.randomUUID().toString();
+        BillingProfileRequestModel azureBillingProfileRequest = ProfileFixtures.randomBillingProfileRequest()
+            .cloudPlatform(CloudPlatform.AZURE)
+            .tenant(tenant)
+            .subscription(subscription)
+            .resourceGroup(resourceGroup);
+        BillingProfileModel azureBillingProfile =
+            profileDao.createBillingProfile(azureBillingProfileRequest, "me@me.me");
+        UUID azureProfileId = UUID.fromString(azureBillingProfile.getId());
+        profileIds.add(azureProfileId);
+
+        BillingProfileModel retrievedGoogleBillingProfile =
+            profileDao.getBillingProfileById(UUID.fromString(googleBillingProfile.getId()));
+        BillingProfileModel retrievedAzureBillingProfile =
+            profileDao.getBillingProfileById(UUID.fromString(azureBillingProfile.getId()));
+
+        assertThat("GCP is the default cloud platform",
+            retrievedGoogleBillingProfile.getCloudPlatform(),
+            equalTo(CloudPlatform.GCP));
+
+        assertThat("GCP billing profile does not have tenant, subscription, and resourceGroup",
+            new String[]{retrievedGoogleBillingProfile.getTenant(), retrievedGoogleBillingProfile.getSubscription(),
+                retrievedGoogleBillingProfile.getResourceGroup()},
+            equalTo(new String[]{null, null, null}));
+
+        assertThat("Azure cloud platform is correctly stored",
+            retrievedAzureBillingProfile.getCloudPlatform(),
+            equalTo(CloudPlatform.AZURE));
+
+        assertThat("Azure billing profile has tenant, subscription, and resourceGroup",
+            new String[]{retrievedAzureBillingProfile.getTenant(), retrievedAzureBillingProfile.getSubscription(),
+                retrievedAzureBillingProfile.getResourceGroup()},
+            equalTo(new String[]{tenant, subscription, resourceGroup}));
+
     }
 
     @Test(expected = ProfileNotFoundException.class)

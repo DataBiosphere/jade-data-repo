@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: azure_billing_information
+      author: tl
+      changes:
+        - addColumn:
+            tableName: billing_profile
+            columns:
+              - column:
+                  name: cloud_platform
+                  type: ${identifier_type}
+                  defaultValue: "GCP"
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tenant
+                  type: ${uuid_type}
+              - column:
+                  name: subscription
+                  type: ${uuid_type}
+              - column:
+                  name: resource_group
+                  type: ${uuid_type}

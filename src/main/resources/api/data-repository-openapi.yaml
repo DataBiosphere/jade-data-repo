@@ -4027,23 +4027,23 @@ components:
     ##############################################################################
     SearchIndexRequest:
       required:
-        - sqlQuery
+        - sql
       type: object
       properties:
-        sqlQuery:
+        sql:
           type: string
           description: >
-            SQL to index BigQuery columns into Elasticsearch
+            SQL to index BigQuery columns for searching
     SearchIndexModel:
       type: object
       properties:
         indexSummary:
           type: string
-          description: Summary of this index from Elasticsearch
+          description: Summary of this index for searching
     SearchQueryRequest:
       required:
         - snapshotIds
-        - esQuery
+        - query
       type: object
       properties:
         snapshotIds:
@@ -4051,16 +4051,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UniqueIdProperty'
-        esQuery:
+        query:
           type: string
           description: >
-            Elasticsearch query to search against snapshot indices
+            Query to search against snapshot indices
     SearchQueryResultModel:
       type: object
       properties:
-        esResult:
+        result:
           type: string
-          description: Elasticsearch results that match the filter criteria
+          description: Result that matches the search criteria
       description: >
         The available search results that match the filter criteria
 

@@ -1,6 +1,7 @@
 package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
@@ -10,7 +11,6 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
-import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -1589,6 +1589,16 @@ public class BigQueryPdao {
                     String.format("Could not match %s row ids for table %s", numMismatched, tableName));
             }
         }
+    }
+
+    /*
+     * WARNING: Ensure SQL is validated before executing this method!
+     */
+    public List<Map<String, Object>> getSnapshotTableData(Snapshot snapshot,
+                                                          String sql) throws InterruptedException {
+        final BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        TableResult result = bigQueryProject.query(sql);
+        return new ArrayList<>();
     }
 
     // we select from the live view here so that the row counts take into account rows that have been hard deleted

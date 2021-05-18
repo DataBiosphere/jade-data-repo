@@ -1,5 +1,6 @@
 package bio.terra.app.controller;
 
+import bio.terra.app.controller.exception.ApiException;
 import bio.terra.controller.SearchApi;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
@@ -77,10 +78,14 @@ public class SearchApiController implements SearchApi {
         @PathVariable("id") String id,
         @Valid @RequestBody SearchIndexRequest searchIndexRequest
     ) {
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET,  id, IamAction.LINK_SNAPSHOT);
         Snapshot snapshot = snapshotService.retrieve(UUID.fromString(id));
-        SearchIndexModel searchIndexModel = searchService.indexSnapshot(snapshot, searchIndexRequest);
-        return new ResponseEntity<>(searchIndexModel, HttpStatus.OK);
+        try {
+            SearchIndexModel searchIndexModel = searchService.indexSnapshot(snapshot, searchIndexRequest);
+            return new ResponseEntity<>(searchIndexModel, HttpStatus.OK);
+        } catch (InterruptedException e) {
+            throw new ApiException("Could not generate index for snapshot " + id, e);
+        }
     }
 
     @Override

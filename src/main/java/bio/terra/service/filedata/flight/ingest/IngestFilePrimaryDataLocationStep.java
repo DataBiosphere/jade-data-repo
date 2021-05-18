@@ -37,7 +37,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
             try {
                 GoogleBucketResource bucketForFile =
                     resourceService.getOrCreateBucketForFile(
-                        dataset.getName(),
+                        dataset,
                         billingProfile,
                         context.getFlightId());
                 workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);

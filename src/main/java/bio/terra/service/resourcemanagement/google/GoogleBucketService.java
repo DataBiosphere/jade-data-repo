@@ -1,8 +1,8 @@
 package bio.terra.service.resourcemanagement.google;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
@@ -34,7 +34,6 @@ public class GoogleBucketService {
 
     private final GoogleResourceDao resourceDao;
     private final GcsProjectFactory gcsProjectFactory;
-    private final GcsConfiguration gcsConfiguration;
     private final ConfigurationService configService;
 
     @Autowired
@@ -44,11 +43,9 @@ public class GoogleBucketService {
     public GoogleBucketService(
         GoogleResourceDao resourceDao,
         GcsProjectFactory gcsProjectFactory,
-        GcsConfiguration gcsConfiguration,
         ConfigurationService configService) {
         this.resourceDao = resourceDao;
         this.gcsProjectFactory = gcsProjectFactory;
-        this.gcsConfiguration = gcsConfiguration;
         this.configService = configService;
     }
 
@@ -142,6 +139,7 @@ public class GoogleBucketService {
      */
     public GoogleBucketResource getOrCreateBucket(String bucketName,
                                                   GoogleProjectResource projectResource,
+                                                  GoogleRegion region,
                                                   String flightId)
         throws InterruptedException {
 
@@ -170,7 +168,7 @@ public class GoogleBucketService {
                 // bucket exists, but metadata record does not exist.
                 if (allowReuseExistingBuckets) {
                     // CASE 4: go ahead and reuse the bucket and its location
-                    return createMetadataRecord(bucketName, projectResource, flightId);
+                    return createMetadataRecord(bucketName, projectResource, region, flightId);
                 } else {
                     // CASE 5:
                     throw new CorruptMetadataException(
@@ -194,7 +192,7 @@ public class GoogleBucketService {
                 return createCloudBucket(googleBucketResource, flightId);
             } else {
                 // CASE 9: no bucket and no record
-                return createMetadataRecord(bucketName, projectResource, flightId);
+                return createMetadataRecord(bucketName, projectResource, region, flightId);
             }
         }
     }
@@ -206,12 +204,13 @@ public class GoogleBucketService {
     // Step 1 of creating a new bucket - create and lock the metadata record
     private GoogleBucketResource createMetadataRecord(String bucketName,
                                                       GoogleProjectResource projectResource,
+                                                      GoogleRegion region,
                                                       String flightId)
         throws InterruptedException {
 
         // insert a new bucket_resource row and lock it
         GoogleBucketResource googleBucketResource =
-            resourceDao.createAndLockBucket(bucketName, projectResource, flightId);
+            resourceDao.createAndLockBucket(bucketName, projectResource, region, flightId);
         if (googleBucketResource == null) {
             // We tried and failed to get the lock. So we ended up in CASE 2 after all.
             throw bucketLockException(flightId);
@@ -289,7 +288,7 @@ public class GoogleBucketService {
             //.setRequesterPays()
             // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
             .setStorageClass(StorageClass.REGIONAL)
-            .setLocation(gcsConfiguration.getRegion())
+            .setLocation(bucketResource.getRegion().toString())
             .setVersioningEnabled(doVersioning)
             .build();
         // the project will have been created before this point, so no need to fetch it
@@ -304,7 +303,7 @@ public class GoogleBucketService {
      * @param bucketName name of the bucket to retrieve
      * @return a reference to the bucket as a GCS Bucket object, null if not found
      */
-    private Bucket getCloudBucket(String bucketName) {
+    Bucket getCloudBucket(String bucketName) {
         Storage storage = StorageOptions.getDefaultInstance().getService();
         try {
             return storage.get(bucketName);

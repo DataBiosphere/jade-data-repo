@@ -1,6 +1,7 @@
 package bio.terra.service.iam.sam;
 
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.RepositoryStatusModelSystems;
@@ -45,6 +46,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -80,15 +82,23 @@ public class SamIam implements IamProviderInterface {
         return apiClient;
     }
 
-    private ResourcesApi samResourcesApi(String accessToken) {
+    @VisibleForTesting
+    ResourcesApi samResourcesApi(String accessToken) {
         return new ResourcesApi(getApiClient(accessToken));
     }
 
-    private GoogleApi samGoogleApi(String accessToken) {
+    @VisibleForTesting
+    StatusApi samStatusApi() {
+        return new StatusApi(getUnauthApiClient());
+    }
+
+    @VisibleForTesting
+    GoogleApi samGoogleApi(String accessToken) {
         return new GoogleApi(getApiClient(accessToken));
     }
 
-    private UsersApi samUsersApi(String accessToken) {
+    @VisibleForTesting
+    UsersApi samUsersApi(String accessToken) {
         return new UsersApi(getApiClient(accessToken));
     }
 
@@ -133,7 +143,11 @@ public class SamIam implements IamProviderInterface {
         try (Stream<ResourceAndAccessPolicy> resultStream =
                  samResourceApi.listResourcesAndPolicies(iamResourceType.toString()).stream()) {
             return resultStream
-                .map(resource -> UUID.fromString(resource.getResourceId()))
+                .map(ResourceAndAccessPolicy::getResourceId)
+                // Convert valid UUID's to Optional<UUID> objects
+                .map(ValidationUtils::convertToUuid)
+                // Only return valid values
+                .flatMap(Optional::stream)
                 .collect(Collectors.toList());
         }
     }
@@ -312,6 +326,7 @@ public class SamIam implements IamProviderInterface {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug("SAM request: " + req.toString());
 
+        // Simply ensure that the call can complete
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.SPEND_PROFILE.toString(), req);
     }
 
@@ -569,7 +584,7 @@ public class SamIam implements IamProviderInterface {
     public RepositoryStatusModelSystems samStatus() {
         try {
             return SamRetry.retry(configurationService, () -> {
-                StatusApi samApi = new StatusApi(getUnauthApiClient());
+                StatusApi samApi = samStatusApi();
                 SystemStatus status = samApi.getSystemStatus();
                 return new RepositoryStatusModelSystems()
                     .ok(status.getOk())

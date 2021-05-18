@@ -10,6 +10,7 @@ import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
@@ -39,6 +40,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -370,4 +372,21 @@ public class DatasetServiceTest {
 
         datasetDao.delete(datasetId);
     }
+
+    @Test
+    public void retrieveDatasetDefault() throws SQLException, IOException {
+        UUID datasetId = createDataset("dataset-create-test.json");
+        Dataset dataset = datasetDao.retrieve(datasetId);
+        assertThat(
+            "dataset info defaults are expected",
+            datasetService.retrieveModel(dataset),
+            equalTo(datasetService.retrieveModel(dataset, List.of(
+                DatasetRequestAccessIncludeModel.SCHEMA,
+                DatasetRequestAccessIncludeModel.PROFILE,
+                DatasetRequestAccessIncludeModel.DATA_PROJECT,
+                DatasetRequestAccessIncludeModel.STORAGE
+            )))
+        );
+    }
+
 }

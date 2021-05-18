@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
@@ -11,6 +12,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
@@ -34,7 +36,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -168,6 +172,16 @@ public class DatasetDaoTest {
                 fromDB.getAssetSpecifications().size(),
                 equalTo(2));
             fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+
+            Map<GoogleCloudResource, StorageResource> storageMap = fromDB.getDatasetSummary().getStorage().stream()
+                .collect(Collectors.toMap(StorageResource::getCloudResource, Function.identity()));
+
+            for (GoogleCloudResource cloudResource : GoogleCloudResource.values()) {
+                StorageResource storage = storageMap.get(cloudResource);
+                assertThat(String.format("dataset %s region is set", storage.getCloudResource()),
+                    storage.getRegion(),
+                    equalTo(GoogleRegion.US_CENTRAL1));
+            }
         } finally {
             datasetDao.delete(datasetId);
         }

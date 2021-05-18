@@ -12,6 +12,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetModelValidator;
@@ -56,6 +57,8 @@ import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 public class SnapshotsApiController implements SnapshotsApi {
 
     private Logger logger = LoggerFactory.getLogger(SnapshotsApiController.class);
+
+    public static final String RETRIEVE_INCLUDE_DEFAULT_VALUE = "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT";
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
@@ -171,9 +174,16 @@ public class SnapshotsApiController implements SnapshotsApi {
     }
 
     @Override
-    public ResponseEntity<SnapshotModel> retrieveSnapshot(@PathVariable("id") String id) {
+    public ResponseEntity<SnapshotModel> retrieveSnapshot(
+        @PathVariable("id") String id,
+        @Valid @RequestParam(
+            value = "include",
+            required = false,
+            defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE
+        ) List<SnapshotRequestAccessIncludeModel> include
+    ) {
         iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
-        SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(UUID.fromString(id));
+        SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(UUID.fromString(id), include);
         return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
     }
 

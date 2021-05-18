@@ -97,8 +97,8 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.77
-          helm_datarepo_ui_chart_version: 0.0.74
+          helm_datarepo_api_chart_version: 0.0.83
+          helm_datarepo_ui_chart_version: 0.0.75
           helm_gcloud_sqlproxy_chart_version: 0.19.7
           helm_oidc_proxy_chart_version: 0.0.22
       - name: "Fetch gitHash for deployed integration version"
@@ -113,7 +113,6 @@ jobs:
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
-      #TODO - add back tests in PRSmokeTests.json after DR-1775 is addressed
       - name: "Run Test Runner smoke tests via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.60.0
         with:

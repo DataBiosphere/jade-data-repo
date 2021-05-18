@@ -1,6 +1,11 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
+import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
+
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public class DatasetSummary {
@@ -10,6 +15,7 @@ public class DatasetSummary {
     private UUID defaultProfileId;
     private UUID projectResourceId;
     private Instant createdDate;
+    private List<StorageResource> storage;
 
     public UUID getId() {
         return id;
@@ -63,5 +69,23 @@ public class DatasetSummary {
     public DatasetSummary createdDate(Instant createdDate) {
         this.createdDate = createdDate;
         return this;
+    }
+
+    public List<StorageResource> getStorage() {
+        return storage;
+    }
+
+    public DatasetSummary storage(List<StorageResource> storage) {
+        this.storage = storage;
+        return this;
+    }
+
+    public GoogleRegion getStorageResourceRegion(GoogleCloudResource storageResource) {
+        return storage.stream()
+            .filter(resource -> resource.getCloudResource() == storageResource)
+            .findFirst()
+            .map(StorageResource::getRegion)
+            .orElseThrow(() -> new StorageResourceNotFoundException(
+                String.format("%s could not be found for %s ", storageResource, id)));
     }
 }

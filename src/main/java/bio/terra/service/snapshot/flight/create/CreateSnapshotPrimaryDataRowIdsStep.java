@@ -39,10 +39,9 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) throws InterruptedException {
-        // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
         SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-        SnapshotSource source = snapshot.getSnapshotSources().get(0);
+        SnapshotSource source = snapshot.getFirstSnapshotSource();
         SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
 
         // for each table, make sure all of the row ids match

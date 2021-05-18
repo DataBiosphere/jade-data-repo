@@ -170,7 +170,7 @@ public class GoogleBucketService {
                 // bucket exists, but metadata record does not exist.
                 if (allowReuseExistingBuckets) {
                     // CASE 4: go ahead and reuse the bucket and its location
-                    return createMetadataRecord(bucketName, bucket.getLocation(), projectResource, flightId);
+                    return createMetadataRecord(bucketName, projectResource, flightId);
                 } else {
                     // CASE 5:
                     throw new CorruptMetadataException(
@@ -194,7 +194,7 @@ public class GoogleBucketService {
                 return createCloudBucket(googleBucketResource, flightId);
             } else {
                 // CASE 9: no bucket and no record
-                return createMetadataRecord(bucketName, gcsConfiguration.getRegion(), projectResource, flightId);
+                return createMetadataRecord(bucketName, projectResource, flightId);
             }
         }
     }
@@ -205,14 +205,13 @@ public class GoogleBucketService {
 
     // Step 1 of creating a new bucket - create and lock the metadata record
     private GoogleBucketResource createMetadataRecord(String bucketName,
-                                                      String region,
                                                       GoogleProjectResource projectResource,
                                                       String flightId)
         throws InterruptedException {
 
         // insert a new bucket_resource row and lock it
         GoogleBucketResource googleBucketResource =
-            resourceDao.createAndLockBucket(bucketName, region, projectResource, flightId);
+            resourceDao.createAndLockBucket(bucketName, projectResource, flightId);
         if (googleBucketResource == null) {
             // We tried and failed to get the lock. So we ended up in CASE 2 after all.
             throw bucketLockException(flightId);

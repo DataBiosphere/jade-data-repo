@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.app.controller.exception.ApiException;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -58,7 +59,7 @@ public class SnapshotAuthzFileAclStep implements Step {
         //  step: one for each dataset. That is because each dataset keeps its file dependencies
         //  in its own scope. For now, we know there is exactly one dataset and we take shortcuts.
 
-        SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(0);
+        SnapshotSource snapshotSource = snapshot.getFirstSnapshotSource();
         String datasetId = snapshotSource.getDataset().getId().toString();
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 
@@ -73,12 +74,24 @@ public class SnapshotAuthzFileAclStep implements Step {
             // Now, how to figure out if the failure is due to IAM propagation delay. We know it will
             // be a 400 - bad request and the docs indicate the reason will be "badRequest". So for now
             // we will log alot and retry on that.
-            if (ex.getCode() == 400 && (StringUtils.equals(ex.getReason(), "badRequest") ||
-                 ex.getMessage().contains("Could not find group"))) {
-                logger.info("Maybe caught an ACL propagation error: " + ex.getMessage()
-                    + " reason: " + ex.getReason(), ex);
+            // Note from DR-1760 - Potentially could remove this catch, should be handled with ApiException below
+            logger.error("[SnapshotACLException] StorageException, potentially an ACL propagation error. " +
+                "Message: {}, Reason: {}", ex.getMessage(), ex.getReason());
+            if (ex.getCode() == 400 && (StringUtils.equals(ex.getReason(), "badRequest"))) {
+                logger.error("[SnapshotACLException] Retrying! Bad Request.");
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
             }
+            throw ex;
+        } catch (ApiException ex) {
+            // Most likely ACL propagation error
+            // DR-1760 - Documents example of failure and successful retry
+            logger.error("[SnapshotACLException] ApiException. Message: {}, Cause: {}", ex.getMessage(), ex.getCause());
+            if (ex.getCause().getMessage().contains("Could not find group")) {
+                logger.error("[SnapshotACLException] Retrying! 'Could not find group' exception - potentially" +
+                    "ACL propagation error.");
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
+            }
+            throw ex;
         }
 
         return StepResult.getStepResultSuccess();
@@ -96,7 +109,7 @@ public class SnapshotAuthzFileAclStep implements Step {
         //  step: one for each dataset. That is because each dataset keeps its file dependencies
         //  in its own scope. For now, we know there is exactly one dataset and we take shortcuts.
 
-        SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(0);
+        SnapshotSource snapshotSource = snapshot.getFirstSnapshotSource();
         String datasetId = snapshotSource.getDataset().getId().toString();
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 

@@ -36,4 +36,7 @@
     <include file="changesets/20201024_resourcemanagerrefactor3.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20201106_resourcedeletemarks.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20210304_allowlongdatasetandsnapshotnames.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20210426_datasetstorage.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20210426_datasetstoragemigration.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20210510_datasetstoragemigrationcorrected.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

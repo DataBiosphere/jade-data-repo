@@ -1,5 +1,6 @@
 package bio.terra.service.tabulardata.google;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import com.google.cloud.bigquery.Acl;
@@ -83,9 +84,10 @@ public final class BigQueryProject {
         }
     }
 
-    public DatasetId createDataset(String name, String description) {
+    public DatasetId createDataset(String name, String description, GoogleRegion region) {
         DatasetInfo datasetInfo = DatasetInfo.newBuilder(name)
             .setDescription(description)
+            .setLocation(region.toString())
             .build();
         return bigQuery.create(datasetInfo).getDatasetId();
     }

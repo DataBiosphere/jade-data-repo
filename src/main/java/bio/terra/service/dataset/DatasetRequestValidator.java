@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.PdaoConstant;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
@@ -38,6 +39,9 @@ import java.util.stream.Collectors;
  */
 @Component
 public class DatasetRequestValidator implements Validator {
+
+    private static final List<String> SUPPORTED_GOOGLE_REGIONS =
+        Arrays.stream(GoogleRegion.values()).map(GoogleRegion::toString).collect(Collectors.toUnmodifiableList());
 
     @Override
     public boolean supports(Class<?> clazz) {
@@ -363,6 +367,32 @@ public class DatasetRequestValidator implements Validator {
         }
     }
 
+    private void validateRegion(DatasetRequestModel datasetRequest, Errors errors) {
+        if (datasetRequest.getRegion() != null) {
+            if (datasetRequest.getCloudPlatform() == null) {
+                errors.rejectValue("region", "InvalidRegionForPlatform",
+                    "Cannot set a region when a cloudPlatform is not provided.");
+            } else {
+                boolean supported = false;
+                switch (datasetRequest.getCloudPlatform()) {
+                    case GCP:
+                        supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
+                        break;
+                    case AZURE:
+                        errors.rejectValue("cloudPlatform", "InvalidCloudPlatform",
+                            "Azure is not supported yet");
+                        return;
+                }
+                if (!supported) {
+                    errors.rejectValue("region", "InvalidRegionForPlatform",
+                        "Valid regions for " +
+                            datasetRequest.getCloudPlatform() +
+                            " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
+                }
+            }
+        }
+    }
+
     @Override
     public void validate(@NotNull Object target, Errors errors) {
         if (target != null && target instanceof DatasetRequestModel) {
@@ -372,6 +402,7 @@ public class DatasetRequestValidator implements Validator {
             if (schema != null) {
                 validateSchema(schema, errors);
             }
+            validateRegion(datasetRequest, errors);
         }
     }
 }

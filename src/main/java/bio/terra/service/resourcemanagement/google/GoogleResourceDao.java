@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement.google;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.profile.exception.ProfileInUseException;
@@ -18,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,7 +27,8 @@ import java.util.stream.Collectors;
 public class GoogleResourceDao {
     private static final Logger logger = LoggerFactory.getLogger(GoogleResourceDao.class);
     private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final String defaultRegion;
+    private final GoogleResourceConfiguration googleResourceConfiguration;
+    private final GoogleRegion defaultRegion;
 
     private static final String sqlProjectRetrieve = "SELECT id, google_project_id, google_project_number, profile_id" +
         " FROM project_resource";
@@ -39,10 +42,13 @@ public class GoogleResourceDao {
         " WHERE marked_for_delete = false AND profile_id = :profile_id";
 
     private static final String sqlBucketRetrieve =
-        "SELECT p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
-            " b.id AS bucket_resource_id, name, region, flightid" +
-            " FROM bucket_resource b JOIN project_resource p ON b.project_resource_id = p.id " +
-            " WHERE b.marked_for_delete = false";
+        "SELECT distinct p.id AS project_resource_id, google_project_id, google_project_number, profile_id," +
+            " b.id AS bucket_resource_id, name, sr.region as region, flightid " +
+            "FROM bucket_resource b " +
+            "JOIN project_resource p ON b.project_resource_id = p.id " +
+            "LEFT JOIN dataset_bucket db on b.id = db.bucket_resource_id " +
+            "LEFT JOIN storage_resource sr on db.dataset_id = sr.dataset_id AND sr.cloud_resource = 'BUCKET' " +
+            "WHERE b.marked_for_delete = false";
     private static final String sqlBucketRetrievedById = sqlBucketRetrieve + " AND b.id = :id";
     private static final String sqlBucketRetrievedByName = sqlBucketRetrieve + " AND b.name = :name";
 
@@ -86,9 +92,11 @@ public class GoogleResourceDao {
 
     @Autowired
     public GoogleResourceDao(NamedParameterJdbcTemplate jdbcTemplate,
-                             GcsConfiguration gcsConfiguration) throws SQLException {
+                             GcsConfiguration gcsConfiguration,
+                             GoogleResourceConfiguration googleResourceConfiguration) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
-        this.defaultRegion = gcsConfiguration.getRegion();
+        this.defaultRegion = GoogleRegion.fromValue(gcsConfiguration.getRegion());
+        this.googleResourceConfiguration = googleResourceConfiguration;
     }
 
     // -- project resource methods --
@@ -229,20 +237,18 @@ public class GoogleResourceDao {
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public GoogleBucketResource createAndLockBucket(String bucketName,
-                                                    String region,
                                                     GoogleProjectResource projectResource,
                                                     String flightId) {
         // Put an end to serialization errors here. We only come through here if we really need to create
         // the bucket, so this is not on the path of most bucket lookups.
         jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE bucket_resource IN EXCLUSIVE MODE");
 
-        String sql = "INSERT INTO bucket_resource (project_resource_id, name, region, flightid) VALUES " +
-            "(:project_resource_id, :name, :region, :flightid) " +
+        String sql = "INSERT INTO bucket_resource (project_resource_id, name, flightid) VALUES " +
+            "(:project_resource_id, :name, :flightid) " +
             "ON CONFLICT ON CONSTRAINT bucket_resource_name_key DO NOTHING";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("project_resource_id", projectResource.getId())
             .addValue("name", bucketName)
-            .addValue("region", region)
             .addValue("flightid", flightId);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
 
@@ -354,7 +360,9 @@ public class GoogleResourceDao {
                     .googleProjectNumber(rs.getString("google_project_number"))
                     .profileId(rs.getObject("profile_id", UUID.class));
 
-                String region = rs.getString("region");
+                GoogleRegion region = Optional.ofNullable(rs.getString("region"))
+                    .map(GoogleRegion::valueOf)
+                    .orElse(defaultRegion);
 
                 // Since storing the region was not in the original data, we supply the
                 // default if a value is not present.
@@ -363,10 +371,14 @@ public class GoogleResourceDao {
                     .resourceId(rs.getObject("bucket_resource_id", UUID.class))
                     .name(rs.getString("name"))
                     .flightId(rs.getString("flightid"))
-                    .region(region == null ? defaultRegion : region);
+                    .region(region);
             });
 
         if (bucketResources.size() > 1) {
+            //TODO This is only here because of the dev case. It should be removed when we start using RBS in dev.
+            if (googleResourceConfiguration.getAllowReuseExistingBuckets()) {
+                return bucketResources.get(0).region(defaultRegion);
+            }
             throw new CorruptMetadataException("Found more than one result for bucket resource: " +
                 bucketResources.get(0).getName());
         }

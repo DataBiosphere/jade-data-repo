@@ -616,6 +616,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: include
+          in: query
+          description: A list of what to include with the snapshot object
+          required: false
+          schema:
+            type: array
+            default: "SOURCES,TABLES,RELATIONSHIPS,PROFILE,DATA_PROJECT"
+            items:
+              $ref: '#/components/schemas/SnapshotRequestAccessIncludeModel'
       responses:
         200:
           description: Snapshot
@@ -1080,6 +1089,15 @@ paths:
           required: true
           schema:
             type: string
+        - name: include
+          in: query
+          description: A list of what to include with the dataset object
+          required: false
+          schema:
+            type: array
+            default: "SCHEMA,PROFILE,DATA_PROJECT,STORAGE"
+            items:
+              $ref: '#/components/schemas/DatasetRequestAccessIncludeModel'
       responses:
         200:
           description: Dataset
@@ -2380,6 +2398,111 @@ paths:
       x-codegen-request-body-name: upgrade
 
 ##############################################################################
+## SEARCH API STANDARD ENDPOINTS
+##############################################################################
+  /api/repository/v1/search/{id}/index:
+    post:
+      tags:
+        - search
+        - snapshots
+        - repository
+      description: Create a new search index for a snapshot
+      operationId: createSearchIndex
+      parameters:
+        - name: id
+          in: path
+          description: A UUID to used to identify an object in the repository
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Index to create from SQL
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchIndexRequest'
+        required: true
+      responses:
+        200:
+          description: Return index result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchIndexModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to see snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/search/query:
+    post:
+      tags:
+        - search
+        - snapshots
+        - repository
+      description: Run a query on the metadata of one or more snapshots
+      operationId: querySearchIndices
+      parameters:
+        - name: offset
+          in: query
+          description: The number of results to skip before retrieving the next
+            page
+          schema:
+            type: integer
+            default: 0
+        - name: limit
+          in: query
+          description: The number of search results to return
+          schema:
+            type: integer
+            default: 1000
+      requestBody:
+        description: Search query to run against one or more snapshots
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchQueryRequest'
+        required: true
+      responses:
+        200:
+          description: List of search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchQueryResultModel'
+        400:
+          description: Bad request - one or more invalid ids, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to see one or more snapshots
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - one or more snapshot ids do not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+##############################################################################
 ## DRS STANDARD ENDPOINTS
 ##############################################################################
   /ga4gh/drs/v1/service-info:
@@ -2682,6 +2805,12 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
+        storage:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorageResourceModel'
+        accessInformation:
+          $ref: '#/components/schemas/AccessInfoModel'
       description: >
         Complete definition of a dataset.
     DatasetSummaryModel:
@@ -2699,6 +2828,10 @@ components:
         createdDate:
           type: string
           description: Date the dataset was created
+        storage:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorageResourceModel'
       description: >
         Summary of a dataset.
     DatasetRequestModel:
@@ -2717,8 +2850,17 @@ components:
           $ref: '#/components/schemas/UniqueIdProperty'
         schema:
           $ref: '#/components/schemas/DatasetSpecificationModel'
+        region:
+          type: string
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
       description: >
         Complete definition of a dataset without the id (used to create a dataset)
+    DatasetRequestAccessIncludeModel:
+      type: string
+      description: >
+        Type of information to include in the response
+      enum: [ NONE, SCHEMA, ACCESS_INFORMATION, PROFILE, DATA_PROJECT, STORAGE ]
     EnumerateDatasetModel:
       type: object
       properties:
@@ -2882,6 +3024,18 @@ components:
         as the unique identifier. The list of relationships provides the instructions
         for how to connect the tables. Asset tables have to be connected in a relationship
         hierarchy. So there cannot be two paths to the same table from the root.
+    StorageResourceModel:
+      type: object
+      properties:
+        region:
+          type: string
+        cloudResource:
+          type: string
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
+      description: A model representing the cloud platform, region, and resource of a dataset's
+        infrastructure asset. This is only ever returned to the user, and at this point, is not
+        parsed or pased in as a post body.
     DatasetSpecificationModel:
       required:
         - tables
@@ -3358,6 +3512,11 @@ components:
             $ref: '#/components/schemas/UniqueIdProperty'
       description: >
         A specification of a table, columns, and row ids to go into a snapshot.
+    SnapshotRequestAccessIncludeModel:
+      type: string
+      description: >
+        Type of information to include in the response
+      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT ]
     SnapshotSummaryModel:
       type: object
       properties:
@@ -3417,8 +3576,80 @@ components:
         dataProject:
           type: string
           description: Project id of the snapshot data project
+        accessInformation:
+          $ref: '#/components/schemas/AccessInfoModel'
       description: >
         SnapshotModel returns detailed data about an existing snapshot.
+    AccessInfoModel:
+      type: object
+      description: >
+        How to access the metadata for a snapshot or dataset
+      properties:
+        bigQuery:
+          $ref: '#/components/schemas/AccessInfoBigQueryModel'
+    AccessInfoBigQueryModel:
+      description: >
+        General information on where snapshot or dataset tabular data lives in BigQuery
+      type: object
+      required:
+        - datasetName
+        - datasetId
+        - projectId
+        - link
+        - tables
+      properties:
+        datasetName:
+          type: string
+          description: >
+            Name of the BigQuery dataset where snapshot or dataset tabular data lives
+        datasetId:
+          type: string
+          description: >
+            Unique ID of the BigQuery dataset where snapshot or dataset tabular data lives
+        projectId:
+          type: string
+          description: >
+            Project id of the project where tabular data in BigQuery lives
+        link:
+          type: string
+          description: >
+            The link to access the BigQuery dataset UI in Google Cloud console
+        tables:
+          type: array
+          description: >
+            Information on each table in the BigQuery dataset
+          items:
+            $ref: '#/components/schemas/AccessInfoBigQueryModelTable'
+    AccessInfoBigQueryModelTable:
+      type: object
+      description: >
+        Information on a snapshot or dataset table in a BigQuery dataset
+      required:
+        - name
+        - id
+        - sampleQuery
+        - qualifiedName
+      properties:
+        name:
+          type: string
+          description: >
+            The name of the BigQuery table
+        id:
+          type: string
+          description: >
+            The unique id of the BigQuery table
+        qualifiedName:
+          type: string
+          description: >
+            The fully qualified name of the BigQuery table
+        link:
+          type: string
+          description: >
+            The link to access the BigQuery table UI in Google Cloud console
+        sampleQuery:
+          type: string
+          description: >
+            An example query that can be used to select data from this table
     SnapshotSourceModel:
       required:
         - asset
@@ -3784,6 +4015,54 @@ components:
         endTime:
           type: string
           description: Timestamp the upgrade completed
+
+    CloudPlatform:
+      type: string
+      enum: [ gcp, azure ]
+      default: gcp
+      description: Cloud platforms supported by TDR.
+
+    ##############################################################################
+    ## SEARCH API STANDARD MODELS
+    ##############################################################################
+    SearchIndexRequest:
+      required:
+        - sqlQuery
+      type: object
+      properties:
+        sqlQuery:
+          type: string
+          description: >
+            SQL to index BigQuery columns into Elasticsearch
+    SearchIndexModel:
+      type: object
+      properties:
+        indexSummary:
+          type: string
+          description: Summary of this index from Elasticsearch
+    SearchQueryRequest:
+      required:
+        - snapshotIds
+        - esQuery
+      type: object
+      properties:
+        snapshotIds:
+          minItems: 1
+          type: array
+          items:
+            $ref: '#/components/schemas/UniqueIdProperty'
+        esQuery:
+          type: string
+          description: >
+            Elasticsearch query to search against snapshot indices
+    SearchQueryResultModel:
+      type: object
+      properties:
+        esResult:
+          type: string
+          description: Elasticsearch results that match the filter criteria
+      description: >
+        The available search results that match the filter criteria
 
     ##############################################################################
     ## DRS STANDARD MODELS

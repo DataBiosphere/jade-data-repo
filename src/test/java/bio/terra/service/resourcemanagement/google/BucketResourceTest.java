@@ -145,8 +145,8 @@ public class BucketResourceTest {
             // Get the Bucket
             Bucket cloudBucket = bucketService.getCloudBucket(bucketName);
 
-            assertEquals("Google bucket was created in " + region, region.toString().toLowerCase(),
-                cloudBucket.getLocation().toLowerCase());
+            assertThat("Google bucket was created in " + region, cloudBucket.getLocation(), 
+                equalToIgnoringCase(region.toString()));
 
             // delete the bucket and metadata
             deleteBucket(bucketResource);

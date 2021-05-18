@@ -21,13 +21,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -91,18 +96,18 @@ public class ProfileDaoTest {
             equalTo(CloudPlatform.GCP));
 
         assertThat("GCP billing profile does not have tenant, subscription, and resourceGroup",
-            new String[]{retrievedGoogleBillingProfile.getTenant(), retrievedGoogleBillingProfile.getSubscription(),
-                retrievedGoogleBillingProfile.getResourceGroup()},
-            equalTo(new String[]{null, null, null}));
+            Arrays.asList(retrievedGoogleBillingProfile.getTenant(), retrievedGoogleBillingProfile.getSubscription(),
+                retrievedGoogleBillingProfile.getResourceGroup()),
+            everyItem(is(emptyOrNullString())));
 
         assertThat("Azure cloud platform is correctly stored",
             retrievedAzureBillingProfile.getCloudPlatform(),
             equalTo(CloudPlatform.AZURE));
 
         assertThat("Azure billing profile has tenant, subscription, and resourceGroup",
-            new String[]{retrievedAzureBillingProfile.getTenant(), retrievedAzureBillingProfile.getSubscription(),
-                retrievedAzureBillingProfile.getResourceGroup()},
-            equalTo(new String[]{tenant, subscription, resourceGroup}));
+            List.of(retrievedAzureBillingProfile.getTenant(), retrievedAzureBillingProfile.getSubscription(),
+                retrievedAzureBillingProfile.getResourceGroup()),
+            contains(tenant, subscription, resourceGroup));
 
     }
 

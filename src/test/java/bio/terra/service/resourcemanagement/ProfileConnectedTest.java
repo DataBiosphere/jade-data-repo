@@ -25,8 +25,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -71,6 +73,32 @@ public class ProfileConnectedTest {
     }
 
     @Test
+    public void testAzureBillingProfile() throws Exception {
+        var tenant = UUID.randomUUID().toString();
+        var subscription = UUID.randomUUID().toString();
+        var resourceGroup = UUID.randomUUID().toString();
+        var requestModel = ProfileFixtures.randomBillingProfileRequest()
+            .billingAccountId(testConfig.getGoogleBillingAccountId())
+            .cloudPlatform(CloudPlatform.AZURE)
+            .tenant(tenant)
+            .subscription(subscription)
+            .resourceGroup(resourceGroup);
+
+        var profile = connectedOperations.createProfile(requestModel);
+
+        var retrievedProfile = connectedOperations.getProfileById(profile.getId());
+
+        assertThat("The response has the correct cloudPlatform",
+            retrievedProfile.getCloudPlatform(),
+            equalTo(CloudPlatform.AZURE));
+
+        assertThat("Azure billing profile has tenant, subscription, and resourceGroup",
+            List.of(retrievedProfile.getTenant(), retrievedProfile.getSubscription(),
+                retrievedProfile.getResourceGroup()),
+            contains(tenant, subscription, resourceGroup));
+    }
+
+    @Test
     public void testGoogleInvalidAzureParams() throws Exception {
         var gcpRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .cloudPlatform(CloudPlatform.GCP)
@@ -86,7 +114,7 @@ public class ProfileConnectedTest {
         for (var requestModel : List.of(gcpRequestModel, defaultRequestModel)) {
             var errorModel = connectedOperations.createProfileExpectError(requestModel, HttpStatus.BAD_REQUEST);
 
-            assertThat("There are 3 errors returned", errorModel.getErrorDetail().size(), equalTo(3));
+            assertThat("There are 3 errors returned", errorModel.getErrorDetail(), iterableWithSize(3));
 
             assertThat("GCP request returns tenant error if supplied",
                 errorModel.getErrorDetail(),
@@ -107,7 +135,7 @@ public class ProfileConnectedTest {
         var missingParams = connectedOperations
             .createProfileExpectError(azureRequestModel, HttpStatus.BAD_REQUEST);
 
-        assertThat("There are 3 errors returned", missingParams.getErrorDetail().size(), equalTo(3));
+        assertThat("There are 3 errors returned", missingParams.getErrorDetail(), iterableWithSize(3));
 
         assertThat("Azure request returns tenant error if not supplied",
             missingParams.getErrorDetail(),
@@ -122,13 +150,13 @@ public class ProfileConnectedTest {
         var invalidUuidRequest = ProfileFixtures.randomBillingProfileRequest()
             .cloudPlatform(CloudPlatform.AZURE)
             .tenant("not-a-valid-uuid")
-            .subscription(UUID.randomUUID().toString())
-            .resourceGroup(UUID.randomUUID().toString());
+            .subscription("not-a-valid-uuid")
+            .resourceGroup("not-a-valid-uuid");
 
         var invalidUuid = connectedOperations
             .createProfileExpectError(invalidUuidRequest, HttpStatus.BAD_REQUEST);
 
-        assertThat("There are 3 errors returned", invalidUuid.getErrorDetail().size(), equalTo(3));
+        assertThat("There are 3 errors returned", invalidUuid.getErrorDetail(), iterableWithSize(3));
         assertThat("The server rejects invalid UUID for tenant",
             invalidUuid.getErrorDetail(),
             hasItems(containsString("UUID `tenant`")));

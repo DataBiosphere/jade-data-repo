@@ -1,5 +1,6 @@
 package bio.terra.service.search;
 
+import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.service.search.exception.SearchException;
@@ -9,6 +10,10 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
+import bio.terra.model.SearchQueryRequest;
+import bio.terra.model.SearchQueryResultModel;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -20,6 +25,9 @@ import org.elasticsearch.client.indices.GetIndexResponse;
 import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -116,5 +124,23 @@ public class SearchService {
         createIndexMapping(indexName, values);
         addIndexData(indexName, values);
         return getIndexSummary(indexName);
+    }
+    public SearchQueryResultModel querySnapshot(SearchQueryRequest searchQueryRequest, List<String> indicesToQuery) {
+        //todo: move to bean for configuration
+        final RestClientBuilder builder = RestClient.builder( new HttpHost("localhost", 9200));
+        try (RestHighLevelClient client = new RestHighLevelClient(builder)) {
+            // see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
+            QueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.query(wrapperQuery);
+            SearchRequest searchRequest = new SearchRequest(indicesToQuery.toArray(new String[0]), searchSourceBuilder);
+
+            //todo: how to parse results into format we want?
+            SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+
+        } catch (IOException e) {
+            throw new PdaoException("Error creating ES client", e);
+        }
+        return null;
     }
 }

@@ -5,6 +5,7 @@ import bio.terra.model.SearchIndexRequest;
 import bio.terra.service.search.exception.SearchException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+
 import org.apache.http.HttpHost;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;

@@ -455,23 +455,17 @@ public class SnapshotDao {
     public SnapshotSummary retrieveSummaryById(UUID id) {
         logger.debug("retrieve snapshot summary for id: " + id);
         try {
-            String sql = "SELECT * FROM snapshot WHERE id = :id";
+            String sql = "SELECT *, " +
+                    "(SELECT jsonb_agg(sr) " +
+                    "FROM (SELECT region, cloud_resource as \"cloudResource\", cloud_platform as \"cloudPlatform\" " +
+                    "FROM storage_resource " +
+                    "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage FROM snapshot " +
+                    "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +
+                    "WHERE snapshot.id = :id ";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
             throw new SnapshotNotFoundException("Snapshot not found - id: " + id);
-        }
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
-    public SnapshotSummary retrieveSummaryByName(String name) {
-        logger.debug("retrieve snapshot summary for name: " + name);
-        try {
-            String sql = "SELECT * FROM snapshot WHERE name = :name";
-            MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
-            return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
-        } catch (EmptyResultDataAccessException ex) {
-            throw new SnapshotNotFoundException("Snapshot not found - name: " + name);
         }
     }
 

@@ -480,11 +480,6 @@ public class GoogleProjectService {
         logger.info("Firestore was enabled successfully");
     }
 
-    public GoogleRegion getFirestoreRegion(final String googleProjectId) throws IOException, GeneralSecurityException {
-        String location = appengine().apps().get(googleProjectId).execute().getLocationId();
-        return GoogleRegion.fromValue(location);
-    }
-
     /**
      * Poll the app engine api until an operation completes. It is possible to hit quota issues
      * here, so the timeout is set to 10 seconds.

@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement.google;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.OnDemand;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -24,6 +25,7 @@ public class GoogleProjectServiceOnDemandTest {
         // Note, runner needs to populate in a project id and number before running
         projectService.enableServices(new GoogleProjectResource()
             .googleProjectId("")
-            .googleProjectNumber(""));
+            .googleProjectNumber(""),
+            GoogleRegion.DEFAULT_GOOGLE_REGION);
     }
 }

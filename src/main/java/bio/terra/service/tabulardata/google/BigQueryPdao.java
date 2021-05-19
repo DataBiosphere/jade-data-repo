@@ -1110,15 +1110,19 @@ public class BigQueryPdao {
     public void queryForRowIds(AssetSpecification assetSpecification,
                                Snapshot snapshot,
                                String sqlQuery) throws InterruptedException {
+        //snapshot
         BigQueryProject snapshotBigQueryProject = bigQueryProjectForSnapshot(snapshot);
         BigQuery snapshotBigQuery = snapshotBigQueryProject.getBigQuery();
+        String snapshotProjectId = snapshotBigQueryProject.getProjectId();
         String snapshotName = snapshot.getName();
+
+        //dataset
         Dataset dataset = snapshot.getFirstSnapshotSource().getDataset();
         String datasetBqDatasetName = prefixName(dataset.getName());
-        String snapshotProjectId = snapshotBigQueryProject.getProjectId();
-
         BigQueryProject datasetBigQueryProject = bigQueryProjectForDataset(dataset);
         String datasetProjectId = datasetBigQueryProject.getProjectId();
+
+
         // TODO add additional validation that the col is the root col
 
         // create snapshot bq dataset
@@ -1220,7 +1224,7 @@ public class BigQueryPdao {
     private static final String storeRowIdsForRelatedTableTemplate =
         "WITH merged_table AS (SELECT DISTINCT '<toTableId>' AS " + PDAO_TABLE_ID_COLUMN + ", " +
             "T." + PDAO_ROW_ID_COLUMN + " FROM `<datasetProject>.<dataset>.<toTableName>` T, " +
-            "`<snapshotProject>.<dataset>.<fromTableName>` F, `<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE +
+            "`<datasetProject>.<dataset>.<fromTableName>` F, `<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE +
             "` R " + "WHERE R." + PDAO_TABLE_ID_COLUMN + " = '<fromTableId>' AND " +
             "R." + PDAO_ROW_ID_COLUMN + " = F." + PDAO_ROW_ID_COLUMN + " AND <joinClause>) " +
             "SELECT " + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + " FROM merged_table WHERE " +

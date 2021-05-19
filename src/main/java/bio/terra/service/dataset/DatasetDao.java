@@ -496,6 +496,7 @@ public class DatasetDao {
         EnumerateSortByParam sort,
         SqlSortDirection direction,
         String filter,
+        String region,
         List<UUID> accessibleDatasetIds
     ) {
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -511,8 +512,10 @@ public class DatasetDao {
             throw new CorruptMetadataException("Impossible null value from count");
         }
 
-        // add the filter to the clause to get the actual items
+        // add the filters to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
+        DaoUtils.addRegionFilterClause(region, params, whereClauses, "dataset.id");
+
         String whereSql = "";
         if (!whereClauses.isEmpty()) {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");

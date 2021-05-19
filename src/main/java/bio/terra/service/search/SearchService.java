@@ -34,7 +34,8 @@ public class SearchService {
         this.client = new RestHighLevelClient(builder);
     }
 
-    private void createEmptyIndex(String indexName) {
+    private void createEmptyIndex(Snapshot snapshot) {
+        String indexName = String.format("idx-%s", snapshot.getId());
         try {
             CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName)
                 .settings(Settings.builder()
@@ -48,7 +49,7 @@ public class SearchService {
 
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
-        createEmptyIndex(String.format("idx-%s", snapshot.getId()));
+        createEmptyIndex(snapshot);
         List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql());
         return new SearchIndexModel();
     }

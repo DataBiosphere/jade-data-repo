@@ -512,7 +512,7 @@ public class SnapshotDao {
             Array rs_array = rs.getArray("storage");
             String result_string = rs_array.toString();
             JSONArray storageObjects = new JSONArray(result_string);
-            for (int i=0; i < storageObjects.length(); i++) {
+            for (int i = 0; i < storageObjects.length(); i++) {
                 var sr = storageObjects.getJSONObject(i);
                 var storageResource = new StorageResource()
                         .cloudPlatform(CloudPlatform.valueOf(sr.getString("cloudPlatform")))

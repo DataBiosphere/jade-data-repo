@@ -3544,10 +3544,10 @@ components:
           description: Date the snapshot was created
         profileId:
           $ref: '#/components/schemas/UniqueIdProperty'
-        source:
+        storage:
           type: array
           items:
-            $ref: '#/components/schemas/SnapshotSourceModel'
+            $ref: '#/components/schemas/StorageResourceModel'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:

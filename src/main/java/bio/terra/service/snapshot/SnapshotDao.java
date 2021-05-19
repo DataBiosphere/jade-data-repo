@@ -1,13 +1,17 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -15,6 +19,7 @@ import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +33,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -36,7 +42,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Repository
 public class SnapshotDao {
@@ -427,20 +432,22 @@ public class SnapshotDao {
             throw new CorruptMetadataException("Impossible null value from count");
         }
 
-        String sql = "SELECT snapshot.id, name, description, created_date, profile_id FROM snapshot " +
-            joinSql +
-            whereSql +
-            DaoUtils.orderByClause(sort, direction) +
-            " OFFSET :offset LIMIT :limit";
+        String sql = "SELECT snapshot.id, name, description, created_date, profile_id, snapshot_source.id, " +
+                "(SELECT jsonb_agg(sr) " +
+                "FROM (SELECT region, cloud_resource as \"cloudResource\", cloud_platform as \"cloudPlatform\" " +
+                "FROM storage_resource " +
+                "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage " +
+                "FROM snapshot " +
+                joinSql +
+                whereSql +
+                DaoUtils.orderByClause(sort, direction) +
+                " OFFSET :offset LIMIT :limit";
 
         params.addValue("offset", offset).addValue("limit", limit);
         List<SnapshotSummary> summaries = jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
-        List<SnapshotSummary> summariesWithSources = summaries
-                .stream()
-                .map(s -> s.source(retrieveSnapshot(s.getId()).getSnapshotSources()))
-                .collect(Collectors.toList());
+
         return new MetadataEnumeration<SnapshotSummary>()
-            .items(summariesWithSources)
+            .items(summaries)
             .total(total);
     }
 
@@ -501,12 +508,26 @@ public class SnapshotDao {
 
     private static class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
         public SnapshotSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+            List<StorageResource> storageResources = new ArrayList<>();
+            Array rs_array = rs.getArray("storage");
+            String result_string = rs_array.toString();
+            JSONArray storageObjects = new JSONArray(result_string);
+            for (int i=0; i < storageObjects.length(); i++) {
+                var sr = storageObjects.getJSONObject(i);
+                var storageResource = new StorageResource()
+                        .cloudPlatform(CloudPlatform.valueOf(sr.getString("cloudPlatform")))
+                        .cloudResource(GoogleCloudResource.valueOf(sr.getString("cloudResource")))
+                        .region(GoogleRegion.valueOf(sr.getString("region")));
+                storageResources.add(storageResource);
+            }
+
             return new SnapshotSummary()
                 .id(UUID.fromString(rs.getString("id")))
                 .name(rs.getString("name"))
                 .description(rs.getString("description"))
                 .createdDate(rs.getTimestamp("created_date").toInstant())
-                .profileId(rs.getObject("profile_id", UUID.class));
+                .profileId(rs.getObject("profile_id", UUID.class))
+                .storage(storageResources);
         }
     }
 }

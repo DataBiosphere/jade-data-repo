@@ -9,6 +9,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
@@ -394,9 +395,11 @@ public class SnapshotDaoTest {
             assertThat("correct snapshot name",
                 makeName(snapshotName, index),
                 equalTo(summary.getName()));
-            assertThat("source points back to snapshot",
-                    source.getSnapshot().getId(),
-                    equalTo(summary.getId()));
+            assertThat("snapshot includes dataset storage regions",
+                    source.getDataset().getDatasetSummary().getStorage().stream()
+                            .allMatch(sr -> sr.getRegion().equals(GoogleRegion.US_CENTRAL1)),
+                    equalTo(summary.getStorage().stream()
+                            .allMatch(sr -> sr.getRegion().equals(GoogleRegion.US_CENTRAL1))));
             index++;
         }
     }

@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
@@ -43,6 +44,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.equalToIgnoringCase;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -117,7 +120,8 @@ public class BucketResourceTest {
         String flightId = "createAndDeleteBucketTest";
 
         // create the bucket and metadata
-        GoogleBucketResource bucketResource = createBucket(bucketName, projectResource, flightId);
+        GoogleBucketResource bucketResource =
+            createBucket(bucketName, projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION, flightId);
 
         // check the bucket and metadata exist
         checkBucketExists(bucketResource.getResourceId());
@@ -128,21 +132,41 @@ public class BucketResourceTest {
     }
 
     @Test
+    // create buckets in different regions and see if they're actually created there.
+    public void createBucketsInDifferentRegionsTest() throws Exception {
+        for (GoogleRegion region : List.of(GoogleRegion.US_CENTRAL1, GoogleRegion.US_EAST1)) {
+            String bucketName = "testbucket_bucketregionstest_" + region;
+            String flightId = "bucketRegionsTest_" + region;
+
+            // create the bucket and metadata
+            GoogleBucketResource bucketResource =
+                createBucket(bucketName, projectResource, region, flightId);
+
+            // Get the Bucket
+            Bucket cloudBucket = bucketService.getCloudBucket(bucketName);
+
+            assertThat("Google bucket was created in " + region, cloudBucket.getLocation(),
+                equalToIgnoringCase(region.toString()));
+        }
+    }
+
+    @Test
     // two threads compete for the bucket lock, confirm one wins and one loses. a third thread fetches the bucket
     // after it's been created, confirm it succeeds.
     public void twoThreadsCompeteForLockTest() throws Exception {
         String flightIdBase = "twoThreadsCompeteForLockTest";
         String bucketName = "twothreadscompeteforlocktest";
+        GoogleRegion bucketRegion = GoogleRegion.DEFAULT_GOOGLE_REGION;
 
         BucketResourceLockTester resourceLockA = new BucketResourceLockTester(
             bucketService, datasetBucketDao, datasetId,
-            bucketName, projectResource, flightIdBase + "A", true);
+            bucketName, projectResource, bucketRegion, flightIdBase + "A", true);
         BucketResourceLockTester resourceLockB = new BucketResourceLockTester(
             bucketService, datasetBucketDao, datasetId,
-            bucketName, projectResource, flightIdBase + "B", false);
+            bucketName, projectResource, bucketRegion, flightIdBase + "B", false);
         BucketResourceLockTester resourceLockC = new BucketResourceLockTester(
             bucketService, datasetBucketDao, datasetId,
-            bucketName, projectResource, flightIdBase + "C", false);
+            bucketName, projectResource, bucketRegion, flightIdBase + "C", false);
 
         Thread threadA = new Thread(resourceLockA);
         Thread threadB = new Thread(resourceLockB);
@@ -186,7 +210,8 @@ public class BucketResourceTest {
         String flightIdA = "bucketExistsBeforeMetadataTestA";
 
         // create the bucket and metadata
-        GoogleBucketResource bucketResource = createBucket(bucketName, projectResource, flightIdA);
+        GoogleBucketResource bucketResource =
+            createBucket(bucketName, projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION, flightIdA);
         checkBucketExists(bucketResource.getResourceId());
 
         // delete the metadata only
@@ -208,7 +233,7 @@ public class BucketResourceTest {
         String flightIdB = "bucketExistsBeforeMetadataTestB";
         boolean caughtCorruptMetadataException = false;
         try {
-            createBucket(bucketName, projectResource, flightIdB);
+            createBucket(bucketName, projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION, flightIdB);
         } catch (CorruptMetadataException cmEx) {
             caughtCorruptMetadataException = true;
         }
@@ -218,7 +243,7 @@ public class BucketResourceTest {
         // try to create bucket again, check succeeds
         bucketResourceUtils.setAllowReuseExistingBuckets(configService, true);
         String flightIdC = "bucketExistsBeforeMetadataTestC";
-        bucketResource = createBucket(bucketName, projectResource, flightIdC);
+        bucketResource = createBucket(bucketName, projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION, flightIdC);
 
         // check the bucket and metadata exist
         checkBucketExists(bucketResource.getResourceId());
@@ -239,7 +264,8 @@ public class BucketResourceTest {
         String flightIdA = "noBucketButMetadataExistsTestA";
 
         // create the bucket and metadata
-        GoogleBucketResource bucketResource = createBucket(bucketName, projectResource, flightIdA);
+        GoogleBucketResource bucketResource =
+            createBucket(bucketName, projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION, flightIdA);
         checkBucketExists(bucketResource.getResourceId());
 
         // delete the bucket cloud resource only
@@ -260,7 +286,7 @@ public class BucketResourceTest {
         String flightIdB = "bucketExistsBeforeMetadataTestB";
         caughtCorruptMetadataException = false;
         try {
-            createBucket(bucketName, projectResource, flightIdB);
+            createBucket(bucketName, projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION, flightIdB);
         } catch (CorruptMetadataException cmEx) {
             caughtCorruptMetadataException = true;
         }
@@ -273,9 +299,14 @@ public class BucketResourceTest {
 
     private GoogleBucketResource createBucket(String bucketName,
                                               GoogleProjectResource projectResource,
+                                              GoogleRegion bucketRegion,
                                               String flightId) throws InterruptedException {
 
-        GoogleBucketResource bucketResource = bucketService.getOrCreateBucket(bucketName, projectResource, flightId);
+        GoogleBucketResource bucketResource = bucketService.getOrCreateBucket(
+            bucketName,
+            projectResource,
+            bucketRegion,
+            flightId);
 
         bucketResources.add(bucketResource);
         datasetBucketDao.createDatasetBucketLink(datasetId, bucketResource.getResourceId());

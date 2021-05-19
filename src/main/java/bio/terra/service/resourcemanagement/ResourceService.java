@@ -1,7 +1,9 @@
 package bio.terra.service.resourcemanagement;
 
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
@@ -61,11 +63,12 @@ public class ResourceService {
      *     <le>if the metadata exists, but the bucket does not</le>
      * </ol>
      */
-    public GoogleBucketResource getOrCreateBucketForFile(String datasetName,
+    public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
                                                          BillingProfileModel billingProfile,
                                                          String flightId) throws InterruptedException {
+        final String datasetName = dataset.getName();
         // Every bucket needs to live in a project, so we get or create a project first
-        GoogleProjectResource projectResource = projectService.getOrCreateProject(
+        final GoogleProjectResource projectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForFile(datasetName, billingProfile),
             billingProfile,
             null);
@@ -73,6 +76,7 @@ public class ResourceService {
         return bucketService.getOrCreateBucket(
             dataLocationSelector.bucketForFile(datasetName, billingProfile),
             projectResource,
+            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             flightId);
     }
 

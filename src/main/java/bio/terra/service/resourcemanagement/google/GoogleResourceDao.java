@@ -238,6 +238,7 @@ public class GoogleResourceDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public GoogleBucketResource createAndLockBucket(String bucketName,
                                                     GoogleProjectResource projectResource,
+                                                    GoogleRegion region,
                                                     String flightId) {
         // Put an end to serialization errors here. We only come through here if we really need to create
         // the bucket, so this is not on the path of most bucket lookups.
@@ -259,7 +260,8 @@ public class GoogleResourceDao {
                 .flightId(flightId)
                 .profileId(projectResource.getProfileId())
                 .projectResource(projectResource)
-                .name(bucketName);
+                .name(bucketName)
+                .region(region);
         } else {
             return null;
         }

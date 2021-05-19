@@ -1430,11 +1430,11 @@ public class BigQueryPdao {
     }
 
     // for each table in a dataset (source), collect row id matches ON the row id
-    public RowIdMatch matchRowIds(Snapshot snapshot, SnapshotSource source, String tableName, List<String> rowIds)
+    public RowIdMatch matchRowIds(SnapshotSource source, String tableName, List<String> rowIds)
         throws InterruptedException {
 
         // One source: grab it and navigate to the relevant parts
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        BigQueryProject datasetBigQueryProject = bigQueryProjectForDataset(source.getDataset());
 
         Optional<SnapshotMapTable> optTable = source.getSnapshotMapTables()
             .stream()
@@ -1457,7 +1457,7 @@ public class BigQueryPdao {
         for (List<String> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
             // To prevent BQ choking on a huge array, split it up into chunks
             ST sqlTemplate = new ST(mapValuesToRowsTemplate); // This query fails w >100k rows
-            sqlTemplate.add("project", bigQueryProject.getProjectId());
+            sqlTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
             sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
             sqlTemplate.add("table", tableName);
             sqlTemplate.add("column", rowIdColumn.getName());
@@ -1465,7 +1465,7 @@ public class BigQueryPdao {
 
             String sql = sqlTemplate.render();
             logger.debug("mapValuesToRows sql: " + sql);
-            TableResult result = bigQueryProject.query(sql);
+            TableResult result = datasetBigQueryProject.query(sql);
             for (FieldValueList row : result.iterateAll()) {
                 // Test getting these by name
                 FieldValue rowId = row.get(0);

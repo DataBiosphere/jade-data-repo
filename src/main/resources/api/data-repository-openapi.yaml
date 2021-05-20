@@ -2733,14 +2733,14 @@ components:
           description: Free text that describes the profile
         cloud_platform:
           $ref: '#/components/schemas/CloudPlatform'
-        tenant:
-          type: string
+        tenantId:
+          $ref: '#/components/schemas/UniqueIdProperty'
           description: An optional tenant id for Azure
-        subscription:
-          type: string
+        subscriptionId:
+          $ref: '#/components/schemas/UniqueIdProperty'
           description: an optional subscription id for Azure
-        resource_group:
-          type: string
+        resourceGroupId:
+          $ref: '#/components/schemas/UniqueIdProperty'
           description: an optional resource group id for Azure
     BillingProfileUpdateModel:
       required:
@@ -2777,14 +2777,14 @@ components:
           description: Free text that describes the profile
         cloud_platform:
           $ref: '#/components/schemas/CloudPlatform'
-        tenant:
-          type: string
+        tenantId:
+          $ref: '#/components/schemas/UniqueIdProperty'
           description: An optional tenant id for Azure
-        subscription:
-          type: string
+        subscriptionId:
+          $ref: '#/components/schemas/UniqueIdProperty'
           description: an optional subscription id for Azure
-        resource_group:
-          type: string
+        resourceGroupId:
+          $ref: '#/components/schemas/UniqueIdProperty'
           description: an optional resource group id for Azure
         createdDate:
           type: string

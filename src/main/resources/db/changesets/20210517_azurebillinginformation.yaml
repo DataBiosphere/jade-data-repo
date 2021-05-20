@@ -13,11 +13,11 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: tenant
+                  name: tenant_id
                   type: ${uuid_type}
               - column:
-                  name: subscription
+                  name: subscription_id
                   type: ${uuid_type}
               - column:
-                  name: resource_group
+                  name: resource_group_id
                   type: ${uuid_type}

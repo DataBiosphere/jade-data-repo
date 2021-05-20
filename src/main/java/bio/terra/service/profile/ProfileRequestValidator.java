@@ -47,28 +47,25 @@ public class ProfileRequestValidator implements Validator {
     public static void isValidCloudPlatform(BillingProfileRequestModel billingProfileRequestModel, Errors errors) {
         if (billingProfileRequestModel.getCloudPlatform() == CloudPlatform.AZURE) {
             String errorCode = "For Azure, a valid UUID `%s` must be provided";
-            if (billingProfileRequestModel.getTenant() == null ||
-                !ValidationUtils.isValidUuid(billingProfileRequestModel.getTenant())) {
+            if (billingProfileRequestModel.getTenantId() == null) {
                 errors.rejectValue("tenant", String.format(errorCode, "tenant"));
             }
-            if (billingProfileRequestModel.getSubscription() == null ||
-                !ValidationUtils.isValidUuid(billingProfileRequestModel.getSubscription())) {
+            if (billingProfileRequestModel.getSubscriptionId() == null) {
                 errors.rejectValue("subscription", String.format(errorCode, "subscription"));
             }
-            if (billingProfileRequestModel.getResourceGroup() == null ||
-                !ValidationUtils.isValidUuid(billingProfileRequestModel.getResourceGroup())) {
+            if (billingProfileRequestModel.getResourceGroupId() == null) {
                 errors.rejectValue("resourceGroup", String.format(errorCode, "resourceGroup"));
             }
         } else {
             // GCP is the default cloud platform, so there should be no Azure info from here on.
             String errorCode = "For GCP, no Azure information should be provided";
-            if (billingProfileRequestModel.getTenant() != null) {
+            if (billingProfileRequestModel.getTenantId() != null) {
                 errors.rejectValue("tenant", errorCode);
             }
-            if (billingProfileRequestModel.getSubscription() != null) {
+            if (billingProfileRequestModel.getSubscriptionId() != null) {
                 errors.rejectValue("subscription", errorCode);
             }
-            if (billingProfileRequestModel.getResourceGroup() != null) {
+            if (billingProfileRequestModel.getResourceGroupId() != null) {
                 errors.rejectValue("resourceGroup", errorCode);
             }
         }

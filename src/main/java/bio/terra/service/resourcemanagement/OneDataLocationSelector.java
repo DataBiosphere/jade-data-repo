@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Primary
-@Profile({"!terra"})
+@Profile("!terra")
 @Component
 public class OneDataLocationSelector implements DataLocationSelector {
 

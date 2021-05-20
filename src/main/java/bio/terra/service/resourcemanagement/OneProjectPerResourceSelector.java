@@ -2,7 +2,6 @@ package bio.terra.service.resourcemanagement;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.stairway.ShortUUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,13 +14,10 @@ import java.util.UUID;
 @Profile({"terra", "google"})
 public class OneProjectPerResourceSelector implements DataLocationSelector {
     private final GoogleResourceConfiguration resourceConfiguration;
-    private final ResourceService resourceService;
 
     @Autowired
-    public OneProjectPerResourceSelector(GoogleResourceConfiguration resourceConfiguration,
-                                          ResourceService resourceService) {
+    public OneProjectPerResourceSelector(GoogleResourceConfiguration resourceConfiguration) {
         this.resourceConfiguration = resourceConfiguration;
-        this.resourceService = resourceService;
     }
 
     @Override
@@ -39,8 +35,7 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
         UUID sourceDatasetBillingProfileId = dataset.getProjectResource().getProfileId();
         UUID requestedBillingProfileId = UUID.fromString(billingProfile.getId());
         if (sourceDatasetBillingProfileId.equals(requestedBillingProfileId)) {
-            GoogleProjectResource project = resourceService.getProjectResource(dataset.getProjectResourceId());
-            return project.getGoogleProjectId();
+            return dataset.getProjectResource().getGoogleProjectId();
         } else {
             return getNewProjectId();
         }

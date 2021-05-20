@@ -55,7 +55,7 @@ public class DatasetBucketLinkTest {
     private GoogleResourceDao resourceDao;
 
     @Autowired
-    private OneProjectPerProfileIdSelector oneProjectPerProfileIdSelector;
+    private OneProjectPerResourceSelector oneProjectPerResourceSelector;
 
     private List<BillingProfileModel> billingProfiles;
     private List<GoogleProjectResource> projects;
@@ -107,9 +107,9 @@ public class DatasetBucketLinkTest {
         datasets.add(createDataset(billingProfiles.get(0), projects.get(0).getId()));
         datasets.add(createDataset(billingProfiles.get(1), projects.get(1).getId()));
 
-        String bucketName1 = oneProjectPerProfileIdSelector.bucketForFile(
+        String bucketName1 = oneProjectPerResourceSelector.bucketForFile(
             datasets.get(0), billingProfiles.get(0));
-        String bucketName2 = oneProjectPerProfileIdSelector.bucketForFile(
+        String bucketName2 = oneProjectPerResourceSelector.bucketForFile(
             datasets.get(1), billingProfiles.get(1));
         logger.info("Bucket 1: {}; Bucket 2: {}", bucketName1, bucketName2);
 
@@ -123,9 +123,9 @@ public class DatasetBucketLinkTest {
         datasets.add(createDataset(billingProfiles.get(0), projects.get(0).getId()));
         datasets.add(createDataset(billingProfiles.get(0), projects.get(0).getId()));
 
-        String bucketName1 = oneProjectPerProfileIdSelector.bucketForFile(
+        String bucketName1 = oneProjectPerResourceSelector.bucketForFile(
             datasets.get(0), billingProfiles.get(0));
-        String bucketName2 = oneProjectPerProfileIdSelector.bucketForFile(
+        String bucketName2 = oneProjectPerResourceSelector.bucketForFile(
             datasets.get(1), billingProfiles.get(0));
         logger.info("Bucket 1: {}; Bucket 2: {}", bucketName1, bucketName2);
 

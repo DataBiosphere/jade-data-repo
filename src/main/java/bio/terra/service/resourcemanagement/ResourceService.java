@@ -128,7 +128,6 @@ public class ResourceService {
     /**
      * Create a new project for a snapshot, if none exists already.
      *
-     * @param snapshotId   id of the snapshot
      * @param billingProfile authorized billing profile to pay for the project
      * @param firestoreRegion   the region to create the Firestore in
      * @return project resource id

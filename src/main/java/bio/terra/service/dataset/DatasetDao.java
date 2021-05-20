@@ -59,7 +59,7 @@ public class DatasetDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
     private static final String summaryQueryColumns =
-        " dataset.id, name, description, default_profile_id, project_resource_id, created_date ";
+        " dataset.id, name, description, default_profile_id, project_resource_id, created_date, ";
 
     private static final String datasetStorageQuery = "(SELECT jsonb_agg(sr) " +
             "FROM (SELECT region, cloud_resource as \"cloudResource\", " +

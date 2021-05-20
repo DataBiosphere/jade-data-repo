@@ -474,7 +474,7 @@ public class SnapshotDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public List<SnapshotSummary> retrieveSnapshotsForDataset(UUID datasetId) {
         try {
-            String sql = "SELECT snapshot.id, name, description, created_date, profile_id " +
+            String sql = "SELECT snapshot.id, name, description, created_date, profile_id, " +
                 snapshotSourceStorageQuery +
                 "FROM snapshot " +
                 "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +

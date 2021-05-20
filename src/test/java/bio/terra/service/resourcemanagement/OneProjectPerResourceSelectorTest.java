@@ -33,17 +33,17 @@ import java.util.UUID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-@ActiveProfiles({"test", "google"})
+@ActiveProfiles({"terra", "google"})
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Connected.class)
-public class OneProjectPerDatasetIdSelectorTest {
+public class OneProjectPerResourceSelectorTest {
     @Autowired
     private GoogleResourceConfiguration resourceConfiguration;
 
     @Autowired
-    private OneProjectPerDatasetIdSelector oneProjectPerDatasetIdSelector;
+    private OneProjectPerResourceSelector oneProjectPerResourceSelector;
 
     @Autowired
     private ConnectedOperations connectedOperations;
@@ -110,7 +110,7 @@ public class OneProjectPerDatasetIdSelectorTest {
     }
     @Test
     public void shouldGetCorrectIdForDataset() throws Exception {
-        projectId = oneProjectPerDatasetIdSelector.projectIdForDataset(dataset.getId(), billingProfile);
+        projectId = oneProjectPerResourceSelector.projectIdForDataset(dataset.getId(), billingProfile);
         expectedProjectName =
             resourceConfiguration.getDataProjectPrefixToUse() + "-" + dataset.getId();
 
@@ -129,14 +129,14 @@ public class OneProjectPerDatasetIdSelectorTest {
         String expectedSnapshotProjectName =
             resourceConfiguration.getDataProjectPrefixToUse() + "-" + snapshotId;
 
-        String snapshotProjectId = oneProjectPerDatasetIdSelector.projectIdForSnapshot(snapshotId, billingProfile);
+        String snapshotProjectId = oneProjectPerResourceSelector.projectIdForSnapshot(snapshotId, billingProfile);
         assertThat("Project ID is what we expect", snapshotProjectId, equalTo(expectedSnapshotProjectName));
 
         //Same billing profile as source dataset
         String expectedFileProjectName =
             resourceConfiguration.getDataProjectPrefixToUse() + "-" + dataset.getId();
 
-        String fileProjectId = oneProjectPerDatasetIdSelector.projectIdForFile(dataset, billingProfile);
+        String fileProjectId = oneProjectPerResourceSelector.projectIdForFile(dataset, billingProfile);
         assertThat("Project ID is what we expect", fileProjectId, equalTo(expectedFileProjectName));
 
         //Different billing profile than source dataset
@@ -144,7 +144,7 @@ public class OneProjectPerDatasetIdSelectorTest {
         String expectedDiffFileProjectName =
             resourceConfiguration.getDataProjectPrefixToUse() + "-" + dataset.getId() + "-storage";
 
-        String diffFileProjectId = oneProjectPerDatasetIdSelector.projectIdForFile(dataset, newBillingProfile);
+        String diffFileProjectId = oneProjectPerResourceSelector.projectIdForFile(dataset, newBillingProfile);
         assertThat("Project ID is what we expect", diffFileProjectId, equalTo(expectedDiffFileProjectName));
     }
 

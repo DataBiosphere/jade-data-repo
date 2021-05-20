@@ -11,13 +11,13 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 @Component
-@Profile({"test", "google"}) //TODO - Set this to our prod envs!
-public class OneProjectPerDatasetIdSelector implements DataLocationSelector {
+@Profile({"terra", "google"})
+public class OneProjectPerResourceSelector implements DataLocationSelector {
     private final GoogleResourceConfiguration resourceConfiguration;
     private final ResourceService resourceService;
 
     @Autowired
-    public OneProjectPerDatasetIdSelector(GoogleResourceConfiguration resourceConfiguration,
+    public OneProjectPerResourceSelector(GoogleResourceConfiguration resourceConfiguration,
                                           ResourceService resourceService) {
         this.resourceConfiguration = resourceConfiguration;
         this.resourceService = resourceService;

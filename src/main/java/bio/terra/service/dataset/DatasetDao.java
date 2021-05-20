@@ -59,7 +59,7 @@ public class DatasetDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
     private static final String summaryQueryColumns =
-        " id, name, description, default_profile_id, project_resource_id, created_date ";
+        " dataset.id, name, description, default_profile_id, project_resource_id, created_date ";
 
     private static final String datasetStorageQuery = "(SELECT jsonb_agg(sr) " +
             "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
@@ -463,8 +463,7 @@ public class DatasetDao {
             String sql = "SELECT " +
                 summaryQueryColumns +
                 datasetStorageQuery +
-                "FROM dataset " +
-                "WHERE id = :id";
+                "FROM dataset WHERE dataset.id = :id";
             if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
                 sql += " AND flightid IS NULL";
             }
@@ -533,7 +532,7 @@ public class DatasetDao {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
         String sql = "SELECT " +
-            "id, name, description, default_profile_id, project_resource_id, created_date " +
+            summaryQueryColumns +
             datasetStorageQuery +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";

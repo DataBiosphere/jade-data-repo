@@ -1,14 +1,11 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.app.model.GoogleCloudResource;
-import bio.terra.app.model.GoogleRegion;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.StorageResource;
@@ -18,8 +15,10 @@ import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +32,6 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Array;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -53,6 +51,7 @@ public class SnapshotDao {
     private final SnapshotRelationshipDao snapshotRelationshipDao;
     private final DatasetDao datasetDao;
     private final ResourceService resourceService;
+    private final ObjectMapper objectMapper;
 
     @Autowired
     public SnapshotDao(NamedParameterJdbcTemplate jdbcTemplate,
@@ -60,13 +59,15 @@ public class SnapshotDao {
                        SnapshotMapTableDao snapshotMapTableDao,
                        SnapshotRelationshipDao snapshotRelationshipDao,
                        DatasetDao datasetDao,
-                       ResourceService resourceService) {
+                       ResourceService resourceService,
+                       ObjectMapper objectMapper) {
         this.jdbcTemplate = jdbcTemplate;
         this.snapshotTableDao = snapshotTableDao;
         this.snapshotMapTableDao = snapshotMapTableDao;
         this.snapshotRelationshipDao = snapshotRelationshipDao;
         this.datasetDao = datasetDao;
         this.resourceService = resourceService;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -433,15 +434,16 @@ public class SnapshotDao {
         }
 
         String sql = "SELECT snapshot.id, name, description, created_date, profile_id, snapshot_source.id, " +
-                "(SELECT jsonb_agg(sr) " +
-                "FROM (SELECT region, cloud_resource as \"cloudResource\", cloud_platform as \"cloudPlatform\" " +
-                "FROM storage_resource " +
-                "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage " +
-                "FROM snapshot " +
-                joinSql +
-                whereSql +
-                DaoUtils.orderByClause(sort, direction) +
-                " OFFSET :offset LIMIT :limit";
+            "(SELECT jsonb_agg(sr) " +
+            "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
+            "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
+            "FROM storage_resource " +
+            "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage " +
+            "FROM snapshot " +
+            joinSql +
+            whereSql +
+            DaoUtils.orderByClause(sort, direction) +
+            " OFFSET :offset LIMIT :limit";
 
         params.addValue("offset", offset).addValue("limit", limit);
         List<SnapshotSummary> summaries = jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
@@ -456,12 +458,13 @@ public class SnapshotDao {
         logger.debug("retrieve snapshot summary for id: " + id);
         try {
             String sql = "SELECT *, " +
-                    "(SELECT jsonb_agg(sr) " +
-                    "FROM (SELECT region, cloud_resource as \"cloudResource\", cloud_platform as \"cloudPlatform\" " +
-                    "FROM storage_resource " +
-                    "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage FROM snapshot " +
-                    "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +
-                    "WHERE snapshot.id = :id ";
+                "(SELECT jsonb_agg(sr) " +
+                "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
+                "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
+                "FROM storage_resource " +
+                "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage FROM snapshot " +
+                "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +
+                "WHERE snapshot.id = :id ";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -472,7 +475,13 @@ public class SnapshotDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public List<SnapshotSummary> retrieveSnapshotsForDataset(UUID datasetId) {
         try {
-            String sql = "SELECT snapshot.id, name, description, created_date, profile_id FROM snapshot " +
+            String sql = "SELECT snapshot.id, name, description, created_date, profile_id " +
+                "(SELECT jsonb_agg(sr) " +
+                "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
+                "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
+                "FROM storage_resource " +
+                "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage " +
+                "FROM snapshot " +
                 "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +
                 "WHERE snapshot_source.dataset_id = :datasetId";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
@@ -500,19 +509,15 @@ public class SnapshotDao {
         }
     }
 
-    private static class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
+    private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
         public SnapshotSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
-            List<StorageResource> storageResources = new ArrayList<>();
-            Array rs_array = rs.getArray("storage");
-            String result_string = rs_array.toString();
-            JSONArray storageObjects = new JSONArray(result_string);
-            for (int i = 0; i < storageObjects.length(); i++) {
-                var sr = storageObjects.getJSONObject(i);
-                var storageResource = new StorageResource()
-                        .cloudPlatform(CloudPlatform.valueOf(sr.getString("cloudPlatform")))
-                        .cloudResource(GoogleCloudResource.valueOf(sr.getString("cloudResource")))
-                        .region(GoogleRegion.valueOf(sr.getString("region")));
-                storageResources.add(storageResource);
+            List<StorageResource> storageResources;
+            try {
+                storageResources = objectMapper.readValue(rs.getString("storage"),
+                        new TypeReference<>() {});
+            } catch (JsonProcessingException e) {
+                throw new CorruptMetadataException(String.format("Invalid storage for snapshot - id: %s",
+                        rs.getString("id")));
             }
 
             return new SnapshotSummary()

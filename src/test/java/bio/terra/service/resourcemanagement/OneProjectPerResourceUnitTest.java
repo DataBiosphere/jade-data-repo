@@ -142,12 +142,11 @@ public class OneProjectPerResourceUnitTest {
 
         //Different billing profile than source dataset
         BillingProfileModel newBillingProfile = billingProfiles.get(0).id(UUID.randomUUID().toString());
-        String expectedDiffFileProjectName = datasetProjectId + "-storage";
 
         String diffFileProjectId = oneProjectPerResourceSelector.projectIdForFile(dataset, newBillingProfile);
         assertThat(
-            "For different billing, dataset and file project are the same with -storage suffix for file project",
-            diffFileProjectId, equalTo(expectedDiffFileProjectName));
+            "For different billing, dataset and file project live in different projects",
+            diffFileProjectId, not(datasetProjectId));
 
         String diffBucketProjectId = oneProjectPerResourceSelector.bucketForFile(dataset, newBillingProfile);
         assertThat("File project are the same, plus bucket suffix",
@@ -164,6 +163,19 @@ public class OneProjectPerResourceUnitTest {
             datasets.get(0), billingProfiles.get(0));
         String bucketName2 = oneProjectPerResourceSelector.bucketForFile(
             datasets.get(1), billingProfiles.get(1));
+
+        assertNotEquals("Buckets should be named differently", bucketName1, bucketName2);
+    }
+
+    @Test
+    public void oneDatasetsTwoBilling() throws Exception {
+        //One dataset, two billing profiles
+        datasets.add(createDataset(billingProfiles.get(0), projects.get(0)));
+
+        String bucketName1 = oneProjectPerResourceSelector.bucketForFile(
+            datasets.get(0), billingProfiles.get(0));
+        String bucketName2 = oneProjectPerResourceSelector.bucketForFile(
+            datasets.get(0), billingProfiles.get(1));
 
         assertNotEquals("Buckets should be named differently", bucketName1, bucketName2);
     }

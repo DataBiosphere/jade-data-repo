@@ -53,6 +53,12 @@ public class SnapshotDao {
     private final ResourceService resourceService;
     private final ObjectMapper objectMapper;
 
+    private static final String snapshotSourceStorageQuery = "(SELECT jsonb_agg(sr) " +
+        "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
+        "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
+        "FROM storage_resource " +
+        "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage ";
+
     @Autowired
     public SnapshotDao(NamedParameterJdbcTemplate jdbcTemplate,
                        SnapshotTableDao snapshotTableDao,
@@ -434,11 +440,7 @@ public class SnapshotDao {
         }
 
         String sql = "SELECT snapshot.id, name, description, created_date, profile_id, snapshot_source.id, " +
-            "(SELECT jsonb_agg(sr) " +
-            "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
-            "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
-            "FROM storage_resource " +
-            "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage " +
+            snapshotSourceStorageQuery +
             "FROM snapshot " +
             joinSql +
             whereSql +
@@ -458,11 +460,8 @@ public class SnapshotDao {
         logger.debug("retrieve snapshot summary for id: " + id);
         try {
             String sql = "SELECT *, " +
-                "(SELECT jsonb_agg(sr) " +
-                "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
-                "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
-                "FROM storage_resource " +
-                "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage FROM snapshot " +
+                snapshotSourceStorageQuery +
+                "FROM snapshot " +
                 "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +
                 "WHERE snapshot.id = :id ";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
@@ -476,11 +475,7 @@ public class SnapshotDao {
     public List<SnapshotSummary> retrieveSnapshotsForDataset(UUID datasetId) {
         try {
             String sql = "SELECT snapshot.id, name, description, created_date, profile_id " +
-                "(SELECT jsonb_agg(sr) " +
-                "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
-                "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
-                "FROM storage_resource " +
-                "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage " +
+                snapshotSourceStorageQuery +
                 "FROM snapshot " +
                 "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +
                 "WHERE snapshot_source.dataset_id = :datasetId";

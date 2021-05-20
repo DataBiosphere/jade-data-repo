@@ -61,6 +61,11 @@ public class DatasetDao {
     private static final String summaryQueryColumns =
         " id, name, description, default_profile_id, project_resource_id, created_date ";
 
+    private static final String datasetStorageQuery = "(SELECT jsonb_agg(sr) " +
+            "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
+            "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
+            "FROM storage_resource WHERE dataset_id = dataset.id) sr) AS storage ";
+
     @Autowired
     public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,
                       DatasetTableDao tableDao,
@@ -457,11 +462,7 @@ public class DatasetDao {
         try {
             String sql = "SELECT " +
                 summaryQueryColumns +
-                "(SELECT jsonb_agg(sr) " +
-                "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
-                "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
-                "FROM storage_resource " +
-                "WHERE dataset_id = dataset.id) sr) AS storage " +
+                datasetStorageQuery +
                 "FROM dataset " +
                 "WHERE id = :id";
             if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
@@ -478,11 +479,7 @@ public class DatasetDao {
         try {
             String sql = "SELECT " +
                 summaryQueryColumns +
-                "(SELECT jsonb_agg(sr) " +
-                "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
-                "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
-                "FROM storage_resource " +
-                "WHERE dataset_id = dataset.id) sr) AS storage " +
+                datasetStorageQuery +
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
@@ -537,11 +534,7 @@ public class DatasetDao {
         }
         String sql = "SELECT " +
             "id, name, description, default_profile_id, project_resource_id, created_date " +
-            "(SELECT jsonb_agg(sr) " +
-            "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
-            "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
-            "FROM storage_resource " +
-            "WHERE dataset_id = dataset.id) sr) AS storage " +
+            datasetStorageQuery +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
@@ -554,7 +547,7 @@ public class DatasetDao {
 
 
 
-    private static class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
+    private class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
         public DatasetSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
             List<StorageResource> storageResources;
             try {

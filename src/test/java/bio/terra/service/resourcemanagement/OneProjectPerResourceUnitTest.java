@@ -12,6 +12,7 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import org.junit.After;
 import org.junit.Before;
@@ -31,6 +32,7 @@ import java.util.UUID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotEquals;
 
 @RunWith(SpringRunner.class)
@@ -54,9 +56,13 @@ public class OneProjectPerResourceUnitTest {
     @Autowired
     private OneProjectPerResourceSelector oneProjectPerResourceSelector;
 
+    @Autowired
+    private GoogleResourceConfiguration resourceConfiguration;
+
     private List<BillingProfileModel> billingProfiles;
     private List<GoogleProjectResource> projects;
     private List<Dataset> datasets;
+    private String dataProjectPrefix;
 
     @Before
     public void setup() throws IOException, InterruptedException {
@@ -87,6 +93,8 @@ public class OneProjectPerResourceUnitTest {
         projectResource2.profileId(UUID.fromString(billingProfiles.get(1).getId()));
         projects.add(projectResource2);
 
+        dataProjectPrefix = resourceConfiguration.getDataProjectPrefix();
+
     }
 
     @After
@@ -100,6 +108,7 @@ public class OneProjectPerResourceUnitTest {
         for (BillingProfileModel billingProfile : billingProfiles) {
             profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
         }
+        resourceConfiguration.setDataProjectPrefix(dataProjectPrefix);
     }
 
     @Test
@@ -116,7 +125,7 @@ public class OneProjectPerResourceUnitTest {
     }
 
     @Test
-    public void BucketPerDatasetPerBilling() throws Exception {
+    public void bucketPerDatasetPerBilling() throws Exception {
         Dataset dataset = createDataset(billingProfiles.get(0), projects.get(0));
         String datasetProjectId = projects.get(0).getGoogleProjectId();
         datasets.add(dataset);
@@ -159,7 +168,17 @@ public class OneProjectPerResourceUnitTest {
         assertNotEquals("Buckets should be named differently", bucketName1, bucketName2);
     }
 
+    @Test
+    public void shouldGetCorrectIdForDatasetWithPrefix() {
+        String projectId = oneProjectPerResourceSelector.projectIdForDataset();
+        assertThat("Project ID is what we expect before changing prefix", projectId,
+            startsWith(resourceConfiguration.getProjectId()));
 
+        resourceConfiguration.setDataProjectPrefix("PREFIX");
+        String projectIdWithPrefix = oneProjectPerResourceSelector.projectIdForDataset();
+        assertThat("Project ID is starts with newly set prefix", projectIdWithPrefix,
+            startsWith(resourceConfiguration.getDataProjectPrefix() ));
+    }
 
     private Dataset createDataset(BillingProfileModel billingProfile, GoogleProjectResource project)
         throws IOException {

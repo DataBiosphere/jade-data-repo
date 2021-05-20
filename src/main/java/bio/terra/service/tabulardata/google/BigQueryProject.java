@@ -84,8 +84,6 @@ public final class BigQueryProject {
         }
     }
 
-    // This is called by both dataset and snapshot create - not sure if it is piped thorugh correctly
-    // for mutli-project setup
     public DatasetId createDataset(String name, String description, GoogleRegion region) {
         DatasetInfo datasetInfo = DatasetInfo.newBuilder(name)
             .setDescription(description)

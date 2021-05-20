@@ -14,6 +14,9 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,9 +40,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
@@ -53,6 +54,7 @@ public class DatasetDao {
     private final ConfigurationService configurationService;
     private final ResourceService resourceService;
     private final StorageResourceDao storageResourceDao;
+    private final ObjectMapper objectMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
@@ -66,7 +68,8 @@ public class DatasetDao {
                       AssetDao assetDao,
                       ConfigurationService configurationService,
                       ResourceService resourceService,
-                      StorageResourceDao storageResourceDao) throws SQLException {
+                      StorageResourceDao storageResourceDao,
+                      ObjectMapper objectMapper) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;
@@ -74,6 +77,7 @@ public class DatasetDao {
         this.configurationService = configurationService;
         this.resourceService = resourceService;
         this.storageResourceDao = storageResourceDao;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -453,7 +457,13 @@ public class DatasetDao {
         try {
             String sql = "SELECT " +
                 summaryQueryColumns +
-                "FROM dataset WHERE id = :id";
+                "(SELECT jsonb_agg(sr) " +
+                "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
+                "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
+                "FROM storage_resource " +
+                "WHERE dataset_id = dataset.id) sr) AS storage " +
+                "FROM dataset " +
+                "WHERE id = :id";
             if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
                 sql += " AND flightid IS NULL";
             }
@@ -468,6 +478,11 @@ public class DatasetDao {
         try {
             String sql = "SELECT " +
                 summaryQueryColumns +
+                "(SELECT jsonb_agg(sr) " +
+                "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
+                "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
+                "FROM storage_resource " +
+                "WHERE dataset_id = dataset.id) sr) AS storage " +
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
@@ -522,25 +537,18 @@ public class DatasetDao {
         }
         String sql = "SELECT " +
             "id, name, description, default_profile_id, project_resource_id, created_date " +
+            "(SELECT jsonb_agg(sr) " +
+            "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
+            "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
+            "FROM storage_resource " +
+            "WHERE dataset_id = dataset.id) sr) AS storage " +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
-        List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper())
-            .stream().map(summary ->
-                summary.storage(storageResourceDao.getStorageResourcesByDatasetId(summary.getId())))
-            .collect(Collectors.toList());
-
-        List<UUID> datasetIds = summaries.stream().map(DatasetSummary::getId).collect(Collectors.toList());
-        Map<UUID, List<StorageResource>> datasetIdToStorages = storageResourceDao
-            .getStorageResourcesForDatasetIds(datasetIds).stream()
-            .collect(Collectors.groupingBy(StorageResource::getDatasetId));
-
-        List<DatasetSummary> summariesWithStorage = summaries.stream()
-            .map(summary -> summary.storage(datasetIdToStorages.get(summary.getId())))
-            .collect(Collectors.toList());
+        List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
 
         return new MetadataEnumeration<DatasetSummary>()
-            .items(summariesWithStorage)
+            .items(summaries)
             .total(total);
     }
 
@@ -548,13 +556,22 @@ public class DatasetDao {
 
     private static class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
         public DatasetSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+            List<StorageResource> storageResources;
+            try {
+                storageResources = objectMapper.readValue(rs.getString("storage"),
+                        new TypeReference<>() {});
+            } catch (JsonProcessingException e) {
+                throw new CorruptMetadataException(String.format("Invalid storage for dataset - id: %s",
+                        rs.getString("id")));
+            }
             return new DatasetSummary()
                 .id(rs.getObject("id", UUID.class))
                 .name(rs.getString("name"))
                 .description(rs.getString("description"))
                 .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class))
-                .createdDate(rs.getTimestamp("created_date").toInstant());
+                .createdDate(rs.getTimestamp("created_date").toInstant())
+                .storage(storageResources);
         }
     }
 

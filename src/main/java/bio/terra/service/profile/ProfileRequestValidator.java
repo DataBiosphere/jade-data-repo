@@ -1,6 +1,5 @@
 package bio.terra.service.profile;
 
-import bio.terra.common.ValidationUtils;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
 import org.apache.commons.lang3.StringUtils;

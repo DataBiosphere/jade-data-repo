@@ -78,9 +78,9 @@ public class ProfileDaoTest {
         var resourceGroup = UUID.randomUUID().toString();
         var azureBillingProfileRequest = ProfileFixtures.randomBillingProfileRequest()
             .cloudPlatform(CloudPlatform.AZURE)
-            .tenant(tenant)
-            .subscription(subscription)
-            .resourceGroup(resourceGroup);
+            .tenantId(tenant)
+            .subscriptionId(subscription)
+            .resourceGroupId(resourceGroup);
         var azureBillingProfile =
             profileDao.createBillingProfile(azureBillingProfileRequest, "me@me.me");
         var azureProfileId = UUID.fromString(azureBillingProfile.getId());
@@ -96,8 +96,9 @@ public class ProfileDaoTest {
             equalTo(CloudPlatform.GCP));
 
         assertThat("GCP billing profile does not have tenant, subscription, and resourceGroup",
-            Arrays.asList(retrievedGoogleBillingProfile.getTenant(), retrievedGoogleBillingProfile.getSubscription(),
-                retrievedGoogleBillingProfile.getResourceGroup()),
+            Arrays.asList(retrievedGoogleBillingProfile.getTenantId(),
+                retrievedGoogleBillingProfile.getSubscriptionId(),
+                retrievedGoogleBillingProfile.getResourceGroupId()),
             everyItem(is(emptyOrNullString())));
 
         assertThat("Azure cloud platform is correctly stored",
@@ -105,8 +106,8 @@ public class ProfileDaoTest {
             equalTo(CloudPlatform.AZURE));
 
         assertThat("Azure billing profile has tenant, subscription, and resourceGroup",
-            List.of(retrievedAzureBillingProfile.getTenant(), retrievedAzureBillingProfile.getSubscription(),
-                retrievedAzureBillingProfile.getResourceGroup()),
+            List.of(retrievedAzureBillingProfile.getTenantId(), retrievedAzureBillingProfile.getSubscriptionId(),
+                retrievedAzureBillingProfile.getResourceGroupId()),
             contains(tenant, subscription, resourceGroup));
 
     }

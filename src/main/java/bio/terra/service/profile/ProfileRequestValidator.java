@@ -2,6 +2,7 @@ package bio.terra.service.profile;
 
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.CloudPlatform;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
@@ -43,6 +44,8 @@ public class ProfileRequestValidator implements Validator {
         return Pattern.matches(VALID_BILLING_ACCOUNT_ID_REGEX, billingAccountId);
     }
 
+    // Spotbugs thinks this is useless. Its not.
+    @SuppressFBWarnings
     public static void isValidCloudPlatform(BillingProfileRequestModel billingProfileRequestModel, Errors errors) {
         if (billingProfileRequestModel.getCloudPlatform() == CloudPlatform.AZURE) {
             String errorCode = "For Azure, a valid UUID `%s` must be provided";

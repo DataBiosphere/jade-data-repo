@@ -397,8 +397,7 @@ public class BigQueryPdao {
         BigQueryProject snapshotBigQueryProject = bigQueryProjectForSnapshot(snapshot);
         String snapshotProjectId = snapshotBigQueryProject.getProjectId();
 
-        //TODO - I think this would need to happen per source dataset
-        //Q: Do we currently support multi-dataset snapshots?
+        // TODO: When we support multiple datasets per snapshot, this will need to be reworked
         BigQueryProject datasetBigQueryProject = bigQueryProjectForDataset(
             snapshot.getFirstSnapshotSource().getDataset());
         String datasetProjectId = datasetBigQueryProject.getProjectId();
@@ -567,7 +566,7 @@ public class BigQueryPdao {
         BigQueryProject snapshotBigQueryProject = bigQueryProjectForSnapshot(snapshot);
         String snapshotProjectId = snapshotBigQueryProject.getProjectId();
 
-        //TODO - I think we'd actually need to pull this per dataset project
+        // TODO: When we support multiple datasets per snapshot, this will need to be reworked
         BigQueryProject datasetBigQueryProject = bigQueryProjectForDataset(
             snapshot.getFirstSnapshotSource().getDataset());
         String datasetProjectId = datasetBigQueryProject.getProjectId();
@@ -637,8 +636,9 @@ public class BigQueryPdao {
     }
 
     public void grantReadAccessToSnapshot(Snapshot snapshot, Collection<String> policies) throws InterruptedException {
+        // TODO: When we support multiple datasets per snapshot, this will need to be reworked
         grantReadAccessWorker(
-            bigQueryProjectForSnapshot(snapshot),
+            bigQueryProjectForDataset(snapshot.getFirstSnapshotSource().getDataset()),
             snapshot.getName(),
             policies);
     }
@@ -650,14 +650,14 @@ public class BigQueryPdao {
             policies);
     }
 
-    private void grantReadAccessWorker(BigQueryProject bigQueryProject,
+    private void grantReadAccessWorker(BigQueryProject datasetBigQueryProject,
                                        String name,
                                        Collection<String> policyGroupEmails) {
         List<Acl> policyGroupAcls = policyGroupEmails
             .stream()
             .map(email -> Acl.of(new Acl.Group(email), Acl.Role.READER))
             .collect(Collectors.toList());
-        bigQueryProject.addDatasetAcls(name, policyGroupAcls);
+        datasetBigQueryProject.addDatasetAcls(name, policyGroupAcls);
     }
 
     public boolean datasetExists(Dataset dataset) throws InterruptedException {
@@ -680,12 +680,12 @@ public class BigQueryPdao {
 
     public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        String projectId = bigQueryProject.getProjectId();
+        String snapshotProjectId = bigQueryProject.getProjectId();
         List<SnapshotSource> sources = snapshot.getSnapshotSources();
         if (sources.size() > 0) {
             String datasetName = sources.get(0).getDataset().getName();
             String datasetBqDatasetName = prefixName(datasetName);
-            deleteViewAcls(datasetBqDatasetName, snapshot, projectId);
+            deleteViewAcls(datasetBqDatasetName, snapshot, snapshotProjectId);
         } else {
             logger.warn("Snapshot is missing sources: " + snapshot.getName());
         }
@@ -1117,6 +1117,7 @@ public class BigQueryPdao {
         String snapshotName = snapshot.getName();
 
         //dataset
+        // TODO: When we support multiple datasets per snapshot, this will need to be reworked
         Dataset dataset = snapshot.getFirstSnapshotSource().getDataset();
         String datasetBqDatasetName = prefixName(dataset.getName());
         BigQueryProject datasetBigQueryProject = bigQueryProjectForDataset(dataset);
@@ -1367,7 +1368,7 @@ public class BigQueryPdao {
     private void deleteViewAcls(
         String datasetBqDatasetName,
         Snapshot snapshot,
-        String projectId) throws InterruptedException {
+        String snapshotProjectId) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         List<String> viewsToDelete = snapshot.getTables().stream().map(table -> {
             // Build the FROM clause from the source
@@ -1388,7 +1389,7 @@ public class BigQueryPdao {
         // delete the view Acls
         String snapshotName = snapshot.getName();
         viewsToDelete.forEach(tableName -> logger.info("Deleting ACLs for view " + snapshotName + "." + tableName));
-        List<Acl> acls = convertToViewAcls(projectId, snapshotName, viewsToDelete);
+        List<Acl> acls = convertToViewAcls(snapshotProjectId, snapshotName, viewsToDelete);
         bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
     }
 

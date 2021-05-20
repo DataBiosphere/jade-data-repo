@@ -48,7 +48,7 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
     }
 
     private String getNewProjectId() {
-        String projectDatasetSuffix = "-" + ShortUUID.get();
+        String projectDatasetSuffix = "-" + ShortUUID.get().substring(0, 8);
         // The project id below is an application level prefix or, if that is empty, the name of the core project
         return resourceConfiguration.getDataProjectPrefixToUse() + projectDatasetSuffix;
     }

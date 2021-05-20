@@ -48,7 +48,7 @@ public class DatasetCreateFlight extends Flight {
         addStep(new CreateDatasetIdStep());
 
         // Get or create the project where the dataset resources will be created
-        addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
+        addStep(new CreateDatasetGetOrCreateProjectStep(resourceService));
 
         // Create dataset metadata objects in postgres and lock the dataset
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));

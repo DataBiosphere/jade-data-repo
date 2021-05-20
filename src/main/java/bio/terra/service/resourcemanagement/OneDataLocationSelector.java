@@ -8,10 +8,8 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 @Primary
-@Profile({"!terra", "!test"})
+@Profile({"!terra"})
 @Component
 public class OneDataLocationSelector implements DataLocationSelector {
 
@@ -27,12 +25,12 @@ public class OneDataLocationSelector implements DataLocationSelector {
     }
 
     @Override
-    public String projectIdForDataset(UUID datsetId, BillingProfileModel billingProfile) {
+    public String projectIdForDataset() {
         return oneProject();
     }
 
     @Override
-    public String projectIdForSnapshot(UUID snapshotId, BillingProfileModel billingProfile) {
+    public String projectIdForSnapshot() {
         return oneProject();
     }
 

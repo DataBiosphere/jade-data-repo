@@ -134,13 +134,11 @@ public class ResourceService {
      * @param firestoreRegion   the region to create the Firestore in
      * @return project resource id
      */
-    public UUID getOrCreateSnapshotProject(UUID snapshotId,
-                                           BillingProfileModel billingProfile,
-                                           GoogleRegion firestoreRegion)
+    public UUID getOrCreateSnapshotProject(BillingProfileModel billingProfile, GoogleRegion firestoreRegion)
         throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForSnapshot(snapshotId, billingProfile),
+            dataLocationSelector.projectIdForSnapshot(),
             billingProfile,
             null,
             firestoreRegion);
@@ -151,17 +149,15 @@ public class ResourceService {
     /**
      * Create a new project for a dataset,  if none exists already.
      *
-     * @param datasetId    dataset id
      * @param billingProfile authorized billing profile to pay for the project
      * @param region         the region to ceraate
      * @return project resource id
      */
-    public UUID getOrCreateDatasetProject(UUID datasetId,
-                                          BillingProfileModel billingProfile,
+    public UUID getOrCreateDatasetProject(BillingProfileModel billingProfile,
                                           GoogleRegion region) throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForDataset(datasetId, billingProfile),
+            dataLocationSelector.projectIdForDataset(),
             billingProfile,
             getStewardPolicy(),
             region);

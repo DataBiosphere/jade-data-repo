@@ -39,7 +39,7 @@ public class CreateSnapshotGetOrCreateProjectStep implements Step {
         //TODO - update this comment
         // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
         // Either the project will have been created8and we will find it, or we will create.
-        UUID projectResourceId = resourceService.getOrCreateSnapshotProject(snapshotId, profileModel, firestoreRegion);
+        UUID projectResourceId = resourceService.getOrCreateSnapshotProject(profileModel, firestoreRegion);
         workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
         return StepResult.getStepResultSuccess();
     }

@@ -4,6 +4,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.stairway.ShortUUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -24,24 +25,24 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
     }
 
     @Override
-        public String projectIdForDataset(UUID datasetId, BillingProfileModel billingProfile) {
-        return getSuffixForResourceId(datasetId.toString());
+        public String projectIdForDataset() {
+        return getNewProjectId();
     }
 
     @Override
-    public String projectIdForSnapshot(UUID snapshotId, BillingProfileModel billingProfile) {
-        return getSuffixForResourceId(snapshotId.toString());
+    public String projectIdForSnapshot() {
+        return getNewProjectId();
     }
 
     @Override
     public String projectIdForFile(Dataset dataset, BillingProfileModel billingProfile) {
         UUID sourceDatasetBillingProfileId = dataset.getProjectResource().getProfileId();
         UUID requestedBillingProfileId = UUID.fromString(billingProfile.getId());
+        GoogleProjectResource project = resourceService.getProjectResource(dataset.getProjectResourceId());
         if (sourceDatasetBillingProfileId.equals(requestedBillingProfileId)) {
-            GoogleProjectResource project = resourceService.getProjectResource(dataset.getProjectResourceId());
             return project.getGoogleProjectId();
         } else {
-            return getSuffixForResourceId(dataset.getId().toString()) + "-storage";
+            return project.getGoogleProjectId() + "-storage";
         }
 
     }
@@ -51,9 +52,8 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
         return projectIdForFile(dataset, billingProfile) + "-bucket";
     }
 
-    //TODO - Is this how we would want to name them? This looks like "broad-jade-dev-UUID"
-    private String getSuffixForResourceId(String resourceId) {
-        String projectDatasetSuffix = "-" + resourceId.replaceAll("[^a-z-0-9]", "-");
+    private String getNewProjectId() {
+        String projectDatasetSuffix = "-" + ShortUUID.get();
         // The project id below is an application level prefix or, if that is empty, the name of the core project
         return resourceConfiguration.getDataProjectPrefixToUse() + projectDatasetSuffix;
     }

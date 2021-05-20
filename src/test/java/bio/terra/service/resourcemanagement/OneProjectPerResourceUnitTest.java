@@ -28,19 +28,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertEquals;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
-public class DatasetBucketLinkTest {
-
-    private static final Logger logger = LoggerFactory.getLogger(DatasetBucketLinkTest.class);
+public class OneProjectPerResourceUnitTest {
 
     @Autowired
     private JsonLoader jsonLoader;
@@ -77,13 +74,17 @@ public class DatasetBucketLinkTest {
 
         // two google project resources
         GoogleProjectResource projectResource1 = ResourceFixtures.randomProjectResource(billingProfiles.get(0));
-        UUID projectId = resourceDao.createProject(projectResource1);
-        projectResource1.id(projectId);
+        projectResource1.googleProjectId(oneProjectPerResourceSelector.projectIdForDataset());
+        UUID projectResourceId1 = resourceDao.createProject(projectResource1);
+        projectResource1.id(projectResourceId1);
+        projectResource1.profileId(UUID.fromString(billingProfiles.get(0).getId()));
         projects.add(projectResource1);
 
         GoogleProjectResource projectResource2 = ResourceFixtures.randomProjectResource(billingProfiles.get(1));
-        UUID projectId2 = resourceDao.createProject(projectResource2);
-        projectResource2.id(projectId2);
+        projectResource2.googleProjectId(oneProjectPerResourceSelector.projectIdForDataset());
+        UUID projectResourceId2 = resourceDao.createProject(projectResource2);
+        projectResource2.id(projectResourceId2);
+        projectResource2.profileId(UUID.fromString(billingProfiles.get(1).getId()));
         projects.add(projectResource2);
 
     }
@@ -102,43 +103,74 @@ public class DatasetBucketLinkTest {
     }
 
     @Test
-    public void twoDatasetsTwoBillingProfilesTwoBuckets() throws Exception {
+    public void snapshotDatasetSeparateProjects() throws Exception {
+        Dataset dataset = createDataset(billingProfiles.get(0), projects.get(0));
+        String datasetProjectId = projects.get(0).getGoogleProjectId();
+        datasets.add(dataset);
+
+
+        // this will now always be random and different than the dataset project id
+        String snapshotProjectId = oneProjectPerResourceSelector.projectIdForSnapshot();
+        assertThat("Project ID for snapshot is not the same as the dataset's project id",
+            snapshotProjectId, not(datasetProjectId));
+    }
+
+    @Test
+    public void BucketPerDatasetPerBilling() throws Exception {
+        Dataset dataset = createDataset(billingProfiles.get(0), projects.get(0));
+        String datasetProjectId = projects.get(0).getGoogleProjectId();
+        datasets.add(dataset);
+
+
+        //Same billing profile as source dataset, so same project id
+        String fileProjectId = oneProjectPerResourceSelector.projectIdForFile(dataset, billingProfiles.get(0));
+        assertThat("For same billing, dataset and file project are the same",
+            fileProjectId, equalTo(datasetProjectId));
+        String bucketProjectId = oneProjectPerResourceSelector.bucketForFile(dataset, billingProfiles.get(0));
+        assertThat("File project are the same, plus bucket suffix",
+            bucketProjectId, equalTo(fileProjectId + "-bucket"));
+
+
+        //Different billing profile than source dataset
+        BillingProfileModel newBillingProfile = billingProfiles.get(0).id(UUID.randomUUID().toString());
+        String expectedDiffFileProjectName = datasetProjectId + "-storage";
+
+        String diffFileProjectId = oneProjectPerResourceSelector.projectIdForFile(dataset, newBillingProfile);
+        assertThat(
+            "For different billing, dataset and file project are the same with -storage suffix for file project",
+            diffFileProjectId, equalTo(expectedDiffFileProjectName));
+
+        String diffBucketProjectId = oneProjectPerResourceSelector.bucketForFile(dataset, newBillingProfile);
+        assertThat("File project are the same, plus bucket suffix",
+            diffBucketProjectId, equalTo(diffFileProjectId + "-bucket"));
+    }
+
+    @Test
+    public void twoDatasetsTwoBuckets() throws Exception {
         //Two dataset, two billing profiles
-        datasets.add(createDataset(billingProfiles.get(0), projects.get(0).getId()));
-        datasets.add(createDataset(billingProfiles.get(1), projects.get(1).getId()));
+        datasets.add(createDataset(billingProfiles.get(0), projects.get(0)));
+        datasets.add(createDataset(billingProfiles.get(1), projects.get(1)));
 
         String bucketName1 = oneProjectPerResourceSelector.bucketForFile(
             datasets.get(0), billingProfiles.get(0));
         String bucketName2 = oneProjectPerResourceSelector.bucketForFile(
             datasets.get(1), billingProfiles.get(1));
-        logger.info("Bucket 1: {}; Bucket 2: {}", bucketName1, bucketName2);
 
         assertNotEquals("Buckets should be named differently", bucketName1, bucketName2);
     }
 
-    @Test
-    public void twoDatasetsOneBillingProfileOneBucket() throws Exception {
 
-        //Two dataset, one billing profile
-        datasets.add(createDataset(billingProfiles.get(0), projects.get(0).getId()));
-        datasets.add(createDataset(billingProfiles.get(0), projects.get(0).getId()));
 
-        String bucketName1 = oneProjectPerResourceSelector.bucketForFile(
-            datasets.get(0), billingProfiles.get(0));
-        String bucketName2 = oneProjectPerResourceSelector.bucketForFile(
-            datasets.get(1), billingProfiles.get(0));
-        logger.info("Bucket 1: {}; Bucket 2: {}", bucketName1, bucketName2);
-
-        assertEquals("Buckets should be named the same", bucketName1, bucketName2);
-    }
-
-    private Dataset createDataset(BillingProfileModel billingProfile, UUID projectId) throws IOException {
+    private Dataset createDataset(BillingProfileModel billingProfile, GoogleProjectResource project)
+        throws IOException {
         Dataset dataset;
-        DatasetRequestModel datasetRequest1 = jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
+        DatasetRequestModel datasetRequest1 =
+            jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
         datasetRequest1.name(datasetRequest1.getName() + UUID.randomUUID().toString())
             .defaultProfileId(billingProfile.getId());
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest1);
-        dataset.projectResourceId(projectId);
+        dataset.projectResource(project);
+        dataset.projectResourceId(project.getId());
         String createFlightId1 = UUID.randomUUID().toString();
         dataset.id(UUID.randomUUID());
         datasetDao.createAndLock(dataset, createFlightId1);

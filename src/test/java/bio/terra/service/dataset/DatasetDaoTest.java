@@ -154,7 +154,7 @@ public class DatasetDaoTest {
         List<DatasetSummary> filteredDefaultRegionDatasets = filterDefaultRegionEnum.getItems();
         assertThat("dataset filter by default GCS region returns correct total",
             filteredDefaultRegionDatasets.size(),
-            equalTo(2));
+            equalTo(1));
         assertTrue("dataset filter by default GCS region returns correct datasets",
             filteredDefaultRegionDatasets
                 .stream()

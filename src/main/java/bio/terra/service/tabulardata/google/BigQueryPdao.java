@@ -488,7 +488,7 @@ public class BigQueryPdao {
         "<selectStatements; separator=\" UNION ALL \">";
 
     private static final String validateSnapshotSizeTemplate =
-        "SELECT COUNT(1) count FROM `<snapshotProject>.<snapshot>.<dataRepoTable>`";
+        "SELECT COUNT(1) FROM `<snapshotProject>.<snapshot>.<dataRepoTable>`";
 
 
     public String createSnapshotTableFromLiveViews(

@@ -33,7 +33,7 @@ public class OneProjectPerProfileIdSelector implements DataLocationSelector {
 
     @Override
     public String bucketForFile(String datasetId, BillingProfileModel billingProfile) {
-        return projectIdForFile(datasetId, billingProfile) + "-bucket";
+        return "tdr-" + billingProfile.getProfileName() + "-" + datasetId;
     }
 
     private String getSuffixForProfileId(BillingProfileModel billingProfile) {

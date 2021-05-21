@@ -64,7 +64,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) throws InterruptedException {
-        snapshotService.undoCreateSnapshot(snapshotReq.getName());
+        //snapshotService.undoCreateSnapshot(snapshotReq.getName());
         return StepResult.getStepResultSuccess();
     }
 

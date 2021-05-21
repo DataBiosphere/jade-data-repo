@@ -99,28 +99,28 @@ public class SnapshotAuthzFileAclStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) throws InterruptedException {
-        FlightMap workingMap = context.getWorkingMap();
-        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-        Snapshot snapshot = snapshotService.retrieve(snapshotId);
-
-        Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
-
-        // TODO: when we support multiple datasets, we can generate more than one copy of this
-        //  step: one for each dataset. That is because each dataset keeps its file dependencies
-        //  in its own scope. For now, we know there is exactly one dataset and we take shortcuts.
-
-        SnapshotSource snapshotSource = snapshot.getFirstSnapshotSource();
-        String datasetId = snapshotSource.getDataset().getId().toString();
-        Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-
-        List<String> fileIds = fireStoreDao.getDatasetSnapshotFileIds(dataset, snapshotId.toString());
-        try {
-            gcsPdao.removeAclOnFiles(dataset, fileIds, policies);
-        } catch (StorageException ex) {
-            // We don't let the exception stop us from continuing to remove the rest of the snapshot parts.
-            // TODO: change this to whatever our alert-a-human log message is.
-            logger.warn("NEEDS CLEANUP: Failed to remove snapshot reader ACLs from files", ex);
-        }
+//        FlightMap workingMap = context.getWorkingMap();
+//        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+//        Snapshot snapshot = snapshotService.retrieve(snapshotId);
+//
+//        Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
+//
+//        // TODO: when we support multiple datasets, we can generate more than one copy of this
+//        //  step: one for each dataset. That is because each dataset keeps its file dependencies
+//        //  in its own scope. For now, we know there is exactly one dataset and we take shortcuts.
+//
+//        SnapshotSource snapshotSource = snapshot.getFirstSnapshotSource();
+//        String datasetId = snapshotSource.getDataset().getId().toString();
+//        Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+//
+//        List<String> fileIds = fireStoreDao.getDatasetSnapshotFileIds(dataset, snapshotId.toString());
+//        try {
+//            gcsPdao.removeAclOnFiles(dataset, fileIds, policies);
+//        } catch (StorageException ex) {
+//            // We don't let the exception stop us from continuing to remove the rest of the snapshot parts.
+//            // TODO: change this to whatever our alert-a-human log message is.
+//            logger.warn("NEEDS CLEANUP: Failed to remove snapshot reader ACLs from files", ex);
+//        }
         return StepResult.getStepResultSuccess();
     }
 }

@@ -49,20 +49,20 @@ public class SnapshotAuthzIamStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        FlightMap workingMap = context.getWorkingMap();
-        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-        try {
-            sam.deleteSnapshotResource(userReq, snapshotId);
-            // We do not need to remove the ACL from the files or BigQuery. It disappears
-            // when SAM deletes the ACL. How 'bout that!
-        } catch (UnauthorizedException ex) {
-            // suppress exception
-            logger.error("NEEDS CLEANUP: delete sam resource for snapshot " + snapshotId.toString());
-            logger.warn(ex.getMessage());
-        } catch (NotFoundException ex) {
-            // suppress exception
-            logger.warn("Snapshot resource wasn't found to delete", ex);
-        }
+//        FlightMap workingMap = context.getWorkingMap();
+//        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+//        try {
+//            sam.deleteSnapshotResource(userReq, snapshotId);
+//            // We do not need to remove the ACL from the files or BigQuery. It disappears
+//            // when SAM deletes the ACL. How 'bout that!
+//        } catch (UnauthorizedException ex) {
+//            // suppress exception
+//            logger.error("NEEDS CLEANUP: delete sam resource for snapshot " + snapshotId.toString());
+//            logger.warn(ex.getMessage());
+//        } catch (NotFoundException ex) {
+//            // suppress exception
+//            logger.warn("Snapshot resource wasn't found to delete", ex);
+//        }
         return StepResult.getStepResultSuccess();
     }
 }

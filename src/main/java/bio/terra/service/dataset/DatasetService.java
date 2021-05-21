@@ -117,12 +117,13 @@ public class DatasetService {
                                            EnumerateSortByParam sort,
                                            SqlSortDirection direction,
                                            String filter,
+                                           String region,
                                            List<UUID> resources) {
         if (resources.isEmpty()) {
             return new EnumerateDatasetModel().total(0).items(Collections.emptyList());
         }
         MetadataEnumeration<DatasetSummary> datasetEnum = datasetDao.enumerate(
-            offset, limit, sort, direction, filter, resources);
+            offset, limit, sort, direction, filter, region, resources);
         List<DatasetSummaryModel> summaries = datasetEnum.getItems()
             .stream()
             .map(DatasetJsonConversion::datasetSummaryModelFromDatasetSummary)

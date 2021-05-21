@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
@@ -40,6 +41,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -164,6 +166,11 @@ public class SnapshotDaoTest {
             source.getSnapshot().getId(),
             equalTo(snapshot.getId()));
 
+        // verify snapshot source region includes the default region
+        assertTrue("source dataset info includes default region",
+            source.getDataset().getDatasetSummary().getStorage().stream()
+                .allMatch(sr -> sr.getRegion().equals(GoogleRegion.US_CENTRAL1)));
+
         assertThat("source points to the asset spec",
             source.getAssetSpecification().getId(),
             equalTo(dataset.getAssetSpecifications().get(0).getId()));
@@ -270,9 +277,38 @@ public class SnapshotDaoTest {
         testSortingDescriptions(snapshotIdList, SqlSortDirection.DESC);
         testSortingDescriptions(snapshotIdList, SqlSortDirection.ASC);
 
+        MetadataEnumeration<SnapshotSummary> filterDefaultRegionEnum = snapshotDao.retrieveSnapshots(0, 6,
+                null, null, null, GoogleRegion.US_CENTRAL1.toString(), datasetIds, snapshotIdList);
+        List<SnapshotSummary> filteredRegionSnapshots = filterDefaultRegionEnum.getItems();
+        assertThat("snapshot filter by default GCS region returns correct total",
+            filteredRegionSnapshots.size(),
+            equalTo(snapshotIdList.size()));
+        for (SnapshotSummary s : filteredRegionSnapshots) {
+            Snapshot snapshot = snapshotDao.retrieveSnapshot(s.getId());
+            assertTrue("snapshot filter by default GCS region returns correct items",
+                snapshot.getFirstSnapshotSource().getDataset().getDatasetSummary()
+                    .datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1));
+        }
+
+        MetadataEnumeration<SnapshotSummary> filterNameAndRegionEnum = snapshotDao.retrieveSnapshots(0, 6,
+                null, null, makeName(snapshotName, 0), GoogleRegion.US_CENTRAL1.toString(),
+                datasetIds, snapshotIdList);
+        List<SnapshotSummary> filteredNameAndRegionSnapshots = filterNameAndRegionEnum.getItems();
+        assertThat("snapshot filter by name and region returns correct total",
+                filteredNameAndRegionSnapshots.size(),
+                equalTo(1));
+        assertThat("snapshot filter by name and region returns correct snapshot name",
+                filteredNameAndRegionSnapshots.get(0).getName(),
+                equalTo(makeName(snapshotName, 0)));
+        for (SnapshotSummary s : filteredNameAndRegionSnapshots) {
+            Snapshot snapshot = snapshotDao.retrieveSnapshot(s.getId());
+            assertTrue("snapshot filter by name and region returns correct snapshot source region",
+                    snapshot.getFirstSnapshotSource().getDataset().getDatasetSummary()
+                            .datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1));
+        }
 
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 2, null,
-            null, "==foo==", datasetIds, snapshotIdList);
+            null, "==foo==", null, datasetIds, snapshotIdList);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered and retrieved 2 snapshots", summaryList.size(), equalTo(2));
         assertThat("filtered total 3", summaryEnum.getTotal(), equalTo(3));
@@ -281,23 +317,23 @@ public class SnapshotDaoTest {
         }
 
         MetadataEnumeration<SnapshotSummary> emptyEnum = snapshotDao.retrieveSnapshots(0, 6, null,
-            null, "__", datasetIds, snapshotIdList);
+            null, "__", null, datasetIds, snapshotIdList);
         assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
 
         MetadataEnumeration<SnapshotSummary> summaryEnum0 = snapshotDao.retrieveSnapshots(0, 10, null,
-            null, null, datasetIds, snapshotIdList);
+            null, null, null, datasetIds, snapshotIdList);
         assertThat("no dataset uuid gives all snapshots", summaryEnum0.getTotal(), equalTo(6));
 
         // use the original dataset id and make sure you get all snapshots
         datasetIds = singletonList(datasetId);
         MetadataEnumeration<SnapshotSummary> summaryEnum1 = snapshotDao.retrieveSnapshots(0, 10, null,
-            null, null, datasetIds, snapshotIdList);
+            null, null, null, datasetIds, snapshotIdList);
         assertThat("expected dataset uuid gives expected snapshot", summaryEnum1.getTotal(), equalTo(6));
 
         // made a random dataset uuid and made sure that you get no snapshots
         List<UUID> datasetIdsBad = singletonList(UUID.randomUUID());
         MetadataEnumeration<SnapshotSummary> summaryEnum2 = snapshotDao.retrieveSnapshots(0, 10, null,
-            null, null, datasetIdsBad, snapshotIdList);
+            null, null, null, datasetIdsBad, snapshotIdList);
         assertThat("dummy dataset uuid gives no snapshots", summaryEnum2.getTotal(), equalTo(0));
     }
 
@@ -312,7 +348,7 @@ public class SnapshotDaoTest {
         int limit,
         SqlSortDirection direction) {
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit,
-            EnumerateSortByParam.NAME, direction, null, datasetIds, snapshotIds);
+            EnumerateSortByParam.NAME, direction, null, null, datasetIds, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         int index = (direction.equals(SqlSortDirection.ASC)) ? offset : snapshotIds.size() - offset - 1;
         for (SnapshotSummary summary : summaryList) {
@@ -324,7 +360,7 @@ public class SnapshotDaoTest {
 
     private void testSortingDescriptions(List<UUID> snapshotIds, SqlSortDirection direction) {
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 6,
-            EnumerateSortByParam.DESCRIPTION, direction, null, datasetIds, snapshotIds);
+            EnumerateSortByParam.DESCRIPTION, direction, null, null, datasetIds, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("the full list comes back", summaryList.size(), equalTo(6));
         String previous = summaryList.get(0).getDescription();
@@ -346,7 +382,7 @@ public class SnapshotDaoTest {
                                        int limit) {
         // We expect the snapshots to be returned in their created order
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit,
-            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null, datasetIds, snapshotIds);
+            EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null, null, datasetIds, snapshotIds);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         int index = offset;
         for (SnapshotSummary summary : summaryList) {

@@ -4,10 +4,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetSummary;
+import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.resourcemanagement.OneProjectPerProfileIdSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import java.util.ArrayList;
@@ -18,29 +22,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit4.SpringRunner;
 
-@RunWith(SpringRunner.class)
-@AutoConfigureMockMvc
-@SpringBootTest
-@ActiveProfiles({"google", "unittest", "terra"})
 @Category(Unit.class)
 public class ResourceServiceUnitTest {
 
-    @Autowired
     @InjectMocks
     private ResourceService resourceService;
-
-    @Mock
-    private DatasetService datasetService;
 
     @Mock
     private GoogleProjectService googleProjectService;
@@ -65,6 +55,12 @@ public class ResourceServiceUnitTest {
         .id(billingProfileId.toString());
 
     private final UUID datasetId = UUID.randomUUID();
+
+    private final DatasetSummary datasetSummary = new DatasetSummary().storage(Collections
+        .singletonList(
+            new StorageResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
+                GoogleCloudResource.BUCKET)));
+    private final Dataset dataset = new Dataset(datasetSummary).id(datasetId);
 
     private final GoogleProjectResource projectResource = new GoogleProjectResource()
         .profileId(billingProfileId);
@@ -93,11 +89,13 @@ public class ResourceServiceUnitTest {
         when(bucketService.getBucketResourceById(bucketId, true)).thenReturn(bucketResource);
         when(oneProjectPerProfileIdSelector.bucketForFile(datasetId.toString(), profileModel))
             .thenReturn("newBucketName");
-        when(bucketService.getOrCreateBucket("bucketName", projectResource, "flightId"))
+        when(bucketService
+            .getOrCreateBucket("bucketName", projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION,
+                "flightId"))
             .thenReturn(bucketResource);
 
         GoogleBucketResource foundBucket = resourceService
-            .getOrCreateBucketForFile("datasetName", datasetId.toString(), profileModel,
+            .getOrCreateBucketForFile(dataset, datasetId.toString(), profileModel,
                 "flightId");
         Assert.assertEquals(bucketResource, foundBucket);
     }
@@ -111,11 +109,12 @@ public class ResourceServiceUnitTest {
         when(datasetBucketDao.getBucketForDatasetId(datasetId)).thenReturn(new ArrayList<>());
         when(oneProjectPerProfileIdSelector.bucketForFile(datasetId.toString(), profileModel))
             .thenReturn("newBucketName");
-        when(bucketService.getOrCreateBucket("newBucketName", projectResource, "flightId"))
+        when(bucketService
+            .getOrCreateBucket("newBucketName", projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION, "flightId"))
             .thenReturn(newBucket);
 
         GoogleBucketResource foundBucket = resourceService
-            .getOrCreateBucketForFile("datasetName", datasetId.toString(), profileModel,
+            .getOrCreateBucketForFile(dataset, datasetId.toString(), profileModel,
                 "flightId");
         Assert.assertEquals(newBucket, foundBucket);
     }

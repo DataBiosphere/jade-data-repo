@@ -162,6 +162,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") EnumerateSortByParam sort,
         @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") SqlSortDirection direction,
         @Valid @RequestParam(value = "filter", required = false) String filter,
+        @Valid @RequestParam(value = "region", required = false) String region,
         @Valid @RequestParam(value = "datasetIds", required = false) List<String> datasetIds) {
         ControllerUtils.validateEnumerateParams(offset, limit);
         List<UUID> resources = iamService.listAuthorizedResources(
@@ -169,7 +170,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         List<UUID> datasetUUIDs = ListUtils.emptyIfNull(datasetIds).stream()
             .map(UUID::fromString).collect(Collectors.toList());
         EnumerateSnapshotModel edm = snapshotService.enumerateSnapshots(offset, limit, sort,
-            direction, filter, datasetUUIDs, resources);
+            direction, filter, region, datasetUUIDs, resources);
         return new ResponseEntity<>(edm, HttpStatus.OK);
     }
 

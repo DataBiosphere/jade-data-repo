@@ -1,5 +1,6 @@
 package bio.terra.common;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
 import org.apache.commons.lang3.StringUtils;
@@ -39,9 +40,22 @@ public final class DaoUtils {
         }
     }
 
+    public static void addRegionFilterClause(String region, MapSqlParameterSource params, List<String> clauses,
+                                       String datasetIdField) {
+        if (!StringUtils.isEmpty(region)) {
+            GoogleRegion regionFilter = GoogleRegion.fromValue(region);
+            if (regionFilter != null) {
+                params.addValue("region", escapeFilter(regionFilter.name()));
+                clauses.add(String.format(" exists (SELECT 1 FROM storage_resource" +
+                        " WHERE storage_resource.dataset_id = %s AND storage_resource.region ILIKE :region) ",
+                        datasetIdField));
+            }
+        }
+    }
+
     public static void addAuthzIdsClause(List<UUID> authzIds, MapSqlParameterSource params, List<String> clauses) {
         params.addValue("idlist", authzIds);
-        clauses.add(" id in (:idlist) ");
+        clauses.add(" dataset.id in (:idlist) ");
     }
 
     public static void addAuthzSnapshotIdsClause(

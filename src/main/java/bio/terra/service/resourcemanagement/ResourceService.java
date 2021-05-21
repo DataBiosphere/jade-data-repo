@@ -4,7 +4,9 @@ import static bio.terra.service.resourcemanagement.google.GoogleProjectService.P
 import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
 
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
@@ -68,12 +70,13 @@ public class ResourceService {
      *     <le>if the metadata exists, but the bucket does not</le>
      * </ol>
      */
-    public GoogleBucketResource getOrCreateBucketForFile(String datasetName,
+    public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
                                                          String datasetId,
                                                          BillingProfileModel billingProfile,
                                                          String flightId) throws InterruptedException {
+        final String datasetName = dataset.getName();
         // Every bucket needs to live in a project, so we get or create a project first
-        GoogleProjectResource projectResource = projectService.getOrCreateProject(
+        final GoogleProjectResource projectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForFile(datasetName, billingProfile),
             billingProfile,
             null);
@@ -91,7 +94,9 @@ public class ResourceService {
             bucketName = bucket.getName();
         }
 
-        return bucketService.getOrCreateBucket(bucketName, projectResource, flightId);
+        return bucketService.getOrCreateBucket(bucketName, projectResource,
+            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+            flightId);
     }
 
     private boolean bucketIsForBillingProfile(GoogleBucketResource bucket, BillingProfileModel billingProfile) {

@@ -31,8 +31,7 @@ get_url() {
     curl -s -X GET  "${1}" -H  "accept: application/json" -H  "Content-Type: application/json" -H "${AUTH_TOKEN}"
 }
 
-CURRENT_DATE=$(date -I)
-CURRENT_DATE=${CURRENT_DATE//-}
+CURRENT_DATE=$(date +%Y%m%d)
 
 ### PART 1: create profile ###
 profile_create() {

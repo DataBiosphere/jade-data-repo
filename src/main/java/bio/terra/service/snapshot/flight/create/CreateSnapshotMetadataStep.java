@@ -64,10 +64,10 @@ public class CreateSnapshotMetadataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-//        logger.debug("Snapshot creation failed. Deleting metadata.");
-//        FlightMap workingMap = context.getWorkingMap();
-//        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-//        snapshotDao.delete(snapshotId);
+        logger.debug("Snapshot creation failed. Deleting metadata.");
+        FlightMap workingMap = context.getWorkingMap();
+        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
+        snapshotDao.delete(snapshotId);
         return StepResult.getStepResultSuccess();
     }
 

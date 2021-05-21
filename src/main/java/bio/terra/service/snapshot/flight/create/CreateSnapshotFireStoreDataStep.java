@@ -122,15 +122,15 @@ public class CreateSnapshotFireStoreDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) throws InterruptedException {
-//        // Remove the snapshot file system and any file dependencies created
-//        Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
-//        fileDao.deleteFilesFromSnapshot(snapshot);
-//        for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
-//            Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
-//            dependencyDao.deleteSnapshotFileDependencies(
-//                dataset,
-//                snapshot.getId().toString());
-//        }
+        // Remove the snapshot file system and any file dependencies created
+        Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
+        fileDao.deleteFilesFromSnapshot(snapshot);
+        for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
+            Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
+            dependencyDao.deleteSnapshotFileDependencies(
+                dataset,
+                snapshot.getId().toString());
+        }
 
         return StepResult.getStepResultSuccess();
     }

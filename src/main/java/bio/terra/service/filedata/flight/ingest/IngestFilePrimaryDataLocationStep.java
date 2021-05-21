@@ -13,8 +13,11 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IngestFilePrimaryDataLocationStep implements Step {
+    private final Logger logger = LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
     private final ResourceService resourceService;
     private final Dataset dataset;
 
@@ -63,7 +66,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
         try {
             resourceService.updateBucketMetadata(dataset, billingProfile, context.getFlightId());
         } catch (GoogleProjectNamingException e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return StepResult.getStepResultSuccess();
     }

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
@@ -17,6 +18,7 @@ import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
+import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
@@ -34,7 +36,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
@@ -392,6 +397,20 @@ public class SnapshotDaoTest {
             assertThat("correct snapshot name",
                 makeName(snapshotName, index),
                 equalTo(summary.getName()));
+
+            Map<GoogleCloudResource, StorageResource> storageMap = summary.getStorage().stream()
+                    .collect(Collectors.toMap(StorageResource::getCloudResource, Function.identity()));
+
+            Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotIds.get(index));
+            SnapshotSource source = fromDB.getFirstSnapshotSource();
+
+            for (GoogleCloudResource resource: GoogleCloudResource.values()) {
+                GoogleRegion sourceRegion = source.getDataset().getDatasetSummary().getStorageResourceRegion(resource);
+                GoogleRegion snapshotRegion = storageMap.get(resource).getRegion();
+                assertThat("snapshot includes expected source dataset storage regions",
+                    snapshotRegion,
+                    equalTo(sourceRegion));
+            }
             index++;
         }
     }

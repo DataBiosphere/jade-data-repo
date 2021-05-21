@@ -23,6 +23,7 @@ import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.StorageResourceModel;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.AssetColumn;
@@ -510,8 +511,13 @@ public class SnapshotService {
                 .name(snapshotSummary.getName())
                 .description(snapshotSummary.getDescription())
                 .createdDate(snapshotSummary.getCreatedDate().toString())
-                .profileId(snapshotSummary.getProfileId().toString());
+                .profileId(snapshotSummary.getProfileId().toString())
+                .storage(storageResourceModelFromSnapshotSummary(snapshotSummary));
         return summaryModel;
+    }
+
+    private static List<StorageResourceModel> storageResourceModelFromSnapshotSummary(SnapshotSummary snapshotSummary) {
+        return snapshotSummary.getStorage().stream().map(StorageResource::toModel).collect(Collectors.toList());
     }
 
     private SnapshotModel populateSnapshotModelFromSnapshot(Snapshot snapshot,

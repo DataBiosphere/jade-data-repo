@@ -2,15 +2,15 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 
 import java.util.UUID;
 
@@ -37,7 +37,12 @@ public class CreateSnapshotGetOrCreateProjectStep implements Step {
 
         // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
         // Either the project will have been created8and we will find it, or we will create.
-        UUID projectResourceId = resourceService.getOrCreateSnapshotProject(profileModel, firestoreRegion);
+        UUID projectResourceId;
+        try {
+            projectResourceId = resourceService.getOrCreateSnapshotProject(profileModel, firestoreRegion);
+        } catch (GoogleProjectNamingException e) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
+        }
         workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
         return StepResult.getStepResultSuccess();
     }

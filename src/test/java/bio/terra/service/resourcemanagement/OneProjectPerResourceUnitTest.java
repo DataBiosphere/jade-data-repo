@@ -11,6 +11,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
@@ -65,7 +66,7 @@ public class OneProjectPerResourceUnitTest {
     private String dataProjectPrefix;
 
     @Before
-    public void setup() throws IOException, InterruptedException {
+    public void setup() throws IOException, InterruptedException, GoogleProjectNamingException {
         // Initialize lists
         billingProfiles = new ArrayList<>();
         projects = new ArrayList<>();
@@ -181,15 +182,27 @@ public class OneProjectPerResourceUnitTest {
     }
 
     @Test
-    public void shouldGetCorrectIdForDatasetWithPrefix() {
+    public void shouldGetCorrectIdForDatasetWithPrefix() throws GoogleProjectNamingException {
         String projectId = oneProjectPerResourceSelector.projectIdForDataset();
         assertThat("Project ID is what we expect before changing prefix", projectId,
             startsWith(resourceConfiguration.getProjectId()));
 
-        resourceConfiguration.setDataProjectPrefix("PREFIX");
+        resourceConfiguration.setDataProjectPrefix("prefix-39");
         String projectIdWithPrefix = oneProjectPerResourceSelector.projectIdForDataset();
         assertThat("Project ID is starts with newly set prefix", projectIdWithPrefix,
-            startsWith(resourceConfiguration.getDataProjectPrefix() ));
+            startsWith(resourceConfiguration.getDataProjectPrefix()));
+    }
+
+    @Test(expected = GoogleProjectNamingException.class)
+    public void noUpperCaseProjectNames() throws GoogleProjectNamingException {
+        resourceConfiguration.setDataProjectPrefix("PREFIX");
+        oneProjectPerResourceSelector.projectIdForDataset();
+    }
+
+    @Test(expected = GoogleProjectNamingException.class)
+    public void noProjectNameLongerThan30() throws GoogleProjectNamingException {
+        resourceConfiguration.setDataProjectPrefix("thisisaverylongprefix-thisisaverylongprefix");
+        oneProjectPerResourceSelector.projectIdForDataset();
     }
 
     private Dataset createDataset(BillingProfileModel billingProfile, GoogleProjectResource project)

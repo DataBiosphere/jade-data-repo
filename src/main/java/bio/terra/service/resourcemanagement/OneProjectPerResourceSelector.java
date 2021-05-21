@@ -2,11 +2,12 @@ package bio.terra.service.resourcemanagement;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.stairway.ShortUUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import com.google.common.hash.Hashing;
 
 import java.util.UUID;
 
@@ -14,6 +15,13 @@ import java.util.UUID;
 @Profile({"terra", "google"})
 public class OneProjectPerResourceSelector implements DataLocationSelector {
     private final GoogleResourceConfiguration resourceConfiguration;
+    private static final String GS_PROJECT_PATTERN = "[a-z0-9\\-]{6,30}";
+    /**
+     * *Borrowed from terra-resource-buffer*
+     * The size of project when generating random characters. Choose size as 8 based on AoU's
+     * historical experience, increase if 8 is not enough for a pool's naming.
+     */
+    static final int RANDOM_ID_SIZE = 8;
 
     @Autowired
     public OneProjectPerResourceSelector(GoogleResourceConfiguration resourceConfiguration) {
@@ -21,17 +29,18 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
     }
 
     @Override
-        public String projectIdForDataset() {
+        public String projectIdForDataset() throws GoogleProjectNamingException {
         return getNewProjectId();
     }
 
     @Override
-    public String projectIdForSnapshot() {
+    public String projectIdForSnapshot() throws GoogleProjectNamingException {
         return getNewProjectId();
     }
 
     @Override
-    public String projectIdForFile(Dataset dataset, BillingProfileModel billingProfile) {
+    public String projectIdForFile(Dataset dataset, BillingProfileModel billingProfile)
+        throws GoogleProjectNamingException {
         UUID sourceDatasetBillingProfileId = dataset.getProjectResource().getProfileId();
         UUID requestedBillingProfileId = UUID.fromString(billingProfile.getId());
         if (sourceDatasetBillingProfileId.equals(requestedBillingProfileId)) {
@@ -43,13 +52,30 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
     }
 
     @Override
-    public String bucketForFile(Dataset dataset, BillingProfileModel billingProfile) {
+    public String bucketForFile(Dataset dataset, BillingProfileModel billingProfile)
+        throws GoogleProjectNamingException {
         return projectIdForFile(dataset, billingProfile) + "-bucket";
     }
 
-    private String getNewProjectId() {
-        String projectDatasetSuffix = "-" + ShortUUID.get().substring(0, 8).toLowerCase();
+    private String getNewProjectId() throws GoogleProjectNamingException {
+        String projectDatasetSuffix = "-" + generateRandomId();
+
         // The project id below is an application level prefix or, if that is empty, the name of the core project
-        return resourceConfiguration.getDataProjectPrefixToUse() + projectDatasetSuffix;
+        String projectId = resourceConfiguration.getDataProjectPrefixToUse() + projectDatasetSuffix;
+
+        //Since the prefix can be set adhoc, let's check that the project name matches Google's required pattern
+        if (!projectId.matches(GS_PROJECT_PATTERN)) {
+            throw new GoogleProjectNamingException("Google project name '" + projectId +
+                    "' does not match required pattern for google projects.");
+        }
+        return projectId;
+    }
+
+    //Borrowed from terra-resource-buffer, to mimic their project naming behavior before we switch
+    private String generateRandomId() {
+        return Hashing.sha256()
+            .hashUnencodedChars(UUID.randomUUID().toString())
+            .toString()
+            .substring(0, RANDOM_ID_SIZE);
     }
 }

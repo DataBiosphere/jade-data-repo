@@ -5,6 +5,7 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
@@ -66,7 +67,8 @@ public class ResourceService {
      */
     public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
                                                          BillingProfileModel billingProfile,
-                                                         String flightId) throws InterruptedException {
+                                                         String flightId)
+                                                         throws InterruptedException, GoogleProjectNamingException {
         final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         // Every bucket needs to live in a project, so we get or create a project first
         final GoogleProjectResource projectResource = projectService.getOrCreateProject(
@@ -119,7 +121,8 @@ public class ResourceService {
      * @param billingProfile an authorized billing profile
      * @param flightId       flight doing the updating
      */
-    public void updateBucketMetadata(Dataset dataset, BillingProfileModel billingProfile, String flightId) {
+    public void updateBucketMetadata(Dataset dataset, BillingProfileModel billingProfile, String flightId)
+        throws GoogleProjectNamingException {
         String bucketName = dataLocationSelector.bucketForFile(dataset, billingProfile);
         bucketService.updateBucketMetadata(bucketName, flightId);
     }
@@ -133,7 +136,7 @@ public class ResourceService {
      * @return project resource id
      */
     public UUID getOrCreateSnapshotProject(BillingProfileModel billingProfile, GoogleRegion firestoreRegion)
-        throws InterruptedException {
+        throws InterruptedException, GoogleProjectNamingException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForSnapshot(),
@@ -152,7 +155,8 @@ public class ResourceService {
      * @return project resource id
      */
     public UUID getOrCreateDatasetProject(BillingProfileModel billingProfile,
-                                          GoogleRegion region) throws InterruptedException {
+                                          GoogleRegion region)
+                                          throws InterruptedException, GoogleProjectNamingException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForDataset(),

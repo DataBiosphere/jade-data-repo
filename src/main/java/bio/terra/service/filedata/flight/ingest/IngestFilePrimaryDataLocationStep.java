@@ -6,6 +6,7 @@ import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -43,6 +44,8 @@ public class IngestFilePrimaryDataLocationStep implements Step {
                 workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
             } catch (BucketLockException blEx) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
+            } catch (GoogleProjectNamingException ex) {
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
             }
         }
         return StepResult.getStepResultSuccess();
@@ -57,7 +60,11 @@ public class IngestFilePrimaryDataLocationStep implements Step {
         BillingProfileModel billingProfile =
             workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
-        resourceService.updateBucketMetadata(dataset, billingProfile, context.getFlightId());
+        try {
+            resourceService.updateBucketMetadata(dataset, billingProfile, context.getFlightId());
+        } catch (GoogleProjectNamingException e) {
+            e.printStackTrace();
+        }
         return StepResult.getStepResultSuccess();
     }
 }

@@ -12,8 +12,8 @@ DST_URL="https://jade-fb.datarepo-dev.broadinstitute.org/"
 
 ### utility functions ###
 token_check() {
-    RESULT=$(curl -s -X GET "${SRC_URL}/api/resources/v1/profiles" -H "accept: application/json" -H "${AUTH_TOKEN}")
-    if [[ ${RESULT} =~ "<title>401 Unauthorized</title>" ]]; then
+    RESULT=$(curl -s -X GET "${SRC_URL}/api/resources/v1/profiles" -H "accept: application/json" -H "${AUTH_TOKEN}" -w "%{http_code}" -o /dev/null)
+    if [[ ${RESULT} =~ "401" ]]; then
         echo "Error: AUTH_TOKEN is invalid or expired"
         exit 1
     fi

@@ -1,9 +1,5 @@
 package bio.terra.integration;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -29,14 +25,9 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -48,6 +39,18 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -79,10 +82,10 @@ public class FileTest extends UsersBase {
     @Before
     public void setup() throws Exception {
         super.setup();
-//        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
         dataRepoFixtures.addPolicyMember(
             steward(),
-            "54820c94-96b7-4243-843f-faf8a1598789",
+            profileId,
             IamRole.USER,
             custodian().getEmail(),
             IamResourceType.SPEND_PROFILE);
@@ -96,29 +99,30 @@ public class FileTest extends UsersBase {
             steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
     }
 
-//    @After
-//    public void tearDown() throws Exception {
-//        if (snapshotId != null) {
-//            dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
-//        }
-//        if (datasetId != null) {
-//            fileIds.forEach(f -> {
-//                try {
-//                    dataRepoFixtures.deleteFile(steward(), datasetId, f);
-//                } catch (Exception e) {
-//                    e.printStackTrace();
-//                }
-//            });
-//            dataRepoFixtures.deleteDataset(steward(), datasetId);
-//        }
-//        if (profileId != null) {
-//            dataRepoFixtures.deleteProfile(steward(), profileId);
-//        }
-//    }
+    @After
+    public void tearDown() throws Exception {
+        if (snapshotId != null) {
+            dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
+        }
+        if (datasetId != null) {
+            fileIds.forEach(f -> {
+                try {
+                    dataRepoFixtures.deleteFile(steward(), datasetId, f);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+            dataRepoFixtures.deleteDataset(steward(), datasetId);
+        }
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfile(steward(), profileId);
+        }
+    }
 
     // The purpose of this test is to have a long-running workload that completes successfully
     // while we delete pods and have them recover.
     // Marked ignore for normal testing.
+    @Ignore
     @Test
     public void longFileLoadTest() throws Exception {
         // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when they are

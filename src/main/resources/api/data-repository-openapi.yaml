@@ -2739,8 +2739,8 @@ components:
         subscriptionId:
           $ref: '#/components/schemas/UniqueIdProperty'
           description: an optional subscription id for Azure
-        resourceGroupId:
-          $ref: '#/components/schemas/UniqueIdProperty'
+        resourceGroupName:
+          type: string
           description: an optional resource group id for Azure
     BillingProfileUpdateModel:
       required:
@@ -2783,8 +2783,8 @@ components:
         subscriptionId:
           $ref: '#/components/schemas/UniqueIdProperty'
           description: an optional subscription id for Azure
-        resourceGroupId:
-          $ref: '#/components/schemas/UniqueIdProperty'
+        resourceGroupName:
+          type: string
           description: an optional resource group id for Azure
         createdDate:
           type: string

@@ -19,5 +19,5 @@ databaseChangeLog:
                   name: subscription_id
                   type: ${uuid_type}
               - column:
-                  name: resource_group_id
-                  type: ${uuid_type}
+                  name: resource_group_name
+                  type: ${identifier_type}

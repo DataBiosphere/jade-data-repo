@@ -33,7 +33,7 @@ public class ProfileDao {
     // SQL select string constants
     private static final String SQL_SELECT_LIST =
         "id, name, biller, billing_account_id, description, cloud_platform, " +
-            "tenant_id, subscription_id, resource_group_id, created_date, created_by";
+            "tenant_id, subscription_id, resource_group_name, created_date, created_by";
 
     private static final String SQL_GET = "SELECT " + SQL_SELECT_LIST
         + " FROM billing_profile WHERE id = :id";
@@ -59,9 +59,9 @@ public class ProfileDao {
     public BillingProfileModel createBillingProfile(BillingProfileRequestModel profileRequest, String creator) {
         String sql = "INSERT INTO billing_profile"
             + " (id, name, biller, billing_account_id, description, cloud_platform, " +
-            "     tenant_id, subscription_id, resource_group_id, created_by) VALUES "
+            "     tenant_id, subscription_id, resource_group_name, created_by) VALUES "
             + " (:id, :name, :biller, :billing_account_id, :description, :cloud_platform, " +
-            "     :tenant_id, :subscription_id, :resource_group_id, :created_by)";
+            "     :tenant_id, :subscription_id, :resource_group_name, :created_by)";
 
         String cloudPlatform = Optional.ofNullable(profileRequest.getCloudPlatform())
             .or(() -> Optional.of(CloudPlatform.GCP))
@@ -70,8 +70,7 @@ public class ProfileDao {
         UUID tenantId = Optional.ofNullable(profileRequest.getTenantId()).map(UUID::fromString).orElse(null);
         UUID subscriptionId = Optional.ofNullable(profileRequest.getSubscriptionId())
             .map(UUID::fromString).orElse(null);
-        UUID resourceGroupId = Optional.ofNullable(profileRequest.getResourceGroupId())
-            .map(UUID::fromString).orElse(null);
+        String resourceGroupName = Optional.ofNullable(profileRequest.getResourceGroupName()).orElse(null);
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("id", UUID.fromString(profileRequest.getId()))
@@ -82,7 +81,7 @@ public class ProfileDao {
             .addValue("cloud_platform", cloudPlatform)
             .addValue("tenant_id", tenantId)
             .addValue("subscription_id", subscriptionId)
-            .addValue("resource_group_id", resourceGroupId)
+            .addValue("resource_group_name", resourceGroupName)
             .addValue("created_by", creator);
 
         DaoKeyHolder keyHolder = new DaoKeyHolder();
@@ -97,7 +96,7 @@ public class ProfileDao {
             .cloudPlatform(CloudPlatform.valueOf(keyHolder.getString("cloud_platform")))
             .tenantId(keyHolder.getString("tenant_id"))
             .subscriptionId(keyHolder.getString("subscription_id"))
-            .resourceGroupId(keyHolder.getString("resource_group_id"))
+            .resourceGroupName(keyHolder.getString("resource_group_name"))
             .createdBy(keyHolder.getString("created_by"))
             .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
     }
@@ -130,7 +129,7 @@ public class ProfileDao {
             .cloudPlatform(CloudPlatform.valueOf(keyHolder.getString("cloud_platform")))
             .tenantId(keyHolder.getString("tenant_id"))
             .subscriptionId(keyHolder.getString("subscription_id"))
-            .resourceGroupId(keyHolder.getString("resource_group_id"))
+            .resourceGroupName(keyHolder.getString("resource_group_name"))
             .createdBy(keyHolder.getString("created_by"))
             .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
     }
@@ -203,7 +202,7 @@ public class ProfileDao {
                 .cloudPlatform(CloudPlatform.valueOf(rs.getString("cloud_platform")))
                 .tenantId(rs.getString("tenant_id"))
                 .subscriptionId(rs.getString("subscription_id"))
-                .resourceGroupId(rs.getString("resource_group_id"))
+                .resourceGroupName(rs.getString("resource_group_name"))
                 .createdDate(rs.getTimestamp("created_date").toInstant().toString())
                 .createdBy(rs.getString("created_by"));
         }

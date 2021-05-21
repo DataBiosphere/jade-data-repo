@@ -76,13 +76,13 @@ public class ProfileConnectedTest {
     public void testAzureBillingProfile() throws Exception {
         var tenant = UUID.randomUUID().toString();
         var subscription = UUID.randomUUID().toString();
-        var resourceGroup = UUID.randomUUID().toString();
+        var resourceGroup = "resourceGroupName";
         var requestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(testConfig.getGoogleBillingAccountId())
             .cloudPlatform(CloudPlatform.AZURE)
             .tenantId(tenant)
             .subscriptionId(subscription)
-            .resourceGroupId(resourceGroup);
+            .resourceGroupName(resourceGroup);
 
         var profile = connectedOperations.createProfile(requestModel);
 
@@ -94,7 +94,7 @@ public class ProfileConnectedTest {
 
         assertThat("Azure billing profile has tenant, subscription, and resourceGroup",
             List.of(retrievedProfile.getTenantId(), retrievedProfile.getSubscriptionId(),
-                retrievedProfile.getResourceGroupId()),
+                retrievedProfile.getResourceGroupName()),
             contains(tenant, subscription, resourceGroup));
     }
 
@@ -104,27 +104,27 @@ public class ProfileConnectedTest {
             .cloudPlatform(CloudPlatform.GCP)
             .tenantId(UUID.randomUUID().toString())
             .subscriptionId(UUID.randomUUID().toString())
-            .resourceGroupId(UUID.randomUUID().toString());
+            .resourceGroupName("resourceGroupName");
 
         var defaultRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .tenantId(UUID.randomUUID().toString())
             .subscriptionId(UUID.randomUUID().toString())
-            .resourceGroupId(UUID.randomUUID().toString());
+            .resourceGroupName("resourceGroupName");
 
         for (var requestModel : List.of(gcpRequestModel, defaultRequestModel)) {
             var errorModel = connectedOperations.createProfileExpectError(requestModel, HttpStatus.BAD_REQUEST);
 
             assertThat("There are 3 errors returned", errorModel.getErrorDetail(), iterableWithSize(3));
 
-            assertThat("GCP request returns tenant error if supplied",
+            assertThat("GCP request returns tenantId error if supplied",
                 errorModel.getErrorDetail(),
-                hasItems(startsWith("tenant")));
-            assertThat("GCP request returns subscription error if supplied",
+                hasItems(startsWith("tenantId")));
+            assertThat("GCP request returns subscriptionId error if supplied",
                 errorModel.getErrorDetail(),
-                hasItems(startsWith("subscription")));
-            assertThat("GCP request returns resourceGroup error if supplied",
+                hasItems(startsWith("subscriptionId")));
+            assertThat("GCP request returns resourceGroupName error if supplied",
                 errorModel.getErrorDetail(),
-                hasItems(startsWith("resourceGroup")));
+                hasItems(startsWith("resourceGroupName")));
         }
     }
 
@@ -137,34 +137,34 @@ public class ProfileConnectedTest {
 
         assertThat("There are 3 errors returned", missingParams.getErrorDetail(), iterableWithSize(3));
 
-        assertThat("Azure request returns tenant error if not supplied",
+        assertThat("Azure request returns tenantId error if not supplied",
             missingParams.getErrorDetail(),
-            hasItems(containsString("UUID `tenant`")));
-        assertThat("Azure request returns subscription error if not supplied",
+            hasItems(containsString("UUID `tenantId`")));
+        assertThat("Azure request returns subscriptionId error if not supplied",
             missingParams.getErrorDetail(),
-            hasItems(containsString("UUID `subscription`")));
-        assertThat("Azure request returns resourceGroup error if not supplied",
+            hasItems(containsString("UUID `subscriptionId`")));
+        assertThat("Azure request returns resourceGroupName error if not supplied",
             missingParams.getErrorDetail(),
-            hasItems(containsString("UUID `resourceGroup`")));
+            hasItems(containsString("non-empty resourceGroupName")));
 
         var invalidUuidRequest = ProfileFixtures.randomBillingProfileRequest()
             .cloudPlatform(CloudPlatform.AZURE)
             .tenantId("not-a-valid-uuid")
             .subscriptionId("not-a-valid-uuid")
-            .resourceGroupId("not-a-valid-uuid");
+            .resourceGroupName("");
 
         var invalidUuid = connectedOperations
             .createProfileExpectError(invalidUuidRequest, HttpStatus.BAD_REQUEST);
 
         assertThat("There are 3 errors returned", invalidUuid.getErrorDetail(), iterableWithSize(3));
-        assertThat("The server rejects invalid UUID for tenant",
+        assertThat("The server rejects invalid UUID for tenantId",
             invalidUuid.getErrorDetail(),
-            hasItems(containsString("UUID `tenant`")));
-        assertThat("The server rejects invalid UUID for subscription",
+            hasItems(containsString("tenantId: 'Pattern'")));
+        assertThat("The server rejects invalid UUID for subscriptionId",
             invalidUuid.getErrorDetail(),
-            hasItems(containsString("UUID `subscription`")));
-        assertThat("The server rejects invalid UUID for resourceGroup",
+            hasItems(containsString("subscriptionId: 'Pattern'")));
+        assertThat("The server rejects an empty string for resourceGroupName",
             invalidUuid.getErrorDetail(),
-            hasItems(containsString("UUID `resourceGroup`")));
+            hasItems(containsString("non-empty resourceGroupName")));
     }
 }

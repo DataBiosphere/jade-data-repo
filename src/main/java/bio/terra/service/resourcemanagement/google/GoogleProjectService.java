@@ -461,11 +461,12 @@ public class GoogleProjectService {
                                         final String googleProjectId,
                                         final GoogleRegion region,
                                         final long timeout) throws IOException, InterruptedException {
-        logger.info("Enabling Firestore in project {} in location {}", googleProjectId, region.toString());
+        logger.info("Enabling Firestore in project {} in location {}", googleProjectId,
+            region.getFirestoreFallbackRegion());
         // Create a request object
         Appengine.Apps.Create createRequest = appengine.apps().create(new Application()
             .setId(googleProjectId)
-            .setLocationId(region.toString())
+            .setLocationId(region.getFirestoreFallbackRegion().toString())
             .setDatabaseType(FIRESTORE_DB_TYPE)
         );
 

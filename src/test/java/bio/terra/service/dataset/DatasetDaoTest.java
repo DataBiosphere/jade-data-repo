@@ -36,9 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -173,14 +171,35 @@ public class DatasetDaoTest {
                 equalTo(2));
             fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
 
-            Map<GoogleCloudResource, StorageResource> storageMap = fromDB.getDatasetSummary().getStorage().stream()
-                .collect(Collectors.toMap(StorageResource::getCloudResource, Function.identity()));
-
-            for (GoogleCloudResource cloudResource : GoogleCloudResource.values()) {
-                StorageResource storage = storageMap.get(cloudResource);
-                assertThat(String.format("dataset %s region is set", storage.getCloudResource()),
-                    storage.getRegion(),
+            for (GoogleCloudResource resource: GoogleCloudResource.values()) {
+                GoogleRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+                assertThat(String.format("dataset %s region is set", resource),
+                    region,
                     equalTo(GoogleRegion.US_CENTRAL1));
+            }
+        } finally {
+            datasetDao.delete(datasetId);
+        }
+    }
+
+    @Test
+    public void datasetRegionFirestoreFallbackTest() throws Exception {
+        DatasetRequestModel request = jsonLoader
+            .loadObject("dataset-create-test.json", DatasetRequestModel.class)
+            .region("US");
+        String expectedName = request.getName() + UUID.randomUUID().toString();
+
+        UUID datasetId = createDataset(request, expectedName);
+        try {
+            Dataset fromDB = datasetDao.retrieve(datasetId);
+
+            for (GoogleCloudResource resource: GoogleCloudResource.values()) {
+                GoogleRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+                GoogleRegion expectedRegion =
+                    (resource == GoogleCloudResource.FIRESTORE) ? GoogleRegion.US_CENTRAL1 : GoogleRegion.US;
+                assertThat(String.format("dataset %s region is set", resource),
+                    region,
+                    equalTo(expectedRegion));
             }
         } finally {
             datasetDao.delete(datasetId);

@@ -637,15 +637,8 @@ public class BigQueryPdao {
 
     public void grantReadAccessToSnapshot(Snapshot snapshot, Collection<String> policies) throws InterruptedException {
         // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-        logger.info("granting read access to snapshot");
-        var sourceDataset = snapshot.getFirstSnapshotSource().getDataset();
-        var datasetBQProject = bigQueryProjectForDataset(sourceDataset);
-        var bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        logger.info("Dataset project: " + datasetBQProject.getProjectId());
-        logger.info("Snapshot project:" + bigQueryProject.getProjectId());
-
         grantReadAccessWorker(
-            bigQueryProject,
+            bigQueryProjectForSnapshot(snapshot),
             snapshot.getName(),
             policies);
     }

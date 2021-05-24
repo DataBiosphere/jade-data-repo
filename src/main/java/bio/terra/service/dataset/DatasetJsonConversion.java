@@ -82,19 +82,15 @@ public final class DatasetJsonConversion {
     }
 
     public static GoogleRegion getRegionFromDatasetRequestModel(DatasetRequestModel datasetRequestModel) {
-        return Optional.ofNullable(datasetRequestModel.getRegion())
-            .map(GoogleRegion::fromValue)
-            .orElse(GoogleRegion.DEFAULT_GOOGLE_REGION);
+        return GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
     }
 
     private static List<StorageResource> createGcpStorageResourceValues(DatasetRequestModel datasetRequestModel) {
         final GoogleRegion region = getRegionFromDatasetRequestModel(datasetRequestModel);
-        return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
-            return new StorageResource()
-                .cloudPlatform(CloudPlatform.GCP)
-                .region(region)
-                .cloudResource(resource);
-        }).collect(Collectors.toList());
+        return Arrays.stream(GoogleCloudResource.values()).map(resource -> new StorageResource()
+             .cloudPlatform(CloudPlatform.GCP)
+             .region(region)
+             .cloudResource(resource)).collect(Collectors.toList());
     }
 
     public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(DatasetSummary datasetSummary) {

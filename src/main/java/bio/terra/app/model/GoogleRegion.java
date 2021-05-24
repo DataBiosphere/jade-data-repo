@@ -1,5 +1,7 @@
 package bio.terra.app.model;
 
+import java.util.Optional;
+
 /**
  * Valid regions in Google.
  */
@@ -62,5 +64,9 @@ public enum GoogleRegion {
             }
         }
         return null;
+    }
+
+    public static GoogleRegion fromValueWithDefault(String text) {
+        return Optional.ofNullable(GoogleRegion.fromValue(text)).orElse(GoogleRegion.DEFAULT_GOOGLE_REGION);
     }
 }

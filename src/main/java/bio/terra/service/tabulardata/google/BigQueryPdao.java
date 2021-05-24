@@ -881,29 +881,31 @@ public class BigQueryPdao {
     }
 
     private static final String getSnapshotRefIdsTemplate =
-        "SELECT <refCol> FROM `<project>.<dataset>.<table>` S, " +
-            "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
+        "SELECT <refCol> FROM `<datasetProject>.<dataset>.<table>` S, " +
+            "`<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
             "<if(array)>CROSS JOIN UNNEST(S.<refCol>) AS <refCol> <endif>" +
             "WHERE S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
             "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>'";
 
     public List<String> getSnapshotRefIds(Dataset dataset,
-                                         String snapshotName,
+                                         Snapshot snapshot,
                                          String tableName,
                                          String tableId,
                                          Column refColumn) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject datasetBigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject snapshotBigQueryProject = bigQueryProjectForSnapshot(snapshot);
 
         ST sqlTemplate = new ST(getSnapshotRefIdsTemplate);
-        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
+        sqlTemplate.add("snapshotProject", snapshotBigQueryProject.getProjectId());
         sqlTemplate.add("dataset", prefixName(dataset.getName()));
-        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("snapshot", snapshot.getName());
         sqlTemplate.add("table", tableName);
         sqlTemplate.add("tableId", tableId);
         sqlTemplate.add("refCol", refColumn.getName());
         sqlTemplate.add("array", refColumn.isArrayOf());
 
-        TableResult result = bigQueryProject.query(sqlTemplate.render());
+        TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
         List<String> refIdArray = new ArrayList<>();
         for (FieldValueList row : result.iterateAll()) {
             if (!row.get(0).isNull()) {

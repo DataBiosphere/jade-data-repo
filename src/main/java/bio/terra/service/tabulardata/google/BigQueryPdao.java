@@ -639,10 +639,10 @@ public class BigQueryPdao {
         // TODO: When we support multiple datasets per snapshot, this will need to be reworked
         logger.info("granting read access to snapshot");
         var sourceDataset = snapshot.getFirstSnapshotSource().getDataset();
-        var bigQueryProject = bigQueryProjectForDataset(sourceDataset);
-
-        logger.info(sourceDataset.getName());
-        logger.info(bigQueryProject.getProjectId());
+        var datasetBQProject = bigQueryProjectForDataset(sourceDataset);
+        var bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        logger.info("Dataset project: " + datasetBQProject.getProjectId());
+        logger.info("Snapshot project:" + bigQueryProject.getProjectId());
 
         grantReadAccessWorker(
             bigQueryProject,

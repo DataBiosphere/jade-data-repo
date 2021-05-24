@@ -1596,16 +1596,23 @@ public class BigQueryPdao {
      */
     public List<Map<String, Object>> getSnapshotTableData(Snapshot snapshot,
                                                           String sql) throws InterruptedException {
+        // execute query and get result
         final BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         final TableResult result = bigQueryProject.query(sql);
+
+        // aggregate into single object
+        final List<Field> columns = result.getSchema().getFields();
         final List<Map<String, Object>> values = new ArrayList<>();
-        result.iterateAll().forEach(fieldValueList -> {
-            final Map<String, Object> fieldMap = new HashMap<>();
-            fieldValueList.forEach(fieldValue -> {
-                fieldMap.put(fieldValue.toString(), fieldValue.getValue());
+        result.iterateAll().forEach(rows -> {
+            final Map<String, Object> rowData = new HashMap<>();
+            columns.forEach(column -> {
+                String columnName = column.getName();
+                Object fieldValue = rows.get(columnName).getValue();
+                rowData.put(columnName, fieldValue);
             });
-            values.add(fieldMap);
+            values.add(rowData);
         });
+
         return values;
     }
 

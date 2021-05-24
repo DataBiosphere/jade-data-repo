@@ -642,7 +642,7 @@ public class BigQueryPdao {
         var bigQueryProject = bigQueryProjectForDataset(sourceDataset);
 
         logger.info(sourceDataset.getName());
-        logger.info(bigQueryProject.toString());
+        logger.info(bigQueryProject.getProjectId());
 
         grantReadAccessWorker(
             bigQueryProject,

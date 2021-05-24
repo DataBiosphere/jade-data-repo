@@ -128,7 +128,13 @@ public final class BigQueryProject {
     }
 
     public void addDatasetAcls(String datasetId, List<Acl> acls) {
+        logger.info("ADD DATASET ACLS");
+        logger.info("dataset id" + datasetId);
+        logger.info(String.valueOf(acls));
+
         Dataset dataset = bigQuery.getDataset(datasetId);
+        logger.info(dataset.toString());
+
         List<Acl> beforeAcls = dataset.getAcl();
         logger.debug("Before acl: " + StringUtils.join(beforeAcls, ", "));
         ArrayList<Acl> newAcls = new ArrayList<>(beforeAcls);

@@ -1,5 +1,6 @@
 package bio.terra.common.fixtures;
 
+import bio.terra.common.Column;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
@@ -10,10 +11,13 @@ import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
+import bio.terra.service.dataset.DatasetTable;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 public final class DatasetFixtures {
@@ -99,5 +103,33 @@ public final class DatasetFixtures {
             .description("This is a sample dataset definition")
             .defaultProfileId(UUID.randomUUID().toString())
             .schema(buildSchema());
+    }
+
+    /**
+     * Use method to generate a DatasetTable.  Individual values can be mutated by tests if needed
+     */
+    public static DatasetTable generateDatasetTable(String name,
+                                                    TableDataType baseType,
+                                                    List<String> columnNames) {
+        if (columnNames.isEmpty()) {
+            throw new RuntimeException("Number of columns must be greater than 0");
+        }
+        List<Column> columns = columnNames.stream()
+            .map(c -> new Column()
+                .id(UUID.randomUUID())
+                .name(c)
+                .arrayOf(false)
+                .type(baseType)
+            )
+            .collect(Collectors.toList());
+        DatasetTable datasetTable = new DatasetTable()
+            .id(UUID.randomUUID())
+            .name(name)
+            .rawTableName(name)
+            .columns(columns)
+            .primaryKey(columns.subList(0, 0));
+        datasetTable.getColumns().forEach(c -> c.table(datasetTable));
+
+        return datasetTable;
     }
 }

@@ -486,7 +486,7 @@ public class BigQueryPdao {
         "<selectStatements; separator=\" UNION ALL \">";
 
     private static final String validateSnapshotSizeTemplate =
-        "SELECT COUNT(1) FROM <snapshotProject>.<snapshot>.<dataRepoTable>";
+        "SELECT <rowId> FROM `<snapshotProject>.<snapshot>.<dataRepoTable>`";
 
 
     public String createSnapshotTableFromLiveViews(
@@ -551,6 +551,7 @@ public class BigQueryPdao {
         snapshotBigQueryProject.query(sqlTemplate.render());
 
         ST sqlValidateSnapshotTemplate = new ST(validateSnapshotSizeTemplate);
+        sqlValidateSnapshotTemplate.add("rowId", PDAO_ROW_ID_COLUMN);
         sqlValidateSnapshotTemplate.add("snapshotProject", snapshotProjectId);
         sqlValidateSnapshotTemplate.add("snapshot", snapshotName);
         sqlValidateSnapshotTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
@@ -1315,7 +1316,6 @@ public class BigQueryPdao {
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
             .build();
 
-        System.err.println(queryConfig);
         executeQueryWithRetry(bigQuery, queryConfig);
     }
 

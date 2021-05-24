@@ -44,8 +44,10 @@ public class SearchService {
             CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName)
                 .settings(Settings.builder()
                     .put("index.number_of_shards", 3));
-            CreateIndexResponse response = null;
-            response = client.indices().create(createIndexRequest, RequestOptions.DEFAULT);
+            CreateIndexResponse response = client.indices().create(createIndexRequest, RequestOptions.DEFAULT);
+            if (!response.isAcknowledged()) {
+                throw new PdaoException("The index request was not acknowledged by one or more nodes");
+            }
         } catch (IOException e) {
             throw new PdaoException("Error creating index", e);
         }

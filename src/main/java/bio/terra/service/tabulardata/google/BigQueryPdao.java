@@ -41,6 +41,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
@@ -1601,7 +1602,7 @@ public class BigQueryPdao {
         final TableResult result = bigQueryProject.query(sql);
 
         // aggregate into single object
-        final List<Field> columns = result.getSchema().getFields();
+        final FieldList columns = result.getSchema().getFields();
         final List<Map<String, Object>> values = new ArrayList<>();
         result.iterateAll().forEach(rows -> {
             final Map<String, Object> rowData = new HashMap<>();

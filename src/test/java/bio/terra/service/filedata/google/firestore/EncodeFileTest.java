@@ -24,6 +24,7 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
+import bio.terra.service.tabulardata.google.BigQueryProjectProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.FieldValue;
@@ -461,7 +462,7 @@ public class EncodeFileTest {
     private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) throws InterruptedException {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
         String googleProjectId = snapshot.getProjectResource().getGoogleProjectId();
-        BigQueryProject bigQueryProject = BigQueryProject.get(googleProjectId);
+        BigQueryProject bigQueryProject = new BigQueryProjectProvider().apply(googleProjectId);
 
         StringBuilder builder = new StringBuilder()
             .append("SELECT file_ref FROM `")

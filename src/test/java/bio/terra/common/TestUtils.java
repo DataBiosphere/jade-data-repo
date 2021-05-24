@@ -6,6 +6,7 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
+import bio.terra.service.tabulardata.google.BigQueryProjectProvider;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
@@ -163,7 +164,7 @@ public final class TestUtils {
     public static BigQueryProject bigQueryProjectForDatasetName(DatasetDao datasetDao,
                                                                 String datasetName) throws InterruptedException {
         Dataset dataset = datasetDao.retrieveByName(datasetName);
-        return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
+        return new BigQueryProjectProvider().apply(dataset.getProjectResource().getGoogleProjectId());
     }
 
     private static final String selectFromBigQueryDatasetTemplate =
@@ -216,6 +217,4 @@ public final class TestUtils {
         }
         return null;
     }
-
 }
-

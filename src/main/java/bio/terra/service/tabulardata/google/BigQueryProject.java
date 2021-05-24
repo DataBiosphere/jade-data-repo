@@ -26,26 +26,19 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 public final class BigQueryProject {
     private static final Logger logger = LoggerFactory.getLogger(BigQueryProject.class);
-    private static final ConcurrentHashMap<String, BigQueryProject> bigQueryProjectCache = new ConcurrentHashMap<>();
     private final String projectId;
     private final BigQuery bigQuery;
 
-    private BigQueryProject(String projectId) {
+    BigQueryProject(String projectId) {
         logger.info("Retrieving Bigquery project for project id: {}", projectId);
         this.projectId = projectId;
         bigQuery = BigQueryOptions.newBuilder()
             .setProjectId(projectId)
             .build()
             .getService();
-    }
-
-    public static BigQueryProject get(String projectId) {
-        bigQueryProjectCache.computeIfAbsent(projectId, BigQueryProject::new);
-        return bigQueryProjectCache.get(projectId);
     }
 
     public String getProjectId() {

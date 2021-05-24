@@ -55,6 +55,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.ViewDefinition;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -92,20 +93,25 @@ public class BigQueryPdao {
 
     private final String datarepoDnsName;
     private final BigQueryConfiguration bigQueryConfiguration;
+    private final BigQueryProjectProvider bigQueryProjectProvider;
 
     @Autowired
     public BigQueryPdao(ApplicationConfiguration applicationConfiguration,
-                        BigQueryConfiguration bigQueryConfiguration) {
+                        BigQueryConfiguration bigQueryConfiguration,
+                        BigQueryProjectProvider bigQueryProjectProvider) {
         this.datarepoDnsName = applicationConfiguration.getDnsName();
         this.bigQueryConfiguration = bigQueryConfiguration;
+        this.bigQueryProjectProvider = bigQueryProjectProvider;
     }
 
-    public BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
-        return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
+    @VisibleForTesting
+    BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
+        return bigQueryProjectProvider.apply(dataset.getProjectResource().getGoogleProjectId());
     }
 
-    private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) {
-        return BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
+    @VisibleForTesting
+    BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) {
+        return bigQueryProjectProvider.apply(snapshot.getProjectResource().getGoogleProjectId());
     }
 
     public void createDataset(Dataset dataset) throws InterruptedException {
@@ -1307,6 +1313,7 @@ public class BigQueryPdao {
             .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
             .build();
 
+        System.err.println(queryConfig);
         executeQueryWithRetry(bigQuery, queryConfig);
     }
 

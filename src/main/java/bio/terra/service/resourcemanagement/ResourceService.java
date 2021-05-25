@@ -71,7 +71,6 @@ public class ResourceService {
      * </ol>
      */
     public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
-                                                         String datasetId,
                                                          BillingProfileModel billingProfile,
                                                          String flightId) throws InterruptedException {
         final String datasetName = dataset.getName();
@@ -81,11 +80,11 @@ public class ResourceService {
             billingProfile,
             null);
 
-        List<UUID> bucketsForDataset = datasetBucketDao.getBucketForDatasetId(UUID.fromString(datasetId));
-        String bucketName = dataLocationSelector.bucketForFile(datasetId, billingProfile);
+        List<UUID> bucketsForDataset = datasetBucketDao.getBucketForDatasetId(dataset.getId());
+        String bucketName = dataLocationSelector.bucketForFile(dataset.getId(), billingProfile);
 
         List<GoogleBucketResource> bucketsForBillingProfile = bucketsForDataset.stream()
-            .map(bucketUUID -> lookupBucket(bucketUUID.toString()))
+            .map(this::lookupBucket)
             .filter(bucket -> bucketIsForBillingProfile(bucket, billingProfile))
         .collect(Collectors.toList());
 
@@ -117,6 +116,10 @@ public class ResourceService {
         return bucketService.getBucketResourceById(UUID.fromString(bucketResourceId), true);
     }
 
+    public GoogleBucketResource lookupBucket(UUID bucketResourceId) {
+        return lookupBucket(bucketResourceId.toString());
+    }
+
     /**
      * Fetch an existing bucket_resource metadata row.
      * Note this method does not check for the existence of the underlying cloud resource.
@@ -142,7 +145,7 @@ public class ResourceService {
      * @param billingProfile an authorized billing profile
      * @param flightId       flight doing the updating
      */
-    public void updateBucketMetadata(String datasetId, BillingProfileModel billingProfile, String flightId) {
+    public void updateBucketMetadata(UUID datasetId, BillingProfileModel billingProfile, String flightId) {
         String bucketName = dataLocationSelector.bucketForFile(datasetId, billingProfile);
         bucketService.updateBucketMetadata(bucketName, flightId);
     }

@@ -1,6 +1,5 @@
 package bio.terra.service.resourcemanagement;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import bio.terra.common.category.Unit;
@@ -115,7 +114,7 @@ public class DatasetBucketLinkTest {
     }
 
     @Test
-    public void twoDatasetsOneBillingProfileOneBucket() throws Exception {
+    public void twoDatasetsOneBillingProfileTwoBuckets() throws Exception {
 
         //Two dataset, one billing profile
         datasets.add(createDataset(billingProfiles.get(0), projects.get(0).getId()));
@@ -127,7 +126,7 @@ public class DatasetBucketLinkTest {
             datasets.get(1).getId(), billingProfiles.get(0));
         logger.info("Bucket 1: {}; Bucket 2: {}", bucketName1, bucketName2);
 
-        assertEquals("Buckets should be named the same", bucketName1, bucketName2);
+        assertNotEquals("Buckets should be different", bucketName1, bucketName2);
     }
 
     private Dataset createDataset(BillingProfileModel billingProfile, UUID projectId) throws IOException {

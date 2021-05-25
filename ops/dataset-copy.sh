@@ -113,16 +113,22 @@ dataset_create_schema() {
     post_url "${DATASET_URL}" "${DATASET_SCHEMA}"
     
     printf "\n"
+    Z=0
     while true ; do
         DATASET_NEW_UUID=$(get_url "${DATASET_URL}" | jq -r '.items[] | select(.name=="'"${DATASET_NAME}"'") | .id')
 
         if [ -n "${DATASET_NEW_UUID}" ]; then
             echo "5: created schema for NEW dataset ${DATASET_NEW_UUID}"
             break
+        elif [ "${Z}" -ge 6 ]; then
+            echo "Error: dataset not found after multiple retries"
+            exit 1
         fi
 
         echo "5: could not find dataset, sleeping"
         sleep 10
+
+        Z=$((Z+1))
     done
 }
 

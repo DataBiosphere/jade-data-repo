@@ -366,7 +366,8 @@ public class BigQueryPdaoUnitTest {
         // Make sure that validation is called and returns
         BQTestUtils.mockBQQuery(
             bigQueryProjectSnapshot,
-            "SELECT datarepo_row_id FROM `" + SNAPSHOT_PROJECT_ID + "." + SNAPSHOT_NAME + ".datarepo_row_ids`",
+            "SELECT datarepo_row_id FROM `" + SNAPSHOT_PROJECT_ID + "." + SNAPSHOT_NAME + ".datarepo_row_ids` " +
+                "LIMIT 1",
             Schema.of(Field.of("cnt", LegacySQLTypeName.NUMERIC)),
             List.of(Map.of("cnt", UUID.randomUUID().toString())));
 
@@ -394,7 +395,8 @@ public class BigQueryPdaoUnitTest {
         // Make validation return that no records will be in snapshot
         BQTestUtils.mockBQQuery(
             bigQueryProjectSnapshot,
-            "SELECT datarepo_row_id FROM `" + SNAPSHOT_PROJECT_ID + "." + SNAPSHOT_NAME + ".datarepo_row_ids`",
+            "SELECT datarepo_row_id FROM `" + SNAPSHOT_PROJECT_ID + "." + SNAPSHOT_NAME + ".datarepo_row_ids` " +
+                "LIMIT 1",
             Schema.of(Field.of("cnt", LegacySQLTypeName.NUMERIC)),
             Collections.emptyList());
 

@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -98,7 +99,6 @@ public class SearchApiController implements SearchApi {
         @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
         @Valid @RequestParam(value = "limit", required = false, defaultValue = "1000") Integer limit
     ) {
-
         List<String> accessibleIds =
                 iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
                         .stream()
@@ -107,12 +107,14 @@ public class SearchApiController implements SearchApi {
 
         List<String> requestIds = searchQueryRequest.getSnapshotIds();
 
-        for (String snapShotId : requestIds) {
-            if (!accessibleIds.contains(snapShotId)){
+        Set<String> inAccessibleIds = new HashSet<>(requestIds);
+        inAccessibleIds.removeAll(accessibleIds);
+        if (!inAccessibleIds.isEmpty()) {
                 throw new IamForbiddenException("User '" + getAuthenticatedInfo().getEmail()
-                        + "' does not have required action: " + IamAction.READ_DATA + " on snapshot id" + snapShotId);
-            }
+                        + "' does not have required action: " + IamAction.READ_DATA
+                        + " on snapshot ids" + inAccessibleIds.toString());
         }
+
         List<String> idsToQuery = requestIds.isEmpty() ? accessibleIds : requestIds;
         SearchQueryResultModel searchQueryResultModel =
                 searchService.querySnapshot(searchQueryRequest, idsToQuery, offset, limit);

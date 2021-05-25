@@ -25,13 +25,17 @@ import org.elasticsearch.client.indices.GetIndexResponse;
 import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.WrapperQueryBuilder;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.validation.Valid;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -125,22 +129,35 @@ public class SearchService {
         addIndexData(indexName, values);
         return getIndexSummary(indexName);
     }
-    public SearchQueryResultModel querySnapshot(SearchQueryRequest searchQueryRequest, List<String> indicesToQuery) {
-        //todo: move to bean for configuration
+    public SearchQueryResultModel querySnapshot(
+            SearchQueryRequest searchQueryRequest, List<String> indicesToQuery,
+            @Valid Integer offset, @Valid Integer limit
+    ) {
+        //todo: move to bean for configuration, make injectable
         final RestClientBuilder builder = RestClient.builder( new HttpHost("localhost", 9200));
         try (RestHighLevelClient client = new RestHighLevelClient(builder)) {
-            // see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
-            QueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.from(offset);
+            searchSourceBuilder.size(limit);
+            // see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
+            WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
             searchSourceBuilder.query(wrapperQuery);
+
             SearchRequest searchRequest = new SearchRequest(indicesToQuery.toArray(new String[0]), searchSourceBuilder);
 
-            //todo: how to parse results into format we want?
-            SearchResponse response = client.search(searchRequest, RequestOptions.DEFAULT);
+            SearchResponse elasticResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+            SearchHits hits = elasticResponse.getHits();
+            List<String> response = new ArrayList<>();
+            for (SearchHit hit : hits) {
+                response.add(hit.getSourceAsString());
+            }
+            SearchQueryResultModel result = new SearchQueryResultModel();
+            //do we want to include info on the index/snapshot the response came from?
+            result.setResult(response.toString());
+            return result;
 
         } catch (IOException e) {
             throw new PdaoException("Error creating ES client", e);
         }
-        return null;
     }
 }

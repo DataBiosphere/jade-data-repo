@@ -14,6 +14,8 @@ import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.client.indices.GetIndexResponse;
 import org.elasticsearch.client.indices.PutMappingRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -21,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -56,7 +59,10 @@ public class SearchService {
 
     private void createIndexMapping(String indexName, List<Map<String, Object>> values) {
         PutMappingRequest request = new PutMappingRequest(indexName);
-        Map<String, Object> properties = Map.of("values", values);
+        Map<String, Object> properties = new HashMap<>();
+        values.get(0).forEach((key, val) -> {
+            properties.put(key, Map.of("type", "text"));
+        });
         Map<String, Object> source = Map.of("properties", properties);
         request.source(source);
         try {
@@ -67,13 +73,32 @@ public class SearchService {
     }
 
     private void addIndexData(String indexName, List<Map<String, Object>> values) {
+        BulkRequest request = new BulkRequest();
         values.forEach(v -> {
-            BulkRequest request = new BulkRequest();
             request.add(new IndexRequest(indexName)
                 .id(v.get("uuid").toString())
                 .source(v, XContentType.JSON)
             );
         });
+        try {
+            if (!values.isEmpty()) {
+                client.bulk(request, RequestOptions.DEFAULT);
+            }
+        } catch (final IOException e) {
+            throw new PdaoException("Error indexing data", e);
+        }
+    }
+
+    private SearchIndexModel getIndexSummary(String indexName) {
+        GetIndexRequest request = new GetIndexRequest(indexName);
+        try {
+            GetIndexResponse getIndexResponse = client.indices().get(request, RequestOptions.DEFAULT);
+            SearchIndexModel searchIndexModel = new SearchIndexModel();
+            searchIndexModel.setIndexSummary(getIndexResponse.getIndices()[0]);
+            return searchIndexModel;
+        } catch (IOException e) {
+            throw new PdaoException("Error getting index summary", e);
+        }
     }
 
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
@@ -82,6 +107,6 @@ public class SearchService {
         String indexName = createEmptyIndex(snapshot);
         createIndexMapping(indexName, values);
         addIndexData(indexName, values);
-        return new SearchIndexModel();
+        return getIndexSummary(indexName);
     }
 }

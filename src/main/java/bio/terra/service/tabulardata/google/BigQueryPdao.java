@@ -636,9 +636,8 @@ public class BigQueryPdao {
     }
 
     public void grantReadAccessToSnapshot(Snapshot snapshot, Collection<String> policies) throws InterruptedException {
-        // TODO: When we support multiple datasets per snapshot, this will need to be reworked
         grantReadAccessWorker(
-            bigQueryProjectForDataset(snapshot.getFirstSnapshotSource().getDataset()),
+            bigQueryProjectForSnapshot(snapshot),
             snapshot.getName(),
             policies);
     }
@@ -650,14 +649,14 @@ public class BigQueryPdao {
             policies);
     }
 
-    private void grantReadAccessWorker(BigQueryProject datasetBigQueryProject,
+    private void grantReadAccessWorker(BigQueryProject bigQueryProject,
                                        String name,
                                        Collection<String> policyGroupEmails) {
         List<Acl> policyGroupAcls = policyGroupEmails
             .stream()
             .map(email -> Acl.of(new Acl.Group(email), Acl.Role.READER))
             .collect(Collectors.toList());
-        datasetBigQueryProject.addDatasetAcls(name, policyGroupAcls);
+        bigQueryProject.addDatasetAcls(name, policyGroupAcls);
     }
 
     public boolean datasetExists(Dataset dataset) throws InterruptedException {

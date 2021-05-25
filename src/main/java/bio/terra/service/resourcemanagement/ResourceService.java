@@ -86,7 +86,7 @@ public class ResourceService {
         List<GoogleBucketResource> bucketsForBillingProfile = bucketsForDataset.stream()
             .map(this::lookupBucket)
             .filter(bucket -> bucketIsForBillingProfile(bucket, billingProfile))
-        .collect(Collectors.toList());
+            .collect(Collectors.toList());
 
         if (bucketsForBillingProfile.size() > 0) {
             GoogleBucketResource bucket = bucketsForBillingProfile.get(0);

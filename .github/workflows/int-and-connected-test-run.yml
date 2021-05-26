@@ -48,7 +48,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Run Connected test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.60.0
+        uses: broadinstitute/datarepo-actions/actions/main@se-debug-connected-tests
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}

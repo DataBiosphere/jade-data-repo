@@ -107,6 +107,7 @@ public class SearchService {
 
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
+        // TODO: add streaming version of this mechanism instead of loading everything into memory
         List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql());
         validateSnapshotDataNotEmpty(values);
         String indexName = createEmptyIndex(snapshot);

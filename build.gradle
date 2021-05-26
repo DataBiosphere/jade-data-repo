@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat
 
 buildscript {
     ext {
-        springBootVersion = '2.3.4.RELEASE'
+        springBootVersion = '2.4.6'
     }
     repositories {
         mavenCentral()
@@ -227,6 +227,10 @@ dependencies {
     compile ('com.fasterxml.jackson.core:jackson-core:2.10.2') {
         force = true
     }
+
+    // Azure related dependencies
+    implementation 'com.azure:azure-identity:1.2.5'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.4.0'
 
     antlr "org.antlr:antlr4:4.8"
     spotbugs 'com.github.spotbugs:spotbugs:4.2.2'

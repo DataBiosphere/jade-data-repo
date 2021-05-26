@@ -427,8 +427,8 @@ task testConnected(type: Test) {
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
-        testLogging.showStandardStreams = true
-        testLogging.exceptionFormat = 'full'
+        showStandardStreams = true
+        exceptionFormat = 'full'
     }
 //    retry {
 //        maxRetries = 3

@@ -1,8 +1,8 @@
 package bio.terra.service.search;
 
-import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
+import bio.terra.service.search.exception.SearchException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import org.apache.http.HttpHost;
@@ -49,10 +49,10 @@ public class SearchService {
                     .put("index.number_of_shards", 3));
             CreateIndexResponse response = client.indices().create(createIndexRequest, RequestOptions.DEFAULT);
             if (!response.isAcknowledged()) {
-                throw new PdaoException("The index request was not acknowledged by one or more nodes");
+                throw new SearchException("The index request was not acknowledged by one or more nodes");
             }
         } catch (IOException e) {
-            throw new PdaoException("Error creating index", e);
+            throw new SearchException("Error creating index", e);
         }
         return indexName;
     }
@@ -68,7 +68,7 @@ public class SearchService {
         try {
             client.indices().putMapping(request, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            throw new PdaoException("Error creating index mapping", e);
+            throw new SearchException("Error creating index mapping", e);
         }
     }
 
@@ -85,7 +85,7 @@ public class SearchService {
                 client.bulk(request, RequestOptions.DEFAULT);
             }
         } catch (final IOException e) {
-            throw new PdaoException("Error indexing data", e);
+            throw new SearchException("Error indexing data", e);
         }
     }
 
@@ -97,7 +97,7 @@ public class SearchService {
             searchIndexModel.setIndexSummary(getIndexResponse.getIndices()[0]);
             return searchIndexModel;
         } catch (IOException e) {
-            throw new PdaoException("Error getting index summary", e);
+            throw new SearchException("Error getting index summary", e);
         }
     }
 

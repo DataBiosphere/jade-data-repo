@@ -140,6 +140,7 @@ public class ConnectedOperations {
         when(samService.listAuthorizedResources(any(), eq(IamResourceType.SPEND_PROFILE)))
             .thenAnswer((Answer<List<UUID>>) invocation
                 -> createdProfileIds.stream().map(UUID::fromString).collect(Collectors.toList()));
+        when(samService.hasActions(any(), eq(IamResourceType.SPEND_PROFILE), any())).thenReturn(true);
 
         doNothing().when(samService).createProfileResource(any(), any());
         doNothing().when(samService).deleteProfileResource(any(), any());

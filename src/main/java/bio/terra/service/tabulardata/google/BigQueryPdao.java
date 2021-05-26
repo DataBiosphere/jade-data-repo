@@ -1,6 +1,7 @@
 package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
@@ -10,7 +11,6 @@ import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
-import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -41,6 +41,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldList;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
@@ -74,6 +75,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
@@ -1589,6 +1591,28 @@ public class BigQueryPdao {
                     String.format("Could not match %s row ids for table %s", numMismatched, tableName));
             }
         }
+    }
+
+    /*
+     * WARNING: Ensure SQL is validated before executing this method!
+     */
+    public List<Map<String, Object>> getSnapshotTableData(Snapshot snapshot,
+                                                          String sql) throws InterruptedException {
+        // execute query and get result
+        final BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        final TableResult result = bigQueryProject.query(sql);
+
+        // aggregate into single object
+        final FieldList columns = result.getSchema().getFields();
+        final List<Map<String, Object>> values = new ArrayList<>();
+        result.iterateAll().forEach(rows -> {
+            final var rowData = columns.stream().map(Field::getName)
+                .collect(Collectors.toMap(Function.identity(),
+                    columnName -> rows.get(columnName).getValue()));
+            values.add(rowData);
+        });
+
+        return values;
     }
 
     // we select from the live view here so that the row counts take into account rows that have been hard deleted

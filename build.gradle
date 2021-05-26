@@ -194,6 +194,9 @@ dependencies {
     compile 'io.springfox:springfox-swagger-ui:2.10.0'
     compile 'io.springfox:springfox-swagger2:2.9.2'
 
+    implementation 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.10.0'
+    implementation 'org.elasticsearch:elasticsearch:7.10.0'
+
     // This allows you to build with a local Stairway JAR file, instead of the one from the repository
     // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
     // Or define the environment variable ORG_GRADLE_PROJECT_stairwayjar

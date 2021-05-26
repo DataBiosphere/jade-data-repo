@@ -4097,8 +4097,12 @@ components:
       type: object
       properties:
         result:
-          type: string
-          description: Result that matches the search criteria
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: string
+          description: Results that match the search criteria
       description: >
         The available search results that match the filter criteria
 

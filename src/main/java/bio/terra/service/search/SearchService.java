@@ -36,6 +36,7 @@ import org.springframework.stereotype.Component;
 import javax.validation.Valid;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -131,7 +132,7 @@ public class SearchService {
     }
     public SearchQueryResultModel querySnapshot(
             SearchQueryRequest searchQueryRequest, List<String> indicesToQuery,
-            @Valid Integer offset, @Valid Integer limit
+            int offset, int limit
     ) {
         //todo: move to bean for configuration, make injectable
         final RestClientBuilder builder = RestClient.builder( new HttpHost("localhost", 9200));
@@ -147,17 +148,29 @@ public class SearchService {
 
             SearchResponse elasticResponse = client.search(searchRequest, RequestOptions.DEFAULT);
             SearchHits hits = elasticResponse.getHits();
-            List<String> response = new ArrayList<>();
-            for (SearchHit hit : hits) {
-                response.add(hit.getSourceAsString());
-            }
+            List<Map<String, String>> response = hitsToMap(hits);
+
             SearchQueryResultModel result = new SearchQueryResultModel();
             //do we want to include info on the index/snapshot the response came from?
-            result.setResult(response.toString());
+            result.setResult(response);
             return result;
 
         } catch (IOException e) {
             throw new PdaoException("Error creating ES client", e);
         }
+    }
+
+    private List<Map<String, String>> hitsToMap(SearchHits hits) {
+        List<Map<String, String>> response = new ArrayList<>();
+        for (SearchHit hit : hits) {
+            Map<String, String> hitsMap = new HashMap<>();
+            for (Map.Entry<String,Object> entry : hit.getSourceAsMap().entrySet()) {
+                String key = entry.getKey();
+                String value = (String) entry.getValue();
+                hitsMap.put(key, value);
+            }
+            response.add(hitsMap);
+        }
+        return response;
     }
 }

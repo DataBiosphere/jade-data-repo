@@ -96,9 +96,10 @@ public class SearchApiController implements SearchApi {
     @Override
     public ResponseEntity<SearchQueryResultModel> querySearchIndices(
         @Valid @RequestBody SearchQueryRequest searchQueryRequest,
-        @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-        @Valid @RequestParam(value = "limit", required = false, defaultValue = "1000") Integer limit
+        @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+        @RequestParam(value = "limit", required = false, defaultValue = "1000") Integer limit
     ) {
+
         List<String> accessibleIds =
                 iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
                         .stream()
@@ -116,6 +117,7 @@ public class SearchApiController implements SearchApi {
         }
 
         List<String> idsToQuery = requestIds.isEmpty() ? accessibleIds : requestIds;
+
         SearchQueryResultModel searchQueryResultModel =
                 searchService.querySnapshot(searchQueryRequest, idsToQuery, offset, limit);
         return ResponseEntity.ok(searchQueryResultModel);

@@ -41,6 +41,12 @@ public class SearchService {
         this.client = new RestHighLevelClient(builder);
     }
 
+    private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {
+        if (values.isEmpty()) {
+            throw new SearchException("Snapshot data returned from SQL query is empty");
+        }
+    }
+
     private String createEmptyIndex(Snapshot snapshot) {
         String indexName = String.format("idx-%s", snapshot.getId());
         try {
@@ -81,9 +87,7 @@ public class SearchService {
             );
         });
         try {
-            if (!values.isEmpty()) {
-                client.bulk(request, RequestOptions.DEFAULT);
-            }
+            client.bulk(request, RequestOptions.DEFAULT);
         } catch (final IOException e) {
             throw new SearchException("Error indexing data", e);
         }
@@ -104,6 +108,7 @@ public class SearchService {
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
         List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql());
+        validateSnapshotDataNotEmpty(values);
         String indexName = createEmptyIndex(snapshot);
         createIndexMapping(indexName, values);
         addIndexData(indexName, values);

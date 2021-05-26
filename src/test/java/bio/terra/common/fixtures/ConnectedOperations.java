@@ -113,6 +113,8 @@ public class ConnectedOperations {
     }
 
     public void stubOutSamCalls(IamProviderInterface samService) throws Exception {
+        // The policy email must be a real google group, otherwise request that
+        // update bigquery dataset policies will fail
         Map<IamRole, String> snapshotPolicies = new HashMap<>();
         snapshotPolicies.put(IamRole.STEWARD, "jadeteam@broadinstitute.org");
         snapshotPolicies.put(IamRole.READER,  "jadeteam@broadinstitute.org");

@@ -112,7 +112,7 @@ public class SearchApiController implements SearchApi {
         if (!inAccessibleIds.isEmpty()) {
                 throw new IamForbiddenException("User '" + getAuthenticatedInfo().getEmail()
                         + "' does not have required action: " + IamAction.READ_DATA
-                        + " on snapshot ids" + inAccessibleIds.toString());
+                        + " on snapshot ids" + inAccessibleIds);
         }
 
         List<String> idsToQuery = requestIds.isEmpty() ? accessibleIds : requestIds;

@@ -23,9 +23,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
 public class SearchService {
@@ -65,10 +66,10 @@ public class SearchService {
 
     private void createIndexMapping(String indexName, List<Map<String, Object>> values) {
         PutMappingRequest request = new PutMappingRequest(indexName);
-        Map<String, Object> properties = new HashMap<>();
-        values.get(0).forEach((key, val) -> {
-            properties.put(key, Map.of("type", "text"));
-        });
+        Map<String, Object> properties =
+            values.get(0).keySet().stream()
+                .collect(Collectors.toMap(Function.identity(), v -> Map.of("type", "text")));
+
         Map<String, Object> source = Map.of("properties", properties);
         request.source(source);
         try {

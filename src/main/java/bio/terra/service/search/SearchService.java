@@ -6,7 +6,6 @@ import bio.terra.service.search.exception.SearchException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 
-import org.apache.http.HttpHost;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import bio.terra.model.SearchQueryRequest;
@@ -14,8 +13,6 @@ import bio.terra.model.SearchQueryResultModel;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
@@ -47,11 +44,10 @@ public class SearchService {
     private final RestHighLevelClient client;
 
     @Autowired
-    public SearchService(BigQueryPdao bigQueryPdao) {
+    public SearchService(BigQueryPdao bigQueryPdao, ElasticSearchWrapperClient wrapper) {
         // needs to be moved into own class with config
-        final RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200));
         this.bigQueryPdao = bigQueryPdao;
-        this.client = new RestHighLevelClient(builder);
+        this.client = wrapper.getClient();
     }
 
     private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {
@@ -133,29 +129,29 @@ public class SearchService {
             int offset, int limit
     ) {
         //todo: move to bean for configuration, make injectable
-        final RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200));
-        try (RestHighLevelClient client = new RestHighLevelClient(builder)) {
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.from(offset);
-            searchSourceBuilder.size(limit);
-            // see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
-            WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
-            searchSourceBuilder.query(wrapperQuery);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.from(offset);
+        searchSourceBuilder.size(limit);
+        // see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
+        WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
+        searchSourceBuilder.query(wrapperQuery);
 
-            SearchRequest searchRequest = new SearchRequest(indicesToQuery.toArray(new String[0]), searchSourceBuilder);
+        SearchRequest searchRequest = new SearchRequest(indicesToQuery.toArray(new String[0]), searchSourceBuilder);
 
-            SearchResponse elasticResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-            SearchHits hits = elasticResponse.getHits();
-            List<Map<String, String>> response = hitsToMap(hits);
-
-            SearchQueryResultModel result = new SearchQueryResultModel();
-            //do we want to include info on the index/snapshot the response came from?
-            result.setResult(response);
-            return result;
-
+        SearchResponse elasticResponse;
+        try {
+            elasticResponse = client.search(searchRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            throw new SearchException("Error creating ES client", e);
+            throw new SearchException("Error completing search request", e);
         }
+        SearchHits hits = elasticResponse.getHits();
+        List<Map<String, String>> response = hitsToMap(hits);
+
+        SearchQueryResultModel result = new SearchQueryResultModel();
+        //do we want to include info on the index/snapshot the response came from?
+        result.setResult(response);
+        return result;
+
     }
 
     private List<Map<String, String>> hitsToMap(SearchHits hits) {

@@ -11,6 +11,7 @@ import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.search.SearchService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -27,8 +28,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Controller
 @Api(tags = {"search"})
@@ -91,10 +96,30 @@ public class SearchApiController implements SearchApi {
     @Override
     public ResponseEntity<SearchQueryResultModel> querySearchIndices(
         @Valid @RequestBody SearchQueryRequest searchQueryRequest,
-        @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-        @Valid @RequestParam(value = "limit", required = false, defaultValue = "1000") Integer limit
+        @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+        @RequestParam(value = "limit", required = false, defaultValue = "1000") Integer limit
     ) {
-        SearchQueryResultModel searchQueryResultModel = new SearchQueryResultModel();
-        return new ResponseEntity<>(searchQueryResultModel, HttpStatus.OK);
+
+        List<String> accessibleIds =
+                iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
+                        .stream()
+                        .map(UUID::toString)
+                        .collect(Collectors.toList());
+
+        List<String> requestIds = searchQueryRequest.getSnapshotIds();
+
+        Set<String> inAccessibleIds = new HashSet<>(requestIds);
+        inAccessibleIds.removeAll(accessibleIds);
+        if (!inAccessibleIds.isEmpty()) {
+            throw new IamForbiddenException("User '" + getAuthenticatedInfo().getEmail()
+                    + "' does not have required action: " + IamAction.READ_DATA
+                    + " on snapshot ids" + inAccessibleIds);
+        }
+
+        List<String> idsToQuery = requestIds.isEmpty() ? accessibleIds : requestIds;
+
+        SearchQueryResultModel searchQueryResultModel =
+                searchService.querySnapshot(searchQueryRequest, idsToQuery, offset, limit);
+        return ResponseEntity.ok(searchQueryResultModel);
     }
 }

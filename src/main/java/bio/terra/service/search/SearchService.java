@@ -1,6 +1,5 @@
 package bio.terra.service.search;
 
-import bio.terra.common.exception.PdaoException;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.service.search.exception.SearchException;
@@ -33,7 +32,6 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.validation.Valid;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -135,7 +133,7 @@ public class SearchService {
             int offset, int limit
     ) {
         //todo: move to bean for configuration, make injectable
-        final RestClientBuilder builder = RestClient.builder( new HttpHost("localhost", 9200));
+        final RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200));
         try (RestHighLevelClient client = new RestHighLevelClient(builder)) {
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             searchSourceBuilder.from(offset);
@@ -156,7 +154,7 @@ public class SearchService {
             return result;
 
         } catch (IOException e) {
-            throw new PdaoException("Error creating ES client", e);
+            throw new SearchException("Error creating ES client", e);
         }
     }
 
@@ -164,7 +162,7 @@ public class SearchService {
         List<Map<String, String>> response = new ArrayList<>();
         for (SearchHit hit : hits) {
             Map<String, String> hitsMap = new HashMap<>();
-            for (Map.Entry<String,Object> entry : hit.getSourceAsMap().entrySet()) {
+            for (Map.Entry<String, Object> entry : hit.getSourceAsMap().entrySet()) {
                 String key = entry.getKey();
                 String value = (String) entry.getValue();
                 hitsMap.put(key, value);

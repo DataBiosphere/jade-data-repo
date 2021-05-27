@@ -83,7 +83,7 @@ public class SearchApiController implements SearchApi {
         @PathVariable("id") String id,
         @Valid @RequestBody SearchIndexRequest searchIndexRequest
     ) {
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id, IamAction.LINK_SNAPSHOT);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
         Snapshot snapshot = snapshotService.retrieve(UUID.fromString(id));
         try {
             SearchIndexModel searchIndexModel = searchService.indexSnapshot(snapshot, searchIndexRequest);

@@ -90,7 +90,7 @@ public class ResourceServiceUnitTest {
             .thenReturn(bucketResource);
 
         GoogleBucketResource foundBucket = resourceService
-            .getOrCreateBucketForFile(dataset, profileModel, "flightId");
+            .getOrCreateBucketForFile("bucketName", dataset, profileModel, "flightId");
         Assert.assertEquals(bucketResource, foundBucket);
     }
 
@@ -109,7 +109,7 @@ public class ResourceServiceUnitTest {
             .thenReturn(newBucket);
 
         GoogleBucketResource foundBucket = resourceService
-            .getOrCreateBucketForFile(dataset, profileModel, "flightId");
+            .getOrCreateBucketForFile("newBucketName", dataset, profileModel, "flightId");
         Assert.assertEquals(newBucket, foundBucket);
     }
 }

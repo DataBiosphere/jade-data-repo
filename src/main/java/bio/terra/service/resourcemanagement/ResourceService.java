@@ -60,19 +60,21 @@ public class ResourceService {
     /**
      * Fetch/create a project, then use that to fetch/create a bucket.
      *
-     * @param billingProfile authorized profile for billing account information case we need to create a project
+     * @param billingProfile authorized profile for billing account information case we need to
+     *                       create a project
      * @param flightId       used to lock the bucket metadata during possible creation
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws CorruptMetadataException in two cases.
-     * <ol>
-     *     <le>if the bucket already exists, but the metadata does not AND
-     *     the application property allowReuseExistingBuckets=false.</le>
-     *     <le>if the metadata exists, but the bucket does not</le>
-     * </ol>
+     *                                  <ol>
+     *                                      <le>if the bucket already exists, but the metadata does not AND
+     *                                      the application property allowReuseExistingBuckets=false.</le>
+     *                                      <le>if the metadata exists, but the bucket does not</le>
+     *                                  </ol>
      */
-    public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
-                                                         BillingProfileModel billingProfile,
-                                                         String flightId) throws InterruptedException {
+    public GoogleBucketResource getOrCreateBucketForFile(String possibleBucketName,
+        Dataset dataset,
+        BillingProfileModel billingProfile,
+        String flightId) throws InterruptedException {
         final String datasetName = dataset.getName();
         // Every bucket needs to live in a project, so we get or create a project first
         final GoogleProjectResource projectResource = projectService.getOrCreateProject(
@@ -81,7 +83,7 @@ public class ResourceService {
             null);
 
         List<UUID> bucketsForDataset = datasetBucketDao.getBucketForDatasetId(dataset.getId());
-        String bucketName = dataLocationSelector.bucketForFile(dataset.getId(), billingProfile);
+        String bucketName = possibleBucketName;
 
         List<GoogleBucketResource> bucketsForBillingProfile = bucketsForDataset.stream()
             .map(this::lookupBucket)
@@ -98,7 +100,8 @@ public class ResourceService {
             flightId);
     }
 
-    private boolean bucketIsForBillingProfile(GoogleBucketResource bucket, BillingProfileModel billingProfile) {
+    private boolean bucketIsForBillingProfile(GoogleBucketResource bucket,
+        BillingProfileModel billingProfile) {
         GoogleProjectResource resource = bucket.getProjectResource();
         UUID billingProfileId = UUID.fromString(billingProfile.getId());
         return resource.getProfileId().equals(billingProfileId);
@@ -110,7 +113,8 @@ public class ResourceService {
      * @param bucketResourceId our identifier for the bucket
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
-     * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
+     * @throws CorruptMetadataException        if the bucket_resource metadata row exists but the
+     *                                         cloud resource does not
      */
     public GoogleBucketResource lookupBucket(String bucketResourceId) {
         return bucketService.getBucketResourceById(UUID.fromString(bucketResourceId), true);
@@ -121,10 +125,10 @@ public class ResourceService {
     }
 
     /**
-     * Fetch an existing bucket_resource metadata row.
-     * Note this method does not check for the existence of the underlying cloud resource.
-     * This method is intended for places where an existence check on the associated cloud resource might be too
-     * much overhead (e.g. DRS lookups). Most bucket lookups should use the lookupBucket method instead, which has
+     * Fetch an existing bucket_resource metadata row. Note this method does not check for the
+     * existence of the underlying cloud resource. This method is intended for places where an
+     * existence check on the associated cloud resource might be too much overhead (e.g. DRS
+     * lookups). Most bucket lookups should use the lookupBucket method instead, which has
      * additional overhead but will catch metadata corruption errors sooner.
      *
      * @param bucketResourceId our identifier for the bucket
@@ -136,16 +140,17 @@ public class ResourceService {
     }
 
     /**
-     * Update the bucket_resource metadata table to match the state of the underlying cloud.
-     * - If the bucket exists, then the metadata row should also exist and be unlocked.
-     * - If the bucket does not exist, then the metadata row should not exist.
-     * If the metadata row is locked, then only the locking flight can unlock or delete the row.
+     * Update the bucket_resource metadata table to match the state of the underlying cloud. - If
+     * the bucket exists, then the metadata row should also exist and be unlocked. - If the bucket
+     * does not exist, then the metadata row should not exist. If the metadata row is locked, then
+     * only the locking flight can unlock or delete the row.
      *
-     * @param datasetId    id of the dataset that is storing files into the bucket
+     * @param datasetId      id of the dataset that is storing files into the bucket
      * @param billingProfile an authorized billing profile
      * @param flightId       flight doing the updating
      */
-    public void updateBucketMetadata(UUID datasetId, BillingProfileModel billingProfile, String flightId) {
+    public void updateBucketMetadata(UUID datasetId, BillingProfileModel billingProfile,
+        String flightId) {
         String bucketName = dataLocationSelector.bucketForFile(datasetId, billingProfile);
         bucketService.updateBucketMetadata(bucketName, flightId);
     }
@@ -177,7 +182,7 @@ public class ResourceService {
      * @return project resource id
      */
     public UUID getOrCreateDatasetProject(String datasetName,
-                                          BillingProfileModel billingProfile) throws InterruptedException {
+        BillingProfileModel billingProfile) throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForDataset(datasetName, billingProfile),
@@ -199,7 +204,8 @@ public class ResourceService {
 
     public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
-        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e)
+            .collect(Collectors.toList());
         projectService.updateIamPermissions(
             Collections.singletonMap(BQ_JOB_USER_ROLE, emails),
             dataProject,
@@ -208,7 +214,8 @@ public class ResourceService {
 
     public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
-        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e)
+            .collect(Collectors.toList());
         projectService.updateIamPermissions(
             Collections.singletonMap(BQ_JOB_USER_ROLE, emails),
             dataProject,

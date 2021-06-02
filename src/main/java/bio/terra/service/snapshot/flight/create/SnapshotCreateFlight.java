@@ -66,7 +66,7 @@ public class SnapshotCreateFlight extends Flight {
         // TODO note that with multi-dataset snapshots this will need to change
         List<Dataset> sourceDatasets = snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
         UUID datasetId = sourceDatasets.get(0).getId();
-        GoogleRegion region = sourceDatasets.get(0)
+        GoogleRegion firestoreRegion = sourceDatasets.get(0)
             .getDatasetSummary()
             .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         addStep(new LockDatasetStep(datasetDao, datasetId, false));
@@ -76,7 +76,7 @@ public class SnapshotCreateFlight extends Flight {
         addStep(new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
 
         // Get or create the project where the snapshot resources will be created
-        addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, snapshotReq, region));
+        addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, snapshotReq, firestoreRegion));
 
         // create the snapshot metadata object in postgres and lock it
         // mint a snapshot id and put it in the working map

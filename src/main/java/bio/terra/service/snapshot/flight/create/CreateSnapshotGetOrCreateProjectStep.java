@@ -16,14 +16,14 @@ import java.util.UUID;
 public class CreateSnapshotGetOrCreateProjectStep implements Step {
     private final ResourceService resourceService;
     private final SnapshotRequestModel snapshotRequestModel;
-    private final GoogleRegion region;
+    private final GoogleRegion firestoreRegion;
 
     public CreateSnapshotGetOrCreateProjectStep(ResourceService resourceService,
                                                 SnapshotRequestModel snapshotRequestModel,
-                                                GoogleRegion region) {
+                                                GoogleRegion firestoreRegion) {
         this.resourceService = resourceService;
         this.snapshotRequestModel = snapshotRequestModel;
-        this.region = region;
+        this.firestoreRegion = firestoreRegion;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class CreateSnapshotGetOrCreateProjectStep implements Step {
         // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
         // Either the project will have been created8and we will find it, or we will create.
         UUID projectResourceId =
-            resourceService.getOrCreateSnapshotProject(snapshotRequestModel.getName(), profileModel, region);
+            resourceService.getOrCreateSnapshotProject(snapshotRequestModel.getName(), profileModel, firestoreRegion);
         workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
         return StepResult.getStepResultSuccess();
     }

@@ -27,6 +27,7 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -43,11 +44,14 @@ public class SearchService {
     private final BigQueryPdao bigQueryPdao;
     private final RestHighLevelClient client;
 
+    @Value("${elasticsearch.numShards}")
+    private static int NUM_SHARDS;
+
     @Autowired
-    public SearchService(BigQueryPdao bigQueryPdao, ElasticSearchWrapperClient wrapper) {
-        // needs to be moved into own class with config
+    public SearchService(BigQueryPdao bigQueryPdao, RestHighLevelClient client) {
         this.bigQueryPdao = bigQueryPdao;
-        this.client = wrapper.getClient();
+        // injected from ElasticSearchRestClientConfigurations.java
+        this.client = client;
     }
 
     private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {
@@ -61,7 +65,7 @@ public class SearchService {
         try {
             CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName)
                 .settings(Settings.builder()
-                    .put("index.number_of_shards", 3));
+                    .put("index.number_of_shards", NUM_SHARDS));
             CreateIndexResponse response = client.indices().create(createIndexRequest, RequestOptions.DEFAULT);
             if (!response.isAcknowledged()) {
                 throw new SearchException("The index request was not acknowledged by one or more nodes");

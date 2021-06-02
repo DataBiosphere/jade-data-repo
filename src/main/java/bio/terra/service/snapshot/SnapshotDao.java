@@ -8,12 +8,16 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.dataset.StorageResource;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +51,13 @@ public class SnapshotDao {
     private final SnapshotRelationshipDao snapshotRelationshipDao;
     private final DatasetDao datasetDao;
     private final ResourceService resourceService;
+    private final ObjectMapper objectMapper;
+
+    private static final String snapshotSourceStorageQuery = "(SELECT jsonb_agg(sr) " +
+        "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
+        "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
+        "FROM storage_resource " +
+        "WHERE dataset_id = snapshot_source.dataset_id) sr) AS storage ";
 
     @Autowired
     public SnapshotDao(NamedParameterJdbcTemplate jdbcTemplate,
@@ -54,13 +65,15 @@ public class SnapshotDao {
                        SnapshotMapTableDao snapshotMapTableDao,
                        SnapshotRelationshipDao snapshotRelationshipDao,
                        DatasetDao datasetDao,
-                       ResourceService resourceService) {
+                       ResourceService resourceService,
+                       ObjectMapper objectMapper) {
         this.jdbcTemplate = jdbcTemplate;
         this.snapshotTableDao = snapshotTableDao;
         this.snapshotMapTableDao = snapshotMapTableDao;
         this.snapshotRelationshipDao = snapshotRelationshipDao;
         this.datasetDao = datasetDao;
         this.resourceService = resourceService;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -426,7 +439,9 @@ public class SnapshotDao {
             throw new CorruptMetadataException("Impossible null value from count");
         }
 
-        String sql = "SELECT snapshot.id, name, description, created_date, profile_id FROM snapshot " +
+        String sql = "SELECT snapshot.id, name, description, created_date, profile_id, snapshot_source.id, " +
+            snapshotSourceStorageQuery +
+            "FROM snapshot " +
             joinSql +
             whereSql +
             DaoUtils.orderByClause(sort, direction) +
@@ -444,7 +459,11 @@ public class SnapshotDao {
     public SnapshotSummary retrieveSummaryById(UUID id) {
         logger.debug("retrieve snapshot summary for id: " + id);
         try {
-            String sql = "SELECT * FROM snapshot WHERE id = :id";
+            String sql = "SELECT *, " +
+                snapshotSourceStorageQuery +
+                "FROM snapshot " +
+                "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +
+                "WHERE snapshot.id = :id ";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -453,21 +472,11 @@ public class SnapshotDao {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
-    public SnapshotSummary retrieveSummaryByName(String name) {
-        logger.debug("retrieve snapshot summary for name: " + name);
-        try {
-            String sql = "SELECT * FROM snapshot WHERE name = :name";
-            MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
-            return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
-        } catch (EmptyResultDataAccessException ex) {
-            throw new SnapshotNotFoundException("Snapshot not found - name: " + name);
-        }
-    }
-
-    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public List<SnapshotSummary> retrieveSnapshotsForDataset(UUID datasetId) {
         try {
-            String sql = "SELECT snapshot.id, name, description, created_date, profile_id FROM snapshot " +
+            String sql = "SELECT snapshot.id, name, description, created_date, profile_id, " +
+                snapshotSourceStorageQuery +
+                "FROM snapshot " +
                 "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +
                 "WHERE snapshot_source.dataset_id = :datasetId";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
@@ -495,14 +504,24 @@ public class SnapshotDao {
         }
     }
 
-    private static class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
+    private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
         public SnapshotSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+            List<StorageResource> storageResources;
+            try {
+                storageResources = objectMapper.readValue(rs.getString("storage"),
+                        new TypeReference<>() {});
+            } catch (JsonProcessingException e) {
+                throw new CorruptMetadataException(String.format("Invalid storage for snapshot - id: %s",
+                        rs.getString("id")));
+            }
+
             return new SnapshotSummary()
                 .id(UUID.fromString(rs.getString("id")))
                 .name(rs.getString("name"))
                 .description(rs.getString("description"))
                 .createdDate(rs.getTimestamp("created_date").toInstant())
-                .profileId(rs.getObject("profile_id", UUID.class));
+                .profileId(rs.getObject("profile_id", UUID.class))
+                .storage(storageResources);
         }
     }
 }

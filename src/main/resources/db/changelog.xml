@@ -39,4 +39,5 @@
     <include file="changesets/20210426_datasetstorage.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20210426_datasetstoragemigration.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20210510_datasetstoragemigrationcorrected.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20210517_azurebillinginformation.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

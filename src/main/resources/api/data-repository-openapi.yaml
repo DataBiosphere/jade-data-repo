@@ -2743,6 +2743,17 @@ components:
         description:
           type: string
           description: Free text that describes the profile
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
+        tenantId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+          description: An optional tenant id for Azure
+        subscriptionId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+          description: an optional subscription id for Azure
+        resourceGroupName:
+          type: string
+          description: an optional resource group name for Azure
     BillingProfileUpdateModel:
       required:
         - id
@@ -2776,6 +2787,17 @@ components:
         description:
           type: string
           description: Free text that describes the profile
+        cloudPlatform:
+          $ref: '#/components/schemas/CloudPlatform'
+        tenantId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+          description: An optional tenant id for Azure
+        subscriptionId:
+          $ref: '#/components/schemas/UniqueIdProperty'
+          description: an optional subscription id for Azure
+        resourceGroupName:
+          type: string
+          description: an optional resource group name for Azure
         createdDate:
           type: string
           description: Date the profile was created
@@ -3544,6 +3566,10 @@ components:
           description: Date the snapshot was created
         profileId:
           $ref: '#/components/schemas/UniqueIdProperty'
+        storage:
+          type: array
+          items:
+            $ref: '#/components/schemas/StorageResourceModel'
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -4039,23 +4065,23 @@ components:
     ##############################################################################
     SearchIndexRequest:
       required:
-        - sqlQuery
+        - sql
       type: object
       properties:
-        sqlQuery:
+        sql:
           type: string
           description: >
-            SQL to index BigQuery columns into Elasticsearch
+            SQL to index BigQuery columns for searching
     SearchIndexModel:
       type: object
       properties:
         indexSummary:
           type: string
-          description: Summary of this index from Elasticsearch
+          description: Summary of this index for searching
     SearchQueryRequest:
       required:
         - snapshotIds
-        - esQuery
+        - query
       type: object
       properties:
         snapshotIds:
@@ -4063,16 +4089,20 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/UniqueIdProperty'
-        esQuery:
+        query:
           type: string
           description: >
-            Elasticsearch query to search against snapshot indices
+            Query to search against snapshot indices
     SearchQueryResultModel:
       type: object
       properties:
-        esResult:
-          type: string
-          description: Elasticsearch results that match the filter criteria
+        result:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: string
+          description: Results that match the search criteria
       description: >
         The available search results that match the filter criteria
 

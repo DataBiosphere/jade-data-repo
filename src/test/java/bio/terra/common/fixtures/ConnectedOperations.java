@@ -113,13 +113,15 @@ public class ConnectedOperations {
     }
 
     public void stubOutSamCalls(IamProviderInterface samService) throws Exception {
+        // The policy email must be a real google group, otherwise request that
+        // update bigquery dataset policies will fail
         Map<IamRole, String> snapshotPolicies = new HashMap<>();
-        snapshotPolicies.put(IamRole.STEWARD, "hi@hi.com");
-        snapshotPolicies.put(IamRole.READER,  "hi@hi.com");
+        snapshotPolicies.put(IamRole.STEWARD, "jadeteam@broadinstitute.org");
+        snapshotPolicies.put(IamRole.READER,  "jadeteam@broadinstitute.org");
         Map<IamRole, String> datasetPolicies = new HashMap<>();
-        datasetPolicies.put(IamRole.CUSTODIAN, "hi@hi.com");
-        datasetPolicies.put(IamRole.STEWARD,  "hi@hi.com");
-        datasetPolicies.put(IamRole.SNAPSHOT_CREATOR,  "hi@hi.com");
+        datasetPolicies.put(IamRole.CUSTODIAN, "jadeteam@broadinstitute.org");
+        datasetPolicies.put(IamRole.STEWARD,  "jadeteam@broadinstitute.org");
+        datasetPolicies.put(IamRole.SNAPSHOT_CREATOR,  "jadeteam@broadinstitute.org");
 
         when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
@@ -140,6 +142,7 @@ public class ConnectedOperations {
         when(samService.listAuthorizedResources(any(), eq(IamResourceType.SPEND_PROFILE)))
             .thenAnswer((Answer<List<UUID>>) invocation
                 -> createdProfileIds.stream().map(UUID::fromString).collect(Collectors.toList()));
+        when(samService.hasActions(any(), eq(IamResourceType.SPEND_PROFILE), any())).thenReturn(true);
 
         doNothing().when(samService).createProfileResource(any(), any());
         doNothing().when(samService).deleteProfileResource(any(), any());

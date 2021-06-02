@@ -32,6 +32,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryProject;
+import bio.terra.service.tabulardata.google.BigQueryProjectProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.FieldValue;
@@ -896,7 +897,8 @@ public class SnapshotConnectedTest {
     // Technically a helper method, but so specific to testExcludeLockedFromSnapshotFileLookups, likely not re-useable
     private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) throws InterruptedException {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
-        BigQueryProject bigQueryProject = BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
+        BigQueryProject bigQueryProject = new BigQueryProjectProvider()
+            .apply(snapshot.getProjectResource().getGoogleProjectId());
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 
         ST sqlTemplate = new ST(queryForRefIdTemplate);

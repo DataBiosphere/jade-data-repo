@@ -56,6 +56,7 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.ViewDefinition;
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -94,20 +95,25 @@ public class BigQueryPdao {
 
     private final String datarepoDnsName;
     private final BigQueryConfiguration bigQueryConfiguration;
+    private final BigQueryProjectProvider bigQueryProjectProvider;
 
     @Autowired
     public BigQueryPdao(ApplicationConfiguration applicationConfiguration,
-                        BigQueryConfiguration bigQueryConfiguration) {
+                        BigQueryConfiguration bigQueryConfiguration,
+                        BigQueryProjectProvider bigQueryProjectProvider) {
         this.datarepoDnsName = applicationConfiguration.getDnsName();
         this.bigQueryConfiguration = bigQueryConfiguration;
+        this.bigQueryProjectProvider = bigQueryProjectProvider;
     }
 
-    public BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
-        return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
+    @VisibleForTesting
+    BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
+        return bigQueryProjectProvider.apply(dataset.getProjectResource().getGoogleProjectId());
     }
 
-    private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) {
-        return BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
+    @VisibleForTesting
+    BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) {
+        return bigQueryProjectProvider.apply(snapshot.getProjectResource().getGoogleProjectId());
     }
 
     public void createDataset(Dataset dataset) throws InterruptedException {
@@ -482,7 +488,7 @@ public class BigQueryPdao {
         "<selectStatements; separator=\" UNION ALL \">";
 
     private static final String validateSnapshotSizeTemplate =
-        "SELECT COUNT(1) FROM <snapshotProject>.<snapshot>.<dataRepoTable>";
+        "SELECT <rowId> FROM `<snapshotProject>.<snapshot>.<dataRepoTable>` LIMIT 1";
 
 
     public String createSnapshotTableFromLiveViews(
@@ -547,6 +553,7 @@ public class BigQueryPdao {
         snapshotBigQueryProject.query(sqlTemplate.render());
 
         ST sqlValidateSnapshotTemplate = new ST(validateSnapshotSizeTemplate);
+        sqlValidateSnapshotTemplate.add("rowId", PDAO_ROW_ID_COLUMN);
         sqlValidateSnapshotTemplate.add("snapshotProject", snapshotProjectId);
         sqlValidateSnapshotTemplate.add("snapshot", snapshotName);
         sqlValidateSnapshotTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
@@ -877,29 +884,31 @@ public class BigQueryPdao {
     }
 
     private static final String getSnapshotRefIdsTemplate =
-        "SELECT <refCol> FROM `<project>.<dataset>.<table>` S, " +
-            "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
+        "SELECT <refCol> FROM `<datasetProject>.<dataset>.<table>` S, " +
+            "`<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
             "<if(array)>CROSS JOIN UNNEST(S.<refCol>) AS <refCol> <endif>" +
             "WHERE S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
             "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>'";
 
     public List<String> getSnapshotRefIds(Dataset dataset,
-                                         String snapshotName,
+                                         Snapshot snapshot,
                                          String tableName,
                                          String tableId,
                                          Column refColumn) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject datasetBigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject snapshotBigQueryProject = bigQueryProjectForSnapshot(snapshot);
 
         ST sqlTemplate = new ST(getSnapshotRefIdsTemplate);
-        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
+        sqlTemplate.add("snapshotProject", snapshotBigQueryProject.getProjectId());
         sqlTemplate.add("dataset", prefixName(dataset.getName()));
-        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("snapshot", snapshot.getName());
         sqlTemplate.add("table", tableName);
         sqlTemplate.add("tableId", tableId);
         sqlTemplate.add("refCol", refColumn.getName());
         sqlTemplate.add("array", refColumn.isArrayOf());
 
-        TableResult result = bigQueryProject.query(sqlTemplate.render());
+        TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
         List<String> refIdArray = new ArrayList<>();
         for (FieldValueList row : result.iterateAll()) {
             if (!row.get(0).isNull()) {
@@ -1249,8 +1258,8 @@ public class BigQueryPdao {
             "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
 
     private static final String joinTablesToTestForMissingRowIds =
-        "SELECT COUNT(*) FROM <snapshotProject>.<snapshotDatasetName>.<tempTable> " +
-            "LEFT JOIN <datasetProject>.<datasetDatasetName>.<datasetTable> USING ( <commonColumn> ) " +
+        "SELECT COUNT(*) FROM `<snapshotProject>.<snapshotDatasetName>.<tempTable>` " +
+            "LEFT JOIN `<datasetProject>.<datasetDatasetName>.<datasetTable>` USING ( <commonColumn> ) " +
             "WHERE <datasetTable>.<commonColumn> IS NULL";
 
     private static final String loadRootRowIdsFromTempTableTemplate =

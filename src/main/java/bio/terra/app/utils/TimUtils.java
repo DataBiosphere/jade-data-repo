@@ -6,9 +6,12 @@ package bio.terra.app.utils;
 public final class TimUtils {
     private TimUtils() { }
 
-    private static final String CAPITOL = "a__";
+    private static final String CAPITAL = "a__";
     private static final String COLON = "c__";
     private static final String PERIOD = "p__";
+
+    // Currently all TIM full property names begin with the prefix TerraCore.
+    private static final String TIM_PREFIX_ENCODED = encode("TerraCore");
 
     /**
      * Encode a TIM name for ElasticSearch or BigQuery use.
@@ -20,7 +23,7 @@ public final class TimUtils {
         StringBuilder result = new StringBuilder();
         for (char c : s.toCharArray()) {
             if (Character.isUpperCase(c)) {
-                result.append(CAPITOL);
+                result.append(CAPITAL);
                 result.append(Character.toLowerCase(c));
             } else if (c == ':') {
                 result.append(COLON);
@@ -35,9 +38,9 @@ public final class TimUtils {
 
     private static String doDecode(String s) {
         String t = s.replaceAll(COLON, ":").replaceAll(PERIOD, ".");
-        int len = CAPITOL.length();
+        int len = CAPITAL.length();
         int index;
-        while ((index = t.indexOf(CAPITOL)) != -1) {
+        while ((index = t.indexOf(CAPITAL)) != -1) {
             t = t.substring(0, index) + Character.toUpperCase(t.charAt(index + len)) + t.substring(index + len + 1);
         }
         return t;
@@ -50,8 +53,8 @@ public final class TimUtils {
      * @return true if it's likely to be encoded
      */
     private static boolean shouldDecode(String s) {
-        // Search for two code strings that all names will have at least one of.
-        return s.contains(COLON) && s.contains(CAPITOL);
+        // Only decode names that start with an encoded TIM prefix.
+        return s.startsWith(TIM_PREFIX_ENCODED);
     }
 
     /**

@@ -142,14 +142,14 @@ public class SearchService {
 
         SearchRequest searchRequest = new SearchRequest(indicesToQuery.toArray(new String[0]), searchSourceBuilder);
 
-        SearchResponse elasticResponse;
+        final SearchResponse elasticResponse;
         try {
             elasticResponse = client.search(searchRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
             throw new SearchException("Error completing search request", e);
         }
         SearchHits hits = elasticResponse.getHits();
-        List<Map<String, String>> response = hitsToMap(hits);
+        var response = hitsToMap(hits);
 
         SearchQueryResultModel result = new SearchQueryResultModel();
         //do we want to include info on the index/snapshot the response came from?

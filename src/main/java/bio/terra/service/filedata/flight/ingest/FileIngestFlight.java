@@ -52,7 +52,7 @@ public class FileIngestFlight extends Flight {
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
         ProfileService profileService = (ProfileService) appContext.getBean("profileService");
         DatasetBucketDao datasetBucketDao = (DatasetBucketDao) appContext.getBean("datasetBucketDao");
-        DataLocationSelector dataLocationSelector = (DataLocationSelector) appContext.getBean("dataLocationSelector");
+        DataLocationSelector dataLocationSelector = appContext.getBean(DataLocationSelector.class);
 
         UUID datasetId = UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
         Dataset dataset = datasetService.retrieve(datasetId);

@@ -15,7 +15,7 @@ import java.text.SimpleDateFormat
 
 buildscript {
     ext {
-        springBootVersion = '2.3.4.RELEASE'
+        springBootVersion = '2.4.6'
     }
     repositories {
         mavenCentral()
@@ -32,10 +32,10 @@ plugins {
     id 'antlr'
     id 'com.github.spotbugs' version '4.7.0'
     id "org.hidetake.swagger.generator" version "2.18.2"
-    id "org.springframework.boot" version "2.3.4.RELEASE"
+    id "org.springframework.boot" version "2.4.6"
     id "idea"
     id "java"
-    id "io.spring.dependency-management" version "1.0.10.RELEASE"
+    id "io.spring.dependency-management" version "1.0.11.RELEASE"
     id "jacoco"
     id "checkstyle"
     id "com.srcclr.gradle" version "3.1.0"
@@ -43,7 +43,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.85.0-SNAPSHOT'
+    version '1.86.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -185,8 +185,8 @@ dependencies {
     swaggerCodegen group: "io.swagger.codegen.v3", name: "swagger-codegen-cli"
 
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
-    compile 'org.springframework.cloud:spring-cloud-gcp-starter-logging:1.2.5.RELEASE'
-    compile "org.springframework.cloud:spring-cloud-starter-sleuth:2.2.5.RELEASE"
+    compile 'org.springframework.cloud:spring-cloud-gcp-starter-logging:1.2.8.RELEASE'
+    compile "org.springframework.cloud:spring-cloud-starter-sleuth:3.0.2"
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-343dfff-SNAP'
     compile 'org.antlr:ST4:4.3'                          // String templating
     compile group: 'io.kubernetes', name: 'client-java', version: '10.0.0'
@@ -227,6 +227,10 @@ dependencies {
     compile ('com.fasterxml.jackson.core:jackson-core:2.10.2') {
         force = true
     }
+
+    // Azure related dependencies
+    implementation 'com.azure:azure-identity:1.2.5'
+    implementation 'com.azure.resourcemanager:azure-resourcemanager:2.4.0'
 
     antlr "org.antlr:antlr4:4.8"
     spotbugs 'com.github.spotbugs:spotbugs:4.2.2'

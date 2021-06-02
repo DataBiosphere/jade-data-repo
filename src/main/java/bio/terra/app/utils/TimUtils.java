@@ -47,7 +47,7 @@ public final class TimUtils {
      * Give a string, return true if it's likely that this was encoded and requires decoding.
      *
      * @param s the string
-     * @return true if it's likley to be encoded
+     * @return true if it's likely to be encoded
      */
     private static boolean shouldDecode(String s) {
         // Search for two code strings that all names will have at least one of.

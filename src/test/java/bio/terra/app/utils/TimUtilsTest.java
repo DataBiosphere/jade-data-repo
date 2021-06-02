@@ -35,4 +35,9 @@ public class TimUtilsTest {
             assertThat(TimUtils.decode(c[1]), is(c[0]));
         }
     }
+
+    @Test
+    public void noDecode() {
+        assertThat(TimUtils.decode("a__b"), is("a__b"));
+    }
 }

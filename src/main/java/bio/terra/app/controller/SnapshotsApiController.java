@@ -183,7 +183,8 @@ public class SnapshotsApiController implements SnapshotsApi {
             defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE
         ) List<SnapshotRequestAccessIncludeModel> include
     ) {
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT,
+                id.toString(), IamAction.READ_DATA);
         SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(id, include);
         return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
     }
@@ -194,7 +195,8 @@ public class SnapshotsApiController implements SnapshotsApi {
         @PathVariable("fileid") String fileid,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT,
+                id.toString(), IamAction.READ_DATA);
         FileModel fileModel = fileService.lookupSnapshotFile(id.toString(), fileid, depth);
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
@@ -205,7 +207,8 @@ public class SnapshotsApiController implements SnapshotsApi {
         @RequestParam(value = "path", required = true) String path,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT,
+                id.toString(), IamAction.READ_DATA);
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }

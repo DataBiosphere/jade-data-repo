@@ -134,7 +134,8 @@ public class DatasetsApiController implements DatasetsApi {
         @Valid @RequestParam(value = "include", required = false, defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
             List<DatasetRequestAccessIncludeModel> include
     ) {
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET,
+                id.toString(), IamAction.READ_DATASET);
         return new ResponseEntity<>(datasetService.retrieveAvailableDatasetModel(id, include),
             HttpStatus.OK);
     }
@@ -244,7 +245,8 @@ public class DatasetsApiController implements DatasetsApi {
         @PathVariable("id") UUID id,
         @PathVariable("fileid") String fileid,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET,
+                id.toString(), IamAction.READ_DATA);
         FileModel fileModel = fileService.lookupFile(id.toString(), fileid, depth);
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
@@ -255,7 +257,8 @@ public class DatasetsApiController implements DatasetsApi {
         @RequestParam(value = "path", required = true) String path,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET,
+                id.toString(), IamAction.READ_DATA);
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }

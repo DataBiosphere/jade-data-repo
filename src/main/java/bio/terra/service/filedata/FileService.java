@@ -161,7 +161,7 @@ public class FileService {
      */
     FSItem lookupFSItem(String datasetId, String fileId, int depth) throws InterruptedException {
         Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
-        return fileDao.retrieveById(dataset, fileId, depth, true);
+        return fileDao.retrieveById(dataset, fileId, depth);
     }
 
     /**
@@ -171,7 +171,7 @@ public class FileService {
      */
     FSItem lookupFSItemByPath(String datasetId, String path, int depth) throws InterruptedException {
         Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
-        return fileDao.retrieveByPath(dataset, path, depth, true);
+        return fileDao.retrieveByPath(dataset, path, depth);
     }
 
     // -- snapshot lookups --
@@ -196,13 +196,13 @@ public class FileService {
     }
 
     FSItem lookupSnapshotFSItem(SnapshotProject snapshot, String fileId, int depth) throws InterruptedException {
-        return fileDao.retrieveBySnapshotAndId(snapshot, fileId, depth, true);
+        return fileDao.retrieveBySnapshotAndId(snapshot, fileId, depth);
     }
 
     FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth) throws InterruptedException {
         // note: this method only returns snapshots that are NOT exclusively locked
         Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
-        return fileDao.retrieveByPath(snapshot, path, depth, true);
+        return fileDao.retrieveByPath(snapshot, path, depth);
     }
 
     public FileModel fileModelFromFSItem(FSItem fsItem) {

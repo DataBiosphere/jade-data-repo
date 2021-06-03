@@ -56,7 +56,7 @@ public class IngestFileFileStep implements Step {
             try {
                 fileDao.createFileMetadata(dataset, newFile);
                 // Retrieve to build the complete FSItem
-                FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1, true);
+                FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1);
                 workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
             } catch (FileSystemAbortTransactionException rex) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);

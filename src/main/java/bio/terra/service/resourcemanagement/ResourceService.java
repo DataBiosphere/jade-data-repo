@@ -90,6 +90,8 @@ public class ResourceService {
             .filter(bucket -> bucketIsForBillingProfile(bucket, billingProfile))
             .collect(Collectors.toList());
 
+        // there should never be more than one bucket per billing profile,
+        // so we just take the first one
         if (bucketsForBillingProfile.size() > 0) {
             GoogleBucketResource bucket = bucketsForBillingProfile.get(0);
             bucketName = bucket.getName();
@@ -117,11 +119,11 @@ public class ResourceService {
      *                                         cloud resource does not
      */
     public GoogleBucketResource lookupBucket(String bucketResourceId) {
-        return bucketService.getBucketResourceById(UUID.fromString(bucketResourceId), true);
+        return lookupBucket(UUID.fromString(bucketResourceId));
     }
 
     public GoogleBucketResource lookupBucket(UUID bucketResourceId) {
-        return lookupBucket(bucketResourceId.toString());
+        return bucketService.getBucketResourceById(bucketResourceId, true);
     }
 
     /**

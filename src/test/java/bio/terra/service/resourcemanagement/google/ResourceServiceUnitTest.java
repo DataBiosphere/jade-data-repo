@@ -18,14 +18,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @Category(Unit.class)
+@RunWith(MockitoJUnitRunner.class)
 public class ResourceServiceUnitTest {
 
     @InjectMocks
@@ -63,15 +65,15 @@ public class ResourceServiceUnitTest {
     private final GoogleProjectResource projectResource = new GoogleProjectResource()
         .profileId(billingProfileId);
 
+    private final UUID bucketName = UUID.randomUUID();
     private final UUID bucketId = UUID.randomUUID();
     private final GoogleBucketResource bucketResource = new GoogleBucketResource()
         .resourceId(bucketId)
-        .name("bucketName")
+        .name(bucketName.toString())
         .projectResource(projectResource);
 
     private final List<UUID> bucketsForDataset = List.of(bucketId);
 
-    @Before
     public void setup() throws InterruptedException {
         MockitoAnnotations.initMocks(this);
     }
@@ -85,18 +87,19 @@ public class ResourceServiceUnitTest {
         when(oneProjectPerProfileIdSelector.bucketForFile(datasetId, profileModel))
             .thenReturn("newBucketName");
         when(bucketService
-            .getOrCreateBucket("bucketName", projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION,
+            .getOrCreateBucket(bucketName.toString(), projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION,
                 "flightId"))
             .thenReturn(bucketResource);
 
         GoogleBucketResource foundBucket = resourceService
-            .getOrCreateBucketForFile("bucketName", dataset, profileModel, "flightId");
+            .getOrCreateBucketForFile(bucketName.toString(), dataset, profileModel, "flightId");
         Assert.assertEquals(bucketResource, foundBucket);
     }
 
     @Test
     public void testUseNewBucketIfNoneExists() throws Exception {
-        GoogleBucketResource newBucket = new GoogleBucketResource().name("newBucketName");
+        UUID newName = UUID.randomUUID();
+        GoogleBucketResource newBucket = new GoogleBucketResource().name(newName.toString());
 
         when(googleProjectService.getOrCreateProject(any(), any(), any()))
             .thenReturn(projectResource);
@@ -104,12 +107,12 @@ public class ResourceServiceUnitTest {
         when(oneProjectPerProfileIdSelector.bucketForFile(datasetId, profileModel))
             .thenReturn("newBucketName");
         when(bucketService
-            .getOrCreateBucket("newBucketName", projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION,
+            .getOrCreateBucket(newName.toString(), projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION,
                 "flightId"))
             .thenReturn(newBucket);
 
         GoogleBucketResource foundBucket = resourceService
-            .getOrCreateBucketForFile("newBucketName", dataset, profileModel, "flightId");
+            .getOrCreateBucketForFile(newName.toString(), dataset, profileModel, "flightId");
         Assert.assertEquals(newBucket, foundBucket);
     }
 }

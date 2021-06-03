@@ -59,7 +59,10 @@ public class ResourceServiceUnitTest {
 
     private final DatasetSummary datasetSummary = new DatasetSummary().storage(List.of(
         new StorageResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
-            GoogleCloudResource.BUCKET)));
+            GoogleCloudResource.BUCKET),
+        new StorageResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
+            GoogleCloudResource.FIRESTORE)
+        ));
     private final Dataset dataset = new Dataset(datasetSummary).id(datasetId);
 
     private final GoogleProjectResource projectResource = new GoogleProjectResource()
@@ -80,7 +83,7 @@ public class ResourceServiceUnitTest {
 
     @Test
     public void testUseExistingBucketWhenNewNameProduced() throws Exception {
-        when(googleProjectService.getOrCreateProject(any(), any(), any()))
+        when(googleProjectService.getOrCreateProject(any(), any(), any(), any()))
             .thenReturn(projectResource);
         when(datasetBucketDao.getBucketForDatasetId(datasetId)).thenReturn(bucketsForDataset);
         when(bucketService.getBucketResourceById(bucketId, true)).thenReturn(bucketResource);
@@ -101,7 +104,7 @@ public class ResourceServiceUnitTest {
         UUID newName = UUID.randomUUID();
         GoogleBucketResource newBucket = new GoogleBucketResource().name(newName.toString());
 
-        when(googleProjectService.getOrCreateProject(any(), any(), any()))
+        when(googleProjectService.getOrCreateProject(any(), any(), any(), any()))
             .thenReturn(projectResource);
         when(datasetBucketDao.getBucketForDatasetId(datasetId)).thenReturn(new ArrayList<>());
         when(oneProjectPerProfileIdSelector.bucketForFile(datasetId, profileModel))

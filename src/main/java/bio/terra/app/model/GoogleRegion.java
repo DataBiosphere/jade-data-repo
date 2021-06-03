@@ -1,5 +1,7 @@
 package bio.terra.app.model;
 
+import java.util.Optional;
+
 /**
  * Valid regions in Google.
  */
@@ -29,15 +31,26 @@ public enum GoogleRegion {
         US_WEST2("us-west2"),
         US_WEST3("us-west3"),
         US_WEST4("us-west4"),
-        US("us");
+        US("us", GoogleRegion.US_CENTRAL1);
 
 
     public static final GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_CENTRAL1;
 
     private final String value;
+    private final GoogleRegion firestoreFallbackRegion;
 
     GoogleRegion(String value) {
         this.value = value;
+        this.firestoreFallbackRegion = this;
+    }
+
+    GoogleRegion(String value, GoogleRegion firestoreFallbackRegion) {
+        this.value = value;
+        this.firestoreFallbackRegion = firestoreFallbackRegion;
+    }
+
+    public GoogleRegion getFirestoreFallbackRegion() {
+        return firestoreFallbackRegion;
     }
 
     public String toString() {
@@ -51,5 +64,9 @@ public enum GoogleRegion {
             }
         }
         return null;
+    }
+
+    public static GoogleRegion fromValueWithDefault(String text) {
+        return Optional.ofNullable(GoogleRegion.fromValue(text)).orElse(GoogleRegion.DEFAULT_GOOGLE_REGION);
     }
 }

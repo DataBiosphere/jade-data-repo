@@ -2,6 +2,7 @@ package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
@@ -584,7 +585,8 @@ public class BigQueryPdaoTest {
         datasetRequest
             .defaultProfileId(profileModel.getId())
             .name(datasetName);
-        UUID projectId = resourceService.getOrCreateDatasetProject(datasetName, profileModel);
+        GoogleRegion region = DatasetJsonConversion.getRegionFromDatasetRequestModel(datasetRequest);
+        UUID projectId = resourceService.getOrCreateDatasetProject(datasetName, profileModel, region);
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
             .projectResourceId(projectId)
             .projectResource(resourceService.getProjectResource(projectId));

@@ -616,12 +616,7 @@ paths:
       description: Retrieve a snapshot by id
       operationId: retrieveSnapshot
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: include
           in: query
           description: A list of what to include with the snapshot object
@@ -663,12 +658,7 @@ paths:
       description: Delete a snapshot by id
       operationId: deleteSnapshot
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Redirect for snapshot successful deletion
@@ -725,12 +715,7 @@ paths:
       description: Lookup metadata for one file
       operationId: lookupSnapshotFileById
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: fileid
           in: path
           description: A file id
@@ -783,12 +768,7 @@ paths:
       description: Lookup metadata for one file
       operationId: lookupSnapshotFileByPath
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: path
           in: query
           description: URL-encoded full path to a file or directory
@@ -841,12 +821,7 @@ paths:
       description: Retrieve the read and discover policies for the snapshot
       operationId: retrieveSnapshotPolicies
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Policy
@@ -880,12 +855,7 @@ paths:
       description: Adds a member to the specified policy for the snapshot
       operationId: addSnapshotPolicyMember
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: policyName
           in: path
           description: The relevant policy
@@ -937,12 +907,7 @@ paths:
       description: Removes a member from the specified policy for the snapshot
       operationId: deleteSnapshotPolicyMember
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: policyName
           in: path
           description: The relevant policy

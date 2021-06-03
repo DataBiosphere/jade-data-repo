@@ -147,10 +147,10 @@ public class SnapshotsApiController implements SnapshotsApi {
     }
 
     @Override
-    public ResponseEntity<JobModel> deleteSnapshot(@PathVariable("id") String id) {
+    public ResponseEntity<JobModel> deleteSnapshot(@PathVariable("id") UUID id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(userReq, IamResourceType.DATASNAPSHOT, id, IamAction.DELETE);
-        String jobId = snapshotService.deleteSnapshot(UUID.fromString(id), userReq);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.DELETE);
+        String jobId = snapshotService.deleteSnapshot(id, userReq);
         // we can retrieve the job we just created
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
@@ -176,40 +176,40 @@ public class SnapshotsApiController implements SnapshotsApi {
 
     @Override
     public ResponseEntity<SnapshotModel> retrieveSnapshot(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @Valid @RequestParam(
             value = "include",
             required = false,
             defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE
         ) List<SnapshotRequestAccessIncludeModel> include
     ) {
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
-        SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(UUID.fromString(id), include);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+        SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(id, include);
         return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<FileModel> lookupSnapshotFileById(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @PathVariable("fileid") String fileid,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
-        FileModel fileModel = fileService.lookupSnapshotFile(id, fileid, depth);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
+        FileModel fileModel = fileService.lookupSnapshotFile(id.toString(), fileid, depth);
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<FileModel> lookupSnapshotFileByPath(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @RequestParam(value = "path", required = true) String path,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id.toString(), IamAction.READ_DATA);
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }
-        FileModel fileModel = fileService.lookupSnapshotPath(id, path, depth);
+        FileModel fileModel = fileService.lookupSnapshotPath(id.toString(), path, depth);
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
@@ -217,13 +217,13 @@ public class SnapshotsApiController implements SnapshotsApi {
     // --snapshot policies --
     @Override
     public ResponseEntity<PolicyResponse> addSnapshotPolicyMember(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @PathVariable("policyName") String policyName,
         @Valid @RequestBody PolicyMemberRequest policyMember) {
         PolicyModel policy = iamService.addPolicyMember(
             getAuthenticatedInfo(),
             IamResourceType.DATASNAPSHOT,
-            UUID.fromString(id),
+            id,
             policyName,
             policyMember.getEmail());
         PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
@@ -231,15 +231,15 @@ public class SnapshotsApiController implements SnapshotsApi {
     }
 
     @Override
-    public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(@PathVariable("id") String id) {
+    public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(@PathVariable("id") UUID id) {
         PolicyResponse response = new PolicyResponse().policies(
-            iamService.retrievePolicies(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, UUID.fromString(id)));
+            iamService.retrievePolicies(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<PolicyResponse> deleteSnapshotPolicyMember(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @PathVariable("policyName") String policyName,
         @PathVariable("memberEmail") String memberEmail) {
         // member email can't be null since it is part of the URL
@@ -250,7 +250,7 @@ public class SnapshotsApiController implements SnapshotsApi {
         PolicyModel policy = iamService.deletePolicyMember(
             getAuthenticatedInfo(),
             IamResourceType.DATASNAPSHOT,
-            UUID.fromString(id),
+            id,
             policyName,
             memberEmail);
         PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));

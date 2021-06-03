@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
@@ -19,9 +20,12 @@ import com.google.cloud.storage.BlobId;
 import common.utils.FileUtils;
 import common.utils.StorageUtils;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -76,7 +80,61 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
       // owner2 creates a dataset and grants userUser the "custodian" role
       dataset = ownerUser2Api.createDataset(profileId, "dataset-simple.json", true);
       ownerUser2Api.addDatasetPolicyMember(dataset.getId(), "custodian", userUser.userEmail);
+      ingestDataIntoDataset(dataset, profileId);
 
+      // user creates a snapshot
+      snapshot =
+          userUserApi.createSnapshot(profileId, "snapshot-simple.json", dataset.getName(), true);
+
+      // attempt to delete profile should fail due to dataset and snapshot dependency
+      tryDeleteProfile(ownerUser1Api, profileId, false);
+
+      assertThat(
+          userUserApi.deleteSnapshot(snapshot.getId()).getObjectState(),
+          equalTo(DeleteResponseModel.ObjectStateEnum.DELETED));
+      snapshot = null;
+
+      // attempt to delete profile should fail due to dataset dependency
+      tryDeleteProfile(ownerUser1Api, profileId, false);
+
+      assertThat(
+          ownerUser2Api.deleteDataset(dataset.getId()).getObjectState(),
+          equalTo(DeleteResponseModel.ObjectStateEnum.DELETED));
+      dataset = null;
+
+      // attempt to delete profile should succeed
+      tryDeleteProfile(ownerUser1Api, profileId, true);
+      profile = null;
+    } catch (Exception e) {
+      logger.error("Error in journey", e);
+      e.printStackTrace();
+      throw e;
+    } finally {
+      if (snapshot != null) {
+        userUserApi.deleteSnapshot(snapshot.getId());
+      }
+      if (dataset != null) {
+        ownerUser2Api.deleteDataset(dataset.getId());
+      }
+      if (profile != null) {
+        ownerUser1Api.deleteProfile(profile.getId());
+      }
+    }
+  }
+
+  private void tryDeleteProfile(DataRepoWrap wrap, String id, boolean expectSuccess)
+      throws Exception {
+    boolean success;
+    try {
+      wrap.deleteProfile(id);
+      success = true;
+    } catch (DataRepoBadRequestClientException | DataRepoNotFoundClientException ex) {
+      success = false;
+    }
+    assertThat("success meets expectations", success, equalTo(expectSuccess));
+  }
+
+  private void ingestDataIntoDataset(DatasetSummaryModel dataset, String profileId) throws Exception {
       // load data into the new dataset
       // note that there's a fileref in the dataset
       // ingest a file -- TODO CannedTestData.getMeA1KBFile
@@ -146,56 +204,5 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
           DataRepoUtils.expectJobSuccess(
               repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
       logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
-
-      // user creates a snapshot
-      snapshot =
-          userUserApi.createSnapshot(profileId, "snapshot-simple.json", dataset.getName(), true);
-
-      // attempt to delete profile should fail due to dataset and snapshot dependency
-      tryDeleteProfile(ownerUser1Api, profileId, false);
-
-      assertThat(
-          userUserApi.deleteSnapshot(snapshot.getId()).getObjectState(),
-          equalTo(DeleteResponseModel.ObjectStateEnum.DELETED));
-      snapshot = null;
-
-      // attempt to delete profile should fail due to dataset dependency
-      tryDeleteProfile(ownerUser1Api, profileId, false);
-
-      assertThat(
-          ownerUser2Api.deleteDataset(dataset.getId()).getObjectState(),
-          equalTo(DeleteResponseModel.ObjectStateEnum.DELETED));
-      dataset = null;
-
-      // attempt to delete profile should succeed
-      tryDeleteProfile(ownerUser1Api, profileId, true);
-      profile = null;
-    } catch (Exception e) {
-      logger.error("Error in journey", e);
-      e.printStackTrace();
-      throw e;
-    } finally {
-      if (snapshot != null) {
-        userUserApi.deleteSnapshot(snapshot.getId());
-      }
-      if (dataset != null) {
-        ownerUser2Api.deleteDataset(dataset.getId());
-      }
-      if (profile != null) {
-        ownerUser1Api.deleteProfile(profile.getId());
-      }
-    }
-  }
-
-  private void tryDeleteProfile(DataRepoWrap wrap, String id, boolean expectSuccess)
-      throws Exception {
-    boolean success;
-    try {
-      wrap.deleteProfile(id);
-      success = true;
-    } catch (DataRepoBadRequestClientException | DataRepoNotFoundClientException ex) {
-      success = false;
-    }
-    assertThat("success meets expectations", success, equalTo(expectSuccess));
   }
 }

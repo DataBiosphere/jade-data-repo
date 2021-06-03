@@ -5,7 +5,6 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.client.ApiException;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
@@ -20,12 +19,9 @@ import com.google.cloud.storage.BlobId;
 import common.utils.FileUtils;
 import common.utils.StorageUtils;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -134,75 +130,72 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
     assertThat("success meets expectations", success, equalTo(expectSuccess));
   }
 
-  private void ingestDataIntoDataset(DatasetSummaryModel dataset, String profileId) throws Exception {
-      // load data into the new dataset
-      // note that there's a fileref in the dataset
-      // ingest a file -- TODO CannedTestData.getMeA1KBFile
-      // get the ApiClient for the snapshot creator, same as the dataset creator
-      ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(userUser, server);
-      RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
-      URI sourceUri = new URI("gs://jade-testdata/fileloadprofiletest/1KBfile.txt");
+  private void ingestDataIntoDataset(DatasetSummaryModel dataset, String profileId)
+      throws Exception {
+    // load data into the new dataset
+    // note that there's a fileref in the dataset
+    // ingest a file -- TODO CannedTestData.getMeA1KBFile
+    // get the ApiClient for the snapshot creator, same as the dataset creator
+    ApiClient datasetCreatorClient = DataRepoUtils.getClientForTestUser(userUser, server);
+    RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
+    URI sourceUri = new URI("gs://jade-testdata/fileloadprofiletest/1KBfile.txt");
 
-      String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
+    String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
 
-      BulkLoadFileModel fileLoadModel =
-          new BulkLoadFileModel()
-              .sourcePath(sourceUri.toString())
-              .description("IngestFile")
-              .mimeType("text/plain")
-              .targetPath(targetPath);
-      String loadTag = FileUtils.randomizeName("lookupTest");
-      BulkLoadArrayRequestModel fileLoadModelArray =
-          new BulkLoadArrayRequestModel()
-              .profileId(profileId)
-              .loadTag(loadTag)
-              .maxFailedFileLoads(0);
-      fileLoadModelArray.addLoadArrayItem(fileLoadModel);
+    BulkLoadFileModel fileLoadModel =
+        new BulkLoadFileModel()
+            .sourcePath(sourceUri.toString())
+            .description("IngestFile")
+            .mimeType("text/plain")
+            .targetPath(targetPath);
+    String loadTag = FileUtils.randomizeName("lookupTest");
+    BulkLoadArrayRequestModel fileLoadModelArray =
+        new BulkLoadArrayRequestModel().profileId(profileId).loadTag(loadTag).maxFailedFileLoads(0);
+    fileLoadModelArray.addLoadArrayItem(fileLoadModel);
 
-      JobModel ingestFileJobResponse =
-          repositoryApi.bulkFileLoadArray(dataset.getId(), fileLoadModelArray);
-      ingestFileJobResponse =
-          DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
-      BulkLoadArrayResultModel bulkLoadArrayResultModel =
-          DataRepoUtils.expectJobSuccess(
-              repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
+    JobModel ingestFileJobResponse =
+        repositoryApi.bulkFileLoadArray(dataset.getId(), fileLoadModelArray);
+    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
+    BulkLoadArrayResultModel bulkLoadArrayResultModel =
+        DataRepoUtils.expectJobSuccess(
+            repositoryApi, ingestFileJobResponse, BulkLoadArrayResultModel.class);
 
-      String fileId = bulkLoadArrayResultModel.getLoadFileResults().get(0).getFileId();
+    String fileId = bulkLoadArrayResultModel.getLoadFileResults().get(0).getFileId();
 
-      // ingest the tabular data from the JSON file we just generated
-      // generate a JSON file with the fileref
-      String jsonLine =
-          "{\"VCF_File_Name\":\"name1\", \"Description\":\"description1\", \"VCF_File_Ref\":\""
-              + fileId
-              + "\"}\n";
-      byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
-      // load a JSON file that contains the table rows to load into the test bucket
-      String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
-      String fileRefName = "scratch/testDRSLookup/" + jsonFileName;
+    // ingest the tabular data from the JSON file we just generated
+    // generate a JSON file with the fileref
+    String jsonLine =
+        "{\"VCF_File_Name\":\"name1\", \"Description\":\"description1\", \"VCF_File_Ref\":\""
+            + fileId
+            + "\"}\n";
+    byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
+    // load a JSON file that contains the table rows to load into the test bucket
+    String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
+    String fileRefName = "scratch/testDRSLookup/" + jsonFileName;
 
-      String scratchFileBucketName = "jade-testdata";
-      BlobId scratchFileTabularData =
-          StorageUtils.writeBytesToFile(
-              StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount),
-              scratchFileBucketName,
-              fileRefName,
-              fileRefBytes);
-      scratchFiles.add(scratchFileTabularData); // make sure the scratch file gets cleaned up later
-      String gsPath = StorageUtils.blobIdToGSPath(scratchFileTabularData);
+    String scratchFileBucketName = "jade-testdata";
+    BlobId scratchFileTabularData =
+        StorageUtils.writeBytesToFile(
+            StorageUtils.getClientForServiceAccount(server.testRunnerServiceAccount),
+            scratchFileBucketName,
+            fileRefName,
+            fileRefBytes);
+    scratchFiles.add(scratchFileTabularData); // make sure the scratch file gets cleaned up later
+    String gsPath = StorageUtils.blobIdToGSPath(scratchFileTabularData);
 
-      IngestRequestModel ingestRequest =
-          new IngestRequestModel()
-              .format(IngestRequestModel.FormatEnum.JSON)
-              .table("vcf_file")
-              .path(gsPath);
-      JobModel ingestTabularDataJobResponse =
-          repositoryApi.ingestDataset(dataset.getId(), ingestRequest);
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .table("vcf_file")
+            .path(gsPath);
+    JobModel ingestTabularDataJobResponse =
+        repositoryApi.ingestDataset(dataset.getId(), ingestRequest);
 
-      ingestTabularDataJobResponse =
-          DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
-      IngestResponseModel ingestResponse =
-          DataRepoUtils.expectJobSuccess(
-              repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
-      logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
+    ingestTabularDataJobResponse =
+        DataRepoUtils.waitForJobToFinish(repositoryApi, ingestTabularDataJobResponse);
+    IngestResponseModel ingestResponse =
+        DataRepoUtils.expectJobSuccess(
+            repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
+    logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
   }
 }

@@ -256,12 +256,7 @@ paths:
       description: Retrieve a billing profile by id
       operationId: retrieveProfile
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Billing profile
@@ -296,12 +291,7 @@ paths:
         The final return is of type definitions/DeleteResponseModel.
       operationId: deleteProfile
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Redirect for profile delete result
@@ -359,12 +349,7 @@ paths:
       description: Retrieve the read and discover policies for the profile
       operationId: retrieveProfilePolicies
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Policy
@@ -441,12 +426,7 @@ paths:
       description: Removes a member from the specified policy for the profile
       operationId: deleteProfilePolicyMember
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: policyName
           in: path
           description: The relevant policy

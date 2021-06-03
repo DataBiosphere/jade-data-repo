@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.OnDemand;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
@@ -63,7 +64,7 @@ public class ResourceServiceConnectedTest {
         roleToStewardMap.put(role, stewardsGroupEmailList);
 
         GoogleProjectResource projectResource =
-            projectService.getOrCreateProject(projectId, profile, roleToStewardMap);
+            projectService.getOrCreateProject(projectId, profile, roleToStewardMap, GoogleRegion.DEFAULT_GOOGLE_REGION);
 
         Project project = projectService.getProject(projectId);
         assertThat("the project is active",

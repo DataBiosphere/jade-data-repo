@@ -2,7 +2,9 @@ package bio.terra.service.resourcemanagement;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -15,6 +17,7 @@ import java.util.UUID;
 @Profile({"terra", "google"})
 public class OneProjectPerResourceSelector implements DataLocationSelector {
     private final GoogleResourceConfiguration resourceConfiguration;
+    private final DatasetBucketDao datasetBucketDao;
     private static final String GS_PROJECT_PATTERN = "[a-z0-9\\-]{6,30}";
     /**
      * *Borrowed from terra-resource-buffer*
@@ -24,8 +27,10 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
     static final int RANDOM_ID_SIZE = 8;
 
     @Autowired
-    public OneProjectPerResourceSelector(GoogleResourceConfiguration resourceConfiguration) {
+    public OneProjectPerResourceSelector(GoogleResourceConfiguration resourceConfiguration,
+                                         DatasetBucketDao datasetBucketDao) {
         this.resourceConfiguration = resourceConfiguration;
+        this.datasetBucketDao = datasetBucketDao;
     }
 
     @Override
@@ -40,15 +45,14 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
 
     @Override
     public String projectIdForFile(Dataset dataset, BillingProfileModel billingProfile)
-        throws GoogleProjectNamingException {
-        UUID sourceDatasetBillingProfileId = dataset.getProjectResource().getProfileId();
-        UUID requestedBillingProfileId = UUID.fromString(billingProfile.getId());
-        if (sourceDatasetBillingProfileId.equals(requestedBillingProfileId)) {
-            return dataset.getProjectResource().getGoogleProjectId();
+        throws GoogleResourceException, GoogleProjectNamingException {
+        String googleProjectId = datasetBucketDao.getProjectResourceForBucket(dataset.getId(),
+            UUID.fromString(billingProfile.getId()));
+        if (googleProjectId != null) {
+            return googleProjectId;
         } else {
             return getNewProjectId();
         }
-
     }
 
     @Override

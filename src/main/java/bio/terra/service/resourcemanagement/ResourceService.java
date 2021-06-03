@@ -5,7 +5,9 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
@@ -38,6 +40,7 @@ public class ResourceService {
     private final GoogleProjectService projectService;
     private final GoogleBucketService bucketService;
     private final SamConfiguration samConfiguration;
+    private final DatasetBucketDao datasetBucketDao;
 
 
     @Autowired
@@ -45,11 +48,32 @@ public class ResourceService {
         DataLocationSelector dataLocationSelector,
         GoogleProjectService projectService,
         GoogleBucketService bucketService,
-        SamConfiguration samConfiguration) {
+        SamConfiguration samConfiguration,
+        DatasetBucketDao datasetBucketDao) {
         this.dataLocationSelector = dataLocationSelector;
         this.projectService = projectService;
         this.bucketService = bucketService;
         this.samConfiguration = samConfiguration;
+        this.datasetBucketDao = datasetBucketDao;
+    }
+
+    /**
+     * Fetch/create a project
+     *
+     * @param billingProfile authorized profile for billing account information case we need to create a project
+     * @return a reference to the project as a POJO GoogleProjectResource
+     */
+    public GoogleProjectResource getOrCreateProjectForBucket(Dataset dataset,
+                                                         BillingProfileModel billingProfile)
+        throws GoogleResourceException, GoogleProjectNamingException, InterruptedException {
+        
+        final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
+        // Every bucket needs to live in a project, so we get or create a project first
+        final GoogleProjectResource projectResource = projectService.getOrCreateProject(
+            dataLocationSelector.projectIdForFile(dataset, billingProfile),
+            billingProfile,
+            null,
+            region);
     }
 
     /**
@@ -66,17 +90,10 @@ public class ResourceService {
      * </ol>
      */
     public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
+                                                         GoogleProjectResource projectResource,
                                                          BillingProfileModel billingProfile,
                                                          String flightId)
                                                          throws InterruptedException, GoogleProjectNamingException {
-        final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
-        // Every bucket needs to live in a project, so we get or create a project first
-        final GoogleProjectResource projectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForFile(dataset, billingProfile),
-            billingProfile,
-            null,
-            region);
-
         return bucketService.getOrCreateBucket(
             dataLocationSelector.bucketForFile(dataset, billingProfile),
             projectResource,

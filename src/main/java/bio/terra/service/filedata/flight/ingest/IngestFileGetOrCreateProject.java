@@ -7,7 +7,7 @@ import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -17,16 +17,15 @@ import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IngestFilePrimaryDataLocationStep implements Step {
-    private final Logger logger = LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
+public class IngestFileGetOrCreateProject implements Step {
+    private final Logger logger = LoggerFactory.getLogger(IngestFileGetOrCreateProject.class);
     private final ResourceService resourceService;
     private final Dataset dataset;
 
-    public IngestFilePrimaryDataLocationStep(ResourceService resourceService,
-                                             Dataset dataset) {
+    public IngestFileGetOrCreateProject(ResourceService resourceService,
+                                        Dataset dataset) {
         this.resourceService = resourceService;
         this.dataset = dataset;
-
     }
 
     @Override
@@ -38,20 +37,16 @@ public class IngestFilePrimaryDataLocationStep implements Step {
             // or create a bucket in the context of that profile and the dataset.
             BillingProfileModel billingProfile =
                 workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-            GoogleProjectResource googleProjectResource =
-                workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
 
             try {
-                GoogleBucketResource bucketForFile =
-                    resourceService.getOrCreateBucketForFile(
-                        dataset,
-                        googleProjectResource,
-                        billingProfile,
-                        context.getFlightId());
-                workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
+                GoogleProjectResource projectResource = resourceService.getOrCreateProjectForBucket(
+                    dataset, billingProfile);
+                workingMap.put(FileMapKeys.PROJECT_RESOURCE, projectResource);
             } catch (BucketLockException blEx) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
             } catch (GoogleProjectNamingException ex) {
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+            } catch (GoogleResourceException ex) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
             }
         }
@@ -60,18 +55,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // There is not much to undo here. It is possible that a bucket was created in the last step. We could look to
-        // see if there are no other files in the bucket and delete it here, but I think it is likely the bucket will
-        // be used again.
-        FlightMap workingMap = context.getWorkingMap();
-        BillingProfileModel billingProfile =
-            workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-
-        try {
-            resourceService.updateBucketMetadata(dataset, billingProfile, context.getFlightId());
-        } catch (GoogleProjectNamingException e) {
-            logger.error(e.getMessage());
-        }
+        // At this time we do not delete projects, so no undo
         return StepResult.getStepResultSuccess();
     }
 }

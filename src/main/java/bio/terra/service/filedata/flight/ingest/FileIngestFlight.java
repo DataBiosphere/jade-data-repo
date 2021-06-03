@@ -96,6 +96,7 @@ public class FileIngestFlight extends Flight {
         addStep(new IngestFileIdStep(configService));
         addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), randomBackoffRetry);
+        addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
         addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
         addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
         addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));

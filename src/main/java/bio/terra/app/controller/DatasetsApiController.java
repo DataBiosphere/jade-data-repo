@@ -224,10 +224,10 @@ public class DatasetsApiController implements DatasetsApi {
     }
 
     @Override
-    public ResponseEntity<JobModel> bulkFileLoad(@PathVariable("id") String id,
+    public ResponseEntity<JobModel> bulkFileLoad(@PathVariable("id") UUID id,
                                                  @Valid @RequestBody BulkLoadRequestModel bulkFileLoad) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        String jobId = fileService.ingestBulkFile(id, bulkFileLoad, userReq);
+        String jobId = fileService.ingestBulkFile(id.toString(), bulkFileLoad, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 

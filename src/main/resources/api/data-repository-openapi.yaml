@@ -1669,6 +1669,7 @@ paths:
           required: true
           schema:
             type: string
+            format: uuid
       requestBody:
         description: >-
           Bulk file load request with file list in an external file. Load summary results

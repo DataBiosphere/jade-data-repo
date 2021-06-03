@@ -299,9 +299,16 @@ public class SnapshotService {
     }
 
     public List<UUID> getSourceDatasetIdsFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
+        return getSourceDatasetsFromSnapshotRequest(snapshotRequestModel)
+            .stream()
+            .map(Dataset::getId)
+            .collect(Collectors.toList());
+    }
+
+    public List<Dataset> getSourceDatasetsFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
         return snapshotRequestModel.getContents()
             .stream()
-            .map(c -> datasetService.retrieveByName(c.getDatasetName()).getId())
+            .map(c -> datasetService.retrieveByName(c.getDatasetName()))
             .collect(Collectors.toList());
     }
 

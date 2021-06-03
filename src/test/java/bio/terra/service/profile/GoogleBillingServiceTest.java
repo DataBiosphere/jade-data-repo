@@ -2,6 +2,7 @@ package bio.terra.service.profile;
 
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
@@ -137,6 +138,7 @@ public class GoogleBillingServiceTest {
         return projectService.getOrCreateProject(
             resourceConfiguration.getSingleDataProjectId(),
             profile,
-            roleToStewardMap);
+            roleToStewardMap,
+            GoogleRegion.DEFAULT_GOOGLE_REGION);
     }
 }

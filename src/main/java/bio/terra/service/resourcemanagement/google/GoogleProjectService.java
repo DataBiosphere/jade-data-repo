@@ -1,5 +1,6 @@
 package bio.terra.service.resourcemanagement.google;
 
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.profile.google.GoogleBillingService;
@@ -100,13 +101,15 @@ public class GoogleProjectService {
      * @param googleProjectId     google's id of the project
      * @param billingProfile      previously authorized billing profile
      * @param roleIdentityMapping permissions to set
+     * @param firestoreRegion     region to use for Firestore
      * @return project resource object
      * @throws InterruptedException if shutting down
      */
     public GoogleProjectResource getOrCreateProject(
         String googleProjectId,
         BillingProfileModel billingProfile,
-        Map<String, List<String>> roleIdentityMapping)
+        Map<String, List<String>> roleIdentityMapping,
+        GoogleRegion firestoreRegion)
         throws InterruptedException {
 
         try {
@@ -130,10 +133,10 @@ public class GoogleProjectService {
         // came from, what resources they contain, who is paying for them.
         Project existingProject = getProject(googleProjectId);
         if (existingProject != null && resourceConfiguration.getAllowReuseExistingProjects()) {
-            return initializeProject(existingProject, billingProfile, roleIdentityMapping, false);
+            return initializeProject(existingProject, billingProfile, roleIdentityMapping, false, firestoreRegion);
         }
 
-        return newProject(googleProjectId, billingProfile, roleIdentityMapping);
+        return newProject(googleProjectId, billingProfile, roleIdentityMapping, firestoreRegion);
     }
 
     public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -183,13 +186,15 @@ public class GoogleProjectService {
      * @param requestedProjectId  suggested name for the project
      * @param billingProfile      authorized billing profile that'll pay for the project
      * @param roleIdentityMapping iam roles to be granted on the project
+     * @param firestoreRegion     region the project should use for Firestore
      * @return a populated project resource object
      * @throws InterruptedException if the flight is interrupted during execution
      */
     private GoogleProjectResource newProject(
         String requestedProjectId,
         BillingProfileModel billingProfile,
-        Map<String, List<String>> roleIdentityMapping)
+        Map<String, List<String>> roleIdentityMapping,
+        GoogleRegion firestoreRegion)
         throws InterruptedException {
 
         ensureValidProjectId(requestedProjectId);
@@ -221,7 +226,7 @@ public class GoogleProjectService {
                 throw new GoogleResourceException("Could not get project after creation");
             }
 
-            return initializeProject(project, billingProfile, roleIdentityMapping, true);
+            return initializeProject(project, billingProfile, roleIdentityMapping, true, firestoreRegion);
         } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not create project", e);
         }
@@ -233,7 +238,8 @@ public class GoogleProjectService {
         Project project,
         BillingProfileModel billingProfile,
         Map<String, List<String>> roleIdentityMapping,
-        boolean setBilling)
+        boolean setBilling,
+        GoogleRegion firestoreRegion)
         throws InterruptedException {
 
         String googleProjectNumber = project.getProjectNumber().toString();
@@ -249,7 +255,7 @@ public class GoogleProjectService {
             // The billing profile has already been authorized so we do no further checking here
             billingService.assignProjectBilling(billingProfile, googleProjectResource);
         }
-        enableServices(googleProjectResource);
+        enableServices(googleProjectResource, firestoreRegion);
         updateIamPermissions(roleIdentityMapping, googleProjectId, PermissionOp.ENABLE_PERMISSIONS);
 
         UUID id = resourceDao.createProject(googleProjectResource);
@@ -280,7 +286,8 @@ public class GoogleProjectService {
     }
 
     @VisibleForTesting
-    void enableServices(GoogleProjectResource projectResource) throws InterruptedException {
+    void enableServices(GoogleProjectResource projectResource,
+                        GoogleRegion firestoreRegion) throws InterruptedException {
         try {
             ServiceUsage serviceUsage = serviceUsage();
             String projectNumberString = "projects/" + projectResource.getGoogleProjectNumber();
@@ -318,7 +325,7 @@ public class GoogleProjectService {
             enableFirestore(
                 appengine(),
                 projectResource.getGoogleProjectId(),
-                resourceConfiguration.getDefaultFirestoreLocation(),
+                firestoreRegion,
                 timeout
             );
 
@@ -448,18 +455,19 @@ public class GoogleProjectService {
      * Enable Firestore in native mode in an existing project
      * @param appengine appengine client
      * @param googleProjectId name of the google project to create the Firestore DB in
-     * @param locationId location of the Firestore DB
+     * @param firestoreRegion location of the Firestore DB
      * @param timeout how long to wait for the creation operation
      */
     private static void enableFirestore(final Appengine appengine,
                                         final String googleProjectId,
-                                        final String locationId,
+                                        final GoogleRegion firestoreRegion,
                                         final long timeout) throws IOException, InterruptedException {
-        logger.info("Enabling Firestore in project {} in location {}", googleProjectId, locationId);
+        logger.info("Enabling Firestore in project {} in location {}", googleProjectId,
+            firestoreRegion.getFirestoreFallbackRegion());
         // Create a request object
         Appengine.Apps.Create createRequest = appengine.apps().create(new Application()
             .setId(googleProjectId)
-            .setLocationId(locationId)
+            .setLocationId(firestoreRegion.getFirestoreFallbackRegion().toString())
             .setDatabaseType(FIRESTORE_DB_TYPE)
         );
 

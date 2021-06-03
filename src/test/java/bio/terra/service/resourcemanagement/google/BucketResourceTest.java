@@ -45,10 +45,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalToIgnoringCase;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
@@ -356,9 +356,10 @@ public class BucketResourceTest {
 
         // create project metadata
         return projectService.getOrCreateProject(
-                resourceConfiguration.getSingleDataProjectId(),
-                profile,
-                roleToStewardMap);
+            resourceConfiguration.getSingleDataProjectId(),
+            profile,
+            roleToStewardMap,
+            GoogleRegion.DEFAULT_GOOGLE_REGION);
     }
 
 }

@@ -1,0 +1,53 @@
+# ARM template for TDR manged application
+
+To deploy:
+- Create an offer of type "Azure Application" in the Azure marketplace
+  https://partner.microsoft.com/en-us/dashboard/commercial-marketplace/overview
+  - In Offer setup:
+    - Leave as is
+  - In properties:
+    - give it a category of Storage/Data management
+    - Use the standard Microsoft Marketplace contract
+  - In offer listing:
+    - Name should be filled in.  You can use that value to fill in search result summary and description
+    - For privacy use https://app.terra.bio/#privacy
+    - Fill in a support contact.  The support website should be https://support.terra.bio
+    - Fill in an engineering contact
+    - You should upload a Terra logo (required)
+  - In preview audience, you can add up to 100 subscription that we can preview deploying with in the portal.  Once an application is public, this is no longer needed
+  - In Technical configuration
+    - Leave blank
+  - In Co-Sell with Microsoft
+    - Leave blank
+  - In Resell through CSPs
+    - Select No partners in the CSP program
+  - In Plan overview, create a new plan
+    - The new plan can have the same ID as the application.  This will take you to a new set of tabs
+    - In Plan setup:
+      - Set to managed application
+      - Azure regions should be `Azure Global`
+    - In Plan summary:
+      - Plan name should be filled in.  You can use the same value for the summary and description
+    - In Pricing and availability:
+      - Set the price to 0
+      - Add markets and select all
+      - Set the plan visibility to private
+      - **Add the subscriptions that are allowed to see the place here as well. This number can be up to 20K**
+    - In Technical configuration:
+      - Set the version using semantic versioning standards (e.g. 0.0.1)
+      - Zip the contents of of `marketplaceTemplate`
+        - Name the file app.zip
+        - don't use the macOS compress UI since that includes the hidden .DS_Store file which is invalid.
+        - Use `zip -vr app.zip . -x "*.DS_Store"` from the `marketplaceTemplate` directory
+      - Upload the zipped version of the contents of `marketplaceTemplate`.  This will validate the contents of the zip file
+      - Set the "Azure Active Directory tenant ID" to the home tenant of TDR
+      - Add an Owner principal ID for a group that the TDR application belongs to (so it can write into managed application groups)
+      - Add an Owner principal ID for a group that should have management access for the deployments of this application plan
+      - **Click review and Publish** You can enter some text for you to remember what this particular version does.  It can take an hour or so to deploy the application
+- Before deploying, users, in their tenant need to:
+  - Invite the application to the testing user's tenant
+    - `Connect-AzureAD -TenantId '<test user tenant>'`
+    - `New-AzureADServicePrincipal -AppId '<application id>'`
+  - Grant the newly created service principal Contributor access to the resource group used by the test
+  - Accept the application's terms and conditions:
+    - `Get-AzMarketplaceTerms -Publisher "thebroadinstituteinc1615909626976" -Product "<the plan's product>" -Name "<the plan's name>" | Set-AzMarketplaceTerms -Accept`

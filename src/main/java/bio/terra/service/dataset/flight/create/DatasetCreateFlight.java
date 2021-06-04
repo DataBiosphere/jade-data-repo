@@ -45,7 +45,7 @@ public class DatasetCreateFlight extends Flight {
         addStep(new AuthorizeBillingProfileUseStep(profileService, datasetRequest.getDefaultProfileId(), userReq));
 
         // Get or create the project where the dataset resources will be created
-        addStep(new CreateDatasetGetOrCreateProjectStep(resourceService));
+        addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
 
         // Generate the dateset id and stored it in the working map
         addStep(new CreateDatasetIdStep());

@@ -60,16 +60,17 @@ public class ResourceService {
     /**
      * Fetch/create a project
      *
+     * @param dataset
      * @param billingProfile authorized profile for billing account information case we need to create a project
      * @return a reference to the project as a POJO GoogleProjectResource
      */
     public GoogleProjectResource getOrCreateProjectForBucket(Dataset dataset,
                                                          BillingProfileModel billingProfile)
         throws GoogleResourceException, GoogleProjectNamingException, InterruptedException {
-        
+
         final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         // Every bucket needs to live in a project, so we get or create a project first
-        final GoogleProjectResource projectResource = projectService.getOrCreateProject(
+        return projectService.getOrCreateProject(
             dataLocationSelector.projectIdForFile(dataset, billingProfile),
             billingProfile,
             null,

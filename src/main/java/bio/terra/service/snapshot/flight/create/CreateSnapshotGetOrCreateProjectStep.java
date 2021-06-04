@@ -16,17 +16,11 @@ import java.util.UUID;
 
 public class CreateSnapshotGetOrCreateProjectStep implements Step {
     private final ResourceService resourceService;
-    private final SnapshotRequestModel snapshotRequestModel;
-    private final DatasetService datasetService;
     private final GoogleRegion firestoreRegion;
 
     public CreateSnapshotGetOrCreateProjectStep(ResourceService resourceService,
-                                                SnapshotRequestModel snapshotRequestModel,
-                                                DatasetService datasetService,
                                                 GoogleRegion firestoreRegion) {
         this.resourceService = resourceService;
-        this.snapshotRequestModel = snapshotRequestModel;
-        this.datasetService = datasetService;
         this.firestoreRegion = firestoreRegion;
     }
 

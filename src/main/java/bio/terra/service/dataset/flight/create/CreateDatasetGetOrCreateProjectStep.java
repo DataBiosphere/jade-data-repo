@@ -2,6 +2,8 @@ package bio.terra.service.dataset.flight.create;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -16,9 +18,12 @@ import java.util.UUID;
 
 public class CreateDatasetGetOrCreateProjectStep implements Step {
     private final ResourceService resourceService;
+    private final DatasetRequestModel datasetRequestModel;
 
-    public CreateDatasetGetOrCreateProjectStep(ResourceService resourceService) {
+    public CreateDatasetGetOrCreateProjectStep(ResourceService resourceService,
+                                                DatasetRequestModel datasetRequestModel) {
         this.resourceService = resourceService;
+        this.datasetRequestModel = datasetRequestModel;
     }
 
     @Override

@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
+import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.stairway.ShortUUID;
@@ -43,6 +44,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -131,12 +134,37 @@ public class AzureResourceConfigurationTest {
         logger.info("Deploying managed application...");
         ManagedApplicationDeployment applicationDeployment = createManagedApplication(client, profileModel);
 
+        logger.info("Creating a storage account in the managed application...");
+        String storageAccountName = "sa" + armUniqueString(applicationDeployment.applicationDeploymentName);
+        String fileSystemName = "f" + armUniqueString(applicationDeployment.applicationDeploymentName);
+        // Note that this fails (e.g. authenticating using the end user's tenant
+        assertThat("Get expected error", assertThrows(ManagementException.class, () -> {
+            client.storageAccounts().define(storageAccountName)
+                .withRegion(Region.US_NORTH_CENTRAL)
+                .withExistingResourceGroup(applicationDeployment.applicationResourceGroup)
+                .withHnsEnabled(true)
+                .create();
+        }).getMessage(), containsString("Status code 403"));
+
+        // ...but authenticating with the home tenant does work
+        assertDoesNotThrow(() -> {
+            AzureResourceManager clientFromHome = azureResourceConfiguration.getClient(
+                azureResourceConfiguration.getCredentials().getHomeTenantId(),
+                UUID.fromString(profileModel.getSubscriptionId()));
+
+            clientFromHome.storageAccounts().define(storageAccountName)
+                .withRegion(Region.US_NORTH_CENTRAL)
+                .withExistingResourceGroup(applicationDeployment.applicationResourceGroup)
+                .withHnsEnabled(true)
+                .create();
+        });
+
         // Authentication from the tenant where the TDR is deployed...fails
         assertThat("Get expected error", assertThrows(DataLakeStorageException.class, () -> {
             DataLakeFileSystemClient fileSystemClient = new DataLakeServiceClientBuilder()
                 .credential(azureResourceConfiguration.getAppToken())
                 .endpoint(applicationDeployment.storageEndpoint)
-                .buildClient().getFileSystemClient(applicationDeployment.fileSystemName);
+                .buildClient().createFileSystem(fileSystemName);
 
             // Perform file operations
             createFileAndSign(fileSystemClient);
@@ -147,7 +175,7 @@ public class AzureResourceConfigurationTest {
             DataLakeFileSystemClient fileSystemClient = new DataLakeServiceClientBuilder()
                 .credential(azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()))
                 .endpoint(applicationDeployment.storageEndpoint)
-                .buildClient().getFileSystemClient(applicationDeployment.fileSystemName);
+                .buildClient().getFileSystemClient(fileSystemName);
 
             // Perform file operations
             createFileAndSign(fileSystemClient);
@@ -166,7 +194,7 @@ public class AzureResourceConfigurationTest {
                     // Get a key from the newly created storage account
                     return clientFromHome.storageAccounts().getByResourceGroup(
                         applicationDeployment.applicationDeploymentName,
-                        applicationDeployment.storageAccountName).getKeys().get(0).value();
+                        storageAccountName).getKeys().get(0).value();
                 } catch (DataLakeStorageException | ManagementException e) {
                     // Changes have not propagated yet
                     logger.info("Waiting for ACLs to propagate");
@@ -176,9 +204,9 @@ public class AzureResourceConfigurationTest {
 
             // Create a data lake client by authenticating using the found key
             DataLakeFileSystemClient fileSystemClient = new DataLakeServiceClientBuilder()
-                .credential(new StorageSharedKeyCredential(applicationDeployment.storageAccountName, key))
-                .endpoint(applicationDeployment.storageEndpoint)
-                .buildClient().getFileSystemClient(applicationDeployment.fileSystemName);
+                .credential(new StorageSharedKeyCredential(storageAccountName, key))
+                .endpoint("https://" + storageAccountName + ".blob.core.windows.net")
+                .buildClient().createFileSystem(fileSystemName);
 
             // Perform file operations
             createFileAndSign(fileSystemClient);
@@ -288,6 +316,7 @@ public class AzureResourceConfigurationTest {
             return new ManagedApplicationDeployment(
                 resourceReference.id(),
                 deploymentName,
+                deploymentName,
                 storageEndpoint,
                 storageAccountName,
                 fileSystemName);
@@ -313,6 +342,8 @@ public class AzureResourceConfigurationTest {
         private final String applicationDeploymentId;
         // The name given to the deployment
         private final String applicationDeploymentName;
+        // The resource group where the application is deployed
+        private final String applicationResourceGroup;
         // The endpoint to use to connect to the storage account created when deploying the application
         private final String storageEndpoint;
         // The name of the storage account
@@ -321,12 +352,14 @@ public class AzureResourceConfigurationTest {
         private final String fileSystemName;
 
         ManagedApplicationDeployment(String applicationDeploymentId,
-                                            String applicationDeploymentName,
-                                            String storageEndpoint,
-                                            String storageAccountName,
-                                            String fileSystemName) {
+                                     String applicationDeploymentName,
+                                     String applicationResourceGroup,
+                                     String storageEndpoint,
+                                     String storageAccountName,
+                                     String fileSystemName) {
             this.applicationDeploymentId = applicationDeploymentId;
             this.applicationDeploymentName = applicationDeploymentName;
+            this.applicationResourceGroup = applicationResourceGroup;
             this.storageEndpoint = storageEndpoint;
             this.storageAccountName = storageAccountName;
             this.fileSystemName = fileSystemName;
@@ -343,5 +376,27 @@ public class AzureResourceConfigurationTest {
         // Note: the version is so that subdirectory sharing works...docs say it's a no-op, but it sure isn't...
         return client.generateSas(new DataLakeServiceSasSignatureValues(expiryTime, permission)
             .setStartTime(startTime).setVersion("2020-04-08"));
+    }
+
+    /**
+     * Generate a 13 character unique string in a way that mimics what azure's ARM template function uses.
+     * Note: this method is deterministic (e.g. calling with the same seed value will provide the same result)
+     * @param seed The value to generate a unique string for
+     * @return A 13 character unique string based on what was passed into seed
+     */
+    private String armUniqueString(String seed) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-512");
+            byte[] digest = md.digest(seed.getBytes(StandardCharsets.UTF_8));
+            StringBuilder result = new StringBuilder();
+            for (int i = 0; i < 13; i++) {
+                int b = Byte.toUnsignedInt(digest[i]);
+                char c = (char) ((b % 26) + (byte) 'a');
+                result.append(c);
+            }
+            return result.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new NotImplementedException("SHA512 not supported in this JVM", e);
+        }
     }
 }

@@ -49,7 +49,7 @@ public class SearchService {
     private final RestHighLevelClient client;
 
     @Value("${elasticsearch.numShards}")
-    private static int NUM_SHARDS;
+    private int NUM_SHARDS;
 
     @Autowired
     public SearchService(BigQueryPdao bigQueryPdao, RestHighLevelClient client) {

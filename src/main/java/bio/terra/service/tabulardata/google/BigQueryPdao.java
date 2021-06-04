@@ -75,7 +75,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
@@ -1606,9 +1605,12 @@ public class BigQueryPdao {
         final FieldList columns = result.getSchema().getFields();
         final List<Map<String, Object>> values = new ArrayList<>();
         result.iterateAll().forEach(rows -> {
-            final var rowData = columns.stream().map(Field::getName)
-                .collect(Collectors.toMap(Function.identity(),
-                    columnName -> rows.get(columnName).getValue()));
+            final Map<String, Object> rowData = new HashMap<>();
+            columns.forEach(column -> {
+                String columnName = column.getName();
+                Object fieldValue = rows.get(columnName).getValue();
+                rowData.put(columnName, fieldValue);
+            });
             values.add(rowData);
         });
 

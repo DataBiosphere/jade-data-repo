@@ -7,7 +7,6 @@ import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.search.exception.SearchException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import org.apache.http.HttpHost;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
@@ -55,7 +54,7 @@ public class SearchService {
     @Autowired
     public SearchService(BigQueryPdao bigQueryPdao, RestHighLevelClient client) {
         this.bigQueryPdao = bigQueryPdao;
-        // injected from ElasticSearchRestClientConfigurations.java
+        // injected from RestHighLevelClientConfiguration
         this.client = client;
     }
 
@@ -129,7 +128,6 @@ public class SearchService {
 
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
-        // TODO: add streaming version of this mechanism instead of loading everything into memory
         List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql());
         validateSnapshotDataNotEmpty(values);
         String indexName = createEmptyIndex(snapshot);
@@ -139,19 +137,17 @@ public class SearchService {
     }
 
     private Set<String> getValidIndexes() {
-        final RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200));
-        try (RestHighLevelClient client = new RestHighLevelClient(builder)) {
+        try {
             GetAliasesResponse response = client.indices().getAlias(new GetAliasesRequest(), RequestOptions.DEFAULT);
             return response.getAliases().keySet();
         } catch (IOException e) {
-            throw new SearchException("Error creating ES client", e);
+            throw new SearchException("Error gett ES indexes", e);
         }
     }
 
     public SearchQueryResultModel querySnapshot(
             SearchQueryRequest searchQueryRequest, Collection<UUID> snapshotIdsToQuery,
             int offset, int limit) {
-        //todo: move to bean for configuration, make injectable
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.from(offset);
         searchSourceBuilder.size(limit);
@@ -159,14 +155,14 @@ public class SearchService {
         WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
         searchSourceBuilder.query(wrapperQuery);
 
-            var validIndexes = getValidIndexes();
+        var validIndexes = getValidIndexes();
 
-            var indicesToQuery = snapshotIdsToQuery.stream()
-                .map(this::uuidToIndexName)
-                .filter(validIndexes::contains)
-                .toArray(String[]::new);
+        var indicesToQuery = snapshotIdsToQuery.stream()
+            .map(this::uuidToIndexName)
+            .filter(validIndexes::contains)
+            .toArray(String[]::new);
 
-            SearchRequest searchRequest = new SearchRequest(indicesToQuery, searchSourceBuilder);
+        SearchRequest searchRequest = new SearchRequest(indicesToQuery, searchSourceBuilder);
 
         final SearchResponse elasticResponse;
         try {

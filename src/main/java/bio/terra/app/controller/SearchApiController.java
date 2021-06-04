@@ -1,5 +1,6 @@
 package bio.terra.app.controller;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.controller.exception.ApiException;
 import bio.terra.controller.SearchApi;
 import bio.terra.model.SearchIndexModel;
@@ -42,6 +43,7 @@ public class SearchApiController implements SearchApi {
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
+    private final ApplicationConfiguration appConfig;
     private final IamService iamService;
     private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
     private final SearchService searchService;
@@ -51,6 +53,7 @@ public class SearchApiController implements SearchApi {
     public SearchApiController(
         ObjectMapper objectMapper,
         HttpServletRequest request,
+        ApplicationConfiguration appConfig,
         IamService iamService,
         AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
         SearchService searchService,
@@ -58,6 +61,7 @@ public class SearchApiController implements SearchApi {
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
+        this.appConfig = appConfig;
         this.iamService = iamService;
         this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
         this.searchService = searchService;
@@ -83,7 +87,9 @@ public class SearchApiController implements SearchApi {
         @PathVariable("id") String id,
         @Valid @RequestBody SearchIndexRequest searchIndexRequest
     ) {
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
+        AuthenticatedUserRequest user = getAuthenticatedInfo();
+        iamService.verifyAuthorization(user, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.CONFIGURE);
+        iamService.verifyAuthorization(user, IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
         Snapshot snapshot = snapshotService.retrieve(UUID.fromString(id));
         try {
             SearchIndexModel searchIndexModel = searchService.indexSnapshot(snapshot, searchIndexRequest);

@@ -91,7 +91,7 @@ public class ProfileServiceTest {
     public void teardown() throws Exception {
         googleBillingService.assignProjectBilling(profile, projectResource);
         googleResourceDao.deleteProject(projectResource.getId());
-        profileDao.deleteBillingProfileById(UUID.fromString(profile.getId()));
+        profileDao.deleteBillingProfileById(profile.getId());
         // Connected operations resets the configuration
         connectedOperations.teardown();
     }

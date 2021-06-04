@@ -163,7 +163,7 @@ public class FileOperationTest {
     public void fileOperationsTest() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
-        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
+        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId().toString(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
         // Change the data location selector, verify that we can still delete the file
@@ -171,8 +171,8 @@ public class FileOperationTest {
         // uses the bucketForFile call.
         String newBucketName = "bucket-" + UUID.randomUUID().toString();
         doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any(), any());
-        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
-        fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
+        connectedOperations.deleteTestFile(datasetSummary.getId().toString(), fileModel.getFileId());
+        fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId().toString(), fileLoadModel);
         assertThat("file path reflects new bucket location",
             fileModel.getFileDetail().getAccessUrl(),
             containsString(newBucketName));
@@ -191,7 +191,7 @@ public class FileOperationTest {
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Error: Duplicate target file
-        ErrorModel errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
+        ErrorModel errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId().toString(), fileLoadModel);
         assertThat("duplicate file error", errorModel.getMessage(),
             containsString("already exists"));
 
@@ -207,8 +207,8 @@ public class FileOperationTest {
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Delete the file and we should be able to create it successfully again
-        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
-        fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
+        connectedOperations.deleteTestFile(datasetSummary.getId().toString(), fileModel.getFileId());
+        fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId().toString(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
         // Error: Non-existent source file
@@ -223,7 +223,7 @@ public class FileOperationTest {
             .mimeType(testMimeType)
             .targetPath(badPath);
 
-        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
+        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId().toString(), fileLoadModel);
         assertThat("source file does not exist", errorModel.getMessage(),
             containsString("file not found"));
 
@@ -235,7 +235,7 @@ public class FileOperationTest {
             .mimeType(testMimeType)
             .targetPath(makeValidUniqueFilePath());
 
-        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
+        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId().toString(), fileLoadModel);
         assertThat("Not a gs schema", errorModel.getMessage(),
             containsString("not a gs"));
 
@@ -247,7 +247,7 @@ public class FileOperationTest {
             .mimeType(testMimeType)
             .targetPath(makeValidUniqueFilePath());
 
-        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
+        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId().toString(), fileLoadModel);
         assertThat("Invalid bucket name", errorModel.getMessage(),
             containsString("Invalid bucket name"));
 
@@ -259,7 +259,7 @@ public class FileOperationTest {
             .mimeType(testMimeType)
             .targetPath(makeValidUniqueFilePath());
 
-        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
+        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId().toString(), fileLoadModel);
         assertThat("No bucket or path", errorModel.getMessage(),
             containsString("gs path"));
     }
@@ -273,7 +273,7 @@ public class FileOperationTest {
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.lock, true, true,
             ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT,
-            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+            datasetSummary.getId().toString(), fileLoadModel, configService, datasetDao);
     }
 
     @Test
@@ -283,7 +283,7 @@ public class FileOperationTest {
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.unlock, true,  true,
             ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT,
-            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+            datasetSummary.getId().toString(), fileLoadModel, configService, datasetDao);
     }
 
     // These tests can be used as one offs to see if fatal errors are working as expected
@@ -297,7 +297,7 @@ public class FileOperationTest {
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.lock, false, false,
             ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT,
-            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+            datasetSummary.getId().toString(), fileLoadModel, configService, datasetDao);
         configService.setFault(ConfigEnum.FILE_INGEST_LOCK_RETRY_FAULT.toString(), false);
     }
 
@@ -309,7 +309,7 @@ public class FileOperationTest {
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.unlock, false, true,
             ConfigEnum.FILE_INGEST_UNLOCK_FATAL_FAULT,
-            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+            datasetSummary.getId().toString(), fileLoadModel, configService, datasetDao);
     }
 
     @Ignore
@@ -320,7 +320,7 @@ public class FileOperationTest {
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.lock, false, true,
             ConfigEnum.FILE_INGEST_LOCK_FATAL_FAULT,
-            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+            datasetSummary.getId().toString(), fileLoadModel, configService, datasetDao);
     }
 
     // -- array bulk load --
@@ -337,9 +337,10 @@ public class FileOperationTest {
             .addGroupItem(loadHistoryChunkSize);
         configService.setConfig(configGroupModel);
 
-        BulkLoadArrayRequestModel arrayLoad = makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest", 0, fileCount);
+        BulkLoadArrayRequestModel arrayLoad = makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest",
+                0, fileCount);
 
-        BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
+        BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId().toString(), arrayLoad);
         checkLoadSummary(result.getLoadSummary(), arrayLoad.getLoadTag(), fileCount, fileCount, 0, 0);
 
         Map<String, String> fileIdMap = new HashMap<>();
@@ -354,19 +355,22 @@ public class FileOperationTest {
         ArrayList<String> ids = new ArrayList<>();
         queryLoadHistoryTableResult.iterateAll().forEach(r -> ids.add(r.get(columnToQuery).getStringValue()));
 
-        assertThat("Number of files in datarepo_load_history table match load summary", ids.size(), equalTo(fileCount));
+        assertThat("Number of files in datarepo_load_history table match load summary",
+                ids.size(), equalTo(fileCount));
         for (String bq_file_id:ids) {
             assertNotNull("fileIdMap should contain File_id from datarepo_load_history",
                 fileIdMap.containsValue(bq_file_id));
         }
 
         // retry successful load to make sure it still succeeds and does nothing
-        BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
+        BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId().toString(),
+                arrayLoad);
         checkLoadSummary(result2.getLoadSummary(), arrayLoad.getLoadTag(), fileCount, fileCount, 0, 0);
 
         for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
             checkFileResultSuccess(fileResult);
-            assertThat("FileId matches", fileResult.getFileId(), equalTo(fileIdMap.get(fileResult.getTargetPath())));
+            assertThat("FileId matches", fileResult.getFileId(),
+                    equalTo(fileIdMap.get(fileResult.getTargetPath())));
         }
     }
 
@@ -384,7 +388,7 @@ public class FileOperationTest {
         BulkLoadArrayRequestModel arrayLoad2 = makeSuccessArrayLoad("arrayMultiDoubleSuccess", fileCount, fileCount);
         String loadTag1 = arrayLoad1.getLoadTag();
         String loadTag2 = arrayLoad2.getLoadTag();
-        String datasetId = datasetSummary.getId();
+        String datasetId = datasetSummary.getId().toString();
 
         MvcResult result1 = connectedOperations.ingestArrayRaw(datasetId, arrayLoad1);
         MvcResult result2 = connectedOperations.ingestArrayRaw(datasetId, arrayLoad2);
@@ -437,7 +441,8 @@ public class FileOperationTest {
         arrayLoad.addLoadArrayItem(getFileModel(false, 3, testId));
         arrayLoad.addLoadArrayItem(getFileModel(true, 4, testId));
 
-        BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
+        BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId().toString(),
+                arrayLoad);
         checkLoadSummary(result.getLoadSummary(), loadTag, 3, 2, 1, 0);
 
         Map<String, BulkLoadFileResultModel> resultMap = new HashMap<>();
@@ -477,7 +482,8 @@ public class FileOperationTest {
 
         // fix the bad file and retry load
         loadArray.set(1, getFileModel(true, 3, testId));
-        BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
+        BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId().toString(),
+                arrayLoad);
         checkLoadSummary(result2.getLoadSummary(), loadTag, 3, 3, 0, 0);
     }
 
@@ -501,7 +507,8 @@ public class FileOperationTest {
             arrayLoad.addLoadArrayItem(getFileModel(true, i, testId));
         }
 
-        MvcResult result = connectedOperations.ingestArrayRaw(datasetSummary.getId(), arrayLoad);
+        MvcResult result = connectedOperations.ingestArrayRaw(datasetSummary.getId().toString(),
+                arrayLoad);
         assertThat("Got bad request", result.getResponse().getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
     }
 
@@ -511,11 +518,12 @@ public class FileOperationTest {
         BulkLoadRequestModel loadRequest =
             makeBulkFileLoad("multiFileLoadSuccessTest", 0, 0, false, new boolean[]{true, true, true, true});
 
-        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId().toString(),
+                loadRequest);
         checkLoadSummary(result, loadRequest.getLoadTag(), 4, 4, 0, 0);
 
         // retry successful load to make sure it still succeeds and does nothing
-        result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId().toString(), loadRequest);
         checkLoadSummary(result, loadRequest.getLoadTag(), 4, 4, 0, 0);
     }
 
@@ -526,13 +534,14 @@ public class FileOperationTest {
         loadRequest.maxFailedFileLoads(4);
         String loadTag = loadRequest.getLoadTag();
 
-        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId().toString(),
+                loadRequest);
         checkLoadSummary(result, loadTag, 4, 2, 2, 0);
 
         loadRequest =
             makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, false, new boolean[]{true, true, true, true});
         loadRequest.loadTag(loadTag);
-        result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId().toString(), loadRequest);
         checkLoadSummary(result, loadTag, 4, 4, 0, 0);
     }
 
@@ -541,7 +550,8 @@ public class FileOperationTest {
         BulkLoadRequestModel loadRequest =
             makeBulkFileLoad("multiFileLoadSuccessExtraKeys", 0, 0, true, new boolean[]{true, true, true, true});
 
-        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId().toString(),
+                loadRequest);
         checkLoadSummary(result, loadRequest.getLoadTag(), 4, 4, 0, 0);
     }
 
@@ -552,7 +562,8 @@ public class FileOperationTest {
             makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 3, false, new boolean[]{true, false, true, false});
         loadRequest.maxFailedFileLoads(4);
 
-        ErrorModel errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
+        ErrorModel errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId().toString(),
+                loadRequest);
         assertThat("Expected error", errorModel.getMessage(), containsString("bad lines in the control file"));
         assertThat("Expected error", errorModel.getMessage(), containsString("There were"));
         assertThat("Expected number of error details", errorModel.getErrorDetail().size(), equalTo(3));
@@ -562,7 +573,7 @@ public class FileOperationTest {
             makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 6, false, new boolean[]{true, true, true, true});
         loadRequest.maxFailedFileLoads(4);
 
-        errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
+        errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId().toString(), loadRequest);
         assertThat("Expected error", errorModel.getMessage(), containsString("bad lines in the control file"));
         assertThat("Expected error", errorModel.getMessage(), containsString("More than"));
         assertThat("Expected number of error details", errorModel.getErrorDetail().size(), greaterThan(5));
@@ -731,7 +742,7 @@ public class FileOperationTest {
         return String.format("/dd/files/foo/ValidFileName%d.pdf", validFileCounter);
     }
 
-    private FileLoadModel makeFileLoad(String profileId) {
+    private FileLoadModel makeFileLoad(UUID profileId) {
         String targetDir = Names.randomizeName("dir");
         String uri = "gs://" + testConfig.getIngestbucket() + "/files/" + testPdfFile;
         String targetPath = "/dd/files/" + targetDir + "/" + testPdfFile;

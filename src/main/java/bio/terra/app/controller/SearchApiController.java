@@ -108,11 +108,10 @@ public class SearchApiController implements SearchApi {
         List<UUID> accessibleIds =
             iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
 
-        final List<String> snapshotIds = searchQueryRequest.getSnapshotIds();
+        final List<UUID> snapshotIds = searchQueryRequest.getSnapshotIds();
 
         Set<UUID> requestIds =
-            snapshotIds == null || snapshotIds.isEmpty() ? Collections.emptySet() :
-                snapshotIds.stream().map(UUID::fromString).collect(Collectors.toSet());
+            snapshotIds == null || snapshotIds.isEmpty() ? Collections.emptySet() : new HashSet<>(snapshotIds);
 
         Set<UUID> inaccessibleIds = new HashSet<>(requestIds);
         accessibleIds.forEach(inaccessibleIds::remove);

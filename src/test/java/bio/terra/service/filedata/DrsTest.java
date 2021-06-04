@@ -97,7 +97,7 @@ public class DrsTest extends UsersBase {
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
-        snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
+        snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId().toString());
         profileId = setupResult.getProfileId();
         datasetId = setupResult.getDatasetId();
         AuthenticatedUserRequest authenticatedStewardRequest =
@@ -107,14 +107,14 @@ public class DrsTest extends UsersBase {
         datasetIamRoles = iamService.retrievePolicyEmails(authenticatedStewardRequest,
             IamResourceType.DATASET, UUID.fromString(datasetId));
         snapshotIamRoles = iamService.retrievePolicyEmails(authenticatedCustodianRequest,
-            IamResourceType.DATASNAPSHOT, UUID.fromString(snapshotModel.getId()));
+            IamResourceType.DATASNAPSHOT, snapshotModel.getId());
         logger.info("setup complete");
     }
 
     @After
     public void teardown() throws Exception {
         try {
-            dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
+            dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId().toString());
         } catch (Throwable e) {
             // Already ran if everything was successful so skipping
             logger.info("Snapshot already deleted");
@@ -168,7 +168,8 @@ public class DrsTest extends UsersBase {
         String filePath = drsObjectFile.getAliases().get(0);
         String dirPath = StringUtils.prependIfMissing(getDirectoryPath(filePath), "/");
 
-        FileModel fsObject = dataRepoFixtures.getSnapshotFileByName(steward(), snapshotModel.getId(), dirPath);
+        FileModel fsObject = dataRepoFixtures.getSnapshotFileByName(steward(),
+                snapshotModel.getId().toString(), dirPath);
         String dirObjectId = "v1_" + snapshotModel.getId() + "_" + fsObject.getFileId();
 
         final DRSObject drsObjectDirectory = dataRepoFixtures.drsGetObject(reader(), dirObjectId);
@@ -179,7 +180,7 @@ public class DrsTest extends UsersBase {
         assertNull("Access method of directory is null", drsObjectDirectory.getAccessMethods());
 
         // When all is done, delete the snapshot and ensure that there are fewer acls
-        dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
+        dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId().toString());
 
 
         Map<String, List<Acl>> postDeleteAcls = TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
@@ -283,7 +284,8 @@ public class DrsTest extends UsersBase {
         assertThat("a 404 NOT_FOUND response is returned",
             badFileResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
 
-        String nonExistentSnapshotObjectId = drsObjectId.replace(snapshotModel.getId(), UUID.randomUUID().toString());
+        String nonExistentSnapshotObjectId = drsObjectId.replace(snapshotModel.getId().toString(),
+                UUID.randomUUID().toString());
         logger.info("Non-existent snapshot DRS Object Id - file: {}", nonExistentSnapshotObjectId);
         DrsResponse<DRSObject> badSnapshotResponse = dataRepoFixtures.drsGetObjectRaw(reader(),
             nonExistentSnapshotObjectId);

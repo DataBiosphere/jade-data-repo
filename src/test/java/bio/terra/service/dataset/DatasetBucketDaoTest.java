@@ -105,7 +105,7 @@ public class DatasetBucketDaoTest {
             logger.error("[CLEANUP] Unable to delete entry in database for project {}", projectId);
         }
         try {
-            profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
+            profileDao.deleteBillingProfileById(billingProfile.getId());
         } catch (Exception ex) {
             logger.error("[CLEANUP] Unable to billing profile {}", billingProfile.getId());
         }

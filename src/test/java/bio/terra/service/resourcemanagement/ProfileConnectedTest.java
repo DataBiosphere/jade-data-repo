@@ -67,15 +67,15 @@ public class ProfileConnectedTest {
             .billingAccountId(testConfig.getGoogleBillingAccountId())
             .cloudPlatform(null);
         var profile = connectedOperations.createProfile(requestModel);
-        var retrievedProfile = connectedOperations.getProfileById(profile.getId());
+        var retrievedProfile = connectedOperations.getProfileById(profile.getId().toString());
         assertThat("GCP is the default cloud provider",
             retrievedProfile.getCloudPlatform(), equalTo(CloudPlatform.GCP));
     }
 
     @Test
     public void testAzureBillingProfile() throws Exception {
-        var tenant = UUID.randomUUID().toString();
-        var subscription = UUID.randomUUID().toString();
+        var tenant = UUID.randomUUID();
+        var subscription = UUID.randomUUID();
         var resourceGroup = "resourceGroupName";
         var requestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(testConfig.getGoogleBillingAccountId())
@@ -86,7 +86,7 @@ public class ProfileConnectedTest {
 
         var profile = connectedOperations.createProfile(requestModel);
 
-        var retrievedProfile = connectedOperations.getProfileById(profile.getId());
+        var retrievedProfile = connectedOperations.getProfileById(profile.getId().toString());
 
         assertThat("The response has the correct cloudPlatform",
             retrievedProfile.getCloudPlatform(),
@@ -102,13 +102,13 @@ public class ProfileConnectedTest {
     public void testGoogleInvalidAzureParams() throws Exception {
         var gcpRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .cloudPlatform(CloudPlatform.GCP)
-            .tenantId(UUID.randomUUID().toString())
-            .subscriptionId(UUID.randomUUID().toString())
+            .tenantId(UUID.randomUUID())
+            .subscriptionId(UUID.randomUUID())
             .resourceGroupName("resourceGroupName");
 
         var defaultRequestModel = ProfileFixtures.randomBillingProfileRequest()
-            .tenantId(UUID.randomUUID().toString())
-            .subscriptionId(UUID.randomUUID().toString())
+            .tenantId(UUID.randomUUID())
+            .subscriptionId(UUID.randomUUID())
             .resourceGroupName("resourceGroupName");
 
         for (var requestModel : List.of(gcpRequestModel, defaultRequestModel)) {
@@ -149,8 +149,8 @@ public class ProfileConnectedTest {
 
         var invalidUuidRequest = ProfileFixtures.randomBillingProfileRequest()
             .cloudPlatform(CloudPlatform.AZURE)
-            .tenantId("not-a-valid-uuid")
-            .subscriptionId("not-a-valid-uuid")
+            .tenantId(null)
+            .subscriptionId(null)
             .resourceGroupName("");
 
         var invalidUuid = connectedOperations

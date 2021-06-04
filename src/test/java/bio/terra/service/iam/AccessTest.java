@@ -91,7 +91,7 @@ public class AccessTest extends UsersBase {
         discovererToken = authService.getDirectAccessAuthToken(discoverer().getEmail());
         readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId().toString();
         datasetId = null;
         snapshotIds = new ArrayList<>();
     }
@@ -108,12 +108,12 @@ public class AccessTest extends UsersBase {
 
     private void makeIngestTestDataset() throws Exception {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-        datasetId = datasetSummaryModel.getId();
+        datasetId = datasetSummaryModel.getId().toString();
     }
 
     private void makeAclTestDataset() throws Exception {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
-        datasetId = datasetSummaryModel.getId();
+        datasetId = datasetSummaryModel.getId().toString();
     }
 
     private Storage getStorage(String token) {
@@ -170,7 +170,7 @@ public class AccessTest extends UsersBase {
                 profileId,
                 "ingest-test-snapshot.json");
 
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId().toString());
         BigQuery bigQuery = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         try {
             BigQueryFixtures.datasetExists(bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
@@ -183,7 +183,7 @@ public class AccessTest extends UsersBase {
 
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),
-            snapshotSummaryModel.getId(),
+            snapshotSummaryModel.getId().toString(),
             IamRole.READER,
             reader().getEmail());
 
@@ -192,7 +192,7 @@ public class AccessTest extends UsersBase {
         assertThat("correctly added reader", iamService.isAuthorized(
             authenticatedReaderRequest,
             IamResourceType.DATASNAPSHOT,
-            snapshotSummaryModel.getId(),
+            snapshotSummaryModel.getId().toString(),
             IamAction.READ_DATA), equalTo(true));
 
         boolean readerHasAccess =
@@ -207,13 +207,13 @@ public class AccessTest extends UsersBase {
         makeAclTestDataset();
 
         dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
+            steward(), datasetSummaryModel.getId().toString(), IamRole.CUSTODIAN, custodian().getEmail());
 
         // Ingest a file into the dataset
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         FileModel fileModel = dataRepoFixtures.ingestFile(
             steward(),
-            datasetSummaryModel.getId(),
+            datasetSummaryModel.getId().toString(),
             profileId,
             gsPath + "/files/File Design Notes.pdf",
             "/foo/bar");
@@ -232,7 +232,7 @@ public class AccessTest extends UsersBase {
 
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
-            steward(), datasetSummaryModel.getId(), request);
+            steward(), datasetSummaryModel.getId().toString(), request);
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
@@ -242,12 +242,13 @@ public class AccessTest extends UsersBase {
             datasetSummaryModel.getName(),
             profileId,
             "file-acl-test-snapshot.json");
-        snapshotIds.add(snapshotSummaryModel.getId());
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
+        snapshotIds.add(snapshotSummaryModel.getId().toString());
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(),
+                snapshotSummaryModel.getId().toString());
 
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),
-            snapshotModel.getId(),
+            snapshotModel.getId().toString(),
             IamRole.READER,
             reader().getEmail());
 
@@ -256,7 +257,7 @@ public class AccessTest extends UsersBase {
         boolean authorized = iamService.isAuthorized(
             authenticatedReaderRequest,
             IamResourceType.DATASNAPSHOT,
-            snapshotModel.getId(),
+            snapshotModel.getId().toString(),
             IamAction.READ_DATA);
         assertTrue("correctly added reader", authorized);
 

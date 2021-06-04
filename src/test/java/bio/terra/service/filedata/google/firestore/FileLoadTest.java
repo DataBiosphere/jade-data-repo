@@ -123,7 +123,8 @@ public class FileLoadTest {
         BulkLoadRequestModel loadRequest =
             makeBulkFileLoad("fileLoadTest", filesToLoad);
 
-        BulkLoadResultModel summary = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        BulkLoadResultModel summary = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId().toString(),
+                loadRequest);
         long endTime = System.currentTimeMillis();
         long elapsedSecs = (endTime - startTime);
 
@@ -137,7 +138,7 @@ public class FileLoadTest {
         // delete the dataset within this test, instead of in teardown
         // so that the LOAD_SKIP_FILE_LOAD fault is still enabled and we don't try to delete a file
         // that was never actually copied to GCS
-        connectedOperations.deleteTestDatasetAndCleanup(datasetSummary.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(datasetSummary.getId().toString());
 
         assertThat(summary.getSucceededFiles(), equalTo(filesToLoad));
     }

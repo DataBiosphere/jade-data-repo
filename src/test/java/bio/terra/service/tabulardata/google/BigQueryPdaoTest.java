@@ -223,7 +223,7 @@ public class BigQueryPdaoTest {
                 SnapshotSummaryModel snapshotSummary =
                     connectedOperations.createSnapshot(datasetSummaryModel,
                         "ingest-test-snapshot.json", "");
-                SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
+                SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId().toString());
 
                 com.google.cloud.bigquery.Dataset bqSnapshotDataset = bigQuerySnapshot(dataset, snapshot.getName());
 
@@ -258,7 +258,7 @@ public class BigQueryPdaoTest {
                 // Create another snapshot.
                 snapshotSummary = connectedOperations.createSnapshot(
                     datasetSummaryModel, "ingest-test-snapshot.json", "");
-                SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId());
+                SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId().toString());
                 Assert.assertThat(snapshot2.getTables().size(), is(equalTo(3)));
 
                 participantIds = queryForIds(snapshot2.getName(), "participant", bigQueryProject);
@@ -329,7 +329,7 @@ public class BigQueryPdaoTest {
             SnapshotSummaryModel snapshotSummary =
                 connectedOperations.createSnapshot(datasetSummaryModel,
                     "ingest-test-snapshot-by-date.json", "");
-            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
+            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId().toString());
 
             BigQueryProject bigQueryProject =
                 TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
@@ -435,7 +435,7 @@ public class BigQueryPdaoTest {
                 dataset.getDatasetSummary());
             SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(datasetSummary,
                 "snapshot-fullviews-test-snapshot.json", "");
-            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
+            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId().toString());
 
             BigQueryProject bigQueryProject =
                 TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());

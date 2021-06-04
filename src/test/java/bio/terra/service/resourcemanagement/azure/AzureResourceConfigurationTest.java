@@ -57,7 +57,7 @@ public class AzureResourceConfigurationTest {
         BillingProfileModel profileModel = createProfileModel();
 
         AzureResourceManager client = azureResourceConfiguration
-            .getClient(UUID.fromString(profileModel.getTenantId()), UUID.fromString(profileModel.getSubscriptionId()));
+            .getClient(profileModel.getTenantId(), profileModel.getSubscriptionId());
 
 
         logger.info("Creating storage account...");
@@ -98,8 +98,8 @@ public class AzureResourceConfigurationTest {
             .profileName("somename")
             .biller("direct")
             .cloudPlatform(CloudPlatform.AZURE)
-            .tenantId(connectedTestConfiguration.getTargetTenantId().toString())
-            .subscriptionId(connectedTestConfiguration.getTargetSubscriptionId().toString())
+            .tenantId(connectedTestConfiguration.getTargetTenantId())
+            .subscriptionId(connectedTestConfiguration.getTargetSubscriptionId())
             .resourceGroupName(connectedTestConfiguration.getTargetResourceGroupName());
     }
 }

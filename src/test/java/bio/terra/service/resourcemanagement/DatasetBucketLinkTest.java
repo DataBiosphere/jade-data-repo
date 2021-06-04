@@ -97,7 +97,7 @@ public class DatasetBucketLinkTest {
             resourceDao.deleteProject(project.getId());
         }
         for (BillingProfileModel billingProfile : billingProfiles) {
-            profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
+            profileDao.deleteBillingProfileById(billingProfile.getId());
         }
     }
 

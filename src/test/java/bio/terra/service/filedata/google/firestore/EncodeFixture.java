@@ -82,7 +82,7 @@ public class EncodeFixture {
         TestConfiguration.User custodian,
         TestConfiguration.User reader) throws Exception {
 
-        String profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+        String profileId = dataRepoFixtures.createBillingProfile(steward).getId().toString();
         dataRepoFixtures.addPolicyMember(
             steward,
             profileId,
@@ -92,7 +92,7 @@ public class EncodeFixture {
 
         DatasetSummaryModel datasetSummary =
             dataRepoFixtures.createDataset(steward, profileId, "encodefiletest-dataset.json");
-        String datasetId = datasetSummary.getId();
+        String datasetId = datasetSummary.getId().toString();
 
         dataRepoFixtures.addDatasetPolicyMember(
             steward,
@@ -103,7 +103,7 @@ public class EncodeFixture {
         // Parse the input data and load the files; generate revised data file
         String stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
         Storage stewardStorage = dataRepoFixtures.getStorage(stewardToken);
-        String targetPath = loadFiles(datasetSummary.getId(), profileId, steward, stewardStorage);
+        String targetPath = loadFiles(datasetSummary.getId().toString(), profileId, steward, stewardStorage);
 
         // Load the tables
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
@@ -127,14 +127,14 @@ public class EncodeFixture {
 
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian,
-            snapshotSummary.getId(),
+            snapshotSummary.getId().toString(),
             IamRole.STEWARD,
             steward.getEmail());
 
         // TODO: Fix use of IamProviderInterface - see DR-494
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian,
-            snapshotSummary.getId(),
+            snapshotSummary.getId().toString(),
             IamRole.READER,
             reader.getEmail());
 
@@ -142,7 +142,7 @@ public class EncodeFixture {
         // issues have shown. We make a BigQuery request as the test to see that READER has access.
         // We need to get the snapshot, rather than the snapshot summary in order to make a query.
         // TODO: Add dataProject to SnapshotSummaryModel?
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId());
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId().toString());
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
@@ -190,7 +190,7 @@ public class EncodeFixture {
         BulkLoadArrayRequestModel loadRequest = new BulkLoadArrayRequestModel()
             .loadArray(loadArray)
             .maxFailedFileLoads(0)
-            .profileId(profileId)
+            .profileId(UUID.fromString(profileId))
             .loadTag("encodeFixture");
 
         BulkLoadArrayResultModel loadResult = dataRepoFixtures.bulkLoadArray(user, datasetId, loadRequest);

@@ -159,7 +159,7 @@ public class EncodeFileTest {
             .table("file")
             .path(gsPath);
 
-        connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
+        connectedOperations.ingestTableSuccess(datasetSummary.getId().toString(), ingestRequest);
 
         // Delete the scratch blob
         Blob scratchBlob = storage.get(BlobId.of(bucketName, targetPath),
@@ -173,7 +173,7 @@ public class EncodeFileTest {
             .table("donor")
             .path("gs://" + bucketName + "/encodetest/donor.json");
 
-        connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
+        connectedOperations.ingestTableSuccess(datasetSummary.getId().toString(), ingestRequest);
 
         // At this point, we have files and tabular data. Let's make a snapshot!
         SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(
@@ -190,9 +190,9 @@ public class EncodeFileTest {
         String filePath = drsObject.getAliases().get(0);
 
         FileModel fsObjById =
-            connectedOperations.lookupSnapshotFileSuccess(snapshotSummary.getId(), drsId.getFsObjectId());
+            connectedOperations.lookupSnapshotFileSuccess(snapshotSummary.getId().toString(), drsId.getFsObjectId());
         FileModel fsObjByPath =
-            connectedOperations.lookupSnapshotFileByPathSuccess(snapshotSummary.getId(), filePath, 0);
+            connectedOperations.lookupSnapshotFileByPathSuccess(snapshotSummary.getId().toString(), filePath, 0);
         assertThat("Retrieve snapshot file objects match", fsObjById, equalTo(fsObjByPath));
         assertThat("Load tag is stored", fsObjById.getFileDetail().getLoadTag(), equalTo(loadTag));
 
@@ -264,10 +264,10 @@ public class EncodeFileTest {
     }
 
     private void testSnapEnum(Map<String, List<String>> dirmap,
-                              String snapshotId,
+                              UUID snapshotId,
                               String datasetPath,
                               int inDepth) throws Exception {
-        FileModel fsObj = connectedOperations.lookupSnapshotFileByPathSuccess(snapshotId, datasetPath, inDepth);
+        FileModel fsObj = connectedOperations.lookupSnapshotFileByPathSuccess(snapshotId.toString(), datasetPath, inDepth);
         int maxDepth = checkSnapEnum(dirmap, 0, fsObj);
         int depth = (inDepth == -1) ? MAX_DIRECTORY_DEPTH : inDepth;
         assertThat("Depth is correct", maxDepth, equalTo(depth));
@@ -391,7 +391,7 @@ public class EncodeFileTest {
         }
     }
 
-    private String loadFiles(String datasetId,
+    private String loadFiles(UUID datasetId,
                              boolean insertBadId,
                              boolean insertBadRow,
                              String bucketName) throws Exception {
@@ -428,7 +428,7 @@ public class EncodeFileTest {
 
                 if (encodeFileIn.getFile_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_gs_path());
-                    FileModel bamFile = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
+                    FileModel bamFile = connectedOperations.ingestFileSuccess(datasetId.toString(), fileLoadModel);
                     // Fault insertion on request: we corrupt one id if requested to do so.
                     if (insertBadId && !badIdInserted) {
                         bamFileId = bamFile.getFileId() + ID_GARBAGE;
@@ -440,7 +440,7 @@ public class EncodeFileTest {
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_index_gs_path());
-                    FileModel bamiFile = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
+                    FileModel bamiFile = connectedOperations.ingestFileSuccess(datasetId.toString(), fileLoadModel);
                     bamiFileId = bamiFile.getFileId();
                 }
 

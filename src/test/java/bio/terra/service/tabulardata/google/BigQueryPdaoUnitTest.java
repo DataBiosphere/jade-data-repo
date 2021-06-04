@@ -410,7 +410,7 @@ public class BigQueryPdaoUnitTest {
     public void testQueryForRowIds() throws InterruptedException {
         String query = "SELECT datarepo_row_id " +
             "FROM `" + DATASET_PROJECT_ID + ".datarepo_" + DATASET_NAME + "." + TABLE_1_NAME + "` " +
-            "WHERE " + TABLE_1_NAME + "." + TABLE_1_COL2_NAME + " = 'abc'";
+            "WHERE " + TABLE_1_COL2_NAME + " = 'abc'";
 
         QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query)
             .setDestinationTable(TableId.of(SNAPSHOT_NAME, "datarepo_temp"))
@@ -477,7 +477,7 @@ public class BigQueryPdaoUnitTest {
     public void testQueryForRowIdsValidationFails() throws InterruptedException {
         String query = "SELECT datarepo_row_id " +
             "FROM `" + DATASET_PROJECT_ID + ".datarepo_" + DATASET_NAME + "." + TABLE_1_NAME + "` " +
-            "WHERE " + TABLE_1_NAME + "." + TABLE_1_COL2_NAME + " = 'abc'";
+            "WHERE " + TABLE_1_COL2_NAME + " = 'abc'";
 
         QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(query)
             .setDestinationTable(TableId.of(SNAPSHOT_NAME, "datarepo_temp"))

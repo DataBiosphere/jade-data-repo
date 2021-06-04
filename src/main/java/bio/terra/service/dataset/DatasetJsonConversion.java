@@ -66,7 +66,7 @@ public final class DatasetJsonConversion {
 
         final List<StorageResource> storageResources;
         if (cloudPlatform == CloudPlatform.GCP) {
-            storageResources = createGcpStorageResourceValues(datasetRequest.getRegion());
+            storageResources = createGcpStorageResourceValues(datasetRequest);
         } else {
             throw new UnsupportedOperationException(cloudPlatform + " is not a recognized Cloud Platform");
         }
@@ -81,20 +81,16 @@ public final class DatasetJsonConversion {
                 .assetSpecifications(assetSpecifications);
     }
 
-    private static List<StorageResource> createGcpStorageResourceValues(String providedRegion) {
-        final GoogleRegion region = Optional.ofNullable(providedRegion)
-            .map(GoogleRegion::fromValue)
-            .orElse(GoogleRegion.DEFAULT_GOOGLE_REGION);
-        return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
-            // TODO: Firestore will always be in us-central1 for now, but will likely change in the future.
-            GoogleRegion dbRegion = (resource.equals(GoogleCloudResource.FIRESTORE)) ?
-                GoogleRegion.DEFAULT_GOOGLE_REGION :
-                region;
-            return new StorageResource()
-                .cloudPlatform(CloudPlatform.GCP)
-                .region(dbRegion)
-                .cloudResource(resource);
-        }).collect(Collectors.toList());
+    public static GoogleRegion getRegionFromDatasetRequestModel(DatasetRequestModel datasetRequestModel) {
+        return GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
+    }
+
+    private static List<StorageResource> createGcpStorageResourceValues(DatasetRequestModel datasetRequestModel) {
+        final GoogleRegion region = getRegionFromDatasetRequestModel(datasetRequestModel);
+        return Arrays.stream(GoogleCloudResource.values()).map(resource -> new StorageResource()
+             .cloudPlatform(CloudPlatform.GCP)
+             .region(region)
+             .cloudResource(resource)).collect(Collectors.toList());
     }
 
     public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(DatasetSummary datasetSummary) {

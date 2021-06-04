@@ -1,8 +1,11 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -61,8 +64,11 @@ public class SnapshotCreateFlight extends Flight {
 
         // Lock the source dataset while adding ACLs to avoid a race condition
         // TODO note that with multi-dataset snapshots this will need to change
-        List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotReq);
-        UUID datasetId = sourceDatasetIds.get(0);
+        List<Dataset> sourceDatasets = snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
+        UUID datasetId = sourceDatasets.get(0).getId();
+        GoogleRegion firestoreRegion = sourceDatasets.get(0)
+            .getDatasetSummary()
+            .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         addStep(new LockDatasetStep(datasetDao, datasetId, false));
 
         // Make sure this user is allowed to use the billing profile and that the underlying
@@ -70,7 +76,7 @@ public class SnapshotCreateFlight extends Flight {
         addStep(new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
 
         // Get or create the project where the snapshot resources will be created
-        addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, snapshotReq));
+        addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, snapshotReq, firestoreRegion));
 
         // create the snapshot metadata object in postgres and lock it
         // mint a snapshot id and put it in the working map

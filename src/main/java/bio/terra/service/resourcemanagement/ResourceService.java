@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.dataset.Dataset;
@@ -67,11 +68,13 @@ public class ResourceService {
                                                          BillingProfileModel billingProfile,
                                                          String flightId) throws InterruptedException {
         final String datasetName = dataset.getName();
+        final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         // Every bucket needs to live in a project, so we get or create a project first
         final GoogleProjectResource projectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForFile(datasetName, billingProfile),
             billingProfile,
-            null);
+            null,
+            region);
 
         return bucketService.getOrCreateBucket(
             dataLocationSelector.bucketForFile(datasetName, billingProfile),
@@ -126,17 +129,21 @@ public class ResourceService {
     /**
      * Create a new project for a snapshot, if none exists already.
      *
-     * @param snapshotName   name of the snapshot
-     * @param billingProfile authorized billing profile to pay for the project
+     * @param snapshotName      name of the snapshot
+     * @param billingProfile    authorized billing profile to pay for the project
+     * @param firestoreRegion   the region to create the Firestore in
      * @return project resource id
      */
-    public UUID getOrCreateSnapshotProject(String snapshotName, BillingProfileModel billingProfile)
+    public UUID getOrCreateSnapshotProject(String snapshotName,
+                                           BillingProfileModel billingProfile,
+                                           GoogleRegion firestoreRegion)
         throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForSnapshot(snapshotName, billingProfile),
             billingProfile,
-            null);
+            null,
+            firestoreRegion);
 
         return googleProjectResource.getId();
     }
@@ -146,15 +153,18 @@ public class ResourceService {
      *
      * @param datasetName    name of the dataset
      * @param billingProfile authorized billing profile to pay for the project
+     * @param region         the region to ceraate
      * @return project resource id
      */
     public UUID getOrCreateDatasetProject(String datasetName,
-                                          BillingProfileModel billingProfile) throws InterruptedException {
+                                          BillingProfileModel billingProfile,
+                                          GoogleRegion region) throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForDataset(datasetName, billingProfile),
             billingProfile,
-            getStewardPolicy());
+            getStewardPolicy(),
+            region);
 
         return googleProjectResource.getId();
     }

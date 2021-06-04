@@ -15,8 +15,6 @@ import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.GetAliasesResponse;
 import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestClient;
-import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.CreateIndexRequest;
 import org.elasticsearch.client.indices.CreateIndexResponse;
@@ -31,6 +29,7 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -50,12 +49,14 @@ public class SearchService {
     private final BigQueryPdao bigQueryPdao;
     private final RestHighLevelClient client;
 
+    @Value("${elasticsearch.numShards}")
+    private static int NUM_SHARDS;
+
     @Autowired
-    public SearchService(BigQueryPdao bigQueryPdao) {
-        // needs to be moved into own class with config
-        final RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200));
+    public SearchService(BigQueryPdao bigQueryPdao, RestHighLevelClient client) {
         this.bigQueryPdao = bigQueryPdao;
-        this.client = new RestHighLevelClient(builder);
+        // injected from ElasticSearchRestClientConfigurations.java
+        this.client = client;
     }
 
     private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {
@@ -73,7 +74,7 @@ public class SearchService {
         try {
             CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName)
                 .settings(Settings.builder()
-                    .put("index.number_of_shards", 3));
+                    .put("index.number_of_shards", NUM_SHARDS));
             CreateIndexResponse response = client.indices().create(createIndexRequest, RequestOptions.DEFAULT);
             if (!response.isAcknowledged()) {
                 throw new SearchException("The index request was not acknowledged by one or more nodes");
@@ -151,14 +152,12 @@ public class SearchService {
             SearchQueryRequest searchQueryRequest, Collection<UUID> snapshotIdsToQuery,
             int offset, int limit) {
         //todo: move to bean for configuration, make injectable
-        final RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200));
-        try (RestHighLevelClient client = new RestHighLevelClient(builder)) {
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.from(offset);
-            searchSourceBuilder.size(limit);
-            // see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
-            WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
-            searchSourceBuilder.query(wrapperQuery);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.from(offset);
+        searchSourceBuilder.size(limit);
+        // see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
+        WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
+        searchSourceBuilder.query(wrapperQuery);
 
             var validIndexes = getValidIndexes();
 
@@ -169,18 +168,20 @@ public class SearchService {
 
             SearchRequest searchRequest = new SearchRequest(indicesToQuery, searchSourceBuilder);
 
-            SearchResponse elasticResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-            SearchHits hits = elasticResponse.getHits();
-            List<Map<String, String>> response = hitsToMap(hits);
-
-            SearchQueryResultModel result = new SearchQueryResultModel();
-            //do we want to include info on the index/snapshot the response came from?
-            result.setResult(response);
-            return result;
-
+        final SearchResponse elasticResponse;
+        try {
+            elasticResponse = client.search(searchRequest, RequestOptions.DEFAULT);
         } catch (IOException e) {
-            throw new SearchException("Error creating ES client", e);
+            throw new SearchException("Error completing search request", e);
         }
+        SearchHits hits = elasticResponse.getHits();
+        var response = hitsToMap(hits);
+
+        SearchQueryResultModel result = new SearchQueryResultModel();
+        //do we want to include info on the index/snapshot the response came from?
+        result.setResult(response);
+        return result;
+
     }
 
     private List<Map<String, String>> hitsToMap(SearchHits hits) {

@@ -4,6 +4,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.util.UUID;
+
 @Component
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "ct")
@@ -14,6 +16,9 @@ public class ConnectedTestConfiguration {
     private String ingestRequesterPaysBucket;
     private String googleBillingAccountId;
     private String noSpendGoogleBillingAccountId;
+    private UUID targetTenantId;
+    private UUID targetSubscriptionId;
+    private String targetResourceGroupName;
 
     public String getIngestbucket() {
         return ingestbucket;
@@ -53,5 +58,29 @@ public class ConnectedTestConfiguration {
 
     public void setNoSpendGoogleBillingAccountId(String secondGoogleBillingAccountId) {
         this.noSpendGoogleBillingAccountId = secondGoogleBillingAccountId;
+    }
+
+    public UUID getTargetTenantId() {
+        return targetTenantId;
+    }
+
+    public void setTargetTenantId(UUID targetTenantId) {
+        this.targetTenantId = targetTenantId;
+    }
+
+    public UUID getTargetSubscriptionId() {
+        return targetSubscriptionId;
+    }
+
+    public void setTargetSubscriptionId(UUID targetSubscriptionId) {
+        this.targetSubscriptionId = targetSubscriptionId;
+    }
+
+    public String getTargetResourceGroupName() {
+        return targetResourceGroupName;
+    }
+
+    public void setTargetResourceGroupName(String targetResourceGroupName) {
+        this.targetResourceGroupName = targetResourceGroupName;
     }
 }

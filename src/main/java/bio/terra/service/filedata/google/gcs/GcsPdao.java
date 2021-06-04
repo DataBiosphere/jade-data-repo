@@ -277,7 +277,7 @@ public class GcsPdao {
             logger.info("operation {} batch {}", op.name(), count);
             count++;
 
-            List<FSFile> files = fileDao.batchRetrieveById(dataset, batch, 0, true);
+            List<FSFile> files = fileDao.batchRetrieveById(dataset, batch, 0);
 
             try (Stream<FSFile> stream = files.stream()) {
                 List<Future<FSFile>> futures = stream

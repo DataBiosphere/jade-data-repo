@@ -117,7 +117,6 @@ public class SearchApiController implements SearchApi {
         }
 
         var idsToQuery = requestIds.isEmpty() ? accessibleIds : requestIds;
-
         SearchQueryResultModel searchQueryResultModel =
                 searchService.querySnapshot(searchQueryRequest, idsToQuery, offset, limit);
         return ResponseEntity.ok(searchQueryResultModel);

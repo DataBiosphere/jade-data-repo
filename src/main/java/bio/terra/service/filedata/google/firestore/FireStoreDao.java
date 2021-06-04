@@ -182,21 +182,18 @@ public class FireStoreDao {
      * @param enumerateDepth  - how far to enumerate the directory structure; 0 means not at all;
      *                        1 means contents of this directory; 2 means this and its directories, etc.
      *                        -1 means the entire tree.
-     * @param throwOnNotFound - if true, throw an exception if the file id not found; if false,
-     *                        null is returned on not found.
      * @return FSFile or FSDir of retrieved file; can return null on not found
      */
     public FSItem retrieveByPath(FSContainerInterface container,
                                  String fullPath,
-                                 int enumerateDepth,
-                                 boolean throwOnNotFound) throws InterruptedException {
+                                 int enumerateDepth) throws InterruptedException {
         Firestore firestore =
             FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
         String containerId = container.getId().toString();
 
         FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveByPath(firestore, containerId, fullPath);
         return retrieveWorker(
-            firestore, containerId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fullPath);
+            firestore, containerId, enumerateDepth, fireStoreDirectoryEntry, fullPath);
     }
 
     /**
@@ -207,33 +204,29 @@ public class FireStoreDao {
      * @param enumerateDepth  - how far to enumerate the directory structure; 0 means not at all;
      *                        1 means contents of this directory; 2 means this and its directories, etc.
      *                        -1 means the entire tree.
-     * @param throwOnNotFound - if true, throw an exception if the file id not found; if false,
-     *                        null is returned on not found.
      * @return FSFile or FSDir of retrieved file; can return null on not found
      */
     public FSItem retrieveById(FSContainerInterface container,
                                String fileId,
-                               int enumerateDepth,
-                               boolean throwOnNotFound) throws InterruptedException {
+                               int enumerateDepth) throws InterruptedException {
         Firestore firestore =
             FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
         String datasetId = container.getId().toString();
 
         FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveById(firestore, datasetId, fileId);
-        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fileId);
+        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, fileId);
     }
 
 
     public FSItem retrieveBySnapshotAndId(SnapshotProject snapshot,
                                           String fileId,
-                                          int enumerateDepth,
-                                          boolean throwOnNotFound) throws InterruptedException {
+                                          int enumerateDepth) throws InterruptedException {
         String projectName = snapshot.getDataProject();
         String datasetId = snapshot.getId().toString();
         Firestore firestore = FireStoreProject.get(projectName).getFirestore();
 
         FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveById(firestore, datasetId, fileId);
-        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fileId);
+        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, fileId);
     }
 
     /**
@@ -246,8 +239,7 @@ public class FireStoreDao {
     public List<FSFile> batchRetrieveById(
         FSContainerInterface container,
         List<String> fileIds,
-        int enumerateDepth,
-        boolean throwOnNotFound) throws InterruptedException {
+        int enumerateDepth) throws InterruptedException {
 
         Firestore firestore =
             FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
@@ -305,10 +297,9 @@ public class FireStoreDao {
                                   String collectionId,
                                   int enumerateDepth,
                                   FireStoreDirectoryEntry fireStoreDirectoryEntry,
-                                  boolean throwOnNotFound,
                                   String context) throws InterruptedException {
         if (fireStoreDirectoryEntry == null) {
-            return handleNotFound(throwOnNotFound, context);
+            throw new FileNotFoundException("File not found: " + context);
         }
 
         if (fireStoreDirectoryEntry.getIsFileRef()) {
@@ -316,20 +307,13 @@ public class FireStoreDao {
             if (fsFile == null) {
                 // We found a file in the directory that is not done being created. We treat this
                 // as not found.
-                return handleNotFound(throwOnNotFound, context);
+                throw new FileNotFoundException(
+                    "Found a file, but the directory is not done being created: " + context);
             }
             return fsFile;
         }
 
         return makeFSDir(firestore, collectionId, enumerateDepth, fireStoreDirectoryEntry);
-    }
-
-    private FSItem handleNotFound(boolean throwOnNotFound, String context) {
-        if (throwOnNotFound) {
-            throw new FileNotFoundException("File not found: " + context);
-        } else {
-            return null;
-        }
     }
 
     private FSItem makeFSDir(Firestore firestore,

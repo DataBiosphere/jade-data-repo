@@ -141,7 +141,7 @@ public class SearchService {
             GetAliasesResponse response = client.indices().getAlias(new GetAliasesRequest(), RequestOptions.DEFAULT);
             return response.getAliases().keySet();
         } catch (IOException e) {
-            throw new SearchException("Error gett ES indexes", e);
+            throw new SearchException("Error getting indexes", e);
         }
     }
 

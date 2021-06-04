@@ -1258,9 +1258,9 @@ public class BigQueryPdao {
             "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
 
     private static final String joinTablesToTestForMissingRowIds =
-        "SELECT COUNT(*) FROM `<snapshotProject>.<snapshotDatasetName>.<tempTable>` " +
-            "LEFT JOIN `<datasetProject>.<datasetDatasetName>.<datasetTable>` USING ( <commonColumn> ) " +
-            "WHERE <commonColumn> IS NULL";
+        "SELECT COUNT(*) FROM `<snapshotProject>.<snapshotDatasetName>.<tempTable>` AS T " +
+            "LEFT JOIN `<datasetProject>.<datasetDatasetName>.<datasetTable>` AS D USING ( <commonColumn> ) " +
+            "WHERE D.<commonColumn> IS NULL";
 
     private static final String loadRootRowIdsFromTempTableTemplate =
         "INSERT INTO `<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +

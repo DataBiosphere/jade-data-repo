@@ -431,10 +431,10 @@ public class BigQueryPdaoUnitTest {
         // Mock validation query
         BQTestUtils.mockBQQuery(
             bigQueryProjectSnapshot,
-            "SELECT COUNT(*) FROM `" + SNAPSHOT_PROJECT_ID + "." + SNAPSHOT_NAME + ".datarepo_temp` " +
-                "LEFT JOIN `" + DATASET_PROJECT_ID + ".datarepo_" + DATASET_NAME + "." + TABLE_1_NAME + "` " +
+            "SELECT COUNT(*) FROM `" + SNAPSHOT_PROJECT_ID + "." + SNAPSHOT_NAME + ".datarepo_temp` AS T " +
+                "LEFT JOIN `" + DATASET_PROJECT_ID + ".datarepo_" + DATASET_NAME + "." + TABLE_1_NAME + "` AS D " +
                 "USING ( datarepo_row_id ) " +
-                "WHERE " + TABLE_1_NAME + ".datarepo_row_id IS NULL",
+                "WHERE D.datarepo_row_id IS NULL",
             Schema.of(Field.of("cnt", LegacySQLTypeName.STRING)),
             List.of(Map.of("cnt", "0")));
 
@@ -498,10 +498,10 @@ public class BigQueryPdaoUnitTest {
         // Mock validation query
         BQTestUtils.mockBQQuery(
             bigQueryProjectSnapshot,
-            "SELECT COUNT(*) FROM `" + SNAPSHOT_PROJECT_ID + "." + SNAPSHOT_NAME + ".datarepo_temp` " +
-                "LEFT JOIN `" + DATASET_PROJECT_ID + ".datarepo_" + DATASET_NAME + "." + TABLE_1_NAME + "` " +
+            "SELECT COUNT(*) FROM `" + SNAPSHOT_PROJECT_ID + "." + SNAPSHOT_NAME + ".datarepo_temp` AS T " +
+                "LEFT JOIN `" + DATASET_PROJECT_ID + ".datarepo_" + DATASET_NAME + "." + TABLE_1_NAME + "` AS D " +
                 "USING ( datarepo_row_id ) " +
-                "WHERE " + TABLE_1_NAME + ".datarepo_row_id IS NULL",
+                "WHERE D.datarepo_row_id IS NULL",
             Schema.of(Field.of("cnt", LegacySQLTypeName.STRING)),
             List.of(Map.of("cnt", "1")));
 

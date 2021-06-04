@@ -100,7 +100,7 @@ public class SearchApiController implements SearchApi {
         Integer limit) {
 
         List<UUID> accessibleIds =
-            iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT).subList(0, 10);
+            iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
 
         final List<String> snapshotIds = searchQueryRequest.getSnapshotIds();
 

@@ -29,7 +29,7 @@ public class ProfileUpdateRequestValidator implements Validator {
                 errors.rejectValue("billingAccountId",
                     "The id must be 3 sets of 6 capitalized alphanumeric characters separated by dashes");
             }
-            if (billingProfileUpdateModel.getId() == null || StringUtils.isEmpty(billingProfileUpdateModel.getId())) {
+            if (billingProfileUpdateModel.getId() == null) {
                 errors.rejectValue("id",
                     "The billing profile id must be specified");
             }

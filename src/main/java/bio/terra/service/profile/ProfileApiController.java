@@ -104,7 +104,7 @@ public class ProfileApiController implements ProfilesApi {
     @Override
     public ResponseEntity<JobModel> deleteProfile(UUID id) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-        String jobId = profileService.deleteProfile(id.toString(), user);
+        String jobId = profileService.deleteProfile(id, user);
         return jobToResponse(jobService.retrieveJob(jobId, user));
     }
 
@@ -121,7 +121,7 @@ public class ProfileApiController implements ProfilesApi {
     @Override
     public ResponseEntity<BillingProfileModel> retrieveProfile(UUID id) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-        BillingProfileModel profileModel = profileService.getProfileById(id.toString(), user);
+        BillingProfileModel profileModel = profileService.getProfileById(id, user);
         return new ResponseEntity<>(profileModel, HttpStatus.OK);
     }
 
@@ -131,7 +131,7 @@ public class ProfileApiController implements ProfilesApi {
         @PathVariable("policyName") String policyName,
         @Valid @RequestBody PolicyMemberRequest policyMember) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-        PolicyModel policy = profileService.addProfilePolicyMember(id.toString(), policyName, policyMember, user);
+        PolicyModel policy = profileService.addProfilePolicyMember(id, policyName, policyMember, user);
         PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -142,7 +142,7 @@ public class ProfileApiController implements ProfilesApi {
         @PathVariable("policyName") String policyName,
         @PathVariable("memberEmail") String memberEmail) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-        PolicyModel policy = profileService.deleteProfilePolicyMember(id.toString(), policyName, memberEmail, user);
+        PolicyModel policy = profileService.deleteProfilePolicyMember(id, policyName, memberEmail, user);
         PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -150,7 +150,7 @@ public class ProfileApiController implements ProfilesApi {
     @Override
     public ResponseEntity<PolicyResponse> retrieveProfilePolicies(@PathVariable("id") UUID id) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
-        List<PolicyModel> policies = profileService.retrieveProfilePolicies(id.toString(), user);
+        List<PolicyModel> policies = profileService.retrieveProfilePolicies(id, user);
         PolicyResponse response = new PolicyResponse().policies(policies);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }

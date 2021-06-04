@@ -19,6 +19,7 @@ import bio.terra.stairway.StepStatus;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
+import java.util.UUID;
 
 public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
@@ -46,7 +47,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
         // for each table, make sure all of the row ids match
         for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
-            List<String> rowIds = table.getRowIds();
+            List<UUID> rowIds = table.getRowIds();
             if (!rowIds.isEmpty()) {
                 RowIdMatch rowIdMatch = bigQueryPdao.matchRowIds(snapshot, source, table.getTableName(), rowIds);
                 if (!rowIdMatch.getUnmatchedInputValues().isEmpty()) {

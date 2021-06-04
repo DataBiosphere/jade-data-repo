@@ -7,6 +7,8 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
 
+import java.util.UUID;
+
 public class ProfileDeleteFlight extends Flight {
 
     public ProfileDeleteFlight(FlightMap inputParameters, Object applicationContext) {
@@ -16,7 +18,7 @@ public class ProfileDeleteFlight extends Flight {
         ProfileService profileService = (ProfileService) appContext.getBean("profileService");
         ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
 
-        String profileId = inputParameters.get(ProfileMapKeys.PROFILE_ID, String.class);
+        UUID profileId = inputParameters.get(ProfileMapKeys.PROFILE_ID, UUID.class);
 
         // We do not delete unused Google projects at the point where they become unused; that is, the last
         // file or dataset or snapshot is deleted from them. Instead, we use this profile delete operation

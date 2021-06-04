@@ -294,7 +294,7 @@ public class SnapshotService {
         return snapshot.name(snapshotRequestModel.getName())
             .description(snapshotRequestModel.getDescription())
             .snapshotSources(Collections.singletonList(snapshotSource))
-            .profileId(UUID.fromString(snapshotRequestModel.getProfileId()))
+            .profileId(snapshotRequestModel.getProfileId())
             .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource));
     }
 
@@ -316,7 +316,7 @@ public class SnapshotService {
         SnapshotModel snapshotModel = retrieveAvailableSnapshotModel(snapshotId);
         return snapshotModel.getSource()
             .stream()
-            .map(s -> UUID.fromString(s.getDataset().getId()))
+            .map(s -> s.getDataset().getId())
             .collect(Collectors.toList());
     }
 
@@ -514,11 +514,11 @@ public class SnapshotService {
 
     public SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {
         SnapshotSummaryModel summaryModel = new SnapshotSummaryModel()
-                .id(snapshotSummary.getId().toString())
+                .id(snapshotSummary.getId())
                 .name(snapshotSummary.getName())
                 .description(snapshotSummary.getDescription())
                 .createdDate(snapshotSummary.getCreatedDate().toString())
-                .profileId(snapshotSummary.getProfileId().toString())
+                .profileId(snapshotSummary.getProfileId())
                 .storage(storageResourceModelFromSnapshotSummary(snapshotSummary));
         return summaryModel;
     }
@@ -530,7 +530,7 @@ public class SnapshotService {
     private SnapshotModel populateSnapshotModelFromSnapshot(Snapshot snapshot,
                                                             List<SnapshotRequestAccessIncludeModel> include) {
         SnapshotModel snapshotModel = new SnapshotModel()
-            .id(snapshot.getId().toString())
+            .id(snapshot.getId())
             .name(snapshot.getName())
             .description(snapshot.getDescription())
             .createdDate(snapshot.getCreatedDate().toString());
@@ -559,7 +559,7 @@ public class SnapshotService {
                 .collect(Collectors.toList()));
         }
         if (include.contains(SnapshotRequestAccessIncludeModel.PROFILE)) {
-            snapshotModel.profileId(snapshot.getProfileId().toString());
+            snapshotModel.profileId(snapshot.getProfileId());
         }
         if (include.contains(SnapshotRequestAccessIncludeModel.DATA_PROJECT)) {
             snapshotModel.dataProject(snapshot.getProjectResource().getGoogleProjectId());
@@ -587,10 +587,10 @@ public class SnapshotService {
         // TODO: when source summary methods are available, use those. Here I roll my own
         Dataset dataset = source.getDataset();
         DatasetSummaryModel summaryModel = new DatasetSummaryModel()
-                .id(dataset.getId().toString())
+                .id(dataset.getId())
                 .name(dataset.getName())
                 .description(dataset.getDescription())
-                .defaultProfileId(dataset.getDefaultProfileId().toString())
+                .defaultProfileId(dataset.getDefaultProfileId())
                 .createdDate(dataset.getCreatedDate().toString())
                 .storage(dataset.getDatasetSummary().getStorage()
                     .stream()

@@ -53,7 +53,7 @@ public class IngestDriverStep implements Step {
     private final String loadTag;
     private final int maxFailedFileLoads;
     private final int driverWaitSeconds;
-    private final String profileId;
+    private final UUID profileId;
 
     public IngestDriverStep(LoadService loadService,
                             ConfigurationService configurationService,
@@ -62,7 +62,7 @@ public class IngestDriverStep implements Step {
                             String loadTag,
                             int maxFailedFileLoads,
                             int driverWaitSeconds,
-                            String profileId) {
+                            UUID profileId) {
         this.loadService = loadService;
         this.configurationService = configurationService;
         this.jobService = jobService;
@@ -257,7 +257,7 @@ public class IngestDriverStep implements Step {
     private void launchLoads(FlightContext context,
                              int launchCount,
                              List<LoadFile> loadFiles,
-                             String profileId,
+                             UUID profileId,
                              UUID loadId,
                              GoogleBucketResource bucketInfo)
         throws DatabaseOperationException, StairwayExecutionException,

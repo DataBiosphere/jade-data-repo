@@ -57,7 +57,7 @@ public class FileIngestFlight extends Flight {
         Dataset dataset = datasetService.retrieve(datasetId);
 
         FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-        String profileId = fileLoadModel.getProfileId();
+        UUID profileId = fileLoadModel.getProfileId();
 
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);

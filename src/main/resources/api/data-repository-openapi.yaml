@@ -2573,11 +2573,13 @@ components:
     UniqueIdProperty:
       pattern: ^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}
       type: string
+      format: uuid
       description: >
         Unique identifier for a dataset, snapshot, etc.
     ShortIdProperty:
       pattern: '[A-za-z0-9_\\-]{22}'
       type: string
+      format: uuid
       description: >
         Unique identifier for a flights, jobs, etc.
     BillingProfileRequestModel:

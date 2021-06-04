@@ -41,10 +41,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -318,7 +315,7 @@ public class JobService {
         }
 
         JobModel jobModel = new JobModel()
-            .id(flightState.getFlightId())
+            .id(UUID.fromString(flightState.getFlightId()))
             .description(description)
             .jobStatus(jobStatus)
             .statusCode(statusCode.value())

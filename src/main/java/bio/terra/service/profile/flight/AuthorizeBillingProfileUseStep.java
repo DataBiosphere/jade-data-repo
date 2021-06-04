@@ -25,10 +25,10 @@ public class AuthorizeBillingProfileUseStep implements Step {
     private final AuthenticatedUserRequest user;
 
     public AuthorizeBillingProfileUseStep(ProfileService profileService,
-                                          String profileId,
+                                          UUID profileId,
                                           AuthenticatedUserRequest user) {
         this.profileService = profileService;
-        this.profileId = UUID.fromString(profileId);
+        this.profileId = profileId;
         this.user = user;
     }
 

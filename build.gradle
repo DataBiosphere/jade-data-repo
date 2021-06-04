@@ -435,10 +435,10 @@ task testConnected(type: Test) {
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
-    retry {
-        maxRetries = 3
-        maxFailures = 15
-    }
+//    retry {
+//        maxRetries = 3
+//        maxFailures = 15
+//    }
     outputs.upToDateWhen { false }
     maxHeapSize = "2g"
 }
@@ -450,10 +450,10 @@ task testIntegration(type: Test) {
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
-    retry {
-        maxRetries = 3
-        maxFailures = 15
-    }
+//    retry {
+//        maxRetries = 3
+//        maxFailures = 15
+//    }
     outputs.upToDateWhen { false }
 }
 

@@ -67,7 +67,8 @@ public class IngestFilePrimaryDataLocationStep implements Step {
             workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
 
         try {
-            resourceService.updateBucketMetadata(googleProjectResource.getGoogleProjectId(), billingProfile, context.getFlightId());
+            resourceService.updateBucketMetadata(
+                googleProjectResource.getGoogleProjectId(), billingProfile, context.getFlightId());
         } catch (GoogleResourceNamingException e) {
             logger.error(e.getMessage());
         }

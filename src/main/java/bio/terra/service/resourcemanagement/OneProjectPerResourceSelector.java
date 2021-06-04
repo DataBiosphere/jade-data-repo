@@ -79,8 +79,8 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
     @Override
     public String bucketForFile(String projectId)
         throws GoogleResourceNamingException {
-        String bucketName = projectId+ "-bucket";
-        if (!bucketName.matches(GS_BUCKET_PATTERN)){
+        String bucketName = projectId + "-bucket";
+        if (!bucketName.matches(GS_BUCKET_PATTERN)) {
             throw new GoogleResourceNamingException("Google bucket name '" + bucketName +
                 "' does not match required pattern for google buckets.");
         }

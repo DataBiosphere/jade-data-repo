@@ -88,6 +88,7 @@ public class SearchApiController implements SearchApi {
         @Valid @RequestBody SearchIndexRequest searchIndexRequest
     ) {
         AuthenticatedUserRequest user = getAuthenticatedInfo();
+        // Only admins have the configure action, so effectively this locks the indexing endpoint to admins only
         iamService.verifyAuthorization(user, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.CONFIGURE);
         iamService.verifyAuthorization(user, IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
         Snapshot snapshot = snapshotService.retrieve(UUID.fromString(id));

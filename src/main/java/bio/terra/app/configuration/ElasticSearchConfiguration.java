@@ -9,6 +9,8 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class ElasticSearchConfiguration {
+
+    // This Bean isn't injected directly. Its definition enables injecting RestHighLevelClient.
     @Bean
     public RestClientBuilder restClientBuilder(
             @Value("${elasticsearch.hostname}") String hostname,

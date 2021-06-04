@@ -9,9 +9,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
-import org.springframework.stereotype.Component;
 
-@Component
 public class BucketNameStep implements Step {
 
     private final UUID datasetId;

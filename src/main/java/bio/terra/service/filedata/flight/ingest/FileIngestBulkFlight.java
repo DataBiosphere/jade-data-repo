@@ -124,10 +124,8 @@ public class FileIngestBulkFlight extends Flight {
         addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
         addStep(new LockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
         addStep(new LoadLockStep(loadService));
-        addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
-        addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
         addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
-
+        addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
 
         if (isArray) {
             addStep(new IngestPopulateFileStateFromArrayStep(loadService));

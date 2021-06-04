@@ -34,9 +34,11 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -60,8 +62,12 @@ public class SearchService {
         }
     }
 
+    private String uuidToIndexName(UUID id) {
+        return String.format("idx-%s", id);
+    }
+
     private String createEmptyIndex(Snapshot snapshot) {
-        String indexName = String.format("idx-%s", snapshot.getId());
+        String indexName = uuidToIndexName(snapshot.getId());
         try {
             CreateIndexRequest createIndexRequest = new CreateIndexRequest(indexName)
                 .settings(Settings.builder()
@@ -128,10 +134,10 @@ public class SearchService {
         addIndexData(indexName, values);
         return getIndexSummary(indexName);
     }
+
     public SearchQueryResultModel querySnapshot(
-            SearchQueryRequest searchQueryRequest, List<String> indicesToQuery,
-            int offset, int limit
-    ) {
+            SearchQueryRequest searchQueryRequest, Collection<UUID> snapshotIdsToQuery,
+            int offset, int limit) {
         //todo: move to bean for configuration, make injectable
         final RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200));
         try (RestHighLevelClient client = new RestHighLevelClient(builder)) {
@@ -142,7 +148,9 @@ public class SearchService {
             WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
             searchSourceBuilder.query(wrapperQuery);
 
-            SearchRequest searchRequest = new SearchRequest(indicesToQuery.toArray(new String[0]), searchSourceBuilder);
+            var indicesToQuery = snapshotIdsToQuery.stream().map(this::uuidToIndexName).toArray(String[]::new);
+
+            SearchRequest searchRequest = new SearchRequest(indicesToQuery, searchSourceBuilder);
 
             SearchResponse elasticResponse = client.search(searchRequest, RequestOptions.DEFAULT);
             SearchHits hits = elasticResponse.getHits();

@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -95,28 +96,25 @@ public class SearchApiController implements SearchApi {
 
     @Override
     public ResponseEntity<SearchQueryResultModel> querySearchIndices(
-        @Valid @RequestBody SearchQueryRequest searchQueryRequest,
-        @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-        @RequestParam(value = "limit", required = false, defaultValue = "1000") Integer limit
-    ) {
+        SearchQueryRequest searchQueryRequest,
+        Integer offset,
+        Integer limit) {
 
-        List<String> accessibleIds =
-                iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
-                        .stream()
-                        .map(UUID::toString)
-                        .collect(Collectors.toList());
+        List<UUID> accessibleIds =
+            iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
 
-        List<String> requestIds = searchQueryRequest.getSnapshotIds();
+        Set<UUID> requestIds =
+            searchQueryRequest.getSnapshotIds().stream().map(UUID::fromString).collect(Collectors.toSet());
 
-        Set<String> inAccessibleIds = new HashSet<>(requestIds);
-        inAccessibleIds.removeAll(accessibleIds);
-        if (!inAccessibleIds.isEmpty()) {
+        Set<UUID> inaccessibleIds = new HashSet<>(requestIds);
+        accessibleIds.forEach(inaccessibleIds::remove);
+        if (!inaccessibleIds.isEmpty()) {
             throw new IamForbiddenException("User '" + getAuthenticatedInfo().getEmail()
                     + "' does not have required action: " + IamAction.READ_DATA
-                    + " on snapshot ids" + inAccessibleIds);
+                    + " on snapshot ids" + inaccessibleIds);
         }
 
-        List<String> idsToQuery = requestIds.isEmpty() ? accessibleIds : requestIds;
+        var idsToQuery = requestIds.isEmpty() ? accessibleIds : requestIds;
 
         SearchQueryResultModel searchQueryResultModel =
                 searchService.querySnapshot(searchQueryRequest, idsToQuery, offset, limit);

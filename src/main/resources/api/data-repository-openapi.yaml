@@ -4080,12 +4080,10 @@ components:
           description: Summary of this index for searching
     SearchQueryRequest:
       required:
-        - snapshotIds
         - query
       type: object
       properties:
         snapshotIds:
-          minItems: 1
           type: array
           items:
             $ref: '#/components/schemas/UniqueIdProperty'

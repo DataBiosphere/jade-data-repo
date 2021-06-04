@@ -1260,7 +1260,7 @@ public class BigQueryPdao {
     private static final String joinTablesToTestForMissingRowIds =
         "SELECT COUNT(*) FROM `<snapshotProject>.<snapshotDatasetName>.<tempTable>` " +
             "LEFT JOIN `<datasetProject>.<datasetDatasetName>.<datasetTable>` USING ( <commonColumn> ) " +
-            "WHERE <datasetTable>.<commonColumn> IS NULL";
+            "WHERE <commonColumn> IS NULL";
 
     private static final String loadRootRowIdsFromTempTableTemplate =
         "INSERT INTO `<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +

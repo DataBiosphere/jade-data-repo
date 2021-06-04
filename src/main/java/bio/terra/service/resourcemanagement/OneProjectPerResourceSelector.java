@@ -3,8 +3,9 @@ package bio.terra.service.resourcemanagement;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -18,7 +19,9 @@ import java.util.UUID;
 public class OneProjectPerResourceSelector implements DataLocationSelector {
     private final GoogleResourceConfiguration resourceConfiguration;
     private final DatasetBucketDao datasetBucketDao;
+    private final ResourceService resourceService;
     private static final String GS_PROJECT_PATTERN = "[a-z0-9\\-]{6,30}";
+    private static final String GS_BUCKET_PATTERN = "[a-z0-9\\-\\.\\_]{3,63}";
     /**
      * *Borrowed from terra-resource-buffer*
      * The size of project when generating random characters. Choose size as 8 based on AoU's
@@ -28,40 +31,63 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
 
     @Autowired
     public OneProjectPerResourceSelector(GoogleResourceConfiguration resourceConfiguration,
-                                         DatasetBucketDao datasetBucketDao) {
+                                         DatasetBucketDao datasetBucketDao,
+                                         ResourceService resourceService) {
         this.resourceConfiguration = resourceConfiguration;
         this.datasetBucketDao = datasetBucketDao;
+        this.resourceService = resourceService;
     }
 
     @Override
-        public String projectIdForDataset() throws GoogleProjectNamingException {
+        public String projectIdForDataset() throws GoogleResourceNamingException {
         return getNewProjectId();
     }
 
     @Override
-    public String projectIdForSnapshot() throws GoogleProjectNamingException {
+    public String projectIdForSnapshot() throws GoogleResourceNamingException {
         return getNewProjectId();
     }
 
     @Override
     public String projectIdForFile(Dataset dataset, BillingProfileModel billingProfile)
-        throws GoogleResourceException, GoogleProjectNamingException {
+        throws GoogleResourceException, GoogleResourceNamingException {
+        // Case 1
+        // Condition: Requested billing profile matches source dataset's billing profile
+        // Action: Re-use dataset's project
+        UUID sourceDatasetBillingProfileId = dataset.getProjectResource().getProfileId();
+        UUID requestedBillingProfileId = UUID.fromString(billingProfile.getId());
+        if (sourceDatasetBillingProfileId.equals(requestedBillingProfileId)) {
+            GoogleProjectResource project = resourceService.getProjectResource(dataset.getProjectResourceId());
+            return project.getGoogleProjectId();
+        }
+
+        // Case 2
+        // Condition: Ingest Billing profile != source dataset billing profile && project *already exists*
+        // Action: Re-use bucket's project
         String googleProjectId = datasetBucketDao.getProjectResourceForBucket(dataset.getId(),
             UUID.fromString(billingProfile.getId()));
         if (googleProjectId != null) {
             return googleProjectId;
-        } else {
-            return getNewProjectId();
         }
+
+        //Case 3 -
+        // Condition: Ingest Billing profile != source dataset billing profile && project does NOT exist
+        // Action: Create new project
+        return getNewProjectId();
     }
 
     @Override
-    public String bucketForFile(Dataset dataset, BillingProfileModel billingProfile)
-        throws GoogleProjectNamingException {
-        return projectIdForFile(dataset, billingProfile) + "-bucket";
+    public String bucketForFile(String projectId)
+        throws GoogleResourceNamingException {
+        String bucketName = projectId+ "-bucket";
+        if (!bucketName.matches(GS_BUCKET_PATTERN)){
+            throw new GoogleResourceNamingException("Google bucket name '" + bucketName +
+                "' does not match required pattern for google buckets.");
+        }
+        return bucketName;
     }
 
-    private String getNewProjectId() throws GoogleProjectNamingException {
+    private String getNewProjectId() throws GoogleResourceNamingException {
         String projectDatasetSuffix = "-" + generateRandomId();
 
         // The project id below is an application level prefix or, if that is empty, the name of the core project
@@ -69,7 +95,7 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
 
         //Since the prefix can be set adhoc, let's check that the project name matches Google's required pattern
         if (!projectId.matches(GS_PROJECT_PATTERN)) {
-            throw new GoogleProjectNamingException("Google project name '" + projectId +
+            throw new GoogleResourceNamingException("Google project name '" + projectId +
                     "' does not match required pattern for google projects.");
         }
         return projectId;

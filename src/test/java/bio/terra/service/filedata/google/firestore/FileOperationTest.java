@@ -170,7 +170,7 @@ public class FileOperationTest {
         // NOTE: the suppressed SpotBugs complaint is from the doReturn. It decides that no one
         // uses the bucketForFile call.
         String newBucketName = "bucket-" + UUID.randomUUID().toString();
-        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any(), any());
+        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
         connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path reflects new bucket location",

@@ -6,7 +6,7 @@ import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
-import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
@@ -44,7 +44,7 @@ public class IngestFileGetOrCreateProject implements Step {
                 workingMap.put(FileMapKeys.PROJECT_RESOURCE, projectResource);
             } catch (BucketLockException blEx) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
-            } catch (GoogleProjectNamingException ex) {
+            } catch (GoogleResourceNamingException ex) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
             } catch (GoogleResourceException ex) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

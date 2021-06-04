@@ -4,7 +4,7 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -34,7 +34,7 @@ public class CreateSnapshotGetOrCreateProjectStep implements Step {
         UUID projectResourceId;
         try {
             projectResourceId = resourceService.getOrCreateSnapshotProject(profileModel, firestoreRegion);
-        } catch (GoogleProjectNamingException e) {
+        } catch (GoogleResourceNamingException e) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
         }
         workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);

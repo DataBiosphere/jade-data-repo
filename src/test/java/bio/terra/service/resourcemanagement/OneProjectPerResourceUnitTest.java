@@ -11,7 +11,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
@@ -35,6 +35,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -66,7 +67,7 @@ public class OneProjectPerResourceUnitTest {
     private String dataProjectPrefix;
 
     @Before
-    public void setup() throws IOException, InterruptedException, GoogleProjectNamingException {
+    public void setup() throws IOException, InterruptedException, GoogleResourceNamingException {
         // Initialize lists
         billingProfiles = new ArrayList<>();
         projects = new ArrayList<>();
@@ -136,7 +137,8 @@ public class OneProjectPerResourceUnitTest {
         String fileProjectId = oneProjectPerResourceSelector.projectIdForFile(dataset, billingProfiles.get(0));
         assertThat("For same billing, dataset and file project are the same",
             fileProjectId, equalTo(datasetProjectId));
-        String bucketProjectId = oneProjectPerResourceSelector.bucketForFile(dataset, billingProfiles.get(0));
+        String bucketProjectId =
+            oneProjectPerResourceSelector.bucketForFile(projects.get(0).getGoogleProjectId());
         assertThat("File project are the same, plus bucket suffix",
             bucketProjectId, equalTo(fileProjectId + "-bucket"));
 
@@ -149,7 +151,7 @@ public class OneProjectPerResourceUnitTest {
             "For different billing, dataset and file project live in different projects",
             diffFileProjectId, not(datasetProjectId));
 
-        String diffBucketProjectId = oneProjectPerResourceSelector.bucketForFile(dataset, newBillingProfile);
+        String diffBucketProjectId = oneProjectPerResourceSelector.bucketForFile(diffFileProjectId);
         assertThat("File project are the same, plus bucket suffix",
             diffBucketProjectId, equalTo(diffFileProjectId + "-bucket"));
     }
@@ -160,10 +162,12 @@ public class OneProjectPerResourceUnitTest {
         datasets.add(createDataset(billingProfiles.get(0), projects.get(0)));
         datasets.add(createDataset(billingProfiles.get(1), projects.get(1)));
 
-        String bucketName1 = oneProjectPerResourceSelector.bucketForFile(
-            datasets.get(0), billingProfiles.get(0));
-        String bucketName2 = oneProjectPerResourceSelector.bucketForFile(
-            datasets.get(1), billingProfiles.get(1));
+        String bucketProject1 = oneProjectPerResourceSelector.projectIdForFile(datasets.get(0),
+            billingProfiles.get(0));
+        String bucketName1 = oneProjectPerResourceSelector.bucketForFile(bucketProject1);
+        String bucketProject2 = oneProjectPerResourceSelector.projectIdForFile(datasets.get(1),
+            billingProfiles.get(1));
+        String bucketName2 = oneProjectPerResourceSelector.bucketForFile(bucketProject2);
 
         assertNotEquals("Buckets should be named differently", bucketName1, bucketName2);
     }
@@ -173,16 +177,27 @@ public class OneProjectPerResourceUnitTest {
         //One dataset, two billing profiles
         datasets.add(createDataset(billingProfiles.get(0), projects.get(0)));
 
-        String bucketName1 = oneProjectPerResourceSelector.bucketForFile(
-            datasets.get(0), billingProfiles.get(0));
-        String bucketName2 = oneProjectPerResourceSelector.bucketForFile(
-            datasets.get(0), billingProfiles.get(1));
+        String bucketProject1 = oneProjectPerResourceSelector.projectIdForFile(datasets.get(0),
+            billingProfiles.get(0));
+        assertThat("Dataset and bucket project should match since using same billing profile.",
+            bucketProject1, equalTo(projects.get(0).getGoogleProjectId()));
+        String bucketName1 = oneProjectPerResourceSelector.bucketForFile(bucketProject1);
+        assertThat("Bucket project and bucket name should be the same plus -bucket suffix",
+            bucketProject1 + "-bucket", equalTo(bucketName1));
 
-        assertNotEquals("Buckets should be named differently", bucketName1, bucketName2);
+        //Different billing profile
+        String bucketProject2 = oneProjectPerResourceSelector.projectIdForFile(datasets.get(0),
+            billingProfiles.get(1));
+        assertThat(
+            "Dataset and bucket project should NOT match since they are using different billing profiles.",
+            bucketProject2, not(projects.get(0).getGoogleProjectId()));
+        String bucketName2 = oneProjectPerResourceSelector.bucketForFile(bucketProject2);
+        assertThat("Bucket project and bucket name should be the same plus -bucket suffix",
+            bucketProject2 + "-bucket", equalTo(bucketName2));
     }
 
     @Test
-    public void shouldGetCorrectIdForDatasetWithPrefix() throws GoogleProjectNamingException {
+    public void shouldGetCorrectIdForDatasetWithPrefix() throws GoogleResourceNamingException {
         String projectId = oneProjectPerResourceSelector.projectIdForDataset();
         assertThat("Project ID is what we expect before changing prefix", projectId,
             startsWith(resourceConfiguration.getProjectId()));
@@ -193,14 +208,32 @@ public class OneProjectPerResourceUnitTest {
             startsWith(resourceConfiguration.getDataProjectPrefix()));
     }
 
-    @Test(expected = GoogleProjectNamingException.class)
-    public void noUpperCaseProjectNames() throws GoogleProjectNamingException {
+    @Test(expected = GoogleResourceNamingException.class)
+    public void noUpperCaseProjectNames() throws GoogleResourceNamingException {
         resourceConfiguration.setDataProjectPrefix("PREFIX");
         oneProjectPerResourceSelector.projectIdForDataset();
     }
 
-    @Test(expected = GoogleProjectNamingException.class)
-    public void noProjectNameLongerThan30() throws GoogleProjectNamingException {
+    @Test(expected = GoogleResourceNamingException.class)
+    public void noUpperCaseBucketNames() throws GoogleResourceNamingException {
+        oneProjectPerResourceSelector.bucketForFile("PROJECTID");
+    }
+
+    @Test(expected = GoogleResourceNamingException.class)
+    public void tooLongBucketName() throws GoogleResourceNamingException {
+        String bucketName = oneProjectPerResourceSelector.bucketForFile(
+            "project.test_test_project.test_test_project.test_test_project.test_test");
+        assertNotNull("bucket name should not be null", bucketName);
+    }
+
+    @Test
+    public void allowedBucketName() throws GoogleResourceNamingException {
+        oneProjectPerResourceSelector.bucketForFile(
+            "project.test_test_project.test_test_project.test");
+    }
+
+    @Test(expected = GoogleResourceNamingException.class)
+    public void noProjectNameLongerThan30() throws GoogleResourceNamingException {
         resourceConfiguration.setDataProjectPrefix("thisisaverylongprefix-thisisaverylongprefix");
         oneProjectPerResourceSelector.projectIdForDataset();
     }

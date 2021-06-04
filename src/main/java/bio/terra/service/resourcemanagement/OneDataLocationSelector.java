@@ -40,7 +40,7 @@ public class OneDataLocationSelector implements DataLocationSelector {
     }
 
     @Override
-    public String bucketForFile(Dataset dataset, BillingProfileModel billingProfile) {
+    public String bucketForFile(String projectId) {
         return oneProject() + "-bucket";
     }
 }

@@ -6,8 +6,8 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
@@ -66,7 +66,7 @@ public class ResourceService {
      */
     public GoogleProjectResource getOrCreateProjectForBucket(Dataset dataset,
                                                          BillingProfileModel billingProfile)
-        throws GoogleResourceException, GoogleProjectNamingException, InterruptedException {
+        throws GoogleResourceException, GoogleResourceNamingException, InterruptedException {
 
         final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         // Every bucket needs to live in a project, so we get or create a project first
@@ -80,7 +80,6 @@ public class ResourceService {
     /**
      * Fetch/create a project, then use that to fetch/create a bucket.
      *
-     * @param billingProfile authorized profile for billing account information case we need to create a project
      * @param flightId       used to lock the bucket metadata during possible creation
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws CorruptMetadataException in two cases.
@@ -92,11 +91,10 @@ public class ResourceService {
      */
     public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
                                                          GoogleProjectResource projectResource,
-                                                         BillingProfileModel billingProfile,
                                                          String flightId)
-                                                         throws InterruptedException, GoogleProjectNamingException {
+                                                         throws InterruptedException, GoogleResourceNamingException {
         return bucketService.getOrCreateBucket(
-            dataLocationSelector.bucketForFile(dataset, billingProfile),
+            dataLocationSelector.bucketForFile(projectResource.getGoogleProjectId()),
             projectResource,
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             flightId);
@@ -135,13 +133,13 @@ public class ResourceService {
      * - If the bucket does not exist, then the metadata row should not exist.
      * If the metadata row is locked, then only the locking flight can unlock or delete the row.
      *
-     * @param dataset       dataset that is storing files into the bucket
+     * @param projectId       retrieve bucket based on google project id
      * @param billingProfile an authorized billing profile
      * @param flightId       flight doing the updating
      */
-    public void updateBucketMetadata(Dataset dataset, BillingProfileModel billingProfile, String flightId)
-        throws GoogleProjectNamingException {
-        String bucketName = dataLocationSelector.bucketForFile(dataset, billingProfile);
+    public void updateBucketMetadata(String projectId, BillingProfileModel billingProfile, String flightId)
+        throws GoogleResourceNamingException {
+        String bucketName = dataLocationSelector.bucketForFile(projectId);
         bucketService.updateBucketMetadata(bucketName, flightId);
     }
 
@@ -154,7 +152,7 @@ public class ResourceService {
      * @return project resource id
      */
     public UUID getOrCreateSnapshotProject(BillingProfileModel billingProfile, GoogleRegion firestoreRegion)
-        throws InterruptedException, GoogleProjectNamingException {
+        throws InterruptedException, GoogleResourceNamingException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForSnapshot(),
@@ -174,7 +172,7 @@ public class ResourceService {
      */
     public UUID getOrCreateDatasetProject(BillingProfileModel billingProfile,
                                           GoogleRegion region)
-                                          throws InterruptedException, GoogleProjectNamingException {
+                                          throws InterruptedException, GoogleResourceNamingException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForDataset(),

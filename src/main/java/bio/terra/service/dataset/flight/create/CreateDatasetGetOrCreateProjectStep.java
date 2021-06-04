@@ -7,7 +7,7 @@ import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.exception.GoogleProjectNamingException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -36,7 +36,7 @@ public class CreateDatasetGetOrCreateProjectStep implements Step {
         UUID projectResourceId;
         try {
             projectResourceId = resourceService.getOrCreateDatasetProject(profileModel, region);
-        } catch (GoogleProjectNamingException e) {
+        } catch (GoogleResourceNamingException e) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
         }
         workingMap.put(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);

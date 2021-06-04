@@ -134,12 +134,12 @@ public class DatasetConnectedTest {
         assertNotNull("created dataset successfully the first time", summaryModel);
 
         // fetch the dataset and confirm the metadata matches the request
-        DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
+        DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId().toString());
         assertNotNull("fetched dataset successfully after creation", datasetModel);
         assertEquals("fetched dataset name matches request", datasetRequest.getName(), datasetModel.getName());
 
         // check that the dataset metadata row is unlocked
-        String exclusiveLock = datasetDao.getExclusiveLock(UUID.fromString(summaryModel.getId()));
+        String exclusiveLock = datasetDao.getExclusiveLock(summaryModel.getId());
         assertNull("dataset row is unlocked", exclusiveLock);
 
         // try to create the same dataset again and check that it fails
@@ -150,14 +150,14 @@ public class DatasetConnectedTest {
             errorModel.getMessage(), containsString("Dataset name or id already exists"));
 
         // fetch the dataset and confirm the metadata still matches the original
-        DatasetModel origModel = connectedOperations.getDataset(summaryModel.getId());
+        DatasetModel origModel = connectedOperations.getDataset(summaryModel.getId().toString());
         assertEquals("fetched dataset remains unchanged", datasetModel, origModel);
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -193,7 +193,7 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -221,7 +221,7 @@ public class DatasetConnectedTest {
 
         // check that the dataset metadata row has a shared lock
         // note: asserts are below outside the hang block
-        UUID datasetId = UUID.fromString(summaryModel.getId());
+        UUID datasetId = UUID.fromString(summaryModel.getId().toString());
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
@@ -280,10 +280,10 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -298,7 +298,7 @@ public class DatasetConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetPath1)
             .profileId(billingProfile.getId());
-        FileModel fileModel1 = connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel1);
+        FileModel fileModel1 = connectedOperations.ingestFileSuccess(summaryModel.getId().toString(), fileLoadModel1);
 
         String targetPath2 = "/mm/" + Names.randomizeName("testdir") + "/testfile2.txt";
         FileLoadModel fileLoadModel2 = new FileLoadModel()
@@ -307,7 +307,7 @@ public class DatasetConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetPath2)
             .profileId(billingProfile.getId());
-        FileModel fileModel2 = connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel2);
+        FileModel fileModel2 = connectedOperations.ingestFileSuccess(summaryModel.getId().toString(), fileLoadModel2);
 
         // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
         // ====================================================
@@ -322,7 +322,7 @@ public class DatasetConnectedTest {
 
         // check that the dataset metadata row has a shared lock
         // note: asserts are below outside the hang block
-        UUID datasetId = UUID.fromString(summaryModel.getId());
+        UUID datasetId = summaryModel.getId();
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
@@ -360,13 +360,13 @@ public class DatasetConnectedTest {
         MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
         assertEquals(response1.getStatus(), HttpStatus.OK.value());
         connectedOperations.checkDeleteResponse(response1);
-        connectedOperations.removeFile(summaryModel.getId(), fileModel1.getFileId());
+        connectedOperations.removeFile(summaryModel.getId().toString(), fileModel1.getFileId());
 
         // check the response from the second delete file request
         MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
         assertEquals(response2.getStatus(), HttpStatus.OK.value());
         connectedOperations.checkDeleteResponse(response2);
-        connectedOperations.removeFile(summaryModel.getId(), fileModel2.getFileId());
+        connectedOperations.removeFile(summaryModel.getId().toString(), fileModel2.getFileId());
 
         // check that the delete request launched while the dataset had shared locks on it, failed with a lock exception
         MockHttpServletResponse response3 = connectedOperations.validateJobModelAndWait(result3);
@@ -375,10 +375,10 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -407,12 +407,12 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.JSON)
             .table("thetable")
             .path(gsPath);
-        MvcResult result1 = connectedOperations.ingestTableRaw(summaryModel.getId(), ingestRequest1);
+        MvcResult result1 = connectedOperations.ingestTableRaw(summaryModel.getId().toString(), ingestRequest1);
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has a shared lock
         // note: asserts are below outside the hang block
-        UUID datasetId = UUID.fromString(summaryModel.getId());
+        UUID datasetId = summaryModel.getId();
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
@@ -421,7 +421,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.JSON)
             .table("thetable")
             .path(gsPath);
-        MvcResult result2 = connectedOperations.ingestTableRaw(summaryModel.getId(), ingestRequest2);
+        MvcResult result2 = connectedOperations.ingestTableRaw(summaryModel.getId().toString(), ingestRequest2);
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
@@ -462,10 +462,10 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
     }
 
     // todo known flaky test - documented in DR-1102
@@ -490,7 +490,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath);
-        connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+        connectedOperations.ingestTableSuccess(summaryModel.getId().toString(), ingestRequest);
 
         // make sure the JSON file gets cleaned up on test teardown
         connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
@@ -504,7 +504,7 @@ public class DatasetConnectedTest {
             dirInCloud, "testRepeatedSoftDelete.csv", tableName, softDeleteRowIds);
 
         // make the soft delete request and wait for it to return
-        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest);
+        connectedOperations.softDeleteSuccess(summaryModel.getId().toString(), softDeleteRequest);
 
         // check that the size of the live table matches what we expect
         List<String> liveTableRowIds1 = getRowIdsFromBQTable(summaryModel.getName(), tableName);
@@ -513,7 +513,7 @@ public class DatasetConnectedTest {
 
         // note: the soft delete table name is not exposed to end users, so to check that the state of the
         // soft delete table is correct, I'm reaching into our internals to fetch the table name
-        Dataset internalDatasetObj = datasetDao.retrieve(UUID.fromString(summaryModel.getId()));
+        Dataset internalDatasetObj = datasetDao.retrieve(summaryModel.getId());
         DatasetTable internalDatasetTableObj = internalDatasetObj.getTableByName(tableName).get();
         String internalSoftDeleteTableName = internalDatasetTableObj.getSoftDeleteTableName();
 
@@ -523,7 +523,7 @@ public class DatasetConnectedTest {
         assertTrue("Soft deleted row id is in soft delete table", softDeleteRowIds1.contains(softDeleteRowId));
 
         // repeat the same soft delete request and wait for it to return
-        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest);
+        connectedOperations.softDeleteSuccess(summaryModel.getId().toString(), softDeleteRequest);
 
         // check that the size of the live table has not changed
         List<String> liveTableRowIds2 = getRowIdsFromBQTable(summaryModel.getName(), tableName);
@@ -536,10 +536,10 @@ public class DatasetConnectedTest {
         assertTrue("Soft deleted row id is still in soft delete table", softDeleteRowIds2.contains(softDeleteRowId));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -563,7 +563,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath);
-        connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+        connectedOperations.ingestTableSuccess(summaryModel.getId().toString(), ingestRequest);
 
         // make sure the JSON file gets cleaned up on test teardown
         connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
@@ -584,17 +584,17 @@ public class DatasetConnectedTest {
         configService.setFault(ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // kick off the first soft delete request, it should hang just before updating the soft delete table
-        MvcResult softDeleteResult1 = connectedOperations.softDeleteRaw(summaryModel.getId(), softDeleteRequest1);
+        MvcResult softDeleteResult1 = connectedOperations.softDeleteRaw(summaryModel.getId().toString(), softDeleteRequest1);
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has a shared lock
         // note: asserts are below outside the hang block
-        UUID datasetId = UUID.fromString(summaryModel.getId());
+        UUID datasetId = summaryModel.getId();
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
         // kick off the second soft delete request, it should also hang just before updating the soft delete table
-        MvcResult softDeleteResult2 = connectedOperations.softDeleteRaw(summaryModel.getId(), softDeleteRequest2);
+        MvcResult softDeleteResult2 = connectedOperations.softDeleteRaw(summaryModel.getId().toString(), softDeleteRequest2);
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
@@ -630,7 +630,7 @@ public class DatasetConnectedTest {
 
         // note: the soft delete table name is not exposed to end users, so to check that the state of the
         // soft delete table is correct, I'm reaching into our internals to fetch the table name
-        Dataset internalDatasetObj = datasetDao.retrieve(UUID.fromString(summaryModel.getId()));
+        Dataset internalDatasetObj = datasetDao.retrieve(summaryModel.getId());
         DatasetTable internalDatasetTableObj = internalDatasetObj.getTableByName(tableName).get();
         String internalSoftDeleteTableName = internalDatasetTableObj.getSoftDeleteTableName();
 
@@ -641,10 +641,10 @@ public class DatasetConnectedTest {
         assertTrue("Soft deleted row id #2 is in soft delete table", softDeleteRowIds.contains(softDeleteRowId2));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -668,7 +668,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath);
-        connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+        connectedOperations.ingestTableSuccess(summaryModel.getId().toString(), ingestRequest);
 
         // make sure the JSON file gets cleaned up on test teardown
         connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
@@ -683,7 +683,7 @@ public class DatasetConnectedTest {
             dirInCloud, "testBadSoftDelete.csv", tableName, softDeleteRowIds);
 
         // make the soft delete request and wait for it to return
-        MvcResult softDeleteResult = connectedOperations.softDeleteRaw(summaryModel.getId(), softDeleteRequest);
+        MvcResult softDeleteResult = connectedOperations.softDeleteRaw(summaryModel.getId().toString(), softDeleteRequest);
         MockHttpServletResponse softDeleteResponse = connectedOperations.validateJobModelAndWait(softDeleteResult);
         assertEquals("soft delete of bad row id failed",
             HttpStatus.BAD_REQUEST.value(), softDeleteResponse.getStatus());
@@ -696,7 +696,7 @@ public class DatasetConnectedTest {
 
         // note: the soft delete table name is not exposed to end users, so to check that the state of the
         // soft delete table is correct, I'm reaching into our internals to fetch the table name
-        Dataset internalDatasetObj = datasetDao.retrieve(UUID.fromString(summaryModel.getId()));
+        Dataset internalDatasetObj = datasetDao.retrieve(summaryModel.getId());
         DatasetTable internalDatasetTableObj = internalDatasetObj.getTableByName(tableName).get();
         String internalSoftDeleteTableName = internalDatasetTableObj.getSoftDeleteTableName();
 
@@ -707,23 +707,23 @@ public class DatasetConnectedTest {
         assertFalse("Good row id is not in soft delete table", softDeleteRowIdsFromBQ.contains(softDeleteGoodRowId));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
     }
 
     @Test
     public void testExcludeLockedFromDatasetLookups() throws Exception {
         // check that the dataset metadata row is unlocked
-        UUID datasetId = UUID.fromString(summaryModel.getId());
+        UUID datasetId = summaryModel.getId();
         String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
         assertNull("dataset row is not exclusively locked", exclusiveLock);
         String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
         assertEquals("dataset row has no shared lock", 0, sharedLocks.length);
 
         // retrieve the dataset and check that it finds it
-        DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
+        DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId().toString());
         assertEquals("Lookup unlocked dataset succeeds", summaryModel.getName(), datasetModel.getName());
 
         // enumerate datasets and check that this dataset is included in the set
@@ -792,13 +792,13 @@ public class DatasetConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
     }
 
     @Test
     public void testExcludeLockedFromFileLookups() throws Exception {
         // check that the dataset metadata row is unlocked
-        UUID datasetId = UUID.fromString(summaryModel.getId());
+        UUID datasetId = summaryModel.getId();
         String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
         assertNull("dataset row is not exclusively locked", exclusiveLock);
         String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
@@ -814,17 +814,17 @@ public class DatasetConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetPath1)
             .profileId(billingProfile.getId());
-        FileModel fileModel = connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel);
+        FileModel fileModel = connectedOperations.ingestFileSuccess(summaryModel.getId().toString(), fileLoadModel);
 
         // lookup the file by id and check that it's found
         FileModel fileModelFromIdLookup =
-            connectedOperations.lookupFileSuccess(summaryModel.getId(), fileModel.getFileId());
+            connectedOperations.lookupFileSuccess(summaryModel.getId().toString(), fileModel.getFileId());
         assertEquals("File found by id lookup",
             fileModel.getDescription(), fileModelFromIdLookup.getDescription());
 
         // lookup the file by path and check that it's found
         FileModel fileModelFromPathLookup =
-            connectedOperations.lookupFileByPathSuccess(summaryModel.getId(), fileModel.getPath(), -1);
+            connectedOperations.lookupFileByPathSuccess(summaryModel.getId().toString(), fileModel.getPath(), -1);
         assertEquals("File found by path lookup", fileModel.getDescription(), fileModelFromPathLookup.getDescription());
 
         // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
@@ -844,12 +844,12 @@ public class DatasetConnectedTest {
         // lookup the file by id and check that it's NOT found
         // note: asserts are below outside the hang block
         MockHttpServletResponse lookupFileByIdResponse =
-            connectedOperations.lookupFileRaw(summaryModel.getId(), fileModel.getFileId());
+            connectedOperations.lookupFileRaw(summaryModel.getId().toString(), fileModel.getFileId());
 
         // lookup the file by path and check that it's NOT found
         // note: asserts are below outside the hang block
         MockHttpServletResponse lookupFileByPathResponse =
-            connectedOperations.lookupFileByPathRaw(summaryModel.getId(), fileModel.getPath(), -1);
+            connectedOperations.lookupFileByPathRaw(summaryModel.getId().toString(), fileModel.getPath(), -1);
 
         // disable hang in DeleteDatasetPrimaryDataStep
         configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
@@ -875,10 +875,10 @@ public class DatasetConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // remove the file from the connectedoperation bookkeeping list
-        connectedOperations.removeFile(summaryModel.getId(), fileModel.getFileId());
+        connectedOperations.removeFile(summaryModel.getId().toString(), fileModel.getFileId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
     }
 
     private List<String> getRowIdsFromBQTable(String datasetName, String tableName) throws Exception {
@@ -929,7 +929,7 @@ public class DatasetConnectedTest {
 
     @Test
     public void retryAndAcquireExclusiveLock() throws Exception {
-        UUID datasetId = UUID.fromString(summaryModel.getId());
+        UUID datasetId = summaryModel.getId();
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
@@ -959,7 +959,7 @@ public class DatasetConnectedTest {
 
     @Test
     public void retryAndFailAcquireExclusiveLock() throws Exception {
-        UUID datasetId = UUID.fromString(summaryModel.getId());
+        UUID datasetId = summaryModel.getId();
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
@@ -978,7 +978,7 @@ public class DatasetConnectedTest {
 
     @Test
     public void retryAndAcquireExclusiveUnlock() throws Exception {
-        UUID datasetId = UUID.fromString(summaryModel.getId());
+        UUID datasetId = summaryModel.getId();
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
@@ -1006,7 +1006,7 @@ public class DatasetConnectedTest {
 
     @Test
     public void retryAndFailAcquireExclusiveUnlock() throws Exception {
-        UUID datasetId = UUID.fromString(summaryModel.getId());
+        UUID datasetId = summaryModel.getId();
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 

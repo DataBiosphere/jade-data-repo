@@ -98,7 +98,7 @@ public class DatasetIntegrationTest extends UsersBase {
         super.setup();
         stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         dataRepoFixtures.resetConfig(steward());
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId().toString();
         datasetId = null;
         snapshotIds = new LinkedList<>();
     }
@@ -123,13 +123,13 @@ public class DatasetIntegrationTest extends UsersBase {
     public void datasetHappyPath() throws Exception {
         DatasetSummaryModel summaryModel =
             dataRepoFixtures.createDataset(steward(), profileId, "it-dataset-omop.json");
-        datasetId = summaryModel.getId();
+        datasetId = summaryModel.getId().toString();
 
         logger.info("dataset id is " + summaryModel.getId());
         assertThat(summaryModel.getName(), startsWith(omopDatasetName));
         assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
 
-        DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
+        DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId().toString());
 
         assertThat(datasetModel.getName(), startsWith(omopDatasetName));
         assertThat(datasetModel.getDescription(), equalTo(omopDatasetDesc));
@@ -165,7 +165,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
         dataRepoFixtures.addDatasetPolicyMember(
             steward(),
-            summaryModel.getId(),
+            summaryModel.getId().toString(),
             IamRole.CUSTODIAN,
             custodian().getEmail());
         DataRepoResponse<EnumerateDatasetModel> enumDatasets = dataRepoFixtures.enumerateDatasetsRaw(custodian());
@@ -195,17 +195,17 @@ public class DatasetIntegrationTest extends UsersBase {
         DatasetSummaryModel summaryModel = null;
 
         summaryModel = dataRepoFixtures.createDataset(steward(), profileId, "dataset-minimal.json");
-        datasetId = summaryModel.getId();
+        datasetId = summaryModel.getId().toString();
 
         DataRepoResponse<DatasetModel> getDatasetResp =
-            dataRepoFixtures.getDatasetRaw(reader(), summaryModel.getId());
+            dataRepoFixtures.getDatasetRaw(reader(), summaryModel.getId().toString());
         assertThat("Reader is not authorized to get dataset",
             getDatasetResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         // make sure reader cannot delete dataset
         DataRepoResponse<JobModel> deleteResp1 = dataRepoFixtures.deleteDatasetLaunch(
-            reader(), summaryModel.getId());
+            reader(), summaryModel.getId().toString());
         assertThat("Reader is not authorized to delete datasets",
             deleteResp1.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
@@ -227,7 +227,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
         // make sure custodian cannot delete dataset
         DataRepoResponse<JobModel> deleteResp2 = dataRepoFixtures.deleteDatasetLaunch(
-            custodian(), summaryModel.getId());
+            custodian(), summaryModel.getId().toString());
         assertThat("Custodian is not authorized to delete datasets",
             deleteResp2.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
@@ -249,8 +249,8 @@ public class DatasetIntegrationTest extends UsersBase {
         // create a dataset
         DatasetSummaryModel summaryModel =
             dataRepoFixtures.createDataset(steward(), profileId, "it-dataset-omop.json");
-        datasetId = summaryModel.getId();
-        DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
+        datasetId = summaryModel.getId().toString();
+        DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId().toString());
         List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
 
         assertThat("Asset specification is as originally expected",
@@ -271,9 +271,9 @@ public class DatasetIntegrationTest extends UsersBase {
 
         // add an asset spec
         dataRepoFixtures.addDatasetAsset(
-            steward(), datasetModel.getId(), assetModel);
+            steward(), datasetModel.getId().toString(), assetModel);
         // make sure undo is completed successfully
-        DatasetModel datasetModelWAsset = dataRepoFixtures.getDataset(steward(), datasetModel.getId());
+        DatasetModel datasetModelWAsset = dataRepoFixtures.getDataset(steward(), datasetModel.getId().toString());
         DatasetSpecificationModel datasetSpecificationModel = datasetModelWAsset.getSchema();
         List<AssetModel> assetList = datasetSpecificationModel.getAssets();
 
@@ -300,7 +300,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     @Test
     public void testSoftDeleteHappyPath() throws Exception {
-        datasetId = ingestedDataset();
+        datasetId = ingestedDataset().toString();
 
         // get row ids
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
@@ -329,7 +329,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     @Test
     public void wildcardSoftDelete() throws Exception {
-        datasetId = ingestedDataset();
+        datasetId = ingestedDataset().toString();
         String pathPrefix = "softDelWildcard" + UUID.randomUUID().toString();
 
         // get 5 row ids, we'll write them out to 5 separate files
@@ -354,7 +354,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     @Test
     public void testSoftDeleteNotInFullView() throws Exception {
-        datasetId = ingestedDataset();
+        datasetId = ingestedDataset().toString();
 
         // get row ids
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
@@ -372,8 +372,8 @@ public class DatasetIntegrationTest extends UsersBase {
                 dataset.getName(),
                 profileId,
                 requestModelAll);
-        snapshotIds.add(snapshotSummaryAll.getId());
-        SnapshotModel snapshotAll = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId());
+        snapshotIds.add(snapshotSummaryAll.getId().toString());
+        SnapshotModel snapshotAll = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId().toString());
         // The steward is the custodian in this case, so is a reader in big query.
         BigQuery bigQueryAll = BigQueryFixtures.getBigQuery(snapshotAll.getDataProject(), stewardToken);
 
@@ -408,9 +408,9 @@ public class DatasetIntegrationTest extends UsersBase {
                 dataset.getName(),
                 profileId,
                 requestModelLess);
-        snapshotIds.add(snapshotSummaryLess.getId());
+        snapshotIds.add(snapshotSummaryLess.getId().toString());
 
-        SnapshotModel snapshotLess = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId());
+        SnapshotModel snapshotLess = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId().toString());
         BigQuery bigQueryLess = BigQueryFixtures.getBigQuery(snapshotLess.getDataProject(), stewardToken);
 
         // make sure the old counts stayed the same
@@ -466,7 +466,7 @@ public class DatasetIntegrationTest extends UsersBase {
     private String ingestedDataset() throws Exception {
         DatasetSummaryModel datasetSummaryModel =
             dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-        String datasetId = datasetSummaryModel.getId();
+        String datasetId = datasetSummaryModel.getId().toString();
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);

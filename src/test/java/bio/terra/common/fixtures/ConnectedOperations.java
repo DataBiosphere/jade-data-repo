@@ -173,7 +173,7 @@ public class ConnectedOperations {
             .andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         DatasetSummaryModel datasetSummaryModel = handleSuccessCase(response, DatasetSummaryModel.class);
-        addDataset(datasetSummaryModel.getId());
+        addDataset(datasetSummaryModel.getId().toString());
         return datasetSummaryModel;
     }
 
@@ -202,7 +202,7 @@ public class ConnectedOperations {
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
         BillingProfileModel billingProfileModel = handleSuccessCase(response, BillingProfileModel.class);
-        addProfile(billingProfileModel.getId());
+        addProfile(billingProfileModel.getId().toString());
         return billingProfileModel;
     }
 
@@ -345,7 +345,7 @@ public class ConnectedOperations {
 
     public SnapshotSummaryModel handleCreateSnapshotSuccessCase(MockHttpServletResponse response) throws Exception {
         SnapshotSummaryModel summaryModel = handleSuccessCase(response, SnapshotSummaryModel.class);
-        addSnapshot(summaryModel.getId());
+        addSnapshot(summaryModel.getId().toString());
         return summaryModel;
     }
 
@@ -760,7 +760,7 @@ public class ConnectedOperations {
                 (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));
 
             JobModel jobModel = TestUtils.mapFromJson(response.getContentAsString(), JobModel.class);
-            String jobId = jobModel.getId();
+            String jobId = jobModel.getId().toString();
             String locationUrl = response.getHeader("Location");
             assertNotNull("location URL was specified", locationUrl);
 

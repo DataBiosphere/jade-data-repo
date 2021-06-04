@@ -48,6 +48,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -114,7 +115,7 @@ public class DataRepoFixtures {
     private DataRepoResponse<JobModel> createDatasetRaw(TestConfiguration.User user, String profileId, String filename)
         throws Exception {
         DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
-        requestModel.setDefaultProfileId(profileId);
+        requestModel.setDefaultProfileId(UUID.fromString(profileId));
         requestModel.setName(Names.randomizeName(requestModel.getName()));
         String json = TestUtils.mapToJson(requestModel);
 
@@ -304,7 +305,7 @@ public class DataRepoFixtures {
             requestModel.setName(Names.randomizeName(requestModel.getName()));
         }
         requestModel.getContents().get(0).setDatasetName(datasetName);
-        requestModel.setProfileId(profileId);
+        requestModel.setProfileId(UUID.fromString(profileId));
         String json = TestUtils.mapToJson(requestModel);
 
         return dataRepoClient.post(
@@ -479,7 +480,7 @@ public class DataRepoFixtures {
 
         FileLoadModel fileLoadModel = new FileLoadModel()
             .sourcePath(sourceGsPath)
-            .profileId(profileId)
+            .profileId(UUID.fromString(profileId))
             .description(null)
             .mimeType("application/octet-string")
             .targetPath(targetPath);

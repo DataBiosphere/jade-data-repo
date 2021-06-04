@@ -82,7 +82,7 @@ public class FileTest extends UsersBase {
     @Before
     public void setup() throws Exception {
         super.setup();
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId().toString();
         dataRepoFixtures.addPolicyMember(
             steward(),
             profileId,
@@ -91,12 +91,12 @@ public class FileTest extends UsersBase {
             IamResourceType.SPEND_PROFILE);
 
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
-        datasetId = datasetSummaryModel.getId();
+        datasetId = datasetSummaryModel.getId().toString();
         snapshotId = null;
         fileIds = new ArrayList<>();
         logger.info("created dataset " + datasetId);
         dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
+            steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     }
 
     @After
@@ -135,7 +135,7 @@ public class FileTest extends UsersBase {
 
         BulkLoadArrayRequestModel
             arrayLoad = new BulkLoadArrayRequestModel()
-            .profileId(profileId)
+            .profileId(UUID.fromString(profileId))
             .loadTag(loadTag)
             .maxFailedFileLoads(filesToLoad); // do not stop if there is a failure.
 
@@ -300,7 +300,7 @@ public class FileTest extends UsersBase {
             datasetSummaryModel.getName(),
             profileId,
             "file-acl-test-snapshot.json");
-        snapshotId = snapshotSummaryModel.getId();
+        snapshotId = snapshotSummaryModel.getId().toString();
 
         /*
          * WARNING: if making any changes to this test make sure to notify the #dsp-batch channel! Describe the change

@@ -20,6 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.UUID;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -63,7 +64,7 @@ public class ProfileTest {
             .andExpect(jsonPath("$.billingAccountId").value(accountId))
             .andReturn().getResponse().getContentAsString();
         BillingProfileModel profileModel = objectMapper.readerFor(BillingProfileModel.class).readValue(responseJson);
-        String profileId = profileModel.getId();
+        UUID profileId = profileModel.getId();
 
         mvc.perform(get("/api/resources/v1/profiles/" + profileId)
             .contentType(MediaType.APPLICATION_JSON)

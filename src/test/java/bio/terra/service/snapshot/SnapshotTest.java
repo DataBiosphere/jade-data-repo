@@ -83,7 +83,7 @@ public class SnapshotTest extends UsersBase {
     public void setup() throws Exception {
         super.setup();
         stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId().toString();
         dataRepoFixtures.addPolicyMember(
             steward(),
             profileId,
@@ -92,7 +92,7 @@ public class SnapshotTest extends UsersBase {
             IamResourceType.SPEND_PROFILE);
 
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-        datasetId = datasetSummaryModel.getId();
+        datasetId = datasetSummaryModel.getId().toString();
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
 
@@ -142,13 +142,13 @@ public class SnapshotTest extends UsersBase {
                 "ingest-test-snapshot.json");
 
         DataRepoResponse<JobModel> deleteSnapResp =
-            dataRepoFixtures.deleteSnapshotLaunch(reader(), snapshotSummary.getId());
+            dataRepoFixtures.deleteSnapshotLaunch(reader(), snapshotSummary.getId().toString());
         assertThat("Reader is not authorized to delete a dataSnapshot",
             deleteSnapResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         DataRepoResponse<SnapshotModel> getSnapResp = dataRepoFixtures.getSnapshotRaw(
-            discoverer(), snapshotSummary.getId());
+            discoverer(), snapshotSummary.getId().toString());
         assertThat("Discoverer is not authorized to get a dataSnapshot",
             getSnapResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
@@ -164,7 +164,7 @@ public class SnapshotTest extends UsersBase {
 
         EnumerateSnapshotModel enumSnapByDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
             steward(),
-            Collections.singletonList(datasetSummaryModel.getId()));
+            Collections.singletonList(datasetSummaryModel.getId().toString()));
 
         assertThat("Dataset filters to dataSnapshots",
             enumSnapByDatasetId.getTotal(),
@@ -187,7 +187,7 @@ public class SnapshotTest extends UsersBase {
             equalTo(0));
 
         // Delete snapshot as custodian for this test since teardown uses steward
-        dataRepoFixtures.deleteSnapshot(custodian(), snapshotSummary.getId());
+        dataRepoFixtures.deleteSnapshot(custodian(), snapshotSummary.getId().toString());
     }
 
     @Test
@@ -205,8 +205,8 @@ public class SnapshotTest extends UsersBase {
             bqDatasetName,
             participantTable);
         TableResult participantIds = BigQueryFixtures.query(sql, bigQuery);
-        List<String> participantIdList = StreamSupport.stream(participantIds.getValues().spliterator(), false)
-            .map(v -> v.get(0).getStringValue())
+        List<UUID> participantIdList = StreamSupport.stream(participantIds.getValues().spliterator(), false)
+            .map(v -> UUID.fromString(v.get(0).getStringValue()))
             .collect(Collectors.toList());
         sql = String.format("SELECT %s FROM `%s.%s.%s`",
             PdaoConstant.PDAO_ROW_ID_COLUMN,
@@ -214,8 +214,8 @@ public class SnapshotTest extends UsersBase {
             bqDatasetName,
             sampleTable);
         TableResult sampleIds = BigQueryFixtures.query(sql, bigQuery);
-        List<String> sampleIdList = StreamSupport.stream(sampleIds.getValues().spliterator(), false)
-            .map(v -> v.get(0).getStringValue())
+        List<UUID> sampleIdList = StreamSupport.stream(sampleIds.getValues().spliterator(), false)
+            .map(v -> UUID.fromString(v.get(0).getStringValue()))
             .collect(Collectors.toList());
 
         // swap in these row ids in the request
@@ -238,8 +238,8 @@ public class SnapshotTest extends UsersBase {
                 profileId,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
-        createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        createdSnapshotIds.add(snapshotSummary.getId().toString());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId().toString());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("new snapshot has the correct number of tables",
             requestModel.getContents().get(0).getRowIdSpec().getTables().size(),
@@ -268,8 +268,8 @@ public class SnapshotTest extends UsersBase {
                 profileId,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
-        createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        createdSnapshotIds.add(snapshotSummary.getId().toString());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId().toString());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     }
 
@@ -287,8 +287,8 @@ public class SnapshotTest extends UsersBase {
                 profileId,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
-        createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        createdSnapshotIds.add(snapshotSummary.getId().toString());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId().toString());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
@@ -325,7 +325,7 @@ public class SnapshotTest extends UsersBase {
             dataRepoFixtures.createSnapshotWithRequest(steward(), datasetSummaryModel.getName(), profileId,
             requestModel, false);
 
-        createdSnapshotIds.add(snapshotSummary.getId());
+        createdSnapshotIds.add(snapshotSummary.getId().toString());
     }
 
     @Test
@@ -347,8 +347,8 @@ public class SnapshotTest extends UsersBase {
                 datasetName,
                 profileId,
                 requestModel);
-        createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        createdSnapshotIds.add(snapshotSummary.getId().toString());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId().toString());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("There should be 5 snapshot relationships", snapshot.getRelationships().size(), 5);
 
@@ -359,7 +359,7 @@ public class SnapshotTest extends UsersBase {
             datasetPlusSnapshotCount, greaterThan(datasetAclCount));
 
         //-----------delete snapshot------------
-        dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
+        dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId().toString());
         logger.info("---- Dataset Acls after snapshot delete-----");
         int datasetMinusSnapshotAclCount = retryAclUpdate(datasetName, datasetAclCount, AclCheck.EQUALTO);
         assertEquals("We should be back to the same number of Acls on the dataset after snapshot delete",

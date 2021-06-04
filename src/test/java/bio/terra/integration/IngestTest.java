@@ -24,6 +24,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -55,7 +56,7 @@ public class IngestTest extends UsersBase {
     @Before
     public void setup() throws Exception {
         super.setup();
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId().toString();
         dataRepoFixtures.addPolicyMember(
             steward(),
             profileId,
@@ -64,7 +65,7 @@ public class IngestTest extends UsersBase {
             IamResourceType.SPEND_PROFILE);
 
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-        datasetId = datasetSummaryModel.getId();
+        datasetId = datasetSummaryModel.getId().toString();
         dataRepoFixtures.addDatasetPolicyMember(steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     }
 
@@ -131,7 +132,7 @@ public class IngestTest extends UsersBase {
                 datasetSummaryModel.getName(),
                 profileId,
                 "ingest-test-snapshot.json");
-        createdSnapshotIds.add(snapshotSummary.getId());
+        createdSnapshotIds.add(snapshotSummary.getId().toString());
     }
 
     @Test

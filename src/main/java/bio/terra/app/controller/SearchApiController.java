@@ -24,11 +24,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -101,10 +100,13 @@ public class SearchApiController implements SearchApi {
         Integer limit) {
 
         List<UUID> accessibleIds =
-            iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
+            iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT).subList(0, 10);
+
+        final List<String> snapshotIds = searchQueryRequest.getSnapshotIds();
 
         Set<UUID> requestIds =
-            searchQueryRequest.getSnapshotIds().stream().map(UUID::fromString).collect(Collectors.toSet());
+            snapshotIds == null || snapshotIds.isEmpty() ? Collections.emptySet() :
+                snapshotIds.stream().map(UUID::fromString).collect(Collectors.toSet());
 
         Set<UUID> inaccessibleIds = new HashSet<>(requestIds);
         accessibleIds.forEach(inaccessibleIds::remove);

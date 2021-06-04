@@ -2,17 +2,18 @@ package bio.terra.service.search;
 
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
+import bio.terra.model.SearchQueryRequest;
+import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.search.exception.SearchException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-
 import org.apache.http.HttpHost;
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
-import bio.terra.model.SearchQueryRequest;
-import bio.terra.model.SearchQueryResultModel;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.GetAliasesResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -38,6 +39,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -135,6 +137,16 @@ public class SearchService {
         return getIndexSummary(indexName);
     }
 
+    private Set<String> getValidIndexes() {
+        final RestClientBuilder builder = RestClient.builder(new HttpHost("localhost", 9200));
+        try (RestHighLevelClient client = new RestHighLevelClient(builder)) {
+            GetAliasesResponse response = client.indices().getAlias(new GetAliasesRequest(), RequestOptions.DEFAULT);
+            return response.getAliases().keySet();
+        } catch (IOException e) {
+            throw new SearchException("Error creating ES client", e);
+        }
+    }
+
     public SearchQueryResultModel querySnapshot(
             SearchQueryRequest searchQueryRequest, Collection<UUID> snapshotIdsToQuery,
             int offset, int limit) {
@@ -148,7 +160,12 @@ public class SearchService {
             WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
             searchSourceBuilder.query(wrapperQuery);
 
-            var indicesToQuery = snapshotIdsToQuery.stream().map(this::uuidToIndexName).toArray(String[]::new);
+            var validIndexes = getValidIndexes();
+
+            var indicesToQuery = snapshotIdsToQuery.stream()
+                .map(this::uuidToIndexName)
+                .filter(validIndexes::contains)
+                .toArray(String[]::new);
 
             SearchRequest searchRequest = new SearchRequest(indicesToQuery, searchSourceBuilder);
 

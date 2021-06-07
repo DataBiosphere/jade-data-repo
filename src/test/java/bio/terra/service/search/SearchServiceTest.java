@@ -15,7 +15,6 @@ import org.mockito.MockitoAnnotations;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,7 +22,7 @@ import java.util.UUID;
 import static org.mockito.Mockito.when;
 
 @Category(Unit.class)
-public class SearchTest {
+public class SearchServiceTest {
     private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as now FROM UNNEST" +
         "(GENERATE_ARRAY(1, 3));";
 
@@ -67,10 +66,7 @@ public class SearchTest {
     private List<Map<String, Object>> getSnapshotTableData() {
         List<Map<String, Object>> values = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
-            Map<String, Object> row = new HashMap<>();
-            row.put("uuid", UUID.randomUUID().toString());
-            row.put("now", Instant.now().toString());
-            values.add(row);
+            values.add(Map.of("uuid", UUID.randomUUID().toString(), "now", Instant.now().toString()));
         }
 
         return values;

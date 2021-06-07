@@ -85,7 +85,7 @@ public class ResourceService {
             null,
             region);
 
-        List<UUID> bucketsForDataset = datasetBucketDao.getBucketForDatasetId(dataset.getId());
+        List<UUID> bucketsForDataset = datasetBucketDao.getBucketResourceIdForDatasetId(dataset.getId());
         String bucketName = possibleBucketName;
 
         List<GoogleBucketResource> bucketsForBillingProfile = bucketsForDataset.stream()

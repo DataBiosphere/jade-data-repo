@@ -105,7 +105,7 @@ public class DatasetBucketDao {
         return (count == 1);
     }
 
-    public List<UUID> getBucketForDatasetId(UUID datasetId) {
+    public List<UUID> getBucketResourceIdForDatasetId(UUID datasetId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("dataset_id", datasetId);
         return jdbcTemplate.query(sqlGetBucketResourceId, params, new UuidMapper("bucket_resource_id"));

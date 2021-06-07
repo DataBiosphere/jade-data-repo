@@ -85,7 +85,7 @@ public class ResourceServiceUnitTest {
     public void testUseExistingBucketWhenNewNameProduced() throws Exception {
         when(googleProjectService.getOrCreateProject(any(), any(), any(), any()))
             .thenReturn(projectResource);
-        when(datasetBucketDao.getBucketForDatasetId(datasetId)).thenReturn(bucketsForDataset);
+        when(datasetBucketDao.getBucketResourceIdForDatasetId(datasetId)).thenReturn(bucketsForDataset);
         when(bucketService.getBucketResourceById(bucketId, true)).thenReturn(bucketResource);
         when(oneProjectPerProfileIdSelector.bucketForFile(datasetId, profileModel))
             .thenReturn("newBucketName");
@@ -106,7 +106,7 @@ public class ResourceServiceUnitTest {
 
         when(googleProjectService.getOrCreateProject(any(), any(), any(), any()))
             .thenReturn(projectResource);
-        when(datasetBucketDao.getBucketForDatasetId(datasetId)).thenReturn(new ArrayList<>());
+        when(datasetBucketDao.getBucketResourceIdForDatasetId(datasetId)).thenReturn(new ArrayList<>());
         when(oneProjectPerProfileIdSelector.bucketForFile(datasetId, profileModel))
             .thenReturn("newBucketName");
         when(bucketService

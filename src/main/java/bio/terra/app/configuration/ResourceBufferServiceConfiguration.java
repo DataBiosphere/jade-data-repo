@@ -23,7 +23,7 @@ public class ResourceBufferServiceConfiguration {
     private String clientCredentialFilePath;
 
     //I think we'd want to re-use our app scopes.
-    private static final ImmutableList<String> BUFFER_SCOPES = ImmutableList.of("openid", "email", "profile");
+    private static final List<String> BUFFER_SCOPES = List.of("openid", "email", "profile");
 
     public boolean getEnabled() {
         return enabled;

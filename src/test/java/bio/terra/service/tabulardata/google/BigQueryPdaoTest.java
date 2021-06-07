@@ -24,6 +24,10 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.JobInfo;
@@ -58,6 +62,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
@@ -487,6 +492,31 @@ public class BigQueryPdaoTest {
             // `connectedOperations` object, so we can't rely on its auto-teardown logic.
             datasetDao.delete(dataset.getId());
         }
+    }
+
+    private static final String snapshotTableDataSqlExample = "SELECT id, 'hello' as text" +
+        " FROM UNNEST(GENERATE_ARRAY(1, 3)) AS id ORDER BY id;";
+
+    @Test
+    public void testGetSnapshotTableData() throws Exception {
+        UUID profileId = UUID.fromString(profileModel.getId());
+        String dataProjectId = googleResourceConfiguration.getSingleDataProjectId();
+        Snapshot snapshot = new Snapshot().projectResource(new GoogleProjectResource()
+            .profileId(profileId)
+            .googleProjectId(dataProjectId)
+        );
+        List<Map<String, Object>> expected = getExampleSnapshotTableData();
+        List<Map<String, Object>> actual = bigQueryPdao.getSnapshotTableData(snapshot, snapshotTableDataSqlExample);
+        assertEquals(expected, actual);
+    }
+
+    private List<Map<String, Object>> getExampleSnapshotTableData() {
+        List<Map<String, Object>> values = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            values.add(Map.of( "text", "hello", "id", String.valueOf(i+1)));
+        }
+
+        return values;
     }
 
     public com.google.cloud.bigquery.Dataset bigQueryDataset(Dataset dataset) {

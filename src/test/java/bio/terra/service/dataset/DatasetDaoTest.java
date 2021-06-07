@@ -237,29 +237,6 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void datasetRegionFirestoreFallbackTest() throws Exception {
-        GoogleRegion regionDiffThanDefault = GoogleRegion.US_EAST1;
-        DatasetRequestModel request = jsonLoader
-            .loadObject("dataset-create-test.json", DatasetRequestModel.class)
-            .region(regionDiffThanDefault.toString());
-        String expectedName = request.getName() + UUID.randomUUID().toString();
-
-        UUID datasetId = createDataset(request, expectedName);
-        try {
-            Dataset fromDB = datasetDao.retrieve(datasetId);
-
-            for (GoogleCloudResource resource: GoogleCloudResource.values()) {
-                GoogleRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
-                assertThat(String.format("dataset %s region is set", resource),
-                    region,
-                    equalTo(regionDiffThanDefault));
-            }
-        } finally {
-            datasetDao.delete(datasetId);
-        }
-    }
-
-    @Test
     public void partitionTest() throws Exception {
         UUID datasetId = createDataset("ingest-test-partitioned-dataset.json");
         try {

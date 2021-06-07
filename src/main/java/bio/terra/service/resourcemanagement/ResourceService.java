@@ -66,11 +66,11 @@ public class ResourceService {
      * @param flightId       used to lock the bucket metadata during possible creation
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws CorruptMetadataException in two cases.
-     *                                  <ol>
-     *                                      <le>if the bucket already exists, but the metadata does not AND
-     *                                      the application property allowReuseExistingBuckets=false.</le>
-     *                                      <le>if the metadata exists, but the bucket does not</le>
-     *                                  </ol>
+     * <ol>
+     *     <le>if the bucket already exists, but the metadata does not AND
+     *     the application property allowReuseExistingBuckets=false.</le>
+     *     <le>if the metadata exists, but the bucket does not</le>
+     * </ol>
      */
     public GoogleBucketResource getOrCreateBucketForFile(String possibleBucketName,
         Dataset dataset,
@@ -98,6 +98,10 @@ public class ResourceService {
         if (bucketsForBillingProfile.size() > 0) {
             GoogleBucketResource bucket = bucketsForBillingProfile.get(0);
             bucketName = bucket.getName();
+
+            if (bucketsForBillingProfile.size() > 1) {
+                logger.warn("Found more than one bucket associated with this dataset and billing profile");
+            }
         }
 
         return bucketService.getOrCreateBucket(bucketName, projectResource,

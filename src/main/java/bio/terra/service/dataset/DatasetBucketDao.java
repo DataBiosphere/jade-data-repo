@@ -108,7 +108,7 @@ public class DatasetBucketDao {
     public List<UUID> getBucketForDatasetId(UUID datasetId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("dataset_id", datasetId);
-        return jdbcTemplate.query(sqlGetBucketResourceId, params, new DatasetBucketMapper());
+        return jdbcTemplate.query(sqlGetBucketResourceId, params, new UuidMapper("bucket_resource_id"));
     }
 
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
@@ -144,9 +144,15 @@ public class DatasetBucketDao {
 
     }
 
-    private static class DatasetBucketMapper implements RowMapper<UUID> {
+    private static class UuidMapper implements RowMapper<UUID> {
+        private String columnLabel;
+
+        UuidMapper(String columnLabel) {
+            this.columnLabel = columnLabel;
+        }
+
         public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return rs.getObject("bucket_resource_id", UUID.class);
+            return rs.getObject(this.columnLabel, UUID.class);
         }
     }
 }

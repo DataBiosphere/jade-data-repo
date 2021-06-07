@@ -514,11 +514,7 @@ public class BigQueryPdaoTest {
     private List<Map<String, Object>> getExampleSnapshotTableData() {
         List<Map<String, Object>> values = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
-<<<<<<< HEAD
             values.add(Map.of("id", String.valueOf(i + 1), "text", "hello"));
-=======
-            values.add(Map.of( "text", "hello", "id", String.valueOf(i+1)));
->>>>>>> fd920807 (Add unit test for getSnapshotTableData)
         }
 
         return values;

@@ -288,7 +288,7 @@ public class GoogleBucketService {
             //.setRequesterPays()
             // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
             .setStorageClass(StorageClass.REGIONAL)
-            .setLocation(bucketResource.getRegion().toString())
+            .setLocation(bucketResource.getRegion().getBucketRegion().toString())
             .setVersioningEnabled(doVersioning)
             .build();
         // the project will have been created before this point, so no need to fetch it

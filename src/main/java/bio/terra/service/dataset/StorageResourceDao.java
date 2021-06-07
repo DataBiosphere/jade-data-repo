@@ -97,7 +97,7 @@ public class StorageResourceDao {
                 regionParam, cloudResourceParam, platformParam));
 
             if (storageResource.getCloudResource() == GoogleCloudResource.FIRESTORE) {
-                params.addValue(regionParam, storageResource.getRegion().getFirestoreFallbackRegion().name());
+                params.addValue(regionParam, storageResource.getRegion().getFirestoreRegion().name());
             } else {
                 params.addValue(regionParam, storageResource.getRegion().name());
             }

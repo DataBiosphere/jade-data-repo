@@ -15,5 +15,5 @@ BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/dev/dev/buffer
 BUFFER_CLIENT_SERVICE_ACCOUNT_OUTPUT_PATH=/tmp/buffer-client-sa-account.json
 
 docker run --rm -e VAULT_TOKEN=$VAULT_TOKEN broadinstitute/dsde-toolbox:latest \
-    vault read -format=json ${BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH} | \
-    jq -r .data.key | base64 -d > ${BUFFER_CLIENT_SERVICE_ACCOUNT_OUTPUT_PATH}
+    vault read -field=key ${BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH} | \
+    base64 -d > ${BUFFER_CLIENT_SERVICE_ACCOUNT_OUTPUT_PATH}

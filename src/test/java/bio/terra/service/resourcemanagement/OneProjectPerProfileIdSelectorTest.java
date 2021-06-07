@@ -9,7 +9,6 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,17 +89,6 @@ public class OneProjectPerProfileIdSelectorTest {
         String projectId = oneProjectPerProfileIdSelector.projectIdForFile(datasetName, billingProfile);
         String expectedProfileId = resourceConfiguration.getDataProjectPrefixToUse() + "-" +
             billingProfile.getProfileName();
-        assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
-    }
-
-    @Test
-    public void shouldGetCorrectIdForBucket() throws Exception {
-        UUID datasetId = UUID.randomUUID();
-        BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
-        String projectId = oneProjectPerProfileIdSelector.bucketForFile(datasetId, billingProfile);
-        String expectedProfileId = resourceConfiguration.getDataProjectPrefixToUse()
-            + "-" + billingProfile.getProfileName()
-            + "-bucket";
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
     }
 

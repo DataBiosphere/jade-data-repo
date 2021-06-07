@@ -21,12 +21,10 @@ import org.springframework.context.annotation.Configuration;
 public class ResourceBufferServiceConfiguration {
     private final Logger logger = LoggerFactory.getLogger(ResourceBufferServiceConfiguration.class);
 
-    // TODO - Pull these into env variables
-    private boolean enabled = true;
-    //dev
-    private String instanceUrl = "https://buffer.dsde-dev.broadinstitute.org";
-    private String poolId = "datarepo_v3";
-    private String clientCredentialFilePath = "/tmp/buffer-client-sa-account.json";
+    private boolean enabled;
+    private String instanceUrl;
+    private String poolId;
+    private String clientCredentialFilePath;
 
     //I think we'd want to re-use our app scopes.
     private static final ImmutableList<String> BUFFER_SCOPES = ImmutableList.of("openid", "email", "profile");
@@ -55,6 +53,10 @@ public class ResourceBufferServiceConfiguration {
         this.poolId = poolId;
     }
 
+    public String getClientCredentialFilePath() {
+        return clientCredentialFilePath;
+    }
+
     public void setClientCredentialFilePath(String clientCredentialFilePath) {
         this.clientCredentialFilePath = clientCredentialFilePath;
     }
@@ -65,7 +67,6 @@ public class ResourceBufferServiceConfiguration {
             GoogleCredentials credentials =
                 ServiceAccountCredentials.fromStream(fileInputStream).createScoped(BUFFER_SCOPES);
             AccessToken token = credentials.refreshAccessToken();
-            logger.info("TOKEN: {}", token.getTokenValue());
             return token.getTokenValue();
         }
     }

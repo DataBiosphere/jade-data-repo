@@ -25,7 +25,7 @@ public class RBSConnectedTest {
     @Autowired private BufferService bufferService;
 
     @Test
-    public void testProjectHandout() throws Exception {
+    public void testProjectHandout() {
         String handoutRequestId = UUID.randomUUID().toString();
         HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
         ResourceInfo resource = bufferService.handoutResource(request);

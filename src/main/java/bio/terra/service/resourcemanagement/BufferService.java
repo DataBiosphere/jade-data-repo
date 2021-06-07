@@ -124,7 +124,7 @@ public class BufferService {
         } catch (ApiException e) {
             return new RepositoryStatusModelSystems()
                 .ok(false)
-                .critical(false)
+                .critical(bufferServiceConfiguration.getEnabled())
                 .message(e.getResponseBody());
         }
     }

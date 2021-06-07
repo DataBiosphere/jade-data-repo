@@ -2,15 +2,12 @@ package bio.terra.app.controller;
 
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.app.configuration.TerraConfiguration;
-import bio.terra.buffer.client.ApiException;
-import bio.terra.buffer.model.PoolInfo;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
 import bio.terra.model.RepositoryStatusModel;
 import bio.terra.service.configuration.StatusService;
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.job.JobService;
-import bio.terra.service.resourcemanagement.BufferService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import org.slf4j.Logger;
@@ -21,7 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -43,7 +39,6 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     private final StatusService statusService;
     private final SamConfiguration samConfiguration;
     private final TerraConfiguration terraConfiguration;
-    private final BufferService bufferService;
 
     private static final String DEFAULT_SEMVER = "1.0.0-UNKNOWN";
     private static final String DEFAULT_GITHASH = "00000000";
@@ -60,8 +55,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         Environment env,
         StatusService statusService,
         TerraConfiguration terraConfiguration,
-        SamConfiguration samConfiguration,
-        BufferService bufferService
+        SamConfiguration samConfiguration
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -71,7 +65,6 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
         this.statusService = statusService;
         this.terraConfiguration = terraConfiguration;
         this.samConfiguration = samConfiguration;
-        this.bufferService = bufferService;
 
         Properties properties = new Properties();
         try (InputStream versionFile = getClass().getClassLoader().getResourceAsStream("version.properties")) {
@@ -124,12 +117,6 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
-
-    @RequestMapping(value = "/rbsTestEndpoint", method = RequestMethod.GET)
-    public ResponseEntity<PoolInfo> rbsTestEndpoint() throws IOException, ApiException {
-       logger.info("HELLO!");
-        return new ResponseEntity<>(bufferService.getPoolInfo(), HttpStatus.OK);
     }
 
     /**

@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "rbs")
 public class ResourceBufferServiceConfiguration {
 
-    private boolean enabled;
+    private boolean enabled = false;
     private String instanceUrl;
     private String poolId;
     private String clientCredentialFilePath;

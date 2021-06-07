@@ -34,7 +34,7 @@ public enum GoogleRegion {
         US("us", GoogleRegion.US_CENTRAL1);
 
 
-    public static final GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_EAST4;
+    public static final GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_CENTRAL1;
 
     private final String value;
     private final GoogleRegion firestoreFallbackRegion;

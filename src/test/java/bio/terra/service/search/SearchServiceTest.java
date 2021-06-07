@@ -23,8 +23,8 @@ import static org.mockito.Mockito.when;
 
 @Category(Unit.class)
 public class SearchServiceTest {
-    private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as now FROM UNNEST" +
-        "(GENERATE_ARRAY(1, 3));";
+    private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as now" +
+        " FROM UNNEST(GENERATE_ARRAY(1, 3));";
 
     @Mock
     private BigQueryPdao bigQueryPdao;
@@ -66,7 +66,9 @@ public class SearchServiceTest {
     private List<Map<String, Object>> getSnapshotTableData() {
         List<Map<String, Object>> values = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
-            values.add(Map.of("uuid", UUID.randomUUID().toString(), "now", Instant.now().toString()));
+            Instant now = Instant.now();
+            String ts = String.format("%f", now.getEpochSecond() + now.getNano()/1E9);
+            values.add(Map.of("uuid", UUID.randomUUID().toString(), "now", ts));
         }
 
         return values;

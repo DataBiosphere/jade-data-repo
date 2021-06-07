@@ -513,7 +513,7 @@ public class BigQueryPdaoTest {
     private List<Map<String, Object>> getExampleSnapshotTableData() {
         List<Map<String, Object>> values = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
-            values.add(Map.of("id", String.valueOf(i+1), "text", "hello"));
+            values.add(Map.of("id", String.valueOf(i + 1), "text", "hello"));
         }
 
         return values;

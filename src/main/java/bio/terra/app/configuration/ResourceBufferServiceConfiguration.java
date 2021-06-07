@@ -1,18 +1,18 @@
 package bio.terra.app.configuration;
 
-    import bio.terra.service.resourcemanagement.BufferService;
-    import com.google.auth.oauth2.AccessToken;
-    import com.google.auth.oauth2.GoogleCredentials;
-    import com.google.auth.oauth2.ServiceAccountCredentials;
-    import com.google.common.collect.ImmutableList;
-    import java.io.FileInputStream;
-    import java.io.IOException;
+import bio.terra.service.resourcemanagement.BufferService;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.common.collect.ImmutableList;
+import java.io.FileInputStream;
+import java.io.IOException;
 
-    import org.slf4j.Logger;
-    import org.slf4j.LoggerFactory;
-    import org.springframework.boot.context.properties.ConfigurationProperties;
-    import org.springframework.boot.context.properties.EnableConfigurationProperties;
-    import org.springframework.context.annotation.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
 /** Configuration for managing connection to Buffer Service. * */
 @Configuration
@@ -25,14 +25,11 @@ public class ResourceBufferServiceConfiguration {
     private boolean enabled = true;
     //dev
     private String instanceUrl = "https://buffer.dsde-dev.broadinstitute.org";
-    //integration
-    //private String instanceUrl = "https://buffer.tools.integ.envs.broadinstitute.org";
-    private String poolId = "testPoolId";
+    private String poolId = "datarepo_v3";
     private String clientCredentialFilePath = "/tmp/buffer-client-sa-account.json";
 
     //I think we'd want to re-use our app scopes.
-    private static final ImmutableList<String> BUFFER_SCOPES =
-        ImmutableList.of("openid", "email", "profile");
+    private static final ImmutableList<String> BUFFER_SCOPES = ImmutableList.of("openid", "email", "profile");
 
     public boolean getEnabled() {
         return enabled;

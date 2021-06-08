@@ -74,9 +74,10 @@ public class DatasetDaoTest {
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName, String region) throws Exception {
         datasetRequest
             .name(newName)
-            .defaultProfileId(billingProfile.getId())
-            .cloudPlatform(CloudPlatform.GCP)
-            .region(region);
+            .defaultProfileId(billingProfile.getId());
+        if (region != null) {
+            datasetRequest.region(region).cloudPlatform(CloudPlatform.GCP);
+        }
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         dataset.projectResourceId(projectId);
         String createFlightId = UUID.randomUUID().toString();
@@ -90,7 +91,7 @@ public class DatasetDaoTest {
     private UUID createDataset(String datasetFile) throws Exception  {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
         return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString(),
-            GoogleRegion.DEFAULT_GOOGLE_REGION.toString());
+            null);
     }
 
     @Before
@@ -156,7 +157,7 @@ public class DatasetDaoTest {
 
         MetadataEnumeration<DatasetSummary> filterDefaultRegionEnum = datasetDao.enumerate(0, 2,
             EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null,
-                GoogleRegion.DEFAULT_GOOGLE_REGION.toString(), datasetIds);
+                GoogleRegion.DEFAULT_GOOGLE_REGION.getName(), datasetIds);
         List<DatasetSummary> filteredDefaultRegionDatasets = filterDefaultRegionEnum.getItems();
         assertThat("dataset filter by default GCS region returns correct total",
             filteredDefaultRegionDatasets.size(),
@@ -169,7 +170,7 @@ public class DatasetDaoTest {
 
         MetadataEnumeration<DatasetSummary> filterNameAndRegionEnum = datasetDao.enumerate(0, 2,
                 EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getName(),
-                GoogleRegion.DEFAULT_GOOGLE_REGION.toString(), datasetIds);
+                GoogleRegion.DEFAULT_GOOGLE_REGION.getName(), datasetIds);
         List<DatasetSummary> filteredNameAndRegionDatasets = filterNameAndRegionEnum.getItems();
         assertThat("dataset filter by name and region returns correct total",
                 filteredNameAndRegionDatasets.size(),
@@ -185,7 +186,7 @@ public class DatasetDaoTest {
 
         MetadataEnumeration<DatasetSummary> filterRegionEnum = datasetDao.enumerate(0, 2,
             EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null,
-                GoogleRegion.US_EAST1.toString(), datasetIds);
+                GoogleRegion.US_EAST1.getName(), datasetIds);
         List<DatasetSummary> filteredRegionDatasets = filterRegionEnum.getItems();
         assertThat("dataset filter by non-default GCS region returns correct total",
             filteredRegionDatasets.size(),
@@ -206,7 +207,7 @@ public class DatasetDaoTest {
         String expectedName = request.getName() + UUID.randomUUID().toString();
 
         GoogleRegion testSettingRegion = GoogleRegion.ASIA_NORTHEAST1;
-        UUID datasetId = createDataset(request, expectedName, testSettingRegion.toString());
+        UUID datasetId = createDataset(request, expectedName, testSettingRegion.getName());
         try {
             Dataset fromDB = datasetDao.retrieve(datasetId);
 

@@ -283,7 +283,7 @@ public class SnapshotDaoTest {
         testSortingDescriptions(snapshotIdList, SqlSortDirection.ASC);
 
         MetadataEnumeration<SnapshotSummary> filterDefaultRegionEnum = snapshotDao.retrieveSnapshots(0, 6,
-                null, null, null, GoogleRegion.DEFAULT_GOOGLE_REGION.toString(), datasetIds, snapshotIdList);
+                null, null, null, GoogleRegion.DEFAULT_GOOGLE_REGION.getName(), datasetIds, snapshotIdList);
         List<SnapshotSummary> filteredRegionSnapshots = filterDefaultRegionEnum.getItems();
         assertThat("snapshot filter by default GCS region returns correct total",
             filteredRegionSnapshots.size(),
@@ -297,7 +297,7 @@ public class SnapshotDaoTest {
 
         MetadataEnumeration<SnapshotSummary> filterNameAndRegionEnum = snapshotDao.retrieveSnapshots(0, 6,
                 null, null, makeName(snapshotName, 0),
-                GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
+                GoogleRegion.DEFAULT_GOOGLE_REGION.getName(),
                 datasetIds, snapshotIdList);
         List<SnapshotSummary> filteredNameAndRegionSnapshots = filterNameAndRegionEnum.getItems();
         assertThat("snapshot filter by name and region returns correct total",

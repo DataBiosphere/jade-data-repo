@@ -146,7 +146,7 @@ public class BucketResourceTest {
             Bucket cloudBucket = bucketService.getCloudBucket(bucketName);
 
             assertThat("Google bucket was created in " + region, cloudBucket.getLocation(),
-                equalToIgnoringCase(region.toString()));
+                equalToIgnoringCase(region.getName()));
         }
     }
 

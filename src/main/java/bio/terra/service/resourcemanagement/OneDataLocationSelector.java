@@ -2,7 +2,6 @@ package bio.terra.service.resourcemanagement;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
@@ -40,7 +39,7 @@ public class OneDataLocationSelector implements DataLocationSelector {
     }
 
     @Override
-    public String bucketForFile(UUID datasetId, BillingProfileModel billingProfile) {
+    public String bucketForFile(String datasetName, BillingProfileModel billingProfile) {
         return oneProject() + "-bucket";
     }
 }

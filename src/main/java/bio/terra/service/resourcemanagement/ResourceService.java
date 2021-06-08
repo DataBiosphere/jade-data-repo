@@ -1,21 +1,21 @@
 package bio.terra.service.resourcemanagement;
 
-import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS;
-import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
-
-import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,10 +23,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+
+import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS;
+import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
 
 @Component
 public class ResourceService {
@@ -38,8 +37,6 @@ public class ResourceService {
     private final GoogleProjectService projectService;
     private final GoogleBucketService bucketService;
     private final SamConfiguration samConfiguration;
-    private final DatasetBucketDao datasetBucketDao;
-    private final GoogleResourceDao resourceDao;
 
 
     @Autowired
@@ -47,22 +44,17 @@ public class ResourceService {
         DataLocationSelector dataLocationSelector,
         GoogleProjectService projectService,
         GoogleBucketService bucketService,
-        SamConfiguration samConfiguration,
-        DatasetBucketDao datasetBucketDao,
-        GoogleResourceDao resourceDao) {
+        SamConfiguration samConfiguration) {
         this.dataLocationSelector = dataLocationSelector;
         this.projectService = projectService;
         this.bucketService = bucketService;
         this.samConfiguration = samConfiguration;
-        this.datasetBucketDao = datasetBucketDao;
-        this.resourceDao = resourceDao;
     }
 
     /**
      * Fetch/create a project, then use that to fetch/create a bucket.
      *
-     * @param billingProfile authorized profile for billing account information case we need to
-     *                       create a project
+     * @param billingProfile authorized profile for billing account information case we need to create a project
      * @param flightId       used to lock the bucket metadata during possible creation
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws CorruptMetadataException in two cases.
@@ -72,10 +64,9 @@ public class ResourceService {
      *     <le>if the metadata exists, but the bucket does not</le>
      * </ol>
      */
-    public GoogleBucketResource getOrCreateBucketForFile(String possibleBucketName,
-        Dataset dataset,
-        BillingProfileModel billingProfile,
-        String flightId) throws InterruptedException {
+    public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
+                                                         BillingProfileModel billingProfile,
+                                                         String flightId) throws InterruptedException {
         final String datasetName = dataset.getName();
         final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         // Every bucket needs to live in a project, so we get or create a project first
@@ -85,35 +76,11 @@ public class ResourceService {
             null,
             region);
 
-        List<UUID> bucketsForDataset = datasetBucketDao.getBucketResourceIdForDatasetId(dataset.getId());
-        String bucketName = possibleBucketName;
-
-        List<GoogleBucketResource> bucketsForBillingProfile = bucketsForDataset.stream()
-            .map(this::lookupBucket)
-            .filter(bucket -> bucketIsForBillingProfile(bucket, billingProfile))
-            .collect(Collectors.toList());
-
-        // there should never be more than one bucket per billing profile,
-        // so we just take the first one
-        if (bucketsForBillingProfile.size() > 0) {
-            GoogleBucketResource bucket = bucketsForBillingProfile.get(0);
-            bucketName = bucket.getName();
-
-            if (bucketsForBillingProfile.size() > 1) {
-                logger.warn("Found more than one bucket associated with this dataset and billing profile");
-            }
-        }
-
-        return bucketService.getOrCreateBucket(bucketName, projectResource,
+        return bucketService.getOrCreateBucket(
+            dataLocationSelector.bucketForFile(datasetName, billingProfile),
+            projectResource,
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             flightId);
-    }
-
-    private boolean bucketIsForBillingProfile(GoogleBucketResource bucket,
-        BillingProfileModel billingProfile) {
-        GoogleProjectResource resource = bucket.getProjectResource();
-        UUID billingProfileId = UUID.fromString(billingProfile.getId());
-        return resource.getProfileId().equals(billingProfileId);
     }
 
     /**
@@ -122,22 +89,17 @@ public class ResourceService {
      * @param bucketResourceId our identifier for the bucket
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
-     * @throws CorruptMetadataException        if the bucket_resource metadata row exists but the
-     *                                         cloud resource does not
+     * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
      */
     public GoogleBucketResource lookupBucket(String bucketResourceId) {
-        return lookupBucket(UUID.fromString(bucketResourceId));
-    }
-
-    public GoogleBucketResource lookupBucket(UUID bucketResourceId) {
-        return bucketService.getBucketResourceById(bucketResourceId, true);
+        return bucketService.getBucketResourceById(UUID.fromString(bucketResourceId), true);
     }
 
     /**
-     * Fetch an existing bucket_resource metadata row. Note this method does not check for the
-     * existence of the underlying cloud resource. This method is intended for places where an
-     * existence check on the associated cloud resource might be too much overhead (e.g. DRS
-     * lookups). Most bucket lookups should use the lookupBucket method instead, which has
+     * Fetch an existing bucket_resource metadata row.
+     * Note this method does not check for the existence of the underlying cloud resource.
+     * This method is intended for places where an existence check on the associated cloud resource might be too
+     * much overhead (e.g. DRS lookups). Most bucket lookups should use the lookupBucket method instead, which has
      * additional overhead but will catch metadata corruption errors sooner.
      *
      * @param bucketResourceId our identifier for the bucket
@@ -149,18 +111,17 @@ public class ResourceService {
     }
 
     /**
-     * Update the bucket_resource metadata table to match the state of the underlying cloud. - If
-     * the bucket exists, then the metadata row should also exist and be unlocked. - If the bucket
-     * does not exist, then the metadata row should not exist. If the metadata row is locked, then
-     * only the locking flight can unlock or delete the row.
+     * Update the bucket_resource metadata table to match the state of the underlying cloud.
+     * - If the bucket exists, then the metadata row should also exist and be unlocked.
+     * - If the bucket does not exist, then the metadata row should not exist.
+     * If the metadata row is locked, then only the locking flight can unlock or delete the row.
      *
-     * @param datasetId      id of the dataset that is storing files into the bucket
+     * @param datasetName    name of the dataset that is storing files into the bucket
      * @param billingProfile an authorized billing profile
      * @param flightId       flight doing the updating
      */
-    public void updateBucketMetadata(UUID datasetId, BillingProfileModel billingProfile,
-        String flightId) {
-        String bucketName = dataLocationSelector.bucketForFile(datasetId, billingProfile);
+    public void updateBucketMetadata(String datasetName, BillingProfileModel billingProfile, String flightId) {
+        String bucketName = dataLocationSelector.bucketForFile(datasetName, billingProfile);
         bucketService.updateBucketMetadata(bucketName, flightId);
     }
 
@@ -220,8 +181,7 @@ public class ResourceService {
 
     public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
-        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e)
-            .collect(Collectors.toList());
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
         projectService.updateIamPermissions(
             Collections.singletonMap(BQ_JOB_USER_ROLE, emails),
             dataProject,
@@ -230,8 +190,7 @@ public class ResourceService {
 
     public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
-        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e)
-            .collect(Collectors.toList());
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
         projectService.updateIamPermissions(
             Collections.singletonMap(BQ_JOB_USER_ROLE, emails),
             dataProject,

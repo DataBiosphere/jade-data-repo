@@ -1,7 +1,5 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
-
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigurationService;
@@ -22,13 +20,15 @@ import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
-import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
-import java.util.UUID;
 import org.springframework.context.ApplicationContext;
+
+import java.util.UUID;
+
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 // The FileIngestFlight is specific to firestore. Another cloud or file system implementation
 // might be quite different and would need a different flight.
@@ -52,7 +52,6 @@ public class FileIngestFlight extends Flight {
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
         ProfileService profileService = (ProfileService) appContext.getBean("profileService");
         DatasetBucketDao datasetBucketDao = (DatasetBucketDao) appContext.getBean("datasetBucketDao");
-        DataLocationSelector dataLocationSelector = appContext.getBean(DataLocationSelector.class);
 
         UUID datasetId = UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
         Dataset dataset = datasetService.retrieve(datasetId);
@@ -95,7 +94,6 @@ public class FileIngestFlight extends Flight {
         addStep(new LockDatasetStep(datasetDao, datasetId, true), randomBackoffRetry);
         addStep(new LoadLockStep(loadService));
         addStep(new IngestFileIdStep(configService));
-        addStep(new BucketNameStep(datasetId, dataLocationSelector));
         addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), randomBackoffRetry);
         addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);

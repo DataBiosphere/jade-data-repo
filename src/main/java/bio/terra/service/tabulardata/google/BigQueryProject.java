@@ -87,7 +87,7 @@ public final class BigQueryProject {
     public DatasetId createDataset(String name, String description, GoogleRegion region) {
         DatasetInfo datasetInfo = DatasetInfo.newBuilder(name)
             .setDescription(description)
-            .setLocation(region.getName())
+            .setLocation(region.toString())
             .build();
         return bigQuery.create(datasetInfo).getDatasetId();
     }

@@ -19,7 +19,7 @@ public class StorageResource {
         return new StorageResourceModel()
             .cloudPlatform(cloudPlatform)
             .cloudResource(cloudResource.toString())
-            .region(region.getName());
+            .region(region.toString());
     }
 
     public UUID getDatasetId() {

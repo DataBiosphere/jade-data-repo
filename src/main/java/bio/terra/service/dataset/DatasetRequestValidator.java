@@ -41,7 +41,7 @@ import java.util.stream.Collectors;
 public class DatasetRequestValidator implements Validator {
 
     private static final List<String> SUPPORTED_GOOGLE_REGIONS =
-        Arrays.stream(GoogleRegion.values()).map(GoogleRegion::getName).collect(Collectors.toUnmodifiableList());
+        Arrays.stream(GoogleRegion.values()).map(GoogleRegion::toString).collect(Collectors.toUnmodifiableList());
 
     @Override
     public boolean supports(Class<?> clazz) {

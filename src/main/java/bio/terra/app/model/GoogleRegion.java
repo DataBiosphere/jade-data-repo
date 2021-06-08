@@ -63,7 +63,7 @@ public enum GoogleRegion {
         return this;
     }
 
-    public String getName() {
+    public String toString() {
         return value;
     }
 

@@ -467,7 +467,7 @@ public class GoogleProjectService {
         // Create a request object
         Appengine.Apps.Create createRequest = appengine.apps().create(new Application()
             .setId(googleProjectId)
-            .setLocationId(firestoreRegion.getRegionOrFallbackFirestoreRegion().getName())
+            .setLocationId(firestoreRegion.getRegionOrFallbackFirestoreRegion().toString())
             .setDatabaseType(FIRESTORE_DB_TYPE)
         );
 

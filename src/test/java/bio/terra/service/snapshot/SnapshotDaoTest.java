@@ -173,8 +173,8 @@ public class SnapshotDaoTest {
 
         // verify snapshot source region includes the default region
         assertTrue("source dataset info includes default region",
-            source.getDataset().getDatasetSummary().getStorage().stream()
-                .allMatch(sr -> sr.getRegion().equals(GoogleRegion.DEFAULT_GOOGLE_REGION)));
+            GoogleRegion.matchingRegionWithFallbacks(source.getDataset().getDatasetSummary().getStorage(),
+                GoogleRegion.DEFAULT_GOOGLE_REGION));
 
         assertThat("source points to the asset spec",
             source.getAssetSpecification().getId(),

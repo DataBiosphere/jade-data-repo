@@ -861,6 +861,7 @@ public class SnapshotConnectedTest {
         assertThat("source array has one element",
                 snapshotModel.getSource().size(), equalTo(1));
         SnapshotSourceModel sourceModel = snapshotModel.getSource().get(0);
+
         assertThat("snapshot dataset summary is the same as from dataset",
             sourceModel.getDataset(), equalTo(datasetSummary));
 

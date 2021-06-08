@@ -155,7 +155,7 @@ public class SearchService {
         WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
         searchSourceBuilder.query(wrapperQuery);
 
-        var validIndexes = getValidIndexes();
+        Set<String> validIndexes = getValidIndexes();
 
         var indicesToQuery = snapshotIdsToQuery.stream()
             .map(this::uuidToIndexName)
@@ -171,7 +171,7 @@ public class SearchService {
             throw new SearchException("Error completing search request", e);
         }
         SearchHits hits = elasticResponse.getHits();
-        var response = hitsToMap(hits);
+        var response = hitsToMap(hits.getHits());
 
         SearchQueryResultModel result = new SearchQueryResultModel();
         //do we want to include info on the index/snapshot the response came from?
@@ -180,7 +180,7 @@ public class SearchService {
 
     }
 
-    private List<Map<String, String>> hitsToMap(SearchHits hits) {
+    private List<Map<String, String>> hitsToMap(SearchHit[] hits) {
         List<Map<String, String>> response = new ArrayList<>();
         for (SearchHit hit : hits) {
             Map<String, String> hitsMap = new HashMap<>();

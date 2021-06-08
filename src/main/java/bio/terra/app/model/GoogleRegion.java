@@ -43,11 +43,11 @@ public enum GoogleRegion {
     private final String bucketFallbackRegion;
 
     GoogleRegion(String value) {
-        this(value, null, null);
+        this(value, value, value);
     }
 
     GoogleRegion(String value, String firestoreFallbackRegion) {
-        this(value, firestoreFallbackRegion, null);
+        this(value, firestoreFallbackRegion, value);
     }
 
     GoogleRegion(String value, String firestoreFallbackRegion, String bucketFallbackRegion) {
@@ -57,17 +57,11 @@ public enum GoogleRegion {
     }
 
     public GoogleRegion getRegionOrFallbackFirestoreRegion() {
-        if (firestoreFallbackRegion != null) {
-            return fromValue(firestoreFallbackRegion);
-        }
-        return this;
+        return fromValue(firestoreFallbackRegion);
     }
 
     public GoogleRegion getRegionOrFallbackBucketRegion() {
-        if (bucketFallbackRegion != null) {
-            return fromValue(bucketFallbackRegion);
-        }
-        return this;
+        return fromValue(bucketFallbackRegion);
     }
 
     public String toString() {

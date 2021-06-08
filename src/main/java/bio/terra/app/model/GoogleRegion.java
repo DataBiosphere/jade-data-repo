@@ -86,17 +86,17 @@ public enum GoogleRegion {
         GoogleRegion firestoreRegion = region.getRegionOrFallbackFirestoreRegion();
         GoogleRegion bucketRegion = region.getRegionOrFallbackBucketRegion();
         boolean matching = true;
-        for (StorageResource resource : storage ){
-            if (resource.getCloudResource() == GoogleCloudResource.BIGQUERY){
-                if (resource.getRegion() != bqRegion){
+        for (StorageResource resource : storage) {
+            if (resource.getCloudResource() == GoogleCloudResource.BIGQUERY) {
+                if (resource.getRegion() != bqRegion) {
                     matching = false;
                 }
-            } else if (resource.getCloudResource() == GoogleCloudResource.FIRESTORE){
-                if (resource.getRegion() != firestoreRegion){
+            } else if (resource.getCloudResource() == GoogleCloudResource.FIRESTORE) {
+                if (resource.getRegion() != firestoreRegion) {
                     matching = false;
                 }
-            } else if (resource.getCloudResource() == GoogleCloudResource.BUCKET){
-                if (resource.getRegion() != bucketRegion){
+            } else if (resource.getCloudResource() == GoogleCloudResource.BUCKET) {
+                if (resource.getRegion() != bucketRegion) {
                     matching = false;
                 }
             }

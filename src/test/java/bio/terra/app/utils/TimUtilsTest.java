@@ -12,14 +12,14 @@ public class TimUtilsTest {
 
     private static final String[][] CASES =
         {
-            {"TerraCore:Donor.TerraCore:hasAge", "a__terraa__corec__a__donorp__a__terraa__corec__hasa__age"},
+            {"TerraCore:Donor.TerraCore:hasAge", "tim__a__terraa__corec__a__donorp__a__terraa__corec__hasa__age"},
             {"TerraCore:Age.TerraCore.hasUpperBound",
-                "a__terraa__corec__a__agep__a__terraa__corep__hasa__uppera__bound"},
+                "tim__a__terraa__corec__a__agep__a__terraa__corep__hasa__uppera__bound"},
             {"TerraCore:Age.TerraCore.hasLowerBound",
-                "a__terraa__corec__a__agep__a__terraa__corep__hasa__lowera__bound"},
-            {"TerraCore:Age.TerraCore.hasAgeUnit", "a__terraa__corec__a__agep__a__terraa__corep__hasa__agea__unit"},
-            {"TerraCore:Project.rdfs:label", "a__terraa__corec__a__projectp__rdfsc__label"},
-            {"TerraCore:BioSample.dct:identifier", "a__terraa__corec__a__bioa__samplep__dctc__identifier"}
+                "tim__a__terraa__corec__a__agep__a__terraa__corep__hasa__lowera__bound"},
+            {"TerraCore:Age.TerraCore.hasAgeUnit", "tim__a__terraa__corec__a__agep__a__terraa__corep__hasa__agea__unit"},
+            {"TerraCore:Project.rdfs:label", "tim__a__terraa__corec__a__projectp__rdfsc__label"},
+            {"TerraCore:BioSample.dct:identifier", "tim__a__terraa__corec__a__bioa__samplep__dctc__identifier"}
         };
 
     @Test

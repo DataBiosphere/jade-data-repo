@@ -9,9 +9,7 @@ public final class TimUtils {
     private static final String CAPITAL = "a__";
     private static final String COLON = "c__";
     private static final String PERIOD = "p__";
-
-    // Currently all TIM full property names begin with the prefix TerraCore.
-    private static final String TIM_PREFIX_ENCODED = encode("TerraCore");
+    private static final String PREFIX = "tim__";
 
     /**
      * Encode a TIM name for ElasticSearch or BigQuery use.
@@ -20,7 +18,7 @@ public final class TimUtils {
      * @return an encoded name
      */
     public static String encode(String s) {
-        StringBuilder result = new StringBuilder();
+        StringBuilder result = new StringBuilder(PREFIX);
         for (char c : s.toCharArray()) {
             if (Character.isUpperCase(c)) {
                 result.append(CAPITAL);
@@ -37,7 +35,9 @@ public final class TimUtils {
     }
 
     private static String doDecode(String s) {
-        String t = s.replaceAll(COLON, ":").replaceAll(PERIOD, ".");
+        String t = s.substring(PREFIX.length())
+            .replaceAll(COLON, ":")
+            .replaceAll(PERIOD, ".");
         int len = CAPITAL.length();
         int index;
         while ((index = t.indexOf(CAPITAL)) != -1) {
@@ -54,7 +54,7 @@ public final class TimUtils {
      */
     private static boolean shouldDecode(String s) {
         // Only decode names that start with an encoded TIM prefix.
-        return s.startsWith(TIM_PREFIX_ENCODED);
+        return s.startsWith(PREFIX);
     }
 
     /**

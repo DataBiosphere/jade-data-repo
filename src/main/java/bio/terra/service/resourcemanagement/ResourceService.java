@@ -1,9 +1,12 @@
 package bio.terra.service.resourcemanagement;
 
+import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS;
+import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
+
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
@@ -13,12 +16,8 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,9 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS;
-import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Component
 public class ResourceService {
@@ -100,23 +100,35 @@ public class ResourceService {
             flightId);
     }
 
+    private boolean bucketIsForBillingProfile(GoogleBucketResource bucket,
+        BillingProfileModel billingProfile) {
+        GoogleProjectResource resource = bucket.getProjectResource();
+        UUID billingProfileId = UUID.fromString(billingProfile.getId());
+        return resource.getProfileId().equals(billingProfileId);
+    }
+
     /**
      * Fetch an existing bucket and check that the associated cloud resource exists.
      *
      * @param bucketResourceId our identifier for the bucket
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
-     * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
+     * @throws CorruptMetadataException        if the bucket_resource metadata row exists but the
+     *                                         cloud resource does not
      */
     public GoogleBucketResource lookupBucket(String bucketResourceId) {
-        return bucketService.getBucketResourceById(UUID.fromString(bucketResourceId), true);
+        return lookupBucket(UUID.fromString(bucketResourceId));
+    }
+
+    public GoogleBucketResource lookupBucket(UUID bucketResourceId) {
+        return bucketService.getBucketResourceById(bucketResourceId, true);
     }
 
     /**
-     * Fetch an existing bucket_resource metadata row.
-     * Note this method does not check for the existence of the underlying cloud resource.
-     * This method is intended for places where an existence check on the associated cloud resource might be too
-     * much overhead (e.g. DRS lookups). Most bucket lookups should use the lookupBucket method instead, which has
+     * Fetch an existing bucket_resource metadata row. Note this method does not check for the
+     * existence of the underlying cloud resource. This method is intended for places where an
+     * existence check on the associated cloud resource might be too much overhead (e.g. DRS
+     * lookups). Most bucket lookups should use the lookupBucket method instead, which has
      * additional overhead but will catch metadata corruption errors sooner.
      *
      * @param bucketResourceId our identifier for the bucket
@@ -128,10 +140,10 @@ public class ResourceService {
     }
 
     /**
-     * Update the bucket_resource metadata table to match the state of the underlying cloud.
-     * - If the bucket exists, then the metadata row should also exist and be unlocked.
-     * - If the bucket does not exist, then the metadata row should not exist.
-     * If the metadata row is locked, then only the locking flight can unlock or delete the row.
+     * Update the bucket_resource metadata table to match the state of the underlying cloud. - If
+     * the bucket exists, then the metadata row should also exist and be unlocked. - If the bucket
+     * does not exist, then the metadata row should not exist. If the metadata row is locked, then
+     * only the locking flight can unlock or delete the row.
      *
      * @param projectId       retrieve bucket based on google project id
      * @param billingProfile an authorized billing profile
@@ -195,7 +207,8 @@ public class ResourceService {
 
     public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
-        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e)
+            .collect(Collectors.toList());
         projectService.updateIamPermissions(
             Collections.singletonMap(BQ_JOB_USER_ROLE, emails),
             dataProject,
@@ -204,7 +217,8 @@ public class ResourceService {
 
     public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
-        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e)
+            .collect(Collectors.toList());
         projectService.updateIamPermissions(
             Collections.singletonMap(BQ_JOB_USER_ROLE, emails),
             dataProject,

@@ -33,6 +33,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
     public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
+        String bucketName = workingMap.get(FileMapKeys.POSSIBLE_BUCKET_NAME, String.class);
         if (loadComplete == null || !loadComplete) {
             // Retrieve the already authorized billing profile from the working map and retrieve
             // or create a bucket in the context of that profile and the dataset.
@@ -42,6 +43,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
             try {
                 GoogleBucketResource bucketForFile =
                     resourceService.getOrCreateBucketForFile(
+                        bucketName,
                         dataset,
                         googleProjectResource,
                         context.getFlightId());

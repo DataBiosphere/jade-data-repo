@@ -1,8 +1,14 @@
 package bio.terra.service.dataset;
 
+import static bio.terra.common.DaoUtils.retryQuery;
+
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +76,9 @@ public class DatasetBucketDao {
     private static final String sqlDeleteLink =
         "DELETE FROM dataset_bucket" + whereClause;
 
+    private static final String sqlGetBucketResourceId =
+        "SELECT bucket_resource_id FROM dataset_bucket WHERE dataset_id = :dataset_id";
+
 
 
 
@@ -134,6 +143,12 @@ public class DatasetBucketDao {
         return (count == 1);
     }
 
+    public List<UUID> getBucketResourceIdForDatasetId(UUID datasetId) {
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("dataset_id", datasetId);
+        return jdbcTemplate.query(sqlGetBucketResourceId, params, new UuidMapper("bucket_resource_id"));
+    }
+
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     int datasetBucketSuccessfulIngestCount(UUID datasetId, UUID bucketResourceId) {
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -165,5 +180,17 @@ public class DatasetBucketDao {
             throw dataAccessException;
         }
 
+    }
+
+    private static class UuidMapper implements RowMapper<UUID> {
+        private String columnLabel;
+
+        UuidMapper(String columnLabel) {
+            this.columnLabel = columnLabel;
+        }
+
+        public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return rs.getObject(this.columnLabel, UUID.class);
+        }
     }
 }

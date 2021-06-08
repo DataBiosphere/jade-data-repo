@@ -8,7 +8,7 @@ import org.springframework.http.HttpStatus;
 
 /** Wrapper exception for non-200 responses from calls to Buffer Service. */
 public class BufferServiceAPIException extends ErrorReportException {
-    private ApiException apiException;
+    private final ApiException apiException;
 
     public BufferServiceAPIException(ApiException bufferException) {
         super(
@@ -19,25 +19,30 @@ public class BufferServiceAPIException extends ErrorReportException {
         this.apiException = bufferException;
     }
 
-    public BufferServiceAPIException(String message) {
+    public BufferServiceAPIException(String message, ApiException apiException) {
         super(message);
+        this.apiException = apiException;
     }
 
-    public BufferServiceAPIException(String message, Throwable cause) {
+    public BufferServiceAPIException(String message, Throwable cause, ApiException apiException) {
         super(message, cause);
+        this.apiException = apiException;
     }
 
-    public BufferServiceAPIException(Throwable cause) {
+    public BufferServiceAPIException(Throwable cause, ApiException apiException) {
         super(cause);
+        this.apiException = apiException;
     }
 
-    public BufferServiceAPIException(String message, List<String> causes, HttpStatus statusCode) {
+    public BufferServiceAPIException(String message, List<String> causes, HttpStatus statusCode, ApiException apiException) {
         super(message, causes, statusCode);
+        this.apiException = apiException;
     }
 
     public BufferServiceAPIException(
-            String message, Throwable cause, List<String> causes, HttpStatus statusCode) {
+            String message, Throwable cause, List<String> causes, HttpStatus statusCode, ApiException apiException) {
         super(message, cause, causes, statusCode);
+        this.apiException = apiException;
     }
 
     /** Get the HTTP status code of the underlying response from Buffer Service. */

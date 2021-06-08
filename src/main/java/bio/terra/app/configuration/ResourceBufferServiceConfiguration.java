@@ -3,9 +3,10 @@ package bio.terra.app.configuration;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
-import com.google.common.collect.ImmutableList;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
+
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -17,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "rbs")
 public class ResourceBufferServiceConfiguration {
 
-    private boolean enabled = false;
+    private boolean enabled;
     private String instanceUrl;
     private String poolId;
     private String clientCredentialFilePath;

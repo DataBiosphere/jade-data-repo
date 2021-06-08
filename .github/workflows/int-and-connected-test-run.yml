@@ -11,6 +11,7 @@ env:
   AZURE_CREDENTIALS_APPLICATIONID: 22cb243c-f1a5-43d8-8f12-6566bcce6542
   AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
   JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
+  RBS_CLIENT_CREDENTIAL_FILE_PATH: 'rbs-tools-sa.json'
 on:
   pull_request:
     branches:
@@ -60,6 +61,11 @@ jobs:
           secretId: ${{ secrets.SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/dev/azure-test applicationsecret | AZURE_CREDENTIALS_SECRET ;
+            secret/dsde/terra/kernel/dev/dev/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
+      - name: "Write RBS SA to a file"
+        run: |
+          # write vault token
+          base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
       - name: "Run Connected test via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.60.0
         with:

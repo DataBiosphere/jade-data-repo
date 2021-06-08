@@ -54,7 +54,6 @@ public class SearchService {
     @Autowired
     public SearchService(BigQueryPdao bigQueryPdao, RestHighLevelClient client) {
         this.bigQueryPdao = bigQueryPdao;
-        // injected from RestHighLevelClientConfiguration
         this.client = client;
     }
 

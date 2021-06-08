@@ -1,5 +1,8 @@
 package bio.terra.service.resourcemanagement;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -17,9 +20,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 
 @ActiveProfiles({"terra", "google"})
 @RunWith(SpringRunner.class)
@@ -89,17 +89,6 @@ public class OneProjectPerProfileIdSelectorTest {
         String projectId = oneProjectPerProfileIdSelector.projectIdForFile(datasetName, billingProfile);
         String expectedProfileId = resourceConfiguration.getDataProjectPrefixToUse() + "-" +
             billingProfile.getProfileName();
-        assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
-    }
-
-    @Test
-    public void shouldGetCorrectIdForBucket() throws Exception {
-        String datasetName = "adataset";
-        BillingProfileModel billingProfile = ProfileFixtures.randomBillingProfile();
-        String projectId = oneProjectPerProfileIdSelector.bucketForFile(datasetName, billingProfile);
-        String expectedProfileId = resourceConfiguration.getDataProjectPrefixToUse()
-            + "-" + billingProfile.getProfileName()
-            + "-bucket";
         assertThat("Project ID is what we expect", projectId, equalTo(expectedProfileId));
     }
 

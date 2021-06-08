@@ -1,5 +1,7 @@
 package bio.terra.service.resourcemanagement;
 
+import static org.junit.Assert.assertNotEquals;
+
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -13,26 +15,21 @@ import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertEquals;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -108,28 +105,28 @@ public class DatasetBucketLinkTest {
         datasets.add(createDataset(billingProfiles.get(1), projects.get(1).getId()));
 
         String bucketName1 = oneProjectPerProfileIdSelector.bucketForFile(
-            datasets.get(0).getName(), billingProfiles.get(0));
+            datasets.get(0).getId(), billingProfiles.get(0));
         String bucketName2 = oneProjectPerProfileIdSelector.bucketForFile(
-            datasets.get(1).getName(), billingProfiles.get(1));
+            datasets.get(1).getId(), billingProfiles.get(1));
         logger.info("Bucket 1: {}; Bucket 2: {}", bucketName1, bucketName2);
 
         assertNotEquals("Buckets should be named differently", bucketName1, bucketName2);
     }
 
     @Test
-    public void twoDatasetsOneBillingProfileOneBucket() throws Exception {
+    public void twoDatasetsOneBillingProfileTwoBuckets() throws Exception {
 
         //Two dataset, one billing profile
         datasets.add(createDataset(billingProfiles.get(0), projects.get(0).getId()));
         datasets.add(createDataset(billingProfiles.get(0), projects.get(0).getId()));
 
         String bucketName1 = oneProjectPerProfileIdSelector.bucketForFile(
-            datasets.get(0).getName(), billingProfiles.get(0));
+            datasets.get(0).getId(), billingProfiles.get(0));
         String bucketName2 = oneProjectPerProfileIdSelector.bucketForFile(
-            datasets.get(1).getName(), billingProfiles.get(0));
+            datasets.get(1).getId(), billingProfiles.get(0));
         logger.info("Bucket 1: {}; Bucket 2: {}", bucketName1, bucketName2);
 
-        assertEquals("Buckets should be named the same", bucketName1, bucketName2);
+        assertNotEquals("Buckets should be different", bucketName1, bucketName2);
     }
 
     private Dataset createDataset(BillingProfileModel billingProfile, UUID projectId) throws IOException {

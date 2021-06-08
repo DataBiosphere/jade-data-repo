@@ -1,5 +1,6 @@
 package bio.terra.app.controller;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.controller.exception.ApiException;
 import bio.terra.controller.SearchApi;
 import bio.terra.model.SearchIndexModel;
@@ -24,10 +25,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +43,7 @@ public class SearchApiController implements SearchApi {
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
+    private final ApplicationConfiguration appConfig;
     private final IamService iamService;
     private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
     private final SearchService searchService;
@@ -51,6 +53,7 @@ public class SearchApiController implements SearchApi {
     public SearchApiController(
         ObjectMapper objectMapper,
         HttpServletRequest request,
+        ApplicationConfiguration appConfig,
         IamService iamService,
         AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
         SearchService searchService,
@@ -58,6 +61,7 @@ public class SearchApiController implements SearchApi {
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
+        this.appConfig = appConfig;
         this.iamService = iamService;
         this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
         this.searchService = searchService;
@@ -83,7 +87,10 @@ public class SearchApiController implements SearchApi {
         @PathVariable("id") String id,
         @Valid @RequestBody SearchIndexRequest searchIndexRequest
     ) {
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
+        AuthenticatedUserRequest user = getAuthenticatedInfo();
+        // Only admins have the configure action, so effectively this locks the indexing endpoint to admins only
+        iamService.verifyAuthorization(user, IamResourceType.DATAREPO, appConfig.getResourceId(), IamAction.CONFIGURE);
+        iamService.verifyAuthorization(user, IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
         Snapshot snapshot = snapshotService.retrieve(UUID.fromString(id));
         try {
             SearchIndexModel searchIndexModel = searchService.indexSnapshot(snapshot, searchIndexRequest);
@@ -95,29 +102,28 @@ public class SearchApiController implements SearchApi {
 
     @Override
     public ResponseEntity<SearchQueryResultModel> querySearchIndices(
-        @Valid @RequestBody SearchQueryRequest searchQueryRequest,
-        @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-        @RequestParam(value = "limit", required = false, defaultValue = "1000") Integer limit
-    ) {
+        SearchQueryRequest searchQueryRequest,
+        Integer offset,
+        Integer limit) {
 
-        List<String> accessibleIds =
-                iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT)
-                        .stream()
-                        .map(UUID::toString)
-                        .collect(Collectors.toList());
+        List<UUID> accessibleIds =
+            iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
 
-        List<String> requestIds = searchQueryRequest.getSnapshotIds();
+        final List<String> snapshotIds = searchQueryRequest.getSnapshotIds();
 
-        Set<String> inAccessibleIds = new HashSet<>(requestIds);
-        inAccessibleIds.removeAll(accessibleIds);
-        if (!inAccessibleIds.isEmpty()) {
+        Set<UUID> requestIds =
+            snapshotIds == null || snapshotIds.isEmpty() ? Collections.emptySet() :
+                snapshotIds.stream().map(UUID::fromString).collect(Collectors.toSet());
+
+        Set<UUID> inaccessibleIds = new HashSet<>(requestIds);
+        accessibleIds.forEach(inaccessibleIds::remove);
+        if (!inaccessibleIds.isEmpty()) {
             throw new IamForbiddenException("User '" + getAuthenticatedInfo().getEmail()
                     + "' does not have required action: " + IamAction.READ_DATA
-                    + " on snapshot ids" + inAccessibleIds);
+                    + " on snapshot ids" + inaccessibleIds);
         }
 
-        List<String> idsToQuery = requestIds.isEmpty() ? accessibleIds : requestIds;
-
+        var idsToQuery = requestIds.isEmpty() ? accessibleIds : requestIds;
         SearchQueryResultModel searchQueryResultModel =
                 searchService.querySnapshot(searchQueryRequest, idsToQuery, offset, limit);
         return ResponseEntity.ok(searchQueryResultModel);

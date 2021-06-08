@@ -8,21 +8,39 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.model.*;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.model.BulkLoadFileState;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotSummaryModel;
+
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.*;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetJsonConversion;
+import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
-import com.google.cloud.bigquery.*;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.*;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
@@ -37,12 +55,17 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -63,15 +86,9 @@ public class BigQueryPdaoTest {
     @Autowired
     private DatasetDao datasetDao;
     @Autowired
-    private GoogleResourceConfiguration googleResourceConfiguration;
-    @Autowired
     private ConnectedOperations connectedOperations;
     @Autowired
-    private DatasetService datasetService;
-    @Autowired
     private ResourceService resourceService;
-    @Autowired
-    private GoogleResourceDao resourceDao;
 
     @MockBean
     private IamProviderInterface samService;
@@ -267,7 +284,7 @@ public class BigQueryPdaoTest {
                 Assert.assertThat(participantIds, containsInAnyOrder(
                     "participant_1", "participant_2", "participant_5"));
                 Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2"));
-                Assert.assertThat(fileIds, is(empty()));
+                Assert.assertThat(fileIds, is(Matchers.empty()));
 
                 // Make sure the old snapshot wasn't changed.
                 participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);

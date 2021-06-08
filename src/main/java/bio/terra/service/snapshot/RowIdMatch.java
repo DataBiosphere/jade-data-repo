@@ -26,13 +26,15 @@ public class RowIdMatch {
         unmatchedInputValues = new ArrayList<>();
     }
 
-    public void addMatch(String inputValue, String rowId) {
+    public RowIdMatch addMatch(String inputValue, String rowId) {
         matchedInputValues.add(inputValue);
         matchingRowIds.add(rowId);
+        return this;
     }
 
-    public void addMismatch(String inputValue) {
+    public RowIdMatch addMismatch(String inputValue) {
         unmatchedInputValues.add(inputValue);
+        return this;
     }
 
     public List<String> getMatchedInputValues() {

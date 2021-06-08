@@ -74,7 +74,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
 
                         String bigQueryTimer = performanceLogger.timerStart();
                         List<String> refIds = bigQueryPdao.getSnapshotRefIds(snapshotSource.getDataset(),
-                            snapshot.getName(),
+                            snapshot,
                             mapTable.getFromTable().getName(),
                             mapTable.getFromTable().getId().toString(),
                             mapColumn.getFromColumn());

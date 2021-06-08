@@ -17,7 +17,8 @@ public class TimUtilsTest {
                 "tim__a__terraa__corec__a__agep__a__terraa__corep__hasa__uppera__bound"},
             {"TerraCore:Age.TerraCore.hasLowerBound",
                 "tim__a__terraa__corec__a__agep__a__terraa__corep__hasa__lowera__bound"},
-            {"TerraCore:Age.TerraCore.hasAgeUnit", "tim__a__terraa__corec__a__agep__a__terraa__corep__hasa__agea__unit"},
+            {"TerraCore:Age.TerraCore.hasAgeUnit",
+                "tim__a__terraa__corec__a__agep__a__terraa__corep__hasa__agea__unit"},
             {"TerraCore:Project.rdfs:label", "tim__a__terraa__corec__a__projectp__rdfsc__label"},
             {"TerraCore:BioSample.dct:identifier", "tim__a__terraa__corec__a__bioa__samplep__dctc__identifier"}
         };

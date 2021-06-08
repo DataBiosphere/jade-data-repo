@@ -258,8 +258,8 @@ public class DatasetDaoTest {
             for (GoogleCloudResource resource: GoogleCloudResource.values()) {
                 GoogleRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
                 GoogleRegion expectedRegion =
-                    (resource == GoogleCloudResource.FIRESTORE) ? GoogleRegion.US_EAST4 : GoogleRegion.US;
-                assertThat(String.format("dataset %s region is set", resource),
+                    (resource == GoogleCloudResource.BIGQUERY) ? GoogleRegion.US : GoogleRegion.US_EAST4;
+                assertThat(String.format("dataset %s region is set to %s", resource, region.name()),
                     region,
                     equalTo(expectedRegion));
             }

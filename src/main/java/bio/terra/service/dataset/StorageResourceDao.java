@@ -96,12 +96,16 @@ public class StorageResourceDao {
             valuesList.add(String.format("(:dataset_id, :%s, :%s, :%s)",
                 regionParam, cloudResourceParam, platformParam));
 
-            if (storageResource.getCloudResource() == GoogleCloudResource.FIRESTORE) {
-                params.addValue(regionParam, storageResource.getRegion().getRegionOrFallbackFirestoreRegion().name());
-            } else if (storageResource.getCloudResource() == GoogleCloudResource.BUCKET) {
-                params.addValue(regionParam, storageResource.getRegion().getRegionOrFallbackBucketRegion().name());
-            } else {
-                params.addValue(regionParam, storageResource.getRegion().name());
+            switch (storageResource.getCloudResource()) {
+                case FIRESTORE:
+                    params.addValue(regionParam,
+                        storageResource.getRegion().getRegionOrFallbackFirestoreRegion().name());
+                    break;
+                case BUCKET:
+                    params.addValue(regionParam, storageResource.getRegion().getRegionOrFallbackBucketRegion().name());
+                    break;
+                case BIGQUERY:
+                    params.addValue(regionParam, storageResource.getRegion().name());
             }
 
             params.addValue(cloudResourceParam, storageResource.getCloudResource().name());

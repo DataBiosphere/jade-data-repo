@@ -12,7 +12,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.StorageResource;
-import bio.terra.service.resourcemanagement.OneProjectPerProfileIdSelector;
+import bio.terra.service.resourcemanagement.OneProjectPerResourceSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,7 +40,7 @@ public class ResourceServiceUnitTest {
     private DatasetBucketDao datasetBucketDao;
 
     @Mock
-    private OneProjectPerProfileIdSelector oneProjectPerProfileIdSelector;
+    private OneProjectPerResourceSelector oneProjectPerResourceSelector;
 
     @Mock
     private GoogleBucketService bucketService;
@@ -87,7 +87,7 @@ public class ResourceServiceUnitTest {
             .thenReturn(projectResource);
         when(datasetBucketDao.getBucketResourceIdForDatasetId(datasetId)).thenReturn(bucketsForDataset);
         when(bucketService.getBucketResourceById(bucketId, true)).thenReturn(bucketResource);
-        when(oneProjectPerProfileIdSelector.bucketForFile(datasetId, profileModel))
+        when(oneProjectPerResourceSelector.bucketForFile(projectResource.getGoogleProjectId()))
             .thenReturn("newBucketName");
         when(bucketService
             .getOrCreateBucket(bucketName.toString(), projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION,
@@ -95,7 +95,7 @@ public class ResourceServiceUnitTest {
             .thenReturn(bucketResource);
 
         GoogleBucketResource foundBucket = resourceService
-            .getOrCreateBucketForFile(bucketName.toString(), dataset, profileModel, "flightId");
+            .getOrCreateBucketForFile(dataset, projectResource, "flightId");
         Assert.assertEquals(bucketResource, foundBucket);
     }
 
@@ -107,7 +107,7 @@ public class ResourceServiceUnitTest {
         when(googleProjectService.getOrCreateProject(any(), any(), any(), any()))
             .thenReturn(projectResource);
         when(datasetBucketDao.getBucketResourceIdForDatasetId(datasetId)).thenReturn(new ArrayList<>());
-        when(oneProjectPerProfileIdSelector.bucketForFile(datasetId, profileModel))
+        when(oneProjectPerResourceSelector.bucketForFile(projectResource.getGoogleProjectId()))
             .thenReturn("newBucketName");
         when(bucketService
             .getOrCreateBucket(newName.toString(), projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION,
@@ -115,7 +115,7 @@ public class ResourceServiceUnitTest {
             .thenReturn(newBucket);
 
         GoogleBucketResource foundBucket = resourceService
-            .getOrCreateBucketForFile(newName.toString(), dataset, profileModel, "flightId");
+            .getOrCreateBucketForFile(dataset, projectResource, "flightId");
         Assert.assertEquals(newBucket, foundBucket);
     }
 }

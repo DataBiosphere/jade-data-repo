@@ -43,7 +43,6 @@ public class IngestFilePrimaryDataLocationStep implements Step {
             try {
                 GoogleBucketResource bucketForFile =
                     resourceService.getOrCreateBucketForFile(
-                        bucketName,
                         dataset,
                         googleProjectResource,
                         context.getFlightId());

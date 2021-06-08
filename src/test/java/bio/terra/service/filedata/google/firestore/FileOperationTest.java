@@ -167,7 +167,7 @@ public class FileOperationTest {
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
     public void fileOperationsTest() throws Exception {
         String originalBucketName = UUID.randomUUID().toString();
-        doReturn(originalBucketName).when(dataLocationSelector).bucketForFile(any(), any());
+        doReturn(originalBucketName).when(dataLocationSelector).bucketForFile(any());
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         FileModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
@@ -180,7 +180,7 @@ public class FileOperationTest {
         // NOTE: the suppressed SpotBugs complaint is from the doReturn. It decides that no one
         // uses the bucketForFile call.
         String newBucketName = UUID.randomUUID().toString();
-        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any(), any());
+        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
         connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path does not reflect new bucket location",

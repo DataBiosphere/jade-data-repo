@@ -21,13 +21,6 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.UUID;
-
-import static bio.terra.common.DaoUtils.retryQuery;
-
 /* A NOTE ON CONCURRENCY CONTROL FOR THE DATASET BUCKET TABLE
  * The successful_ingest counter is a concurrency control mechanism to avoid locking the dataset-bucket row.
  * The only important values are 0 or greater than 0. A row with a counter of 0 is equivalent to no row;

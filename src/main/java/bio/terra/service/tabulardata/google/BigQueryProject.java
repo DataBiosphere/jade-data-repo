@@ -3,6 +3,7 @@ package bio.terra.service.tabulardata.google;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
+import bio.terra.service.snapshot.Snapshot;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -26,19 +27,38 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class BigQueryProject {
     private static final Logger logger = LoggerFactory.getLogger(BigQueryProject.class);
+    private static final ConcurrentHashMap<String, BigQueryProject> PROJECT_CACHE = new ConcurrentHashMap<>();
     private final String projectId;
     private final BigQuery bigQuery;
 
-    BigQueryProject(String projectId) {
+    private BigQueryProject(String projectId) {
         logger.info("Retrieving Bigquery project for project id: {}", projectId);
         this.projectId = projectId;
         bigQuery = BigQueryOptions.newBuilder()
             .setProjectId(projectId)
             .build()
             .getService();
+    }
+
+    public static BigQueryProject get(String projectId) {
+        PROJECT_CACHE.computeIfAbsent(projectId, BigQueryProject::new);
+        return PROJECT_CACHE.get(projectId);
+    }
+
+    public static void put(BigQueryProject bigQueryProject) {
+        PROJECT_CACHE.put(bigQueryProject.getProjectId(), bigQueryProject);
+    }
+
+    public static BigQueryProject from(bio.terra.service.dataset.Dataset dataset) {
+        return get(dataset.getProjectResource().getGoogleProjectId());
+    }
+
+    public static BigQueryProject from(Snapshot snapshot) {
+        return get(snapshot.getProjectResource().getGoogleProjectId());
     }
 
     public String getProjectId() {

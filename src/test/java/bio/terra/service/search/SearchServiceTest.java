@@ -1,7 +1,7 @@
 package bio.terra.service.search;
 
-import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexModel;
+import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -18,7 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.time.Instant;
@@ -85,20 +84,6 @@ public class SearchServiceTest {
 
         SearchIndexModel searchIndexModel = service.indexSnapshot(snapshot, searchIndexRequest);
         assertEquals(indexName, searchIndexModel.getIndexSummary());
-    }
-
-    private void mockIndexRequest() throws Exception {
-        when(client.indices()).thenReturn(indicesClient);
-        when(client.indices().create(Mockito.any(CreateIndexRequest.class), Mockito.eq(RequestOptions.DEFAULT)))
-            .thenReturn(new CreateIndexResponse(true, true, indexName));
-    }
-
-    private void mockIndexResponse() throws Exception {
-        GetIndexResponse mockIndexResponse = Mockito.mock(GetIndexResponse.class);
-        when(mockIndexResponse.getIndices())
-            .thenReturn(new String[]{ indexName });
-        when(client.indices().get(Mockito.any(GetIndexRequest.class), Mockito.eq(RequestOptions.DEFAULT)))
-            .thenReturn(mockIndexResponse);
     }
 
     private SearchIndexRequest getSearchIndexRequest() {

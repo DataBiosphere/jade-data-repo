@@ -82,25 +82,24 @@ public enum GoogleRegion {
     }
 
     public static boolean matchingRegionWithFallbacks(List<StorageResource> storage, GoogleRegion region) {
-        GoogleRegion bqRegion = region;
-        GoogleRegion firestoreRegion = region.getRegionOrFallbackFirestoreRegion();
-        GoogleRegion bucketRegion = region.getRegionOrFallbackBucketRegion();
-        boolean matching = true;
         for (StorageResource resource : storage) {
-            if (resource.getCloudResource() == GoogleCloudResource.BIGQUERY) {
-                if (resource.getRegion() != bqRegion) {
-                    matching = false;
-                }
-            } else if (resource.getCloudResource() == GoogleCloudResource.FIRESTORE) {
-                if (resource.getRegion() != firestoreRegion) {
-                    matching = false;
-                }
-            } else if (resource.getCloudResource() == GoogleCloudResource.BUCKET) {
-                if (resource.getRegion() != bucketRegion) {
-                    matching = false;
-                }
+            switch (resource.getCloudResource()) {
+                case BIGQUERY:
+                    if (resource.getRegion() != region) {
+                        return false;
+                    }
+                    break;
+                case FIRESTORE:
+                    if (resource.getRegion() != region.getRegionOrFallbackFirestoreRegion()) {
+                        return false;
+                    }
+                    break;
+                case BUCKET:
+                    if (resource.getRegion() != region.getRegionOrFallbackBucketRegion()) {
+                        return false;
+                    }
             }
         }
-        return matching;
+        return true;
     }
 }

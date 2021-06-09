@@ -78,7 +78,7 @@ public class SearchServiceTest {
         // Mock index response
         GetIndexResponse mockIndexResponse = mock(GetIndexResponse.class);
         when(mockIndexResponse.getIndices())
-            .thenReturn(new String[]{ indexName });
+            .thenReturn(new String[]{indexName});
         when(client.indices().get(any(GetIndexRequest.class), eq(RequestOptions.DEFAULT)))
             .thenReturn(mockIndexResponse);
 
@@ -94,7 +94,7 @@ public class SearchServiceTest {
         List<Map<String, Object>> values = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             Instant now = Instant.now();
-            String ts = String.format("%f", now.getEpochSecond() + now.getNano()/1E9);
+            String ts = String.format("%f", now.getEpochSecond() + now.getNano() / 1E9);
             values.add(Map.of("uuid", UUID.randomUUID().toString(), "now", ts));
         }
 

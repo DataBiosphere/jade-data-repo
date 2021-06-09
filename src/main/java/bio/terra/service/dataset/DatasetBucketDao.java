@@ -73,8 +73,6 @@ public class DatasetBucketDao {
         "SELECT bucket_resource_id FROM dataset_bucket WHERE dataset_id = :dataset_id";
 
 
-
-
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -87,6 +85,7 @@ public class DatasetBucketDao {
             .addValue("dataset_id", datasetId)
             .addValue("profile_id", billingId);
         List<String> results = jdbcTemplate.query(sqlGetProjectIdForBucket, params, new DatasetBucketMapper());
+        // case where we need to create new google project
         if (results.size() == 0) {
             logger.info("Google project does not exist for dataset {} and billing profile {}", datasetId, billingId);
             return null;
@@ -94,6 +93,7 @@ public class DatasetBucketDao {
             logger.error("There should only be one google project per dataset/billing combo.");
             throw new GoogleResourceException("There should only be one google project per dataset/billing combo.");
         }
+        // case where we can re-use an exisiting google project
         return results.get(0);
     }
 

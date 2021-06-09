@@ -11,7 +11,9 @@ public interface DataLocationSelector {
 
     String projectIdForSnapshot() throws GoogleResourceNamingException;
 
-    String projectIdForFile(Dataset dataset, String projectId, BillingProfileModel billingProfile)
+    String projectIdForFile(Dataset dataset,
+                            String sourceDatasetGoogleProjectId,
+                            BillingProfileModel billingProfile)
         throws GoogleResourceException, GoogleResourceNamingException;
 
     String bucketForFile(String projectId)

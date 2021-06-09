@@ -64,7 +64,7 @@ public class ResourceService {
      * @return a reference to the project as a POJO GoogleProjectResource
      */
     public GoogleProjectResource getOrCreateProjectForBucket(Dataset dataset,
-                                                         BillingProfileModel billingProfile)
+                                                             BillingProfileModel billingProfile)
         throws GoogleResourceException, GoogleResourceNamingException, InterruptedException {
 
         final GoogleProjectResource datasetProject = getProjectResource(dataset.getProjectResourceId());

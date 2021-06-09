@@ -35,7 +35,9 @@ public class OneDataLocationSelector implements DataLocationSelector {
     }
 
     @Override
-    public String projectIdForFile(Dataset dataset, String projectId, BillingProfileModel billingProfile) {
+    public String projectIdForFile(Dataset dataset,
+                                   String sourceDatasetGoogleProjectId,
+                                   BillingProfileModel billingProfile) {
         return oneProject();
     }
 

@@ -6,11 +6,18 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import org.elasticsearch.client.IndicesClient;
+import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.CreateIndexResponse;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.client.indices.GetIndexResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.time.Instant;
@@ -26,11 +33,16 @@ public class SearchServiceTest {
     private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as now" +
         " FROM UNNEST(GENERATE_ARRAY(1, 3));";
 
+    private static final String indexName = "idx-mock";
+
     @Mock
     private BigQueryPdao bigQueryPdao;
 
     @Mock
     private RestHighLevelClient client;
+
+    @Mock
+    private IndicesClient indicesClient;
 
     private SearchService service;
 
@@ -40,7 +52,7 @@ public class SearchServiceTest {
 
     @Before
     public void setup() throws Exception {
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
         service = new SearchService(bigQueryPdao, client);
 
         searchIndexRequest = getSearchIndexRequest();
@@ -51,12 +63,28 @@ public class SearchServiceTest {
     @Test
     public void indexSnapshotTest() throws Exception {
         mockGetSnapshotTableData();
-        //service.indexSnapshot(snapshot, searchIndexRequest);
+        mockIndexRequest();
+        mockIndexResponse();
+        service.indexSnapshot(snapshot, searchIndexRequest);
     }
 
     private void mockGetSnapshotTableData() throws InterruptedException {
         when(bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql()))
             .thenReturn(values);
+    }
+
+    private void mockIndexRequest() throws Exception {
+        when(client.indices()).thenReturn(indicesClient);
+        when(client.indices().create(Mockito.any(CreateIndexRequest.class), Mockito.eq(RequestOptions.DEFAULT)))
+            .thenReturn(new CreateIndexResponse(true, true, indexName));
+    }
+
+    private void mockIndexResponse() throws Exception {
+        GetIndexResponse mockIndexResponse = Mockito.mock(GetIndexResponse.class);
+        when(mockIndexResponse.getIndices())
+            .thenReturn(new String[]{ indexName });
+        when(client.indices().get(Mockito.any(GetIndexRequest.class), Mockito.eq(RequestOptions.DEFAULT)))
+            .thenReturn(mockIndexResponse);
     }
 
     private SearchIndexRequest getSearchIndexRequest() {

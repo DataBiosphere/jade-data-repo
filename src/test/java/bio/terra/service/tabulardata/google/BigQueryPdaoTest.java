@@ -19,14 +19,12 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetJsonConversion;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import com.google.cloud.bigquery.BigQuery;
@@ -90,6 +88,8 @@ public class BigQueryPdaoTest {
     private BigQueryPdao bigQueryPdao;
     @Autowired
     private DatasetDao datasetDao;
+    @Autowired
+    private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired
     private ConnectedOperations connectedOperations;
     @Autowired

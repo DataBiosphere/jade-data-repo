@@ -71,12 +71,12 @@ public class DatasetDaoTest {
     private BillingProfileModel billingProfile;
     private UUID projectId;
 
-    private UUID createDataset(DatasetRequestModel datasetRequest, String newName, String region) throws Exception {
+    private UUID createDataset(DatasetRequestModel datasetRequest, String newName, GoogleRegion region) throws Exception {
         datasetRequest
             .name(newName)
             .defaultProfileId(billingProfile.getId());
         if (region != null) {
-            datasetRequest.region(region).cloudPlatform(CloudPlatform.GCP);
+            datasetRequest.region(region.toString()).cloudPlatform(CloudPlatform.GCP);
         }
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         dataset.projectResourceId(projectId);
@@ -207,7 +207,7 @@ public class DatasetDaoTest {
         String expectedName = request.getName() + UUID.randomUUID().toString();
 
         GoogleRegion testSettingRegion = GoogleRegion.ASIA_NORTHEAST1;
-        UUID datasetId = createDataset(request, expectedName, testSettingRegion.toString());
+        UUID datasetId = createDataset(request, expectedName, testSettingRegion);
         try {
             Dataset fromDB = datasetDao.retrieve(datasetId);
 
@@ -251,7 +251,7 @@ public class DatasetDaoTest {
             .region("US");
         String expectedName = request.getName() + UUID.randomUUID().toString();
 
-        UUID datasetId = createDataset(request, expectedName, GoogleRegion.US.toString());
+        UUID datasetId = createDataset(request, expectedName, GoogleRegion.US);
         try {
             Dataset fromDB = datasetDao.retrieve(datasetId);
 

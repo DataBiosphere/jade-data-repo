@@ -71,7 +71,9 @@ public class DatasetDaoTest {
     private BillingProfileModel billingProfile;
     private UUID projectId;
 
-    private UUID createDataset(DatasetRequestModel datasetRequest, String newName, GoogleRegion region) throws Exception {
+    private UUID createDataset(DatasetRequestModel datasetRequest,
+                               String newName,
+                               GoogleRegion region) throws Exception {
         datasetRequest
             .name(newName)
             .defaultProfileId(billingProfile.getId());

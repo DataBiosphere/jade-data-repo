@@ -28,6 +28,7 @@ import org.junit.experimental.categories.Category;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.junit.Assert.assertEquals;
@@ -35,7 +36,6 @@ import static org.junit.Assert.assertEquals;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -102,13 +102,12 @@ public class SearchServiceTest {
 
     @Test
     public void querySnapshotTest() throws Exception {
+        String testId = "0f14d0ab-9605-4a62-a9e4-5ed26688389b";
+
         GetAliasesResponse mockResponse = mock(GetAliasesResponse.class);
-        when(mockResponse.getAliases()).thenReturn(Map.of("0f14d0ab-9605-4a62-a9e4-5ed26688389b", Set.of()));
+        when(mockResponse.getAliases()).thenReturn(Map.of(String.format("idx-%s", testId), Set.of()));
         when(indicesClient.getAlias(any(GetAliasesRequest.class), any(RequestOptions.class)))
                 .thenReturn(mockResponse);
-        List<UUID> snaptshotIdsToQuery = List.of(
-                UUID.fromString("0f14d0ab-9605-4a62-a9e4-5ed26688389b")
-        );
         SearchHits mockHits = mock(SearchHits.class);
         SearchHit mockHit = mock(SearchHit.class);
         when(mockHits.iterator()).thenReturn(Arrays.stream(new SearchHit[]{mockHit}).iterator());
@@ -118,8 +117,11 @@ public class SearchServiceTest {
         when(mockSearchResponse.getHits()).thenReturn(mockHits);
         when(client.search(any(SearchRequest.class), any(RequestOptions.class))).thenReturn(mockSearchResponse);
 
+        List<UUID> snapshotIdsToQuery = List.of(
+                UUID.fromString(testId)
+        );
         SearchQueryResultModel actualResultModel =
-                service.querySnapshot(new SearchQueryRequest().query("query"), snaptshotIdsToQuery, 0, 1);
+                service.querySnapshot(new SearchQueryRequest().query("query"), snapshotIdsToQuery, 0, 1);
         SearchQueryResultModel expectedResultModel = new SearchQueryResultModel();
         expectedResultModel.result(List.of(Map.of("testKey", "testValue")));
 

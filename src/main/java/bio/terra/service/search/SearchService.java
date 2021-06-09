@@ -177,7 +177,6 @@ public class SearchService {
         //do we want to include info on the index/snapshot the response came from?
         result.setResult(response);
         return result;
-
     }
 
     private List<Map<String, String>> hitsToMap(SearchHits hits) {

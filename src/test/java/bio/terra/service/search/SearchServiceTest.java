@@ -1,7 +1,7 @@
 package bio.terra.service.search;
 
-import bio.terra.model.SearchIndexModel;
 import bio.terra.common.category.Unit;
+import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -18,7 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.time.Instant;
@@ -28,6 +27,9 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @Category(Unit.class)
@@ -64,30 +66,24 @@ public class SearchServiceTest {
 
     @Test
     public void indexSnapshotTest() throws Exception {
-        mockGetSnapshotTableData();
-        mockIndexRequest();
-        mockIndexResponse();
-        SearchIndexModel searchIndexModel = service.indexSnapshot(snapshot, searchIndexRequest);
-        assertEquals(indexName, searchIndexModel.getIndexSummary());
-    }
-
-    private void mockGetSnapshotTableData() throws InterruptedException {
+        // Mock snapshot table data
         when(bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql()))
             .thenReturn(values);
-    }
 
-    private void mockIndexRequest() throws Exception {
+        // Mock index request
         when(client.indices()).thenReturn(indicesClient);
-        when(client.indices().create(Mockito.any(CreateIndexRequest.class), Mockito.eq(RequestOptions.DEFAULT)))
+        when(client.indices().create(any(CreateIndexRequest.class), eq(RequestOptions.DEFAULT)))
             .thenReturn(new CreateIndexResponse(true, true, indexName));
-    }
 
-    private void mockIndexResponse() throws Exception {
-        GetIndexResponse mockIndexResponse = Mockito.mock(GetIndexResponse.class);
+        // Mock index response
+        GetIndexResponse mockIndexResponse = mock(GetIndexResponse.class);
         when(mockIndexResponse.getIndices())
             .thenReturn(new String[]{ indexName });
-        when(client.indices().get(Mockito.any(GetIndexRequest.class), Mockito.eq(RequestOptions.DEFAULT)))
+        when(client.indices().get(any(GetIndexRequest.class), eq(RequestOptions.DEFAULT)))
             .thenReturn(mockIndexResponse);
+
+        SearchIndexModel searchIndexModel = service.indexSnapshot(snapshot, searchIndexRequest);
+        assertEquals(indexName, searchIndexModel.getIndexSummary());
     }
 
     private SearchIndexRequest getSearchIndexRequest() {

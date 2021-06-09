@@ -96,6 +96,7 @@ public class OneProjectPerResourceUnitTest {
         projects.add(projectResource2);
 
         dataProjectPrefix = resourceConfiguration.getDataProjectPrefix();
+        resourceConfiguration.setDataProjectPrefix("tdr-int");
 
     }
 
@@ -202,7 +203,7 @@ public class OneProjectPerResourceUnitTest {
     public void shouldGetCorrectIdForDatasetWithPrefix() throws GoogleResourceNamingException {
         String projectId = oneProjectPerResourceSelector.projectIdForDataset();
         assertThat("Project ID is what we expect before changing prefix", projectId,
-            startsWith(resourceConfiguration.getProjectId()));
+            startsWith("tdr-int"));
 
         resourceConfiguration.setDataProjectPrefix("prefix-39");
         String projectIdWithPrefix = oneProjectPerResourceSelector.projectIdForDataset();

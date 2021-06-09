@@ -151,7 +151,7 @@ public class DatasetIntegrationTest extends UsersBase {
                         StorageResourceModel storage = storageMap.get(cloudResource.toString());
                         GoogleCloudResource resource = GoogleCloudResource.fromValue(storage.getCloudResource());
                         assert resource != null;
-                        GoogleRegion expectedRegion = omopDatasetGoogleRegion;
+                        GoogleRegion expectedRegion;
                         switch (resource) {
                             case BUCKET:
                                 expectedRegion = omopDatasetGoogleRegion.getRegionOrFallbackBucketRegion();
@@ -159,6 +159,8 @@ public class DatasetIntegrationTest extends UsersBase {
                             case FIRESTORE:
                                 expectedRegion = omopDatasetGoogleRegion.getRegionOrFallbackFirestoreRegion();
                                 break;
+                            default:
+                                expectedRegion = omopDatasetGoogleRegion;
                         }
 
                         assertThat(String.format("dataset %s region is set", storage.getCloudResource()),

@@ -1,5 +1,6 @@
 package bio.terra.service.search;
 
+import bio.terra.model.SearchIndexModel;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.when;
 
 @Category(Unit.class)
@@ -65,7 +67,8 @@ public class SearchServiceTest {
         mockGetSnapshotTableData();
         mockIndexRequest();
         mockIndexResponse();
-        service.indexSnapshot(snapshot, searchIndexRequest);
+        SearchIndexModel searchIndexModel = service.indexSnapshot(snapshot, searchIndexRequest);
+        assertEquals(searchIndexModel.getIndexSummary(), indexName);
     }
 
     private void mockGetSnapshotTableData() throws InterruptedException {

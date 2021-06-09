@@ -70,7 +70,7 @@ public class OneProjectPerResourceUnitTest {
     public void setup() throws IOException, InterruptedException, GoogleResourceNamingException {
         dataProjectPrefix = resourceConfiguration.getDataProjectPrefix();
         resourceConfiguration.setDataProjectPrefix("tdr-int");
-        
+
         // Initialize lists
         billingProfiles = new ArrayList<>();
         projects = new ArrayList<>();

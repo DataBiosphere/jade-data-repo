@@ -158,7 +158,7 @@ public class GoogleProjectService {
     }
 
     // package access for use in tests
-    Project getProject(String googleProjectId) {
+    public Project getProject(String googleProjectId) {
         try {
             CloudResourceManager resourceManager = cloudResourceManager();
             CloudResourceManager.Projects.Get request = resourceManager.projects().get(googleProjectId);

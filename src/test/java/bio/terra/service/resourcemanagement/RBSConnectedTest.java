@@ -3,6 +3,8 @@ package bio.terra.service.resourcemanagement;
 import bio.terra.buffer.model.HandoutRequestBody;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.category.Connected;
+import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import com.google.api.services.cloudresourcemanager.model.Project;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -13,7 +15,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -23,12 +26,17 @@ import static org.junit.Assert.assertEquals;
 public class RBSConnectedTest {
 
     @Autowired private BufferService bufferService;
+    @Autowired private GoogleProjectService projectService;
 
     @Test
     public void testProjectHandout() {
         String handoutRequestId = UUID.randomUUID().toString();
         HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
         ResourceInfo resource = bufferService.handoutResource(request);
-        assertEquals(resource.getRequestHandoutId(), handoutRequestId);
+        String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+        Project project = projectService.getProject(projectId);
+        assertThat("The project requested from RBS is active",
+                project.getLifecycleState(),
+                equalTo("ACTIVE"));
     }
 }

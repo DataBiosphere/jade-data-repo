@@ -22,7 +22,6 @@ import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
-import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -52,7 +51,6 @@ public class FileIngestFlight extends Flight {
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
         ProfileService profileService = (ProfileService) appContext.getBean("profileService");
         DatasetBucketDao datasetBucketDao = (DatasetBucketDao) appContext.getBean("datasetBucketDao");
-        DataLocationSelector dataLocationSelector = appContext.getBean(DataLocationSelector.class);
 
         UUID datasetId = UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
         Dataset dataset = datasetService.retrieve(datasetId);

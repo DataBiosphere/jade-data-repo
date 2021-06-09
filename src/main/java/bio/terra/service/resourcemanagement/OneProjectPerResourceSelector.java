@@ -45,7 +45,8 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
     }
 
     @Override
-    public String projectIdForFile(Dataset dataset, String googleProjectId, BillingProfileModel billingProfile)
+    public String projectIdForFile(
+        Dataset dataset, String sourceDatasetGoogleProjectId, BillingProfileModel billingProfile)
         throws GoogleResourceException, GoogleResourceNamingException {
         // Case 1
         // Condition: Requested billing profile matches source dataset's billing profile
@@ -53,7 +54,7 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
         UUID sourceDatasetBillingProfileId = dataset.getProjectResource().getProfileId();
         UUID requestedBillingProfileId = UUID.fromString(billingProfile.getId());
         if (sourceDatasetBillingProfileId.equals(requestedBillingProfileId)) {
-            return googleProjectId;
+            return sourceDatasetGoogleProjectId;
         }
 
         // Case 2

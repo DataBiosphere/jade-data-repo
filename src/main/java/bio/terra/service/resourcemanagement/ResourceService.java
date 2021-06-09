@@ -68,11 +68,11 @@ public class ResourceService {
         throws GoogleResourceException, GoogleResourceNamingException, InterruptedException {
 
         final GoogleProjectResource datasetProject = getProjectResource(dataset.getProjectResourceId());
-        String projectId = datasetProject.getGoogleProjectId();
+        String sourceDatasetGoogleProjectId = datasetProject.getGoogleProjectId();
         final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         // Every bucket needs to live in a project, so we get or create a project first
         return projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForFile(dataset, projectId, billingProfile),
+            dataLocationSelector.projectIdForFile(dataset, sourceDatasetGoogleProjectId, billingProfile),
             billingProfile,
             null,
             region);

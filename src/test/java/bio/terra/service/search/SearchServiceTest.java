@@ -68,7 +68,7 @@ public class SearchServiceTest {
         mockIndexRequest();
         mockIndexResponse();
         SearchIndexModel searchIndexModel = service.indexSnapshot(snapshot, searchIndexRequest);
-        assertEquals(searchIndexModel.getIndexSummary(), indexName);
+        assertEquals(indexName, searchIndexModel.getIndexSummary());
     }
 
     private void mockGetSnapshotTableData() throws InterruptedException {

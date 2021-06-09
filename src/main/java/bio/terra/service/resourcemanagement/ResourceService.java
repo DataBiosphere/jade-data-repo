@@ -101,13 +101,6 @@ public class ResourceService {
             flightId);
     }
 
-    private boolean bucketIsForBillingProfile(GoogleBucketResource bucket,
-        BillingProfileModel billingProfile) {
-        GoogleProjectResource resource = bucket.getProjectResource();
-        UUID billingProfileId = UUID.fromString(billingProfile.getId());
-        return resource.getProfileId().equals(billingProfileId);
-    }
-
     /**
      * Fetch an existing bucket and check that the associated cloud resource exists.
      *

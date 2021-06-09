@@ -5,7 +5,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -19,7 +18,6 @@ import java.util.UUID;
 public class OneProjectPerResourceSelector implements DataLocationSelector {
     private final GoogleResourceConfiguration resourceConfiguration;
     private final DatasetBucketDao datasetBucketDao;
-    private final ResourceService resourceService;
     private static final String GS_PROJECT_PATTERN = "[a-z0-9\\-]{6,30}";
     private static final String GS_BUCKET_PATTERN = "[a-z0-9\\-\\.\\_]{3,63}";
     /**
@@ -31,11 +29,9 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
 
     @Autowired
     public OneProjectPerResourceSelector(GoogleResourceConfiguration resourceConfiguration,
-                                         DatasetBucketDao datasetBucketDao,
-                                         ResourceService resourceService) {
+                                         DatasetBucketDao datasetBucketDao) {
         this.resourceConfiguration = resourceConfiguration;
         this.datasetBucketDao = datasetBucketDao;
-        this.resourceService = resourceService;
     }
 
     @Override
@@ -49,7 +45,7 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
     }
 
     @Override
-    public String projectIdForFile(Dataset dataset, BillingProfileModel billingProfile)
+    public String projectIdForFile(Dataset dataset, String googleProjectId, BillingProfileModel billingProfile)
         throws GoogleResourceException, GoogleResourceNamingException {
         // Case 1
         // Condition: Requested billing profile matches source dataset's billing profile
@@ -57,17 +53,16 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
         UUID sourceDatasetBillingProfileId = dataset.getProjectResource().getProfileId();
         UUID requestedBillingProfileId = UUID.fromString(billingProfile.getId());
         if (sourceDatasetBillingProfileId.equals(requestedBillingProfileId)) {
-            GoogleProjectResource project = resourceService.getProjectResource(dataset.getProjectResourceId());
-            return project.getGoogleProjectId();
+            return googleProjectId;
         }
 
         // Case 2
         // Condition: Ingest Billing profile != source dataset billing profile && project *already exists*
         // Action: Re-use bucket's project
-        String googleProjectId = datasetBucketDao.getProjectResourceForBucket(dataset.getId(),
+        String bucketGoogleProjectId = datasetBucketDao.getProjectResourceForBucket(dataset.getId(),
             UUID.fromString(billingProfile.getId()));
-        if (googleProjectId != null) {
-            return googleProjectId;
+        if (bucketGoogleProjectId != null) {
+            return bucketGoogleProjectId;
         }
 
         //Case 3 -

@@ -134,7 +134,8 @@ public class OneProjectPerResourceUnitTest {
 
 
         //Same billing profile as source dataset, so same project id
-        String fileProjectId = oneProjectPerResourceSelector.projectIdForFile(dataset, billingProfiles.get(0));
+        String fileProjectId = oneProjectPerResourceSelector.projectIdForFile(dataset,
+            datasetProjectId, billingProfiles.get(0));
         assertThat("For same billing, dataset and file project are the same",
             fileProjectId, equalTo(datasetProjectId));
         String bucketProjectId =
@@ -146,7 +147,8 @@ public class OneProjectPerResourceUnitTest {
         //Different billing profile than source dataset
         BillingProfileModel newBillingProfile = billingProfiles.get(0).id(UUID.randomUUID().toString());
 
-        String diffFileProjectId = oneProjectPerResourceSelector.projectIdForFile(dataset, newBillingProfile);
+        String diffFileProjectId = oneProjectPerResourceSelector
+            .projectIdForFile(dataset, datasetProjectId, newBillingProfile);
         assertThat(
             "For different billing, dataset and file project live in different projects",
             diffFileProjectId, not(datasetProjectId));
@@ -163,10 +165,10 @@ public class OneProjectPerResourceUnitTest {
         datasets.add(createDataset(billingProfiles.get(1), projects.get(1)));
 
         String bucketProject1 = oneProjectPerResourceSelector.projectIdForFile(datasets.get(0),
-            billingProfiles.get(0));
+            projects.get(0).getGoogleProjectId(), billingProfiles.get(0));
         String bucketName1 = oneProjectPerResourceSelector.bucketForFile(bucketProject1);
         String bucketProject2 = oneProjectPerResourceSelector.projectIdForFile(datasets.get(1),
-            billingProfiles.get(1));
+            projects.get(1).getGoogleProjectId(), billingProfiles.get(1));
         String bucketName2 = oneProjectPerResourceSelector.bucketForFile(bucketProject2);
 
         assertNotEquals("Buckets should be named differently", bucketName1, bucketName2);
@@ -178,7 +180,7 @@ public class OneProjectPerResourceUnitTest {
         datasets.add(createDataset(billingProfiles.get(0), projects.get(0)));
 
         String bucketProject1 = oneProjectPerResourceSelector.projectIdForFile(datasets.get(0),
-            billingProfiles.get(0));
+            projects.get(0).getGoogleProjectId(), billingProfiles.get(0));
         assertThat("Dataset and bucket project should match since using same billing profile.",
             bucketProject1, equalTo(projects.get(0).getGoogleProjectId()));
         String bucketName1 = oneProjectPerResourceSelector.bucketForFile(bucketProject1);
@@ -187,7 +189,7 @@ public class OneProjectPerResourceUnitTest {
 
         //Different billing profile
         String bucketProject2 = oneProjectPerResourceSelector.projectIdForFile(datasets.get(0),
-            billingProfiles.get(1));
+            projects.get(1).getGoogleProjectId(), billingProfiles.get(1));
         assertThat(
             "Dataset and bucket project should NOT match since they are using different billing profiles.",
             bucketProject2, not(projects.get(0).getGoogleProjectId()));

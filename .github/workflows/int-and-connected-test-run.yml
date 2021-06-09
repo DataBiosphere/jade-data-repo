@@ -62,7 +62,6 @@ jobs:
           secrets: |
             secret/dsde/datarepo/dev/azure-test applicationsecret | AZURE_CREDENTIALS_SECRET ;
             secret/dsde/terra/kernel/dev/dev/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
-      - name: "Write RBS SA to a file"
         run: |
           # write vault token
           base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}

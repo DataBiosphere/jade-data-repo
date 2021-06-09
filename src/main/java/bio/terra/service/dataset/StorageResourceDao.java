@@ -96,18 +96,7 @@ public class StorageResourceDao {
             valuesList.add(String.format("(:dataset_id, :%s, :%s, :%s)",
                 regionParam, cloudResourceParam, platformParam));
 
-            switch (storageResource.getCloudResource()) {
-                case FIRESTORE:
-                    params.addValue(regionParam,
-                        storageResource.getRegion().getRegionOrFallbackFirestoreRegion().name());
-                    break;
-                case BUCKET:
-                    params.addValue(regionParam, storageResource.getRegion().getRegionOrFallbackBucketRegion().name());
-                    break;
-                case BIGQUERY:
-                    params.addValue(regionParam, storageResource.getRegion().name());
-            }
-
+            params.addValue(regionParam, storageResource.getRegion().name());
             params.addValue(cloudResourceParam, storageResource.getCloudResource().name());
             params.addValue(platformParam, storageResource.getCloudPlatform().name());
         }

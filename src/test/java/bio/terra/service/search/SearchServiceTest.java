@@ -28,17 +28,19 @@ import org.junit.experimental.categories.Category;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.Assert.assertEquals;
+
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -101,15 +103,15 @@ public class SearchServiceTest {
     @Test
     public void querySnapshotTest() throws Exception {
         GetAliasesResponse mockResponse = mock(GetAliasesResponse.class);
-        when(mockResponse.getAliases()).thenReturn(Map.of("0f14d0ab-9605-4a62-a9e4-5ed26688389b", new HashSet<>()));
+        when(mockResponse.getAliases()).thenReturn(Map.of("0f14d0ab-9605-4a62-a9e4-5ed26688389b", Set.of()));
         when(indicesClient.getAlias(any(GetAliasesRequest.class), any(RequestOptions.class)))
                 .thenReturn(mockResponse);
-        List<UUID> snaptshotIdsToQuery = Arrays.asList(
+        List<UUID> snaptshotIdsToQuery = List.of(
                 UUID.fromString("0f14d0ab-9605-4a62-a9e4-5ed26688389b")
         );
         SearchHits mockHits = mock(SearchHits.class);
         SearchHit mockHit = mock(SearchHit.class);
-        when(mockHits.getHits()).thenReturn(new SearchHit[]{mockHit});
+        when(mockHits.iterator()).thenReturn(Arrays.stream(new SearchHit[]{mockHit}).iterator());
         when(mockHit.getSourceAsMap()).thenReturn(Map.of("testKey", "testValue"));
 
         SearchResponse mockSearchResponse = mock(SearchResponse.class);

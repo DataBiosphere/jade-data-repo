@@ -57,8 +57,8 @@ jobs:
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
-          roleId: ${{ secrets.ROLE_ID }}
-          secretId: ${{ secrets.SECRET_ID }}
+          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
+          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/dev/azure-test applicationsecret | AZURE_CREDENTIALS_SECRET ;
             secret/dsde/terra/kernel/dev/dev/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;

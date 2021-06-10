@@ -3,32 +3,44 @@ package bio.terra.service.search;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
+import bio.terra.model.SearchQueryRequest;
+import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexResponse;
+import org.elasticsearch.action.search.SearchRequest;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.GetAliasesResponse;
 import org.elasticsearch.client.IndicesClient;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.CreateIndexResponse;
-import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.client.indices.GetIndexResponse;
+import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.junit.Assert.assertEquals;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +74,8 @@ public class SearchServiceTest {
         searchIndexRequest = getSearchIndexRequest();
         snapshot = getSnapshot();
         values = getSnapshotTableData();
+
+        when(client.indices()).thenReturn(indicesClient);
     }
 
     @Test
@@ -84,6 +98,34 @@ public class SearchServiceTest {
 
         SearchIndexModel searchIndexModel = service.indexSnapshot(snapshot, searchIndexRequest);
         assertEquals(indexName, searchIndexModel.getIndexSummary());
+    }
+
+    @Test
+    public void querySnapshotTest() throws Exception {
+        String testId = "0f14d0ab-9605-4a62-a9e4-5ed26688389b";
+
+        GetAliasesResponse mockResponse = mock(GetAliasesResponse.class);
+        when(mockResponse.getAliases()).thenReturn(Map.of(String.format("idx-%s", testId), Set.of()));
+        when(indicesClient.getAlias(any(GetAliasesRequest.class), any(RequestOptions.class)))
+                .thenReturn(mockResponse);
+        SearchHits mockHits = mock(SearchHits.class);
+        SearchHit mockHit = mock(SearchHit.class);
+        when(mockHits.iterator()).thenReturn(Arrays.stream(new SearchHit[]{mockHit}).iterator());
+        when(mockHit.getSourceAsMap()).thenReturn(Map.of("testKey", "testValue"));
+
+        SearchResponse mockSearchResponse = mock(SearchResponse.class);
+        when(mockSearchResponse.getHits()).thenReturn(mockHits);
+        when(client.search(any(SearchRequest.class), any(RequestOptions.class))).thenReturn(mockSearchResponse);
+
+        List<UUID> snapshotIdsToQuery = List.of(
+                UUID.fromString(testId)
+        );
+        SearchQueryResultModel actualResultModel =
+                service.querySnapshot(new SearchQueryRequest().query("query"), snapshotIdsToQuery, 0, 1);
+        SearchQueryResultModel expectedResultModel = new SearchQueryResultModel();
+        expectedResultModel.result(List.of(Map.of("testKey", "testValue")));
+
+        assertEquals(expectedResultModel.getResult(), actualResultModel.getResult());
     }
 
     private SearchIndexRequest getSearchIndexRequest() {

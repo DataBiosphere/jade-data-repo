@@ -148,21 +148,21 @@ public class SearchService {
     public SearchQueryResultModel querySnapshot(
             SearchQueryRequest searchQueryRequest, Collection<UUID> snapshotIdsToQuery,
             int offset, int limit) {
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        var searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.from(offset);
         searchSourceBuilder.size(limit);
         // see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
         WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
         searchSourceBuilder.query(wrapperQuery);
 
-        var validIndexes = getValidIndexes();
+        Set<String> validIndexes = getValidIndexes();
 
-        var indicesToQuery = snapshotIdsToQuery.stream()
+        String[] indicesToQuery = snapshotIdsToQuery.stream()
             .map(this::uuidToIndexName)
             .filter(validIndexes::contains)
             .toArray(String[]::new);
 
-        SearchRequest searchRequest = new SearchRequest(indicesToQuery, searchSourceBuilder);
+        var searchRequest = new SearchRequest(indicesToQuery, searchSourceBuilder);
 
         final SearchResponse elasticResponse;
         try {
@@ -177,7 +177,6 @@ public class SearchService {
         //do we want to include info on the index/snapshot the response came from?
         result.setResult(response);
         return result;
-
     }
 
     private List<Map<String, String>> hitsToMap(SearchHits hits) {

@@ -367,15 +367,15 @@ public class AzureResourceConfigurationTest {
     }
 
     private String generateSas(DataLakeFileClient client) {
-        OffsetDateTime startTime = OffsetDateTime.now();
-        OffsetDateTime expiryTime = startTime.plusHours(1);
+        OffsetDateTime expiryTime = OffsetDateTime.now().plusHours(1);
         FileSystemSasPermission permission = new FileSystemSasPermission().setReadPermission(true)
             .setWritePermission(false);
 
         // Note: can't use user delegation since that's not supported cross tenant
         // Note: the version is so that subdirectory sharing works...docs say it's a no-op, but it sure isn't...
         return client.generateSas(new DataLakeServiceSasSignatureValues(expiryTime, permission)
-            .setStartTime(startTime).setVersion("2020-04-08"));
+            // Version is set to a version of the token signing API the supports keys that permit listing files
+            .setVersion("2020-04-08"));
     }
 
     /**

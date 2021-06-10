@@ -1,0 +1,14 @@
+[
+  {
+    "region": "CENTRAL_US",
+    "datasetId": "a3d54871-8cdc-4549-8410-28005df9cbaf",
+    "cloudPlatform": "azure",
+    "cloudResource": "APPLICATION_DEPLOYMENT"
+  },
+  {
+    "region": "US_EAST1",
+    "datasetId": "a3d54871-8cdc-4549-8410-28005df9cbaf",
+    "cloudPlatform": "gcp",
+    "cloudResource": "BUCKET"
+  }
+]

@@ -119,7 +119,7 @@ public class BufferService {
                 status.getSystems();
             return new RepositoryStatusModelSystems()
                 .ok(status.isOk())
-                .critical(false)
+                .critical(bufferServiceConfiguration.getEnabled())
                 .message(subsystemStatusMap.toString());
         } catch (ApiException e) {
             return new RepositoryStatusModelSystems()

@@ -342,8 +342,6 @@ jade-data-repo/application.properties.  You can convert any application.property
 variable by switching to upper case and every "." to "_".
 
 ```
-export DATAREPO_USEREMAIL={your dev gmail account}
-
 # Point to your personal dev project/deployment
 export GOOGLE_CLOUD_PROJECT=broad-jade-ZZ
 export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-ZZ-data

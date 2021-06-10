@@ -34,7 +34,8 @@ public class BufferServiceAPIException extends ErrorReportException {
         this.apiException = apiException;
     }
 
-    public BufferServiceAPIException(String message, List<String> causes, HttpStatus statusCode, ApiException apiException) {
+    public BufferServiceAPIException(String message, List<String> causes, HttpStatus statusCode,
+                                     ApiException apiException) {
         super(message, causes, statusCode);
         this.apiException = apiException;
     }

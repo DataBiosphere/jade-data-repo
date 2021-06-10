@@ -1,7 +1,9 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.app.model.GoogleRegion;
+import bio.terra.app.model.CloudRegion;
+import bio.terra.app.model.CloudResource;
 import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Relationship;
@@ -399,15 +401,15 @@ public class SnapshotDaoTest {
                 makeName(snapshotName, index),
                 equalTo(summary.getName()));
 
-            Map<GoogleCloudResource, StorageResource> storageMap = summary.getStorage().stream()
+            Map<CloudResource, StorageResource> storageMap = summary.getStorage().stream()
                     .collect(Collectors.toMap(StorageResource::getCloudResource, Function.identity()));
 
             Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotIds.get(index));
             SnapshotSource source = fromDB.getFirstSnapshotSource();
 
             for (GoogleCloudResource resource: GoogleCloudResource.values()) {
-                GoogleRegion sourceRegion = source.getDataset().getDatasetSummary().getStorageResourceRegion(resource);
-                GoogleRegion snapshotRegion = storageMap.get(resource).getRegion();
+                CloudRegion sourceRegion = source.getDataset().getDatasetSummary().getStorageResourceRegion(resource);
+                CloudRegion snapshotRegion = storageMap.get(resource).getRegion();
                 assertThat("snapshot includes expected source dataset storage regions",
                     snapshotRegion,
                     equalTo(sourceRegion));

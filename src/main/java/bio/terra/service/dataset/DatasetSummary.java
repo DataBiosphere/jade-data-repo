@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
-import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.CloudRegion;
+import bio.terra.app.model.CloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 
@@ -14,6 +15,7 @@ public class DatasetSummary {
     private String description;
     private UUID defaultProfileId;
     private UUID projectResourceId;
+    private UUID applicationDeploymentResourceId;
     private Instant createdDate;
     private List<StorageResource> storage;
 
@@ -62,6 +64,15 @@ public class DatasetSummary {
         return this;
     }
 
+    public UUID getApplicationDeploymentResourceId() {
+        return applicationDeploymentResourceId;
+    }
+
+    public DatasetSummary applicationDeploymentResourceId(UUID applicationDeploymentResourceId) {
+        this.applicationDeploymentResourceId = applicationDeploymentResourceId;
+        return this;
+    }
+
     public Instant getCreatedDate() {
         return createdDate;
     }
@@ -80,7 +91,7 @@ public class DatasetSummary {
         return this;
     }
 
-    public GoogleRegion getStorageResourceRegion(GoogleCloudResource storageResource) {
+    public CloudRegion getStorageResourceRegion(CloudResource storageResource) {
         return storage.stream()
             .filter(resource -> resource.getCloudResource() == storageResource)
             .findFirst()

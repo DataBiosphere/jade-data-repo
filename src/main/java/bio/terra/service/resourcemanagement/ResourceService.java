@@ -1,8 +1,5 @@
 package bio.terra.service.resourcemanagement;
 
-import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS;
-import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
-
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
@@ -17,6 +14,11 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,10 +26,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+
+import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.ENABLE_PERMISSIONS;
+import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
 
 @Component
 public class ResourceService {
@@ -69,7 +70,8 @@ public class ResourceService {
 
         final GoogleProjectResource datasetProject = getProjectResource(dataset.getProjectResourceId());
         String sourceDatasetGoogleProjectId = datasetProject.getGoogleProjectId();
-        final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
+        final GoogleRegion region =
+            (GoogleRegion) dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         // Every bucket needs to live in a project, so we get or create a project first
         return projectService.getOrCreateProject(
             dataLocationSelector.projectIdForFile(dataset, sourceDatasetGoogleProjectId, billingProfile),
@@ -97,7 +99,7 @@ public class ResourceService {
         return bucketService.getOrCreateBucket(
             dataLocationSelector.bucketForFile(projectResource.getGoogleProjectId()),
             projectResource,
-            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+            (GoogleRegion) dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             flightId);
     }
 

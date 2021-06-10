@@ -236,7 +236,7 @@ public class DatasetDaoTest {
             fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
 
             for (GoogleCloudResource resource: GoogleCloudResource.values()) {
-                GoogleRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+                GoogleRegion region = (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
                 assertThat(String.format("dataset %s region is set", resource),
                     region,
                     equalTo(testSettingRegion));
@@ -258,7 +258,7 @@ public class DatasetDaoTest {
             Dataset fromDB = datasetDao.retrieve(datasetId);
 
             for (GoogleCloudResource resource: GoogleCloudResource.values()) {
-                GoogleRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+                GoogleRegion region = (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
                 GoogleRegion expectedRegion =
                     (resource == GoogleCloudResource.BIGQUERY) ? GoogleRegion.US : GoogleRegion.US_EAST4;
                 assertThat(String.format("dataset %s region is set to %s", resource, region.name()),

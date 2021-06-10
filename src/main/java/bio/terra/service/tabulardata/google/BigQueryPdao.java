@@ -129,7 +129,8 @@ public class BigQueryPdao {
                 bigQueryProject.deleteDataset(datasetName);
             }
 
-            GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
+            GoogleRegion region =
+                (GoogleRegion) dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription(), region);
             bigQueryProject.createTable(
@@ -360,7 +361,7 @@ public class BigQueryPdao {
         }
 
         // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-        GoogleRegion representativeRegion = snapshot.getFirstSnapshotSource()
+        GoogleRegion representativeRegion = (GoogleRegion) snapshot.getFirstSnapshotSource()
             .getDataset()
             .getDatasetSummary()
             .getStorageResourceRegion(GoogleCloudResource.BIGQUERY);

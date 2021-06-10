@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -21,18 +22,18 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -238,7 +239,7 @@ public class DatasetBucketDaoTest {
         bucketForFile = googleBucketService.getOrCreateBucket(
             gcsConfiguration.getBucket(),
             projectResource,
-            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+            (GoogleRegion) dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             ingestFileFlightId);
         return bucketForFile.getResourceId();
     }

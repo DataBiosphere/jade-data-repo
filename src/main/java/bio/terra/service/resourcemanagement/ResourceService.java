@@ -77,7 +77,8 @@ public class ResourceService {
         BillingProfileModel billingProfile,
         String flightId) throws InterruptedException {
         final String datasetName = dataset.getName();
-        final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
+        final GoogleRegion region =
+            (GoogleRegion) dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         // Every bucket needs to live in a project, so we get or create a project first
         final GoogleProjectResource projectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForFile(datasetName, billingProfile),
@@ -105,7 +106,7 @@ public class ResourceService {
         }
 
         return bucketService.getOrCreateBucket(bucketName, projectResource,
-            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+            (GoogleRegion) dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             flightId);
     }
 

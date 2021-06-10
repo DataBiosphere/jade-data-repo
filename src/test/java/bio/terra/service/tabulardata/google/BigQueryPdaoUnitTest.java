@@ -10,7 +10,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.grammar.exception.InvalidQueryException;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
@@ -695,10 +694,9 @@ public class BigQueryPdaoUnitTest {
                             .profileId(PROFILE_1_ID)
                             .googleProjectId(DATASET_PROJECT_ID))
                         .tables(List.of(tbl1, tbl2))
-                        .storage(List.of(new StorageResource()
+                        .storage(List.of(StorageResource.getGoogleInstance()
                             .datasetId(DATASET_ID)
                             .cloudResource(GoogleCloudResource.BIGQUERY)
-                            .cloudPlatform(CloudPlatform.GCP)
                             .region(GoogleRegion.NORTHAMERICA_NORTHEAST1))))
                     .assetSpecification(new AssetSpecification()
                         .rootTable(new AssetTable()

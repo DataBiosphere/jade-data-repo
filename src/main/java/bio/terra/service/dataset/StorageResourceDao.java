@@ -1,10 +1,12 @@
 package bio.terra.service.dataset;
 
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.model.CloudPlatform;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
-import bio.terra.common.DaoKeyHolder;
+import bio.terra.app.model.AzureCloudResource;
+import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.DaoKeyHolder;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.exception.InvalidStorageException;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import org.slf4j.Logger;
@@ -73,11 +75,18 @@ public class StorageResourceDao {
 
     private static class StorageResourceMapper implements RowMapper<StorageResource> {
         public StorageResource mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new StorageResource()
-                .datasetId(UUID.fromString(rs.getString("dataset_id")))
-                .cloudPlatform(CloudPlatform.valueOf(rs.getString("cloud_platform")))
-                .cloudResource(GoogleCloudResource.valueOf(rs.getString("cloud_resource")))
-                .region(GoogleRegion.valueOf(rs.getString("region")));
+            final CloudPlatform cloudPlatform = CloudPlatform.valueOf(rs.getString("cloud_platform"));
+            switch (cloudPlatform) {
+                case GCP: return StorageResource.getGoogleInstance()
+                    .datasetId(UUID.fromString(rs.getString("dataset_id")))
+                    .cloudResource(GoogleCloudResource.valueOf(rs.getString("cloud_resource")))
+                    .region(GoogleRegion.valueOf(rs.getString("region")));
+                case AZURE: return StorageResource.getAzureInstance()
+                    .datasetId(UUID.fromString(rs.getString("dataset_id")))
+                    .cloudResource(AzureCloudResource.valueOf(rs.getString("cloud_resource")))
+                    .region(AzureRegion.valueOf(rs.getString("region")));
+                default: throw new IllegalArgumentException("Unrecognized cloud platform");
+            }
         }
     }
 
@@ -96,7 +105,8 @@ public class StorageResourceDao {
             valuesList.add(String.format("(:dataset_id, :%s, :%s, :%s)",
                 regionParam, cloudResourceParam, platformParam));
 
-            params.addValue(regionParam, storageResource.getRegion().name());
+            params.addValue(regionParam, ((GoogleRegion) storageResource.getRegion())
+                    .name());
             params.addValue(cloudResourceParam, storageResource.getCloudResource().name());
             params.addValue(platformParam, storageResource.getCloudPlatform().name());
         }

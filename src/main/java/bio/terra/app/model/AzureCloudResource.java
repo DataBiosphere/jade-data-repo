@@ -3,12 +3,14 @@ package bio.terra.app.model;
 /**
  * Google cloud resources used by TDR.
  */
-public enum GoogleCloudResource implements CloudResource {
-    BIGQUERY("bigquery"), FIRESTORE("firestore"), BUCKET("bucket");
+public enum AzureCloudResource implements CloudResource {
+    APPLICATION_DEPLOYMENT("application_deployment"),
+    STORAGE_ACCOUNT("storage_account"),
+    SYNAPSE_WORKSPACE("synapse_workspace");
 
     private final String value;
 
-    GoogleCloudResource(String value) {
+    AzureCloudResource(String value) {
         this.value = value;
     }
 
@@ -20,8 +22,8 @@ public enum GoogleCloudResource implements CloudResource {
         return value;
     }
 
-    public static GoogleCloudResource fromValue(String text) {
-        for (GoogleCloudResource resource : GoogleCloudResource.values()) {
+    public static AzureCloudResource fromValue(String text) {
+        for (AzureCloudResource resource : AzureCloudResource.values()) {
             if (resource.value.equalsIgnoreCase(text)) {
                 return resource;
             }

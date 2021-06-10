@@ -127,6 +127,7 @@ public class SearchService {
 
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
+
         List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql());
         validateSnapshotDataNotEmpty(values);
         String indexName = createEmptyIndex(snapshot);

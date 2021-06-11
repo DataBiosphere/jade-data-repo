@@ -1,23 +1,17 @@
 package bio.terra.service.resourcemanagement.google;
 
-import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Unit;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.StorageResource;
-import bio.terra.service.resourcemanagement.OneProjectPerResourceSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -29,7 +23,6 @@ import static org.mockito.ArgumentMatchers.any;
 
 import static org.mockito.Mockito.when;
 
-@Ignore
 @Category(Unit.class)
 @RunWith(MockitoJUnitRunner.class)
 public class ResourceServiceUnitTest {
@@ -38,26 +31,10 @@ public class ResourceServiceUnitTest {
     private ResourceService resourceService;
 
     @Mock
-    private GoogleProjectService googleProjectService;
-
-    @Mock
-    private DatasetBucketDao datasetBucketDao;
-
-    @Mock
-    private OneProjectPerResourceSelector oneProjectPerResourceSelector;
-
-    @Mock
     private GoogleBucketService bucketService;
 
-    @Mock
-    private GoogleResourceDao resourceDao;
-
-    @Mock
-    private SamConfiguration samConfiguration;
 
     private final UUID billingProfileId = UUID.randomUUID();
-    private final BillingProfileModel profileModel = new BillingProfileModel()
-        .id(billingProfileId.toString());
 
     private final UUID datasetId = UUID.randomUUID();
 
@@ -80,46 +57,18 @@ public class ResourceServiceUnitTest {
         .name(bucketName.toString())
         .projectResource(projectResource);
 
-    private final List<UUID> bucketsForDataset = List.of(bucketId);
-
     public void setup() throws InterruptedException {
         MockitoAnnotations.initMocks(this);
     }
 
     @Test
-    public void testUseExistingBucketWhenNewNameProduced() throws Exception {
-        when(googleProjectService.getOrCreateProject(any(), any(), any(), any()))
-            .thenReturn(projectResource);
-        when(datasetBucketDao.getBucketResourceIdForDatasetId(datasetId)).thenReturn(bucketsForDataset);
-        when(bucketService.getBucketResourceById(bucketId, true)).thenReturn(bucketResource);
-        when(oneProjectPerResourceSelector.bucketForFile(projectResource.getGoogleProjectId()))
-            .thenReturn("newBucketName");
+    public void testGrabBucket() throws Exception {
         when(bucketService
-            .getOrCreateBucket(bucketName.toString(), projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION,
-                "flightId"))
+            .getOrCreateBucket(any(), any(), any(), any()))
             .thenReturn(bucketResource);
 
         GoogleBucketResource foundBucket = resourceService
             .getOrCreateBucketForFile(dataset, projectResource, "flightId");
         Assert.assertEquals(bucketResource, foundBucket);
-    }
-
-    @Test
-    public void testUseNewBucketIfNoneExists() throws Exception {
-        when(googleProjectService.getOrCreateProject(any(), any(), any(), any()))
-            .thenReturn(projectResource);
-        String newName = projectResource.getGoogleProjectId() + "-bucket";
-        GoogleBucketResource newBucket = new GoogleBucketResource().name(newName);
-        when(datasetBucketDao.getBucketResourceIdForDatasetId(datasetId)).thenReturn(new ArrayList<>());
-        when(oneProjectPerResourceSelector.bucketForFile(projectResource.getGoogleProjectId()))
-            .thenReturn("newBucketName");
-        when(bucketService
-            .getOrCreateBucket(newName, projectResource, GoogleRegion.DEFAULT_GOOGLE_REGION,
-                "flightId"))
-            .thenReturn(newBucket);
-
-        GoogleBucketResource foundBucket = resourceService
-            .getOrCreateBucketForFile(dataset, projectResource, "flightId");
-        Assert.assertEquals(newBucket, foundBucket);
     }
 }

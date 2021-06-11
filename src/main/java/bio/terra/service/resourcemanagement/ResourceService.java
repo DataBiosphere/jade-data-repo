@@ -170,7 +170,7 @@ public class ResourceService {
      *
      * @param snapshotName      name of the snapshot
      * @param billingProfile    authorized billing profile to pay for the project
-     * @param region           the region of the snapshot
+     * @param region            the region of the snapshot
      * @return project resource id
      */
     public UUID getOrCreateSnapshotProject(String snapshotName,

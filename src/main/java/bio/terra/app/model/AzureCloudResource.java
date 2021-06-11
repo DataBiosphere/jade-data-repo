@@ -1,7 +1,7 @@
 package bio.terra.app.model;
 
 /**
- * Google cloud resources used by TDR.
+ * Azure cloud resources used by TDR.
  */
 public enum AzureCloudResource implements CloudResource {
     APPLICATION_DEPLOYMENT("application_deployment"),

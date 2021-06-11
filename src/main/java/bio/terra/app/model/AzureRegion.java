@@ -92,7 +92,8 @@ public enum AzureRegion implements CloudRegion {
     }
 
     /**
-     * Differs from ofValue in that this does not fail if no value is found
+     * Differs from {@link #valueOf(String)} in that this does not fail if no value is found, and uses
+     * a case insensitive compare
      * @param text region to look up
      * @return A GoogleRegion or null if none is found
      */

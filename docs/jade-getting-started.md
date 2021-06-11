@@ -342,8 +342,6 @@ jade-data-repo/application.properties.  You can convert any application.property
 variable by switching to upper case and every "." to "_".
 
 ```
-export DATAREPO_USEREMAIL={your dev gmail account}
-
 # Point to your personal dev project/deployment
 export GOOGLE_CLOUD_PROJECT=broad-jade-ZZ
 export GOOGLE_CLOUD_DATA_PROJECT=broad-jade-ZZ-data
@@ -364,6 +362,11 @@ export DB_MIGRATE_DROPALLONSTART=true
 # Setting for testing environment (Further explaned in oncall playbook)
 export GOOGLE_ALLOWREUSEEXISTINGBUCKETS=true
 export GOOGLE_ALLOWREUSEEXISTINGPROJECTS=true
+
+# Setting for credentials to test on Azure
+export AZURE_CREDENTIALS_HOMETENANTID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
+export AZURE_CREDENTIALS_APPLICATIONID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
+export AZURE_CREDENTIALS_SECRET=$(vault read -format=json secret/dsde/datarepo/dev/helm-azure | jq -r .data.applicationsecret)
 ```
 
 * If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`

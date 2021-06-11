@@ -115,7 +115,7 @@ public class RetrieveSnapshot extends SimpleDataset {
     byte[] fileRefBytes = jsonLine.getBytes(StandardCharsets.UTF_8);
     String jsonFileName = FileUtils.randomizeName("this-better-pass") + ".json";
     String dirInCloud = "scratch/testRetrieveSnapshot/";
-    String fileRefName = dirInCloud + "/" + jsonFileName;
+    String fileRefName = dirInCloud + jsonFileName;
 
     String scratchFileBucketName = "jade-testdata";
     BlobId scratchFileTabularData =

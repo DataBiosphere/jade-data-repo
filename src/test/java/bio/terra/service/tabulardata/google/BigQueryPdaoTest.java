@@ -8,15 +8,14 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BulkLoadFileState;
+import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BulkLoadHistoryModel;
-import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
-
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetJsonConversion;
@@ -24,6 +23,9 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.JobInfo;
@@ -35,7 +37,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -59,13 +60,15 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -85,6 +88,8 @@ public class BigQueryPdaoTest {
     private BigQueryPdao bigQueryPdao;
     @Autowired
     private DatasetDao datasetDao;
+    @Autowired
+    private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired
     private ConnectedOperations connectedOperations;
     @Autowired
@@ -284,7 +289,7 @@ public class BigQueryPdaoTest {
                 Assert.assertThat(participantIds, containsInAnyOrder(
                     "participant_1", "participant_2", "participant_5"));
                 Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2"));
-                Assert.assertThat(fileIds, is(Matchers.empty()));
+                Assert.assertThat(fileIds, is(empty()));
 
                 // Make sure the old snapshot wasn't changed.
                 participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
@@ -487,6 +492,31 @@ public class BigQueryPdaoTest {
             // `connectedOperations` object, so we can't rely on its auto-teardown logic.
             datasetDao.delete(dataset.getId());
         }
+    }
+
+    private static final String snapshotTableDataSqlExample = "SELECT id, 'hello' as text" +
+        " FROM UNNEST(GENERATE_ARRAY(1, 3)) AS id ORDER BY id;";
+
+    @Test
+    public void testGetSnapshotTableData() throws Exception {
+        UUID profileId = UUID.fromString(profileModel.getId());
+        String dataProjectId = googleResourceConfiguration.getSingleDataProjectId();
+        Snapshot snapshot = new Snapshot().projectResource(new GoogleProjectResource()
+            .profileId(profileId)
+            .googleProjectId(dataProjectId)
+        );
+        List<Map<String, Object>> expected = getExampleSnapshotTableData();
+        List<Map<String, Object>> actual = bigQueryPdao.getSnapshotTableData(snapshot, snapshotTableDataSqlExample);
+        assertEquals(expected, actual);
+    }
+
+    private List<Map<String, Object>> getExampleSnapshotTableData() {
+        List<Map<String, Object>> values = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            values.add(Map.of("id", String.valueOf(i + 1), "text", "hello"));
+        }
+
+        return values;
     }
 
     public com.google.cloud.bigquery.Dataset bigQueryDataset(Dataset dataset) {

@@ -173,8 +173,8 @@ public class SnapshotDaoTest {
 
         // verify snapshot source region includes the default region
         assertTrue("source dataset info includes default region",
-            source.getDataset().getDatasetSummary().getStorage().stream()
-                .allMatch(sr -> sr.getRegion().equals(GoogleRegion.US_CENTRAL1)));
+            GoogleRegion.matchingRegionWithFallbacks(source.getDataset().getDatasetSummary().getStorage(),
+                GoogleRegion.DEFAULT_GOOGLE_REGION));
 
         assertThat("source points to the asset spec",
             source.getAssetSpecification().getId(),
@@ -283,7 +283,7 @@ public class SnapshotDaoTest {
         testSortingDescriptions(snapshotIdList, SqlSortDirection.ASC);
 
         MetadataEnumeration<SnapshotSummary> filterDefaultRegionEnum = snapshotDao.retrieveSnapshots(0, 6,
-                null, null, null, GoogleRegion.US_CENTRAL1.toString(), datasetIds, snapshotIdList);
+                null, null, null, GoogleRegion.DEFAULT_GOOGLE_REGION.toString(), datasetIds, snapshotIdList);
         List<SnapshotSummary> filteredRegionSnapshots = filterDefaultRegionEnum.getItems();
         assertThat("snapshot filter by default GCS region returns correct total",
             filteredRegionSnapshots.size(),
@@ -292,11 +292,12 @@ public class SnapshotDaoTest {
             Snapshot snapshot = snapshotDao.retrieveSnapshot(s.getId());
             assertTrue("snapshot filter by default GCS region returns correct items",
                 snapshot.getFirstSnapshotSource().getDataset().getDatasetSummary()
-                    .datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1));
+                    .datasetStorageContainsRegion(GoogleRegion.DEFAULT_GOOGLE_REGION));
         }
 
         MetadataEnumeration<SnapshotSummary> filterNameAndRegionEnum = snapshotDao.retrieveSnapshots(0, 6,
-                null, null, makeName(snapshotName, 0), GoogleRegion.US_CENTRAL1.toString(),
+                null, null, makeName(snapshotName, 0),
+                GoogleRegion.DEFAULT_GOOGLE_REGION.toString(),
                 datasetIds, snapshotIdList);
         List<SnapshotSummary> filteredNameAndRegionSnapshots = filterNameAndRegionEnum.getItems();
         assertThat("snapshot filter by name and region returns correct total",
@@ -309,7 +310,7 @@ public class SnapshotDaoTest {
             Snapshot snapshot = snapshotDao.retrieveSnapshot(s.getId());
             assertTrue("snapshot filter by name and region returns correct snapshot source region",
                     snapshot.getFirstSnapshotSource().getDataset().getDatasetSummary()
-                            .datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1));
+                            .datasetStorageContainsRegion(GoogleRegion.DEFAULT_GOOGLE_REGION));
         }
 
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 2, null,

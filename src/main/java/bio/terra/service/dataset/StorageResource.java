@@ -16,10 +16,16 @@ public class StorageResource {
     private GoogleRegion region;
 
     public StorageResourceModel toModel() {
+        GoogleRegion regionOverride = region;
+        if (cloudResource == GoogleCloudResource.FIRESTORE) {
+            regionOverride = region.getRegionOrFallbackFirestoreRegion();
+        } else if (cloudResource == GoogleCloudResource.BUCKET) {
+            regionOverride = region.getRegionOrFallbackBucketRegion();
+        }
         return new StorageResourceModel()
             .cloudPlatform(cloudPlatform)
             .cloudResource(cloudResource.toString())
-            .region(region.toString());
+            .region(regionOverride.toString());
     }
 
     public UUID getDatasetId() {

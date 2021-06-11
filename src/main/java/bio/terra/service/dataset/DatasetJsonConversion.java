@@ -87,10 +87,20 @@ public final class DatasetJsonConversion {
 
     private static List<StorageResource> createGcpStorageResourceValues(DatasetRequestModel datasetRequestModel) {
         final GoogleRegion region = getRegionFromDatasetRequestModel(datasetRequestModel);
-        return Arrays.stream(GoogleCloudResource.values()).map(resource -> new StorageResource()
-             .cloudPlatform(CloudPlatform.GCP)
-             .region(region)
-             .cloudResource(resource)).collect(Collectors.toList());
+        return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
+            final GoogleRegion finalRegion;
+            switch (resource) {
+                case FIRESTORE: finalRegion = region.getRegionOrFallbackFirestoreRegion();
+                    break;
+                case BUCKET: finalRegion = region.getRegionOrFallbackBucketRegion();
+                    break;
+                default: finalRegion = region;
+            }
+            return new StorageResource()
+                .cloudPlatform(CloudPlatform.GCP)
+                .region(finalRegion)
+                .cloudResource(resource);
+        }).collect(Collectors.toList());
     }
 
     public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(DatasetSummary datasetSummary) {

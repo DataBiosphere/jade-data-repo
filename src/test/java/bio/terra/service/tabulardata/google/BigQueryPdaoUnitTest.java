@@ -20,7 +20,7 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.RowIdMatch;
@@ -694,7 +694,7 @@ public class BigQueryPdaoUnitTest {
                             .profileId(PROFILE_1_ID)
                             .googleProjectId(DATASET_PROJECT_ID))
                         .tables(List.of(tbl1, tbl2))
-                        .storage(List.of(StorageResource.getGoogleInstance()
+                        .storage(List.of(new GoogleStorageResource()
                             .datasetId(DATASET_ID)
                             .cloudResource(GoogleCloudResource.BIGQUERY)
                             .region(GoogleRegion.NORTHAMERICA_NORTHEAST1))))

@@ -2,8 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.CloudRegion;
-import bio.terra.app.model.CloudResource;
 import bio.terra.model.CloudPlatform;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
@@ -11,16 +9,11 @@ import java.util.Objects;
 import java.util.UUID;
 
 @JsonTypeName("azure")
-public class AzureStorageResource implements StorageResource {
+public class AzureStorageResource implements StorageResource<AzureRegion, AzureCloudResource> {
 
     private UUID datasetId;
-    private CloudPlatform cloudPlatform;
     private AzureCloudResource cloudResource;
     private AzureRegion region;
-
-    AzureStorageResource() {
-        this.cloudPlatform = CloudPlatform.AZURE;
-    }
 
     @Override
     public UUID getDatasetId() {
@@ -35,27 +28,27 @@ public class AzureStorageResource implements StorageResource {
 
     @Override
     public CloudPlatform getCloudPlatform() {
-        return cloudPlatform;
+        return CloudPlatform.AZURE;
     }
 
     @Override
-    public CloudResource getCloudResource() {
+    public AzureCloudResource getCloudResource() {
         return cloudResource;
     }
 
     @Override
-    public AzureStorageResource cloudResource(CloudResource cloudResource) {
+    public AzureStorageResource cloudResource(AzureCloudResource cloudResource) {
         this.cloudResource = (AzureCloudResource) cloudResource;
         return this;
     }
 
     @Override
-    public CloudRegion getRegion() {
+    public AzureRegion getRegion() {
         return region;
     }
 
     @Override
-    public AzureStorageResource region(CloudRegion region) {
+    public AzureStorageResource region(AzureRegion region) {
         this.region = (AzureRegion) region;
         return this;
     }
@@ -66,23 +59,22 @@ public class AzureStorageResource implements StorageResource {
         if (o == null || getClass() != o.getClass()) return false;
         AzureStorageResource that = (AzureStorageResource) o;
         return Objects.equals(datasetId, that.datasetId) &&
-            cloudPlatform == that.cloudPlatform &&
             cloudResource == that.cloudResource &&
             region == that.region;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(datasetId, cloudPlatform, cloudResource, region);
+        return Objects.hash(datasetId, cloudResource, region);
     }
 
     @Override
     public String toString() {
-        return "StorageResource{" +
-            "datasetId=" + datasetId +
-            ", cloudPlatform=" + cloudPlatform +
-            ", cloudResource=" + cloudResource +
-            ", region=" + region +
+        return "AzureStorageResource{" +
+            "datasetId=" + getDatasetId() +
+            ", cloudPlatform=" + getCloudPlatform() +
+            ", cloudResource=" + getCloudResource() +
+            ", region=" + getRegion() +
             '}';
     }
 }

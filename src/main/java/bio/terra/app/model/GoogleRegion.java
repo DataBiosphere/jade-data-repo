@@ -1,6 +1,7 @@
 package bio.terra.app.model;
 
 import bio.terra.model.CloudPlatform;
+import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.dataset.StorageResource;
 
 import java.util.List;
@@ -66,6 +67,7 @@ public enum GoogleRegion implements CloudRegion {
         return fromValue(bucketFallbackRegion);
     }
 
+    @Override
     public String getValue() {
         return value;
     }
@@ -87,11 +89,14 @@ public enum GoogleRegion implements CloudRegion {
         return Optional.ofNullable(GoogleRegion.fromValue(text)).orElse(GoogleRegion.DEFAULT_GOOGLE_REGION);
     }
 
-    public static boolean matchingRegionWithFallbacks(List<StorageResource> storage, GoogleRegion region) {
-        List<StorageResource> gcpStorage =
-            storage.stream().filter(s -> s.getCloudPlatform() == CloudPlatform.GCP).collect(Collectors.toList());
-        for (StorageResource resource : gcpStorage) {
-            switch ((GoogleCloudResource) resource.getCloudResource()) {
+    public static boolean matchingRegionWithFallbacks(
+        List<? extends StorageResource<?, ?>> storage, GoogleRegion region) {
+        List<GoogleStorageResource> gcpStorage = storage.stream()
+            .filter(s -> s.getCloudPlatform() == CloudPlatform.GCP)
+            .map(s -> (GoogleStorageResource) s)
+            .collect(Collectors.toList());
+        for (GoogleStorageResource resource : gcpStorage) {
+            switch (resource.getCloudResource()) {
                 case BIGQUERY:
                     if (resource.getRegion() != region) {
                         return false;

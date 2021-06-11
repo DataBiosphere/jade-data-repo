@@ -17,7 +17,7 @@ public class DatasetSummary {
     private UUID projectResourceId;
     private UUID applicationDeploymentResourceId;
     private Instant createdDate;
-    private List<StorageResource> storage;
+    private List<? extends StorageResource<?, ?>> storage;
 
     public UUID getId() {
         return id;
@@ -82,11 +82,11 @@ public class DatasetSummary {
         return this;
     }
 
-    public List<StorageResource> getStorage() {
+    public List<? extends StorageResource<?, ?>> getStorage() {
         return storage;
     }
 
-    public DatasetSummary storage(List<StorageResource> storage) {
+    public DatasetSummary storage(List<? extends StorageResource<?, ?>> storage) {
         this.storage = storage;
         return this;
     }

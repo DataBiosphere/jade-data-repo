@@ -15,7 +15,16 @@ import java.io.IOException;
  */
 @JsonDeserialize(using = CloudResource.CloudResourceDeserializer.class)
 public interface CloudResource {
+
+    /**
+     * Returns the implementing enumeration name
+     */
     String name();
+
+    /**
+     * Return the resource value that is exposed to the user
+     */
+    String getValue();
 
     class CloudResourceDeserializer extends StdDeserializer<CloudResource> {
 

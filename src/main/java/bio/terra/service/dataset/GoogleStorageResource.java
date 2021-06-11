@@ -1,28 +1,19 @@
 package bio.terra.service.dataset;
 
-import bio.terra.app.model.CloudRegion;
-import bio.terra.app.model.CloudResource;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.StorageResourceModel;
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 
 import java.util.Objects;
 import java.util.UUID;
 
 @JsonTypeName("gcp")
-public class GoogleStorageResource implements StorageResource {
+public class GoogleStorageResource implements StorageResource<GoogleRegion, GoogleCloudResource> {
     private UUID datasetId;
-    private final CloudPlatform cloudPlatform;
     private GoogleCloudResource cloudResource;
     private GoogleRegion region;
-
-    @JsonCreator
-    public GoogleStorageResource() {
-        cloudPlatform = CloudPlatform.GCP;
-    }
 
     @Override
     public UUID getDatasetId() {
@@ -37,28 +28,28 @@ public class GoogleStorageResource implements StorageResource {
 
     @Override
     public CloudPlatform getCloudPlatform() {
-        return cloudPlatform;
+        return CloudPlatform.GCP;
     }
 
     @Override
-    public CloudResource getCloudResource() {
+    public GoogleCloudResource getCloudResource() {
         return cloudResource;
     }
 
     @Override
-    public GoogleStorageResource cloudResource(CloudResource cloudResource) {
-        this.cloudResource = (GoogleCloudResource) cloudResource;
+    public GoogleStorageResource cloudResource(GoogleCloudResource cloudResource) {
+        this.cloudResource = cloudResource;
         return this;
     }
 
     @Override
-    public CloudRegion getRegion() {
+    public GoogleRegion getRegion() {
         return region;
     }
 
     @Override
-    public GoogleStorageResource region(CloudRegion region) {
-        this.region = (GoogleRegion) region;
+    public GoogleStorageResource region(GoogleRegion region) {
+        this.region = region;
         return this;
     }
 
@@ -82,23 +73,22 @@ public class GoogleStorageResource implements StorageResource {
         if (o == null || getClass() != o.getClass()) return false;
         GoogleStorageResource that = (GoogleStorageResource) o;
         return Objects.equals(datasetId, that.datasetId) &&
-            cloudPlatform == that.cloudPlatform &&
             cloudResource == that.cloudResource &&
             region == that.region;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(datasetId, cloudPlatform, cloudResource, region);
+        return Objects.hash(datasetId, cloudResource, region);
     }
 
     @Override
     public String toString() {
-        return "StorageResource{" +
-            "datasetId=" + datasetId +
-            ", cloudPlatform=" + cloudPlatform +
-            ", cloudResource=" + cloudResource +
-            ", region=" + region +
+        return "GoogleStorageResource{" +
+            "datasetId=" + getDatasetId() +
+            ", cloudPlatform=" + getCloudPlatform() +
+            ", cloudResource=" + getCloudResource() +
+            ", region=" + getRegion() +
             '}';
     }
 }

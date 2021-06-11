@@ -17,7 +17,16 @@ import java.io.IOException;
  */
 @JsonDeserialize(using = CloudRegion.CloudRegionDeserializer.class)
 public interface CloudRegion {
+
+    /**
+     * Returns the implementing enumeration name
+     */
     String name();
+
+    /**
+     * Return the region string that the cloud provider can understand
+     */
+    String getValue();
 
     class CloudRegionDeserializer extends StdDeserializer<CloudRegion> {
 

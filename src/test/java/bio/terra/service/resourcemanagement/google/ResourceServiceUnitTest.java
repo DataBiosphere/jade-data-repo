@@ -8,7 +8,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetSummary;
-import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.resourcemanagement.OneProjectPerProfileIdSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import org.junit.Assert;
@@ -59,9 +59,9 @@ public class ResourceServiceUnitTest {
     private final UUID datasetId = UUID.randomUUID();
 
     private final DatasetSummary datasetSummary = new DatasetSummary().storage(List.of(
-        StorageResource.getGoogleInstance().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
+        new GoogleStorageResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
             GoogleCloudResource.BUCKET),
-        StorageResource.getGoogleInstance().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
+        new GoogleStorageResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
             GoogleCloudResource.FIRESTORE)
         ));
     private final Dataset dataset = new Dataset(datasetSummary).id(datasetId);

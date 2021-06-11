@@ -64,7 +64,7 @@ public final class DatasetJsonConversion {
         CloudPlatform cloudPlatform = Optional.ofNullable(datasetRequest.getCloudPlatform())
             .orElse(DEFAULT_CLOUD_PLATFORM);
 
-        final List<StorageResource> storageResources;
+        final List<? extends StorageResource<?, ?>> storageResources;
         if (cloudPlatform == CloudPlatform.GCP) {
             storageResources = createGcpStorageResourceValues(datasetRequest);
         } else {
@@ -85,7 +85,7 @@ public final class DatasetJsonConversion {
         return GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
     }
 
-    private static List<StorageResource> createGcpStorageResourceValues(DatasetRequestModel datasetRequestModel) {
+    private static List<GoogleStorageResource> createGcpStorageResourceValues(DatasetRequestModel datasetRequestModel) {
         final GoogleRegion region = getRegionFromDatasetRequestModel(datasetRequestModel);
         return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
             final GoogleRegion finalRegion;
@@ -96,7 +96,7 @@ public final class DatasetJsonConversion {
                     break;
                 default: finalRegion = region;
             }
-            return StorageResource.getGoogleInstance()
+            return new GoogleStorageResource()
                 .region(finalRegion)
                 .cloudResource(resource);
         }).collect(Collectors.toList());

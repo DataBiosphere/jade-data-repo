@@ -14,34 +14,27 @@ import java.util.UUID;
     @JsonSubTypes.Type(value = AzureStorageResource.class, name = "azure"),
     @JsonSubTypes.Type(value = GoogleStorageResource.class, name = "gcp")
 })
-public interface StorageResource {
+public interface StorageResource<Region extends CloudRegion, Resource extends CloudResource> {
 
     UUID getDatasetId();
 
-    StorageResource datasetId(UUID datasetId);
+    StorageResource<Region, Resource> datasetId(UUID datasetId);
 
     CloudPlatform getCloudPlatform();
 
-    CloudResource getCloudResource();
+    Resource getCloudResource();
 
-    StorageResource cloudResource(CloudResource cloudResource);
+    StorageResource<Region, Resource> cloudResource(Resource cloudResource);
 
-    CloudRegion getRegion();
+    Region getRegion();
 
-    StorageResource region(CloudRegion region);
+    StorageResource<Region, Resource> region(Region region);
 
     default StorageResourceModel toModel() {
         return new StorageResourceModel()
             .cloudPlatform(getCloudPlatform())
-            .cloudResource(getCloudResource().toString())
-            .region(getRegion().toString());
+            .cloudResource(getCloudResource().getValue())
+            .region(getRegion().getValue());
     }
 
-    static GoogleStorageResource getGoogleInstance() {
-        return new GoogleStorageResource();
-    }
-
-    static AzureStorageResource getAzureInstance() {
-        return new AzureStorageResource();
-    }
 }

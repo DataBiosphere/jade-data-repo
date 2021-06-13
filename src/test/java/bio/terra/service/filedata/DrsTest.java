@@ -108,7 +108,11 @@ public class DrsTest extends UsersBase {
                 snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
                 break;
             } catch (Exception ex) {
-                logger.info("failed to retrieve snapshot");
+                if (i < 2) {
+                    logger.info("Failed to retrieve snapshot. Retrying.");
+                } else {
+                    throw ex;
+                }
             }
         }
         logger.info("After snapshot retrieve");

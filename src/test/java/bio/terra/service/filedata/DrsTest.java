@@ -27,6 +27,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -74,6 +75,7 @@ import static org.junit.Assert.assertTrue;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
+@Ignore
 public class DrsTest extends UsersBase {
     private static final Logger logger = LoggerFactory.getLogger(DrsTest.class);
 

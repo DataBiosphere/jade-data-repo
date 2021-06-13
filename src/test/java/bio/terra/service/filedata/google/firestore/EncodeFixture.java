@@ -54,11 +54,14 @@ public class EncodeFixture {
         private final String profileId;
         private final String datasetId;
         private final SnapshotSummaryModel summaryModel;
+        private final SnapshotModel snapshotModel;
 
-        public SetupResult(String profileId, String datasetId, SnapshotSummaryModel summaryModel) {
+        public SetupResult(String profileId, String datasetId, SnapshotSummaryModel summaryModel,
+                           SnapshotModel snapshotModel) {
             this.profileId = profileId;
             this.datasetId = datasetId;
             this.summaryModel = summaryModel;
+            this.snapshotModel = snapshotModel;
         }
 
         public String getDatasetId() {
@@ -72,6 +75,8 @@ public class EncodeFixture {
         public SnapshotSummaryModel getSummaryModel() {
             return summaryModel;
         }
+
+        public SnapshotModel getSnapshotModel() { return snapshotModel; }
     }
 
 
@@ -147,7 +152,7 @@ public class EncodeFixture {
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
 
-        return new SetupResult(profileId, datasetId, snapshotSummary);
+        return new SetupResult(profileId, datasetId, snapshotSummary, snapshotModel);
     }
 
     private String loadFiles(

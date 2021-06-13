@@ -102,20 +102,8 @@ public class DrsTest extends UsersBase {
         logger.info("profile id: {}", profileId);
         datasetId = setupResult.getDatasetId();
         logger.info("dataset id: {}", datasetId);
-        for (int i = 0; i < 3; i++) {
-            logger.info("snapshot retrieve try: {}", i);
-            try {
-                snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
-                break;
-            } catch (Exception ex) {
-                if (i < 2) {
-                    logger.info("Failed to retrieve snapshot. Retrying.");
-                } else {
-                    throw ex;
-                }
-            }
-        }
-        logger.info("After snapshot retrieve");
+        snapshotModel = setupResult.getSnapshotModel();
+        logger.info("snapshot model - id: {}",snapshotModel.getId());
         AuthenticatedUserRequest authenticatedStewardRequest =
             new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
         AuthenticatedUserRequest authenticatedCustodianRequest =

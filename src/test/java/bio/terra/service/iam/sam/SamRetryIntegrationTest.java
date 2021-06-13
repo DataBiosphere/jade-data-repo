@@ -65,7 +65,7 @@ public class SamRetryIntegrationTest extends UsersBase {
     public void setup() throws Exception {
         super.setup();
         stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
-        dataRepoFixtures.resetConfig(admin());
+        dataRepoFixtures.resetConfig(steward());
         userRequest = new AuthenticatedUserRequest()
             .email(steward().getEmail())
             .token(java.util.Optional.ofNullable(stewardToken));
@@ -75,7 +75,7 @@ public class SamRetryIntegrationTest extends UsersBase {
 
     @After
     public void teardown() throws Exception {
-        dataRepoFixtures.resetConfig(admin());
+        dataRepoFixtures.resetConfig(steward());
 
         iam.deleteDatasetResource(userRequest, fakeDatasetId);
     }

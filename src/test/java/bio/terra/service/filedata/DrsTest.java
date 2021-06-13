@@ -132,7 +132,7 @@ public class DrsTest extends UsersBase {
         if (profileId != null) {
             dataRepoFixtures.deleteProfileLog(steward(), profileId);
         }
-        dataRepoFixtures.resetConfig(admin());
+        dataRepoFixtures.resetConfig(steward());
     }
 
     @Test
@@ -214,7 +214,7 @@ public class DrsTest extends UsersBase {
     @Test
     public void drsScaleTest() throws Exception {
         String failureMaxValue = "0";
-        dataRepoFixtures.resetConfig(admin());
+        dataRepoFixtures.resetConfig(steward());
 
         // Get a DRS ID from the dataset using the custodianToken.
         // Note: the reader does not have permission to run big query jobs anywhere.
@@ -251,7 +251,7 @@ public class DrsTest extends UsersBase {
 
     @Test
     public void testDrsErrorResponses() throws Exception {
-        dataRepoFixtures.resetConfig(admin());
+        dataRepoFixtures.resetConfig(steward());
 
         // Get a DRS ID from the dataset using the custodianToken.
         // Note: the reader does not have permission to run big query jobs anywhere.

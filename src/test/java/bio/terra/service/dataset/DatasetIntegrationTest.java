@@ -97,7 +97,7 @@ public class DatasetIntegrationTest extends UsersBase {
     public void setup() throws Exception {
         super.setup();
         stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
-        dataRepoFixtures.resetConfig(admin());
+        dataRepoFixtures.resetConfig(steward());
         profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
         datasetId = null;
         snapshotIds = new LinkedList<>();
@@ -105,7 +105,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
     @After
     public void teardown() throws Exception {
-        dataRepoFixtures.resetConfig(admin());
+        dataRepoFixtures.resetConfig(steward());
         for (String snapshotId : snapshotIds) {
             dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
         }

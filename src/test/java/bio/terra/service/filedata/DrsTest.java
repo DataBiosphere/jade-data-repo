@@ -27,6 +27,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -246,6 +247,7 @@ public class DrsTest extends UsersBase {
     }
 
     @Test
+    @Ignore
     public void testDrsErrorResponses() throws Exception {
         dataRepoFixtures.resetConfig(steward());
 

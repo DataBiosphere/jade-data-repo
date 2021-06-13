@@ -98,7 +98,7 @@ public class SimpleScenarioFaultTests extends UsersBase {
 
         // The rest of this is here not so much to test the fault as to validate the configuration test
         // infrastructure in a live environment.
-        dataRepoFixtures.resetConfig(steward());
+        dataRepoFixtures.resetConfig(admin());
         configGroup = buildConfigGroup(ConfigFaultCountedModel.RateStyleEnum.RANDOM);
         dataRepoFixtures.setConfigList(steward(), configGroup);
         printConfigList("random", configGroup.getGroup());

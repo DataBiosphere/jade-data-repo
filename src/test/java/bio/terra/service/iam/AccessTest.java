@@ -300,7 +300,7 @@ public class AccessTest extends UsersBase {
             dataRepoFixtures.setFault(steward(), ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT.name(), true);
             fileAclTest();
         } finally {
-            dataRepoFixtures.resetConfig(steward());
+            dataRepoFixtures.resetConfig(admin());
         }
     }
 

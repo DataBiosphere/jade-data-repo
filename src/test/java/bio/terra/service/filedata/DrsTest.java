@@ -104,6 +104,7 @@ public class DrsTest extends UsersBase {
         logger.info("dataset id: {}", datasetId);
         for (int i = 0; i < 3; i++) {
             logger.info("snapshot retrieve try: {}", i);
+            try {
                 snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
                 break;
             } catch (Exception ex) {

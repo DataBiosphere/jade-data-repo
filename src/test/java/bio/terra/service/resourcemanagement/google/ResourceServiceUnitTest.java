@@ -6,6 +6,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.resourcemanagement.OneProjectPerResourceSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 
 import java.util.List;
@@ -33,6 +34,8 @@ public class ResourceServiceUnitTest {
     @Mock
     private GoogleBucketService bucketService;
 
+    @Mock
+    private OneProjectPerResourceSelector oneProjectPerResourceSelector;
 
     private final UUID billingProfileId = UUID.randomUUID();
 

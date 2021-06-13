@@ -97,9 +97,20 @@ public class DrsTest extends UsersBase {
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
-        snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
+        logger.info("after encode setup.");
         profileId = setupResult.getProfileId();
+        logger.info("profile id: {}", profileId);
         datasetId = setupResult.getDatasetId();
+        logger.info("dataset id: {}", datasetId);
+        for (int i = 0; i < 3; i++) {
+            logger.info("snapshot retrieve try: {}", i);
+                snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
+                break;
+            } catch (Exception ex) {
+                logger.info("failed to retrieve snapshot");
+            }
+        }
+        logger.info("After snapshot retrieve");
         AuthenticatedUserRequest authenticatedStewardRequest =
             new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
         AuthenticatedUserRequest authenticatedCustodianRequest =

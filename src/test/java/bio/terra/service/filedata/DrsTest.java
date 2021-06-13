@@ -103,7 +103,7 @@ public class DrsTest extends UsersBase {
         datasetId = setupResult.getDatasetId();
         logger.info("dataset id: {}", datasetId);
         snapshotModel = setupResult.getSnapshotModel();
-        logger.info("snapshot model - id: {}",snapshotModel.getId());
+        logger.info("snapshot model - id: {}", snapshotModel.getId());
         AuthenticatedUserRequest authenticatedStewardRequest =
             new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
         AuthenticatedUserRequest authenticatedCustodianRequest =

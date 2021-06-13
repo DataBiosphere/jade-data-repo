@@ -76,7 +76,9 @@ public class EncodeFixture {
             return summaryModel;
         }
 
-        public SnapshotModel getSnapshotModel() { return snapshotModel; }
+        public SnapshotModel getSnapshotModel() {
+            return snapshotModel;
+        }
     }
 
 

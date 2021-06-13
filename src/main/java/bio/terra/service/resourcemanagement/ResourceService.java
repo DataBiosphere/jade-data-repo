@@ -154,17 +154,17 @@ public class ResourceService {
      * Create a new project for a snapshot, if none exists already.
      *
      * @param billingProfile authorized billing profile to pay for the project
-     * @param firestoreRegion   the region to create the Firestore in
+     * @param region   the region to create the Firestore in
      * @return project resource id
      */
-    public UUID getOrCreateSnapshotProject(BillingProfileModel billingProfile, GoogleRegion firestoreRegion)
+    public UUID getOrCreateSnapshotProject(BillingProfileModel billingProfile, GoogleRegion region)
         throws InterruptedException, GoogleResourceNamingException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
             dataLocationSelector.projectIdForSnapshot(),
             billingProfile,
             null,
-            firestoreRegion);
+            region);
 
         return googleProjectResource.getId();
     }

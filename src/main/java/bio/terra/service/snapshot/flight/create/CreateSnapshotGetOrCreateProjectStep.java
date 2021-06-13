@@ -16,12 +16,12 @@ import java.util.UUID;
 
 public class CreateSnapshotGetOrCreateProjectStep implements Step {
     private final ResourceService resourceService;
-    private final GoogleRegion firestoreRegion;
+    private final GoogleRegion region;
 
     public CreateSnapshotGetOrCreateProjectStep(ResourceService resourceService,
-                                                GoogleRegion firestoreRegion) {
+                                                GoogleRegion region) {
         this.resourceService = resourceService;
-        this.firestoreRegion = firestoreRegion;
+        this.region = region;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class CreateSnapshotGetOrCreateProjectStep implements Step {
         // Either the project will have been created8and we will find it, or we will create.
         UUID projectResourceId;
         try {
-            projectResourceId = resourceService.getOrCreateSnapshotProject(profileModel, firestoreRegion);
+            projectResourceId = resourceService.getOrCreateSnapshotProject(profileModel, region);
         } catch (GoogleResourceNamingException e) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
         }

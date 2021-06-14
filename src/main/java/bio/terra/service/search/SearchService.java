@@ -57,14 +57,18 @@ public class SearchService {
         this.client = client;
     }
 
+    private String uuidToIndexName(UUID id) {
+        return String.format("idx-%s", id);
+    }
+
+    private String translateToTim(String sql) {
+        return sql;
+    }
+
     private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {
         if (values.isEmpty()) {
             throw new SearchException("Snapshot data returned from SQL query is empty");
         }
-    }
-
-    private String uuidToIndexName(UUID id) {
-        return String.format("idx-%s", id);
     }
 
     private String createEmptyIndex(Snapshot snapshot) {
@@ -128,7 +132,8 @@ public class SearchService {
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
 
-        List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql());
+        String sql = translateToTim(searchIndexRequest.getSql());
+        List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, sql);
         validateSnapshotDataNotEmpty(values);
         String indexName = createEmptyIndex(snapshot);
         createIndexMapping(indexName, values);

@@ -10,6 +10,8 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableBiMap;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -36,7 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,10 +52,9 @@ public class SearchServiceTest {
 
     private static final String searchQuery = "{\"query_string\": {\"query\": \"(\"example:identifier.now\":0)\"}}";
 
-    private final Map<String, String> columnReplacements = Map.of("example_now", "example:identifier.now");
-
-    private final Map<String, String> fieldReplacements =
-        columnReplacements.keySet().stream().collect(Collectors.toMap(columnReplacements::get, s -> s));
+    private final BiMap<String, String> columnReplacements = new ImmutableBiMap.Builder<String, String>()
+        .put("example_now", "example:identifier.now")
+        .build();
 
     private static final String indexName = "idx-mock";
 
@@ -96,7 +96,7 @@ public class SearchServiceTest {
     @Test
     public void timFieldEncodingTest() {
         String expectedQuery = "{\"query_string\": {\"query\": \"(tim__examplec__identifierp__now:0)\"}}";
-        String actualQuery = TimUtils.encodeQueryFields(searchQuery, fieldReplacements);
+        String actualQuery = TimUtils.encodeQueryFields(searchQuery, columnReplacements.inverse().keySet());
         assertEquals(expectedQuery, actualQuery);
     }
 

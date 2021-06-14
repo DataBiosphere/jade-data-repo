@@ -70,7 +70,7 @@ public class SearchService {
         Pattern regex = Pattern.compile("( as )(\\w+)");
         Matcher matches = regex.matcher(sql.toLowerCase());
         StringBuilder sb = new StringBuilder(sql.length());
-        while(matches.find()) {
+        while (matches.find()) {
             String replacement = timMap.get(matches.group(2));
             if (replacement != null) {
                 matches.appendReplacement(sb, matches.group(1) + TimUtils.encode(replacement));

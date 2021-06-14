@@ -16,6 +16,7 @@ public enum GoogleCloudResource implements CloudResource {
         return value;
     }
 
+    @Override
     public String getValue() {
         return value;
     }

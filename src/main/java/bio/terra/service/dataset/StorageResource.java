@@ -7,6 +7,7 @@ import bio.terra.model.StorageResourceModel;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.EXISTING_PROPERTY, property = "cloudPlatform")
@@ -14,34 +15,66 @@ import java.util.UUID;
     @JsonSubTypes.Type(value = AzureStorageResource.class, name = "azure"),
     @JsonSubTypes.Type(value = GoogleStorageResource.class, name = "gcp")
 })
-public interface StorageResource {
+public abstract class StorageResource<Resource extends CloudResource, Region extends CloudRegion>  {
 
-    UUID getDatasetId();
+    private final UUID datasetId;
+    private final Resource cloudResource;
+    private final Region region;
 
-    StorageResource datasetId(UUID datasetId);
+    public StorageResource(UUID datasetId, Resource cloudResource, Region region) {
+        this.datasetId = datasetId;
+        this.cloudResource = cloudResource;
+        this.region = region;
+    }
 
-    CloudPlatform getCloudPlatform();
+    public UUID getDatasetId() {
+        return datasetId;
+    }
 
-    CloudResource getCloudResource();
+    public abstract CloudPlatform getCloudPlatform();
 
-    StorageResource cloudResource(CloudResource cloudResource);
+    public Resource getCloudResource() {
+        return cloudResource;
+    }
 
-    CloudRegion getRegion();
+    public Region getRegion() {
+        return region;
+    }
 
-    StorageResource region(CloudRegion region);
-
-    default StorageResourceModel toModel() {
+    public StorageResourceModel toModel() {
         return new StorageResourceModel()
             .cloudPlatform(getCloudPlatform())
-            .cloudResource(getCloudResource().toString())
-            .region(getRegion().toString());
+            .cloudResource(getCloudResource().getValue())
+            .region(getRegion().getValue());
     }
 
-    static GoogleStorageResource getGoogleInstance() {
-        return new GoogleStorageResource();
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        StorageResource<?, ?> that = (StorageResource<?, ?>) o;
+        return Objects.equals(datasetId, that.getDatasetId()) &&
+            cloudResource == that.getCloudResource() &&
+            region == that.getRegion();
     }
 
-    static AzureStorageResource getAzureInstance() {
-        return new AzureStorageResource();
+    @Override
+    public int hashCode() {
+        return Objects.hash(getCloudPlatform(), getDatasetId(), getCloudResource(), getRegion());
     }
+
+    @Override
+    public String toString() {
+        return "StorageResource{" +
+            "datasetId=" + getDatasetId() +
+            ", cloudPlatform=" + getCloudPlatform() +
+            ", cloudResource=" + getCloudResource() +
+            ", region=" + getRegion() +
+            '}';
+    }
+
 }

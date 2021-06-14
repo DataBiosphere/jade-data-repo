@@ -37,19 +37,19 @@ public class StorageResourceTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private final List<StorageResource> model = List.of(
-        StorageResource.getAzureInstance()
-            .cloudResource(AzureCloudResource.APPLICATION_DEPLOYMENT)
-            .region(AzureRegion.CENTRAL_US)
-            .datasetId(UUID.fromString("a3d54871-8cdc-4549-8410-28005df9cbaf")),
-        StorageResource.getGoogleInstance()
-            .cloudResource(GoogleCloudResource.BUCKET)
-            .region(GoogleRegion.US_EAST1)
-            .datasetId(UUID.fromString("a3d54871-8cdc-4549-8410-28005df9cbaf")));
+    private final List<? extends StorageResource<?, ?>> model = List.of(
+        new AzureStorageResource(
+            UUID.fromString("a3d54871-8cdc-4549-8410-28005df9cbaf"),
+            AzureCloudResource.APPLICATION_DEPLOYMENT,
+            AzureRegion.CENTRAL_US),
+        new GoogleStorageResource(
+            UUID.fromString("a3d54871-8cdc-4549-8410-28005df9cbaf"),
+            GoogleCloudResource.BUCKET,
+            GoogleRegion.US_EAST1));
 
     @Test
     public void testDeserialization() throws IOException {
-        List<StorageResource> storageResource =
+        List<? extends StorageResource<?, ?>> storageResource =
             jsonLoader.loadObject("storage-account.json", new TypeReference<>() {});
         assertThat(storageResource, equalTo(model));
     }

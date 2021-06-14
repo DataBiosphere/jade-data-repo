@@ -83,6 +83,7 @@ public enum AzureRegion implements CloudRegion {
         this.value = value;
     }
 
+    @Override
     public String getValue() {
         return value;
     }

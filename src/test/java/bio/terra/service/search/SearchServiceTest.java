@@ -48,9 +48,9 @@ public class SearchServiceTest {
     private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as example_now" +
         " FROM UNNEST(GENERATE_ARRAY(1, 3));";
 
-    private static final String indexName = "idx-mock";
+    private final Map<String, String> columnReplacements = Map.of("example_now", "example:identifier.now");
 
-    private final Map<String, String> timMap = Map.of("example_now", "example:identifier.now");
+    private static final String indexName = "idx-mock";
 
     @Mock
     private BigQueryPdao bigQueryPdao;
@@ -83,7 +83,7 @@ public class SearchServiceTest {
     public void timColumnEncodingTest() {
         String expectedSql = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as tim__examplec__identifierp__now" +
             " FROM UNNEST(GENERATE_ARRAY(1, 3));";
-        String actualSql = TimUtils.encodeSqlColumns(sqlQuery, timMap);
+        String actualSql = TimUtils.encodeSqlColumns(sqlQuery, columnReplacements);
         assertEquals(expectedSql, actualSql);
     }
 

@@ -85,7 +85,7 @@ public final class DatasetJsonConversion {
         return GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
     }
 
-    private static List<GoogleStorageResource> createGcpStorageResourceValues(DatasetRequestModel datasetRequestModel) {
+    private static List<StorageResource<?, ?>> createGcpStorageResourceValues(DatasetRequestModel datasetRequestModel) {
         final GoogleRegion region = getRegionFromDatasetRequestModel(datasetRequestModel);
         return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
             final GoogleRegion finalRegion;
@@ -96,9 +96,7 @@ public final class DatasetJsonConversion {
                     break;
                 default: finalRegion = region;
             }
-            return new GoogleStorageResource()
-                .region(finalRegion)
-                .cloudResource(resource);
+            return new GoogleStorageResource(finalRegion, resource);
         }).collect(Collectors.toList());
     }
 

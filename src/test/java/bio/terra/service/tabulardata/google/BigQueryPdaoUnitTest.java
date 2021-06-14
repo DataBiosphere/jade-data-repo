@@ -694,10 +694,8 @@ public class BigQueryPdaoUnitTest {
                             .profileId(PROFILE_1_ID)
                             .googleProjectId(DATASET_PROJECT_ID))
                         .tables(List.of(tbl1, tbl2))
-                        .storage(List.of(new GoogleStorageResource()
-                            .datasetId(DATASET_ID)
-                            .cloudResource(GoogleCloudResource.BIGQUERY)
-                            .region(GoogleRegion.NORTHAMERICA_NORTHEAST1))))
+                        .storage(List.of(new GoogleStorageResource(DATASET_ID, GoogleCloudResource.BIGQUERY,
+                            GoogleRegion.NORTHAMERICA_NORTHEAST1))))
                     .assetSpecification(new AssetSpecification()
                         .rootTable(new AssetTable()
                             .datasetTable(tbl1))

@@ -59,10 +59,8 @@ public class ResourceServiceUnitTest {
     private final UUID datasetId = UUID.randomUUID();
 
     private final DatasetSummary datasetSummary = new DatasetSummary().storage(List.of(
-        new GoogleStorageResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
-            GoogleCloudResource.BUCKET),
-        new GoogleStorageResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
-            GoogleCloudResource.FIRESTORE)
+        new GoogleStorageResource(GoogleRegion.DEFAULT_GOOGLE_REGION, GoogleCloudResource.BUCKET),
+        new GoogleStorageResource(GoogleRegion.DEFAULT_GOOGLE_REGION, GoogleCloudResource.FIRESTORE)
         ));
     private final Dataset dataset = new Dataset(datasetSummary).id(datasetId);
 

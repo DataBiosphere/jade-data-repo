@@ -77,15 +77,16 @@ public class StorageResourceDao {
         public StorageResource<?, ?> mapRow(ResultSet rs, int rowNum) throws SQLException {
             final CloudPlatform cloudPlatform = CloudPlatform.valueOf(rs.getString("cloud_platform"));
             switch (cloudPlatform) {
-                case GCP: return new GoogleStorageResource()
-                    .datasetId(UUID.fromString(rs.getString("dataset_id")))
-                    .cloudResource(GoogleCloudResource.valueOf(rs.getString("cloud_resource")))
-                    .region(GoogleRegion.valueOf(rs.getString("region")));
-                case AZURE: return new AzureStorageResource()
-                    .datasetId(UUID.fromString(rs.getString("dataset_id")))
-                    .cloudResource(AzureCloudResource.valueOf(rs.getString("cloud_resource")))
-                    .region(AzureRegion.valueOf(rs.getString("region")));
-                default: throw new IllegalArgumentException("Unrecognized cloud platform");
+                case GCP:
+                    return new GoogleStorageResource(UUID.fromString(rs.getString("dataset_id")),
+                        GoogleCloudResource.valueOf(rs.getString("cloud_resource")),
+                        GoogleRegion.valueOf(rs.getString("region")));
+                case AZURE:
+                    return new AzureStorageResource(UUID.fromString(rs.getString("dataset_id")),
+                        AzureCloudResource.valueOf(rs.getString("cloud_resource")),
+                        AzureRegion.valueOf(rs.getString("region")));
+                default:
+                     throw new IllegalArgumentException("Unrecognized cloud platform");
             }
         }
     }

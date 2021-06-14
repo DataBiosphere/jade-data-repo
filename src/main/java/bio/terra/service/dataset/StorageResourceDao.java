@@ -86,7 +86,7 @@ public class StorageResourceDao {
                         AzureCloudResource.valueOf(rs.getString("cloud_resource")),
                         AzureRegion.valueOf(rs.getString("region")));
                 default:
-                     throw new IllegalArgumentException("Unrecognized cloud platform");
+                    throw new IllegalArgumentException("Unrecognized cloud platform");
             }
         }
     }

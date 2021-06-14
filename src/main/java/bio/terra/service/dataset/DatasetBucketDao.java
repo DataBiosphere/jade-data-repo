@@ -90,7 +90,6 @@ public class DatasetBucketDao {
             logger.info("Google project does not exist for dataset {} and billing profile {}", datasetId, billingId);
             return null;
         } else if (results.size() > 1) {
-            logger.error("There should only be one google project per dataset/billing combo.");
             throw new GoogleResourceException("There should only be one google project per dataset/billing combo.");
         }
         // case where we can re-use an exisiting google project

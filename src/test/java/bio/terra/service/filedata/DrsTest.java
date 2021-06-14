@@ -98,6 +98,7 @@ public class DrsTest extends UsersBase {
         String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
         snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
+        logger.info("Got snapshot: " + snapshotModel.getId());
         profileId = setupResult.getProfileId();
         datasetId = setupResult.getDatasetId();
         AuthenticatedUserRequest authenticatedStewardRequest =

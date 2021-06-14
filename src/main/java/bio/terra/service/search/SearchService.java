@@ -41,8 +41,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Component
@@ -64,20 +62,6 @@ public class SearchService {
 
     private String uuidToIndexName(UUID id) {
         return String.format("idx-%s", id);
-    }
-
-    private String encodeTimNames(String sql) {
-        Pattern regex = Pattern.compile("( as )(\\w+)");
-        Matcher matches = regex.matcher(sql.toLowerCase());
-        StringBuilder sb = new StringBuilder(sql.length());
-        while (matches.find()) {
-            String replacement = timMap.get(matches.group(2));
-            if (replacement != null) {
-                matches.appendReplacement(sb, matches.group(1) + TimUtils.encode(replacement));
-            }
-        }
-        matches.appendTail(sb);
-        return sb.toString();
     }
 
     private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {
@@ -147,7 +131,7 @@ public class SearchService {
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
 
-        String sql = encodeTimNames(searchIndexRequest.getSql());
+        String sql = TimUtils.encodeSqlColumns(searchIndexRequest.getSql(), timMap);
         List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, sql);
         validateSnapshotDataNotEmpty(values);
         String indexName = createEmptyIndex(snapshot);

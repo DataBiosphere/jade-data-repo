@@ -44,7 +44,7 @@ import static org.mockito.Mockito.when;
 
 @Category(Unit.class)
 public class SearchServiceTest {
-    private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as now" +
+    private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as example_now" +
         " FROM UNNEST(GENERATE_ARRAY(1, 3));";
 
     private static final String indexName = "idx-mock";
@@ -79,7 +79,7 @@ public class SearchServiceTest {
     @Test
     public void indexSnapshotTest() throws Exception {
         // Mock snapshot table data
-        when(bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql()))
+        when(bigQueryPdao.getSnapshotTableData(any(Snapshot.class), any(String.class)))
             .thenReturn(values);
 
         // Mock index request
@@ -135,7 +135,7 @@ public class SearchServiceTest {
         for (int i = 0; i < 3; i++) {
             Instant now = Instant.now();
             String ts = String.format("%f", now.getEpochSecond() + now.getNano() / 1E9);
-            values.add(Map.of("uuid", UUID.randomUUID().toString(), "now", ts));
+            values.add(Map.of("uuid", UUID.randomUUID().toString(), "tim__examplec__identifierp__now", ts));
         }
 
         return values;

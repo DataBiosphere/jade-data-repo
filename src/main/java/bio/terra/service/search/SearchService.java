@@ -1,5 +1,6 @@
 package bio.terra.service.search;
 
+import bio.terra.app.utils.TimUtils;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchQueryRequest;
@@ -40,6 +41,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Component
@@ -47,6 +50,8 @@ public class SearchService {
 
     private final BigQueryPdao bigQueryPdao;
     private final RestHighLevelClient client;
+
+    private final Map<String, String> timMap = Map.of("example_now", "example:identifier.now");
 
     @Value("${elasticsearch.numShards}")
     private int NUM_SHARDS;
@@ -62,7 +67,17 @@ public class SearchService {
     }
 
     private String translateToTim(String sql) {
-        return sql;
+        Pattern regex = Pattern.compile("( as )(\\w+)");
+        Matcher matches = regex.matcher(sql.toLowerCase());
+        StringBuilder sb = new StringBuilder(sql.length());
+        while(matches.find()) {
+            String replacement = timMap.get(matches.group(2));
+            if (replacement != null) {
+                matches.appendReplacement(sb, matches.group(1) + TimUtils.encode(replacement));
+            }
+        }
+        matches.appendTail(sb);
+        return sb.toString();
     }
 
     private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {

@@ -1,5 +1,6 @@
 package bio.terra.service.search;
 
+import bio.terra.app.utils.TimUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
@@ -49,6 +50,8 @@ public class SearchServiceTest {
 
     private static final String indexName = "idx-mock";
 
+    private final Map<String, String> timMap = Map.of("example_now", "example:identifier.now");
+
     @Mock
     private BigQueryPdao bigQueryPdao;
 
@@ -74,6 +77,14 @@ public class SearchServiceTest {
         values = getSnapshotTableData();
 
         when(client.indices()).thenReturn(indicesClient);
+    }
+
+    @Test
+    public void timColumnEncodingTest() throws Exception {
+        String expectedSql = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as tim__examplec__identifierp__now" +
+            " FROM UNNEST(GENERATE_ARRAY(1, 3));";
+        String actualSql = TimUtils.encodeSqlColumns(sqlQuery, timMap);
+        assertEquals(expectedSql, actualSql);
     }
 
     @Test

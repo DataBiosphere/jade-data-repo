@@ -43,8 +43,9 @@ import com.google.cloud.bigquery.ViewDefinition;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -64,6 +65,7 @@ import static org.mockito.Mockito.when;
 
 
 @Category(Unit.class)
+@RunWith(MockitoJUnitRunner.class)
 public class BigQueryPdaoUnitTest {
 
 
@@ -111,25 +113,22 @@ public class BigQueryPdaoUnitTest {
     private BigQueryProject bigQueryProjectDataset;
     @Mock
     private BigQuery bigQueryDataset;
-    @Mock
-    private BigQueryProjectProvider bigQueryProjectProvider;
 
     private Snapshot snapshot;
     private BigQueryPdao dao;
 
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
 
         when(bigQueryProjectSnapshot.getProjectId()).thenReturn(SNAPSHOT_PROJECT_ID);
         when(bigQueryProjectSnapshot.getBigQuery()).thenReturn(bigQuerySnapshot);
-        when(bigQueryProjectProvider.apply(SNAPSHOT_PROJECT_ID)).thenReturn(bigQueryProjectSnapshot);
+        BigQueryProject.put(bigQueryProjectSnapshot);
 
         when(bigQueryProjectDataset.getProjectId()).thenReturn(DATASET_PROJECT_ID);
         when(bigQueryProjectDataset.getBigQuery()).thenReturn(bigQueryDataset);
-        when(bigQueryProjectProvider.apply(DATASET_PROJECT_ID)).thenReturn(bigQueryProjectDataset);
+        BigQueryProject.put(bigQueryProjectDataset);
 
-        dao = new BigQueryPdao(applicationConfiguration, bigQueryConfiguration, bigQueryProjectProvider);
+        dao = new BigQueryPdao(applicationConfiguration, bigQueryConfiguration);
         snapshot = mockSnapshot();
     }
 

@@ -48,11 +48,11 @@ public final class TimUtils {
     }
 
     /**
-     * Encode the AS columns of a SQL query to the corresponding TIM property names
+     * Encode the AS columns of a SQL query into corresponding TIM property names
      *
      * @param sql the SQL string containing AS columns to encode
-     * @param columnReplacements a map which stores column names as keys and the TIM replacement names as values
-     * @return a modified SQL string containing the encoded TIM replacement names
+     * @param columnReplacements a map which stores column names as keys and TIM property names as values
+     * @return a modified SQL string containing encoded TIM property names
      */
     public static String encodeSqlColumns(String sql, Map<String, String> columnReplacements) {
         Pattern regex = Pattern.compile("( [aA][sS] )(\\w+)");

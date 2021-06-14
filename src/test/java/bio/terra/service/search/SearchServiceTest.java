@@ -80,7 +80,7 @@ public class SearchServiceTest {
     }
 
     @Test
-    public void timColumnEncodingTest() throws Exception {
+    public void timColumnEncodingTest() {
         String expectedSql = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as tim__examplec__identifierp__now" +
             " FROM UNNEST(GENERATE_ARRAY(1, 3));";
         String actualSql = TimUtils.encodeSqlColumns(sqlQuery, timMap);

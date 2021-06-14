@@ -49,7 +49,18 @@ public class SearchService {
     private final BigQueryPdao bigQueryPdao;
     private final RestHighLevelClient client;
 
-    private final Map<String, String> timMap = Map.of("example_now", "example:identifier.now");
+    private final Map<String, String> columnReplacements = Map.of(
+        "biosample_id", "dct:identifier",
+        "donor_id", "prov:wasDerivedFrom",
+        "disease", "TerraCore:hasDisease",
+        "genus_species", "TerraCore:hasOrganismType",
+        "organ", "TerraCore:hasAnatomicalSite",
+        "library_construction_method_text", "TerraCore:hasLibraryPrep",
+        "sex", "TerraCore:hasSex",
+        "project_title", "dct:title",
+        "cell_type", "TerraCore:hasSelectedCellType",
+        "organism_age_unit", "TerraCore:hasAgeUnit"
+    );
 
     @Value("${elasticsearch.numShards}")
     private int NUM_SHARDS;
@@ -131,7 +142,7 @@ public class SearchService {
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
 
-        String sql = TimUtils.encodeSqlColumns(searchIndexRequest.getSql(), timMap);
+        String sql = TimUtils.encodeSqlColumns(searchIndexRequest.getSql(), columnReplacements);
         List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, sql);
         validateSnapshotDataNotEmpty(values);
         String indexName = createEmptyIndex(snapshot);

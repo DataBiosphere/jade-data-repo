@@ -83,6 +83,8 @@ public class EncodeFixture {
         TestConfiguration.User reader) throws Exception {
 
         String profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+        logger.info("Created billing profile: " + profileId);
+
         dataRepoFixtures.addPolicyMember(
             steward,
             profileId,
@@ -93,6 +95,7 @@ public class EncodeFixture {
         DatasetSummaryModel datasetSummary =
             dataRepoFixtures.createDataset(steward, profileId, "encodefiletest-dataset.json");
         String datasetId = datasetSummary.getId();
+        logger.info("Created dataset : " + datasetId);
 
         dataRepoFixtures.addDatasetPolicyMember(
             steward,
@@ -144,6 +147,7 @@ public class EncodeFixture {
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId());
         logger.info("Getting snapshot: " + snapshotModel.getId());
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
+        logger.info("Got reader token");
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
 

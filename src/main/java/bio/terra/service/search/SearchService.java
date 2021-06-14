@@ -66,7 +66,7 @@ public class SearchService {
         return String.format("idx-%s", id);
     }
 
-    private String translateToTim(String sql) {
+    private String encodeTimNames(String sql) {
         Pattern regex = Pattern.compile("( as )(\\w+)");
         Matcher matches = regex.matcher(sql.toLowerCase());
         StringBuilder sb = new StringBuilder(sql.length());
@@ -147,7 +147,7 @@ public class SearchService {
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
 
-        String sql = translateToTim(searchIndexRequest.getSql());
+        String sql = encodeTimNames(searchIndexRequest.getSql());
         List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, sql);
         validateSnapshotDataNotEmpty(values);
         String indexName = createEmptyIndex(snapshot);

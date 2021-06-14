@@ -38,8 +38,10 @@ public class StorageResourceTest {
     private ObjectMapper objectMapper;
 
     private final List<? extends StorageResource<?, ?>> model = List.of(
-        new AzureStorageResource(UUID.fromString("a3d54871-8cdc-4549-8410-28005df9cbaf"), AzureCloudResource.APPLICATION_DEPLOYMENT, AzureRegion.CENTRAL_US),
-        new GoogleStorageResource(UUID.fromString("a3d54871-8cdc-4549-8410-28005df9cbaf"), GoogleCloudResource.BUCKET, GoogleRegion.US_EAST1));
+        new AzureStorageResource(UUID.fromString("a3d54871-8cdc-4549-8410-28005df9cbaf"),
+            AzureCloudResource.APPLICATION_DEPLOYMENT, AzureRegion.CENTRAL_US),
+        new GoogleStorageResource(UUID.fromString("a3d54871-8cdc-4549-8410-28005df9cbaf"),
+            GoogleCloudResource.BUCKET, GoogleRegion.US_EAST1));
 
     @Test
     public void testDeserialization() throws IOException {
@@ -49,10 +51,10 @@ public class StorageResourceTest {
     }
 
     @Test
-    public void testDeserializationMixedCloudResourcesFail() throws IOException {
+    public void testDeserializationMixedCloudResourcesFail() {
         assertThrows(JsonMappingException.class, () ->
             jsonLoader.loadObject("storage-account.mixedcloud.json",
-                new TypeReference<List<StorageResource>>() {}),
+                new TypeReference<List<StorageResource<?, ?>>>() {}),
             "mixed cloud resources don't deserialize");
     }
 
@@ -60,7 +62,7 @@ public class StorageResourceTest {
     public void testSerialization() throws IOException {
         String json = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(model);
         System.err.println(json);
-        List<StorageResource> storageResource = objectMapper.readValue(json, new TypeReference<>() {});
+        List<StorageResource<?, ?>> storageResource = objectMapper.readValue(json, new TypeReference<>() {});
         assertThat(storageResource, equalTo(model));
     }
 }

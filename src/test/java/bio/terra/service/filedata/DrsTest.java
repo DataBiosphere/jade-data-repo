@@ -309,12 +309,14 @@ public class DrsTest extends UsersBase {
         if (drsObject.getAccessMethods() != null) {
             for (DRSAccessMethod method: drsObject.getAccessMethods()) {
                 if (method.getType() == DRSAccessMethod.TypeEnum.GS) {
+                    logger.info("Validating GS access method");
                     assertThat(
                         "Has proper file name (gs)",
                         method.getAccessUrl().getUrl(),
                         endsWith(drsObject.getName())
                     );
                 } else if (method.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
+                    logger.info("Validating HTTPS access method");
                     try {
                         assertThat(
                             "Has proper file name (https)",

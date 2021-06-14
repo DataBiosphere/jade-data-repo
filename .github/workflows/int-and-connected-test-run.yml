@@ -59,14 +59,14 @@ jobs:
           secretId: ${{ secrets.SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/dev/azure-test applicationsecret | AZURE_CREDENTIALS_SECRET ;
-      - name: "Run Connected test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.60.0
-        with:
-          actions_subcommand: 'gradleinttest'
-          pgport: ${{ job.services.postgres.ports[5432] }}
-          test_to_run: 'testConnected'
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
+#      - name: "Run Connected test via Gradle"
+#        uses: broadinstitute/datarepo-actions/actions/main@0.60.0
+#        with:
+#          actions_subcommand: 'gradleinttest'
+#          pgport: ${{ job.services.postgres.ports[5432] }}
+#          test_to_run: 'testConnected'
+#          role_id: ${{ secrets.ROLE_ID }}
+#          secret_id: ${{ secrets.SECRET_ID }}
   deploy_test_integration:
     timeout-minutes: 180
     strategy:
@@ -125,12 +125,12 @@ jobs:
         env:
           DESIRED_GITHASH: ${{ steps.configuration.outputs.git_hash }}
           DEPLOYMENT_TYPE: 'api'
-      - name: "Run Test Runner smoke tests via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.60.0
-        with:
-          actions_subcommand: 'gradletestrunnersmoketest'
+#      - name: "Run Test Runner smoke tests via Gradle"
+#        uses: broadinstitute/datarepo-actions/actions/main@0.60.0
+#        with:
+#          actions_subcommand: 'gradletestrunnersmoketest'
       - name: "Run Integration test via Gradle"
-        uses: broadinstitute/datarepo-actions/actions/main@0.60.0
+        uses: broadinstitute/datarepo-actions/actions/main@se-debug-integration
         with:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
@@ -145,14 +145,14 @@ jobs:
         uses: broadinstitute/datarepo-actions/actions/main@0.60.0
         with:
           actions_subcommand: 'gcp_whitelist_clean'
-      - name: "Notify Jade Slack on nightly test run"
-        if: ${{ github.event_name == 'schedule' && always() }}
-        uses: broadinstitute/action-slack@v3.8.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-        with:
-          status: ${{ job.status }}
-          channel: "#jade-alerts"
-          username: "Data Repo tests"
-          text: "Integration and Connected tests"
+#      - name: "Notify Jade Slack on nightly test run"
+#        if: ${{ github.event_name == 'schedule' && always() }}
+#        uses: broadinstitute/action-slack@v3.8.0
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+#        with:
+#          status: ${{ job.status }}
+#          channel: "#jade-alerts"
+#          username: "Data Repo tests"
+#          text: "Integration and Connected tests"

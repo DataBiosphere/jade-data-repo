@@ -60,14 +60,14 @@ public class SearchService {
         this.client = client;
     }
 
-    private String uuidToIndexName(UUID id) {
-        return String.format("idx-%s", id);
-    }
-
     private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {
         if (values.isEmpty()) {
             throw new SearchException("Snapshot data returned from SQL query is empty");
         }
+    }
+
+    private String uuidToIndexName(UUID id) {
+        return String.format("idx-%s", id);
     }
 
     private String createEmptyIndex(Snapshot snapshot) {

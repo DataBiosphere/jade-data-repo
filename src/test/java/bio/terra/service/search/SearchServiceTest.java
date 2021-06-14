@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -48,7 +49,12 @@ public class SearchServiceTest {
     private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as example_now" +
         " FROM UNNEST(GENERATE_ARRAY(1, 3));";
 
+    private static final String searchQuery = "{\"query_string\": {\"query\": \"(\"example:identifier.now\":0)\"}}";
+
     private final Map<String, String> columnReplacements = Map.of("example_now", "example:identifier.now");
+
+    private final Map<String, String> fieldReplacements =
+        columnReplacements.keySet().stream().collect(Collectors.toMap(columnReplacements::get, s -> s));
 
     private static final String indexName = "idx-mock";
 
@@ -85,6 +91,13 @@ public class SearchServiceTest {
             " FROM UNNEST(GENERATE_ARRAY(1, 3));";
         String actualSql = TimUtils.encodeSqlColumns(sqlQuery, columnReplacements);
         assertEquals(expectedSql, actualSql);
+    }
+
+    @Test
+    public void timFieldEncodingTest() {
+        String expectedQuery = "{\"query_string\": {\"query\": \"(tim__examplec__identifierp__now:0)\"}}";
+        String actualQuery = TimUtils.encodeQueryFields(searchQuery, fieldReplacements);
+        assertEquals(expectedQuery, actualQuery);
     }
 
     @Test

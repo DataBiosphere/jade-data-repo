@@ -68,6 +68,28 @@ public final class TimUtils {
         return sb.toString();
     }
 
+    /**
+     * Replace the TIM fields of a search query with encoded property names.
+     *
+     * @param query the search query containing TIM fields to replace
+     * @param fieldReplacements a map which stores TIM property names as keys and column names as values
+     * @return a modified search query containing encoded TIM property names
+     */
+    public static String encodeQueryFields(String query, Map<String, String> fieldReplacements) {
+        Pattern regex = Pattern.compile("\"([\\w.:]+)\"");
+        Matcher matches = regex.matcher(query);
+        StringBuilder sb = new StringBuilder(query.length());
+        while (matches.find()) {
+            String index = matches.group(1);
+            String replacement = fieldReplacements.get(index);
+            if (replacement != null) {
+                matches.appendReplacement(sb, TimUtils.encode(index));
+            }
+        }
+        matches.appendTail(sb);
+        return sb.toString();
+    }
+
     private static String doDecode(String s) {
         String t = s.substring(PREFIX.length())
             .replaceAll(COLON, ":")

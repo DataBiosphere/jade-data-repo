@@ -62,6 +62,9 @@ public class SearchService {
         "organism_age_unit", "TerraCore:hasAgeUnit"
     );
 
+    private final Map<String, String> fieldReplacements =
+        columnReplacements.keySet().stream().collect(Collectors.toMap(columnReplacements::get, s -> s));
+
     @Value("${elasticsearch.numShards}")
     private int NUM_SHARDS;
 
@@ -167,7 +170,8 @@ public class SearchService {
         searchSourceBuilder.from(offset);
         searchSourceBuilder.size(limit);
         // see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
-        WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
+        String query = TimUtils.encodeQueryFields(searchQueryRequest.getQuery(), fieldReplacements);
+        WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(query);
         searchSourceBuilder.query(wrapperQuery);
 
         Set<String> validIndexes = getValidIndexes();

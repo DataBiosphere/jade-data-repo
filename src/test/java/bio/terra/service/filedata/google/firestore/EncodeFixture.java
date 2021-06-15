@@ -152,7 +152,7 @@ public class EncodeFixture {
         logger.info("Getting snapshot: " + snapshotModel.getId());
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
         logger.info("readerToken");
-        String projectId =snapshotModel.getDataProject();
+        String projectId = snapshotModel.getDataProject();
         logger.info("projectId: {}", projectId);
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(projectId, readerToken);
         logger.info("bigQueryReader");

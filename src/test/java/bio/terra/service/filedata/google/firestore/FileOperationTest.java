@@ -4,7 +4,6 @@ import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -166,26 +165,21 @@ public class FileOperationTest {
     @Test
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
     public void fileOperationsTest() throws Exception {
-        String originalBucketName = UUID.randomUUID().toString();
-        doReturn(originalBucketName).when(dataLocationSelector).bucketForFile(any(), any());
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         FileModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
-        assertThat("file path reflects mocked bucket location",
-            fileModel.getFileDetail().getAccessUrl(),
-            containsString(originalBucketName));
 
         // Change the data location selector, verify that we can still delete the file
         // NOTE: the suppressed SpotBugs complaint is from the doReturn. It decides that no one
         // uses the bucketForFile call.
         String newBucketName = UUID.randomUUID().toString();
-        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any(), any());
+        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
         connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
-        assertThat("file path does not reflect new bucket location",
+        assertThat("file path relfects new bucket location",
             fileModel.getFileDetail().getAccessUrl(),
-            not(containsString(newBucketName)));
+            containsString(newBucketName));
         // Track the bucket so connected ops can remove it on teardown
         connectedOperations.addBucket(newBucketName);
 

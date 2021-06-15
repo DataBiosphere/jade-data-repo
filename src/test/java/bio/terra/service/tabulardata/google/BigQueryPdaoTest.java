@@ -615,15 +615,16 @@ public class BigQueryPdaoTest {
             .defaultProfileId(profileModel.getId())
             .name(datasetName);
         GoogleRegion region = DatasetJsonConversion.getRegionFromDatasetRequestModel(datasetRequest);
-        UUID projectId = resourceService.getOrCreateDatasetProject(datasetName, profileModel, region);
-        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
+        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        dataset.id(UUID.randomUUID());
+        UUID projectId = resourceService.getOrCreateDatasetProject(profileModel, region);
+        dataset
             .projectResourceId(projectId)
             .projectResource(resourceService.getProjectResource(projectId));
 
         String createFlightId = UUID.randomUUID().toString();
         UUID datasetId = UUID.randomUUID();
-        dataset
-            .id(datasetId);
+        dataset.id(datasetId);
         datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         return dataset;

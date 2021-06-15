@@ -1,5 +1,6 @@
 package bio.terra.service.search;
 
+import bio.terra.app.utils.TimUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
@@ -10,16 +11,16 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
-import org.elasticsearch.client.indices.CreateIndexRequest;
-import org.elasticsearch.client.indices.CreateIndexResponse;
-import org.elasticsearch.client.indices.GetIndexRequest;
-import org.elasticsearch.client.indices.GetIndexResponse;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.GetAliasesResponse;
 import org.elasticsearch.client.IndicesClient;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.CreateIndexRequest;
+import org.elasticsearch.client.indices.CreateIndexResponse;
+import org.elasticsearch.client.indices.GetIndexRequest;
+import org.elasticsearch.client.indices.GetIndexResponse;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.junit.Before;
@@ -44,8 +45,10 @@ import static org.mockito.Mockito.when;
 
 @Category(Unit.class)
 public class SearchServiceTest {
-    private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as now" +
+    private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as example_now" +
         " FROM UNNEST(GENERATE_ARRAY(1, 3));";
+
+    private final Map<String, String> columnReplacements = Map.of("example_now", "example:identifier.now");
 
     private static final String indexName = "idx-mock";
 
@@ -77,9 +80,17 @@ public class SearchServiceTest {
     }
 
     @Test
+    public void timColumnEncodingTest() {
+        String expectedSql = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as tim__examplec__identifierp__now" +
+            " FROM UNNEST(GENERATE_ARRAY(1, 3));";
+        String actualSql = TimUtils.encodeSqlColumns(sqlQuery, columnReplacements);
+        assertEquals(expectedSql, actualSql);
+    }
+
+    @Test
     public void indexSnapshotTest() throws Exception {
         // Mock snapshot table data
-        when(bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql()))
+        when(bigQueryPdao.getSnapshotTableData(any(Snapshot.class), any(String.class)))
             .thenReturn(values);
 
         // Mock index request
@@ -135,7 +146,7 @@ public class SearchServiceTest {
         for (int i = 0; i < 3; i++) {
             Instant now = Instant.now();
             String ts = String.format("%f", now.getEpochSecond() + now.getNano() / 1E9);
-            values.add(Map.of("uuid", UUID.randomUUID().toString(), "now", ts));
+            values.add(Map.of("uuid", UUID.randomUUID().toString(), "tim__examplec__identifierp__now", ts));
         }
 
         return values;

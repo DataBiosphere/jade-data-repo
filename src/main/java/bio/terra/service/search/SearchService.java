@@ -1,5 +1,6 @@
 package bio.terra.service.search;
 
+import bio.terra.app.utils.TimUtils;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchQueryRequest;
@@ -47,6 +48,19 @@ public class SearchService {
 
     private final BigQueryPdao bigQueryPdao;
     private final RestHighLevelClient client;
+
+    private final Map<String, String> columnReplacements = Map.of(
+        "biosample_id", "dct:identifier",
+        "donor_id", "prov:wasDerivedFrom",
+        "disease", "TerraCore:hasDisease",
+        "genus_species", "TerraCore:hasOrganismType",
+        "organ", "TerraCore:hasAnatomicalSite",
+        "library_construction_method_text", "TerraCore:hasLibraryPrep",
+        "sex", "TerraCore:hasSex",
+        "project_title", "dct:title",
+        "cell_type", "TerraCore:hasSelectedCellType",
+        "organism_age_unit", "TerraCore:hasAgeUnit"
+    );
 
     @Value("${elasticsearch.numShards}")
     private int NUM_SHARDS;
@@ -128,7 +142,8 @@ public class SearchService {
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
 
-        List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql());
+        String sql = TimUtils.encodeSqlColumns(searchIndexRequest.getSql(), columnReplacements);
+        List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, sql);
         validateSnapshotDataNotEmpty(values);
         String indexName = createEmptyIndex(snapshot);
         createIndexMapping(indexName, values);

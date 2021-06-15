@@ -50,7 +50,7 @@ public class SearchServiceTest {
     private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as example_now" +
         " FROM UNNEST(GENERATE_ARRAY(1, 3));";
 
-    private static final String searchQuery = "{\"query_string\": {\"query\": \"(\"example:identifier.now\":0)\"}}";
+    private static final String searchQuery = "{\"query_string\": {\"query\": \"([example:identifier.now]:0)\"}}";
 
     private final BiMap<String, String> columnReplacements = new ImmutableBiMap.Builder<String, String>()
         .put("example_now", "example:identifier.now")

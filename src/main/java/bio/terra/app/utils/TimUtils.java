@@ -77,7 +77,7 @@ public final class TimUtils {
      * @return a modified search query containing encoded TIM property names
      */
     public static String encodeQueryFields(String query, Set<String> properties) {
-        Pattern regex = Pattern.compile("\"([\\w.:]+)\"");
+        Pattern regex = Pattern.compile("\\[([\\w.:]+)\\]");
         Matcher matches = regex.matcher(query);
         StringBuilder sb = new StringBuilder(query.length());
         while (matches.find()) {

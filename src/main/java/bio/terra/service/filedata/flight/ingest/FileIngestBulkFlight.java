@@ -22,7 +22,6 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
-import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
@@ -62,7 +61,6 @@ public class FileIngestBulkFlight extends Flight {
         ProfileService profileService = appContext.getBean(ProfileService.class);
         DatasetBucketDao datasetBucketDao =  appContext.getBean(DatasetBucketDao.class);
         DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
-        DataLocationSelector dataLocationSelector = appContext.getBean(DataLocationSelector.class);
 
         // Common input parameters
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -125,7 +123,7 @@ public class FileIngestBulkFlight extends Flight {
         addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
         addStep(new LockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
         addStep(new LoadLockStep(loadService));
-        addStep(new BucketNameStep(datasetUuid, dataLocationSelector));
+        addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
         addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
         addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
 

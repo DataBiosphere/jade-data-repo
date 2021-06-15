@@ -416,7 +416,7 @@ public class FireStoreDirectoryDao {
         Firestore snapshotFirestore,
         String snapshotId,
         List<String> fileIdList)
-        throws InterruptedException {
+        throws Exception {
 
         int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
         List<List<String>> batches = ListUtils.partition(fileIdList, batchSize);
@@ -463,7 +463,7 @@ public class FireStoreDirectoryDao {
     }
 
     private void storeTopDirectory(Firestore firestore, String snapshotId, String dirName)
-        throws InterruptedException {
+        throws Exception {
         // We have to create the top directory structure for the dataset and the root folder.
         // Those components cannot be copied from the dataset, but have to be created new
         // in the snapshot directory. We probe to see if the dirName directory exists. If not,
@@ -621,18 +621,28 @@ public class FireStoreDirectoryDao {
 
     // Non-transactional lookup of an entry
     private DocumentSnapshot lookupByPathNoXn(
-        Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {
+        Firestore firestore, String collectionId, String lookupPath) throws Exception {
 
-        try {
-            DocumentReference docRef =
-                firestore
-                    .collection(collectionId)
-                    .document(encodePathAsFirestoreDocumentName(lookupPath));
-            ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
-            return docSnapFuture.get();
-        } catch (AbortedException | ExecutionException ex) {
-            throw fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
+        Exception lastException = null;
+        for (int retryNum = 0; retryNum < RETRIES; retryNum++) {
+            logger.info("lookupByPathNoXn iter {}", retryNum);
+            try {
+                DocumentReference docRef =
+                    firestore
+                        .collection(collectionId)
+                        .document(encodePathAsFirestoreDocumentName(lookupPath));
+                ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
+                return docSnapFuture.get();
+            } catch (AbortedException | ExecutionException ex) {
+                logger.info("lookupByPathNoXn - caught AbortedException | ExecutionException");
+                lastException = fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
+            } catch (Exception ex) {
+                logger.info("lookupByPathNoXn - caught other exception");
+                lastException = ex;
+            }
+            TimeUnit.SECONDS.sleep(1);
         }
+        throw lastException;
     }
 
 }

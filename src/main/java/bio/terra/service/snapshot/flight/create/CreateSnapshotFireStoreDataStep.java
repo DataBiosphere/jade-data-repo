@@ -5,6 +5,7 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.snapshot.Snapshot;
@@ -16,6 +17,7 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +101,13 @@ public class CreateSnapshotFireStoreDataStep implements Step {
             Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
 
             String addFilesTimer = performanceLogger.timerStart();
-            fileDao.addFilesToSnapshot(dataset, snapshot, uniqueRefIdsAsList);
+            try {
+                fileDao.addFilesToSnapshot(dataset, snapshot, uniqueRefIdsAsList);
+            } catch (Exception e) {
+                //TODO- I think we want to sometimes retry, but I'm not exactly sure when.
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
+                    new InvalidDatasetException("Failed to add files to snapshot: " +  e.getMessage()));
+            }
             performanceLogger.timerEndAndLog(
                 addFilesTimer,
                 context.getFlightId(),

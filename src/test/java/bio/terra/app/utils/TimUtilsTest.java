@@ -41,4 +41,9 @@ public class TimUtilsTest {
     public void noDecode() {
         assertThat(TimUtils.decode("a__b"), is("a__b"));
     }
+
+    @Test
+    public void noEncode() {
+        assertThat(TimUtils.encode("an_Ordinary_column"), is("an_Ordinary_column"));
+    }
 }

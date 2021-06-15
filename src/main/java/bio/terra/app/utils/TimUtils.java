@@ -12,24 +12,33 @@ public final class TimUtils {
     private static final String PREFIX = "tim__";
 
     /**
-     * Encode a TIM name for ElasticSearch or BigQuery use.
+     * Encode a TIM name for ElasticSearch or BigQuery use. If the input string doesn't need
+     * encoding, the original string will be returned.
      *
      * @param s the TIM name
-     * @return an encoded name
+     * @return an encoded name, or the original if no encoding is needed
      */
     public static String encode(String s) {
         StringBuilder result = new StringBuilder(PREFIX);
+        // Keep track of encodings we use. Only colon or period encodings are required.
+        var needsEncoding = false;
         for (char c : s.toCharArray()) {
             if (Character.isUpperCase(c)) {
                 result.append(CAPITAL);
                 result.append(Character.toLowerCase(c));
             } else if (c == ':') {
                 result.append(COLON);
+                needsEncoding = true;
             } else if (c == '.') {
                 result.append(PERIOD);
+                needsEncoding = true;
             } else {
                 result.append(c);
             }
+        }
+        if (!needsEncoding) {
+            // If no encoding was needed, return the original string.
+            return s;
         }
         return result.toString();
     }

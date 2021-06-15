@@ -127,11 +127,10 @@ public class EncodeFixture {
         if (scratchBlob != null) {
             scratchBlob.delete();
         }
-
         // At this point, we have files and tabular data. Let's make a data snapshot!
         SnapshotSummaryModel snapshotSummary = dataRepoFixtures.createSnapshot(
             custodian, datasetSummary.getName(), profileId, "encodefiletest-snapshot.json");
-
+        logger.info("created snapshot: " + snapshotSummary.getId());
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian,
             snapshotSummary.getId(),
@@ -150,6 +149,7 @@ public class EncodeFixture {
         // We need to get the snapshot, rather than the snapshot summary in order to make a query.
         // TODO: Add dataProject to SnapshotSummaryModel?
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId());
+        logger.info("Getting snapshot: " + snapshotModel.getId());
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());

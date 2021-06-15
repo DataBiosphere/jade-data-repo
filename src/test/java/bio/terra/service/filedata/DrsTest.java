@@ -97,7 +97,7 @@ public class DrsTest extends UsersBase {
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
-        logger.info("after encode setup.");
+        logger.info("Got snapshot: " + snapshotModel.getId());
         profileId = setupResult.getProfileId();
         logger.info("profile id: {}", profileId);
         datasetId = setupResult.getDatasetId();
@@ -312,12 +312,14 @@ public class DrsTest extends UsersBase {
         if (drsObject.getAccessMethods() != null) {
             for (DRSAccessMethod method: drsObject.getAccessMethods()) {
                 if (method.getType() == DRSAccessMethod.TypeEnum.GS) {
+                    logger.info("Validating GS access method");
                     assertThat(
                         "Has proper file name (gs)",
                         method.getAccessUrl().getUrl(),
                         endsWith(drsObject.getName())
                     );
                 } else if (method.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
+                    logger.info("Validating HTTPS access method");
                     try {
                         assertThat(
                             "Has proper file name (https)",

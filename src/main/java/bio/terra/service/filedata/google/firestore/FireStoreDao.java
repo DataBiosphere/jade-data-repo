@@ -123,7 +123,7 @@ public class FireStoreDao {
     }
 
     public void addFilesToSnapshot(Dataset dataset, Snapshot snapshot, List<String> refIds)
-        throws Exception {
+        throws InterruptedException {
 
         Firestore datasetFirestore =
             FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();

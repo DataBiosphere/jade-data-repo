@@ -520,12 +520,11 @@ public class BigQueryPdaoTest {
     }
 
     public com.google.cloud.bigquery.Dataset bigQueryDataset(Dataset dataset) {
-        return bigQueryPdao.bigQueryProjectForDataset(dataset)
-            .getBigQuery().getDataset(bigQueryPdao.prefixName(dataset.getName()));
+        return BigQueryProject.from(dataset).getBigQuery().getDataset(bigQueryPdao.prefixName(dataset.getName()));
     }
 
     public com.google.cloud.bigquery.Dataset bigQuerySnapshot(Dataset dataset, String bigQueryDatasetName) {
-        return bigQueryPdao.bigQueryProjectForDataset(dataset).getBigQuery().getDataset(bigQueryDatasetName);
+        return BigQueryProject.from(dataset).getBigQuery().getDataset(bigQueryDatasetName);
     }
 
     private byte[] readFile(String fileName) throws IOException {

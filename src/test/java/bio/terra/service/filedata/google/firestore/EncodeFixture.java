@@ -151,8 +151,15 @@ public class EncodeFixture {
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId());
         logger.info("Getting snapshot: " + snapshotModel.getId());
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
+        logger.info("readerToken");
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
-        BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
+        logger.info("bigQueryReader");
+        boolean hasAccess = BigQueryFixtures.hasAccess(bigQueryReader,
+            snapshotModel.getDataProject(), snapshotModel.getName());
+        logger.info("hasAccess: {}", hasAccess);
+        if (!hasAccess) {
+            throw new Exception("User should have access to snapshot");
+        }
 
         return new SetupResult(profileId, datasetId, snapshotSummary, snapshotModel);
     }

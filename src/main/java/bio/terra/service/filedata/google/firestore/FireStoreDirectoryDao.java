@@ -74,6 +74,8 @@ public class FireStoreDirectoryDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
 
     private static final int RETRIES = 3;
+    private static final int LOOKUP_RETRIES = 30; // up to 5 minutes
+    private static final int LOOKUP_WAIT_SECONDS = 10;
     private static final String ROOT_DIR_NAME = "/_dr_";
 
     private final FireStoreUtils fireStoreUtils;
@@ -624,8 +626,7 @@ public class FireStoreDirectoryDao {
         Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {
 
         RuntimeException lastException = null;
-        for (int retryNum = 0; retryNum < 35; retryNum++) {
-            logger.info("lookupByPathNoXn iter {}", retryNum);
+        for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {
             try {
                 DocumentReference docRef =
                     firestore
@@ -634,10 +635,10 @@ public class FireStoreDirectoryDao {
                 ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
                 return docSnapFuture.get();
             } catch (AbortedException | ExecutionException ex) {
-                logger.info("lookupByPathNoXn - caught AbortedException | ExecutionException");
                 lastException = fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
             }
-            TimeUnit.SECONDS.sleep(10);
+            logger.info("FirestoreDirectoryDao lookupByPathNoXn - iteration {}", retryNum + 1);
+            TimeUnit.SECONDS.sleep(LOOKUP_WAIT_SECONDS);
         }
         throw lastException;
     }

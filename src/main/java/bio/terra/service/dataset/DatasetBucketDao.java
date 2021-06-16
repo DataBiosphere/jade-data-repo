@@ -3,7 +3,6 @@ package bio.terra.service.dataset;
 import static bio.terra.common.DaoUtils.retryQuery;
 
 import bio.terra.common.exception.RetryQueryException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,12 +39,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class DatasetBucketDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetBucketDao.class);
 
-    private static final String sqlGetProjectIdForBucket =
-        "SELECT pr.google_project_id FROM dataset_bucket db JOIN" +
-            " bucket_resource br ON db.bucket_resource_id = br.id JOIN" +
-            " project_resource pr ON br.project_resource_id = pr.id" +
-            " WHERE db.dataset_id = :dataset_id AND pr.profile_id = :profile_id";
-
     // Note we start from 1, since we are recording an ingest creating the link. If that ingest fails
     // it will decrement to zero.
     private static final String sqlCreateLink = "INSERT INTO dataset_bucket " +
@@ -79,29 +72,6 @@ public class DatasetBucketDao {
     public DatasetBucketDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
-
-    public String getProjectResourceForBucket(UUID datasetId, UUID billingId) throws GoogleResourceException {
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("dataset_id", datasetId)
-            .addValue("profile_id", billingId);
-        List<String> results = jdbcTemplate.query(sqlGetProjectIdForBucket, params, new DatasetBucketMapper());
-        // case where we need to create new google project
-        if (results.size() == 0) {
-            logger.info("Google project does not exist for dataset {} and billing profile {}", datasetId, billingId);
-            return null;
-        } else if (results.size() > 1) {
-            throw new GoogleResourceException("There should only be one google project per dataset/billing combo.");
-        }
-        // case where we can re-use an exisiting google project
-        return results.get(0);
-    }
-
-    private static class DatasetBucketMapper implements RowMapper<String> {
-        public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return rs.getObject("google_project_id", String.class);
-        }
-    }
-
 
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void createDatasetBucketLink(UUID datasetId, UUID bucketResourceId) {

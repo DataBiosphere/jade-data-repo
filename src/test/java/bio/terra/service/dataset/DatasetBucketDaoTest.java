@@ -26,8 +26,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -75,16 +73,14 @@ public class DatasetBucketDaoTest {
     private GoogleProjectResource projectResource;
     private Dataset dataset;
 
-    private List<UUID> billingProfileIds = new ArrayList<>();
-    private List<UUID> datasetIds = new ArrayList<>();
-    private List<UUID> bucketResourceIds = new ArrayList<>();
+    private UUID datasetId;
+    private UUID bucketResourceId;
 
     @Before
     public void setup() {
         bucketResourceUtils.setAllowReuseExistingBuckets(configurationService, true);
         BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
         billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
-        billingProfileIds.add(UUID.fromString(billingProfile.getId()));
 
         projectResource = ResourceFixtures.randomProjectResource(billingProfile);
         projectId = resourceDao.createProject(projectResource);
@@ -94,16 +90,14 @@ public class DatasetBucketDaoTest {
     @After
     public void teardown() {
         try {
-            for (int i = 0; i < datasetIds.size(); i++) {
-                datasetBucketDao.deleteDatasetBucketLink(datasetIds.get(i), bucketResourceIds.get(0));
-            }
+            datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResourceId);
         } catch (Exception ex) {
-            logger.error("[CLEANUP] Unable to delete dataset  bucket link {}", bucketResourceIds);
+            logger.error("[CLEANUP] Unable to delete dataset  bucket link {}", bucketResourceId);
         }
         try {
-            datasetIds.forEach(datasetId -> datasetDao.delete(datasetId));
+            datasetDao.delete(datasetId);
         } catch (Exception ex) {
-            logger.error("[CLEANUP] Unable to delete dataset {}", datasetIds);
+            logger.error("[CLEANUP] Unable to delete dataset {}", datasetId);
         }
         try {
             resourceDao.deleteProject(projectId);
@@ -111,7 +105,7 @@ public class DatasetBucketDaoTest {
             logger.error("[CLEANUP] Unable to delete entry in database for project {}", projectId);
         }
         try {
-            billingProfileIds.forEach(billingProfileId -> profileDao.deleteBillingProfileById(billingProfileId));
+            profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
         } catch (Exception ex) {
             logger.error("[CLEANUP] Unable to billing profile {}", billingProfile.getId());
         }
@@ -119,45 +113,9 @@ public class DatasetBucketDaoTest {
     }
 
     @Test
-    public void TestGetProjectForDatasetProfileCombo() throws Exception {
-        UUID datasetId = createDataset("dataset-minimal.json");
-        datasetIds.add(datasetId);
-        UUID bucketResourceId = createBucket();
-        bucketResourceIds.add(bucketResourceId);
-        datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
-
-        String newProjectName = datasetBucketDao.getProjectResourceForBucket(datasetId,
-            UUID.fromString(billingProfile.getId()));
-
-        assertEquals("Should retrieve existing project", projectResource.getGoogleProjectId(),
-            newProjectName);
-
-        //Get Project given new billing profile
-        BillingProfileRequestModel profileRequest2 = ProfileFixtures.randomBillingProfileRequest();
-        BillingProfileModel billingProfile2 = profileDao.createBillingProfile(profileRequest2, "testUser");
-        billingProfileIds.add(UUID.fromString(billingProfile2.getId()));
-        String newBillingIdProjectName = datasetBucketDao.getProjectResourceForBucket(datasetId,
-            UUID.fromString(billingProfile2.getId()));
-        assertEquals("Should NOT retrieve existing project", null,
-            newBillingIdProjectName);
-
-        //Get project given a new dataset
-        UUID datasetId2 = createDataset("dataset-minimal.json");
-        datasetIds.add(datasetId2);
-        UUID bucketResourceId2 = createBucket();
-        bucketResourceIds.add(bucketResourceId2);
-        String newDatasetIdProjectName = datasetBucketDao.getProjectResourceForBucket(datasetId2,
-            UUID.fromString(billingProfile.getId()));
-        assertEquals("Should NOT retrieve existing project", null,
-            newDatasetIdProjectName);
-    }
-
-    @Test
     public void TestDatasetBucketLink() throws Exception {
-        UUID datasetId = createDataset("dataset-minimal.json");
-        datasetIds.add(datasetId);
-        UUID bucketResourceId = createBucket();
-        bucketResourceIds.add(bucketResourceId);
+        datasetId = createDataset("dataset-minimal.json");
+        bucketResourceId = createBucket();
 
         //initial check - link should not yet exist
         boolean linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
@@ -176,10 +134,8 @@ public class DatasetBucketDaoTest {
 
     @Test
     public void TestMultipleLinks() throws Exception {
-        UUID datasetId = createDataset("dataset-minimal.json");
-        datasetIds.add(datasetId);
-        UUID bucketResourceId = createBucket();
-        bucketResourceIds.add(bucketResourceId);
+        datasetId = createDataset("dataset-minimal.json");
+        bucketResourceId = createBucket();
 
         //initial check - link should not yet exist
         boolean linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
@@ -207,10 +163,8 @@ public class DatasetBucketDaoTest {
 
     @Test
     public void TestDecrementLink() throws Exception {
-        UUID datasetId = createDataset("dataset-minimal.json");
-        datasetIds.add(datasetId);
-        UUID bucketResourceId = createBucket();
-        bucketResourceIds.add(bucketResourceId);
+        datasetId = createDataset("dataset-minimal.json");
+        bucketResourceId = createBucket();
 
         //initial check - link should not yet exist
         boolean linkExists = datasetBucketDao.datasetBucketLinkExists(datasetId, bucketResourceId);
@@ -233,10 +187,8 @@ public class DatasetBucketDaoTest {
     public void DatasetMustExistToLink() throws Exception {
 
         // create dataset to pass to bucket create
-        UUID datasetId = createDataset("dataset-minimal.json");
-        datasetIds.add(datasetId);
-        UUID bucketResourceId = createBucket();
-        bucketResourceIds.add(bucketResourceId);
+        datasetId = createDataset("dataset-minimal.json");
+        bucketResourceId = createBucket();
 
         // fake datasetId
         UUID randomDatasetId = UUID.randomUUID();
@@ -253,8 +205,7 @@ public class DatasetBucketDaoTest {
     public void BucketMustExistToLink() throws Exception {
 
         // create dataset
-        UUID datasetId = createDataset("dataset-minimal.json");
-        datasetIds.add(datasetId);
+        datasetId = createDataset("dataset-minimal.json");
 
         // fake datasetId
         UUID randomBucketResourceId = UUID.randomUUID();

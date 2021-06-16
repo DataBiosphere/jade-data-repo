@@ -7,12 +7,10 @@ import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
 
 import java.util.UUID;
 
@@ -33,12 +31,8 @@ public class CreateDatasetGetOrCreateProjectStep implements Step {
         GoogleRegion region = DatasetJsonConversion.getRegionFromDatasetRequestModel(datasetRequestModel);
         // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
         // Either the project will have been created and we will find it, or we will create it.
-        UUID projectResourceId;
-        try {
-            projectResourceId = resourceService.getOrCreateDatasetProject(profileModel, region);
-        } catch (GoogleResourceNamingException e) {
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
-        }
+        UUID projectResourceId =
+            resourceService.getOrCreateDatasetProject(datasetRequestModel.getName(), profileModel, region);
         workingMap.put(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
         return StepResult.getStepResultSuccess();
     }

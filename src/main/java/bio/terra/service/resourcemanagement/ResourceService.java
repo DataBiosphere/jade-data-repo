@@ -9,13 +9,12 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.Collection;
 import java.util.Collections;
@@ -40,6 +39,7 @@ public class ResourceService {
     private final GoogleBucketService bucketService;
     private final SamConfiguration samConfiguration;
     private final DatasetBucketDao datasetBucketDao;
+    private final GoogleResourceDao resourceDao;
 
 
     @Autowired
@@ -48,39 +48,21 @@ public class ResourceService {
         GoogleProjectService projectService,
         GoogleBucketService bucketService,
         SamConfiguration samConfiguration,
-        DatasetBucketDao datasetBucketDao) {
+        DatasetBucketDao datasetBucketDao,
+        GoogleResourceDao resourceDao) {
         this.dataLocationSelector = dataLocationSelector;
         this.projectService = projectService;
         this.bucketService = bucketService;
         this.samConfiguration = samConfiguration;
         this.datasetBucketDao = datasetBucketDao;
-    }
-
-    /**
-     * Fetch/create a project
-     *
-     * @param dataset
-     * @param billingProfile authorized profile for billing account information case we need to create a project
-     * @return a reference to the project as a POJO GoogleProjectResource
-     */
-    public GoogleProjectResource getOrCreateProjectForBucket(Dataset dataset,
-                                                             BillingProfileModel billingProfile)
-        throws GoogleResourceException, GoogleResourceNamingException, InterruptedException {
-
-        final GoogleProjectResource datasetProject = getProjectResource(dataset.getProjectResourceId());
-        String sourceDatasetGoogleProjectId = datasetProject.getGoogleProjectId();
-        final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
-        // Every bucket needs to live in a project, so we get or create a project first
-        return projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForFile(dataset, sourceDatasetGoogleProjectId, billingProfile),
-            billingProfile,
-            null,
-            region);
+        this.resourceDao = resourceDao;
     }
 
     /**
      * Fetch/create a project, then use that to fetch/create a bucket.
      *
+     * @param billingProfile authorized profile for billing account information case we need to
+     *                       create a project
      * @param flightId       used to lock the bucket metadata during possible creation
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws CorruptMetadataException in two cases.
@@ -90,15 +72,48 @@ public class ResourceService {
      *     <le>if the metadata exists, but the bucket does not</le>
      * </ol>
      */
-    public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
-                                                         GoogleProjectResource projectResource,
-                                                         String flightId)
-                                                         throws InterruptedException, GoogleResourceNamingException {
-        return bucketService.getOrCreateBucket(
-            dataLocationSelector.bucketForFile(projectResource.getGoogleProjectId()),
-            projectResource,
+    public GoogleBucketResource getOrCreateBucketForFile(String possibleBucketName,
+        Dataset dataset,
+        BillingProfileModel billingProfile,
+        String flightId) throws InterruptedException {
+        final String datasetName = dataset.getName();
+        final GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
+        // Every bucket needs to live in a project, so we get or create a project first
+        final GoogleProjectResource projectResource = projectService.getOrCreateProject(
+            dataLocationSelector.projectIdForFile(datasetName, billingProfile),
+            billingProfile,
+            null,
+            region);
+
+        List<UUID> bucketsForDataset = datasetBucketDao.getBucketResourceIdForDatasetId(dataset.getId());
+        String bucketName = possibleBucketName;
+
+        List<GoogleBucketResource> bucketsForBillingProfile = bucketsForDataset.stream()
+            .map(this::lookupBucket)
+            .filter(bucket -> bucketIsForBillingProfile(bucket, billingProfile))
+            .collect(Collectors.toList());
+
+        // there should never be more than one bucket per billing profile,
+        // so we just take the first one
+        if (bucketsForBillingProfile.size() > 0) {
+            GoogleBucketResource bucket = bucketsForBillingProfile.get(0);
+            bucketName = bucket.getName();
+
+            if (bucketsForBillingProfile.size() > 1) {
+                logger.warn("Found more than one bucket associated with this dataset and billing profile");
+            }
+        }
+
+        return bucketService.getOrCreateBucket(bucketName, projectResource,
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             flightId);
+    }
+
+    private boolean bucketIsForBillingProfile(GoogleBucketResource bucket,
+        BillingProfileModel billingProfile) {
+        GoogleProjectResource resource = bucket.getProjectResource();
+        UUID billingProfileId = UUID.fromString(billingProfile.getId());
+        return resource.getProfileId().equals(billingProfileId);
     }
 
     /**
@@ -139,13 +154,13 @@ public class ResourceService {
      * does not exist, then the metadata row should not exist. If the metadata row is locked, then
      * only the locking flight can unlock or delete the row.
      *
-     * @param projectId       retrieve bucket based on google project id
+     * @param datasetId      id of the dataset that is storing files into the bucket
      * @param billingProfile an authorized billing profile
      * @param flightId       flight doing the updating
      */
-    public void updateBucketMetadata(String projectId, BillingProfileModel billingProfile, String flightId)
-        throws GoogleResourceNamingException {
-        String bucketName = dataLocationSelector.bucketForFile(projectId);
+    public void updateBucketMetadata(UUID datasetId, BillingProfileModel billingProfile,
+        String flightId) {
+        String bucketName = dataLocationSelector.bucketForFile(datasetId, billingProfile);
         bucketService.updateBucketMetadata(bucketName, flightId);
     }
 
@@ -153,15 +168,18 @@ public class ResourceService {
     /**
      * Create a new project for a snapshot, if none exists already.
      *
-     * @param billingProfile authorized billing profile to pay for the project
-     * @param region   the region to create the Firestore in
+     * @param snapshotName      name of the snapshot
+     * @param billingProfile    authorized billing profile to pay for the project
+     * @param region            the region of the snapshot
      * @return project resource id
      */
-    public UUID getOrCreateSnapshotProject(BillingProfileModel billingProfile, GoogleRegion region)
-        throws InterruptedException, GoogleResourceNamingException {
+    public UUID getOrCreateSnapshotProject(String snapshotName,
+                                           BillingProfileModel billingProfile,
+                                           GoogleRegion region)
+        throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForSnapshot(),
+            dataLocationSelector.projectIdForSnapshot(snapshotName, billingProfile),
             billingProfile,
             null,
             region);
@@ -172,16 +190,17 @@ public class ResourceService {
     /**
      * Create a new project for a dataset,  if none exists already.
      *
+     * @param datasetName    name of the dataset
      * @param billingProfile authorized billing profile to pay for the project
      * @param region         the region to ceraate
      * @return project resource id
      */
-    public UUID getOrCreateDatasetProject(BillingProfileModel billingProfile,
-                                          GoogleRegion region)
-                                          throws InterruptedException, GoogleResourceNamingException {
+    public UUID getOrCreateDatasetProject(String datasetName,
+                                          BillingProfileModel billingProfile,
+                                          GoogleRegion region) throws InterruptedException {
 
         GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForDataset(),
+            dataLocationSelector.projectIdForDataset(datasetName, billingProfile),
             billingProfile,
             getStewardPolicy(),
             region);

@@ -27,11 +27,11 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 
 
 @RunWith(SpringRunner.class)
@@ -74,15 +74,17 @@ public class ProfileConnectedTest {
 
     @Test
     public void testAzureBillingProfile() throws Exception {
-        var tenant = UUID.randomUUID().toString();
-        var subscription = UUID.randomUUID().toString();
-        var resourceGroup = "resourceGroupName";
+        var tenant = testConfig.getTargetTenantId();
+        var subscription = testConfig.getTargetSubscriptionId();
+        var resourceGroup = testConfig.getTargetResourceGroupName();
+        var applicationName = testConfig.getTargetApplicationName();
         var requestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(testConfig.getGoogleBillingAccountId())
             .cloudPlatform(CloudPlatform.AZURE)
-            .tenantId(tenant)
-            .subscriptionId(subscription)
-            .resourceGroupName(resourceGroup);
+            .tenantId(tenant.toString())
+            .subscriptionId(subscription.toString())
+            .resourceGroupName(resourceGroup)
+            .applicationDeploymentName(applicationName);
 
         var profile = connectedOperations.createProfile(requestModel);
 
@@ -92,10 +94,10 @@ public class ProfileConnectedTest {
             retrievedProfile.getCloudPlatform(),
             equalTo(CloudPlatform.AZURE));
 
-        assertThat("Azure billing profile has tenant, subscription, and resourceGroup",
+        assertThat("Azure billing profile has tenant, subscription, resourceGroup, and applicationName",
             List.of(retrievedProfile.getTenantId(), retrievedProfile.getSubscriptionId(),
-                retrievedProfile.getResourceGroupName()),
-            contains(tenant, subscription, resourceGroup));
+                retrievedProfile.getResourceGroupName(), retrievedProfile.getApplicationDeploymentName()),
+            contains(tenant.toString(), subscription.toString(), resourceGroup, applicationName));
     }
 
     @Test

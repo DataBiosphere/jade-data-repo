@@ -1,8 +1,8 @@
 WITH links AS
 (SELECT project.datarepo_row_id AS project_datarepo_row_id, links.datarepo_row_id AS links_datarepo_row_id, links_id, links.project_id, project.content AS project_content, links.content AS links_content
 FROM
-`broad-jade-dev-data.datarepo_hca_dev_20210513_search_api.project` AS project,
-`broad-jade-dev-data.datarepo_hca_dev_20210513_search_api.links` AS links
+`broad-jade-dev-data.hca_dev_20210513_search_api_snapshot.project` AS project,
+`broad-jade-dev-data.hca_dev_20210513_search_api_snapshot.links` AS links
 WHERE JSON_VALUE(project.content, '$.project_core.project_short_name') = 'PulmonaryFibrosisGSE135893'
 AND project.project_id = links.project_id)
 SELECT
@@ -20,7 +20,7 @@ JSON_EXTRACT_SCALAR(link, '$.process_id') AS process_id,
 JSON_EXTRACT_SCALAR(input, '$.input_type') AS input_type,
 JSON_EXTRACT_SCALAR(input, '$.input_id') AS input_id,
 JSON_EXTRACT_SCALAR(output, '$.output_type') AS output_type,
-JSON_EXTRACT_SCALAR(output, '$.output_id') AS output_id,
+sequence_file.file_id AS output_id,
 JSON_EXTRACT_SCALAR(link, '$.entity.entity_type') AS entity_type,
 JSON_EXTRACT_SCALAR(link, '$.entity.entity_id') AS entity_id,
 JSON_EXTRACT_SCALAR(files, '$.file_type') AS file_type,
@@ -43,10 +43,12 @@ LEFT JOIN UNNEST(JSON_EXTRACT_ARRAY(links.links_content, '$.links')) AS link
 LEFT JOIN UNNEST(JSON_EXTRACT_ARRAY(link, '$.inputs')) AS input
 LEFT JOIN UNNEST(JSON_EXTRACT_ARRAY(link, '$.outputs')) AS output
 LEFT JOIN UNNEST(JSON_EXTRACT_ARRAY(link, '$.files')) AS files
-LEFT JOIN `broad-jade-dev-data.datarepo_hca_dev_20201203.cell_suspension` AS cell_suspension ON JSON_EXTRACT_SCALAR(input, '$.input_id') = cell_suspension_id
-LEFT JOIN `broad-jade-dev-data.datarepo_hca_dev_20201203.donor_organism` AS donor_organism ON JSON_EXTRACT_SCALAR(input, '$.input_id') = donor_organism_id
+LEFT JOIN `broad-jade-dev-data.hca_dev_20210513_search_api_snapshot.cell_suspension` AS cell_suspension ON JSON_EXTRACT_SCALAR(input, '$.input_id') = cell_suspension_id
+LEFT JOIN `broad-jade-dev-data.hca_dev_20210513_search_api_snapshot.donor_organism` AS donor_organism ON JSON_EXTRACT_SCALAR(input, '$.input_id') = donor_organism_id
 LEFT JOIN UNNEST(JSON_EXTRACT_ARRAY(donor_organism.content, '$.genus_species')) AS donor_organism_species
-LEFT JOIN `broad-jade-dev-data.datarepo_hca_dev_20201203.specimen_from_organism` AS specimen_from_organism ON JSON_EXTRACT_SCALAR(input, '$.input_id') = specimen_from_organism_id
+LEFT JOIN `broad-jade-dev-data.hca_dev_20210513_search_api_snapshot.specimen_from_organism` AS specimen_from_organism ON JSON_EXTRACT_SCALAR(input, '$.input_id') = specimen_from_organism_id
 LEFT JOIN UNNEST(JSON_EXTRACT_ARRAY(specimen_from_organism.content, '$.diseases')) AS diseases
 LEFT JOIN UNNEST(JSON_EXTRACT_ARRAY(link, '$.protocols')) AS protocols
-LEFT JOIN `broad-jade-dev-data.datarepo_hca_dev_20201203.library_preparation_protocol` AS library_preparation_protocol ON JSON_EXTRACT_SCALAR(protocols, '$.protocol_id') = library_preparation_protocol_id;
+LEFT JOIN `broad-jade-dev-data.hca_dev_20210513_search_api_snapshot.library_preparation_protocol` AS library_preparation_protocol ON JSON_EXTRACT_SCALAR(protocols, '$.protocol_id') = library_preparation_protocol_id
+LEFT JOIN `broad-jade-dev-data.hca_dev_20210513_search_api_snapshot.sequence_file` AS sequence_file ON JSON_EXTRACT_SCALAR(output, '$.output_id') = sequence_file_id
+;

@@ -10,6 +10,7 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
@@ -32,6 +33,7 @@ import org.mockito.MockitoAnnotations;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,7 +50,11 @@ public class SearchServiceTest {
     private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as example_now" +
         " FROM UNNEST(GENERATE_ARRAY(1, 3));";
 
-    private final Map<String, String> columnReplacements = Map.of("example_now", "example:identifier.now");
+    private static final String searchQuery = "{\"query_string\": {\"query\": \"([example:identifier.now]:0)\"}}";
+
+    private static final Map<String, String> columnReplacements = new ImmutableMap.Builder<String, String>()
+        .put("example_now", "example:identifier.now")
+        .build();
 
     private static final String indexName = "idx-mock";
 
@@ -85,6 +91,13 @@ public class SearchServiceTest {
             " FROM UNNEST(GENERATE_ARRAY(1, 3));";
         String actualSql = TimUtils.encodeSqlColumns(sqlQuery, columnReplacements);
         assertEquals(expectedSql, actualSql);
+    }
+
+    @Test
+    public void timFieldEncodingTest() {
+        String expectedQuery = "{\"query_string\": {\"query\": \"(tim__examplec__identifierp__now:0)\"}}";
+        String actualQuery = TimUtils.encodeQueryFields(searchQuery, new HashSet<>(columnReplacements.values()));
+        assertEquals(expectedQuery, actualQuery);
     }
 
     @Test

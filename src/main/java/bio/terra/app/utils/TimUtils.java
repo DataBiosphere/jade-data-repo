@@ -1,6 +1,7 @@
 package bio.terra.app.utils;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,6 +63,27 @@ public final class TimUtils {
             String replacement = columnReplacements.get(matches.group(2));
             if (replacement != null) {
                 matches.appendReplacement(sb, matches.group(1) + TimUtils.encode(replacement));
+            }
+        }
+        matches.appendTail(sb);
+        return sb.toString();
+    }
+
+    /**
+     * Replace the TIM fields of a search query with encoded property names.
+     *
+     * @param query the search query containing TIM fields to replace
+     * @param properties a set of TIM property names to validate against
+     * @return a modified search query containing encoded TIM property names
+     */
+    public static String encodeQueryFields(String query, Set<String> properties) {
+        Pattern regex = Pattern.compile("\\[([\\w.:]+)\\]");
+        Matcher matches = regex.matcher(query);
+        StringBuilder sb = new StringBuilder(query.length());
+        while (matches.find()) {
+            String match = matches.group(1);
+            if (properties.contains(match)) {
+                matches.appendReplacement(sb, TimUtils.encode(match));
             }
         }
         matches.appendTail(sb);

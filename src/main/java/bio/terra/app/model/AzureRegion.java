@@ -96,7 +96,7 @@ public enum AzureRegion implements CloudRegion {
      * Differs from {@link #valueOf(String)} in that this does not fail if no value is found, and uses
      * a case insensitive compare
      * @param text region to look up
-     * @return A GoogleRegion or null if none is found
+     * @return An AzureRegion or null if none is found
      */
     public static AzureRegion fromName(String text) {
         for (AzureRegion region : AzureRegion.values()) {

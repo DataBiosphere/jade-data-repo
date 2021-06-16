@@ -1,7 +1,9 @@
 package bio.terra.service.resourcemanagement;
 
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -14,6 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -40,11 +44,13 @@ import static org.junit.Assert.assertThat;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class ProfileConnectedTest {
+    private static final Logger logger = LoggerFactory.getLogger(ProfileConnectedTest.class);
 
     @Autowired private ProfileDao profileDao;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private ConfigurationService configService;
+    @Autowired private ApplicationConfiguration applicationConfiguration;
 
     @MockBean
     private IamProviderInterface samService;
@@ -74,6 +80,9 @@ public class ProfileConnectedTest {
 
     @Test
     public void testAzureBillingProfile() throws Exception {
+        if (!ValidationUtils.isValidEmail(applicationConfiguration.getUserEmail())) {
+            logger.info("Skipping test since default user was not set");
+        }
         var tenant = testConfig.getTargetTenantId();
         var subscription = testConfig.getTargetSubscriptionId();
         var resourceGroup = testConfig.getTargetResourceGroupName();

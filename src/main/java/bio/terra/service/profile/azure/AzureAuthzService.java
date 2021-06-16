@@ -8,12 +8,13 @@ import com.azure.resourcemanager.resources.models.GenericResource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 public class AzureAuthzService {
 
-    static final String AUTH_TAG_KEY = "terra-auth";
+    static final String AUTH_PARAM_KEY = "authorizedTDRUser";
 
     private final AzureResourceConfiguration resourceConfiguration;
 
@@ -35,8 +36,8 @@ public class AzureAuthzService {
             GenericResource applicationDeployment = client.genericResources()
                 .getById(applicationResourceId);
 
-            return applicationDeployment.tags()
-                .getOrDefault(AUTH_TAG_KEY, "")
+            return ((Map<String, Map<String, Map<String, String>>>) applicationDeployment.properties())
+                .get("parameters").get(AUTH_PARAM_KEY).get("value")
                 .strip().equalsIgnoreCase(user.getEmail());
         } catch (Exception e) {
             return false;

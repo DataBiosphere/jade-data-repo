@@ -18,7 +18,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import java.util.Map;
 import java.util.UUID;
 
-import static bio.terra.service.profile.azure.AzureAuthzService.AUTH_TAG_KEY;
+import static bio.terra.service.profile.azure.AzureAuthzService.AUTH_PARAM_KEY;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.when;
@@ -47,7 +47,9 @@ public class AzureAuthzServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        when(genericResource.tags()).thenReturn(Map.of(AUTH_TAG_KEY, USER_EMAIL));
+        when(genericResource.properties()).thenReturn(Map.of(
+            "parameters", Map.of(AUTH_PARAM_KEY, Map.of(
+                "value", USER_EMAIL))));
         when(resourceManager.genericResources()).thenReturn(genericResources);
         when(resourceConfiguration.getClient(SUBSCRIPTION_ID)).thenReturn(resourceManager);
         when(genericResources.getById(RESOURCE_ID)).thenReturn(genericResource);

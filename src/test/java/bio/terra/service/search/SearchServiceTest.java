@@ -133,19 +133,23 @@ public class SearchServiceTest {
         SearchHits mockHits = mock(SearchHits.class);
         SearchHit mockHit = mock(SearchHit.class);
         when(mockHits.iterator()).thenReturn(Arrays.stream(new SearchHit[]{mockHit}).iterator());
-        when(mockHit.getSourceAsMap()).thenReturn(Map.of("testKey", "testValue"));
+        when(mockHit.getSourceAsMap()).thenReturn(Map.of(
+            "uuid", "41b203f2-c7a5-4232-bcb3-f3442ba9baaf",
+            "tim__examplec__identifierp__now", "0"
+        ));
 
         SearchResponse mockSearchResponse = mock(SearchResponse.class);
         when(mockSearchResponse.getHits()).thenReturn(mockHits);
         when(client.search(any(SearchRequest.class), any(RequestOptions.class))).thenReturn(mockSearchResponse);
 
-        List<UUID> snapshotIdsToQuery = List.of(
-                UUID.fromString(testId)
-        );
+        List<UUID> snapshotIdsToQuery = List.of(UUID.fromString(testId));
         SearchQueryResultModel actualResultModel =
-                service.querySnapshot(new SearchQueryRequest().query("query"), snapshotIdsToQuery, 0, 1);
+            service.querySnapshot(new SearchQueryRequest().query("query"), snapshotIdsToQuery, 0, 1);
         SearchQueryResultModel expectedResultModel = new SearchQueryResultModel();
-        expectedResultModel.result(List.of(Map.of("testKey", "testValue")));
+        expectedResultModel.result(List.of(Map.of(
+            "uuid", "41b203f2-c7a5-4232-bcb3-f3442ba9baaf",
+            "example:identifier.now", "0"
+        )));
 
         assertEquals(expectedResultModel.getResult(), actualResultModel.getResult());
     }

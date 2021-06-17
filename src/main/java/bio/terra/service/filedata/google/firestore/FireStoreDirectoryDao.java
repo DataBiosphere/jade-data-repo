@@ -73,7 +73,6 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATC
 public class FireStoreDirectoryDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
 
-    private static final int RETRIES = 10;
     private static final int LOOKUP_RETRIES = 30; // up to 5 minutes
     private static final int LOOKUP_WAIT_SECONDS = 10;
     private static final String ROOT_DIR_NAME = "/_dr_";
@@ -97,7 +96,6 @@ public class FireStoreDirectoryDao {
         Firestore firestore, String collectionId, FireStoreDirectoryEntry createEntry)
         throws InterruptedException {
 
-        logger.info("Creating new directory w/ collectionId: {}", collectionId);
         ApiFuture<Void> transaction =
             firestore.runTransaction(
                 xn -> {
@@ -107,7 +105,6 @@ public class FireStoreDirectoryDao {
                     // existing one
                     // We will create the ROOT_DIR_NAME directory here if it does not exist.
                     String lookupDirPath = makeLookupPath(createEntry.getPath());
-                    logger.info("lookupDirPath: {}", lookupDirPath);
 
                     for (String testPath = lookupDirPath;
                          !testPath.isEmpty();
@@ -116,30 +113,23 @@ public class FireStoreDirectoryDao {
                         // !!! In this case we are using a lookup path
                         DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, testPath, xn);
                         if (docSnap.exists()) {
-                            logger.info("docSnap exists");
                             break;
                         }
 
-                        logger.info("making directory entry");
                         FireStoreDirectoryEntry dirToCreate = makeDirectoryEntry(testPath);
-                        logger.info("new dir: {}", dirToCreate.toString());
                         createList.add(dirToCreate);
                     }
-                    logger.info("CreateList: {}, {}", createList.toString(), createList.size());
 
                     // transition point from reading to writing in the transaction
-                    logger.info("transition point from reading to writing in the transaction");
+
                     for (FireStoreDirectoryEntry dirToCreate : createList) {
-                        DocumentReference dr = getDocRef(firestore, collectionId, dirToCreate);
-                        logger.info("Doc ref: {}", dr.toString());
-                        xn.set(dr, dirToCreate);
+                        xn.set(getDocRef(firestore, collectionId, dirToCreate), dirToCreate);
                     }
-                    DocumentReference dr2 = getDocRef(firestore, collectionId, createEntry);
-                    logger.info("Doc ref outside loop: {}", dr2.toString());
-                    xn.set(dr2, createEntry);
+
+                    xn.set(getDocRef(firestore, collectionId, createEntry), createEntry);
                     return null;
                 });
-        logger.info("get transaction");
+
         fireStoreUtils.transactionGet("createFileRef", transaction);
     }
 
@@ -209,7 +199,7 @@ public class FireStoreDirectoryDao {
                                                             LookupFunction lookupFunction,
                                                             String transactionOp,
                                                             String warnMessage) throws InterruptedException {
-        for (int i = 0; i < RETRIES; i++) {
+        for (int i = 0; i < LOOKUP_RETRIES; i++) {
             try {
                 ApiFuture<FireStoreDirectoryEntry> transaction =
                     firestore.runTransaction(
@@ -473,31 +463,27 @@ public class FireStoreDirectoryDao {
         }
     }
 
-    private void storeTopDirectory(Firestore snapshotFirestore, String snapshotId, String datasetDirName)
+    private void storeTopDirectory(Firestore firestore, String snapshotId, String dirName)
         throws InterruptedException {
         // We have to create the top directory structure for the dataset and the root folder.
         // Those components cannot be copied from the dataset, but have to be created new
         // in the snapshot directory. We probe to see if the dirName directory exists. If not,
         // we use the createFileRef path to construct it and the parent, if necessary.
-        String dirPath = "/" + datasetDirName;
-        DocumentSnapshot dirSnap = lookupByPathNoXn(snapshotFirestore, snapshotId, dirPath);
+        String dirPath = "/" + dirName;
+        DocumentSnapshot dirSnap = lookupByPathNoXn(firestore, snapshotId, dirPath);
         if (dirSnap.exists()) {
-            logger.info("Top directory path already exists for snapshot.");
             return;
         }
 
-        String newFileId = UUID.randomUUID().toString();
-        logger.info("top directory path does not exist. creating it at dirName {} & rand file Id {}",
-            datasetDirName, newFileId);
         FireStoreDirectoryEntry topDir =
             new FireStoreDirectoryEntry()
-                .fileId(newFileId)
+                .fileId(UUID.randomUUID().toString())
                 .isFileRef(false)
                 .path("/")
-                .name(datasetDirName)
+                .name(dirName)
                 .fileCreatedDate(Instant.now().toString());
 
-        createDirectoryEntry(snapshotFirestore, snapshotId, topDir);
+        createDirectoryEntry(firestore, snapshotId, topDir);
     }
 
     List<FireStoreDirectoryEntry> batchRetrieveById(
@@ -637,15 +623,15 @@ public class FireStoreDirectoryDao {
     // Non-transactional lookup of an entry
     private DocumentSnapshot lookupByPathNoXn(
         Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {
+        DocumentReference docRef =
+            firestore
+                .collection(collectionId)
+                .document(encodePathAsFirestoreDocumentName(lookupPath));
 
         RuntimeException lastException = null;
         for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {
             logger.info("FirestoreDirectoryDao lookupByPathNoXn - iteration {}", retryNum);
             try {
-                DocumentReference docRef =
-                    firestore
-                        .collection(collectionId)
-                        .document(encodePathAsFirestoreDocumentName(lookupPath));
                 ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
                 return docSnapFuture.get();
             } catch (AbortedException | ExecutionException ex) {

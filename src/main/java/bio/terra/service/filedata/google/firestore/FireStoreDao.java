@@ -154,7 +154,7 @@ public class FireStoreDao {
         Firestore snapshotFirestore = FireStoreProject.get(
             snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
         Firestore datasetFirestore = FireStoreProject.get(
-            snapshot.getSnapshotSources().get(0).getDataset().getProjectResource().getGoogleProjectId()).getFirestore();
+            snapshot.getFirstSnapshotSource().getDataset().getProjectResource().getGoogleProjectId()).getFirestore();
         String snapshotId = snapshot.getId().toString();
         FireStoreDirectoryEntry topDir = directoryDao.retrieveByPath(snapshotFirestore, snapshotId, "/");
         // If topDir is null, it means no files were added to the snapshot file system in the previous

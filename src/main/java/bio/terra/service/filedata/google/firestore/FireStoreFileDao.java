@@ -127,7 +127,7 @@ class FireStoreFileDao {
 
     /**
      * Retrieve metadata from a list of directory entries.
-     * @param datasetFirestore A Firestore client
+     * @param firestore A Firestore client
      * @param datasetId The id of the dataset that the directory entries are associated with
      * @param directoryEntries List of objects to retried metadata for
      * @return A list of metadata object for the specified files.  Note: the order of the list matches with the order
@@ -135,11 +135,11 @@ class FireStoreFileDao {
      * @throws InterruptedException If a call to Firestore is interrupted
      */
     List<FireStoreFile> batchRetrieveFileMetadata(
-        Firestore datasetFirestore,
+        Firestore firestore,
         String datasetId,
         List<FireStoreDirectoryEntry> directoryEntries) throws InterruptedException {
 
-        CollectionReference collection = datasetFirestore.collection(makeCollectionId(datasetId));
+        CollectionReference collection = firestore.collection(makeCollectionId(datasetId));
 
         List<DocumentSnapshot> documentSnapshotList = fireStoreUtils.batchOperation(
             directoryEntries,

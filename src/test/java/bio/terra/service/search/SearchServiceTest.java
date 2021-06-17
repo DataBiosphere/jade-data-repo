@@ -47,13 +47,17 @@ import static org.mockito.Mockito.when;
 
 @Category(Unit.class)
 public class SearchServiceTest {
-    private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as example_now" +
+    private static final String sqlQuery = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() AS example_now" +
         " FROM UNNEST(GENERATE_ARRAY(1, 3));";
 
-    private static final String searchQuery = "{\"query_string\": {\"query\": \"([example:identifier.now]:0)\"}}";
+    private static final String timPropertyName = "example:identifier.now";
+    private static final String timEncodedName = TimUtils.encode(timPropertyName);
+
+    private static final String searchQuery = String.format("{\"query_string\": {\"query\": \"([%s]:0)\"}}",
+        timPropertyName);
 
     private static final Map<String, String> columnReplacements = new ImmutableMap.Builder<String, String>()
-        .put("example_now", "example:identifier.now")
+        .put("example_now", timPropertyName)
         .build();
 
     private static final String indexName = "idx-mock";
@@ -87,15 +91,15 @@ public class SearchServiceTest {
 
     @Test
     public void timColumnEncodingTest() {
-        String expectedSql = "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() as tim__examplec__identifierp__now" +
-            " FROM UNNEST(GENERATE_ARRAY(1, 3));";
+        String expectedSql = String.format("SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() AS %s" +
+            " FROM UNNEST(GENERATE_ARRAY(1, 3));", timEncodedName);
         String actualSql = TimUtils.encodeSqlColumns(sqlQuery, columnReplacements);
         assertEquals(expectedSql, actualSql);
     }
 
     @Test
     public void timFieldEncodingTest() {
-        String expectedQuery = "{\"query_string\": {\"query\": \"(tim__examplec__identifierp__now:0)\"}}";
+        String expectedQuery = String.format("{\"query_string\": {\"query\": \"(%s:0)\"}}", timEncodedName);
         String actualQuery = TimUtils.encodeQueryFields(searchQuery, new HashSet<>(columnReplacements.values()));
         assertEquals(expectedQuery, actualQuery);
     }
@@ -135,7 +139,7 @@ public class SearchServiceTest {
         when(mockHits.iterator()).thenReturn(Arrays.stream(new SearchHit[]{mockHit}).iterator());
         when(mockHit.getSourceAsMap()).thenReturn(Map.of(
             "uuid", "41b203f2-c7a5-4232-bcb3-f3442ba9baaf",
-            "tim__examplec__identifierp__now", "0"
+            timEncodedName, "0"
         ));
 
         SearchResponse mockSearchResponse = mock(SearchResponse.class);
@@ -148,7 +152,7 @@ public class SearchServiceTest {
         SearchQueryResultModel expectedResultModel = new SearchQueryResultModel();
         expectedResultModel.result(List.of(Map.of(
             "uuid", "41b203f2-c7a5-4232-bcb3-f3442ba9baaf",
-            "example:identifier.now", "0"
+            timPropertyName, "0"
         )));
 
         assertEquals(expectedResultModel.getResult(), actualResultModel.getResult());
@@ -163,7 +167,7 @@ public class SearchServiceTest {
         for (int i = 0; i < 3; i++) {
             Instant now = Instant.now();
             String ts = String.format("%f", now.getEpochSecond() + now.getNano() / 1E9);
-            values.add(Map.of("uuid", UUID.randomUUID().toString(), "tim__examplec__identifierp__now", ts));
+            values.add(Map.of("uuid", UUID.randomUUID().toString(), timEncodedName, ts));
         }
 
         return values;

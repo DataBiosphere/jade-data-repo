@@ -73,7 +73,6 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATC
 public class FireStoreDirectoryDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
 
-    private static final int RETRIES = 3;
     private static final int LOOKUP_RETRIES = 30; // up to 5 minutes
     private static final int LOOKUP_WAIT_SECONDS = 10;
     private static final String ROOT_DIR_NAME = "/_dr_";
@@ -200,7 +199,7 @@ public class FireStoreDirectoryDao {
                                                             LookupFunction lookupFunction,
                                                             String transactionOp,
                                                             String warnMessage) throws InterruptedException {
-        for (int i = 0; i < RETRIES; i++) {
+        for (int i = 0; i < LOOKUP_RETRIES; i++) {
             try {
                 ApiFuture<FireStoreDirectoryEntry> transaction =
                     firestore.runTransaction(

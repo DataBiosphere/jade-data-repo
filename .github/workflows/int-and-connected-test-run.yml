@@ -11,7 +11,7 @@ env:
   AZURE_CREDENTIALS_APPLICATIONID: 22cb243c-f1a5-43d8-8f12-6566bcce6542
   AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
   JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
-  RBS_CLIENT_CREDENTIAL_FILE_PATH: 'rbs-tools-sa.json'
+  RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
 on:
   pull_request:
     branches:

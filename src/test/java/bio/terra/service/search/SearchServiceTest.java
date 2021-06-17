@@ -130,8 +130,6 @@ public class SearchServiceTest {
     public void querySnapshotTest() throws Exception {
         String testId = "0f14d0ab-9605-4a62-a9e4-5ed26688389b";
 
-
-
         GetAliasesResponse mockResponse = mock(GetAliasesResponse.class);
         when(mockResponse.getAliases()).thenReturn(Map.of(String.format("idx-%s", testId), Set.of()));
         when(indicesClient.getAlias(any(GetAliasesRequest.class), any(RequestOptions.class)))

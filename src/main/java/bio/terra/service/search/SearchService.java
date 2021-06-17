@@ -205,7 +205,7 @@ public class SearchService {
         for (SearchHit hit : hits) {
             Map<String, String> hitsMap = new HashMap<>();
             for (Map.Entry<String, Object> entry : hit.getSourceAsMap().entrySet()) {
-                String key = entry.getKey();
+                String key = TimUtils.decode(entry.getKey());
                 String value = (String) entry.getValue();
                 hitsMap.put(key, value);
             }

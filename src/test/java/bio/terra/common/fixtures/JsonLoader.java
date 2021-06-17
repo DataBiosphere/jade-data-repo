@@ -1,5 +1,6 @@
 package bio.terra.common.fixtures;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,11 @@ public class JsonLoader {
     public <T> T loadObject(final String resourcePath, final Class<T> resourceClass) throws IOException {
         final String json = loadJson(resourcePath);
         return objectMapper.readerFor(resourceClass).readValue(json);
+    }
+
+    public <T> T loadObject(final String resourcePath, final TypeReference<T> typeReference) throws IOException {
+        final String json = loadJson(resourcePath);
+        return objectMapper.readerFor(typeReference).readValue(json);
     }
 
     public ClassLoader getClassLoader() {

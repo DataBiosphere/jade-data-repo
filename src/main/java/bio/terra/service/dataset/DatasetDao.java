@@ -548,7 +548,7 @@ public class DatasetDao {
 
     private class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
         public DatasetSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
-            List<StorageResource> storageResources;
+            List<? extends StorageResource<?, ?>> storageResources;
             try {
                 storageResources = objectMapper.readValue(rs.getString("storage"),
                         new TypeReference<>() {});

@@ -66,7 +66,7 @@ public class SnapshotCreateFlight extends Flight {
         // TODO note that with multi-dataset snapshots this will need to change
         List<Dataset> sourceDatasets = snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
         UUID datasetId = sourceDatasets.get(0).getId();
-        GoogleRegion firestoreRegion = sourceDatasets.get(0)
+        GoogleRegion firestoreRegion = (GoogleRegion) sourceDatasets.get(0)
             .getDatasetSummary()
             .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         addStep(new LockDatasetStep(datasetDao, datasetId, false));

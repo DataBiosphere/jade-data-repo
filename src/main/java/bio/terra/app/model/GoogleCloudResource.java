@@ -3,7 +3,7 @@ package bio.terra.app.model;
 /**
  * Google cloud resources used by TDR.
  */
-public enum GoogleCloudResource {
+public enum GoogleCloudResource implements CloudResource {
     BIGQUERY("bigquery"), FIRESTORE("firestore"), BUCKET("bucket");
 
     private final String value;
@@ -13,6 +13,11 @@ public enum GoogleCloudResource {
     }
 
     public String toString() {
+        return value;
+    }
+
+    @Override
+    public String getValue() {
         return value;
     }
 

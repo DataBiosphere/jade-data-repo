@@ -130,6 +130,8 @@ public class SearchServiceTest {
     public void querySnapshotTest() throws Exception {
         String testId = "0f14d0ab-9605-4a62-a9e4-5ed26688389b";
 
+
+
         GetAliasesResponse mockResponse = mock(GetAliasesResponse.class);
         when(mockResponse.getAliases()).thenReturn(Map.of(String.format("idx-%s", testId), Set.of()));
         when(indicesClient.getAlias(any(GetAliasesRequest.class), any(RequestOptions.class)))
@@ -137,10 +139,7 @@ public class SearchServiceTest {
         SearchHits mockHits = mock(SearchHits.class);
         SearchHit mockHit = mock(SearchHit.class);
         when(mockHits.iterator()).thenReturn(Arrays.stream(new SearchHit[]{mockHit}).iterator());
-        when(mockHit.getSourceAsMap()).thenReturn(Map.of(
-            "uuid", "41b203f2-c7a5-4232-bcb3-f3442ba9baaf",
-            timEncodedName, "0"
-        ));
+        when(mockHit.getSourceAsMap()).thenReturn(Map.of(timEncodedName, "0"));
 
         SearchResponse mockSearchResponse = mock(SearchResponse.class);
         when(mockSearchResponse.getHits()).thenReturn(mockHits);
@@ -150,10 +149,7 @@ public class SearchServiceTest {
         SearchQueryResultModel actualResultModel =
             service.querySnapshot(new SearchQueryRequest().query("query"), snapshotIdsToQuery, 0, 1);
         SearchQueryResultModel expectedResultModel = new SearchQueryResultModel();
-        expectedResultModel.result(List.of(Map.of(
-            "uuid", "41b203f2-c7a5-4232-bcb3-f3442ba9baaf",
-            timPropertyName, "0"
-        )));
+        expectedResultModel.result(List.of(Map.of(timPropertyName, "0")));
 
         assertEquals(expectedResultModel.getResult(), actualResultModel.getResult());
     }

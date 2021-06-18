@@ -39,7 +39,7 @@
             "type": "Microsoft.Common.TextBox",
             "label": "Email",
             "defaultValue": "",
-            "toolTip": "Please enter the email account for the TDR user that will creating a billing profile from this application deployment",
+            "toolTip": "Please enter the email account for the TDR user that will create a billing profile from this application deployment",
             "constraints": {
               "required": true,
               "regex": "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$",

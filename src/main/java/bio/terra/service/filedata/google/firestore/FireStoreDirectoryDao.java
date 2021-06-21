@@ -96,41 +96,39 @@ public class FireStoreDirectoryDao {
         Firestore firestore, String collectionId, FireStoreDirectoryEntry createEntry)
         throws InterruptedException {
 
-        ApiFuture<Void> transaction =
-            firestore.runTransaction(
-                xn -> {
-                    List<FireStoreDirectoryEntry> createList = new ArrayList<>();
+        List<FireStoreDirectoryEntry> createList = new ArrayList<>();
 
-                    // Walk up the lookup directory path, finding missing directories we get to an
-                    // existing one
-                    // We will create the ROOT_DIR_NAME directory here if it does not exist.
-                    String lookupDirPath = makeLookupPath(createEntry.getPath());
+        // Walk up the lookup directory path, finding missing directories we get to an
+        // existing one
+        // We will create the ROOT_DIR_NAME directory here if it does not exist.
+        String lookupDirPath = makeLookupPath(createEntry.getPath());
 
-                    for (String testPath = lookupDirPath;
-                         !testPath.isEmpty();
-                         testPath = fireStoreUtils.getDirectoryPath(testPath)) {
+        fireStoreUtils.runTransactionWithRetry(firestore,
+            (xn) -> {
 
-                        // !!! In this case we are using a lookup path
-                        DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, testPath, xn);
-                        if (docSnap.exists()) {
-                            break;
-                        }
+                for (String testPath = lookupDirPath;
+                     !testPath.isEmpty();
+                     testPath = fireStoreUtils.getDirectoryPath(testPath)) {
 
-                        FireStoreDirectoryEntry dirToCreate = makeDirectoryEntry(testPath);
-                        createList.add(dirToCreate);
+                    // !!! In this case we are using a lookup path
+                    DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, testPath, xn);
+                    if (docSnap.exists()) {
+                        break;
                     }
 
-                    // transition point from reading to writing in the transaction
+                    FireStoreDirectoryEntry dirToCreate = makeDirectoryEntry(testPath);
+                    createList.add(dirToCreate);
+                }
 
-                    for (FireStoreDirectoryEntry dirToCreate : createList) {
-                        xn.set(getDocRef(firestore, collectionId, dirToCreate), dirToCreate);
-                    }
+                // transition point from reading to writing in the transaction
 
-                    xn.set(getDocRef(firestore, collectionId, createEntry), createEntry);
-                    return null;
-                });
+                for (FireStoreDirectoryEntry dirToCreate : createList) {
+                    xn.set(getDocRef(firestore, collectionId, dirToCreate), dirToCreate);
+                }
 
-        fireStoreUtils.transactionGet("createFileRef", transaction);
+                xn.set(getDocRef(firestore, collectionId, createEntry), createEntry);
+            },
+            "createFileRef", " creating file directory for collection Id: " + collectionId);
     }
 
     // true - directory entry existed and was deleted; false - directory entry did not exist

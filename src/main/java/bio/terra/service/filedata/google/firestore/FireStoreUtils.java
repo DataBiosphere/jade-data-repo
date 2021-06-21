@@ -285,6 +285,7 @@ public class FireStoreUtils {
                         });
 
                 transactionGet(transactionOp, transaction);
+                return;
             } catch (Exception ex) {
                 final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
                 if (FireStoreUtils.shouldRetry(ex) && retry < firestoreRetries) {

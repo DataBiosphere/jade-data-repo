@@ -265,7 +265,7 @@ public class FireStoreUtils {
         return shouldRetry(throwable.getCause());
     }
 
-    // TODO - convert this to a generic
+    // TODO - convert this to a generic, remove duplicate code from FireStoreDirectoryDao
     interface FirestoreFunction {
         void apply(Transaction xn) throws InterruptedException;
     }

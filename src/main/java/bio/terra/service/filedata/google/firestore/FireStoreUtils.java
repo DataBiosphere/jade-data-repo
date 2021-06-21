@@ -9,10 +9,12 @@ import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.api.gax.rpc.InternalException;
 import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
+import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
+import com.google.cloud.firestore.Transaction;
 import io.grpc.StatusRuntimeException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.codec.digest.PureJavaCrc32C;
@@ -262,6 +264,42 @@ public class FireStoreUtils {
             return true;
         }
         return shouldRetry(throwable.getCause());
+    }
+
+    // TODO - convert this to a generic
+    interface FirestoreFunction {
+        void apply(Transaction xn) throws InterruptedException;
+    }
+
+    public void runTransactionWithRetry(Firestore firestore,
+                                        FirestoreFunction firestoreFunction,
+                                        String transactionOp,
+                                        String warnMessage) throws InterruptedException {
+        int retry = 0;
+        while (true) {
+            try {
+                ApiFuture<Void> transaction =
+                    firestore.runTransaction(
+                        xn -> {
+                            firestoreFunction.apply(xn);
+                            return null;
+                        });
+
+                transactionGet(transactionOp, transaction);
+            } catch(Exception ex) {
+                final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
+                if (FireStoreUtils.shouldRetry(ex) && retry < firestoreRetries) {
+                    // perform retry
+                    retry++;
+                    logger.warn("Retry-able error in firestore future get - {} - will attempt retry #{}" +
+                            " after {} millisecond pause. Message: {}",
+                        warnMessage, retry, retryWait, ex.getMessage());
+                    TimeUnit.MILLISECONDS.sleep(retryWait);
+                } else {
+                    throw ex;
+                }
+            }
+        }
     }
 
 }

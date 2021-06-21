@@ -57,31 +57,63 @@ class FireStoreFileDao {
 
     void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) throws InterruptedException {
         String collectionId = makeCollectionId(datasetId);
-        ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
-            xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
-            return null;
-        });
+        int retry = 0;
+        while (true) {
+            try {
+                ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
+                    xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
+                    return null;
+                });
 
-        fireStoreUtils.transactionGet("createFileMetadata", transaction);
+                fireStoreUtils.transactionGet("createFileMetadata", transaction);
+            } catch(Exception ex) {
+                final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
+                if (FireStoreUtils.shouldRetry(ex) && retry < MAX_RETRIES) {
+                    // perform retry
+                    retry++;
+                    logger.info("createFileMetadata - will attempt retry #{} after {} millisecond pause.",
+                        retry, retryWait);
+                    TimeUnit.MILLISECONDS.sleep(retryWait);
+                } else {
+                    throw ex;
+                }
+            }
+        }
     }
 
     boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId) throws InterruptedException {
         String collectionId = makeCollectionId(datasetId);
-        ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
-            DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
-            if (docSnap == null || !docSnap.exists()) {
-                return false;
+        int retry = 0;
+        while (true) {
+            try {
+                ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
+                    DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
+                    if (docSnap == null || !docSnap.exists()) {
+                        return false;
+                    }
+
+                    xn.delete(docSnap.getReference());
+                    return true;
+                });
+                return fireStoreUtils.transactionGet("deleteFileMetadata", transaction);
+            } catch(Exception ex) {
+                final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
+                if (FireStoreUtils.shouldRetry(ex) && retry < MAX_RETRIES) {
+                    // perform retry
+                    retry++;
+                    logger.info("deleteFileMetadata - will attempt retry #{} after {} millisecond pause.",
+                        retry, retryWait);
+                    TimeUnit.MILLISECONDS.sleep(retryWait);
+                } else {
+                    throw ex;
+                }
             }
-
-            xn.delete(docSnap.getReference());
-            return true;
-        });
-
-        return fireStoreUtils.transactionGet("deleteFileMetadata", transaction);
+        }
     }
 
     private static final int MAX_RETRIES = 10;
     private static final int RETRY_MILLISECONDS = 500;
+    private static final int SLEEP_BASE_MILLISECONDS = 1000;
 
     // Returns null on not found
     // We needed to add local retrying to this code path, because it is used in

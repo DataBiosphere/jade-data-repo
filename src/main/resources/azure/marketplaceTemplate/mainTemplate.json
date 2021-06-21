@@ -11,6 +11,10 @@
     "location": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]"
+    },
+    "authorizedTDRUser": {
+      "type": "string",
+      "defaultValue": ""
     }
   },
   "variables": {

@@ -4,12 +4,14 @@ import bio.terra.common.Table;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import org.stringtemplate.v4.ST;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -24,6 +26,8 @@ public final class MetadataDataAccessUtils {
     private static final String BIGQUERY_TABLE_ID = "<dataset_id>.<table>";
     private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>` LIMIT 1000";
 
+    private static final String DEPLOYED_APPLICATION_RESOURCE_ID = "/subscriptions/<subscription>/resourceGroups" +
+        "/<resource_group>/providers/Microsoft.Solutions/applications/<application_name>";
     private MetadataDataAccessUtils() {
     }
 
@@ -110,4 +114,33 @@ public final class MetadataDataAccessUtils {
         return accessInfoModel;
     }
 
+    /**
+     * Return the Azure resource ID for the application deployment associated with the specified
+     * {@link BillingProfileModel}
+     * @param profileModel The billing profile to get the application deployment for
+     * @return Azure resource identifier
+     */
+    public static String getApplicationDeploymentId(BillingProfileModel profileModel) {
+        return getApplicationDeploymentId(
+            UUID.fromString(profileModel.getSubscriptionId()),
+            profileModel.getResourceGroupName(),
+            profileModel.getApplicationDeploymentName());
+    }
+
+    /**
+     * Return the Azure resource ID for the application deployment associated with the specified parameters
+     * @param subscriptionId The ID of the subscription into which the application is deployed
+     * @param resourceGroupName The name of the resource group into which the application is deployed
+     * @param applicationDeploymentName The name of the application deployment
+     * @return Azure resource identifier
+     */
+    public static String getApplicationDeploymentId(UUID subscriptionId,
+                                                    String resourceGroupName,
+                                                    String applicationDeploymentName) {
+        return new ST(DEPLOYED_APPLICATION_RESOURCE_ID)
+            .add("subscription", subscriptionId)
+            .add("resource_group", resourceGroupName)
+            .add("application_name", applicationDeploymentName)
+            .render();
+    }
 }

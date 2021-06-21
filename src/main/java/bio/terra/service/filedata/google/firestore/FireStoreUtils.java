@@ -9,7 +9,6 @@ import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.api.gax.rpc.InternalException;
 import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
-import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
@@ -286,7 +285,7 @@ public class FireStoreUtils {
                         });
 
                 transactionGet(transactionOp, transaction);
-            } catch(Exception ex) {
+            } catch (Exception ex) {
                 final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
                 if (FireStoreUtils.shouldRetry(ex) && retry < firestoreRetries) {
                     // perform retry

@@ -65,6 +65,7 @@ public class ProfileDaoTest {
     private BillingProfileModel makeProfile() {
         BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
         BillingProfileModel billingProfileModel = profileDao.createBillingProfile(profileRequest, "me@me.me");
+        assertRequestMatchesResult(profileRequest, billingProfileModel);
         UUID profileId = billingProfileModel.getId();
         profileIds.add(profileId);
         return billingProfileModel;
@@ -85,6 +86,7 @@ public class ProfileDaoTest {
             .applicationDeploymentName(applicationName);
         var azureBillingProfile =
             profileDao.createBillingProfile(azureBillingProfileRequest, "me@me.me");
+        assertRequestMatchesResult(azureBillingProfileRequest, azureBillingProfile);
         var azureProfileId = azureBillingProfile.getId();
         profileIds.add(azureProfileId);
 
@@ -200,5 +202,21 @@ public class ProfileDaoTest {
                     equalTo(profileIdToAccountId.get(profileId)));
             }
         }
+    }
+
+    private void assertRequestMatchesResult(BillingProfileRequestModel request, BillingProfileModel result) {
+        assertThat("Names match", result.getProfileName(), equalTo(request.getProfileName()));
+        assertThat("Descriptions match", result.getDescription(), equalTo(request.getDescription()));
+        assertThat("Billers match", result.getBiller(), equalTo(request.getBiller()));
+        assertThat("Billing cloud platforms match", result.getCloudPlatform(),
+            equalTo(request.getCloudPlatform()));
+        assertThat("Billing accounts match", result.getBillingAccountId(),
+            equalTo(request.getBillingAccountId()));
+        assertThat("Tenants match", result.getTenantId(), equalTo(request.getTenantId()));
+        assertThat("Subscriptions match", result.getSubscriptionId(), equalTo(request.getSubscriptionId()));
+        assertThat("Resource groups match", result.getResourceGroupName(),
+            equalTo(request.getResourceGroupName()));
+        assertThat("Application deployments match", result.getApplicationDeploymentName(),
+            equalTo(request.getApplicationDeploymentName()));
     }
 }

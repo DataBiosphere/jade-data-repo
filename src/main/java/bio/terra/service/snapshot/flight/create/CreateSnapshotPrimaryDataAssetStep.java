@@ -45,7 +45,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
 
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
         SnapshotSource source = snapshot.getFirstSnapshotSource();
-        RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(snapshot, source, assetSpec.getRootValues());
+        RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(source, assetSpec.getRootValues());
         if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
             String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
             String message = String.format("Mismatched input values: '%s'", unmatchedValues);

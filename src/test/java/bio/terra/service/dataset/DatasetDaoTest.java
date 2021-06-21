@@ -9,6 +9,7 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.app.model.GoogleCloudResource;
@@ -70,8 +71,15 @@ public class DatasetDaoTest {
     private BillingProfileModel billingProfile;
     private UUID projectId;
 
-    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws Exception {
-        datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
+    private UUID createDataset(DatasetRequestModel datasetRequest,
+                               String newName,
+                               GoogleRegion region) throws Exception {
+        datasetRequest
+            .name(newName)
+            .defaultProfileId(billingProfile.getId());
+        if (region != null) {
+            datasetRequest.region(region.toString()).cloudPlatform(CloudPlatform.GCP);
+        }
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         dataset.projectResourceId(projectId);
         String createFlightId = UUID.randomUUID().toString();
@@ -84,7 +92,8 @@ public class DatasetDaoTest {
 
     private UUID createDataset(String datasetFile) throws Exception  {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
-        return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
+        return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString(),
+            null);
     }
 
     @Before
@@ -150,7 +159,7 @@ public class DatasetDaoTest {
 
         MetadataEnumeration<DatasetSummary> filterDefaultRegionEnum = datasetDao.enumerate(0, 2,
             EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null,
-                GoogleRegion.US_CENTRAL1.toString(), datasetIds);
+                GoogleRegion.DEFAULT_GOOGLE_REGION.toString(), datasetIds);
         List<DatasetSummary> filteredDefaultRegionDatasets = filterDefaultRegionEnum.getItems();
         assertThat("dataset filter by default GCS region returns correct total",
             filteredDefaultRegionDatasets.size(),
@@ -159,11 +168,11 @@ public class DatasetDaoTest {
             filteredDefaultRegionDatasets
                 .stream()
                 .allMatch(datasetSummary ->
-                    datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1)));
+                    datasetSummary.datasetStorageContainsRegion(GoogleRegion.DEFAULT_GOOGLE_REGION)));
 
         MetadataEnumeration<DatasetSummary> filterNameAndRegionEnum = datasetDao.enumerate(0, 2,
                 EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getName(),
-                GoogleRegion.US_CENTRAL1.toString(), datasetIds);
+                GoogleRegion.DEFAULT_GOOGLE_REGION.toString(), datasetIds);
         List<DatasetSummary> filteredNameAndRegionDatasets = filterNameAndRegionEnum.getItems();
         assertThat("dataset filter by name and region returns correct total",
                 filteredNameAndRegionDatasets.size(),
@@ -175,7 +184,7 @@ public class DatasetDaoTest {
                 filteredNameAndRegionDatasets
                         .stream()
                         .allMatch(datasetSummary ->
-                                datasetSummary.datasetStorageContainsRegion(GoogleRegion.US_CENTRAL1)));
+                                datasetSummary.datasetStorageContainsRegion(GoogleRegion.DEFAULT_GOOGLE_REGION)));
 
         MetadataEnumeration<DatasetSummary> filterRegionEnum = datasetDao.enumerate(0, 2,
             EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null,
@@ -199,7 +208,8 @@ public class DatasetDaoTest {
         DatasetRequestModel request = jsonLoader.loadObject("dataset-create-test.json", DatasetRequestModel.class);
         String expectedName = request.getName() + UUID.randomUUID().toString();
 
-        UUID datasetId = createDataset(request, expectedName);
+        GoogleRegion testSettingRegion = GoogleRegion.ASIA_NORTHEAST1;
+        UUID datasetId = createDataset(request, expectedName, testSettingRegion);
         try {
             Dataset fromDB = datasetDao.retrieve(datasetId);
 
@@ -226,10 +236,10 @@ public class DatasetDaoTest {
             fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
 
             for (GoogleCloudResource resource: GoogleCloudResource.values()) {
-                GoogleRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+                GoogleRegion region = (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
                 assertThat(String.format("dataset %s region is set", resource),
                     region,
-                    equalTo(GoogleRegion.US_CENTRAL1));
+                    equalTo(testSettingRegion));
             }
         } finally {
             datasetDao.delete(datasetId);
@@ -243,15 +253,15 @@ public class DatasetDaoTest {
             .region("US");
         String expectedName = request.getName() + UUID.randomUUID().toString();
 
-        UUID datasetId = createDataset(request, expectedName);
+        UUID datasetId = createDataset(request, expectedName, GoogleRegion.US);
         try {
             Dataset fromDB = datasetDao.retrieve(datasetId);
 
             for (GoogleCloudResource resource: GoogleCloudResource.values()) {
-                GoogleRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+                GoogleRegion region = (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
                 GoogleRegion expectedRegion =
-                    (resource == GoogleCloudResource.FIRESTORE) ? GoogleRegion.US_CENTRAL1 : GoogleRegion.US;
-                assertThat(String.format("dataset %s region is set", resource),
+                    (resource == GoogleCloudResource.BIGQUERY) ? GoogleRegion.US : GoogleRegion.US_EAST4;
+                assertThat(String.format("dataset %s region is set to %s", resource, region.name()),
                     region,
                     equalTo(expectedRegion));
             }

@@ -159,6 +159,15 @@ public class Dataset implements FSContainerInterface {
         return this;
     }
 
+    public List<? extends StorageResource<?, ?>> getStorage() {
+        return datasetSummary.getStorage();
+    }
+
+    public Dataset storage(List<? extends StorageResource<?, ?>> storage) {
+        datasetSummary.storage(storage);
+        return this;
+    }
+
     public GoogleProjectResource getProjectResource() {
         return projectResource;
     }

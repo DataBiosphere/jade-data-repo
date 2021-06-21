@@ -73,7 +73,8 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATC
 public class FireStoreDirectoryDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
 
-    private static final int RETRIES = 3;
+    private static final int LOOKUP_RETRIES = 30; // up to 5 minutes
+    private static final int LOOKUP_WAIT_SECONDS = 10;
     private static final String ROOT_DIR_NAME = "/_dr_";
 
     private final FireStoreUtils fireStoreUtils;
@@ -198,7 +199,7 @@ public class FireStoreDirectoryDao {
                                                             LookupFunction lookupFunction,
                                                             String transactionOp,
                                                             String warnMessage) throws InterruptedException {
-        for (int i = 0; i < RETRIES; i++) {
+        for (int i = 0; i < LOOKUP_RETRIES; i++) {
             try {
                 ApiFuture<FireStoreDirectoryEntry> transaction =
                     firestore.runTransaction(
@@ -622,17 +623,23 @@ public class FireStoreDirectoryDao {
     // Non-transactional lookup of an entry
     private DocumentSnapshot lookupByPathNoXn(
         Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {
+        DocumentReference docRef =
+            firestore
+                .collection(collectionId)
+                .document(encodePathAsFirestoreDocumentName(lookupPath));
 
-        try {
-            DocumentReference docRef =
-                firestore
-                    .collection(collectionId)
-                    .document(encodePathAsFirestoreDocumentName(lookupPath));
-            ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
-            return docSnapFuture.get();
-        } catch (AbortedException | ExecutionException ex) {
-            throw fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
+        RuntimeException lastException = null;
+        for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {
+            logger.info("FirestoreDirectoryDao lookupByPathNoXn - iteration {}", retryNum);
+            try {
+                ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
+                return docSnapFuture.get();
+            } catch (AbortedException | ExecutionException ex) {
+                lastException = fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
+            }
+            TimeUnit.SECONDS.sleep(LOOKUP_WAIT_SECONDS);
         }
+        throw lastException;
     }
 
 }

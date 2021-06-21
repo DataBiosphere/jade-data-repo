@@ -10,6 +10,7 @@ env:
   # The default Azure credentials to use to authenticate
   AZURE_CREDENTIALS_APPLICATIONID: 22cb243c-f1a5-43d8-8f12-6566bcce6542
   AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
+  JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
 on:
   pull_request:
     branches:
@@ -109,7 +110,7 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.100
+          helm_datarepo_api_chart_version: 0.0.124
           helm_datarepo_ui_chart_version: 0.0.77
           helm_gcloud_sqlproxy_chart_version: 0.19.7
           helm_oidc_proxy_chart_version: 0.0.22

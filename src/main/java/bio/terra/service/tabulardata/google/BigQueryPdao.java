@@ -102,16 +102,8 @@ public class BigQueryPdao {
         this.bigQueryConfiguration = bigQueryConfiguration;
     }
 
-    public BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
-        return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
-    }
-
-    private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) {
-        return BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
-    }
-
     public void createDataset(Dataset dataset) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 
         // Keep the dataset name from colliding with a snapshot name by prefixing it.
@@ -124,7 +116,8 @@ public class BigQueryPdao {
                 bigQueryProject.deleteDataset(datasetName);
             }
 
-            GoogleRegion region = dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
+            GoogleRegion region =
+                (GoogleRegion) dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription(), region);
             bigQueryProject.createTable(
@@ -165,7 +158,7 @@ public class BigQueryPdao {
     }
 
     public void createStagingLoadHistoryTable(Dataset dataset, String tableName_FlightId) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
         try {
             String datasetName = prefixName(dataset.getName());
 
@@ -234,7 +227,7 @@ public class BigQueryPdao {
         String loadTag,
         Instant loadTime,
         List<BulkLoadHistoryModel> loadHistoryArray) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
         ST sqlTemplate = new ST(insertLoadHistoryToStagingTableTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -262,7 +255,7 @@ public class BigQueryPdao {
     public void mergeStagingLoadHistoryTable(
         Dataset dataset,
         String flightId) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
         String datasetName = prefixName(dataset.getName());
 
@@ -282,7 +275,7 @@ public class BigQueryPdao {
     }
 
     public boolean deleteDataset(Dataset dataset) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
         return bigQueryProject.deleteDataset(prefixName(dataset.getName()));
     }
 
@@ -292,13 +285,13 @@ public class BigQueryPdao {
     private static final String mapValuesToRowsTemplate =
         "SELECT T." + PDAO_ROW_ID_COLUMN + ", V.input_value FROM (" +
             "SELECT input_value FROM UNNEST([<inputVals:{v|'<v>'}; separator=\",\">]) AS input_value) AS V " +
-            "LEFT JOIN `<project>.<dataset>.<table>` AS T ON V.input_value = CAST(T.<column> AS STRING)";
+            "LEFT JOIN `<datasetProject>.<dataset>.<table>` AS T ON V.input_value = CAST(T.<column> AS STRING)";
 
     // compute the row ids from the input ids and validate all inputs have matches
 
 
     // returns a structure with the matching row ids (suitable for calling create snapshot)
-    // and any mismatched input values that don't have corresponding roww.
+    // and any mismatched input values that don't have corresponding row.
     // NOTE: In the fullness of time, we may not do this and kick the function into the UI.
     // So this code assumes there is one source and one set of input values.
     // The query it builds embeds data values into the query in an array. I think it will
@@ -310,16 +303,16 @@ public class BigQueryPdao {
     // - do the query
     // - truncate (even tidier...)
     // So if we need to make this work in the long term, we can take that approach.
-    public RowIdMatch mapValuesToRows(Snapshot snapshot,
-                                      SnapshotSource source,
+    public RowIdMatch mapValuesToRows(SnapshotSource source,
                                       List<String> inputValues) throws InterruptedException {
         // One source: grab it and navigate to the relevant parts
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        BigQueryProject datasetBigQueryProject = BigQueryProject.from(source.getDataset());
+        String datasetProjectId = datasetBigQueryProject.getProjectId();
         AssetSpecification asset = source.getAssetSpecification();
         Column column = asset.getRootColumn().getDatasetColumn();
 
         ST sqlTemplate = new ST(mapValuesToRowsTemplate);
-        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("datasetProject", datasetProjectId);
         sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
         sqlTemplate.add("table", column.getTable().getName());
         sqlTemplate.add("column", column.getName());
@@ -330,7 +323,7 @@ public class BigQueryPdao {
         RowIdMatch rowIdMatch = new RowIdMatch();
         String sql = sqlTemplate.render();
         logger.debug("mapValuesToRows sql: " + sql);
-        TableResult result = bigQueryProject.query(sql);
+        TableResult result = datasetBigQueryProject.query(sql);
         for (FieldValueList row : result.iterateAll()) {
             // Test getting these by name
             FieldValue rowId = row.get(0);
@@ -355,7 +348,7 @@ public class BigQueryPdao {
         }
 
         // TODO: When we support multiple datasets per snapshot, this will need to be reworked
-        GoogleRegion representativeRegion = snapshot.getFirstSnapshotSource()
+        GoogleRegion representativeRegion = (GoogleRegion) snapshot.getFirstSnapshotSource()
             .getDataset()
             .getDatasetSummary()
             .getStorageResourceRegion(GoogleCloudResource.BIGQUERY);
@@ -364,18 +357,23 @@ public class BigQueryPdao {
     }
 
     public void snapshotViewCreation(
+        BigQueryProject datasetBigQueryProject,
+        String datasetProjectId,
         String datasetBqDatasetName,
+        String snapshotProjectId,
         Snapshot snapshot,
-        String projectId,
-        BigQuery bigQuery,
-        BigQueryProject bigQueryProject) {
+        BigQuery snapshotBigQuery) {
         // create the views
-        List<String> bqTableNames = createViews(datasetBqDatasetName, snapshot, projectId, bigQuery);
+        List<String> bqTableNames = createViews(datasetProjectId,
+                                                datasetBqDatasetName,
+                                                snapshotProjectId,
+                                                snapshot,
+                                                snapshotBigQuery);
 
         // set authorization on views
         String snapshotName = snapshot.getName();
-        List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
-        bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
+        List<Acl> acls = convertToViewAcls(snapshotProjectId, snapshotName, bqTableNames);
+        datasetBigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
     }
 
     private static final String loadRootRowIdsTemplate =
@@ -386,21 +384,27 @@ public class BigQueryPdao {
             ") AS T";
 
     private static final String validateRowIdsForRootTemplate =
-        "SELECT COUNT(1) FROM `<project>.<dataset>.<table>` AS T, " +
-            "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` AS R " +
+        "SELECT COUNT(1) FROM `<datasetProject>.<dataset>.<table>` AS T, " +
+            "`<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE + "` AS R " +
             "WHERE R." + PDAO_ROW_ID_COLUMN + " = T." + PDAO_ROW_ID_COLUMN;
 
     public void createSnapshot(Snapshot snapshot, List<String> rowIds) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        String projectId = bigQueryProject.getProjectId();
+        BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
+        String snapshotProjectId = snapshotBigQueryProject.getProjectId();
+
+        // TODO: When we support multiple datasets per snapshot, this will need to be reworked
+        BigQueryProject datasetBigQueryProject = BigQueryProject.from(
+            snapshot.getFirstSnapshotSource().getDataset());
+        String datasetProjectId = datasetBigQueryProject.getProjectId();
+
         String snapshotName = snapshot.getName();
-        BigQuery bigQuery = bigQueryProject.getBigQuery();
+        BigQuery snapshotBigQuery = snapshotBigQueryProject.getBigQuery();
 
         // create snapshot BQ dataset
-        snapshotCreateBQDataset(bigQueryProject, snapshot);
+        snapshotCreateBQDataset(snapshotBigQueryProject, snapshot);
 
         // create the row id table
-        bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+        snapshotBigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
         // populate root row ids. Must happen before the relationship walk.
         // NOTE: when we have multiple sources, we can put this into a loop
@@ -413,21 +417,22 @@ public class BigQueryPdao {
 
         if (rowIds.size() > 0) {
             ST sqlTemplate = new ST(loadRootRowIdsTemplate);
-            sqlTemplate.add("project", projectId);
+            sqlTemplate.add("project", snapshotProjectId);
             sqlTemplate.add("snapshot", snapshotName);
             sqlTemplate.add("dataset", datasetBqDatasetName);
             sqlTemplate.add("tableId", rootTableId);
             sqlTemplate.add("rowIds", rowIds);
-            bigQueryProject.query(sqlTemplate.render());
+            snapshotBigQueryProject.query(sqlTemplate.render());
         }
 
         ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
-        sqlTemplate.add("project", projectId);
+        sqlTemplate.add("snapshotProject", snapshotProjectId);
         sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("datasetProject", datasetProjectId);
         sqlTemplate.add("dataset", datasetBqDatasetName);
         sqlTemplate.add("table", rootTable.getName());
 
-        TableResult result = bigQueryProject.query(sqlTemplate.render());
+        TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
         FieldValueList row = result.iterateAll().iterator().next();
         FieldValue countValue = row.get(0);
         if (countValue.getLongValue() != rowIds.size()) {
@@ -441,28 +446,40 @@ public class BigQueryPdao {
 
         // walk and populate relationship table row ids
         List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(asset);
-        walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
+        walkRelationships(datasetProjectId,
+            datasetBqDatasetName,
+            snapshotProjectId,
+            snapshotName,
+            walkRelationships,
+            rootTableId,
+            snapshotBigQuery);
 
-        snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
+        snapshotViewCreation(
+            datasetBigQueryProject,
+            datasetProjectId,
+            datasetBqDatasetName,
+            snapshotProjectId,
+            snapshot,
+            snapshotBigQuery);
     }
 
     private static final String insertAllLiveViewDataTemplate =
-        "INSERT INTO `<project>.<snapshot>.<dataRepoTable>` " +
+        "INSERT INTO `<snapshotProject>.<snapshot>.<dataRepoTable>` " +
             "(<dataRepoTableId>, <dataRepoRowId>) <liveViewTables>";
 
     private static final String getLiveViewTableTemplate =
         // TODO pull insert out and loop thru rest w UNION ()
-            "(SELECT '<tableId>', <dataRepoRowId> FROM `<project>.<dataset>.<liveView>`)";
+            "(SELECT '<tableId>', <dataRepoRowId> FROM `<datasetProject>.<dataset>.<liveView>`)";
 
     private static final String mergeLiveViewTablesTemplate =
         "<selectStatements; separator=\" UNION ALL \">";
 
     private static final String validateSnapshotSizeTemplate =
-        "SELECT COUNT(1) FROM <project>.<snapshot>.<dataRepoTable>";
+        "SELECT <rowId> FROM `<snapshotProject>.<snapshot>.<dataRepoTable>` LIMIT 1";
 
 
-    public String createSnaphotTableFromLiveViews(
-        BigQueryProject bigQueryProject,
+    public String createSnapshotTableFromLiveViews(
+        BigQueryProject datasetBigQueryProject,
         List<DatasetTable> tables,
         String datasetBqDatasetName) {
 
@@ -476,7 +493,7 @@ public class BigQueryPdao {
             ST sqlTableTemplate = new ST(getLiveViewTableTemplate);
             sqlTableTemplate.add("tableId", table.getId());
             sqlTableTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
-            sqlTableTemplate.add("project", bigQueryProject.getProjectId());
+            sqlTableTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
             sqlTableTemplate.add("dataset", datasetBqDatasetName);
             sqlTableTemplate.add("liveView", liveViewTableName);
             selectStatements.add(sqlTableTemplate.render());
@@ -490,47 +507,51 @@ public class BigQueryPdao {
         Snapshot snapshot,
         Dataset dataset) throws InterruptedException {
 
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        String projectId = bigQueryProject.getProjectId();
+        BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
+        String snapshotProjectId = snapshotBigQueryProject.getProjectId();
         String snapshotName = snapshot.getName();
-        BigQuery bigQuery = bigQueryProject.getBigQuery();
+        BigQuery snapshotBigQuery = snapshotBigQueryProject.getBigQuery();
 
         String datasetBqDatasetName = prefixName(dataset.getName());
+        BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
+        String datasetProjectId = datasetBigQueryProject.getProjectId();
 
         // create snapshot BQ dataset
-        snapshotCreateBQDataset(bigQueryProject, snapshot);
+        snapshotCreateBQDataset(snapshotBigQueryProject, snapshot);
 
         // create the row id table (row id col and table id col)
-        bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+        snapshotBigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
         // get source dataset table live views
         List<DatasetTable> tables = dataset.getTables();
 
         // create a snapshot table based on the live view data row ids
-        String liveViewTables = createSnaphotTableFromLiveViews(bigQueryProject, tables, datasetBqDatasetName);
+        String liveViewTables = createSnapshotTableFromLiveViews(datasetBigQueryProject, tables, datasetBqDatasetName);
 
 
         ST sqlTemplate = new ST(insertAllLiveViewDataTemplate);
-        sqlTemplate.add("project", projectId);
+        sqlTemplate.add("snapshotProject", snapshotProjectId);
         sqlTemplate.add("snapshot", snapshotName);
         sqlTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
         sqlTemplate.add("dataRepoTableId", PDAO_TABLE_ID_COLUMN);
         sqlTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
         sqlTemplate.add("liveViewTables", liveViewTables);
 
-        bigQueryProject.query(sqlTemplate.render());
+        snapshotBigQueryProject.query(sqlTemplate.render());
 
         ST sqlValidateSnapshotTemplate = new ST(validateSnapshotSizeTemplate);
-        sqlValidateSnapshotTemplate.add("project", projectId);
+        sqlValidateSnapshotTemplate.add("rowId", PDAO_ROW_ID_COLUMN);
+        sqlValidateSnapshotTemplate.add("snapshotProject", snapshotProjectId);
         sqlValidateSnapshotTemplate.add("snapshot", snapshotName);
         sqlValidateSnapshotTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
 
-        TableResult result = bigQueryProject.query(sqlValidateSnapshotTemplate.render());
+        TableResult result = snapshotBigQueryProject.query(sqlValidateSnapshotTemplate.render());
         if (result.getTotalRows() <= 0) {
             throw new PdaoException("This snapshot is empty");
         }
 
-        snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
+        snapshotViewCreation(datasetBigQueryProject,
+            datasetProjectId, datasetBqDatasetName, snapshotProjectId, snapshot, snapshotBigQuery);
     }
 
 
@@ -538,17 +559,23 @@ public class BigQueryPdao {
         Snapshot snapshot,
         SnapshotRequestContentsModel contentsModel) throws InterruptedException {
 
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        String projectId = bigQueryProject.getProjectId();
+        BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
+        String snapshotProjectId = snapshotBigQueryProject.getProjectId();
+
+        // TODO: When we support multiple datasets per snapshot, this will need to be reworked
+        BigQueryProject datasetBigQueryProject = BigQueryProject.from(
+            snapshot.getFirstSnapshotSource().getDataset());
+        String datasetProjectId = datasetBigQueryProject.getProjectId();
+
         String snapshotName = snapshot.getName();
-        BigQuery bigQuery = bigQueryProject.getBigQuery();
+        BigQuery snapshotBigQuery = snapshotBigQueryProject.getBigQuery();
         SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
 
         // create snapshot BQ dataset
-        snapshotCreateBQDataset(bigQueryProject, snapshot);
+        snapshotCreateBQDataset(snapshotBigQueryProject, snapshot);
 
         // create the row id table
-        bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+        snapshotBigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
         // populate root row ids. Must happen before the relationship walk.
         // NOTE: when we have multiple sources, we can put this into a loop
@@ -572,21 +599,22 @@ public class BigQueryPdao {
 
                 for (List<UUID> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
                     ST sqlTemplate = new ST(loadRootRowIdsTemplate);
-                    sqlTemplate.add("project", projectId);
+                    sqlTemplate.add("project", snapshotProjectId);
                     sqlTemplate.add("snapshot", snapshotName);
                     sqlTemplate.add("dataset", datasetBqDatasetName);
                     sqlTemplate.add("tableId", sourceTable.getId().toString());
                     sqlTemplate.add("rowIds", rowIdChunk);
-                    bigQueryProject.query(sqlTemplate.render());
+                    snapshotBigQueryProject.query(sqlTemplate.render());
                 }
             }
             ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
-            sqlTemplate.add("project", projectId);
+            sqlTemplate.add("snapshotProject", snapshotProjectId);
             sqlTemplate.add("snapshot", snapshotName);
+            sqlTemplate.add("datasetProject", datasetProjectId);
             sqlTemplate.add("dataset", datasetBqDatasetName);
             sqlTemplate.add("table", sourceTable.getName());
 
-            TableResult result = bigQueryProject.query(sqlTemplate.render());
+            TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
             FieldValueList row = result.iterateAll().iterator().next();
             FieldValue countValue = row.get(0);
             if (countValue.getLongValue() != rowIds.size()) {
@@ -599,19 +627,20 @@ public class BigQueryPdao {
             }
         }
 
-        snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
+        snapshotViewCreation(datasetBigQueryProject,
+            datasetProjectId, datasetBqDatasetName, snapshotProjectId, snapshot, snapshotBigQuery);
     }
 
     public void grantReadAccessToSnapshot(Snapshot snapshot, Collection<String> policies) throws InterruptedException {
         grantReadAccessWorker(
-            bigQueryProjectForSnapshot(snapshot),
+            BigQueryProject.from(snapshot),
             snapshot.getName(),
             policies);
     }
 
     public void grantReadAccessToDataset(Dataset dataset, Collection<String> policies) throws InterruptedException {
         grantReadAccessWorker(
-            bigQueryProjectForDataset(dataset),
+            BigQueryProject.from(dataset),
             prefixName(dataset.getName()),
             policies);
     }
@@ -627,31 +656,31 @@ public class BigQueryPdao {
     }
 
     public boolean datasetExists(Dataset dataset) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
         String datasetName = prefixName(dataset.getName());
         // bigQueryProject.datasetExists checks whether the BigQuery dataset by the provided name exists
         return bigQueryProject.datasetExists(datasetName);
     }
 
     public boolean tableExists(Dataset dataset, String tableName) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
         String datasetName = prefixName(dataset.getName());
         return bigQueryProject.tableExists(datasetName, tableName);
     }
 
     public boolean snapshotExists(Snapshot snapshot) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
         return bigQueryProject.datasetExists(snapshot.getName());
     }
 
     public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        String projectId = bigQueryProject.getProjectId();
+        BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+        String snapshotProjectId = bigQueryProject.getProjectId();
         List<SnapshotSource> sources = snapshot.getSnapshotSources();
         if (sources.size() > 0) {
             String datasetName = sources.get(0).getDataset().getName();
             String datasetBqDatasetName = prefixName(datasetName);
-            deleteViewAcls(datasetBqDatasetName, snapshot, projectId);
+            deleteViewAcls(datasetBqDatasetName, snapshot, snapshotProjectId);
         } else {
             logger.warn("Snapshot is missing sources: " + snapshot.getName());
         }
@@ -672,7 +701,7 @@ public class BigQueryPdao {
                                                  String stagingTableName,
                                                  IngestRequestModel ingestRequest) throws InterruptedException {
 
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
         BigQuery bigQuery = bigQueryProject.getBigQuery();
         TableId tableId = TableId.of(prefixName(dataset.getName()), stagingTableName);
         Schema schema = buildSchema(targetTable, true); // Source does not have row_id
@@ -748,7 +777,7 @@ public class BigQueryPdao {
             PDAO_ROW_ID_COLUMN + " IS NULL";
 
     public void addRowIdsToStagingTable(Dataset dataset, String stagingTableName) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
         ST sqlTemplate = new ST(addRowIdsToStagingTableTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -765,7 +794,7 @@ public class BigQueryPdao {
     public void insertIntoDatasetTable(Dataset dataset,
                                      DatasetTable targetTable,
                                      String stagingTableName) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
         ST sqlTemplate = new ST(insertIntoDatasetTableTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -811,7 +840,7 @@ public class BigQueryPdao {
     }
 
     public boolean deleteDatasetTable(Dataset dataset, String tableName) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
         return bigQueryProject.deleteTable(prefixName(dataset.getName()), tableName);
     }
 
@@ -820,7 +849,7 @@ public class BigQueryPdao {
             "<if(array)> CROSS JOIN UNNEST(<refCol>) AS <refCol><endif>";
 
     public List<String> getRefIds(Dataset dataset, String tableName, Column refColumn) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
         ST sqlTemplate = new ST(getRefIdsTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());
@@ -842,29 +871,31 @@ public class BigQueryPdao {
     }
 
     private static final String getSnapshotRefIdsTemplate =
-        "SELECT <refCol> FROM `<project>.<dataset>.<table>` S, " +
-            "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
+        "SELECT <refCol> FROM `<datasetProject>.<dataset>.<table>` S, " +
+            "`<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
             "<if(array)>CROSS JOIN UNNEST(S.<refCol>) AS <refCol> <endif>" +
             "WHERE S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
             "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>'";
 
     public List<String> getSnapshotRefIds(Dataset dataset,
-                                         String snapshotName,
+                                         Snapshot snapshot,
                                          String tableName,
                                          String tableId,
                                          Column refColumn) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
+        BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
 
         ST sqlTemplate = new ST(getSnapshotRefIdsTemplate);
-        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
+        sqlTemplate.add("snapshotProject", snapshotBigQueryProject.getProjectId());
         sqlTemplate.add("dataset", prefixName(dataset.getName()));
-        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("snapshot", snapshot.getName());
         sqlTemplate.add("table", tableName);
         sqlTemplate.add("tableId", tableId);
         sqlTemplate.add("refCol", refColumn.getName());
         sqlTemplate.add("array", refColumn.isArrayOf());
 
-        TableResult result = bigQueryProject.query(sqlTemplate.render());
+        TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
         List<String> refIdArray = new ArrayList<>();
         for (FieldValueList row : result.iterateAll()) {
             if (!row.get(0).isNull()) {
@@ -1023,12 +1054,13 @@ public class BigQueryPdao {
      * @param walkRelationships - list of relationships to consider walking
      * @param startTableId
      */
-    private void walkRelationships(String datasetBqDatasetName,
+    private void walkRelationships(String datasetProjectId,
+                                   String datasetBqDatasetName,
+                                   String snapshotProjectId,
                                    String snapshotName,
                                    List<WalkRelationship> walkRelationships,
                                    String startTableId,
-                                   String projectId,
-                                   BigQuery bigQuery) throws InterruptedException {
+                                   BigQuery snapshotBigQuery) throws InterruptedException {
         for (WalkRelationship relationship : walkRelationships) {
             if (relationship.isVisited()) {
                 continue;
@@ -1053,18 +1085,20 @@ public class BigQueryPdao {
 
             relationship.setVisited();
             storeRowIdsForRelatedTable(
+                datasetProjectId,
                 datasetBqDatasetName,
+                snapshotProjectId,
                 snapshotName,
                 relationship,
-                projectId,
-                bigQuery);
+                snapshotBigQuery);
             walkRelationships(
+                datasetProjectId,
                 datasetBqDatasetName,
+                snapshotProjectId,
                 snapshotName,
                 walkRelationships,
                 relationship.getToTableId(),
-                projectId,
-                bigQuery);
+                snapshotBigQuery);
         }
     }
 
@@ -1073,29 +1107,37 @@ public class BigQueryPdao {
     public void queryForRowIds(AssetSpecification assetSpecification,
                                Snapshot snapshot,
                                String sqlQuery) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        BigQuery bigQuery = bigQueryProject.getBigQuery();
+        //snapshot
+        BigQueryProject snapshotBigQueryProject = BigQueryProject.from(snapshot);
+        BigQuery snapshotBigQuery = snapshotBigQueryProject.getBigQuery();
+        String snapshotProjectId = snapshotBigQueryProject.getProjectId();
         String snapshotName = snapshot.getName();
+
+        //dataset
+        // TODO: When we support multiple datasets per snapshot, this will need to be reworked
         Dataset dataset = snapshot.getFirstSnapshotSource().getDataset();
         String datasetBqDatasetName = prefixName(dataset.getName());
-        String projectId = bigQueryProject.getProjectId();
+        BigQueryProject datasetBigQueryProject = BigQueryProject.from(dataset);
+        String datasetProjectId = datasetBigQueryProject.getProjectId();
+
+
         // TODO add additional validation that the col is the root col
 
         // create snapshot bq dataset
         try {
 
             // create snapshot BQ dataset
-            snapshotCreateBQDataset(bigQueryProject, snapshot);
+            snapshotCreateBQDataset(snapshotBigQueryProject, snapshot);
 
             // now create a temp table with all the selected row ids based on the query in it
-            bigQueryProject.createTable(snapshotName, PDAO_TEMP_TABLE, tempTableSchema());
+            snapshotBigQueryProject.createTable(snapshotName, PDAO_TEMP_TABLE, tempTableSchema());
 
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlQuery)
                 .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
                 .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
                 .build();
 
-            final TableResult query = executeQueryWithRetry(bigQuery, queryConfig);
+            final TableResult query = executeQueryWithRetry(snapshotBigQuery, queryConfig);
 
             // get results and validate that it got back more than 0 value
             if (query.getTotalRows() < 1) {
@@ -1111,13 +1153,15 @@ public class BigQueryPdao {
             String rootTableId = rootTable.getId().toString();
 
             ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
+            sqlTemplate.add("snapshotProject", snapshotProjectId);
             sqlTemplate.add("snapshotDatasetName", snapshotName);
             sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
+            sqlTemplate.add("datasetProject", datasetProjectId);
             sqlTemplate.add("datasetDatasetName", datasetBqDatasetName);
             sqlTemplate.add("datasetTable", datasetTableName);
             sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
 
-            TableResult result = bigQueryProject.query(sqlTemplate.render());
+            TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
             FieldValueList mismatchedCount = result.getValues().iterator().next();
             Long mismatchedCountLong = mismatchedCount.get(0).getLongValue();
             if (mismatchedCountLong > 0) {
@@ -1125,7 +1169,7 @@ public class BigQueryPdao {
             }
 
             // TODO should this be pulled up to the top of queryForRowIds() / added to snapshotCreateBQDataset() helper
-            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+            snapshotBigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
@@ -1134,24 +1178,36 @@ public class BigQueryPdao {
             // insert into the PDAO_ROW_ID_TABLE the literal that is the table id
             // and then all the row ids from the temp table
             ST sqlLoadTemplate = new ST(loadRootRowIdsFromTempTableTemplate);
-            sqlLoadTemplate.add("project", projectId);
+            sqlLoadTemplate.add("snapshotProject", snapshotProjectId);
             sqlLoadTemplate.add("snapshot", snapshotName);
             sqlLoadTemplate.add("dataset", datasetBqDatasetName);
             sqlLoadTemplate.add("tableId", rootTableId);
             sqlLoadTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN); // this is the disc from classic asset
             sqlLoadTemplate.add("tempTable", PDAO_TEMP_TABLE);
-            bigQueryProject.query(sqlLoadTemplate.render());
+            snapshotBigQueryProject.query(sqlLoadTemplate.render());
 
             //ST sqlValidateTemplate = new ST(validateRowIdsForRootTemplate);
             // TODO do we want to reuse this validation? if yes, maybe mismatchedCount / query should be updated
 
             // walk and populate relationship table row ids
             List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpecification);
-            walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
+            walkRelationships(datasetProjectId,
+                datasetBqDatasetName,
+                snapshotProjectId,
+                snapshotName,
+                walkRelationships,
+                rootTableId,
+                snapshotBigQuery);
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
-            snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
+            snapshotViewCreation(
+                datasetBigQueryProject,
+                datasetProjectId,
+                datasetBqDatasetName,
+                snapshotProjectId,
+                snapshot,
+                snapshotBigQuery);
 
         } catch (PdaoException ex) {
             // TODO What if the select list doesn't match the temp table schema?
@@ -1165,13 +1221,13 @@ public class BigQueryPdao {
     // more than one column.
     private static final String storeRowIdsForRelatedTableTemplate =
         "WITH merged_table AS (SELECT DISTINCT '<toTableId>' AS " + PDAO_TABLE_ID_COLUMN + ", " +
-            "T." + PDAO_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<toTableName>` T, " +
-            "`<project>.<dataset>.<fromTableName>` F, `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
-            "WHERE R." + PDAO_TABLE_ID_COLUMN + " = '<fromTableId>' AND " +
+            "T." + PDAO_ROW_ID_COLUMN + " FROM `<datasetProject>.<dataset>.<toTableName>` T, " +
+            "`<datasetProject>.<dataset>.<fromTableName>` F, `<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE +
+            "` R " + "WHERE R." + PDAO_TABLE_ID_COLUMN + " = '<fromTableId>' AND " +
             "R." + PDAO_ROW_ID_COLUMN + " = F." + PDAO_ROW_ID_COLUMN + " AND <joinClause>) " +
             "SELECT " + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + " FROM merged_table WHERE " +
             PDAO_ROW_ID_COLUMN + " NOT IN " +
-            "(SELECT " + PDAO_ROW_ID_COLUMN + " FROM `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "`)";
+            "(SELECT " + PDAO_ROW_ID_COLUMN + " FROM `<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE + "`)";
 
     private static final String matchNonArrayTemplate =
         "T.<toColumn> = F.<fromColumn>";
@@ -1189,15 +1245,15 @@ public class BigQueryPdao {
             "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
 
     private static final String joinTablesToTestForMissingRowIds =
-        "SELECT COUNT(*) FROM <snapshotDatasetName>.<tempTable> " +
-            "LEFT JOIN <datasetDatasetName>.<datasetTable> USING ( <commonColumn> ) " +
-            "WHERE <datasetTable>.<commonColumn> IS NULL";
+        "SELECT COUNT(*) FROM `<snapshotProject>.<snapshotDatasetName>.<tempTable>` AS T " +
+            "LEFT JOIN `<datasetProject>.<datasetDatasetName>.<datasetTable>` AS D USING ( <commonColumn> ) " +
+            "WHERE D.<commonColumn> IS NULL";
 
     private static final String loadRootRowIdsFromTempTableTemplate =
-        "INSERT INTO `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
+        "INSERT INTO `<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
             "(" + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + ") " +
             "SELECT '<tableId>' AS " + PDAO_TABLE_ID_COLUMN + ", T.row_id AS " + PDAO_ROW_ID_COLUMN + " FROM (" +
-            "SELECT <commonColumn> AS row_id FROM `<snapshot>.<tempTable>` " +
+            "SELECT <commonColumn> AS row_id FROM `<snapshotProject>.<snapshot>.<tempTable>` " +
             ") AS T";
 
     /**
@@ -1209,13 +1265,15 @@ public class BigQueryPdao {
      * @param snapshotName - name of the new snapshot's BigQuery dataset
      * @param relationship - relationship we are walking with its direction set. The class returns
      *                       the appropriate from and to based on that direction.
-     * @param projectId - the project id that this bigquery dataset exists in
+     * @param datasetProjectId - the project id that this bigquery dataset exists in
+     * @param snapshotProjectId - the project id that this bigquery dataset exists in
      * @param bigQuery - a BigQuery instance
      */
-    private void storeRowIdsForRelatedTable(String datasetBqDatasetName,
+    private void storeRowIdsForRelatedTable(String datasetProjectId,
+                                            String datasetBqDatasetName,
+                                            String snapshotProjectId,
                                             String snapshotName,
                                             WalkRelationship relationship,
-                                            String projectId,
                                             BigQuery bigQuery) throws InterruptedException {
 
         ST joinClauseTemplate;
@@ -1232,7 +1290,8 @@ public class BigQueryPdao {
         joinClauseTemplate.add("toColumn", relationship.getToColumnName());
 
         ST sqlTemplate = new ST(storeRowIdsForRelatedTableTemplate);
-        sqlTemplate.add("project", projectId);
+        sqlTemplate.add("snapshotProject", snapshotProjectId);
+        sqlTemplate.add("datasetProject", datasetProjectId);
         sqlTemplate.add("dataset", datasetBqDatasetName);
         sqlTemplate.add("snapshot", snapshotName);
         sqlTemplate.add("fromTableId", relationship.getFromTableId());
@@ -1252,16 +1311,17 @@ public class BigQueryPdao {
     private static final String createViewsTemplate =
         "SELECT " + PDAO_ROW_ID_COLUMN + ", <columns; separator=\",\"> FROM (" +
             "SELECT S." + PDAO_ROW_ID_COLUMN + ", <mappedColumns; separator=\",\"> " +
-            "FROM `<project>.<dataset>.<mapTable>` S, " +
-            "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R WHERE " +
+            "FROM `<datasetProject>.<dataset>.<mapTable>` S, " +
+            "`<snapshotProject>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R WHERE " +
             "S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
             "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>')";
 
     private List<String> createViews(
+        String datasetProjectId,
         String datasetBqDatasetName,
+        String snapshotProjectId,
         Snapshot snapshot,
-        String projectId,
-        BigQuery bigQuery) {
+        BigQuery snapshotBigQuery) {
         return snapshot.getTables().stream().map(table -> {
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
@@ -1278,7 +1338,8 @@ public class BigQueryPdao {
             String snapshotId = snapshot.getId().toString();
 
             ST sqlTemplate = new ST(createViewsTemplate);
-            sqlTemplate.add("project", projectId);
+            sqlTemplate.add("datasetProject", datasetProjectId);
+            sqlTemplate.add("snapshotProject", snapshotProjectId);
             sqlTemplate.add("dataset", datasetBqDatasetName);
             sqlTemplate.add("snapshot", snapshotName);
             sqlTemplate.add("mapTable", mapTable.getFromTable().getRawTableName());
@@ -1295,7 +1356,7 @@ public class BigQueryPdao {
             logger.info("Creating view " + snapshotName + "." + tableName + " as " + sql);
             TableId tableId = TableId.of(snapshotName, tableName);
             TableInfo tableInfo = TableInfo.of(tableId, ViewDefinition.of(sql));
-            bigQuery.create(tableInfo);
+            snapshotBigQuery.create(tableInfo);
 
             return tableName;
         }).collect(Collectors.toList());
@@ -1304,8 +1365,8 @@ public class BigQueryPdao {
     private void deleteViewAcls(
         String datasetBqDatasetName,
         Snapshot snapshot,
-        String projectId) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        String snapshotProjectId) throws InterruptedException {
+        BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
         List<String> viewsToDelete = snapshot.getTables().stream().map(table -> {
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
@@ -1325,7 +1386,7 @@ public class BigQueryPdao {
         // delete the view Acls
         String snapshotName = snapshot.getName();
         viewsToDelete.forEach(tableName -> logger.info("Deleting ACLs for view " + snapshotName + "." + tableName));
-        List<Acl> acls = convertToViewAcls(projectId, snapshotName, viewsToDelete);
+        List<Acl> acls = convertToViewAcls(snapshotProjectId, snapshotName, viewsToDelete);
         bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
     }
 
@@ -1371,11 +1432,11 @@ public class BigQueryPdao {
     }
 
     // for each table in a dataset (source), collect row id matches ON the row id
-    public RowIdMatch matchRowIds(Snapshot snapshot, SnapshotSource source, String tableName, List<UUID> rowIds)
+    public RowIdMatch matchRowIds(SnapshotSource source, String tableName, List<UUID> rowIds)
         throws InterruptedException {
 
         // One source: grab it and navigate to the relevant parts
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        BigQueryProject datasetBigQueryProject = BigQueryProject.from(source.getDataset());
 
         Optional<SnapshotMapTable> optTable = source.getSnapshotMapTables()
             .stream()
@@ -1398,7 +1459,7 @@ public class BigQueryPdao {
         for (List<UUID> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
             // To prevent BQ choking on a huge array, split it up into chunks
             ST sqlTemplate = new ST(mapValuesToRowsTemplate); // This query fails w >100k rows
-            sqlTemplate.add("project", bigQueryProject.getProjectId());
+            sqlTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());
             sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
             sqlTemplate.add("table", tableName);
             sqlTemplate.add("column", rowIdColumn.getName());
@@ -1406,7 +1467,7 @@ public class BigQueryPdao {
 
             String sql = sqlTemplate.render();
             logger.debug("mapValuesToRows sql: " + sql);
-            TableResult result = bigQueryProject.query(sql);
+            TableResult result = datasetBigQueryProject.query(sql);
             for (FieldValueList row : result.iterateAll()) {
                 // Test getting these by name
                 FieldValue rowId = row.get(0);
@@ -1474,7 +1535,7 @@ public class BigQueryPdao {
     public void createSoftDeleteExternalTable(Dataset dataset, String path, String tableName, String suffix)
         throws InterruptedException {
 
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
         String extTableName = externalTableName(tableName, suffix);
         TableId tableId = TableId.of(prefixName(dataset.getName()), extTableName);
         Schema schema = Schema.of(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
@@ -1500,7 +1561,7 @@ public class BigQueryPdao {
     public boolean deleteSoftDeleteExternalTable(Dataset dataset, String tableName, String suffix)
         throws InterruptedException {
 
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
         String extTableName = externalTableName(tableName, suffix);
         return bigQueryProject.deleteTable(prefixName(dataset.getName()), extTableName);
     }
@@ -1521,7 +1582,7 @@ public class BigQueryPdao {
     public TableResult applySoftDeletes(Dataset dataset,
                                         List<String> tableNames,
                                         String suffix) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
 
         // we want this soft delete operation to be one parent job with one child-job per query, we we will combine
         // all of the inserts into one statement that we send to bigquery.
@@ -1571,7 +1632,7 @@ public class BigQueryPdao {
     public void validateDeleteRequest(Dataset dataset, List<DataDeletionTableModel> tables, String suffix)
         throws InterruptedException {
 
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
         for (DataDeletionTableModel table : tables) {
             String tableName = table.getTableName();
             String rawTableName = dataset.getTableByName(tableName).get().getRawTableName();
@@ -1599,7 +1660,7 @@ public class BigQueryPdao {
     public List<Map<String, Object>> getSnapshotTableData(Snapshot snapshot,
                                                           String sql) throws InterruptedException {
         // execute query and get result
-        final BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        final BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
         final TableResult result = bigQueryProject.query(sql);
 
         // aggregate into single object
@@ -1619,17 +1680,17 @@ public class BigQueryPdao {
     }
 
     // we select from the live view here so that the row counts take into account rows that have been hard deleted
-    private static final String rowCountTemplate = "SELECT COUNT(<rowId>) FROM `<project>.<dataset>.<table>`";
+    private static final String rowCountTemplate = "SELECT COUNT(<rowId>) FROM `<project>.<snapshot>.<table>`";
 
     public Map<String, Long> getSnapshotTableRowCounts(Snapshot snapshot) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
         Map<String, Long> rowCounts = new HashMap<>();
         for (SnapshotTable snapshotTable : snapshot.getTables()) {
             String tableName = snapshotTable.getName();
             String sql = new ST(rowCountTemplate)
                 .add("rowId", PDAO_ROW_ID_COLUMN)
                 .add("project", bigQueryProject.getProjectId())
-                .add("dataset", snapshot.getName())
+                .add("snapshot", snapshot.getName())
                 .add("table", tableName)
                 .render();
             TableResult result = bigQueryProject.query(sql);

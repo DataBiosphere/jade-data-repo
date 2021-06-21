@@ -2616,6 +2616,9 @@ components:
         resourceGroupName:
           type: string
           description: an optional resource group name for Azure
+        applicationDeploymentName:
+          type: string
+          description: an optional name for an application deployment for Azure
     BillingProfileUpdateModel:
       required:
         - id
@@ -2660,6 +2663,9 @@ components:
         resourceGroupName:
           type: string
           description: an optional resource group name for Azure
+        applicationDeploymentName:
+          type: string
+          description: an optional name for an application deployment for Azure
         createdDate:
           type: string
           description: Date the profile was created
@@ -2748,6 +2754,10 @@ components:
           $ref: '#/components/schemas/DatasetSpecificationModel'
         region:
           type: string
+        gcpRegion:
+          type: string
+          description: >
+            This is a temporary parameter until GCP and Azure resources are no longer entwined.  This parameter will disappear shortly
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
       description: >

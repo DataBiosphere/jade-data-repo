@@ -6,14 +6,19 @@ import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IngestFilePrimaryDataLocationStep implements Step {
+    private final Logger logger = LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
     private final ResourceService resourceService;
     private final Dataset dataset;
 
@@ -31,18 +36,20 @@ public class IngestFilePrimaryDataLocationStep implements Step {
         if (loadComplete == null || !loadComplete) {
             // Retrieve the already authorized billing profile from the working map and retrieve
             // or create a bucket in the context of that profile and the dataset.
-            BillingProfileModel billingProfile =
-                workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+            GoogleProjectResource googleProjectResource =
+                workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
 
             try {
                 GoogleBucketResource bucketForFile =
                     resourceService.getOrCreateBucketForFile(
                         dataset,
-                        billingProfile,
+                        googleProjectResource,
                         context.getFlightId());
                 workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
             } catch (BucketLockException blEx) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
+            } catch (GoogleResourceNamingException ex) {
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
             }
         }
         return StepResult.getStepResultSuccess();
@@ -56,8 +63,15 @@ public class IngestFilePrimaryDataLocationStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         BillingProfileModel billingProfile =
             workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+        GoogleProjectResource googleProjectResource =
+            workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
 
-        resourceService.updateBucketMetadata(dataset.getName(), billingProfile, context.getFlightId());
+        try {
+            resourceService.updateBucketMetadata(
+                googleProjectResource.getGoogleProjectId(), billingProfile, context.getFlightId());
+        } catch (GoogleResourceNamingException e) {
+            logger.error(e.getMessage());
+        }
         return StepResult.getStepResultSuccess();
     }
 }

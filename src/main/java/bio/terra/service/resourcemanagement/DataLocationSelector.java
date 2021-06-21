@@ -1,14 +1,21 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 
 public interface DataLocationSelector {
 
-    String projectIdForDataset(String datasetName, BillingProfileModel billingProfile);
+    String projectIdForDataset() throws GoogleResourceNamingException;
 
-    String projectIdForSnapshot(String snapshotName, BillingProfileModel billingProfile);
+    String projectIdForSnapshot() throws GoogleResourceNamingException;
 
-    String projectIdForFile(String datasetName, BillingProfileModel billingProfile);
+    String projectIdForFile(Dataset dataset,
+                            String sourceDatasetGoogleProjectId,
+                            BillingProfileModel billingProfile)
+        throws GoogleResourceException, GoogleResourceNamingException;
 
-    String bucketForFile(String datasetName, BillingProfileModel billingProfile);
+    String bucketForFile(String projectId)
+        throws GoogleResourceNamingException;
 }

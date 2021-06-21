@@ -49,7 +49,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
         for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
             List<UUID> rowIds = table.getRowIds();
             if (!rowIds.isEmpty()) {
-                RowIdMatch rowIdMatch = bigQueryPdao.matchRowIds(snapshot, source, table.getTableName(), rowIds);
+                RowIdMatch rowIdMatch = bigQueryPdao.matchRowIds(source, table.getTableName(), rowIds);
                 if (!rowIdMatch.getUnmatchedInputValues().isEmpty()) {
                     String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
                     String message = String.format("Mismatched row ids: '%s'", unmatchedValues);

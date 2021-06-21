@@ -33,7 +33,7 @@ public class ProfileDao {
     // SQL select string constants
     private static final String SQL_SELECT_LIST =
         "id, name, biller, billing_account_id, description, cloud_platform, " +
-            "tenant_id, subscription_id, resource_group_name, created_date, created_by";
+            "tenant_id, subscription_id, resource_group_name, application_deployment_name, created_date, created_by";
 
     private static final String SQL_GET = "SELECT " + SQL_SELECT_LIST
         + " FROM billing_profile WHERE id = :id";
@@ -59,9 +59,9 @@ public class ProfileDao {
     public BillingProfileModel createBillingProfile(BillingProfileRequestModel profileRequest, String creator) {
         String sql = "INSERT INTO billing_profile"
             + " (id, name, biller, billing_account_id, description, cloud_platform, " +
-            "     tenant_id, subscription_id, resource_group_name, created_by) VALUES "
+            "     tenant_id, subscription_id, resource_group_name, application_deployment_name, created_by) VALUES "
             + " (:id, :name, :biller, :billing_account_id, :description, :cloud_platform, " +
-            "     :tenant_id, :subscription_id, :resource_group_name, :created_by)";
+            "     :tenant_id, :subscription_id, :resource_group_name, :application_deployment_name, :created_by)";
 
         String cloudPlatform = Optional.ofNullable(profileRequest.getCloudPlatform())
             .or(() -> Optional.of(CloudPlatform.GCP))
@@ -70,6 +70,8 @@ public class ProfileDao {
         UUID tenantId = Optional.ofNullable(profileRequest.getTenantId()).orElse(null);
         UUID subscriptionId = Optional.ofNullable(profileRequest.getSubscriptionId()).orElse(null);
         String resourceGroupName = Optional.ofNullable(profileRequest.getResourceGroupName()).orElse(null);
+        String applicationDeploymentName =
+            Optional.ofNullable(profileRequest.getApplicationDeploymentName()).orElse(null);
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("id", profileRequest.getId())
@@ -81,6 +83,7 @@ public class ProfileDao {
             .addValue("tenant_id", tenantId)
             .addValue("subscription_id", subscriptionId)
             .addValue("resource_group_name", resourceGroupName)
+            .addValue("application_deployment_name", applicationDeploymentName)
             .addValue("created_by", creator);
 
         DaoKeyHolder keyHolder = new DaoKeyHolder();
@@ -96,6 +99,7 @@ public class ProfileDao {
             .tenantId(UUID.fromString(keyHolder.getString("tenant_id")))
             .subscriptionId(UUID.fromString(keyHolder.getString("subscription_id")))
             .resourceGroupName(keyHolder.getString("resource_group_name"))
+            .applicationDeploymentName(keyHolder.getString("application_deployment_name"))
             .createdBy(keyHolder.getString("created_by"))
             .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
     }
@@ -129,6 +133,7 @@ public class ProfileDao {
             .tenantId(UUID.fromString(keyHolder.getString("tenant_id")))
             .subscriptionId(UUID.fromString(keyHolder.getString("subscription_id")))
             .resourceGroupName(keyHolder.getString("resource_group_name"))
+            .applicationDeploymentName(keyHolder.getString("application_deployment_name"))
             .createdBy(keyHolder.getString("created_by"))
             .createdDate(keyHolder.getTimestamp("created_date").toInstant().toString());
     }
@@ -202,6 +207,7 @@ public class ProfileDao {
                 .tenantId(UUID.fromString(rs.getString("tenant_id")))
                 .subscriptionId(UUID.fromString(rs.getString("subscription_id")))
                 .resourceGroupName(rs.getString("resource_group_name"))
+                .applicationDeploymentName(rs.getString("application_deployment_name"))
                 .createdDate(rs.getTimestamp("created_date").toInstant().toString())
                 .createdBy(rs.getString("created_by"));
         }

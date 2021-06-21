@@ -66,6 +66,15 @@ public class AzureResourceConfiguration {
     }
 
     /**
+     * Get a resource manager client to a user's subscription but through TDR's tenant.
+     * @param subscriptionId The ID of the subscription that will be charged for the resources created with this client
+     * @return An authenticated {@link AzureResourceManager} client
+     */
+    public AzureResourceManager getClient(final UUID subscriptionId) {
+        return getClient(credentials.getHomeTenantId(), subscriptionId);
+    }
+
+    /**
      * Information for authenticating the TDR service against user Azure tenants
      */
     public static class Credentials {

@@ -1,7 +1,9 @@
 package bio.terra.service.resourcemanagement;
 
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.ValidationUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -14,6 +16,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,11 +31,11 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 
 
 @RunWith(SpringRunner.class)
@@ -40,11 +44,13 @@ import static org.hamcrest.Matchers.equalTo;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class ProfileConnectedTest {
+    private static final Logger logger = LoggerFactory.getLogger(ProfileConnectedTest.class);
 
     @Autowired private ProfileDao profileDao;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private ConfigurationService configService;
+    @Autowired private ApplicationConfiguration applicationConfiguration;
 
     @MockBean
     private IamProviderInterface samService;
@@ -74,15 +80,20 @@ public class ProfileConnectedTest {
 
     @Test
     public void testAzureBillingProfile() throws Exception {
-        var tenant = UUID.randomUUID();
-        var subscription = UUID.randomUUID();
-        var resourceGroup = "resourceGroupName";
+        if (!ValidationUtils.isValidEmail(applicationConfiguration.getUserEmail())) {
+            logger.info("Skipping test since default user was not set");
+        }
+        var tenant = testConfig.getTargetTenantId();
+        var subscription = testConfig.getTargetSubscriptionId();
+        var resourceGroup = testConfig.getTargetResourceGroupName();
+        var applicationName = testConfig.getTargetApplicationName();
         var requestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(testConfig.getGoogleBillingAccountId())
             .cloudPlatform(CloudPlatform.AZURE)
             .tenantId(tenant)
             .subscriptionId(subscription)
-            .resourceGroupName(resourceGroup);
+            .resourceGroupName(resourceGroup)
+            .applicationDeploymentName(applicationName);
 
         var profile = connectedOperations.createProfile(requestModel);
 
@@ -92,10 +103,10 @@ public class ProfileConnectedTest {
             retrievedProfile.getCloudPlatform(),
             equalTo(CloudPlatform.AZURE));
 
-        assertThat("Azure billing profile has tenant, subscription, and resourceGroup",
+        assertThat("Azure billing profile has tenant, subscription, resourceGroup, and applicationName",
             List.of(retrievedProfile.getTenantId(), retrievedProfile.getSubscriptionId(),
-                retrievedProfile.getResourceGroupName()),
-            contains(tenant, subscription, resourceGroup));
+                retrievedProfile.getResourceGroupName(), retrievedProfile.getApplicationDeploymentName()),
+            contains(tenant.toString(), subscription.toString(), resourceGroup, applicationName));
     }
 
     @Test

@@ -296,7 +296,8 @@ public class SnapshotDao {
         return snapshot;
     }
 
-    private Snapshot retrieveWorker(String sql, MapSqlParameterSource params) {
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
+    Snapshot retrieveWorker(String sql, MapSqlParameterSource params) {
         try {
             Snapshot snapshot = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
                 new Snapshot()

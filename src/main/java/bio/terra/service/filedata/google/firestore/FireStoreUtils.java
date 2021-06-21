@@ -56,7 +56,6 @@ public class FireStoreUtils {
         // - FileSystemExecutionException for other firestore exceptions
         // - RuntimeExceptions to expose other unexpected exceptions
         // - FileSystemExecutionException to wrap non-Runtime (oddball) exceptions
-
         Throwable throwable = ex;
         while (throwable instanceof ExecutionException) {
             throwable = throwable.getCause();
@@ -66,19 +65,21 @@ public class FireStoreUtils {
             // TODO: in general, log + rethrow is bad form. For now, I want to make sure we see these in
             //  the log as they happen. Once we are comfortable that retry is working properly, we can
             //  rely on the Stairway debug logging as needed.
-            String msg = "Retrying aborted exception: " + aex;
+            String msg = "FirestoreUtils.handleExecutionException - Retrying aborted exception: " + aex;
             logger.info(msg);
             return new FileSystemAbortTransactionException(msg, aex);
         }
         if (throwable instanceof FirestoreException) {
             FirestoreException fex = (FirestoreException) throwable;
-            String msg = "Retrying firestore exception: " + fex;
+            String msg = "FirestoreUtils.handleExecutionException - Retrying firestore exception: " + fex;
             logger.info(msg);
             return new FileSystemAbortTransactionException(msg, fex);
         }
         if (throwable instanceof RuntimeException) {
+            logger.info("FirestoreUtils.handleExecutionException - RuntimeException");
             return (RuntimeException) throwable;
         }
+        logger.info("FirestoreUtils.handleExecutionException - Wrapping w/ FileSystemExecutionException");
         return new FileSystemExecutionException(op + " - execution exception wrapping: " + throwable, throwable);
     }
 

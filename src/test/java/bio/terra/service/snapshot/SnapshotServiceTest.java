@@ -41,7 +41,6 @@ public class SnapshotServiceTest {
     @Mock
     private DatasetService datasetService;
     @Mock
-
     private FireStoreDependencyDao dependencyDao;
     @Mock
     private BigQueryPdao bigQueryPdao;
@@ -77,8 +76,7 @@ public class SnapshotServiceTest {
                 .createdDate(createdDate.toString())
                 .source(Collections.emptyList())
                 .tables(List.of(new TableModel()
-                    .name(SNAPSHOT_TABLE_NAME)
-                ))
+                    .name(SNAPSHOT_TABLE_NAME)))
                 .relationships(Collections.emptyList())
                 .profileId(profileId)
                 .dataProject(SNAPSHOT_DATA_PROJECT)
@@ -166,12 +164,10 @@ public class SnapshotServiceTest {
                 .profileId(profileId)
                 .projectResource(new GoogleProjectResource()
                     .profileId(profileId)
-                    .googleProjectId(SNAPSHOT_DATA_PROJECT)
-                )
+                    .googleProjectId(SNAPSHOT_DATA_PROJECT))
                 .snapshotTables(List.of(new SnapshotTable()
                     .name(SNAPSHOT_TABLE_NAME)
-                    .id(snapshotTableId)
-                ))
+                    .id(snapshotTableId)))
             );
     }
 }

@@ -1,10 +1,12 @@
 package bio.terra.service.dataset;
 
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.model.CloudPlatform;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
-import bio.terra.common.DaoKeyHolder;
+import bio.terra.app.model.AzureCloudResource;
+import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.DaoKeyHolder;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.exception.InvalidStorageException;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 import org.slf4j.Logger;
@@ -45,7 +47,7 @@ public class StorageResourceDao {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<StorageResource> getStorageResourcesByDatasetId(UUID datasetId) {
+    public List<StorageResource<?, ?>> getStorageResourcesByDatasetId(UUID datasetId) {
         try {
             MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("dataset_id", datasetId);
@@ -57,7 +59,7 @@ public class StorageResourceDao {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
-    public List<StorageResource> getStorageResourcesForDatasetIds(List<UUID> datasetIds) {
+    public List<StorageResource<?, ?>> getStorageResourcesForDatasetIds(List<UUID> datasetIds) {
         if (datasetIds.isEmpty()) {
             return Collections.emptyList();
         }
@@ -71,37 +73,40 @@ public class StorageResourceDao {
     }
 
 
-    private static class StorageResourceMapper implements RowMapper<StorageResource> {
-        public StorageResource mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new StorageResource()
-                .datasetId(UUID.fromString(rs.getString("dataset_id")))
-                .cloudPlatform(CloudPlatform.valueOf(rs.getString("cloud_platform")))
-                .cloudResource(GoogleCloudResource.valueOf(rs.getString("cloud_resource")))
-                .region(GoogleRegion.valueOf(rs.getString("region")));
+    private static class StorageResourceMapper implements RowMapper<StorageResource<?, ?>> {
+        public StorageResource<?, ?> mapRow(ResultSet rs, int rowNum) throws SQLException {
+            final CloudPlatform cloudPlatform = CloudPlatform.valueOf(rs.getString("cloud_platform"));
+            switch (cloudPlatform) {
+                case GCP: return new GoogleStorageResource(
+                    UUID.fromString(rs.getString("dataset_id")),
+                    GoogleCloudResource.valueOf(rs.getString("cloud_resource")),
+                    GoogleRegion.valueOf(rs.getString("region")));
+                case AZURE: return new AzureStorageResource(
+                    UUID.fromString(rs.getString("dataset_id")),
+                    AzureCloudResource.valueOf(rs.getString("cloud_resource")),
+                    AzureRegion.valueOf(rs.getString("region")));
+                default: throw new IllegalArgumentException("Unrecognized cloud platform");
+            }
         }
     }
 
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public void createStorageAttributes(List<StorageResource> storageResources, UUID datasetId) {
+    public void createStorageAttributes(List<? extends StorageResource<?, ?>> storageResources, UUID datasetId) {
         logger.debug("Create Operation: createStorageAttributes datasetId: {}", datasetId);
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("dataset_id", datasetId);
 
         List<String> valuesList = new ArrayList<>();
-        for (StorageResource storageResource : storageResources) {
+        for (StorageResource<?, ?> storageResource : storageResources) {
             String regionParam = storageResource.getCloudResource() + "_region";
             String cloudResourceParam = storageResource.getCloudResource() + "_cloudResource";
             String platformParam = storageResource.getCloudResource() + "_cloudPlatform";
             valuesList.add(String.format("(:dataset_id, :%s, :%s, :%s)",
                 regionParam, cloudResourceParam, platformParam));
 
-            if (storageResource.getCloudResource() == GoogleCloudResource.FIRESTORE) {
-                params.addValue(regionParam, storageResource.getRegion().getFirestoreFallbackRegion().name());
-            } else {
-                params.addValue(regionParam, storageResource.getRegion().name());
-            }
-
+            params.addValue(regionParam, ((GoogleRegion) storageResource.getRegion())
+                    .name());
             params.addValue(cloudResourceParam, storageResource.getCloudResource().name());
             params.addValue(platformParam, storageResource.getCloudPlatform().name());
         }

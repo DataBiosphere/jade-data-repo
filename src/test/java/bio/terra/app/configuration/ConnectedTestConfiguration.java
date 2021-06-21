@@ -19,6 +19,7 @@ public class ConnectedTestConfiguration {
     private UUID targetTenantId;
     private UUID targetSubscriptionId;
     private String targetResourceGroupName;
+    private String targetApplicationName;
 
     public String getIngestbucket() {
         return ingestbucket;
@@ -70,6 +71,14 @@ public class ConnectedTestConfiguration {
 
     public UUID getTargetSubscriptionId() {
         return targetSubscriptionId;
+    }
+
+    public void setTargetApplicationName(String targetApplicationName) {
+        this.targetApplicationName = targetApplicationName;
+    }
+
+    public String getTargetApplicationName() {
+        return targetApplicationName;
     }
 
     public void setTargetSubscriptionId(UUID targetSubscriptionId) {

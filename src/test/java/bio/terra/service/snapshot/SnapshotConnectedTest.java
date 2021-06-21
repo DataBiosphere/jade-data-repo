@@ -28,8 +28,8 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -861,6 +861,7 @@ public class SnapshotConnectedTest {
         assertThat("source array has one element",
                 snapshotModel.getSource().size(), equalTo(1));
         SnapshotSourceModel sourceModel = snapshotModel.getSource().get(0);
+
         assertThat("snapshot dataset summary is the same as from dataset",
             sourceModel.getDataset(), equalTo(datasetSummary));
 

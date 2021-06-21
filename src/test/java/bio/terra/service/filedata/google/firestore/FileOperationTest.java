@@ -1,5 +1,19 @@
 package bio.terra.service.filedata.google.firestore;
 
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
@@ -38,6 +52,12 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -58,23 +78,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-
-import java.io.IOException;
-import java.util.*;
-
-import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doReturn;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -117,6 +120,7 @@ public class FileOperationTest {
     private BillingProfileModel profileModel;
     private DatasetSummaryModel datasetSummary;
     private DatasetDaoUtils datasetDaoUtils;
+    private ResourceService resourceService;
 
     @Before
     public void setup() throws Exception {
@@ -169,11 +173,11 @@ public class FileOperationTest {
         // Change the data location selector, verify that we can still delete the file
         // NOTE: the suppressed SpotBugs complaint is from the doReturn. It decides that no one
         // uses the bucketForFile call.
-        String newBucketName = "bucket-" + UUID.randomUUID().toString();
-        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any(), any());
+        String newBucketName = UUID.randomUUID().toString();
+        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
         connectedOperations.deleteTestFile(datasetSummary.getId().toString(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId().toString(), fileLoadModel);
-        assertThat("file path reflects new bucket location",
+        assertThat("file path relfects new bucket location",
             fileModel.getFileDetail().getAccessUrl(),
             containsString(newBucketName));
         // Track the bucket so connected ops can remove it on teardown

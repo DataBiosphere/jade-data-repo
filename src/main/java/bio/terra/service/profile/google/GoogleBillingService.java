@@ -31,7 +31,7 @@ public class GoogleBillingService {
 
     private static Logger logger = LoggerFactory.getLogger(GoogleBillingService.class);
 
-    private static CloudBillingClient cloudBillingClient(AuthenticatedUserRequest user) {
+    private static CloudBillingClient accessClient(AuthenticatedUserRequest user) {
         try {
             // Authentication is provided by the 'gcloud' tool when running locally
             // and by built-in service accounts when running on GAE, GCE, or GKE.
@@ -72,8 +72,8 @@ public class GoogleBillingService {
         }
     }
 
-    private static CloudBillingClient cloudBillingClient() {
-        return cloudBillingClient(null);
+    private static CloudBillingClient accessClient() {
+        return accessClient(null);
     }
 
     /**
@@ -104,7 +104,7 @@ public class GoogleBillingService {
             .setResource(resource.toString())
             .addAllPermissions(permissions)
             .build();
-        try (CloudBillingClient client = cloudBillingClient(user)) {
+        try (CloudBillingClient client = accessClient(user)) {
             logger.info("Testing IAM permission on billing account: {}", billingAccountId);
             TestIamPermissionsResponse response = client.testIamPermissions(permissionsRequest);
             List<String> actualPermissions = response.getPermissionsList();
@@ -135,9 +135,9 @@ public class GoogleBillingService {
         ProjectBillingInfo content = ProjectBillingInfo.newBuilder()
             .setBillingAccountName("billingAccounts/" + billingAccountId)
             .build();
-        try {
-            ProjectBillingInfo billingResponse = cloudBillingClient()
-                .updateProjectBillingInfo("projects/" + projectId, content);
+        try (CloudBillingClient cloudBillingClient = accessClient()) {
+            ProjectBillingInfo billingResponse = cloudBillingClient
+                    .updateProjectBillingInfo("projects/" + projectId, content);
             return billingResponse.getBillingEnabled();
         } catch (ApiException e) {
             String message = String.format("Could not assign billing account '%s' to project: %s", billingAccountId,
@@ -147,8 +147,8 @@ public class GoogleBillingService {
     }
 
     public ProjectBillingInfo getProjectBilling(String projectId) {
-        try {
-            return cloudBillingClient().getProjectBillingInfo("projects/" + projectId);
+        try (CloudBillingClient cloudBillingClient = accessClient()) {
+            return cloudBillingClient.getProjectBillingInfo("projects/" + projectId);
         } catch (ApiException e) {
             String message = String.format("Could not retrieve billing account to project: %s", projectId);
             throw new BillingServiceException(message, e);

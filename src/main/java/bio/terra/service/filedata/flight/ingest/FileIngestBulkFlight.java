@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
+
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
@@ -26,11 +28,8 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
-import org.springframework.context.ApplicationContext;
-
 import java.util.UUID;
-
-import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
+import org.springframework.context.ApplicationContext;
 
 
 /*
@@ -124,6 +123,7 @@ public class FileIngestBulkFlight extends Flight {
         addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
         addStep(new LockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
         addStep(new LoadLockStep(loadService));
+        addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
         addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
         addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
 

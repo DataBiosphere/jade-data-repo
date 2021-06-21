@@ -315,7 +315,7 @@ public class JobService {
         }
 
         JobModel jobModel = new JobModel()
-            .id(UUID.fromString(flightState.getFlightId()))
+            .id(flightState.getFlightId())
             .description(description)
             .jobStatus(jobStatus)
             .statusCode(statusCode.value())

@@ -499,7 +499,7 @@ public class BigQueryPdaoTest {
 
     @Test
     public void testGetSnapshotTableData() throws Exception {
-        UUID profileId = UUID.fromString(profileModel.getId());
+        UUID profileId = profileModel.getId();
         String dataProjectId = googleResourceConfiguration.getSingleDataProjectId();
         Snapshot snapshot = new Snapshot().projectResource(new GoogleProjectResource()
             .profileId(profileId)

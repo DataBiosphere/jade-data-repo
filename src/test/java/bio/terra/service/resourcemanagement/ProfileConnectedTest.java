@@ -83,8 +83,8 @@ public class ProfileConnectedTest {
         if (!ValidationUtils.isValidEmail(applicationConfiguration.getUserEmail())) {
             logger.info("Skipping test since default user was not set");
         }
-        var tenant = testConfig.getTargetTenantId();
-        var subscription = testConfig.getTargetSubscriptionId();
+        var tenant = testConfig.getTargetTenantId().toString();
+        var subscription = testConfig.getTargetSubscriptionId().toString();
         var resourceGroup = testConfig.getTargetResourceGroupName();
         var applicationName = testConfig.getTargetApplicationName();
         var requestModel = ProfileFixtures.randomBillingProfileRequest()
@@ -113,13 +113,13 @@ public class ProfileConnectedTest {
     public void testGoogleInvalidAzureParams() throws Exception {
         var gcpRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .cloudPlatform(CloudPlatform.GCP)
-            .tenantId(UUID.randomUUID())
-            .subscriptionId(UUID.randomUUID())
+            .tenantId(UUID.randomUUID().toString())
+            .subscriptionId(UUID.randomUUID().toString())
             .resourceGroupName("resourceGroupName");
 
         var defaultRequestModel = ProfileFixtures.randomBillingProfileRequest()
-            .tenantId(UUID.randomUUID())
-            .subscriptionId(UUID.randomUUID())
+            .tenantId(UUID.randomUUID().toString())
+            .subscriptionId(UUID.randomUUID().toString())
             .resourceGroupName("resourceGroupName");
 
         for (var requestModel : List.of(gcpRequestModel, defaultRequestModel)) {

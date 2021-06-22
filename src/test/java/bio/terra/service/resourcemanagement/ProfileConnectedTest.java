@@ -73,7 +73,7 @@ public class ProfileConnectedTest {
             .billingAccountId(testConfig.getGoogleBillingAccountId())
             .cloudPlatform(null);
         var profile = connectedOperations.createProfile(requestModel);
-        var retrievedProfile = connectedOperations.getProfileById(profile.getId().toString());
+        var retrievedProfile = connectedOperations.getProfileById(profile.getId());
         assertThat("GCP is the default cloud provider",
             retrievedProfile.getCloudPlatform(), equalTo(CloudPlatform.GCP));
     }
@@ -97,7 +97,7 @@ public class ProfileConnectedTest {
 
         var profile = connectedOperations.createProfile(requestModel);
 
-        var retrievedProfile = connectedOperations.getProfileById(profile.getId().toString());
+        var retrievedProfile = connectedOperations.getProfileById(profile.getId());
 
         assertThat("The response has the correct cloudPlatform",
             retrievedProfile.getCloudPlatform(),

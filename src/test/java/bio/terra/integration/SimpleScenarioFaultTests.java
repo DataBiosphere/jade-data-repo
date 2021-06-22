@@ -27,6 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -52,14 +53,14 @@ public class SimpleScenarioFaultTests extends UsersBase {
     @Autowired
     private TestConfiguration testConfig;
 
-    private String profileId;
-    private String datasetId;
-    private String snapshotId;
+    private UUID profileId;
+    private UUID datasetId;
+    private UUID snapshotId;
 
     @Before
     public void setup() throws Exception {
         super.setup();
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId().toString();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
         dataRepoFixtures.addPolicyMember(
             steward(),
             profileId,
@@ -162,7 +163,7 @@ public class SimpleScenarioFaultTests extends UsersBase {
         dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", false);
         DatasetSummaryModel datasetSummaryModel =
             dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-        datasetId = datasetSummaryModel.getId().toString();
+        datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
         dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", true);
 
@@ -187,7 +188,7 @@ public class SimpleScenarioFaultTests extends UsersBase {
                 datasetSummaryModel.getName(),
                 profileId,
                 "ingest-test-snapshot.json");
-        snapshotId = snapshotSummary.getId().toString();
+        snapshotId = snapshotSummary.getId();
 
         // TODO: ditto from above
         dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", false);

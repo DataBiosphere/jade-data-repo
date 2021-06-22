@@ -298,7 +298,7 @@ public class DatasetConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetPath1)
             .profileId(billingProfile.getId());
-        FileModel fileModel1 = connectedOperations.ingestFileSuccess(summaryModel.getId().toString(), fileLoadModel1);
+        FileModel fileModel1 = connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel1);
 
         String targetPath2 = "/mm/" + Names.randomizeName("testdir") + "/testfile2.txt";
         FileLoadModel fileLoadModel2 = new FileLoadModel()
@@ -307,7 +307,7 @@ public class DatasetConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetPath2)
             .profileId(billingProfile.getId());
-        FileModel fileModel2 = connectedOperations.ingestFileSuccess(summaryModel.getId().toString(), fileLoadModel2);
+        FileModel fileModel2 = connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel2);
 
         // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
         // ====================================================
@@ -360,13 +360,13 @@ public class DatasetConnectedTest {
         MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
         assertEquals(response1.getStatus(), HttpStatus.OK.value());
         connectedOperations.checkDeleteResponse(response1);
-        connectedOperations.removeFile(summaryModel.getId().toString(), fileModel1.getFileId());
+        connectedOperations.removeFile(summaryModel.getId(), fileModel1.getFileId());
 
         // check the response from the second delete file request
         MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
         assertEquals(response2.getStatus(), HttpStatus.OK.value());
         connectedOperations.checkDeleteResponse(response2);
-        connectedOperations.removeFile(summaryModel.getId().toString(), fileModel2.getFileId());
+        connectedOperations.removeFile(summaryModel.getId(), fileModel2.getFileId());
 
         // check that the delete request launched while the dataset had shared locks on it, failed with a lock exception
         MockHttpServletResponse response3 = connectedOperations.validateJobModelAndWait(result3);
@@ -407,7 +407,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.JSON)
             .table("thetable")
             .path(gsPath);
-        MvcResult result1 = connectedOperations.ingestTableRaw(summaryModel.getId().toString(), ingestRequest1);
+        MvcResult result1 = connectedOperations.ingestTableRaw(summaryModel.getId(), ingestRequest1);
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has a shared lock
@@ -421,7 +421,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.JSON)
             .table("thetable")
             .path(gsPath);
-        MvcResult result2 = connectedOperations.ingestTableRaw(summaryModel.getId().toString(), ingestRequest2);
+        MvcResult result2 = connectedOperations.ingestTableRaw(summaryModel.getId(), ingestRequest2);
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
@@ -490,7 +490,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath);
-        connectedOperations.ingestTableSuccess(summaryModel.getId().toString(), ingestRequest);
+        connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
         // make sure the JSON file gets cleaned up on test teardown
         connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
@@ -504,7 +504,7 @@ public class DatasetConnectedTest {
             dirInCloud, "testRepeatedSoftDelete.csv", tableName, softDeleteRowIds);
 
         // make the soft delete request and wait for it to return
-        connectedOperations.softDeleteSuccess(summaryModel.getId().toString(), softDeleteRequest);
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest);
 
         // check that the size of the live table matches what we expect
         List<String> liveTableRowIds1 = getRowIdsFromBQTable(summaryModel.getName(), tableName);
@@ -523,7 +523,7 @@ public class DatasetConnectedTest {
         assertTrue("Soft deleted row id is in soft delete table", softDeleteRowIds1.contains(softDeleteRowId));
 
         // repeat the same soft delete request and wait for it to return
-        connectedOperations.softDeleteSuccess(summaryModel.getId().toString(), softDeleteRequest);
+        connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest);
 
         // check that the size of the live table has not changed
         List<String> liveTableRowIds2 = getRowIdsFromBQTable(summaryModel.getName(), tableName);
@@ -563,7 +563,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath);
-        connectedOperations.ingestTableSuccess(summaryModel.getId().toString(), ingestRequest);
+        connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
         // make sure the JSON file gets cleaned up on test teardown
         connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
@@ -584,7 +584,7 @@ public class DatasetConnectedTest {
         configService.setFault(ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // kick off the first soft delete request, it should hang just before updating the soft delete table
-        MvcResult softDeleteResult1 = connectedOperations.softDeleteRaw(summaryModel.getId().toString(),
+        MvcResult softDeleteResult1 = connectedOperations.softDeleteRaw(summaryModel.getId(),
                 softDeleteRequest1);
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
@@ -595,8 +595,7 @@ public class DatasetConnectedTest {
         String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
         // kick off the second soft delete request, it should also hang just before updating the soft delete table
-        MvcResult softDeleteResult2 = connectedOperations.softDeleteRaw(summaryModel.getId().toString(),
-                softDeleteRequest2);
+        MvcResult softDeleteResult2 = connectedOperations.softDeleteRaw(summaryModel.getId(), softDeleteRequest2);
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
@@ -672,7 +671,7 @@ public class DatasetConnectedTest {
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
             .path(tableIngestInputFilePath);
-        connectedOperations.ingestTableSuccess(summaryModel.getId().toString(), ingestRequest);
+        connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
         // make sure the JSON file gets cleaned up on test teardown
         connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
@@ -687,8 +686,7 @@ public class DatasetConnectedTest {
             dirInCloud, "testBadSoftDelete.csv", tableName, softDeleteRowIds);
 
         // make the soft delete request and wait for it to return
-        MvcResult softDeleteResult = connectedOperations.softDeleteRaw(summaryModel.getId().toString(),
-                softDeleteRequest);
+        MvcResult softDeleteResult = connectedOperations.softDeleteRaw(summaryModel.getId(), softDeleteRequest);
         MockHttpServletResponse softDeleteResponse = connectedOperations.validateJobModelAndWait(softDeleteResult);
         assertEquals("soft delete of bad row id failed",
             HttpStatus.BAD_REQUEST.value(), softDeleteResponse.getStatus());
@@ -823,18 +821,17 @@ public class DatasetConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetPath1)
             .profileId(billingProfile.getId());
-        FileModel fileModel = connectedOperations.ingestFileSuccess(summaryModel.getId().toString(), fileLoadModel);
+        FileModel fileModel = connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel);
 
         // lookup the file by id and check that it's found
         FileModel fileModelFromIdLookup =
-            connectedOperations.lookupFileSuccess(summaryModel.getId().toString(), fileModel.getFileId());
+            connectedOperations.lookupFileSuccess(summaryModel.getId(), fileModel.getFileId());
         assertEquals("File found by id lookup",
             fileModel.getDescription(), fileModelFromIdLookup.getDescription());
 
         // lookup the file by path and check that it's found
         FileModel fileModelFromPathLookup =
-            connectedOperations.lookupFileByPathSuccess(summaryModel.getId().toString(),
-                    fileModel.getPath(), -1);
+            connectedOperations.lookupFileByPathSuccess(summaryModel.getId(), fileModel.getPath(), -1);
         assertEquals("File found by path lookup", fileModel.getDescription(),
                 fileModelFromPathLookup.getDescription());
 
@@ -856,12 +853,12 @@ public class DatasetConnectedTest {
         // lookup the file by id and check that it's NOT found
         // note: asserts are below outside the hang block
         MockHttpServletResponse lookupFileByIdResponse =
-            connectedOperations.lookupFileRaw(summaryModel.getId().toString(), fileModel.getFileId());
+            connectedOperations.lookupFileRaw(summaryModel.getId(), fileModel.getFileId());
 
         // lookup the file by path and check that it's NOT found
         // note: asserts are below outside the hang block
         MockHttpServletResponse lookupFileByPathResponse =
-            connectedOperations.lookupFileByPathRaw(summaryModel.getId().toString(), fileModel.getPath(), -1);
+            connectedOperations.lookupFileByPathRaw(summaryModel.getId(), fileModel.getPath(), -1);
 
         // disable hang in DeleteDatasetPrimaryDataStep
         configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
@@ -887,7 +884,7 @@ public class DatasetConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // remove the file from the connectedoperation bookkeeping list
-        connectedOperations.removeFile(summaryModel.getId().toString(), fileModel.getFileId());
+        connectedOperations.removeFile(summaryModel.getId(), fileModel.getFileId());
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);

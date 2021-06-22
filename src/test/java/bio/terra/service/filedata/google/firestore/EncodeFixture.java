@@ -51,21 +51,21 @@ public class EncodeFixture {
     @Autowired private TestConfiguration testConfiguration;
 
     public static class SetupResult {
-        private final String profileId;
-        private final String datasetId;
+        private final UUID profileId;
+        private final UUID datasetId;
         private final SnapshotSummaryModel summaryModel;
 
-        public SetupResult(String profileId, String datasetId, SnapshotSummaryModel summaryModel) {
+        public SetupResult(UUID profileId, UUID datasetId, SnapshotSummaryModel summaryModel) {
             this.profileId = profileId;
             this.datasetId = datasetId;
             this.summaryModel = summaryModel;
         }
 
-        public String getDatasetId() {
+        public UUID getDatasetId() {
             return datasetId;
         }
 
-        public String getProfileId() {
+        public UUID getProfileId() {
             return profileId;
         }
 
@@ -82,7 +82,7 @@ public class EncodeFixture {
         TestConfiguration.User custodian,
         TestConfiguration.User reader) throws Exception {
 
-        String profileId = dataRepoFixtures.createBillingProfile(steward).getId().toString();
+        UUID profileId = dataRepoFixtures.createBillingProfile(steward).getId();
         dataRepoFixtures.addPolicyMember(
             steward,
             profileId,
@@ -92,7 +92,7 @@ public class EncodeFixture {
 
         DatasetSummaryModel datasetSummary =
             dataRepoFixtures.createDataset(steward, profileId, "encodefiletest-dataset.json");
-        String datasetId = datasetSummary.getId().toString();
+        UUID datasetId = datasetSummary.getId();
 
         dataRepoFixtures.addDatasetPolicyMember(
             steward,
@@ -103,7 +103,7 @@ public class EncodeFixture {
         // Parse the input data and load the files; generate revised data file
         String stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
         Storage stewardStorage = dataRepoFixtures.getStorage(stewardToken);
-        String targetPath = loadFiles(datasetSummary.getId().toString(), profileId, steward, stewardStorage);
+        String targetPath = loadFiles(datasetSummary.getId(), profileId, steward, stewardStorage);
 
         // Load the tables
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
@@ -127,14 +127,14 @@ public class EncodeFixture {
 
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian,
-            snapshotSummary.getId().toString(),
+            snapshotSummary.getId(),
             IamRole.STEWARD,
             steward.getEmail());
 
         // TODO: Fix use of IamProviderInterface - see DR-494
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian,
-            snapshotSummary.getId().toString(),
+            snapshotSummary.getId(),
             IamRole.READER,
             reader.getEmail());
 
@@ -142,7 +142,7 @@ public class EncodeFixture {
         // issues have shown. We make a BigQuery request as the test to see that READER has access.
         // We need to get the snapshot, rather than the snapshot summary in order to make a query.
         // TODO: Add dataProject to SnapshotSummaryModel?
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId().toString());
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId());
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
@@ -151,8 +151,8 @@ public class EncodeFixture {
     }
 
     private String loadFiles(
-        String datasetId,
-        String profileId,
+        UUID datasetId,
+        UUID profileId,
         TestConfiguration.User user,
         Storage storage) throws Exception {
         // Open the source data from the bucket
@@ -190,7 +190,7 @@ public class EncodeFixture {
         BulkLoadArrayRequestModel loadRequest = new BulkLoadArrayRequestModel()
             .loadArray(loadArray)
             .maxFailedFileLoads(0)
-            .profileId(UUID.fromString(profileId))
+            .profileId(profileId)
             .loadTag("encodeFixture");
 
         BulkLoadArrayResultModel loadResult = dataRepoFixtures.bulkLoadArray(user, datasetId, loadRequest);

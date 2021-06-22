@@ -73,17 +73,17 @@ public class SnapshotTest extends UsersBase {
 
 
     private static final Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
-    private String profileId;
+    private UUID profileId;
     private DatasetSummaryModel datasetSummaryModel;
-    private String datasetId;
-    private final List<String> createdSnapshotIds = new ArrayList<>();
+    private UUID datasetId;
+    private final List<UUID> createdSnapshotIds = new ArrayList<>();
     private String stewardToken;
 
     @Before
     public void setup() throws Exception {
         super.setup();
         stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId().toString();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
         dataRepoFixtures.addPolicyMember(
             steward(),
             profileId,
@@ -92,7 +92,7 @@ public class SnapshotTest extends UsersBase {
             IamResourceType.SPEND_PROFILE);
 
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-        datasetId = datasetSummaryModel.getId().toString();
+        datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
 
@@ -142,13 +142,13 @@ public class SnapshotTest extends UsersBase {
                 "ingest-test-snapshot.json");
 
         DataRepoResponse<JobModel> deleteSnapResp =
-            dataRepoFixtures.deleteSnapshotLaunch(reader(), snapshotSummary.getId().toString());
+            dataRepoFixtures.deleteSnapshotLaunch(reader(), snapshotSummary.getId());
         assertThat("Reader is not authorized to delete a dataSnapshot",
             deleteSnapResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         DataRepoResponse<SnapshotModel> getSnapResp = dataRepoFixtures.getSnapshotRaw(
-            discoverer(), snapshotSummary.getId().toString());
+            discoverer(), snapshotSummary.getId());
         assertThat("Discoverer is not authorized to get a dataSnapshot",
             getSnapResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
@@ -187,7 +187,7 @@ public class SnapshotTest extends UsersBase {
             equalTo(0));
 
         // Delete snapshot as custodian for this test since teardown uses steward
-        dataRepoFixtures.deleteSnapshot(custodian(), snapshotSummary.getId().toString());
+        dataRepoFixtures.deleteSnapshot(custodian(), snapshotSummary.getId());
     }
 
     @Test
@@ -238,8 +238,8 @@ public class SnapshotTest extends UsersBase {
                 profileId,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
-        createdSnapshotIds.add(snapshotSummary.getId().toString());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId().toString());
+        createdSnapshotIds.add(snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("new snapshot has the correct number of tables",
             requestModel.getContents().get(0).getRowIdSpec().getTables().size(),
@@ -268,8 +268,8 @@ public class SnapshotTest extends UsersBase {
                 profileId,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
-        createdSnapshotIds.add(snapshotSummary.getId().toString());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId().toString());
+        createdSnapshotIds.add(snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     }
 
@@ -287,8 +287,8 @@ public class SnapshotTest extends UsersBase {
                 profileId,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
-        createdSnapshotIds.add(snapshotSummary.getId().toString());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId().toString());
+        createdSnapshotIds.add(snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
@@ -325,7 +325,7 @@ public class SnapshotTest extends UsersBase {
             dataRepoFixtures.createSnapshotWithRequest(steward(), datasetSummaryModel.getName(), profileId,
             requestModel, false);
 
-        createdSnapshotIds.add(snapshotSummary.getId().toString());
+        createdSnapshotIds.add(snapshotSummary.getId());
     }
 
     @Test
@@ -347,8 +347,8 @@ public class SnapshotTest extends UsersBase {
                 datasetName,
                 profileId,
                 requestModel);
-        createdSnapshotIds.add(snapshotSummary.getId().toString());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId().toString());
+        createdSnapshotIds.add(snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("There should be 5 snapshot relationships", snapshot.getRelationships().size(), 5);
 
@@ -359,7 +359,7 @@ public class SnapshotTest extends UsersBase {
             datasetPlusSnapshotCount, greaterThan(datasetAclCount));
 
         //-----------delete snapshot------------
-        dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId().toString());
+        dataRepoFixtures.deleteSnapshot(steward(), snapshotSummary.getId());
         logger.info("---- Dataset Acls after snapshot delete-----");
         int datasetMinusSnapshotAclCount = retryAclUpdate(datasetName, datasetAclCount, AclCheck.EQUALTO);
         assertEquals("We should be back to the same number of Acls on the dataset after snapshot delete",

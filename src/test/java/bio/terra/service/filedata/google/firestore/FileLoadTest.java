@@ -123,7 +123,7 @@ public class FileLoadTest {
         BulkLoadRequestModel loadRequest =
             makeBulkFileLoad("fileLoadTest", filesToLoad);
 
-        BulkLoadResultModel summary = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId().toString(),
+        BulkLoadResultModel summary = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(),
                 loadRequest);
         long endTime = System.currentTimeMillis();
         long elapsedSecs = (endTime - startTime);
@@ -146,7 +146,7 @@ public class FileLoadTest {
     private BulkLoadRequestModel makeBulkFileLoad(String tagBase, int fileCount) {
         String testId = Names.randomizeName("test");
         String loadTag = tagBase + testId;
-        String targetPath = "scratch/loadtest" + UUID.randomUUID().toString() + ".json";
+        String targetPath = "scratch/loadtest" + UUID.randomUUID() + ".json";
         connectedOperations.addScratchFile(targetPath); // track the file so it gets cleaned up
 
         String gspath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;

@@ -57,7 +57,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.Matchers.equalTo;
@@ -216,7 +215,7 @@ public class ConnectedOperations {
         return handleFailureCase(result.getResponse(), expectedStatus);
     }
 
-    public BillingProfileModel getProfileById(String profileId) throws Exception {
+    public BillingProfileModel getProfileById(UUID profileId) throws Exception {
         MvcResult result = mvc.perform(get("/api/resources/v1/profiles/" + profileId)
             .contentType(MediaType.APPLICATION_JSON))
             .andReturn();
@@ -416,7 +415,7 @@ public class ConnectedOperations {
         return checkDeleteResponse(response);
     }
 
-    public boolean deleteTestFile(String datasetId, String fileId) throws Exception {
+    public boolean deleteTestFile(UUID datasetId, String fileId) throws Exception {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
             .andReturn();
@@ -452,7 +451,7 @@ public class ConnectedOperations {
         return false;
     }
 
-    public MvcResult ingestTableRaw(String datasetId, IngestRequestModel ingestRequestModel) throws Exception {
+    public MvcResult ingestTableRaw(UUID datasetId, IngestRequestModel ingestRequestModel) throws Exception {
         String jsonRequest = TestUtils.mapToJson(ingestRequestModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
 
@@ -463,7 +462,7 @@ public class ConnectedOperations {
     }
 
     public IngestResponseModel ingestTableSuccess(
-        String datasetId,
+        UUID datasetId,
         IngestRequestModel ingestRequestModel) throws Exception {
         MvcResult result = ingestTableRaw(datasetId, ingestRequestModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
@@ -480,13 +479,13 @@ public class ConnectedOperations {
         return ingestResponse;
     }
 
-    public ErrorModel ingestTableFailure(String datasetId, IngestRequestModel ingestRequestModel) throws Exception {
+    public ErrorModel ingestTableFailure(UUID datasetId, IngestRequestModel ingestRequestModel) throws Exception {
         MvcResult result = ingestTableRaw(datasetId, ingestRequestModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleFailureCase(response);
     }
 
-    public FileModel ingestFileSuccess(String datasetId, FileLoadModel fileLoadModel) throws Exception {
+    public FileModel ingestFileSuccess(UUID datasetId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = TestUtils.mapToJson(fileLoadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files";
         MvcResult result = mvc.perform(post(url)
@@ -525,7 +524,7 @@ public class ConnectedOperations {
         boolean attemptRetry,
         boolean removeFault,
         ConfigEnum faultToInsert,
-        String datasetId,
+        UUID datasetId,
         FileLoadModel fileLoadModel,
         ConfigurationService configService,
         DatasetDao datasetDao) throws Exception {
@@ -542,7 +541,7 @@ public class ConnectedOperations {
 
         TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
         DatasetDaoUtils datasetDaoUtils = new DatasetDaoUtils();
-        String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
+        String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, datasetId);
         if (retryType.equals(RetryType.lock)) {
             assertEquals("no shared locks after first call", 0, sharedLocks.length);
         } else {
@@ -559,7 +558,7 @@ public class ConnectedOperations {
         if (attemptRetry) {
             // make sure successful unlock
             TimeUnit.SECONDS.sleep(5);
-            String[] sharedLocks3 = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
+            String[] sharedLocks3 = datasetDaoUtils.getSharedLocks(datasetDao, datasetId);
             assertEquals("successful unlock", 0, sharedLocks3.length);
 
             // Check if the flight successfully completed
@@ -580,7 +579,7 @@ public class ConnectedOperations {
      * WARNING: if making any changes to this method make sure to notify the #dsp-batch channel! Describe the change and
      * any consequences downstream to DRS clients.
      */
-    private void checkSuccessfulFileLoad(FileLoadModel fileLoadModel, FileModel fileModel, String datasetId) {
+    private void checkSuccessfulFileLoad(FileLoadModel fileLoadModel, FileModel fileModel, UUID datasetId) {
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
         assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
@@ -593,37 +592,37 @@ public class ConnectedOperations {
         }
 
         logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getFileId());
-        addFile(datasetId, fileModel.getFileId());
+        addFile(datasetId.toString(), fileModel.getFileId());
     }
 
-    public MvcResult softDeleteRaw(String datasetId, DataDeletionRequest softDeleteRequest) throws Exception {
+    public MvcResult softDeleteRaw(UUID datasetId, DataDeletionRequest softDeleteRequest) throws Exception {
         String softDeleteUrl = String.format("/api/repository/v1/datasets/%s/deletes", datasetId);
         return mvc.perform(
             post(softDeleteUrl).contentType(MediaType.APPLICATION_JSON).content(TestUtils.mapToJson(softDeleteRequest)))
             .andReturn();
     }
 
-    public DeleteResponseModel softDeleteSuccess(String datasetId, DataDeletionRequest softDeleteRequest)
+    public DeleteResponseModel softDeleteSuccess(UUID datasetId, DataDeletionRequest softDeleteRequest)
         throws Exception {
         MvcResult result = softDeleteRaw(datasetId, softDeleteRequest);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleSuccessCase(response, DeleteResponseModel.class);
     }
 
-    public BulkLoadArrayResultModel ingestArraySuccess(String datasetId,
+    public BulkLoadArrayResultModel ingestArraySuccess(UUID datasetId,
                                                        BulkLoadArrayRequestModel loadModel) throws Exception {
         MvcResult result = ingestArrayRaw(datasetId, loadModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleSuccessCase(response, BulkLoadArrayResultModel.class);
     }
 
-    public ErrorModel ingestArrayFailure(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
+    public ErrorModel ingestArrayFailure(UUID datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
         MvcResult result = ingestArrayRaw(datasetId, loadModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleFailureCase(response);
     }
 
-    public MvcResult ingestArrayRaw(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
+    public MvcResult ingestArrayRaw(UUID datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
         String jsonRequest = TestUtils.mapToJson(loadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk/array";
         return mvc.perform(post(url)
@@ -632,20 +631,20 @@ public class ConnectedOperations {
             .andReturn();
     }
 
-    public BulkLoadResultModel ingestBulkFileSuccess(String datasetId,
+    public BulkLoadResultModel ingestBulkFileSuccess(UUID datasetId,
                                                      BulkLoadRequestModel loadModel) throws Exception {
         MvcResult result = ingestBulkFileRaw(datasetId, loadModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleSuccessCase(response, BulkLoadResultModel.class);
     }
 
-    public ErrorModel ingestBulkFileFailure(String datasetId, BulkLoadRequestModel loadModel) throws Exception {
+    public ErrorModel ingestBulkFileFailure(UUID datasetId, BulkLoadRequestModel loadModel) throws Exception {
         MvcResult result = ingestBulkFileRaw(datasetId, loadModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleFailureCase(response);
     }
 
-    public MvcResult ingestBulkFileRaw(String datasetId, BulkLoadRequestModel loadModel) throws Exception {
+    public MvcResult ingestBulkFileRaw(UUID datasetId, BulkLoadRequestModel loadModel) throws Exception {
         String jsonRequest = TestUtils.mapToJson(loadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk";
         return mvc.perform(post(url)
@@ -654,7 +653,7 @@ public class ConnectedOperations {
             .andReturn();
     }
 
-    public ErrorModel ingestFileFailure(String datasetId, FileLoadModel fileLoadModel) throws Exception {
+    public ErrorModel ingestFileFailure(UUID datasetId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = TestUtils.mapToJson(fileLoadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files";
         MvcResult result = mvc.perform(post(url)
@@ -667,7 +666,7 @@ public class ConnectedOperations {
         return handleFailureCase(response);
     }
 
-    public MockHttpServletResponse lookupFileRaw(String datasetId, String fileId) throws Exception {
+    public MockHttpServletResponse lookupFileRaw(UUID datasetId, String fileId) throws Exception {
         String url = "/api/repository/v1/datasets/" + datasetId + "/files/" + fileId;
         MvcResult result = mvc.perform(get(url)
             .contentType(MediaType.APPLICATION_JSON))
@@ -675,13 +674,13 @@ public class ConnectedOperations {
         return result.getResponse();
     }
 
-    public FileModel lookupFileSuccess(String datasetId, String fileId) throws Exception {
+    public FileModel lookupFileSuccess(UUID datasetId, String fileId) throws Exception {
         MockHttpServletResponse response = lookupFileRaw(datasetId, fileId);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
         return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
     }
 
-    public MockHttpServletResponse lookupFileByPathRaw(String datasetId, String filePath, long depth) throws Exception {
+    public MockHttpServletResponse lookupFileByPathRaw(UUID datasetId, String filePath, long depth) throws Exception {
         String url = "/api/repository/v1/datasets/" + datasetId + "/filesystem/objects";
         MvcResult result = mvc.perform(get(url)
             .param("path", filePath)
@@ -691,13 +690,13 @@ public class ConnectedOperations {
         return result.getResponse();
     }
 
-    public FileModel lookupFileByPathSuccess(String datasetId, String filePath, long depth) throws Exception {
+    public FileModel lookupFileByPathSuccess(UUID datasetId, String filePath, long depth) throws Exception {
         MockHttpServletResponse response = lookupFileByPathRaw(datasetId, filePath, depth);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
         return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
     }
 
-    public MockHttpServletResponse lookupSnapshotFileRaw(String snapshotId, String objectId) throws Exception {
+    public MockHttpServletResponse lookupSnapshotFileRaw(UUID snapshotId, String objectId) throws Exception {
         String url = "/api/repository/v1/snapshots/" + snapshotId + "/files/" + objectId;
         MvcResult result = mvc.perform(get(url)
             .contentType(MediaType.APPLICATION_JSON))
@@ -705,14 +704,14 @@ public class ConnectedOperations {
         return result.getResponse();
     }
 
-    public FileModel lookupSnapshotFileSuccess(String snapshotId, String objectId) throws Exception {
+    public FileModel lookupSnapshotFileSuccess(UUID snapshotId, String objectId) throws Exception {
         MockHttpServletResponse response = lookupSnapshotFileRaw(snapshotId, objectId);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
         return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
     }
 
     public MockHttpServletResponse lookupSnapshotFileByPathRaw(
-        String snapshotId, String path, long depth) throws Exception {
+        UUID snapshotId, String path, long depth) throws Exception {
         String url = "/api/repository/v1/snapshots/" + snapshotId + "/filesystem/objects";
         MvcResult result = mvc.perform(get(url)
             .param("path", path)
@@ -722,7 +721,7 @@ public class ConnectedOperations {
         return result.getResponse();
     }
 
-    public FileModel lookupSnapshotFileByPathSuccess(String snapshotId, String path, long depth) throws Exception {
+    public FileModel lookupSnapshotFileByPathSuccess(UUID snapshotId, String path, long depth) throws Exception {
         MockHttpServletResponse response = lookupSnapshotFileByPathRaw(snapshotId, path, depth);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
         return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
@@ -813,10 +812,10 @@ public class ConnectedOperations {
         createdFileIds.add(createdFile);
     }
 
-    public void removeFile(String datasetId, String fileId) {
+    public void removeFile(UUID datasetId, String fileId) {
         String[] fileToRemove = null;
         for (String[] fileInfo : createdFileIds) {
-            if (datasetId.equals(fileInfo[0]) && fileId.equals(fileInfo[1])) {
+            if (datasetId.toString().equals(fileInfo[0]) && fileId.equals(fileInfo[1])) {
                 fileToRemove = fileInfo;
                 break;
             }
@@ -856,7 +855,7 @@ public class ConnectedOperations {
 
             for (String[] fileInfo : createdFileIds) {
                 try {
-                    deleteTestFile(fileInfo[0], fileInfo[1]);
+                    deleteTestFile(UUID.fromString(fileInfo[0]), fileInfo[1]);
                 } catch (Exception ex) {
                     logger.info("CLEANUP ERROR! Error deleting file. FileId: {}", fileInfo[0]);
                 }

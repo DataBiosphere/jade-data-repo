@@ -81,9 +81,9 @@ public class AccessTest extends UsersBase {
     private String readerToken;
     private String custodianToken;
     private DatasetSummaryModel datasetSummaryModel;
-    private String datasetId;
-    private String profileId;
-    private List<String> snapshotIds;
+    private UUID datasetId;
+    private UUID profileId;
+    private List<UUID> snapshotIds;
 
     @Before
     public void setup() throws Exception {
@@ -91,14 +91,14 @@ public class AccessTest extends UsersBase {
         discovererToken = authService.getDirectAccessAuthToken(discoverer().getEmail());
         readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId().toString();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
         datasetId = null;
         snapshotIds = new ArrayList<>();
     }
 
     @After
     public void teardown() throws Exception {
-        for (String snapshotId : snapshotIds) {
+        for (UUID snapshotId : snapshotIds) {
             dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
         }
         if (datasetId != null) {
@@ -108,12 +108,12 @@ public class AccessTest extends UsersBase {
 
     private void makeIngestTestDataset() throws Exception {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-        datasetId = datasetSummaryModel.getId().toString();
+        datasetId = datasetSummaryModel.getId();
     }
 
     private void makeAclTestDataset() throws Exception {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
-        datasetId = datasetSummaryModel.getId().toString();
+        datasetId = datasetSummaryModel.getId();
     }
 
     private Storage getStorage(String token) {
@@ -170,8 +170,7 @@ public class AccessTest extends UsersBase {
                 profileId,
                 "ingest-test-snapshot.json");
 
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(),
-                snapshotSummaryModel.getId().toString());
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
         BigQuery bigQuery = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         try {
             BigQueryFixtures.datasetExists(bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
@@ -184,7 +183,7 @@ public class AccessTest extends UsersBase {
 
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),
-            snapshotSummaryModel.getId().toString(),
+            snapshotSummaryModel.getId(),
             IamRole.READER,
             reader().getEmail());
 
@@ -208,13 +207,13 @@ public class AccessTest extends UsersBase {
         makeAclTestDataset();
 
         dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetSummaryModel.getId().toString(), IamRole.CUSTODIAN, custodian().getEmail());
+            steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
 
         // Ingest a file into the dataset
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         FileModel fileModel = dataRepoFixtures.ingestFile(
             steward(),
-            datasetSummaryModel.getId().toString(),
+            datasetSummaryModel.getId(),
             profileId,
             gsPath + "/files/File Design Notes.pdf",
             "/foo/bar");
@@ -233,7 +232,7 @@ public class AccessTest extends UsersBase {
 
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
-            steward(), datasetSummaryModel.getId().toString(), request);
+            steward(), datasetSummaryModel.getId(), request);
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
@@ -243,13 +242,13 @@ public class AccessTest extends UsersBase {
             datasetSummaryModel.getName(),
             profileId,
             "file-acl-test-snapshot.json");
-        snapshotIds.add(snapshotSummaryModel.getId().toString());
+        snapshotIds.add(snapshotSummaryModel.getId());
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(),
-                snapshotSummaryModel.getId().toString());
+                snapshotSummaryModel.getId());
 
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),
-            snapshotModel.getId().toString(),
+            snapshotModel.getId(),
             IamRole.READER,
             reader().getEmail());
 

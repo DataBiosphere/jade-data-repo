@@ -24,6 +24,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -48,14 +49,14 @@ public class IngestTest extends UsersBase {
     private TestConfiguration testConfig;
 
     private DatasetSummaryModel datasetSummaryModel;
-    private String datasetId;
-    private String profileId;
-    private final List<String> createdSnapshotIds = new ArrayList<>();
+    private UUID datasetId;
+    private UUID profileId;
+    private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
     @Before
     public void setup() throws Exception {
         super.setup();
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId().toString();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
         dataRepoFixtures.addPolicyMember(
             steward(),
             profileId,
@@ -64,13 +65,13 @@ public class IngestTest extends UsersBase {
             IamResourceType.SPEND_PROFILE);
 
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-        datasetId = datasetSummaryModel.getId().toString();
+        datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     }
 
     @After
     public void teardown() throws Exception {
-        for (String snapshotId : createdSnapshotIds) {
+        for (UUID snapshotId : createdSnapshotIds) {
             dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotId);
         }
 
@@ -131,7 +132,7 @@ public class IngestTest extends UsersBase {
                 datasetSummaryModel.getName(),
                 profileId,
                 "ingest-test-snapshot.json");
-        createdSnapshotIds.add(snapshotSummary.getId().toString());
+        createdSnapshotIds.add(snapshotSummary.getId());
     }
 
     @Test

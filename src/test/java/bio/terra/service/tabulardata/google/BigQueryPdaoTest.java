@@ -225,7 +225,7 @@ public class BigQueryPdaoTest {
                 IngestRequestModel ingestRequest = new IngestRequestModel()
                     .format(IngestRequestModel.FormatEnum.JSON);
 
-                String datasetId = dataset.getId().toString();
+                UUID datasetId = dataset.getId();
                 connectedOperations.ingestTableSuccess(datasetId,
                     ingestRequest.table("participant").path(gsPath(participantBlob)));
                 connectedOperations.ingestTableSuccess(datasetId,
@@ -337,7 +337,7 @@ public class BigQueryPdaoTest {
             IngestRequestModel ingestRequest = new IngestRequestModel()
                 .format(IngestRequestModel.FormatEnum.JSON);
 
-            String datasetId = dataset.getId().toString();
+            UUID datasetId = dataset.getId();
             connectedOperations.ingestTableSuccess(datasetId,
                 ingestRequest.table("participant").path(gsPath(participantBlob)));
             connectedOperations.ingestTableSuccess(datasetId,
@@ -444,7 +444,7 @@ public class BigQueryPdaoTest {
             IngestRequestModel ingestRequest = new IngestRequestModel()
                 .format(IngestRequestModel.FormatEnum.JSON);
 
-            String datasetId = dataset.getId().toString();
+            UUID datasetId = dataset.getId();
             connectedOperations.ingestTableSuccess(datasetId,
                 ingestRequest.table("participant").path(gsPath(participantBlob)));
             connectedOperations.ingestTableSuccess(datasetId,

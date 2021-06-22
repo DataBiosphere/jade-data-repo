@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -198,10 +199,8 @@ public class FireStoreDirectoryDao {
         return fireStoreUtils.runTransactionWithRetry(firestore,
             xn -> {
                 DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
-                if (docSnap == null) {
-                    return null;
-                }
-                return docSnap.toObject(FireStoreDirectoryEntry.class);
+                return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreDirectoryEntry.class))
+                    .orElse(null);
             },
             "retrieveById", " file id: " + fileId);
     }
@@ -215,10 +214,8 @@ public class FireStoreDirectoryDao {
         return fireStoreUtils.runTransactionWithRetry(firestore,
             xn -> {
                 DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
-                if (docSnap == null) {
-                    return null;
-                }
-                return docSnap.toObject(FireStoreDirectoryEntry.class);
+                return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreDirectoryEntry.class))
+                    .orElse(null);
             },
             "retrieveByPath", " path: " + lookupPath);
     }

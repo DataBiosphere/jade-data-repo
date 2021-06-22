@@ -263,10 +263,8 @@ public class FireStoreUtils {
         if (throwable instanceof DeadlineExceededException ||
             throwable instanceof UnavailableException ||
             throwable instanceof InternalException ||
-            throwable instanceof StatusRuntimeException) {
-
-            return true;
-        } else if (isBatch && throwable instanceof AbortedException) {
+            throwable instanceof StatusRuntimeException ||
+            (isBatch && throwable instanceof AbortedException)) {
             return true;
         }
         return shouldRetry(throwable.getCause(), isBatch);

@@ -201,9 +201,13 @@ public class FireStoreDirectoryDao {
         return fireStoreUtils.runTransactionWithRetry(firestore,
             new FireStoreUtils.FirestoreFunction() {
                 @Override
-                public <FireStoreDirectoryEntry> FireStoreDirectoryEntry apply(Transaction xn)
+                public FireStoreDirectoryEntry apply(Transaction xn)
                     throws InterruptedException {
-                    return (FireStoreDirectoryEntry) lookupByFileId(firestore, collectionId, fileId, xn);
+                    DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
+                    if (docSnap == null) {
+                        return null;
+                    }
+                    return docSnap.toObject(FireStoreDirectoryEntry.class);
                 }
             }, FireStoreDirectoryEntry.class,
             "retrieveById", " file id: " + fileId);
@@ -218,9 +222,13 @@ public class FireStoreDirectoryDao {
         return fireStoreUtils.runTransactionWithRetry(firestore,
             new FireStoreUtils.FirestoreFunction() {
                 @Override
-                public <FireStoreDirectoryEntry> FireStoreDirectoryEntry apply(Transaction xn)
+                public FireStoreDirectoryEntry apply(Transaction xn)
                     throws InterruptedException {
-                    return (FireStoreDirectoryEntry) lookupByFilePath(firestore, collectionId, lookupPath, xn);
+                    DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
+                    if (docSnap == null) {
+                        return null;
+                    }
+                    return docSnap.toObject(FireStoreDirectoryEntry.class);
                 }
             }, FireStoreDirectoryEntry.class,
             "retrieveByPath", " path: " + lookupPath);

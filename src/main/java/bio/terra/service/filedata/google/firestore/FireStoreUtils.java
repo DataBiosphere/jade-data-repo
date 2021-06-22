@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -36,7 +35,6 @@ public class FireStoreUtils {
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
 
     private int firestoreRetries;
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     public FireStoreUtils(GoogleResourceConfiguration googleResourceConfiguration) {
@@ -287,11 +285,7 @@ public class FireStoreUtils {
         while (true) {
             try {
                 ApiFuture<T> transaction =
-                    firestore.runTransaction(
-                        xn -> {
-                            Object fieldObject = firestoreFunction.apply(xn);
-                            return objectMapper.convertValue(fieldObject, transactionType);
-                        });
+                    firestore.runTransaction(xn -> firestoreFunction.apply(xn));
 
                 return transactionGet(transactionOp, transaction);
             } catch (Exception ex) {

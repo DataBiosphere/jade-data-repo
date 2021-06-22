@@ -22,6 +22,14 @@ import java.util.concurrent.TimeUnit;
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "datarepo")
 public class ApplicationConfiguration {
+    /**
+     * Adding a static variable that can be accessed from the testing code since the MockitoJUnitRunner doesn't seem
+     * to allow you to autowire and having the same object mapper used in the tests is important
+     */
+    public static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
+        .registerModule(new ParameterNamesModule())
+        .registerModule(new Jdk8Module())
+        .registerModule(new JavaTimeModule());
 
     private String userEmail;
     private String dnsName;
@@ -367,10 +375,7 @@ public class ApplicationConfiguration {
 
     @Bean("objectMapper")
     public ObjectMapper objectMapper() {
-        return new ObjectMapper()
-            .registerModule(new ParameterNamesModule())
-            .registerModule(new Jdk8Module())
-            .registerModule(new JavaTimeModule());
+        return OBJECT_MAPPER;
     }
 
     @Bean("performanceThreadpool")

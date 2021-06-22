@@ -60,7 +60,7 @@ class FireStoreFileDao {
     void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) throws InterruptedException {
         String collectionId = makeCollectionId(datasetId);
         fireStoreUtils.runTransactionWithRetry(firestore,
-            (Transaction.Function<Void>) xn -> {
+            xn -> {
                 xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
                 return null;
             }, "createFileMetadata",

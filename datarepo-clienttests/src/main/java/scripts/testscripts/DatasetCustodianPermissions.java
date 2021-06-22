@@ -119,8 +119,8 @@ public class DatasetCustodianPermissions extends SimpleDataset {
    * @param repositoryApi the api object to query
    * @return true if the endpoint returns an unauthorized error, false if it does not
    */
-  private static boolean retrieveDatasetIsUnauthorized(
-      RepositoryApi repositoryApi, UUID datasetId) throws ApiException {
+  private static boolean retrieveDatasetIsUnauthorized(RepositoryApi repositoryApi, UUID datasetId)
+      throws ApiException {
     boolean caughtAccessException = false;
     try {
       DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId, Collections.emptyList());

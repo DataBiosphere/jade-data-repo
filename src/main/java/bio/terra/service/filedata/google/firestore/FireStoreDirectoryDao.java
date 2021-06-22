@@ -102,32 +102,29 @@ public class FireStoreDirectoryDao {
         String lookupDirPath = makeLookupPath(createEntry.getPath());
 
         fireStoreUtils.runTransactionWithRetry(firestore,
-            new FireStoreUtils.FirestoreFunction() {
-                @Override
-                public <Void> Void apply(Transaction xn) throws InterruptedException {
-                    for (String testPath = lookupDirPath;
-                         !testPath.isEmpty();
-                         testPath = fireStoreUtils.getDirectoryPath(testPath)) {
+            (Transaction.Function<Void>) xn -> {
+                for (String testPath = lookupDirPath;
+                     !testPath.isEmpty();
+                     testPath = fireStoreUtils.getDirectoryPath(testPath)) {
 
-                        // !!! In this case we are using a lookup path
-                        DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, testPath, xn);
-                        if (docSnap.exists()) {
-                            break;
-                        }
-
-                        FireStoreDirectoryEntry dirToCreate = makeDirectoryEntry(testPath);
-                        createList.add(dirToCreate);
+                    // !!! In this case we are using a lookup path
+                    DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, testPath, xn);
+                    if (docSnap.exists()) {
+                        break;
                     }
 
-                    // transition point from reading to writing in the transaction
-                    for (FireStoreDirectoryEntry dirToCreate : createList) {
-                        xn.set(getDocRef(firestore, collectionId, dirToCreate), dirToCreate);
-                    }
-
-                    xn.set(getDocRef(firestore, collectionId, createEntry), createEntry);
-                    return null;
+                    FireStoreDirectoryEntry dirToCreate = makeDirectoryEntry(testPath);
+                    createList.add(dirToCreate);
                 }
-            }, Void.class,
+
+                // transition point from reading to writing in the transaction
+                for (FireStoreDirectoryEntry dirToCreate : createList) {
+                    xn.set(getDocRef(firestore, collectionId, dirToCreate), dirToCreate);
+                }
+
+                xn.set(getDocRef(firestore, collectionId, createEntry), createEntry);
+                return null;
+            },
             "createFileRef", " creating file directory for collection Id: " + collectionId);
     }
 
@@ -199,17 +196,13 @@ public class FireStoreDirectoryDao {
         Firestore firestore, String collectionId, String fileId) throws InterruptedException {
 
         return fireStoreUtils.runTransactionWithRetry(firestore,
-            new FireStoreUtils.FirestoreFunction() {
-                @Override
-                public FireStoreDirectoryEntry apply(Transaction xn)
-                    throws InterruptedException {
-                    DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
-                    if (docSnap == null) {
-                        return null;
-                    }
-                    return docSnap.toObject(FireStoreDirectoryEntry.class);
+            xn -> {
+                DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
+                if (docSnap == null) {
+                    return null;
                 }
-            }, FireStoreDirectoryEntry.class,
+                return docSnap.toObject(FireStoreDirectoryEntry.class);
+            },
             "retrieveById", " file id: " + fileId);
     }
 
@@ -220,17 +213,13 @@ public class FireStoreDirectoryDao {
         String lookupPath = makeLookupPath(fullPath);
 
         return fireStoreUtils.runTransactionWithRetry(firestore,
-            new FireStoreUtils.FirestoreFunction() {
-                @Override
-                public FireStoreDirectoryEntry apply(Transaction xn)
-                    throws InterruptedException {
-                    DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
-                    if (docSnap == null) {
-                        return null;
-                    }
-                    return docSnap.toObject(FireStoreDirectoryEntry.class);
+            xn -> {
+                DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
+                if (docSnap == null) {
+                    return null;
                 }
-            }, FireStoreDirectoryEntry.class,
+                return docSnap.toObject(FireStoreDirectoryEntry.class);
+            },
             "retrieveByPath", " path: " + lookupPath);
     }
 

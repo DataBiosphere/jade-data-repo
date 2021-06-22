@@ -60,14 +60,10 @@ class FireStoreFileDao {
     void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) throws InterruptedException {
         String collectionId = makeCollectionId(datasetId);
         fireStoreUtils.runTransactionWithRetry(firestore,
-            new FireStoreUtils.FirestoreFunction() {
-                @Override
-                public <Void> Void apply(Transaction xn) {
-                    xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
-                    return null;
-                }
-            },
-            Void.class, "createFileMetadata",
+            (Transaction.Function<Void>) xn -> {
+                xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
+                return null;
+            }, "createFileMetadata",
             " creating file metadata for dataset Id: " + datasetId);
     }
 
@@ -99,26 +95,22 @@ class FireStoreFileDao {
         String collectionId = makeCollectionId(datasetId);
 
         return fireStoreUtils.runTransactionWithRetry(firestore,
-            new FireStoreUtils.FirestoreFunction() {
-                @Override
-                public FireStoreFile apply(Transaction xn) throws InterruptedException {
-                    DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
-                    if (docSnap == null || !docSnap.exists()) {
-                        return null;
-                    }
-
-                    // Fault insertion to test retry
-                    if (configurationService.testInsertFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT)) {
-                        throw new AbortedException(
-                            new FileSystemAbortTransactionException("fault insertion"),
-                            GrpcStatusCode.of(Status.Code.ABORTED),
-                            true);
-                    }
-
-                    return docSnap.toObject(FireStoreFile.class);
+            xn -> {
+                DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
+                if (docSnap == null || !docSnap.exists()) {
+                    return null;
                 }
-            },
-            FireStoreFile.class, "retrieveFileMetadata",
+
+                // Fault insertion to test retry
+                if (configurationService.testInsertFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT)) {
+                    throw new AbortedException(
+                        new FileSystemAbortTransactionException("fault insertion"),
+                        GrpcStatusCode.of(Status.Code.ABORTED),
+                        true);
+                }
+
+                return docSnap.toObject(FireStoreFile.class);
+            }, "retrieveFileMetadata",
             " retrieving file metadata for dataset Id: " + datasetId);
     }
 

@@ -272,22 +272,14 @@ public class FireStoreUtils {
         return shouldRetry(throwable.getCause(), isBatch);
     }
 
-    // TODO - convert this to a generic, remove duplicate code from FireStoreDirectoryDao
-    @FunctionalInterface
-    interface FirestoreFunction {
-        <T> T apply(Transaction xn) throws InterruptedException;
-    }
-
     public <T> T runTransactionWithRetry(Firestore firestore,
-                                        FirestoreFunction firestoreFunction,
-                                        Class<T> transactionType,
-                                        String transactionOp,
-                                        String warnMessage) throws InterruptedException {
+                                         Transaction.Function<T> firestoreFunction,
+                                         String transactionOp,
+                                         String warnMessage) throws InterruptedException {
         int retry = 0;
         while (true) {
             try {
-                ApiFuture<T> transaction =
-                    firestore.runTransaction(xn -> firestoreFunction.apply(xn));
+                ApiFuture<T> transaction = firestore.runTransaction(firestoreFunction);
 
                 return transactionGet(transactionOp, transaction);
             } catch (Exception ex) {

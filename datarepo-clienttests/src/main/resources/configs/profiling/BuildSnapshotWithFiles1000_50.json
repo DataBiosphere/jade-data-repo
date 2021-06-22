@@ -11,7 +11,7 @@
   "testScripts": [
     {
       "name": "BuildSnapshotWithFiles",
-      "parameters": [500, 1, 50],
+      "parameters": [1000, 5, 50],
       "numberOfUserJourneyThreadsToRun": 1,
       "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 1000000,

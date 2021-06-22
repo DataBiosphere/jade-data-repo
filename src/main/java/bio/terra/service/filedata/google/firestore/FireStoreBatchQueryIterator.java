@@ -16,7 +16,7 @@ public class FireStoreBatchQueryIterator {
     private static final Logger logger = LoggerFactory.getLogger(FireStoreBatchQueryIterator.class);
 
     private static final int RETRIES = 3;
-    private static final int SLEEP_MILLISECONDS = 1000;
+    private static final int SLEEP_SECONDS = 1;
 
 
     private final Query baseQuery;
@@ -80,7 +80,7 @@ public class FireStoreBatchQueryIterator {
                 }
             }
 
-            TimeUnit.MILLISECONDS.sleep(SLEEP_MILLISECONDS);
+            TimeUnit.SECONDS.sleep(SLEEP_SECONDS);
         }
         throw new FileSystemExecutionException("get batch failed - no more retries");
     }

@@ -103,7 +103,7 @@ public class FireStoreDirectoryDao {
         String lookupDirPath = makeLookupPath(createEntry.getPath());
 
         fireStoreUtils.runTransactionWithRetry(firestore,
-            (Transaction.Function<Void>) xn -> {
+            xn -> {
                 for (String testPath = lookupDirPath;
                      !testPath.isEmpty();
                      testPath = fireStoreUtils.getDirectoryPath(testPath)) {
@@ -190,7 +190,7 @@ public class FireStoreDirectoryDao {
         DocumentSnapshot apply(Transaction xn) throws InterruptedException;
     }
 
-    private static final int SLEEP_BASE_MILLISECONDS = 1000;
+    private static final int SLEEP_BASE_SECONDS = 1;
 
     // Returns null if not found - upper layers do any throwing
     public FireStoreDirectoryEntry retrieveById(
@@ -611,8 +611,8 @@ public class FireStoreDirectoryDao {
             } catch (AbortedException | ExecutionException ex) {
                 lastException = fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
             }
-            final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retryNum)).longValue();
-            TimeUnit.SECONDS.sleep(retryWait);
+            final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retryNum));
+            TimeUnit.SECONDS.wait(retryWait);
         }
         logger.error("Ran out of retries - lookupPathNoXn");
         throw lastException;

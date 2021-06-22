@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 public class FireStoreUtils {
 
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
+    private static final int SLEEP_BASE_SECONDS = 1;
 
     private int firestoreRetries;
 
@@ -168,7 +169,7 @@ public class FireStoreUtils {
         return Long.toHexString(crc.getValue());
     }
 
-    private static final int SLEEP_BASE_MILLISECONDS = 1000;
+
 
     /**
      * Perform the specified Firestore operation against a specified list of inputs in batch.
@@ -237,7 +238,7 @@ public class FireStoreUtils {
                 break;
             }
 
-            final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, noProgressCount)).longValue();
+            final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, noProgressCount));
             if (completeCount == 0) {
                 noProgressCount++;
                 if (noProgressCount > firestoreRetries) {
@@ -249,7 +250,7 @@ public class FireStoreUtils {
                 }
             }
             // Exponential backoff
-            TimeUnit.MILLISECONDS.sleep(retryWait);
+            TimeUnit.SECONDS.sleep(retryWait);
         }
 
         return outputs;
@@ -281,7 +282,7 @@ public class FireStoreUtils {
 
                 return transactionGet(transactionOp, transaction);
             } catch (Exception ex) {
-                final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
+                final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry));
                 if (FireStoreUtils.shouldRetry(ex, false) && retry < firestoreRetries) {
                     // perform retry
                     retry++;
@@ -289,7 +290,7 @@ public class FireStoreUtils {
                             "- will attempt retry #{}" +
                             " after {} millisecond pause. Message: {}",
                         warnMessage, retry, retryWait, ex.getMessage());
-                    TimeUnit.MILLISECONDS.sleep(retryWait);
+                    TimeUnit.SECONDS.sleep(retryWait);
                 } else {
                     if (retry > firestoreRetries) {
                         logger.error("[transaction retry] Ran out of retries - {}", warnMessage);

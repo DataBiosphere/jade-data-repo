@@ -82,8 +82,6 @@ class FireStoreFileDao {
         return fireStoreUtils.transactionGet("deleteFileMetadata", transaction);
     }
 
-    private static final int SLEEP_BASE_MILLISECONDS = 1000;
-
     // Returns null on not found
     // We needed to add local retrying to this code path, because it is used in
     // computeDirectory inside of the create snapshot code. We do potentially thousands

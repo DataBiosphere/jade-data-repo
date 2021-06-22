@@ -1,5 +1,7 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.AzureCloudResource;
+import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
@@ -32,6 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public final class DatasetJsonConversion {
 
@@ -67,6 +70,8 @@ public final class DatasetJsonConversion {
         final List<? extends StorageResource<?, ?>> storageResources;
         if (cloudPlatform == CloudPlatform.GCP) {
             storageResources = createGcpStorageResourceValues(datasetRequest);
+        } else if (cloudPlatform == CloudPlatform.AZURE) {
+            storageResources = createAzureStorageResourceValues(datasetRequest);
         } else {
             throw new UnsupportedOperationException(cloudPlatform + " is not a recognized Cloud Platform");
         }
@@ -82,10 +87,20 @@ public final class DatasetJsonConversion {
     }
 
     public static GoogleRegion getRegionFromDatasetRequestModel(DatasetRequestModel datasetRequestModel) {
-        return GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
+        if (datasetRequestModel.getCloudPlatform() == CloudPlatform.GCP) {
+            return GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
+        } else if (datasetRequestModel.getCloudPlatform() == CloudPlatform.AZURE) {
+            return GoogleRegion.fromValueWithDefault(datasetRequestModel.getGcpRegion());
+        } else {
+            throw new IllegalArgumentException("Invalid cloud type");
+        }
     }
 
-    private static List<GoogleStorageResource> createGcpStorageResourceValues(DatasetRequestModel datasetRequestModel) {
+    public static AzureRegion getAzureRegionFromDatasetRequestModel(DatasetRequestModel datasetRequestModel) {
+        return AzureRegion.fromValueWithDefault(datasetRequestModel.getRegion());
+    }
+
+    private static List<? extends StorageResource<?, ?>> createGcpStorageResourceValues(DatasetRequestModel datasetRequestModel) {
         final GoogleRegion region = getRegionFromDatasetRequestModel(datasetRequestModel);
         return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
             final GoogleRegion finalRegion;
@@ -98,6 +113,17 @@ public final class DatasetJsonConversion {
             }
             return new GoogleStorageResource(null, resource, finalRegion);
         }).collect(Collectors.toList());
+    }
+
+    private static List<? extends StorageResource<?, ?>> createAzureStorageResourceValues(DatasetRequestModel datasetRequestModel) {
+        final AzureRegion region = getAzureRegionFromDatasetRequestModel(datasetRequestModel);
+        // TODO: once we no longer require GCP resources to back Azure datasets, stop concatenating
+        return Stream.of(
+            Arrays.stream(AzureCloudResource.values()).map(resource -> new AzureStorageResource(null,
+                resource,
+                region)),
+            createGcpStorageResourceValues(datasetRequestModel).stream()).flatMap(s -> s)
+        .collect(Collectors.toList());
     }
 
     public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(DatasetSummary datasetSummary) {

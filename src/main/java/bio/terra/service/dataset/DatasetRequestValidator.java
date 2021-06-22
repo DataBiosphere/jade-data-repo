@@ -1,20 +1,21 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.PdaoConstant;
+import bio.terra.common.ValidationUtils;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatePartitionOptionsModel;
 import bio.terra.model.IntPartitionOptionsModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSpecificationModel;
-import bio.terra.model.TableModel;
 import bio.terra.model.TableDataType;
-
-import bio.terra.common.ValidationUtils;
+import bio.terra.model.TableModel;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -42,6 +43,9 @@ public class DatasetRequestValidator implements Validator {
 
     private static final List<String> SUPPORTED_GOOGLE_REGIONS =
         Arrays.stream(GoogleRegion.values()).map(GoogleRegion::getValue).collect(Collectors.toUnmodifiableList());
+
+    private static final List<String> SUPPORTED_AZURE_REGIONS =
+        Arrays.stream(AzureRegion.values()).map(AzureRegion::toString).collect(Collectors.toUnmodifiableList());
 
     @Override
     public boolean supports(Class<?> clazz) {
@@ -377,17 +381,31 @@ public class DatasetRequestValidator implements Validator {
                 switch (datasetRequest.getCloudPlatform()) {
                     case GCP:
                         supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
+                        if (!supported) {
+                            errors.rejectValue("region", "InvalidRegionForPlatform",
+                                "Valid regions for " +
+                                    CloudPlatform.GCP +
+                                    " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
+                        }
                         break;
                     case AZURE:
-                        errors.rejectValue("cloudPlatform", "InvalidCloudPlatform",
-                            "Azure is not supported yet");
+                        supported = SUPPORTED_AZURE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
+                        if (!supported) {
+                            errors.rejectValue("region", "InvalidRegionForPlatform",
+                                "Valid regions for " +
+                                    CloudPlatform.AZURE +
+                                    " are: " + String.join(", ", SUPPORTED_AZURE_REGIONS));
+                        }
+
+                        // TODO remove once we no longer depend on GCP resources for Azure datasets and snashots
+                        supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getGcpRegion().toLowerCase());
+                        if (!supported) {
+                            errors.rejectValue("region", "InvalidRegionForPlatform",
+                                "Valid regions for " +
+                                    CloudPlatform.GCP +
+                                    " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
+                        }
                         return;
-                }
-                if (!supported) {
-                    errors.rejectValue("region", "InvalidRegionForPlatform",
-                        "Valid regions for " +
-                            datasetRequest.getCloudPlatform() +
-                            " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
                 }
             }
         }

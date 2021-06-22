@@ -223,7 +223,7 @@ public class FireStoreUtils {
                         InternalException |
                         StatusRuntimeException |
                         ExecutionException ex) {
-                        if (shouldRetry(ex)) {
+                        if (shouldRetry(ex, true)) {
                             logger.warn("[batchOperation] Retry-able error in firestore future get - input: " +
                                 inputs.get(i) + " message: " + ex.getMessage());
                         } else
@@ -255,19 +255,21 @@ public class FireStoreUtils {
         return outputs;
     }
 
-    static boolean shouldRetry(Throwable throwable) {
+    // For batch operations, we want to also include the AbortedException as retryable
+    static boolean shouldRetry(Throwable throwable, boolean isBatch) {
         if (throwable == null) {
             return false; // Did not find a retry-able exception
         }
         if (throwable instanceof DeadlineExceededException ||
             throwable instanceof UnavailableException ||
-            //throwable instanceof AbortedException ||
             throwable instanceof InternalException ||
             throwable instanceof StatusRuntimeException) {
 
             return true;
+        } else if (isBatch && throwable instanceof AbortedException) {
+            return true;
         }
-        return shouldRetry(throwable.getCause());
+        return shouldRetry(throwable.getCause(), isBatch);
     }
 
     // TODO - convert this to a generic, remove duplicate code from FireStoreDirectoryDao
@@ -290,7 +292,7 @@ public class FireStoreUtils {
                 return transactionGet(transactionOp, transaction);
             } catch (Exception ex) {
                 final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
-                if (FireStoreUtils.shouldRetry(ex) && retry < firestoreRetries) {
+                if (FireStoreUtils.shouldRetry(ex, false) && retry < firestoreRetries) {
                     // perform retry
                     retry++;
                     logger.warn("[transaction retry] Retry-able error in firestore transactions - {} " +

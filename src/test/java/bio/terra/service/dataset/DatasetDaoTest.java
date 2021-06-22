@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.CloudRegion;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
@@ -76,6 +77,7 @@ public class DatasetDaoTest {
                                GoogleRegion region) throws Exception {
         datasetRequest
             .name(newName)
+            .cloudPlatform(CloudPlatform.GCP)
             .defaultProfileId(billingProfile.getId());
         if (region != null) {
             datasetRequest.region(region.toString()).cloudPlatform(CloudPlatform.GCP);
@@ -92,7 +94,7 @@ public class DatasetDaoTest {
 
     private UUID createDataset(String datasetFile) throws Exception  {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
-        return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString(),
+        return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID(),
             null);
     }
 
@@ -236,7 +238,7 @@ public class DatasetDaoTest {
             fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
 
             for (GoogleCloudResource resource: GoogleCloudResource.values()) {
-                GoogleRegion region = (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+                CloudRegion region = fromDB.getDatasetSummary().getStorageResourceRegion(resource);
                 assertThat(String.format("dataset %s region is set", resource),
                     region,
                     equalTo(testSettingRegion));
@@ -258,7 +260,7 @@ public class DatasetDaoTest {
             Dataset fromDB = datasetDao.retrieve(datasetId);
 
             for (GoogleCloudResource resource: GoogleCloudResource.values()) {
-                GoogleRegion region = (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
+                CloudRegion region = (GoogleRegion) fromDB.getDatasetSummary().getStorageResourceRegion(resource);
                 GoogleRegion expectedRegion =
                     (resource == GoogleCloudResource.BIGQUERY) ? GoogleRegion.US : GoogleRegion.US_EAST4;
                 assertThat(String.format("dataset %s region is set to %s", resource, region.name()),

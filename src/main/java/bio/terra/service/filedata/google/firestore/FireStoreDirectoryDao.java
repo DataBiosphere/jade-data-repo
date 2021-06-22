@@ -196,13 +196,12 @@ public class FireStoreDirectoryDao {
     public FireStoreDirectoryEntry retrieveById(
         Firestore firestore, String collectionId, String fileId) throws InterruptedException {
 
-        return fireStoreUtils.runTransactionWithRetry(firestore,
-            xn -> {
-                DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
-                return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreDirectoryEntry.class))
-                    .orElse(null);
-            },
+        DocumentSnapshot docSnap = fireStoreUtils.runTransactionWithRetry(firestore,
+            xn -> lookupByFileId(firestore, collectionId, fileId, xn),
             "retrieveById", " file id: " + fileId);
+
+        return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreDirectoryEntry.class))
+            .orElse(null);
     }
 
     // Returns null if not found - upper layers do any throwing
@@ -211,13 +210,11 @@ public class FireStoreDirectoryDao {
 
         String lookupPath = makeLookupPath(fullPath);
 
-        return fireStoreUtils.runTransactionWithRetry(firestore,
-            xn -> {
-                DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, lookupPath, xn);
-                return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreDirectoryEntry.class))
-                    .orElse(null);
-            },
+        DocumentSnapshot docSnap = fireStoreUtils.runTransactionWithRetry(firestore,
+            xn -> lookupByFilePath(firestore, collectionId, lookupPath, xn),
             "retrieveByPath", " path: " + lookupPath);
+        return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreDirectoryEntry.class))
+            .orElse(null);
     }
 
 

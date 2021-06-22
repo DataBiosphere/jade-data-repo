@@ -138,7 +138,7 @@ public class FileLoadTest {
         // delete the dataset within this test, instead of in teardown
         // so that the LOAD_SKIP_FILE_LOAD fault is still enabled and we don't try to delete a file
         // that was never actually copied to GCS
-        connectedOperations.deleteTestDatasetAndCleanup(datasetSummary.getId().toString());
+        connectedOperations.deleteTestDatasetAndCleanup(datasetSummary.getId());
 
         assertThat(summary.getSucceededFiles(), equalTo(filesToLoad));
     }

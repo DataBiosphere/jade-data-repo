@@ -621,7 +621,7 @@ public class BigQueryPdao {
                 logger.error("Invalid row ids supplied: rowIds=" + rowIds.size() +
                     " count=" + countValue.getLongValue());
                 for (UUID rowId : rowIds) {
-                    logger.error(" rowIdIn: " + rowId.toString());
+                    logger.error(" rowIdIn: " + rowId);
                 }
                 throw new PdaoException("Invalid row ids supplied");
             }

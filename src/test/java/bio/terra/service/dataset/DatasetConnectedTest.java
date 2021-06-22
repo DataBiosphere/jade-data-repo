@@ -134,7 +134,7 @@ public class DatasetConnectedTest {
         assertNotNull("created dataset successfully the first time", summaryModel);
 
         // fetch the dataset and confirm the metadata matches the request
-        DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId().toString());
+        DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
         assertNotNull("fetched dataset successfully after creation", datasetModel);
         assertEquals("fetched dataset name matches request", datasetRequest.getName(), datasetModel.getName());
 
@@ -150,14 +150,14 @@ public class DatasetConnectedTest {
             errorModel.getMessage(), containsString("Dataset name or id already exists"));
 
         // fetch the dataset and confirm the metadata still matches the original
-        DatasetModel origModel = connectedOperations.getDataset(summaryModel.getId().toString());
+        DatasetModel origModel = connectedOperations.getDataset(summaryModel.getId());
         assertEquals("fetched dataset remains unchanged", datasetModel, origModel);
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -193,7 +193,7 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -280,10 +280,10 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -375,10 +375,10 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -462,10 +462,10 @@ public class DatasetConnectedTest {
             startsWith("Failed to lock the dataset"));
 
         // delete the dataset again and check that it succeeds now that there are no outstanding locks
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     // todo known flaky test - documented in DR-1102
@@ -536,10 +536,10 @@ public class DatasetConnectedTest {
         assertTrue("Soft deleted row id is still in soft delete table", softDeleteRowIds2.contains(softDeleteRowId));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -645,10 +645,10 @@ public class DatasetConnectedTest {
                 softDeleteRowIds.contains(softDeleteRowId2));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -714,10 +714,10 @@ public class DatasetConnectedTest {
                 softDeleteRowIdsFromBQ.contains(softDeleteGoodRowId));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
+        connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -730,7 +730,7 @@ public class DatasetConnectedTest {
         assertEquals("dataset row has no shared lock", 0, sharedLocks.length);
 
         // retrieve the dataset and check that it finds it
-        DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId().toString());
+        DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
         assertEquals("Lookup unlocked dataset succeeds", summaryModel.getName(), datasetModel.getName());
 
         // enumerate datasets and check that this dataset is included in the set
@@ -800,7 +800,7 @@ public class DatasetConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -890,7 +890,7 @@ public class DatasetConnectedTest {
         connectedOperations.removeFile(summaryModel.getId().toString(), fileModel.getFileId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     private List<String> getRowIdsFromBQTable(String datasetName, String tableName) throws Exception {
@@ -964,7 +964,7 @@ public class DatasetConnectedTest {
         assertTrue("Dataset delete should have successfully completed after acquiring exclusive lock",
             status.is2xxSuccessful());
         if (connectedOperations.checkDeleteResponse(response)) {
-            connectedOperations.removeDatasetFromTracking(datasetId.toString());
+            connectedOperations.removeDatasetFromTracking(datasetId);
         }
         logger.info("Dataset successfully deleted after acquiring exclusive lock.");
     }
@@ -1011,7 +1011,7 @@ public class DatasetConnectedTest {
         assertTrue("Dataset delete should have successfully completed after acquiring exclusive lock",
             status.is2xxSuccessful());
         if (connectedOperations.checkDeleteResponse(response)) {
-            connectedOperations.removeDatasetFromTracking(datasetId.toString());
+            connectedOperations.removeDatasetFromTracking(datasetId);
         }
         logger.info("Dataset successfully deleted after acquiring exclusive lock.");
     }
@@ -1050,7 +1050,7 @@ public class DatasetConnectedTest {
             status.is2xxSuccessful());
 
         // since we just deleted the dataset, remove it from the cleanup tasks
-        connectedOperations.removeDatasetFromTracking(datasetId.toString());
+        connectedOperations.removeDatasetFromTracking(datasetId);
 
     }
 }

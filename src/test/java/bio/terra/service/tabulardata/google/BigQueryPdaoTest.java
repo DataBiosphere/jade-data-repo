@@ -189,7 +189,7 @@ public class BigQueryPdaoTest {
                 .getStorageResourceRegion(GoogleCloudResource.BIGQUERY)
                 .toString();
 
-            connectedOperations.addDataset(dataset.getId().toString());
+            connectedOperations.addDataset(dataset.getId());
 
             // Stage tabular data for ingest.
             BlobInfo participantBlob = BlobInfo
@@ -245,7 +245,7 @@ public class BigQueryPdaoTest {
                 SnapshotSummaryModel snapshotSummary =
                     connectedOperations.createSnapshot(datasetSummaryModel,
                         "ingest-test-snapshot.json", "");
-                SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId().toString());
+                SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
                 com.google.cloud.bigquery.Dataset bqSnapshotDataset = bigQuerySnapshot(dataset, snapshot.getName());
 
@@ -280,7 +280,7 @@ public class BigQueryPdaoTest {
                 // Create another snapshot.
                 snapshotSummary = connectedOperations.createSnapshot(
                     datasetSummaryModel, "ingest-test-snapshot.json", "");
-                SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId().toString());
+                SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId());
                 Assert.assertThat(snapshot2.getTables().size(), is(equalTo(3)));
 
                 participantIds = queryForIds(snapshot2.getName(), "participant", bigQueryProject);
@@ -309,7 +309,7 @@ public class BigQueryPdaoTest {
     @Test
     public void nonStringAssetRootTest() throws Exception {
         Dataset dataset = readDataset("ingest-test-dataset.json");
-        connectedOperations.addDataset(dataset.getId().toString());
+        connectedOperations.addDataset(dataset.getId());
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -351,7 +351,7 @@ public class BigQueryPdaoTest {
             SnapshotSummaryModel snapshotSummary =
                 connectedOperations.createSnapshot(datasetSummaryModel,
                     "ingest-test-snapshot-by-date.json", "");
-            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId().toString());
+            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
             BigQueryProject bigQueryProject =
                 TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
@@ -416,7 +416,7 @@ public class BigQueryPdaoTest {
     @Test
     public void testGetFullViews() throws Exception {
         Dataset dataset = readDataset("ingest-test-dataset.json");
-        connectedOperations.addDataset(dataset.getId().toString());
+        connectedOperations.addDataset(dataset.getId());
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -457,7 +457,7 @@ public class BigQueryPdaoTest {
                 dataset.getDatasetSummary());
             SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(datasetSummary,
                 "snapshot-fullviews-test-snapshot.json", "");
-            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId().toString());
+            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
             BigQueryProject bigQueryProject =
                 TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());

@@ -234,10 +234,10 @@ public class SnapshotConnectedTest {
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId().toString(), snapshotRequestScale,
                 datasetSummary);
 
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId().toString());
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         // Duplicate delete should work
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId().toString());
-        connectedOperations.getSnapshotExpectError(snapshotModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
     }
 
 
@@ -312,7 +312,7 @@ public class SnapshotConnectedTest {
         assertThat("we found all snapshots", compareIndex, equalTo(5));
 
         for (int i = 0; i < 5; i++) {
-            connectedOperations.deleteTestSnapshot(enumeratedArray.get(i).getId().toString());
+            connectedOperations.deleteTestSnapshot(enumeratedArray.get(i).getId());
         }
     }
 
@@ -354,8 +354,8 @@ public class SnapshotConnectedTest {
         assertEquals("fetched snapshot remains unchanged", snapshotModel, origModel);
 
         // delete and confirm deleted
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId().toString());
-        connectedOperations.getSnapshotExpectError(snapshotModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -378,8 +378,8 @@ public class SnapshotConnectedTest {
         assertNull("snapshot row is unlocked", exclusiveLock);
 
         // delete and confirm deleted
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId().toString());
-        connectedOperations.getSnapshotExpectError(snapshotModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
 
         // now after deleting the snapshot, make sure you can create it again and the delete worked!
         snapshotRequest.setName(snapshotModel.getName());
@@ -387,8 +387,8 @@ public class SnapshotConnectedTest {
         SnapshotSummaryModel summaryModelSequel = validateSnapshotCreated(snapshotRequest, response);
 
         // then delete it a final time for cleanup
-        connectedOperations.deleteTestSnapshot(summaryModelSequel.getId().toString());
-        connectedOperations.getSnapshotExpectError(summaryModelSequel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.deleteTestSnapshot(summaryModelSequel.getId());
+        connectedOperations.getSnapshotExpectError(summaryModelSequel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Ignore("Remove ignore after DR-1770 is addressed")
@@ -428,7 +428,7 @@ public class SnapshotConnectedTest {
             startsWith("Failed to lock the snapshot"));
 
         // confirm deleted
-        connectedOperations.getSnapshotExpectError(summaryModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getSnapshotExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -442,7 +442,7 @@ public class SnapshotConnectedTest {
         assertNull("snapshot row is unlocked", exclusiveLock);
 
         // retrieve the snapshot and check that it finds it
-        SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummary.getId().toString());
+        SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummary.getId());
         assertEquals("Lookup unlocked snapshot succeeds", snapshotSummary.getName(), snapshotModel.getName());
 
         // enumerate snapshots and check that this snapshot is included in the set
@@ -512,7 +512,7 @@ public class SnapshotConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // try to fetch the snapshot again and confirm nothing is returned
-        connectedOperations.getSnapshotExpectError(snapshotSummary.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -632,16 +632,16 @@ public class SnapshotConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDatasetAndCleanup(datasetRefSummary.getId().toString());
+        connectedOperations.deleteTestDatasetAndCleanup(datasetRefSummary.getId());
 
         // remove the file from the connectedoperation bookkeeping list
         connectedOperations.removeFile(datasetRefSummary.getId().toString(), fileModel.getFileId());
 
         // try to fetch the snapshot again and confirm nothing is returned
-        connectedOperations.getSnapshotExpectError(snapshotSummary.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(datasetRefSummary.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(datasetRefSummary.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -930,10 +930,10 @@ public class SnapshotConnectedTest {
 
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId().toString(), snapshotRequest, datasetSummary);
 
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId().toString());
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         // Duplicate delete should work
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId().toString());
-        connectedOperations.getSnapshotExpectError(snapshotModel.getId().toString(), HttpStatus.NOT_FOUND);
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
     }
 
 }

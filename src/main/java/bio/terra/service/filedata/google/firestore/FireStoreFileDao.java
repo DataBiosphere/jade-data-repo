@@ -15,6 +15,7 @@ import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Transaction;
 import com.google.cloud.firestore.WriteResult;
+
 import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,11 +56,19 @@ class FireStoreFileDao {
         this.executor = executor;
     }
 
+
+
     void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) throws InterruptedException {
         String collectionId = makeCollectionId(datasetId);
         fireStoreUtils.runTransactionWithRetry(firestore,
-            (xn) -> xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile),
-            "createFileMetadata", " creating file metadata for dataset Id: " + datasetId);
+            new FireStoreUtils.FirestoreFunction() {
+                @Override
+                public <Void> Void apply(Transaction xn) {
+                    xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
+                    return null;
+                }
+            },
+            Void.class, "createFileMetadata", " creating file metadata for dataset Id: " + datasetId);
     }
 
     boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId) throws InterruptedException {

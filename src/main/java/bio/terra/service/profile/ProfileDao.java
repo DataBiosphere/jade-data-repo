@@ -67,8 +67,10 @@ public class ProfileDao {
             .or(() -> Optional.of(CloudPlatform.GCP))
             .map(Enum::name)
             .get();
-        String tenantId = Optional.ofNullable(profileRequest.getTenantId()).orElse(null);
-        String subscriptionId = Optional.ofNullable(profileRequest.getSubscriptionId()).orElse(null);
+        UUID tenantId = Optional.ofNullable(profileRequest.getTenantId()).map(UUID::fromString).orElse(null);
+        UUID subscriptionId = Optional.ofNullable(profileRequest.getSubscriptionId())
+                .map(UUID::fromString)
+                .orElse(null);
         String resourceGroupName = Optional.ofNullable(profileRequest.getResourceGroupName()).orElse(null);
         String applicationDeploymentName =
             Optional.ofNullable(profileRequest.getApplicationDeploymentName()).orElse(null);

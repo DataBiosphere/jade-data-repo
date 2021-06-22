@@ -160,8 +160,8 @@ public class ProfileConnectedTest {
 
         var invalidUuidRequest = ProfileFixtures.randomBillingProfileRequest()
             .cloudPlatform(CloudPlatform.AZURE)
-            .tenantId(null)
-            .subscriptionId(null)
+            .tenantId("not-a-valid-uuid")
+            .subscriptionId("not-a-valid-uuid")
             .resourceGroupName("");
 
         var invalidUuid = connectedOperations

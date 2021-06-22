@@ -584,7 +584,8 @@ public class DatasetConnectedTest {
         configService.setFault(ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // kick off the first soft delete request, it should hang just before updating the soft delete table
-        MvcResult softDeleteResult1 = connectedOperations.softDeleteRaw(summaryModel.getId().toString(), softDeleteRequest1);
+        MvcResult softDeleteResult1 = connectedOperations.softDeleteRaw(summaryModel.getId().toString(),
+                softDeleteRequest1);
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has a shared lock
@@ -594,7 +595,8 @@ public class DatasetConnectedTest {
         String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
         // kick off the second soft delete request, it should also hang just before updating the soft delete table
-        MvcResult softDeleteResult2 = connectedOperations.softDeleteRaw(summaryModel.getId().toString(), softDeleteRequest2);
+        MvcResult softDeleteResult2 = connectedOperations.softDeleteRaw(summaryModel.getId().toString(),
+                softDeleteRequest2);
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
@@ -637,8 +639,10 @@ public class DatasetConnectedTest {
         // check that the size of the soft delete table matches what we expect
         List<String> softDeleteRowIds = getRowIdsFromBQTable(summaryModel.getName(), internalSoftDeleteTableName);
         assertEquals("Size of soft delete table is 2", 2, softDeleteRowIds.size());
-        assertTrue("Soft deleted row id #1 is in soft delete table", softDeleteRowIds.contains(softDeleteRowId1));
-        assertTrue("Soft deleted row id #2 is in soft delete table", softDeleteRowIds.contains(softDeleteRowId2));
+        assertTrue("Soft deleted row id #1 is in soft delete table",
+                softDeleteRowIds.contains(softDeleteRowId1));
+        assertTrue("Soft deleted row id #2 is in soft delete table",
+                softDeleteRowIds.contains(softDeleteRowId2));
 
         // delete the dataset and check that it succeeds
         connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
@@ -683,7 +687,8 @@ public class DatasetConnectedTest {
             dirInCloud, "testBadSoftDelete.csv", tableName, softDeleteRowIds);
 
         // make the soft delete request and wait for it to return
-        MvcResult softDeleteResult = connectedOperations.softDeleteRaw(summaryModel.getId().toString(), softDeleteRequest);
+        MvcResult softDeleteResult = connectedOperations.softDeleteRaw(summaryModel.getId().toString(),
+                softDeleteRequest);
         MockHttpServletResponse softDeleteResponse = connectedOperations.validateJobModelAndWait(softDeleteResult);
         assertEquals("soft delete of bad row id failed",
             HttpStatus.BAD_REQUEST.value(), softDeleteResponse.getStatus());
@@ -703,8 +708,10 @@ public class DatasetConnectedTest {
         // check that the size of the soft delete table matches what we expect
         List<String> softDeleteRowIdsFromBQ = getRowIdsFromBQTable(summaryModel.getName(), internalSoftDeleteTableName);
         assertEquals("Size of soft delete table is 0", 0, softDeleteRowIdsFromBQ.size());
-        assertFalse("Bad row id is not in soft delete table", softDeleteRowIdsFromBQ.contains(softDeleteBadRowId));
-        assertFalse("Good row id is not in soft delete table", softDeleteRowIdsFromBQ.contains(softDeleteGoodRowId));
+        assertFalse("Bad row id is not in soft delete table",
+                softDeleteRowIdsFromBQ.contains(softDeleteBadRowId));
+        assertFalse("Good row id is not in soft delete table",
+                softDeleteRowIdsFromBQ.contains(softDeleteGoodRowId));
 
         // delete the dataset and check that it succeeds
         connectedOperations.deleteTestDatasetAndCleanup(summaryModel.getId().toString());
@@ -744,7 +751,8 @@ public class DatasetConnectedTest {
         configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // kick off a request to delete the dataset. this should hang before unlocking the dataset object.
-        MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+        MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/datasets/" +
+                summaryModel.getId())).andReturn();
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has an exclusive lock
@@ -807,7 +815,8 @@ public class DatasetConnectedTest {
         // ingest a file
         URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt",
             null, null);
-        String targetPath1 = "/mm/" + Names.randomizeName("testdir") + "/testExcludeLockedFromFileLookups.txt";
+        String targetPath1 = "/mm/" + Names.randomizeName("testdir") +
+                "/testExcludeLockedFromFileLookups.txt";
         FileLoadModel fileLoadModel = new FileLoadModel()
             .sourcePath(sourceUri.toString())
             .description("testExcludeLockedFromFileLookups")
@@ -824,8 +833,10 @@ public class DatasetConnectedTest {
 
         // lookup the file by path and check that it's found
         FileModel fileModelFromPathLookup =
-            connectedOperations.lookupFileByPathSuccess(summaryModel.getId().toString(), fileModel.getPath(), -1);
-        assertEquals("File found by path lookup", fileModel.getDescription(), fileModelFromPathLookup.getDescription());
+            connectedOperations.lookupFileByPathSuccess(summaryModel.getId().toString(),
+                    fileModel.getPath(), -1);
+        assertEquals("File found by path lookup", fileModel.getDescription(),
+                fileModelFromPathLookup.getDescription());
 
         // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
         // ====================================================
@@ -833,7 +844,8 @@ public class DatasetConnectedTest {
         configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // kick off a request to delete the dataset. this should hang before unlocking the dataset object.
-        MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+        MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/datasets/" +
+                summaryModel.getId())).andReturn();
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has an exclusive lock

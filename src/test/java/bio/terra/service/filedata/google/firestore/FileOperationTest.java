@@ -344,7 +344,8 @@ public class FileOperationTest {
         BulkLoadArrayRequestModel arrayLoad = makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest",
                 0, fileCount);
 
-        BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId().toString(), arrayLoad);
+        BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId().toString(),
+                arrayLoad);
         checkLoadSummary(result.getLoadSummary(), arrayLoad.getLoadTag(), fileCount, fileCount, 0, 0);
 
         Map<String, String> fileIdMap = new HashMap<>();

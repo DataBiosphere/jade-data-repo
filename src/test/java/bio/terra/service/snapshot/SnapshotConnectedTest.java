@@ -181,7 +181,8 @@ public class SnapshotConnectedTest {
                 "dataset-minimal-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
         SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId().toString(), snapshotRequest, datasetMinimalSummary);
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId().toString(), snapshotRequest,
+                datasetMinimalSummary);
         List<TableModel> tables = snapshotModel.getTables();
         Optional<TableModel> participantTable = tables
             .stream()
@@ -230,7 +231,8 @@ public class SnapshotConnectedTest {
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequestScale, "");
         SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequestScale, response);
 
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId().toString(), snapshotRequestScale, datasetSummary);
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId().toString(), snapshotRequestScale,
+                datasetSummary);
 
         connectedOperations.deleteTestSnapshot(snapshotModel.getId().toString());
         // Duplicate delete should work
@@ -529,7 +531,8 @@ public class SnapshotConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetFilePath)
             .profileId(billingProfile.getId());
-        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetRefSummary.getId().toString(), fileLoadModel);
+        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetRefSummary.getId().toString(),
+                fileLoadModel);
 
         // generate a JSON file with the fileref
         String jsonLine = "{\"name\":\"name1\", \"file_ref\":\"" + fileModel.getFileId() + "\"}\n";
@@ -658,7 +661,8 @@ public class SnapshotConnectedTest {
             .mimeType("text/plain")
             .targetPath(targetFilePath)
             .profileId(billingProfile.getId());
-        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetRefSummary.getId().toString(), fileLoadModel);
+        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetRefSummary.getId().toString(),
+                fileLoadModel);
 
         // generate a JSON file with the fileref
         String jsonLine = "{\"name\":\"name1\", \"file_ref\":[\"" + fileModel.getFileId() + "\"]}\n";

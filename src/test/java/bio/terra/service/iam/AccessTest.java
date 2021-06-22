@@ -170,7 +170,8 @@ public class AccessTest extends UsersBase {
                 profileId,
                 "ingest-test-snapshot.json");
 
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId().toString());
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(),
+                snapshotSummaryModel.getId().toString());
         BigQuery bigQuery = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         try {
             BigQueryFixtures.datasetExists(bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());

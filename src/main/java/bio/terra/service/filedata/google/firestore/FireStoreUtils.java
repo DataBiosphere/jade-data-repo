@@ -2,6 +2,7 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.filedata.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
@@ -22,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -35,6 +37,7 @@ public class FireStoreUtils {
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
 
     private int firestoreRetries;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     public FireStoreUtils(GoogleResourceConfiguration googleResourceConfiguration) {
@@ -271,26 +274,31 @@ public class FireStoreUtils {
     }
 
     // TODO - convert this to a generic, remove duplicate code from FireStoreDirectoryDao
+    @FunctionalInterface
     interface FirestoreFunction {
-        void apply(Transaction xn) throws InterruptedException;
+        <T> T apply(Transaction xn) throws InterruptedException;
     }
 
-    public void runTransactionWithRetry(Firestore firestore,
+    public <T> T runTransactionWithRetry(Firestore firestore,
                                         FirestoreFunction firestoreFunction,
+                                        Class<T> transactionType,
                                         String transactionOp,
                                         String warnMessage) throws InterruptedException {
         int retry = 0;
         while (true) {
             try {
-                ApiFuture<Void> transaction =
+                ApiFuture<T> transaction =
                     firestore.runTransaction(
                         xn -> {
-                            firestoreFunction.apply(xn);
-                            return null;
+                            Object fieldObject = firestoreFunction.apply(xn);
+                            if (transactionType.isInstance(fieldObject)) {
+                                return objectMapper.convertValue(fieldObject, transactionType);
+                            } else {
+                                throw new InvalidFileSystemObjectTypeException("Unexpected transaction type");
+                            }
                         });
 
-                transactionGet(transactionOp, transaction);
-                return;
+                return transactionGet(transactionOp, transaction);
             } catch (Exception ex) {
                 final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
                 if (FireStoreUtils.shouldRetry(ex) && retry < firestoreRetries) {

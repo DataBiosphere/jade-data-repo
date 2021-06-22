@@ -2,11 +2,10 @@ package bio.terra.app.controller;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
-import bio.terra.controller.DataRepositoryServiceApi;
-import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
+import bio.terra.controller.DataRepositoryServiceApi;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
@@ -19,6 +18,8 @@ import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
+import java.util.Optional;
+import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,9 +29,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import javax.servlet.http.HttpServletRequest;
-import java.util.Optional;
 
 @Controller
 @Api(tags = {"DataRepositoryService"})
@@ -127,8 +125,9 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     @Override
     public ResponseEntity<DRSAccessURL> getAccessURL(@PathVariable("object_id") String objectId,
                                                      @PathVariable("access_id") String accessId) {
-        // We never give out access ids, so by definition, the input is invalid.
-        throw new ValidationException("Invalid access_id: '" + accessId + "'");
+        AuthenticatedUserRequest authUser = getAuthenticatedInfo();
+        DRSAccessURL accessURL = drsService.getAccessUrlForObjectId(authUser, objectId, accessId);
+        return new ResponseEntity<>(accessURL, HttpStatus.OK);
     }
 
     @Override

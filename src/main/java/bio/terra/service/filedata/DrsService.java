@@ -2,7 +2,9 @@ package bio.terra.service.filedata;
 
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.DRSAccessMethod;
+import bio.terra.model.DRSAccessMethod.TypeEnum;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
@@ -20,23 +22,31 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /*
  * WARNING: if making any changes to this class make sure to notify the #dsp-batch channel! Describe the change and
@@ -178,6 +188,60 @@ public class DrsService {
         }
     }
 
+    public DRSAccessURL getAccessUrlForObjectId(AuthenticatedUserRequest authUser, String objectId, String accessId) {
+        DRSObject object = lookupObjectByDrsId(authUser, objectId, false);
+
+        DrsId drsId = drsIdService.fromObjectId(objectId);
+        Snapshot snapshot = snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()));
+        SnapshotProject snapshotProject = snapshotService.retrieveAvailableSnapshotProject(snapshot.getId());
+        GoogleProjectResource projectResource = snapshot.getProjectResource();
+
+        FSItem fsObject = null;
+        try {
+            String lookupTimer = performanceLogger.timerStart();
+            fsObject = fileService.lookupSnapshotFSItem(
+                snapshotProject,
+                drsId.getFsObjectId(),
+                1);
+
+            performanceLogger.timerEndAndLog(
+                lookupTimer,
+                objectId, // not a flight, so no job id
+                this.getClass().getName(),
+                "fileService.lookupSnapshotFSItem");
+        } catch (InterruptedException ex) {
+            throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
+        }
+
+        GcsPdao.GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(fsObject.getPath());
+        String gsBucket = locator.getBucket();
+
+        if (doesAccessIdMatch(accessId, object)) {
+            Storage storage = StorageOptions.newBuilder().setProjectId(projectResource.getGoogleProjectId()).build().getService();
+
+            // Define resource
+            BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(gsBucket, object.getName())).build();
+
+            URL url =
+                storage.signUrl(blobInfo, 15, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
+
+            return new DRSAccessURL().url(url.toString());
+        } else {
+            throw new IllegalArgumentException("No matching access ID " + accessId + " was found on object " + objectId);
+        }
+
+    }
+
+    private boolean doesAccessIdMatch(String accessId, DRSObject object) {
+        List<DRSAccessMethod> matchingAccessMethods = object.getAccessMethods().stream()
+            .filter(
+                drsAccessMethod -> drsAccessMethod.getAccessId().equals(accessId) && drsAccessMethod
+                    .getType().equals(TypeEnum.GS))
+            .collect(Collectors.toList());
+
+        return matchingAccessMethods.size() > 0;
+    }
+
     private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
         DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
@@ -186,9 +250,12 @@ public class DrsService {
         DRSAccessURL gsAccessURL = new DRSAccessURL()
             .url(fsFile.getGspath());
 
+        GoogleRegion region = bucketResource.getRegion();
+        String accessId = "gcp-" + region.name();
         DRSAccessMethod gsAccessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
             .accessUrl(gsAccessURL)
+            .accessId(accessId)
             .region(bucketResource.getRegion().toString());
 
         DRSAccessURL httpsAccessURL = new DRSAccessURL()

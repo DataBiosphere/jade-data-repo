@@ -283,7 +283,7 @@ public class FireStoreUtils {
                 return transactionGet(transactionOp, transaction);
             } catch (Exception ex) {
                 final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry));
-                if (FireStoreUtils.shouldRetry(ex, false) && retry < firestoreRetries) {
+                if (retry < firestoreRetries && FireStoreUtils.shouldRetry(ex, false)) {
                     // perform retry
                     retry++;
                     logger.warn("[transaction retry] Retry-able error in firestore transactions - {} " +

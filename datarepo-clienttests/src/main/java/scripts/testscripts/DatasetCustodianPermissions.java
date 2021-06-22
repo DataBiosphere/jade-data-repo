@@ -16,6 +16,7 @@ import com.google.cloud.bigquery.TableResult;
 import common.utils.BigQueryUtils;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;

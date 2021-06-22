@@ -6,6 +6,7 @@ import bio.terra.datarepo.model.EnumerateBillingProfileModel;
 import bio.terra.datarepo.model.PolicyModel;
 import bio.terra.datarepo.model.PolicyResponse;
 import java.util.List;
+import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,14 +43,14 @@ public class BillingProfileUsers extends runner.TestScript {
 
   // Run is sequence of operations collecting their results. At the end compare the results
   // to what is expected for their role state.
-  protected void testOperations(DataRepoWrap wrap, RoleState role, String profileId)
+  protected void testOperations(DataRepoWrap wrap, RoleState role, UUID profileId)
       throws Exception {
 
     // Test for ability to enumerate the profile
     boolean foundEnumeration = false;
     EnumerateBillingProfileModel enumeration = wrap.enumerateProfiles(0, 1000);
     for (BillingProfileModel profile : enumeration.getItems()) {
-      if (StringUtils.equals(profileId, profile.getId())) {
+      if (profileId.equals(profile.getId())) {
         foundEnumeration = true;
       }
     }
@@ -143,7 +144,7 @@ public class BillingProfileUsers extends runner.TestScript {
     }
   }
 
-  protected void dumpPolicies(DataRepoWrap wrap, String profileId) {
+  protected void dumpPolicies(DataRepoWrap wrap, UUID profileId) {
     PolicyResponse policies = wrap.retrieveProfilePolicies(profileId);
     for (PolicyModel policy : policies.getPolicies()) {
       logger.info(

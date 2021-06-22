@@ -189,10 +189,7 @@ public final class DataRepoUtils {
    * @return the completed job model
    */
   public static JobModel createDataset(
-      RepositoryApi repositoryApi,
-      String profileId,
-      String apipayloadFilename,
-      boolean randomizeName)
+      RepositoryApi repositoryApi, UUID profileId, String apipayloadFilename, boolean randomizeName)
       throws Exception {
     logger.debug("Creating a dataset");
     // use Jackson to map the stream contents to a DatasetRequestModel object
@@ -275,7 +272,7 @@ public final class DataRepoUtils {
 
     BillingProfileRequestModel createProfileRequest =
         new BillingProfileRequestModel()
-            .id(UUID.randomUUID().toString())
+            .id(UUID.randomUUID())
             .biller("direct")
             .billingAccountId(billingAccount)
             .profileName(profileName)

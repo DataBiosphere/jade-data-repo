@@ -2,7 +2,6 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.filedata.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
@@ -84,7 +83,7 @@ public class FireStoreUtils {
             return new FileSystemAbortTransactionException(msg, fex);
         }
         if (throwable instanceof RuntimeException) {
-            logger.info("[{}] FirestoreUtils.handleExecutionException - RuntimeException - op", op);
+            logger.info("[{}] FirestoreUtils.handleExecutionException - RuntimeException", op);
             return (RuntimeException) throwable;
         }
         logger.info("[{}] FirestoreUtils.handleExecutionException - Wrapping w/ FileSystemExecutionException", op);
@@ -264,7 +263,7 @@ public class FireStoreUtils {
         }
         if (throwable instanceof DeadlineExceededException ||
             throwable instanceof UnavailableException ||
-            throwable instanceof AbortedException ||
+            //throwable instanceof AbortedException ||
             throwable instanceof InternalException ||
             throwable instanceof StatusRuntimeException) {
 
@@ -291,11 +290,7 @@ public class FireStoreUtils {
                     firestore.runTransaction(
                         xn -> {
                             Object fieldObject = firestoreFunction.apply(xn);
-                            if (transactionType.isInstance(fieldObject)) {
-                                return objectMapper.convertValue(fieldObject, transactionType);
-                            } else {
-                                throw new InvalidFileSystemObjectTypeException("Unexpected transaction type");
-                            }
+                            return objectMapper.convertValue(fieldObject, transactionType);
                         });
 
                 return transactionGet(transactionOp, transaction);

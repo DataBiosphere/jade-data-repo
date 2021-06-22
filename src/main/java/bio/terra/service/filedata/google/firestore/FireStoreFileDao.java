@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * FireStoreFileDao provides CRUD operations on the file collection in Firestore.
@@ -68,7 +67,8 @@ class FireStoreFileDao {
                     return null;
                 }
             },
-            Void.class, "createFileMetadata", " creating file metadata for dataset Id: " + datasetId);
+            Void.class, "createFileMetadata",
+            " creating file metadata for dataset Id: " + datasetId);
     }
 
     boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId) throws InterruptedException {
@@ -86,7 +86,6 @@ class FireStoreFileDao {
         return fireStoreUtils.transactionGet("deleteFileMetadata", transaction);
     }
 
-    private static final int RETRY_MILLISECONDS = 500;
     private static final int SLEEP_BASE_MILLISECONDS = 1000;
 
     // Returns null on not found
@@ -97,44 +96,30 @@ class FireStoreFileDao {
     FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileId)
         throws InterruptedException {
 
-        int retry = 0;
-        while (true) {
-            try {
-                String collectionId = makeCollectionId(datasetId);
-                ApiFuture<FireStoreFile> transaction = firestore.runTransaction(xn -> {
+        String collectionId = makeCollectionId(datasetId);
+
+        return fireStoreUtils.runTransactionWithRetry(firestore,
+            new FireStoreUtils.FirestoreFunction() {
+                @Override
+                public FireStoreFile apply(Transaction xn) throws InterruptedException {
                     DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
                     if (docSnap == null || !docSnap.exists()) {
                         return null;
                     }
-                    return docSnap.toObject(FireStoreFile.class);
-                });
 
-                // Fault insertion to test retry
-                if (configurationService.testInsertFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT)) {
-                    throw new AbortedException(
-                        new FileSystemAbortTransactionException("fault insertion"),
-                        GrpcStatusCode.of(Status.Code.ABORTED),
-                        true);
-                }
-
-                return fireStoreUtils.transactionGet("retrieveFileMetadata", transaction);
-            } catch (Exception ex) {
-                final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
-                if (fireStoreUtils.shouldRetry(ex) && retry < fireStoreUtils.getFirestoreRetries()) {
-                    // perform retry
-                    retry++;
-                    logger.warn("Retry-able firestore transaction - {} - will attempt retry #{}" +
-                            " after {} millisecond pause. Message: {}",
-                        "retrieveFileMetadata", retry, retryWait, ex.getMessage());
-                    TimeUnit.MILLISECONDS.sleep(retryWait);
-                } else {
-                    if (retry > fireStoreUtils.getFirestoreRetries()) {
-                        logger.error("Ran out of retries - retrieveFileMetadata");
+                    // Fault insertion to test retry
+                    if (configurationService.testInsertFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT)) {
+                        throw new AbortedException(
+                            new FileSystemAbortTransactionException("fault insertion"),
+                            GrpcStatusCode.of(Status.Code.ABORTED),
+                            true);
                     }
-                    throw ex;
+
+                    return docSnap.toObject(FireStoreFile.class);
                 }
-            }
-        }
+            },
+            FireStoreFile.class, "retrieveFileMetadata",
+            " retrieving file metadata for dataset Id: " + datasetId);
     }
 
     /**

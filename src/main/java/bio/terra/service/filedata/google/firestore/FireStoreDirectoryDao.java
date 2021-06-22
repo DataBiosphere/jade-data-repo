@@ -120,7 +120,6 @@ public class FireStoreDirectoryDao {
                     }
 
                     // transition point from reading to writing in the transaction
-
                     for (FireStoreDirectoryEntry dirToCreate : createList) {
                         xn.set(getDocRef(firestore, collectionId, dirToCreate), dirToCreate);
                     }

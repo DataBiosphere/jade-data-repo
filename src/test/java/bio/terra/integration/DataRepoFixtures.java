@@ -380,7 +380,7 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<EnumerateSnapshotModel> enumerateSnapshotsByDatasetIdsRaw(
-        TestConfiguration.User user, List<String> datasetIds) throws Exception {
+        TestConfiguration.User user, List<UUID> datasetIds) throws Exception {
         String datasetIdsString;
         List<String> datasetIdsQuery = ListUtils.emptyIfNull(datasetIds).stream()
             .map(id -> "datasetIds=" + id).collect(Collectors.toList());
@@ -393,7 +393,7 @@ public class DataRepoFixtures {
     }
 
     public EnumerateSnapshotModel enumerateSnapshotsByDatasetIds(
-        TestConfiguration.User user, List<String> datasetIds) throws Exception {
+        TestConfiguration.User user, List<UUID> datasetIds) throws Exception {
         DataRepoResponse<EnumerateSnapshotModel> response = enumerateSnapshotsByDatasetIdsRaw(user, datasetIds);
         assertThat("snapshot enumeration is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("snapshot get response is present", response.getResponseObject().isPresent());

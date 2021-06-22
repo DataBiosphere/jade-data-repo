@@ -83,15 +83,15 @@ public class ProfileConnectedTest {
         if (!ValidationUtils.isValidEmail(applicationConfiguration.getUserEmail())) {
             logger.info("Skipping test since default user was not set");
         }
-        var tenant = testConfig.getTargetTenantId().toString();
-        var subscription = testConfig.getTargetSubscriptionId().toString();
+        var tenant = testConfig.getTargetTenantId();
+        var subscription = testConfig.getTargetSubscriptionId();
         var resourceGroup = testConfig.getTargetResourceGroupName();
         var applicationName = testConfig.getTargetApplicationName();
         var requestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(testConfig.getGoogleBillingAccountId())
             .cloudPlatform(CloudPlatform.AZURE)
-            .tenantId(tenant)
-            .subscriptionId(subscription)
+            .tenantId(tenant.toString())
+            .subscriptionId(subscription.toString())
             .resourceGroupName(resourceGroup)
             .applicationDeploymentName(applicationName);
 

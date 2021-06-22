@@ -136,8 +136,7 @@ public class DatasetsApiController implements DatasetsApi {
     ) {
         iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET,
                 id.toString(), IamAction.READ_DATASET);
-        return new ResponseEntity<>(datasetService.retrieveAvailableDatasetModel(id, include),
-            HttpStatus.OK);
+        return new ResponseEntity<>(datasetService.retrieveAvailableDatasetModel(id, include), HttpStatus.OK);
     }
 
     @Override

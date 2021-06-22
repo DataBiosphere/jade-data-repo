@@ -73,7 +73,8 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATC
 public class FireStoreDirectoryDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
 
-    private static final int RETRIES = 3;
+    private static final int LOOKUP_RETRIES = 30; // up to 5 minutes
+    private static final int LOOKUP_WAIT_SECONDS = 10;
     private static final String ROOT_DIR_NAME = "/_dr_";
 
     private final FireStoreUtils fireStoreUtils;
@@ -95,41 +96,39 @@ public class FireStoreDirectoryDao {
         Firestore firestore, String collectionId, FireStoreDirectoryEntry createEntry)
         throws InterruptedException {
 
-        ApiFuture<Void> transaction =
-            firestore.runTransaction(
-                xn -> {
-                    List<FireStoreDirectoryEntry> createList = new ArrayList<>();
+        List<FireStoreDirectoryEntry> createList = new ArrayList<>();
 
-                    // Walk up the lookup directory path, finding missing directories we get to an
-                    // existing one
-                    // We will create the ROOT_DIR_NAME directory here if it does not exist.
-                    String lookupDirPath = makeLookupPath(createEntry.getPath());
+        // Walk up the lookup directory path, finding missing directories we get to an
+        // existing one
+        // We will create the ROOT_DIR_NAME directory here if it does not exist.
+        String lookupDirPath = makeLookupPath(createEntry.getPath());
 
-                    for (String testPath = lookupDirPath;
-                         !testPath.isEmpty();
-                         testPath = fireStoreUtils.getDirectoryPath(testPath)) {
+        fireStoreUtils.runTransactionWithRetry(firestore,
+            (xn) -> {
 
-                        // !!! In this case we are using a lookup path
-                        DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, testPath, xn);
-                        if (docSnap.exists()) {
-                            break;
-                        }
+                for (String testPath = lookupDirPath;
+                     !testPath.isEmpty();
+                     testPath = fireStoreUtils.getDirectoryPath(testPath)) {
 
-                        FireStoreDirectoryEntry dirToCreate = makeDirectoryEntry(testPath);
-                        createList.add(dirToCreate);
+                    // !!! In this case we are using a lookup path
+                    DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, testPath, xn);
+                    if (docSnap.exists()) {
+                        break;
                     }
 
-                    // transition point from reading to writing in the transaction
+                    FireStoreDirectoryEntry dirToCreate = makeDirectoryEntry(testPath);
+                    createList.add(dirToCreate);
+                }
 
-                    for (FireStoreDirectoryEntry dirToCreate : createList) {
-                        xn.set(getDocRef(firestore, collectionId, dirToCreate), dirToCreate);
-                    }
+                // transition point from reading to writing in the transaction
 
-                    xn.set(getDocRef(firestore, collectionId, createEntry), createEntry);
-                    return null;
-                });
+                for (FireStoreDirectoryEntry dirToCreate : createList) {
+                    xn.set(getDocRef(firestore, collectionId, dirToCreate), dirToCreate);
+                }
 
-        fireStoreUtils.transactionGet("createFileRef", transaction);
+                xn.set(getDocRef(firestore, collectionId, createEntry), createEntry);
+            },
+            "createFileRef", " creating file directory for collection Id: " + collectionId);
     }
 
     // true - directory entry existed and was deleted; false - directory entry did not exist
@@ -198,7 +197,7 @@ public class FireStoreDirectoryDao {
                                                             LookupFunction lookupFunction,
                                                             String transactionOp,
                                                             String warnMessage) throws InterruptedException {
-        for (int i = 0; i < RETRIES; i++) {
+        for (int i = 0; i < LOOKUP_RETRIES; i++) {
             try {
                 ApiFuture<FireStoreDirectoryEntry> transaction =
                     firestore.runTransaction(
@@ -622,17 +621,23 @@ public class FireStoreDirectoryDao {
     // Non-transactional lookup of an entry
     private DocumentSnapshot lookupByPathNoXn(
         Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {
+        DocumentReference docRef =
+            firestore
+                .collection(collectionId)
+                .document(encodePathAsFirestoreDocumentName(lookupPath));
 
-        try {
-            DocumentReference docRef =
-                firestore
-                    .collection(collectionId)
-                    .document(encodePathAsFirestoreDocumentName(lookupPath));
-            ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
-            return docSnapFuture.get();
-        } catch (AbortedException | ExecutionException ex) {
-            throw fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
+        RuntimeException lastException = null;
+        for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {
+            logger.info("FirestoreDirectoryDao lookupByPathNoXn - iteration {}", retryNum);
+            try {
+                ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
+                return docSnapFuture.get();
+            } catch (AbortedException | ExecutionException ex) {
+                lastException = fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
+            }
+            TimeUnit.SECONDS.sleep(LOOKUP_WAIT_SECONDS);
         }
+        throw lastException;
     }
 
 }

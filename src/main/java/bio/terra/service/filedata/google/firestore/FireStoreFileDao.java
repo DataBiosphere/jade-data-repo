@@ -57,12 +57,9 @@ class FireStoreFileDao {
 
     void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) throws InterruptedException {
         String collectionId = makeCollectionId(datasetId);
-        ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
-            xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
-            return null;
-        });
-
-        fireStoreUtils.transactionGet("createFileMetadata", transaction);
+        fireStoreUtils.runTransactionWithRetry(firestore,
+            (xn) -> xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile),
+            "createFileMetadata", " creating file metadata for dataset Id: " + datasetId);
     }
 
     boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId) throws InterruptedException {

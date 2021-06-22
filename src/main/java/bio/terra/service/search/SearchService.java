@@ -1,5 +1,6 @@
 package bio.terra.service.search;
 
+import bio.terra.app.utils.TimUtils;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchQueryRequest;
@@ -7,6 +8,7 @@ import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.search.exception.SearchException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
+import com.google.common.collect.ImmutableMap;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
@@ -35,6 +37,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +50,21 @@ public class SearchService {
 
     private final BigQueryPdao bigQueryPdao;
     private final RestHighLevelClient client;
+
+    private static final Map<String, String> columnReplacements = new ImmutableMap.Builder<String, String>()
+        .put("biosample_id", "dct:identifier")
+        .put("donor_id", "prov:wasDerivedFrom")
+        .put("disease", "TerraCore:hasDisease")
+        .put("genus_species", "TerraCore:hasOrganismType")
+        .put("organ", "TerraCore:hasAnatomicalSite")
+        .put("library_construction_method_text", "TerraCore:hasLibraryPrep")
+        .put("sex", "TerraCore:hasSex")
+        .put("project_title", "dct:title")
+        .put("project_description", "dct:description")
+        .put("project_short_name", "rdfs:label")
+        .put("cell_type", "TerraCore:hasSelectedCellType")
+        .put("organism_age_unit", "TerraCore:hasAgeUnit")
+        .build();
 
     @Value("${elasticsearch.numShards}")
     private int NUM_SHARDS;
@@ -128,7 +146,8 @@ public class SearchService {
     public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
         throws InterruptedException {
 
-        List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, searchIndexRequest.getSql());
+        String sql = TimUtils.encodeSqlColumns(searchIndexRequest.getSql(), columnReplacements);
+        List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, sql);
         validateSnapshotDataNotEmpty(values);
         String indexName = createEmptyIndex(snapshot);
         createIndexMapping(indexName, values);
@@ -152,7 +171,9 @@ public class SearchService {
         searchSourceBuilder.from(offset);
         searchSourceBuilder.size(limit);
         // see https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
-        WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(searchQueryRequest.getQuery());
+        String query = TimUtils.encodeQueryFields(searchQueryRequest.getQuery(),
+            new HashSet<>(columnReplacements.values()));
+        WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(query);
         searchSourceBuilder.query(wrapperQuery);
 
         Set<String> validIndexes = getValidIndexes();
@@ -184,7 +205,7 @@ public class SearchService {
         for (SearchHit hit : hits) {
             Map<String, String> hitsMap = new HashMap<>();
             for (Map.Entry<String, Object> entry : hit.getSourceAsMap().entrySet()) {
-                String key = entry.getKey();
+                String key = TimUtils.decode(entry.getKey());
                 String value = (String) entry.getValue();
                 hitsMap.put(key, value);
             }

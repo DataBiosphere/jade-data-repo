@@ -24,6 +24,7 @@ public class ProfileCreateFlight extends Flight {
 
         addStep(new CreateProfileMetadataStep(profileService, request, user));
         addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
+        addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));
         addStep(new CreateProfileAuthzIamStep(profileService, request, user));
     }
 

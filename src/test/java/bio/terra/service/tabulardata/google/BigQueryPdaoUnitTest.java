@@ -10,7 +10,6 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.grammar.exception.InvalidQueryException;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
@@ -21,7 +20,7 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.RowIdMatch;
@@ -694,11 +693,10 @@ public class BigQueryPdaoUnitTest {
                             .profileId(PROFILE_1_ID)
                             .googleProjectId(DATASET_PROJECT_ID))
                         .tables(List.of(tbl1, tbl2))
-                        .storage(List.of(new StorageResource()
-                            .datasetId(DATASET_ID)
-                            .cloudResource(GoogleCloudResource.BIGQUERY)
-                            .cloudPlatform(CloudPlatform.GCP)
-                            .region(GoogleRegion.NORTHAMERICA_NORTHEAST1))))
+                        .storage(List.of(new GoogleStorageResource(
+                            DATASET_ID,
+                            GoogleCloudResource.BIGQUERY,
+                            GoogleRegion.NORTHAMERICA_NORTHEAST1))))
                     .assetSpecification(new AssetSpecification()
                         .rootTable(new AssetTable()
                             .datasetTable(tbl1))

@@ -1,5 +1,10 @@
 package bio.terra.app.utils;
 
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Utility methods for working with the Terra Interoperability Model (TIM)
  */
@@ -41,6 +46,48 @@ public final class TimUtils {
             return s;
         }
         return result.toString();
+    }
+
+    /**
+     * Encode the AS columns of a SQL query into corresponding TIM property names
+     *
+     * @param sql the SQL string containing AS columns to encode
+     * @param columnReplacements a map which stores column names as keys and TIM property names as values
+     * @return a modified SQL string containing encoded TIM property names
+     */
+    public static String encodeSqlColumns(String sql, Map<String, String> columnReplacements) {
+        Pattern regex = Pattern.compile("( [aA][sS] )(\\w+)");
+        Matcher matches = regex.matcher(sql);
+        StringBuilder sb = new StringBuilder(sql.length());
+        while (matches.find()) {
+            String replacement = columnReplacements.get(matches.group(2));
+            if (replacement != null) {
+                matches.appendReplacement(sb, matches.group(1) + TimUtils.encode(replacement));
+            }
+        }
+        matches.appendTail(sb);
+        return sb.toString();
+    }
+
+    /**
+     * Replace the TIM fields of a search query with encoded property names.
+     *
+     * @param query the search query containing TIM fields to replace
+     * @param properties a set of TIM property names to validate against
+     * @return a modified search query containing encoded TIM property names
+     */
+    public static String encodeQueryFields(String query, Set<String> properties) {
+        Pattern regex = Pattern.compile("\\[([\\w.:]+)\\]");
+        Matcher matches = regex.matcher(query);
+        StringBuilder sb = new StringBuilder(query.length());
+        while (matches.find()) {
+            String match = matches.group(1);
+            if (properties.contains(match)) {
+                matches.appendReplacement(sb, TimUtils.encode(match));
+            }
+        }
+        matches.appendTail(sb);
+        return sb.toString();
     }
 
     private static String doDecode(String s) {

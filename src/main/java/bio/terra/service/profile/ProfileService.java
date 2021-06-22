@@ -14,12 +14,14 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
+import bio.terra.service.profile.azure.AzureAuthzService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
+import bio.terra.service.resourcemanagement.exception.InaccessibleApplicationDeploymentException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,16 +40,19 @@ public class ProfileService {
     private final IamService iamService;
     private final JobService jobService;
     private final GoogleBillingService billingService;
+    private final AzureAuthzService azureAuthzService;
 
     @Autowired
     public ProfileService(ProfileDao profileDao,
                           IamService iamService,
                           JobService jobService,
-                          GoogleBillingService billingService) {
+                          GoogleBillingService billingService,
+                          AzureAuthzService azureAuthzService) {
         this.profileDao = profileDao;
         this.iamService = iamService;
         this.jobService = jobService;
         this.billingService = billingService;
+        this.azureAuthzService = azureAuthzService;
     }
 
     /**
@@ -266,6 +271,18 @@ public class ProfileService {
         if (!billingService.canAccess(user, billingAccountId)) {
             throw new InaccessibleBillingAccountException("The user '" + user.getEmail() +
                 "' needs access to billing account '" + billingAccountId + "' to perform the requested operation");
+        }
+    }
+
+    // Verify user access to the deployed application during billing profile creation
+    public void verifyDeployedApplication(UUID subscriptionId,
+                                          String resourceGroupName,
+                                          String applicationDeploymentName,
+                                          AuthenticatedUserRequest user) {
+        if (!azureAuthzService.canAccess(user, subscriptionId, resourceGroupName, applicationDeploymentName)) {
+            throw new InaccessibleApplicationDeploymentException("The user '" + user.getEmail() +
+                "' needs access to deployed application '" + applicationDeploymentName + "' to perform the requested " +
+                "operation");
         }
     }
 }

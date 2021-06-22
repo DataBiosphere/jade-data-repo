@@ -5,13 +5,9 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetSummary;
-import bio.terra.service.dataset.StorageResource;
+import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.resourcemanagement.OneProjectPerResourceSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
-
-import java.util.List;
-import java.util.UUID;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -20,8 +16,11 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
-import static org.mockito.ArgumentMatchers.any;
 
+import java.util.List;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @Category(Unit.class)
@@ -42,11 +41,8 @@ public class ResourceServiceUnitTest {
     private final UUID datasetId = UUID.randomUUID();
 
     private final DatasetSummary datasetSummary = new DatasetSummary().storage(List.of(
-        new StorageResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
-            GoogleCloudResource.BUCKET),
-        new StorageResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION).cloudResource(
-            GoogleCloudResource.FIRESTORE)
-        ));
+        new GoogleStorageResource(datasetId, GoogleCloudResource.BUCKET, GoogleRegion.DEFAULT_GOOGLE_REGION),
+        new GoogleStorageResource(datasetId, GoogleCloudResource.FIRESTORE, GoogleRegion.DEFAULT_GOOGLE_REGION)));
     private final Dataset dataset = new Dataset(datasetSummary).id(datasetId);
 
     private final GoogleProjectResource projectResource = new GoogleProjectResource()

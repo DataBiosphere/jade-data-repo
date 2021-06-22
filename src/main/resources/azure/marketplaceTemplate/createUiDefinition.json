@@ -9,17 +9,17 @@
     "steps": [
       {
         "name": "storageConfig",
-        "label": "Storage settings",
+        "label": "Terra Data Repository settings",
         "subLabel": {
           "preValidation": "Configure the infrastructure settings",
           "postValidation": "Done"
         },
-        "bladeTitle": "Storage settings",
+        "bladeTitle": "Terra Data Repository settings",
         "elements": [
           {
             "name": "storageAccounts",
             "type": "Microsoft.Storage.MultiStorageAccountCombo",
-            "tooltip": "Configure the storage account to use",
+            "tooltip": "Configure the options that will be used when creating storage accounts",
             "label": {
               "prefix": "Storage account name prefix",
               "type": "Storage account type"
@@ -29,11 +29,23 @@
             },
             "constraints": {
               "allowedTypes": [
-                "Premium_LRS",
                 "Standard_LRS",
                 "Standard_GRS"
               ]
             }
+          },
+          {
+            "name": "authorizedTDRUser",
+            "type": "Microsoft.Common.TextBox",
+            "label": "Email",
+            "defaultValue": "",
+            "toolTip": "Please enter the email account for the TDR user that will create a billing profile from this application deployment",
+            "constraints": {
+              "required": true,
+              "regex": "^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\\.[a-zA-Z0-9-.]+$",
+              "validationMessage": "Email is not valid. Please re-enter."
+            },
+            "visible": true
           }
         ]
       }
@@ -41,7 +53,8 @@
     "outputs": {
       "storageAccountNamePrefix": "[steps('storageConfig').storageAccounts.prefix]",
       "storageAccountType": "[steps('storageConfig').storageAccounts.type]",
-      "location": "[location()]"
+      "location": "[location()]",
+      "authorizedTDRUser":"[steps('storageConfig').authorizedTDRUser]"
     }
   }
 }

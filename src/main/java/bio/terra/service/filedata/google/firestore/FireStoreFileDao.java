@@ -77,8 +77,8 @@ class FireStoreFileDao {
         return fireStoreUtils.transactionGet("deleteFileMetadata", transaction);
     }
 
-    private static final int MAX_RETRIES = 10;
     private static final int RETRY_MILLISECONDS = 500;
+    private static final int SLEEP_BASE_MILLISECONDS = 1000;
 
     // Returns null on not found
     // We needed to add local retrying to this code path, because it is used in
@@ -109,14 +109,20 @@ class FireStoreFileDao {
                 }
 
                 return fireStoreUtils.transactionGet("retrieveFileMetadata", transaction);
-            } catch (AbortedException ex) {
-                if (retry < MAX_RETRIES) {
+            } catch (Exception ex) {
+                final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
+                if (fireStoreUtils.shouldRetry(ex) && retry < fireStoreUtils.getFirestoreRetries()) {
                     // perform retry
                     retry++;
-                    logger.info("Retry retrieveFileMetadata {} of {}", retry, MAX_RETRIES);
-                    TimeUnit.MILLISECONDS.sleep(RETRY_MILLISECONDS);
+                    logger.warn("Retry-able firestore transaction - {} - will attempt retry #{}" +
+                            " after {} millisecond pause. Message: {}",
+                        "retrieveFileMetadata", retry, retryWait, ex.getMessage());
+                    TimeUnit.MILLISECONDS.sleep(retryWait);
                 } else {
-                    throw new FileSystemExecutionException("Retries exhausted", ex);
+                    if (retry > fireStoreUtils.getFirestoreRetries()) {
+                        logger.error("Ran out of retries - retrieveFileMetadata");
+                    }
+                    throw ex;
                 }
             }
         }

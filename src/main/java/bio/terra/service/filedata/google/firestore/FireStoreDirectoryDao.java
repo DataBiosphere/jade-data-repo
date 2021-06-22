@@ -73,8 +73,6 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATC
 public class FireStoreDirectoryDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
 
-    private static final int LOOKUP_RETRIES = 30; // up to 5 minutes
-    private static final int LOOKUP_WAIT_SECONDS = 10;
     private static final String ROOT_DIR_NAME = "/_dr_";
 
     private final FireStoreUtils fireStoreUtils;
@@ -192,12 +190,14 @@ public class FireStoreDirectoryDao {
         DocumentSnapshot apply(Transaction xn) throws InterruptedException;
     }
 
+    private static final int SLEEP_BASE_MILLISECONDS = 1000;
+
     // Returns null if not found - upper layers do any throwing
     private FireStoreDirectoryEntry runTransactionWithRetry(Firestore firestore,
                                                             LookupFunction lookupFunction,
                                                             String transactionOp,
                                                             String warnMessage) throws InterruptedException {
-        for (int i = 0; i < LOOKUP_RETRIES; i++) {
+        for (int retry = 0; retry < fireStoreUtils.getFirestoreRetries(); retry++) {
             try {
                 ApiFuture<FireStoreDirectoryEntry> transaction =
                     firestore.runTransaction(
@@ -210,16 +210,20 @@ public class FireStoreDirectoryDao {
                         });
 
                 return fireStoreUtils.transactionGet(transactionOp, transaction);
-            } catch (Exception ex) {
+            }  catch (Exception ex) {
+                final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
                 if (FireStoreUtils.shouldRetry(ex)) {
-                    logger.warn("Retry-able error in firestore future get - " +
-                        warnMessage + " message: " + ex.getMessage());
+                    // perform retry
+                    retry++;
+                    logger.warn("Retry-able error in firestore future get - {} - will attempt retry #{}" +
+                            " after {} millisecond pause. Message: {}",
+                        warnMessage, retry, retryWait, ex.getMessage());
+                    TimeUnit.MILLISECONDS.sleep(retryWait);
                 } else {
-                    throw new FileSystemExecutionException(transactionOp + " execution exception", ex);
+                    logger.info("throwing exception - {}", warnMessage);
+                    throw ex;
                 }
             }
-
-            TimeUnit.SECONDS.sleep(1);
         }
         throw new FileSystemExecutionException(transactionOp + " failed - no more retries");
     }
@@ -627,7 +631,7 @@ public class FireStoreDirectoryDao {
                 .document(encodePathAsFirestoreDocumentName(lookupPath));
 
         RuntimeException lastException = null;
-        for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {
+        for (int retryNum = 0; retryNum < fireStoreUtils.getFirestoreRetries(); retryNum++) {
             logger.info("FirestoreDirectoryDao lookupByPathNoXn - iteration {}", retryNum);
             try {
                 ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
@@ -635,8 +639,10 @@ public class FireStoreDirectoryDao {
             } catch (AbortedException | ExecutionException ex) {
                 lastException = fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
             }
-            TimeUnit.SECONDS.sleep(LOOKUP_WAIT_SECONDS);
+            final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retryNum)).longValue();
+            TimeUnit.SECONDS.sleep(retryWait);
         }
+        logger.error("Ran out of retries - lookupPathNoXn");
         throw lastException;
     }
 

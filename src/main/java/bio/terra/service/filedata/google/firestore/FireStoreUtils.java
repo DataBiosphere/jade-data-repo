@@ -41,6 +41,10 @@ public class FireStoreUtils {
         firestoreRetries = googleResourceConfiguration.getFirestoreRetries();
     }
 
+    public int getFirestoreRetries() {
+        return firestoreRetries;
+    }
+
     <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {
         try {
             return transaction.get();
@@ -66,21 +70,21 @@ public class FireStoreUtils {
             // TODO: in general, log + rethrow is bad form. For now, I want to make sure we see these in
             //  the log as they happen. Once we are comfortable that retry is working properly, we can
             //  rely on the Stairway debug logging as needed.
-            String msg = "FirestoreUtils.handleExecutionException - Retrying aborted exception: " + aex;
+            String msg = "[" + op + "] FirestoreUtils.handleExecutionException - Retrying aborted exception: " + aex;
             logger.info(msg);
             return new FileSystemAbortTransactionException(msg, aex);
         }
         if (throwable instanceof FirestoreException) {
             FirestoreException fex = (FirestoreException) throwable;
-            String msg = "FirestoreUtils.handleExecutionException - Retrying firestore exception: " + fex;
+            String msg = "[" + op + "] FirestoreUtils.handleExecutionException - Retrying firestore exception: " + fex;
             logger.info(msg);
             return new FileSystemAbortTransactionException(msg, fex);
         }
         if (throwable instanceof RuntimeException) {
-            logger.info("FirestoreUtils.handleExecutionException - RuntimeException");
+            logger.info("[{}] FirestoreUtils.handleExecutionException - RuntimeException - op", op);
             return (RuntimeException) throwable;
         }
-        logger.info("FirestoreUtils.handleExecutionException - Wrapping w/ FileSystemExecutionException");
+        logger.info("[{}] FirestoreUtils.handleExecutionException - Wrapping w/ FileSystemExecutionException", op);
         return new FileSystemExecutionException(op + " - execution exception wrapping: " + throwable, throwable);
     }
 
@@ -220,7 +224,7 @@ public class FireStoreUtils {
                         StatusRuntimeException |
                         ExecutionException ex) {
                         if (shouldRetry(ex)) {
-                            logger.warn("Retry-able error in firestore future get - input: " +
+                            logger.warn("[batchOperation] Retry-able error in firestore future get - input: " +
                                 inputs.get(i) + " message: " + ex.getMessage());
                         } else
                             throw new FileSystemExecutionException("batch operation failed", ex);
@@ -240,7 +244,8 @@ public class FireStoreUtils {
                     throw new FileSystemExecutionException("batch operation failed. " +
                         firestoreRetries + " tries with no progress.");
                 } else {
-                    logger.info("will attempt retry #{} after {} millisecond pause.", noProgressCount, retryWait);
+                    logger.info("[batchOperation] will attempt retry #{} after {} millisecond pause.",
+                        noProgressCount, retryWait);
                 }
             }
             // Exponential backoff
@@ -291,11 +296,15 @@ public class FireStoreUtils {
                 if (FireStoreUtils.shouldRetry(ex) && retry < firestoreRetries) {
                     // perform retry
                     retry++;
-                    logger.warn("Retry-able error in firestore future get - {} - will attempt retry #{}" +
+                    logger.warn("[transaction retry] Retry-able error in firestore transactions - {} " +
+                            "- will attempt retry #{}" +
                             " after {} millisecond pause. Message: {}",
                         warnMessage, retry, retryWait, ex.getMessage());
                     TimeUnit.MILLISECONDS.sleep(retryWait);
                 } else {
+                    if (retry > firestoreRetries) {
+                        logger.error("[transaction retry] Ran out of retries - {}", warnMessage);
+                    }
                     throw ex;
                 }
             }

@@ -600,7 +600,8 @@ public class FireStoreDirectoryDao {
                 .document(encodePathAsFirestoreDocumentName(lookupPath));
 
         RuntimeException lastException = null;
-        for (int retryNum = 0; retryNum < fireStoreUtils.getFirestoreRetries(); retryNum++) {
+        int retryNum = 0;
+        while (true) {
             logger.info("FirestoreDirectoryDao lookupByPathNoXn - iteration {}", retryNum);
             try {
                 ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
@@ -608,11 +609,17 @@ public class FireStoreDirectoryDao {
             } catch (AbortedException | ExecutionException ex) {
                 lastException = fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
             }
+            if (retryNum > fireStoreUtils.getFirestoreRetries()) {
+                logger.error("Ran out of retries - lookupPathNoXn");
+                throw lastException;
+            }
+            retryNum++;
             final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retryNum));
+            logger.warn("[lookupPathNoXn retry] Retry-able error in firestore transactions - will attempt retry #{}" +
+                    " after {} millisecond pause. Message: {}",
+                retryNum, retryWait, lastException.getMessage());
             TimeUnit.SECONDS.wait(retryWait);
         }
-        logger.error("Ran out of retries - lookupPathNoXn");
-        throw lastException;
     }
 
 }

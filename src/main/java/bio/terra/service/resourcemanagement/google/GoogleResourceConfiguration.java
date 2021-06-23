@@ -105,9 +105,6 @@ public class GoogleResourceConfiguration {
     }
 
     public int getFirestoreRetries() {
-        if (firestoreRetries < 1) {
-            return 1;
-        }
         return firestoreRetries;
     }
 

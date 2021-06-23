@@ -88,7 +88,36 @@ public class DataRepoFixtures {
         DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.waitForResponse(
             user, jobResponse, BillingProfileModel.class);
 
-        assertThat("billing profile model is successfuly created", postResponse.getStatusCode(),
+        assertThat("billing profile model is successfully created", postResponse.getStatusCode(),
+            equalTo(HttpStatus.CREATED));
+        assertTrue("create billing profile model response is present",
+            postResponse.getResponseObject().isPresent());
+        return postResponse.getResponseObject().get();
+    }
+
+    // Create a Billing Profile model: expect successful creation
+    public BillingProfileModel createAzureBillingProfile(TestConfiguration.User user) throws Exception {
+        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.billingProfileRequest(
+            ProfileFixtures.billingProfileForDeployedApplication(
+                testConfig.getTargetTenantId(),
+                testConfig.getTargetSubscriptionId(),
+                testConfig.getTargetResourceGroupName(),
+                testConfig.getTargetApplicationName(),
+                testConfig.getGoogleBillingAccountId()));
+        String json = TestUtils.mapToJson(billingProfileRequestModel);
+
+        DataRepoResponse<JobModel> jobResponse = dataRepoClient.post(
+            user,
+            "/api/resources/v1/profiles",
+            json,
+            JobModel.class);
+        assertTrue("profile create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("profile create launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.waitForResponse(
+            user, jobResponse, BillingProfileModel.class);
+
+        assertThat("billing profile model is successfully created", postResponse.getStatusCode(),
             equalTo(HttpStatus.CREATED));
         assertTrue("create billing profile model response is present",
             postResponse.getResponseObject().isPresent());

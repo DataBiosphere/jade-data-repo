@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 @EnableConfigurationProperties
@@ -18,6 +19,10 @@ public class TestConfiguration {
     private List<User> users = new ArrayList<>();
     private String googleProjectId;
     private String googleBillingAccountId;
+    private UUID targetTenantId;
+    private UUID targetSubscriptionId;
+    private String targetResourceGroupName;
+    private String targetApplicationName;
 
     public static class User {
         private String role;
@@ -112,5 +117,37 @@ public class TestConfiguration {
 
     public void setGoogleBillingAccountId(String googleBillingAccountId) {
         this.googleBillingAccountId = googleBillingAccountId;
+    }
+
+    public UUID getTargetTenantId() {
+        return targetTenantId;
+    }
+
+    public void setTargetTenantId(UUID targetTenantId) {
+        this.targetTenantId = targetTenantId;
+    }
+
+    public UUID getTargetSubscriptionId() {
+        return targetSubscriptionId;
+    }
+
+    public void setTargetSubscriptionId(UUID targetSubscriptionId) {
+        this.targetSubscriptionId = targetSubscriptionId;
+    }
+
+    public String getTargetResourceGroupName() {
+        return targetResourceGroupName;
+    }
+
+    public void setTargetResourceGroupName(String targetResourceGroupName) {
+        this.targetResourceGroupName = targetResourceGroupName;
+    }
+
+    public String getTargetApplicationName() {
+        return targetApplicationName;
+    }
+
+    public void setTargetApplicationName(String targetApplicationName) {
+        this.targetApplicationName = targetApplicationName;
     }
 }

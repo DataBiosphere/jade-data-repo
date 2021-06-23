@@ -188,6 +188,29 @@ public class AzureStorageAccountService {
         }
     }
 
+    /**
+     * Retrieve a storage account metadata object by the specified UUID ID
+     */
+    public AzureStorageAccountResource retrieveStorageAccountById(UUID storageAccountId) {
+        return resourceDao.retrieveStorageAccountById(storageAccountId);
+    }
+
+    /**
+     * Delete metadata and cloud storage account resource.  Note: this runs in a transaction so if the cloud
+     * delete fails, the metadata deleted should rollback
+     */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public void deleteCloudStorageAccount(AzureStorageAccountResource storageAccountResource,
+                                          String flightId) {
+        BillingProfileModel profileModel =
+            profileDao.getBillingProfileById(storageAccountResource.getProfileId());
+        logger.info("Deleting Azure storage account metadata");
+        boolean deleted = resourceDao.deleteStorageAccountMetadata(storageAccountResource.getName(), flightId);
+        logger.info("Metadata removed: {}", deleted);
+        logger.info("Deleting Azure storage account");
+        deleteCloudStorageAccount(profileModel, storageAccountResource);
+    }
+
     private StorageAccountLockException storageAccountLockException(String flightId) {
         return new StorageAccountLockException("Storage account locked by flightId: " + flightId);
     }
@@ -285,4 +308,18 @@ public class AzureStorageAccountService {
         }
     }
 
+    /**
+     * Delete a storage account cloud resource
+     *
+     * @param profileModel the TDR billing profile associated with this storage account
+     * @param storageAccountResource storage account resource to look up storage account.
+     */
+    void deleteCloudStorageAccount(BillingProfileModel profileModel,
+                                   AzureStorageAccountResource storageAccountResource) {
+        resourceConfiguration.getClient(UUID.fromString(profileModel.getSubscriptionId()))
+            .storageAccounts()
+            .deleteByResourceGroup(
+                storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+                storageAccountResource.getName());
+    }
 }

@@ -3,6 +3,7 @@ package bio.terra.service.resourcemanagement.azure;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.AzureStorageAccountSkuType;
 import bio.terra.common.DaoKeyHolder;
+import bio.terra.service.profile.exception.ProfileInUseException;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -21,6 +22,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class AzureResourceDao {
@@ -54,6 +56,45 @@ public class AzureResourceDao {
             "WHERE sa.marked_for_delete = false";
     private static final String sqlStorageAccountRetrievedById = sqlStorageAccountRetrieve + " AND sa.id = :id";
     private static final String sqlStorageAccountRetrievedByName = sqlStorageAccountRetrieve + " AND sa.name = :name";
+
+    // Given a profile id, compute the count of all references to projects associated with the profile
+    private static final String sqlProfileProjectRefs =
+        "SELECT aid, dscnt + sncnt + sacnt AS refcnt FROM " +
+            " (SELECT" +
+            "  app.id AS aid," +
+            "  (SELECT COUNT(*) FROM dataset WHERE dataset.application_resource_id = app.id) AS dscnt," +
+            "  (SELECT COUNT(*) FROM snapshot WHERE snapshot.application_resource_id = app.id) AS sncnt," +
+            "  (SELECT count(*) FROM storage_account_resource, dataset_storage_account" +
+            "    WHERE storage_account_resource.application_resource_id = app.id" +
+            "    AND storage_account_resource.id = dataset_storage_account.storage_account_resource_id" +
+            "    AND dataset_storage_account.successful_ingests > 0) AS sacnt" +
+            " FROM application_deployment_resource AS app " +
+            " WHERE app" +
+            ".profile_id = :profile_id) AS X";
+
+    // Class for collecting results from the above query
+    private static class AppRefs {
+        private UUID appId;
+        private long refCount;
+
+        public UUID getAppId() {
+            return appId;
+        }
+
+        public AppRefs projectId(UUID projectId) {
+            this.appId = projectId;
+            return this;
+        }
+
+        public long getRefCount() {
+            return refCount;
+        }
+
+        public AppRefs refCount(long refCount) {
+            this.refCount = refCount;
+            return this;
+        }
+    }
 
     @Autowired
     public AzureResourceDao(NamedParameterJdbcTemplate jdbcTemplate) throws SQLException {
@@ -110,6 +151,49 @@ public class AzureResourceDao {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public List<UUID> markUnusedApplicationDeploymentsForDelete(UUID profileId) {
+        // Note: this logic is copied over from the project logic in GCP and may be overkill for the azure usecase but
+        // this will make it less likely to accidentally delete storage accounts
+        // Collect all application deployments related to the incoming profile and compute the number of references
+        // on those apps.
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("profile_id", profileId);
+        List<AppRefs> appRefs = jdbcTemplate.query(sqlProfileProjectRefs, params,
+            (rs, rowNum) -> new AppRefs()
+                .projectId(rs.getObject("aid", UUID.class))
+                .refCount(rs.getLong("refcnt")));
+
+        // If the profile is in use by any project, we bail here.
+        long totalRefs = 0;
+        for (AppRefs ref : appRefs) {
+            logger.info("Profile app reference appId: {} refCount: {}", ref.getAppId(), ref.getRefCount());
+            totalRefs += ref.getRefCount();
+        }
+
+        logger.info("Profile {} has {} app deployments with the total of {} references",
+            profileId, appRefs.size(), totalRefs);
+
+        if (totalRefs > 0) {
+            throw new ProfileInUseException("Profile is in use and cannot be deleted");
+        }
+
+        // Common variables for marking application references and storage accounts for delete.
+        List<UUID> appIds = appRefs.stream().map(AppRefs::getAppId).collect(Collectors.toList());
+        if (appIds.size() > 0) {
+            MapSqlParameterSource markParams = new MapSqlParameterSource().addValue("app_ids", appIds);
+
+            final String sqlMarkProjects = "UPDATE application_deployment_resource SET marked_for_delete = true" +
+                " WHERE id IN (:app_ids)";
+            jdbcTemplate.update(sqlMarkProjects, markParams);
+
+            final String sqlMarkBuckets = "UPDATE storage_account_resource SET marked_for_delete = true" +
+                " WHERE application_resource_id IN (:app_ids)";
+            jdbcTemplate.update(sqlMarkBuckets, markParams);
+        }
+
+        return appIds;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void deleteApplicationDeploymentMetadata(List<UUID> applicationIds) {
         if (applicationIds.size() > 0) {
             MapSqlParameterSource markParams =
@@ -117,12 +201,14 @@ public class AzureResourceDao {
 
             // Delete the storage accounts
             final String sqlMarkStorageAccounts =
-                "DELETE FROM storage_account_resource WHERE application_resource_id IN (:application_ids)";
+                "DELETE FROM storage_account_resource WHERE marked_for_delete = true " +
+                    "AND application_resource_id IN (:application_ids)";
             jdbcTemplate.update(sqlMarkStorageAccounts, markParams);
 
             // Delete the application deployments
             final String sqlMarkApplications =
-                "DELETE FROM application_deployment_resource WHERE id IN (:application_ids)";
+                "DELETE FROM application_deployment_resource WHERE marked_for_delete = true " +
+                    "AND id IN (:application_ids)";
             jdbcTemplate.update(sqlMarkApplications, markParams);
         }
     }

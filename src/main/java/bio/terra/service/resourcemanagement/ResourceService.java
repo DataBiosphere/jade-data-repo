@@ -174,6 +174,24 @@ public class ResourceService {
             flightId);
     }
 
+    /**
+     * Delete the metadata and cloud storage account.  Note: this will not check references and delete the storage
+     * even if it contains data
+     * @param dataset The dataset whose storage account to delete
+     * @param flightId The flight that might potentially have the storage account locked
+     */
+    public void deleteStorageAccount(Dataset dataset,
+                                     String flightId) {
+        // Get list of linked accounts
+        List<UUID> sasToDelete = datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
+
+        sasToDelete.forEach(s -> {
+            logger.info("Deleting storage account id {}", s);
+            AzureStorageAccountResource storageAccountResource = storageAccountService.retrieveStorageAccountById(s);
+            storageAccountService.deleteCloudStorageAccount(storageAccountResource, flightId);
+        });
+    }
+
     private boolean storageAccountIsForBillingProfile(AzureStorageAccountResource storageAccount,
                                                       BillingProfileModel billingProfile) {
         AzureApplicationDeploymentResource resource = storageAccount.getApplicationResource();
@@ -326,12 +344,20 @@ public class ResourceService {
         return projectService.markUnusedProjectsForDelete(profileId);
     }
 
+    public List<UUID> markUnusedApplicationDeploymentsForDelete(String profileId) {
+        return applicationDeploymentService.markUnusedApplicationDeploymentsForDelete(profileId);
+    }
+
     public void deleteUnusedProjects(List<UUID> projectIdList) {
         projectService.deleteUnusedProjects(projectIdList);
     }
 
     public void deleteProjectMetadata(List<UUID> projectIdList) {
         projectService.deleteProjectMetadata(projectIdList);
+    }
+
+    public void deleteDeployedApplicationMetadata(List<UUID> applicationIdList) {
+        applicationDeploymentService.deleteApplicationDeploymentMetadata(applicationIdList);
     }
 
 }

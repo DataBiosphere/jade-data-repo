@@ -90,6 +90,10 @@ public class AzureApplicationDeploymentService {
         return resourceDao.retrieveApplicationDeploymentById(id);
     }
 
+    public List<UUID> markUnusedApplicationDeploymentsForDelete(String profileId) {
+        return resourceDao.markUnusedApplicationDeploymentsForDelete(UUID.fromString(profileId));
+    }
+
     public void deleteApplicationDeploymentMetadata(List<UUID> applicationIds) {
         resourceDao.deleteApplicationDeploymentMetadata(applicationIds);
     }

@@ -50,8 +50,7 @@ public class AzureStorageAccountResource {
         return applicationResource;
     }
 
-    public AzureStorageAccountResource applicationResource
-        (AzureApplicationDeploymentResource applicationResource) {
+    public AzureStorageAccountResource applicationResource(AzureApplicationDeploymentResource applicationResource) {
         this.applicationResource = applicationResource;
         return this;
     }

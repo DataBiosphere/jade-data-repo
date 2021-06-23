@@ -62,10 +62,10 @@ public class AzureStorageAccountServiceTest {
     @Mock
     private AzureResourceManager client;
 
-    BillingProfileModel billingProfileModel;
-    AzureApplicationDeploymentResource applicationResource;
+    private BillingProfileModel billingProfileModel;
+    private AzureApplicationDeploymentResource applicationResource;
 
-    AzureStorageAccountService service;
+    private AzureStorageAccountService service;
 
     @Before
     public void setUp() throws Exception {

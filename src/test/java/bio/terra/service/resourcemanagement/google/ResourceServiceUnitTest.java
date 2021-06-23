@@ -84,16 +84,16 @@ public class ResourceServiceUnitTest {
         ProfileFixtures.randomAzureBillingProfile().id(billingProfileId.toString());
     private final UUID applicationId = UUID.randomUUID();
     private final UUID storageAccountId = UUID.randomUUID();
-    private final String managedResourceGroupName = "mgd-grp-1";
-    private final String storageAccountName = "sa";
+    private static final String MANAGED_RESOURCE_GROUP_NAME = "mgd-grp-1";
+    private static final String STORAGE_ACCOUNT_NAME = "sa";
     private final AzureApplicationDeploymentResource applicationResource = new AzureApplicationDeploymentResource()
         .id(applicationId)
         .azureApplicationDeploymentName(profileModel.getApplicationDeploymentName())
-        .azureResourceGroupName(managedResourceGroupName)
+        .azureResourceGroupName(MANAGED_RESOURCE_GROUP_NAME)
         .profileId(billingProfileId);
     private final AzureStorageAccountResource storageAccountResource = new AzureStorageAccountResource()
         .resourceId(storageAccountId)
-        .name(storageAccountName)
+        .name(STORAGE_ACCOUNT_NAME)
         .applicationResource(applicationResource);
 
     public void setup() throws InterruptedException {

@@ -439,7 +439,7 @@ public class DatasetDao {
                 if (dataset.getApplicationDeploymentResourceId() != null) {
                     dataset.applicationDeploymentResource(
                         resourceService.getApplicationDeploymentResource(dataset.getApplicationDeploymentResourceId()));
-;                }
+                }
             }
             return dataset;
         } catch (EmptyResultDataAccessException ex) {

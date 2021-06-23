@@ -41,9 +41,9 @@ public class AzureApplicationDeploymentServiceTest {
     @Mock
     private AzureResourceDao resourceDao;
     @Mock
-    GenericResource genericResource;
+    private GenericResource genericResource;
     @Mock
-    GenericResources genericResources;
+    private GenericResources genericResources;
     @Mock
     private AzureResourceManager client;
     @Mock

@@ -100,7 +100,8 @@ public final class DatasetJsonConversion {
         return AzureRegion.fromValueWithDefault(datasetRequestModel.getRegion());
     }
 
-    private static List<? extends StorageResource<?, ?>> createGcpStorageResourceValues(DatasetRequestModel datasetRequestModel) {
+    private static List<? extends StorageResource<?, ?>> createGcpStorageResourceValues(
+        DatasetRequestModel datasetRequestModel) {
         final GoogleRegion region = getRegionFromDatasetRequestModel(datasetRequestModel);
         return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
             final GoogleRegion finalRegion;
@@ -115,7 +116,8 @@ public final class DatasetJsonConversion {
         }).collect(Collectors.toList());
     }
 
-    private static List<? extends StorageResource<?, ?>> createAzureStorageResourceValues(DatasetRequestModel datasetRequestModel) {
+    private static List<? extends StorageResource<?, ?>> createAzureStorageResourceValues(
+        DatasetRequestModel datasetRequestModel) {
         final AzureRegion region = getAzureRegionFromDatasetRequestModel(datasetRequestModel);
         // TODO: once we no longer require GCP resources to back Azure datasets, stop concatenating
         return Stream.of(

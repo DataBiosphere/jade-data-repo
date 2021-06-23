@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
@@ -46,7 +47,9 @@ public class DatasetUtilsTest {
     public void convertDatasetTest() throws Exception {
         UUID fakeProfileId = UUID.randomUUID();
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(
-            "ingest-test-dataset.json", DatasetRequestModel.class).defaultProfileId(fakeProfileId);
+            "ingest-test-dataset.json", DatasetRequestModel.class)
+            .defaultProfileId(fakeProfileId)
+            .cloudPlatform(CloudPlatform.GCP);
         Dataset convertedDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         for (DatasetTable table : convertedDataset.getTables()) {
             Assert.assertNotNull(table.getRawTableName());

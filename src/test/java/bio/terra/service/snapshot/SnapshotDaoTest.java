@@ -13,6 +13,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotRequestModel;
@@ -95,8 +96,9 @@ public class SnapshotDaoTest {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject("snapshot-test-dataset.json",
             DatasetRequestModel.class);
         datasetRequest
-            .name(datasetRequest.getName() + UUID.randomUUID().toString())
-            .defaultProfileId(profileId);
+            .name(datasetRequest.getName() + UUID.randomUUID())
+            .defaultProfileId(profileId)
+            .cloudPlatform(CloudPlatform.GCP);
 
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         dataset.projectResourceId(projectId);

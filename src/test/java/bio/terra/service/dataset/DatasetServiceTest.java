@@ -10,6 +10,7 @@ import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
@@ -89,9 +90,9 @@ public class DatasetServiceTest {
     private ArrayList<UUID> datasetIdList;
 
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws IOException, SQLException {
-        datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
-        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        dataset.projectResourceId(projectId);
+        datasetRequest.name(newName).defaultProfileId(billingProfile.getId()).cloudPlatform(CloudPlatform.AZURE);
+        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest)
+            .projectResourceId(projectId);
         String createFlightId = UUID.randomUUID().toString();
         UUID datasetId = UUID.randomUUID();
         dataset
@@ -104,7 +105,7 @@ public class DatasetServiceTest {
 
     private UUID createDataset(String datasetFile) throws IOException, SQLException {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
-        UUID datasetId = createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
+        UUID datasetId = createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID());
         datasetIdList.add(datasetId);
         return datasetId;
     }

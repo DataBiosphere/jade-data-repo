@@ -8,7 +8,7 @@ import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import com.google.cloud.firestore.Firestore;
 import org.junit.Before;
 import org.junit.Test;
@@ -121,7 +121,7 @@ public class FireStoreFileDaoTest {
     }
 
     // Default settings of the thought should result in a retry failure
-    @Test(expected = FileSystemExecutionException.class)
+    @Test(expected = FileSystemAbortTransactionException.class)
     public void faultRetrieveRetryFail() throws Exception {
         configurationService.setFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT.name(), true);
         FireStoreFile file1 = makeFile();

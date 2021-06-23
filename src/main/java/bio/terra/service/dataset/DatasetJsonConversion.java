@@ -87,7 +87,9 @@ public final class DatasetJsonConversion {
     }
 
     public static GoogleRegion getRegionFromDatasetRequestModel(DatasetRequestModel datasetRequestModel) {
-        if (datasetRequestModel.getCloudPlatform() == CloudPlatform.GCP) {
+        // Default to GCP if no platform was specified
+        if (datasetRequestModel.getCloudPlatform() == null ||
+            datasetRequestModel.getCloudPlatform() == CloudPlatform.GCP) {
             return GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
         } else if (datasetRequestModel.getCloudPlatform() == CloudPlatform.AZURE) {
             return GoogleRegion.fromValueWithDefault(datasetRequestModel.getGcpRegion());

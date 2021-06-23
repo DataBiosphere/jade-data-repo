@@ -10,6 +10,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
@@ -142,11 +143,17 @@ public class DataRepoFixtures {
 
     // datasets
 
-    private DataRepoResponse<JobModel> createDatasetRaw(TestConfiguration.User user, UUID profileId, String filename)
+    private DataRepoResponse<JobModel> createDatasetRaw(TestConfiguration.User user,
+                                                        UUID profileId,
+                                                        String filename,
+                                                        CloudPlatform cloudPlatform)
         throws Exception {
         DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
         requestModel.setDefaultProfileId(profileId);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
+        if (cloudPlatform != null && requestModel.getCloudPlatform() == null) {
+            requestModel.setCloudPlatform(cloudPlatform);
+        }
         String json = TestUtils.mapToJson(requestModel);
 
         return dataRepoClient.post(
@@ -159,7 +166,13 @@ public class DataRepoFixtures {
     public DatasetSummaryModel createDataset(TestConfiguration.User user,
                                              UUID profileId,
                                              String filename) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename);
+        return createDataset(user, profileId, filename, CloudPlatform.GCP);
+    }
+    public DatasetSummaryModel createDataset(TestConfiguration.User user,
+                                             String profileId,
+                                             String filename,
+                                             CloudPlatform cloudPlatform) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename, cloudPlatform);
         assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
 
@@ -172,10 +185,18 @@ public class DataRepoFixtures {
     }
 
     public void createDatasetError(TestConfiguration.User user,
-                                         UUID profileId,
-                                         String filename,
-                                         HttpStatus checkStatus) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename);
+                                   UUID profileId,
+                                   String filename,
+                                   HttpStatus checkStatus) throws Exception {
+        createDatasetError(user, profileId, filename, checkStatus, CloudPlatform.GCP);
+    }
+
+    public void createDatasetError(TestConfiguration.User user,
+                                   String profileId,
+                                   String filename,
+                                   HttpStatus checkStatus,
+                                   CloudPlatform cloudPlatform) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename, cloudPlatform);
         assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
 

@@ -136,6 +136,12 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
+      - name: "Archive code coverage results"
+        uses: actions/upload-artifact@v2
+        with:
+          name: code-coverage-report
+          path: build/jacocoHtml
+          retention-days: 10
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.60.0

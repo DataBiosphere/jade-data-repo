@@ -21,8 +21,6 @@ public class BatchOperationTest {
     public void setup() {
         GoogleResourceConfiguration resourceConfiguration = new GoogleResourceConfiguration();
         resourceConfiguration.setFirestoreRetries(4);
-
-        fireStoreUtils = new FireStoreUtils(resourceConfiguration);
     }
 
     @Test

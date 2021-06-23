@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
@@ -35,15 +37,15 @@ public class FireStoreUtils {
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
     private static final int SLEEP_BASE_SECONDS = 1;
 
-    private int firestoreRetries;
+    private ConfigurationService configurationService;
 
     @Autowired
-    public FireStoreUtils(GoogleResourceConfiguration googleResourceConfiguration) {
-        firestoreRetries = googleResourceConfiguration.getFirestoreRetries();
+    public FireStoreUtils(ConfigurationService configurationService) {
+        this.configurationService = configurationService;
     }
 
     public int getFirestoreRetries() {
-        return firestoreRetries;
+        return configurationService.getParameterValue(ConfigEnum.FIRESTORE_RETRY_MAX);
     }
 
     <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {
@@ -242,9 +244,9 @@ public class FireStoreUtils {
             final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, noProgressCount));
             if (completeCount == 0) {
                 noProgressCount++;
-                if (noProgressCount > firestoreRetries) {
+                if (noProgressCount > getFirestoreRetries()) {
                     throw new FileSystemExecutionException("batch operation failed. " +
-                        firestoreRetries + " tries with no progress.");
+                        getFirestoreRetries() + " tries with no progress.");
                 } else {
                     logger.info("[batchOperation] will attempt retry #{} after {} millisecond pause.",
                         noProgressCount, retryWait);
@@ -284,7 +286,7 @@ public class FireStoreUtils {
                 return transactionGet(transactionOp, transaction);
             } catch (Exception ex) {
                 final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry));
-                if (retry < firestoreRetries && FireStoreUtils.shouldRetry(ex, false)) {
+                if (retry < getFirestoreRetries() && FireStoreUtils.shouldRetry(ex, false)) {
                     // perform retry
                     retry++;
                     logger.warn("[transaction retry] Retry-able error in firestore transactions - {} " +
@@ -293,7 +295,7 @@ public class FireStoreUtils {
                         warnMessage, retry, retryWait, ex.getMessage());
                     TimeUnit.SECONDS.sleep(retryWait);
                 } else {
-                    if (retry > firestoreRetries) {
+                    if (retry > getFirestoreRetries()) {
                         logger.error("[transaction retry] Ran out of retries - {}", warnMessage);
                     }
                     throw ex;

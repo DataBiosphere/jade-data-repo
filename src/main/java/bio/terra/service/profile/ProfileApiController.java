@@ -31,6 +31,7 @@ import javax.validation.Valid;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
@@ -101,7 +102,7 @@ public class ProfileApiController implements ProfilesApi {
     }
 
     @Override
-    public ResponseEntity<JobModel> deleteProfile(String id) {
+    public ResponseEntity<JobModel> deleteProfile(UUID id) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
         String jobId = profileService.deleteProfile(id, user);
         return jobToResponse(jobService.retrieveJob(jobId, user));
@@ -118,7 +119,7 @@ public class ProfileApiController implements ProfilesApi {
     }
 
     @Override
-    public ResponseEntity<BillingProfileModel> retrieveProfile(String id) {
+    public ResponseEntity<BillingProfileModel> retrieveProfile(UUID id) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
         BillingProfileModel profileModel = profileService.getProfileById(id, user);
         return new ResponseEntity<>(profileModel, HttpStatus.OK);
@@ -126,7 +127,7 @@ public class ProfileApiController implements ProfilesApi {
 
     @Override
     public ResponseEntity<PolicyResponse> addProfilePolicyMember(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @PathVariable("policyName") String policyName,
         @Valid @RequestBody PolicyMemberRequest policyMember) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
@@ -137,7 +138,7 @@ public class ProfileApiController implements ProfilesApi {
 
     @Override
     public ResponseEntity<PolicyResponse> deleteProfilePolicyMember(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @PathVariable("policyName") String policyName,
         @PathVariable("memberEmail") String memberEmail) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
@@ -147,7 +148,7 @@ public class ProfileApiController implements ProfilesApi {
     }
 
     @Override
-    public ResponseEntity<PolicyResponse> retrieveProfilePolicies(@PathVariable("id") String id) {
+    public ResponseEntity<PolicyResponse> retrieveProfilePolicies(@PathVariable("id") UUID id) {
         AuthenticatedUserRequest user = authenticatedUserRequestFactory.from(request);
         List<PolicyModel> policies = profileService.retrieveProfilePolicies(id, user);
         PolicyResponse response = new PolicyResponse().policies(policies);

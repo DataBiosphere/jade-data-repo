@@ -81,9 +81,9 @@ public class AccessTest extends UsersBase {
     private String readerToken;
     private String custodianToken;
     private DatasetSummaryModel datasetSummaryModel;
-    private String datasetId;
-    private String profileId;
-    private List<String> snapshotIds;
+    private UUID datasetId;
+    private UUID profileId;
+    private List<UUID> snapshotIds;
 
     @Before
     public void setup() throws Exception {
@@ -98,7 +98,7 @@ public class AccessTest extends UsersBase {
 
     @After
     public void teardown() throws Exception {
-        for (String snapshotId : snapshotIds) {
+        for (UUID snapshotId : snapshotIds) {
             dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
         }
         if (datasetId != null) {
@@ -192,7 +192,7 @@ public class AccessTest extends UsersBase {
         assertThat("correctly added reader", iamService.isAuthorized(
             authenticatedReaderRequest,
             IamResourceType.DATASNAPSHOT,
-            snapshotSummaryModel.getId(),
+            snapshotSummaryModel.getId().toString(),
             IamAction.READ_DATA), equalTo(true));
 
         boolean readerHasAccess =
@@ -243,7 +243,8 @@ public class AccessTest extends UsersBase {
             profileId,
             "file-acl-test-snapshot.json");
         snapshotIds.add(snapshotSummaryModel.getId());
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(),
+                snapshotSummaryModel.getId());
 
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),
@@ -256,7 +257,7 @@ public class AccessTest extends UsersBase {
         boolean authorized = iamService.isAuthorized(
             authenticatedReaderRequest,
             IamResourceType.DATASNAPSHOT,
-            snapshotModel.getId(),
+            snapshotModel.getId().toString(),
             IamAction.READ_DATA);
         assertTrue("correctly added reader", authorized);
 

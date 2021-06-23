@@ -98,7 +98,7 @@ public class SnapshotValidationTest {
         return new SnapshotRequestModel()
             .name("snapshot")
             .description("snapshot description")
-            .profileId(UUID.randomUUID().toString())
+            .profileId(UUID.randomUUID())
             .addContentsItem(snapshotRequestContentsModel);
     }
 
@@ -107,7 +107,7 @@ public class SnapshotValidationTest {
         SnapshotRequestRowIdTableModel snapshotRequestTableModel = new SnapshotRequestRowIdTableModel()
             .tableName("snapshot")
             .columns(Arrays.asList("col1", "col2", "col3"))
-            .rowIds(Arrays.asList("row1", "row2", "row3"));
+            .rowIds(Arrays.asList(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID()));
 
         SnapshotRequestRowIdModel rowIdSpec = new SnapshotRequestRowIdModel()
             .tables(Collections.singletonList(snapshotRequestTableModel));
@@ -120,7 +120,7 @@ public class SnapshotValidationTest {
         return new SnapshotRequestModel()
             .name("snapshot")
             .description("snapshot description")
-            .profileId(UUID.randomUUID().toString())
+            .profileId(UUID.randomUUID())
             .contents(Collections.singletonList(snapshotRequestContentsModel));
     }
 
@@ -138,7 +138,7 @@ public class SnapshotValidationTest {
         return new SnapshotRequestModel()
             .name("snapshot")
             .description("snapshot description")
-            .profileId(UUID.randomUUID().toString())
+            .profileId(UUID.randomUUID())
             .contents(Collections.singletonList(snapshotRequestContentsModel));
     }
 
@@ -151,7 +151,7 @@ public class SnapshotValidationTest {
         return new SnapshotRequestModel()
             .name("snapshot")
             .description("snapshot description")
-            .profileId(UUID.randomUUID().toString())
+            .profileId(UUID.randomUUID())
             .contents(Collections.singletonList(snapshotRequestContentsModel));
     }
 

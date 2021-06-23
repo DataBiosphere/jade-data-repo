@@ -15,12 +15,12 @@ import java.util.UUID;
 public class DeleteProfileMarkUnusedProjects implements Step {
 
     private final ResourceService resourceService;
-    private final String profileId;
+    private final UUID profileId;
 
     private static final Logger logger = LoggerFactory.getLogger(DeleteProfileMarkUnusedProjects.class);
 
     public DeleteProfileMarkUnusedProjects(ResourceService resourceService,
-                                           String profileId) {
+                                           UUID profileId) {
         this.resourceService = resourceService;
         this.profileId = profileId;
     }

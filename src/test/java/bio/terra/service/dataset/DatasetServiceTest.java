@@ -89,7 +89,7 @@ public class DatasetServiceTest {
     private ArrayList<UUID> datasetIdList;
 
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws IOException, SQLException {
-        datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
+        datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         dataset.projectResourceId(projectId);
         String createFlightId = UUID.randomUUID().toString();
@@ -128,7 +128,7 @@ public class DatasetServiceTest {
             datasetDao.delete(datasetId);
         }
         resourceDao.deleteProject(projectId);
-        profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
+        profileDao.deleteBillingProfileById(billingProfile.getId());
         for (String flightId : flightIdsList) {
             jobService.releaseJob(flightId, testUser);
         }

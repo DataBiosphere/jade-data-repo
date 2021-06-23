@@ -10,14 +10,16 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
+import java.util.UUID;
+
 public class DeleteProfileMetadataStep implements Step {
 
     private final ProfileService profileService;
-    private final String profileId;
+    private final UUID profileId;
 
     private static final Logger logger = LoggerFactory.getLogger(DeleteProfileMetadataStep.class);
 
-    public DeleteProfileMetadataStep(ProfileService profileService, String profileId) {
+    public DeleteProfileMetadataStep(ProfileService profileService, UUID profileId) {
         this.profileService = profileService;
         this.profileId = profileId;
     }

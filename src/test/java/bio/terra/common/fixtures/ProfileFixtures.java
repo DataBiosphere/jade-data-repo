@@ -33,7 +33,7 @@ public final class ProfileFixtures {
 
     public static BillingProfileModel billingProfileForAccount(final String accountId) {
         return new BillingProfileModel()
-            .id(UUID.randomUUID().toString())
+            .id(UUID.randomUUID())
             .billingAccountId(accountId)
             .profileName(randomizeName("test-profile"))
             .biller("direct")

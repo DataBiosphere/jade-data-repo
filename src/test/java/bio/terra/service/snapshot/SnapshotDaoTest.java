@@ -87,7 +87,7 @@ public class SnapshotDaoTest {
     public void setup() throws Exception {
         BillingProfileModel billingProfile =
             profileDao.createBillingProfile(ProfileFixtures.randomBillingProfileRequest(), "hi@hi.hi");
-        profileId = UUID.fromString(billingProfile.getId());
+        profileId = billingProfile.getId();
 
         GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
         projectId = resourceDao.createProject(projectResource);
@@ -96,7 +96,7 @@ public class SnapshotDaoTest {
             DatasetRequestModel.class);
         datasetRequest
             .name(datasetRequest.getName() + UUID.randomUUID().toString())
-            .defaultProfileId(profileId.toString());
+            .defaultProfileId(profileId);
 
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         dataset.projectResourceId(projectId);
@@ -109,7 +109,7 @@ public class SnapshotDaoTest {
         dataset = datasetDao.retrieve(datasetId);
 
         snapshotRequest = jsonLoader.loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)
-            .profileId(profileId.toString());
+            .profileId(profileId);
         snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
 
         // Populate the snapshotId with random; delete should quietly not find it.

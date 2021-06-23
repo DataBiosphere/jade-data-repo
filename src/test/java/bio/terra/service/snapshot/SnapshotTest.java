@@ -73,10 +73,10 @@ public class SnapshotTest extends UsersBase {
 
 
     private static final Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
-    private String profileId;
+    private UUID profileId;
     private DatasetSummaryModel datasetSummaryModel;
-    private String datasetId;
-    private final List<String> createdSnapshotIds = new ArrayList<>();
+    private UUID datasetId;
+    private final List<UUID> createdSnapshotIds = new ArrayList<>();
     private String stewardToken;
 
     @Before
@@ -180,7 +180,7 @@ public class SnapshotTest extends UsersBase {
 
         EnumerateSnapshotModel enumSnapByBadDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
             steward(),
-            Collections.singletonList(UUID.randomUUID().toString()));
+            Collections.singletonList(UUID.randomUUID()));
 
         assertThat("Dataset filters to dataSnapshots",
             enumSnapByBadDatasetId.getTotal(),
@@ -205,8 +205,8 @@ public class SnapshotTest extends UsersBase {
             bqDatasetName,
             participantTable);
         TableResult participantIds = BigQueryFixtures.query(sql, bigQuery);
-        List<String> participantIdList = StreamSupport.stream(participantIds.getValues().spliterator(), false)
-            .map(v -> v.get(0).getStringValue())
+        List<UUID> participantIdList = StreamSupport.stream(participantIds.getValues().spliterator(), false)
+            .map(v -> UUID.fromString(v.get(0).getStringValue()))
             .collect(Collectors.toList());
         sql = String.format("SELECT %s FROM `%s.%s.%s`",
             PdaoConstant.PDAO_ROW_ID_COLUMN,
@@ -214,8 +214,8 @@ public class SnapshotTest extends UsersBase {
             bqDatasetName,
             sampleTable);
         TableResult sampleIds = BigQueryFixtures.query(sql, bigQuery);
-        List<String> sampleIdList = StreamSupport.stream(sampleIds.getValues().spliterator(), false)
-            .map(v -> v.get(0).getStringValue())
+        List<UUID> sampleIdList = StreamSupport.stream(sampleIds.getValues().spliterator(), false)
+            .map(v -> UUID.fromString(v.get(0).getStringValue()))
             .collect(Collectors.toList());
 
         // swap in these row ids in the request

@@ -101,7 +101,7 @@ public class BucketResourceTest {
             .defaultProfileId(profile.getId());
 
         DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-        datasetId = UUID.fromString(summaryModel.getId());
+        datasetId = summaryModel.getId();
     }
 
     @After

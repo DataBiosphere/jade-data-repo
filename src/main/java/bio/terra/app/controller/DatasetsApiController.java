@@ -130,20 +130,20 @@ public class DatasetsApiController implements DatasetsApi {
 
     @Override
     public ResponseEntity<DatasetModel> retrieveDataset(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @Valid @RequestParam(value = "include", required = false, defaultValue = RETRIEVE_INCLUDE_DEFAULT_VALUE)
             List<DatasetRequestAccessIncludeModel> include
     ) {
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id, IamAction.READ_DATASET);
-        return new ResponseEntity<>(datasetService.retrieveAvailableDatasetModel(UUID.fromString(id), include),
-            HttpStatus.OK);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET,
+                id.toString(), IamAction.READ_DATASET);
+        return new ResponseEntity<>(datasetService.retrieveAvailableDatasetModel(id, include), HttpStatus.OK);
     }
 
     @Override
-    public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
+    public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") UUID id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.DELETE);
-        String jobId = datasetService.delete(id, userReq);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id.toString(), IamAction.DELETE);
+        String jobId = datasetService.delete(id.toString(), userReq);
         // we can retrieve the job we just created
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
@@ -167,112 +167,114 @@ public class DatasetsApiController implements DatasetsApi {
     }
 
     @Override
-    public ResponseEntity<JobModel> ingestDataset(@PathVariable("id") String id,
+    public ResponseEntity<JobModel> ingestDataset(@PathVariable("id") UUID id,
                                                   @Valid @RequestBody IngestRequestModel ingest) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.INGEST_DATA);
-        String jobId = datasetService.ingestDataset(id, ingest, userReq);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+        String jobId = datasetService.ingestDataset(id.toString(), ingest, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
-    public ResponseEntity<JobModel> addDatasetAssetSpecifications(@PathVariable("id") String id,
+    public ResponseEntity<JobModel> addDatasetAssetSpecifications(@PathVariable("id") UUID id,
                                                   @Valid @RequestBody AssetModel asset) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.MANAGE_SCHEMA);
-        String jobId = datasetService.addDatasetAssetSpecifications(id, asset, userReq);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
+        String jobId = datasetService.addDatasetAssetSpecifications(id.toString(), asset, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
-    public ResponseEntity<JobModel> removeDatasetAssetSpecifications(@PathVariable("id") String id,
+    public ResponseEntity<JobModel> removeDatasetAssetSpecifications(@PathVariable("id") UUID id,
                                                                      @PathVariable("assetId") String assetId) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.MANAGE_SCHEMA);
-        String jobId = datasetService.removeDatasetAssetSpecifications(id, assetId, userReq);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id.toString(), IamAction.MANAGE_SCHEMA);
+        String jobId = datasetService.removeDatasetAssetSpecifications(id.toString(), assetId, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
     public ResponseEntity<JobModel> applyDatasetDataDeletion(
-        String id,
+        UUID id,
         @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        String jobId = datasetService.deleteTabularData(id, dataDeletionRequest, userReq);
+        String jobId = datasetService.deleteTabularData(id.toString(), dataDeletionRequest, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     // -- dataset-file --
     @Override
-    public ResponseEntity<JobModel> deleteFile(@PathVariable("id") String id,
+    public ResponseEntity<JobModel> deleteFile(@PathVariable("id") UUID id,
                                                @PathVariable("fileid") String fileid) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.SOFT_DELETE);
-        String jobId = fileService.deleteFile(id, fileid, userReq);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id.toString(), IamAction.SOFT_DELETE);
+        String jobId = fileService.deleteFile(id.toString(), fileid, userReq);
         // we can retrieve the job we just created
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
-    public ResponseEntity<JobModel> ingestFile(@PathVariable("id") String id,
+    public ResponseEntity<JobModel> ingestFile(@PathVariable("id") UUID id,
                                                @Valid @RequestBody FileLoadModel ingestFile) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id, IamAction.INGEST_DATA);
-        String jobId = fileService.ingestFile(id, ingestFile, userReq);
+        iamService.verifyAuthorization(userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+        String jobId = fileService.ingestFile(id.toString(), ingestFile, userReq);
         // we can retrieve the job we just created
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
-    public ResponseEntity<JobModel> bulkFileLoad(@PathVariable("id") String id,
+    public ResponseEntity<JobModel> bulkFileLoad(@PathVariable("id") UUID id,
                                                  @Valid @RequestBody BulkLoadRequestModel bulkFileLoad) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        String jobId = fileService.ingestBulkFile(id, bulkFileLoad, userReq);
+        String jobId = fileService.ingestBulkFile(id.toString(), bulkFileLoad, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
-    public ResponseEntity<JobModel> bulkFileLoadArray(@PathVariable("id") String id,
+    public ResponseEntity<JobModel> bulkFileLoadArray(@PathVariable("id") UUID id,
                                                       @Valid @RequestBody BulkLoadArrayRequestModel bulkFileLoadArray) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        String jobId = fileService.ingestBulkFileArray(id, bulkFileLoadArray, userReq);
+        String jobId = fileService.ingestBulkFileArray(id.toString(), bulkFileLoadArray, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
     public ResponseEntity<FileModel> lookupFileById(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @PathVariable("fileid") String fileid,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id, IamAction.READ_DATA);
-        FileModel fileModel = fileService.lookupFile(id, fileid, depth);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET,
+                id.toString(), IamAction.READ_DATA);
+        FileModel fileModel = fileService.lookupFile(id.toString(), fileid, depth);
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<FileModel> lookupFileByPath(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @RequestParam(value = "path", required = true) String path,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
 
-        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id, IamAction.READ_DATA);
+        iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET,
+                id.toString(), IamAction.READ_DATA);
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }
-        FileModel fileModel = fileService.lookupPath(id, path, depth);
+        FileModel fileModel = fileService.lookupPath(id.toString(), path, depth);
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
     // --dataset policies --
     @Override
     public ResponseEntity<PolicyResponse> addDatasetPolicyMember(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @PathVariable("policyName") String policyName,
         @Valid @RequestBody PolicyMemberRequest policyMember) {
         PolicyModel policy = iamService.addPolicyMember(
             getAuthenticatedInfo(),
             IamResourceType.DATASET,
-            UUID.fromString(id),
+            id,
             policyName,
             policyMember.getEmail());
         PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
@@ -280,18 +282,18 @@ public class DatasetsApiController implements DatasetsApi {
     }
 
     @Override
-    public ResponseEntity<PolicyResponse> retrieveDatasetPolicies(@PathVariable("id") String id) {
+    public ResponseEntity<PolicyResponse> retrieveDatasetPolicies(@PathVariable("id") UUID id) {
         List<PolicyModel> policies = iamService.retrievePolicies(
             getAuthenticatedInfo(),
             IamResourceType.DATASET,
-            UUID.fromString(id));
+            id);
         PolicyResponse response = new PolicyResponse().policies(policies);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<PolicyResponse> deleteDatasetPolicyMember(
-        @PathVariable("id") String id,
+        @PathVariable("id") UUID id,
         @PathVariable("policyName") String policyName,
         @PathVariable("memberEmail") String memberEmail) {
         // member email can't be null since it is part of the URL
@@ -301,7 +303,7 @@ public class DatasetsApiController implements DatasetsApi {
         PolicyModel policy = iamService.deletePolicyMember(
             getAuthenticatedInfo(),
             IamResourceType.DATASET,
-            UUID.fromString(id),
+            id,
             policyName,
             memberEmail);
         PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));

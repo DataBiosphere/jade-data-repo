@@ -35,7 +35,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -91,7 +90,7 @@ public class ProfileServiceTest {
     public void teardown() throws Exception {
         googleBillingService.assignProjectBilling(profile, projectResource);
         googleResourceDao.deleteProject(projectResource.getId());
-        profileDao.deleteBillingProfileById(UUID.fromString(profile.getId()));
+        profileDao.deleteBillingProfileById(profile.getId());
         // Connected operations resets the configuration
         connectedOperations.teardown();
     }

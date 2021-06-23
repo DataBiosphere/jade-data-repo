@@ -189,7 +189,7 @@ public class BigQueryPdaoTest {
                 .getStorageResourceRegion(GoogleCloudResource.BIGQUERY)
                 .toString();
 
-            connectedOperations.addDataset(dataset.getId().toString());
+            connectedOperations.addDataset(dataset.getId());
 
             // Stage tabular data for ingest.
             BlobInfo participantBlob = BlobInfo
@@ -225,7 +225,7 @@ public class BigQueryPdaoTest {
                 IngestRequestModel ingestRequest = new IngestRequestModel()
                     .format(IngestRequestModel.FormatEnum.JSON);
 
-                String datasetId = dataset.getId().toString();
+                UUID datasetId = dataset.getId();
                 connectedOperations.ingestTableSuccess(datasetId,
                     ingestRequest.table("participant").path(gsPath(participantBlob)));
                 connectedOperations.ingestTableSuccess(datasetId,
@@ -309,7 +309,7 @@ public class BigQueryPdaoTest {
     @Test
     public void nonStringAssetRootTest() throws Exception {
         Dataset dataset = readDataset("ingest-test-dataset.json");
-        connectedOperations.addDataset(dataset.getId().toString());
+        connectedOperations.addDataset(dataset.getId());
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -337,7 +337,7 @@ public class BigQueryPdaoTest {
             IngestRequestModel ingestRequest = new IngestRequestModel()
                 .format(IngestRequestModel.FormatEnum.JSON);
 
-            String datasetId = dataset.getId().toString();
+            UUID datasetId = dataset.getId();
             connectedOperations.ingestTableSuccess(datasetId,
                 ingestRequest.table("participant").path(gsPath(participantBlob)));
             connectedOperations.ingestTableSuccess(datasetId,
@@ -416,7 +416,7 @@ public class BigQueryPdaoTest {
     @Test
     public void testGetFullViews() throws Exception {
         Dataset dataset = readDataset("ingest-test-dataset.json");
-        connectedOperations.addDataset(dataset.getId().toString());
+        connectedOperations.addDataset(dataset.getId());
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -444,7 +444,7 @@ public class BigQueryPdaoTest {
             IngestRequestModel ingestRequest = new IngestRequestModel()
                 .format(IngestRequestModel.FormatEnum.JSON);
 
-            String datasetId = dataset.getId().toString();
+            UUID datasetId = dataset.getId();
             connectedOperations.ingestTableSuccess(datasetId,
                 ingestRequest.table("participant").path(gsPath(participantBlob)));
             connectedOperations.ingestTableSuccess(datasetId,
@@ -499,7 +499,7 @@ public class BigQueryPdaoTest {
 
     @Test
     public void testGetSnapshotTableData() throws Exception {
-        UUID profileId = UUID.fromString(profileModel.getId());
+        UUID profileId = profileModel.getId();
         String dataProjectId = googleResourceConfiguration.getSingleDataProjectId();
         Snapshot snapshot = new Snapshot().projectResource(new GoogleProjectResource()
             .profileId(profileId)

@@ -1,7 +1,6 @@
 package bio.terra.service.profile;
 
 import bio.terra.model.BillingProfileUpdateModel;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -29,7 +28,7 @@ public class ProfileUpdateRequestValidator implements Validator {
                 errors.rejectValue("billingAccountId",
                     "The id must be 3 sets of 6 capitalized alphanumeric characters separated by dashes");
             }
-            if (billingProfileUpdateModel.getId() == null || StringUtils.isEmpty(billingProfileUpdateModel.getId())) {
+            if (billingProfileUpdateModel.getId() == null) {
                 errors.rejectValue("id",
                     "The billing profile id must be specified");
             }

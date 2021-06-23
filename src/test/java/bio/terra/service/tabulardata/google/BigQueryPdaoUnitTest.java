@@ -527,7 +527,8 @@ public class BigQueryPdaoUnitTest {
                 Map.of("datarepo_row_id", drRowId1, "input_value", drRowId1),
                 Map.of("datarepo_row_id", drRowId2, "input_value", drRowId2)));
 
-        assertThat(dao.matchRowIds(snapshot.getFirstSnapshotSource(), TABLE_1_NAME, List.of(drRowId1, drRowId2)),
+        assertThat(dao.matchRowIds(snapshot.getFirstSnapshotSource(),
+                TABLE_1_NAME, List.of(UUID.fromString(drRowId1), UUID.fromString(drRowId2))),
             samePropertyValuesAs(new RowIdMatch().addMatch(drRowId1, drRowId1).addMatch(drRowId2, drRowId2)));
     }
 
@@ -553,7 +554,9 @@ public class BigQueryPdaoUnitTest {
                 Map.of("input_value", drRowId3)));
 
         assertThat(
-            dao.matchRowIds(snapshot.getFirstSnapshotSource(), TABLE_1_NAME, List.of(drRowId1, drRowId2, drRowId3)),
+            dao.matchRowIds(snapshot.getFirstSnapshotSource(),
+                    TABLE_1_NAME,
+                    List.of(UUID.fromString(drRowId1), UUID.fromString(drRowId2), UUID.fromString(drRowId3))),
             samePropertyValuesAs(new RowIdMatch()
                 .addMatch(drRowId1, drRowId1)
                 .addMatch(drRowId2, drRowId2)
@@ -583,7 +586,7 @@ public class BigQueryPdaoUnitTest {
         SnapshotRequestContentsModel requestModel = new SnapshotRequestContentsModel()
             .rowIdSpec(new SnapshotRequestRowIdModel()
                 .addTablesItem(new SnapshotRequestRowIdTableModel()
-                    .addRowIdsItem(drRowId1).addRowIdsItem(drRowId2)
+                    .addRowIdsItem(UUID.fromString(drRowId1)).addRowIdsItem(UUID.fromString(drRowId2))
                     .addColumnsItem(TABLE_2_COL1_NAME)
                     .addColumnsItem(TABLE_2_COL2_NAME)
                     .tableName(TABLE_2_NAME)));
@@ -621,7 +624,7 @@ public class BigQueryPdaoUnitTest {
         SnapshotRequestContentsModel requestModel = new SnapshotRequestContentsModel()
             .rowIdSpec(new SnapshotRequestRowIdModel()
                 .addTablesItem(new SnapshotRequestRowIdTableModel()
-                    .addRowIdsItem(drRowId1).addRowIdsItem(drRowId2)
+                    .addRowIdsItem(UUID.fromString(drRowId1)).addRowIdsItem(UUID.fromString(drRowId2))
                     .addColumnsItem(TABLE_2_COL1_NAME)
                     .addColumnsItem(TABLE_2_COL2_NAME)
                     .tableName(TABLE_2_NAME)));

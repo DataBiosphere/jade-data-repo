@@ -88,14 +88,14 @@ public class OneProjectPerResourceUnitTest {
         projectResource1.googleProjectId(oneProjectPerResourceSelector.projectIdForDataset());
         UUID projectResourceId1 = resourceDao.createProject(projectResource1);
         projectResource1.id(projectResourceId1);
-        projectResource1.profileId(UUID.fromString(billingProfiles.get(0).getId()));
+        projectResource1.profileId(billingProfiles.get(0).getId());
         projects.add(projectResource1);
 
         GoogleProjectResource projectResource2 = ResourceFixtures.randomProjectResource(billingProfiles.get(1));
         projectResource2.googleProjectId(oneProjectPerResourceSelector.projectIdForDataset());
         UUID projectResourceId2 = resourceDao.createProject(projectResource2);
         projectResource2.id(projectResourceId2);
-        projectResource2.profileId(UUID.fromString(billingProfiles.get(1).getId()));
+        projectResource2.profileId(billingProfiles.get(1).getId());
         projects.add(projectResource2);
 
     }
@@ -109,7 +109,7 @@ public class OneProjectPerResourceUnitTest {
             resourceDao.deleteProject(project.getId());
         }
         for (BillingProfileModel billingProfile : billingProfiles) {
-            profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
+            profileDao.deleteBillingProfileById(billingProfile.getId());
         }
         resourceConfiguration.setDataProjectPrefix(dataProjectPrefix);
     }
@@ -146,7 +146,7 @@ public class OneProjectPerResourceUnitTest {
 
 
         //Different billing profile than source dataset
-        BillingProfileModel newBillingProfile = billingProfiles.get(0).id(UUID.randomUUID().toString());
+        BillingProfileModel newBillingProfile = billingProfiles.get(0).id(UUID.randomUUID());
 
         String diffFileProjectId = oneProjectPerResourceSelector
             .projectIdForFile(dataset, datasetProjectId, newBillingProfile);

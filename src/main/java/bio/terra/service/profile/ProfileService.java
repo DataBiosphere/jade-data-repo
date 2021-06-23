@@ -92,7 +92,7 @@ public class ProfileService {
      */
     public String updateProfile(BillingProfileUpdateModel billingProfileRequest,
                                 AuthenticatedUserRequest user) {
-        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, billingProfileRequest.getId(),
+        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, billingProfileRequest.getId().toString(),
             IamAction.UPDATE_BILLING_ACCOUNT);
 
         String description = String.format("Update billing for profile id '%s'", billingProfileRequest.getId());
@@ -113,8 +113,8 @@ public class ProfileService {
      * @param user the user attempting the delete
      * @return jobId of the submitted stairway job
      */
-    public String deleteProfile(String id, AuthenticatedUserRequest user) {
-        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id, IamAction.DELETE);
+    public String deleteProfile(UUID id, AuthenticatedUserRequest user) {
+        iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id.toString(), IamAction.DELETE);
 
         String description = String.format("Delete billing profile id '%s'", id);
         return jobService
@@ -150,8 +150,8 @@ public class ProfileService {
      * @throws ProfileNotFoundException when the profile is not found
      * @throws IamUnauthorizedException when the caller does not have access to the billing profile
      */
-    public BillingProfileModel getProfileById(String id, AuthenticatedUserRequest user) {
-        if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id)) {
+    public BillingProfileModel getProfileById(UUID id, AuthenticatedUserRequest user) {
+        if (!iamService.hasActions(user, IamResourceType.SPEND_PROFILE, id.toString())) {
             throw new IamUnauthorizedException("unauthorized");
         }
         return getProfileByIdNoCheck(id);
@@ -164,9 +164,8 @@ public class ProfileService {
      * @return On success, the billing profile model
      * @throws ProfileNotFoundException when the profile is not found
      */
-    public BillingProfileModel getProfileByIdNoCheck(String id) {
-        UUID profileId = UUID.fromString(id);
-        return profileDao.getBillingProfileById(profileId);
+    public BillingProfileModel getProfileByIdNoCheck(UUID id) {
+        return profileDao.getBillingProfileById(id);
     }
 
 
@@ -204,19 +203,19 @@ public class ProfileService {
         return profileModel;
     }
 
-    public PolicyModel addProfilePolicyMember(String profileId,
+    public PolicyModel addProfilePolicyMember(UUID profileId,
                                               String policyName,
                                               PolicyMemberRequest policyMember,
                                               AuthenticatedUserRequest user) {
         return iamService.addPolicyMember(
             user,
             IamResourceType.SPEND_PROFILE,
-            UUID.fromString(profileId),
+            profileId,
             policyName,
             policyMember.getEmail());
     }
 
-    public PolicyModel deleteProfilePolicyMember(String profileId,
+    public PolicyModel deleteProfilePolicyMember(UUID profileId,
                                                  String policyName,
                                                  String memberEmail,
                                                  AuthenticatedUserRequest user) {
@@ -229,16 +228,16 @@ public class ProfileService {
         return iamService.deletePolicyMember(
             user,
             IamResourceType.SPEND_PROFILE,
-            UUID.fromString(profileId),
+            profileId,
             policyName,
             memberEmail);
     }
 
-    public List<PolicyModel> retrieveProfilePolicies(String profileId, AuthenticatedUserRequest user) {
+    public List<PolicyModel> retrieveProfilePolicies(UUID profileId, AuthenticatedUserRequest user) {
         return iamService.retrievePolicies(
             user,
             IamResourceType.SPEND_PROFILE,
-            UUID.fromString(profileId));
+            profileId);
     }
 
     // -- methods invoked from billing profile flights --
@@ -252,18 +251,17 @@ public class ProfileService {
         return profileDao.updateBillingProfileById(profileRequest);
     }
 
-    public boolean deleteProfileMetadata(String profileId) {
+    public boolean deleteProfileMetadata(UUID profileId) {
         // TODO: refuse to delete if there are dependent projects
-        UUID profileUuid = UUID.fromString(profileId);
-        return profileDao.deleteBillingProfileById(profileUuid);
+        return profileDao.deleteBillingProfileById(profileId);
     }
 
     public void createProfileIamResource(BillingProfileRequestModel request, AuthenticatedUserRequest user) {
-        iamService.createProfileResource(user, request.getId());
+        iamService.createProfileResource(user, request.getId().toString());
     }
 
-    public void deleteProfileIamResource(String profileId, AuthenticatedUserRequest user) {
-        iamService.deleteProfileResource(user, profileId);
+    public void deleteProfileIamResource(UUID profileId, AuthenticatedUserRequest user) {
+        iamService.deleteProfileResource(user, profileId.toString());
     }
 
     // Verify user access to the billing account during billing profile creation

@@ -28,7 +28,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -111,7 +110,7 @@ public class SearchApiController implements SearchApi {
         final List<UUID> snapshotIds = searchQueryRequest.getSnapshotIds();
 
         Set<UUID> requestIds =
-            snapshotIds == null || snapshotIds.isEmpty() ? Collections.emptySet() : new HashSet<>(snapshotIds);
+            snapshotIds == null || snapshotIds.isEmpty() ? Set.of() : Set.copyOf(snapshotIds);
 
         Set<UUID> inaccessibleIds = new HashSet<>(requestIds);
         accessibleIds.forEach(inaccessibleIds::remove);

@@ -6,14 +6,10 @@ import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
-import bio.terra.model.ConfigParameterModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import com.google.cloud.firestore.Firestore;
-import io.grpc.StatusRuntimeException;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -66,11 +62,6 @@ public class FireStoreFileDaoTest {
         configurationService.reset();
         datasetId = UUID.randomUUID().toString();
         firestore = TestFirestoreProvider.getFirestore();
-    }
-
-    @After
-    public void cleanup() {
-        configurationService.reset();
     }
 
     @Test
@@ -130,19 +121,9 @@ public class FireStoreFileDaoTest {
     }
 
     // Default settings of the thought should result in a retry failure
-    @Test(expected = StatusRuntimeException.class)
+    @Test(expected = FileSystemAbortTransactionException.class)
     public void faultRetrieveRetryFail() throws Exception {
         configurationService.setFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT.name(), true);
-
-        ConfigModel retryConfigModel = new ConfigModel()
-            .name(ConfigEnum.FIRESTORE_RETRY_MAX.name())
-            .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
-            .parameter(new ConfigParameterModel().value("1"));
-        ConfigGroupModel group = new ConfigGroupModel()
-            .label("setRetryParameter")
-            .addGroupItem(retryConfigModel);
-        configurationService.setConfig(group);
-
         FireStoreFile file1 = makeFile();
         String objectId = file1.getFileId();
 

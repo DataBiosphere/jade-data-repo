@@ -41,7 +41,6 @@ import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_UNLOCK_FATA
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_UNLOCK_RETRY_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRIEVE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_RETRY_MAX;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
@@ -232,7 +231,6 @@ public class ConfigurationService {
         addParameter(AUTH_CACHE_SIZE, appConfiguration.getAuthCacheSize());
         addParameter(AUTH_CACHE_TIMEOUT_SECONDS, appConfiguration.getAuthCacheTimeoutSeconds());
         addParameter(ALLOW_REUSE_EXISTING_BUCKETS, googleResourceConfiguration.getAllowReuseExistingBuckets());
-        addParameter(FIRESTORE_RETRY_MAX, googleResourceConfiguration.getFirestoreRetries());
 
         // -- Faults --
         addFaultSimple(CREATE_ASSET_FAULT);

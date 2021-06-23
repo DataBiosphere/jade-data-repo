@@ -9,18 +9,14 @@ import com.google.api.core.ApiFuture;
 import com.google.api.core.SettableApiFuture;
 import com.google.api.gax.grpc.GrpcStatusCode;
 import com.google.api.gax.rpc.AbortedException;
-import com.google.api.gax.rpc.ApiException;
-import com.google.api.gax.rpc.DeadlineExceededException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
-import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.firestore.Transaction;
 import com.google.cloud.firestore.WriteResult;
 
 import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +25,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
@@ -100,14 +95,19 @@ class FireStoreFileDao {
         return fireStoreUtils.runTransactionWithRetry(firestore,
             xn -> {
                 DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
+                if (docSnap == null || !docSnap.exists()) {
+                    return null;
+                }
 
                 // Fault insertion to test retry
                 if (configurationService.testInsertFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT)) {
-                    throw new StatusRuntimeException(Status.fromCodeValue(500));
+                    throw new AbortedException(
+                        new FileSystemAbortTransactionException("fault insertion"),
+                        GrpcStatusCode.of(Status.Code.ABORTED),
+                        true);
                 }
 
-                return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreFile.class))
-                    .orElse(null);
+                return docSnap.toObject(FireStoreFile.class);
             }, "retrieveFileMetadata",
             " retrieving file metadata for dataset Id: " + datasetId);
     }

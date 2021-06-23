@@ -4,12 +4,14 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
@@ -33,6 +35,10 @@ public class DatasetCreateFlight extends Flight {
         IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
         ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
         ProfileService profileService = (ProfileService) appContext.getBean("profileService");
+        AzureDataLocationSelector azureDataLocationSelector =
+            (AzureDataLocationSelector) appContext.getBean("azureDataLocationSelector");
+        DatasetStorageAccountDao datasetStorageAccountDao =
+            (DatasetStorageAccountDao) appContext.getBean("datasetStorageAccountDao");
 
         DatasetRequestModel datasetRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
@@ -44,14 +50,23 @@ public class DatasetCreateFlight extends Flight {
         // billing information remains valid.
         addStep(new AuthorizeBillingProfileUseStep(profileService, datasetRequest.getDefaultProfileId(), userReq));
 
-        // Get or create the project where the dataset resources will be created
+        // Get or create the project where the dataset resources will be created for GCP
         addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
+
+        // Get or create the storage account where the dataset resources will be created for Azure
+        addStep(new CreateDatasetGetOrCreateStorageAccountStep(
+            resourceService,
+            datasetRequest,
+            azureDataLocationSelector));
 
         // Generate the dateset id and stored it in the working map
         addStep(new CreateDatasetIdStep());
 
         // Create dataset metadata objects in postgres and lock the dataset
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
+
+        // For azure backed datasets, add a link co connect the storage account to the dataset
+        addStep(new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao, datasetRequest));
 
         addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao));
 

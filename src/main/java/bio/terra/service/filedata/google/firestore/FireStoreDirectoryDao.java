@@ -192,8 +192,6 @@ public class FireStoreDirectoryDao {
         DocumentSnapshot apply(Transaction xn) throws InterruptedException;
     }
 
-    private static final int SLEEP_BASE_SECONDS = 1;
-
     // Returns null if not found - upper layers do any throwing
     public FireStoreDirectoryEntry retrieveById(
         Firestore firestore, String collectionId, String fileId) throws InterruptedException {

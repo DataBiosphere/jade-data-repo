@@ -132,14 +132,7 @@ public class FireStoreFileDaoTest {
     public void faultRetrieveRetryFail() throws Exception {
         configurationService.setFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT.name(), true);
 
-        ConfigModel retryConfigModel = new ConfigModel()
-            .name(ConfigEnum.FIRESTORE_RETRIES.name())
-            .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
-            .parameter(new ConfigParameterModel().value("1"));
-        ConfigGroupModel group = new ConfigGroupModel()
-            .label("setRetryParameter")
-            .addGroupItem(retryConfigModel);
-        configurationService.setConfig(group);
+        setConfigParameterValue(ConfigEnum.FIRESTORE_RETRIES, "1", "setRetryParameter");
 
         FireStoreFile file1 = makeFile();
         String objectId = file1.getFileId();
@@ -187,5 +180,16 @@ public class FireStoreFileDaoTest {
             .bucketResourceId("BostonBucket")
             .gspath("gs://server.example.com/" + fileId)
             .size(FILE_SIZE);
+    }
+
+    private void setConfigParameterValue(ConfigEnum config, String newValue, String label) {
+        ConfigModel retryConfigModel = new ConfigModel()
+            .name(config.name())
+            .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
+            .parameter(new ConfigParameterModel().value(newValue));
+        ConfigGroupModel group = new ConfigGroupModel()
+            .label(label)
+            .addGroupItem(retryConfigModel);
+        configurationService.setConfig(group);
     }
 }

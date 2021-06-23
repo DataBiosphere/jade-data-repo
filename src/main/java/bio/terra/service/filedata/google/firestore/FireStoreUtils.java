@@ -44,7 +44,13 @@ public class FireStoreUtils {
     }
 
     public int getFirestoreRetries() {
-        return configurationService.getParameterValue(ConfigEnum.FIRESTORE_RETRIES);
+        try {
+            return configurationService.getParameterValue(ConfigEnum.FIRESTORE_RETRIES);
+        } catch (Exception ex) {
+            logger.info("No value set for FIRESTORE_RETRIES parameter. Defaulting to 1.");
+            return 1;
+        }
+
     }
 
     <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {

@@ -257,16 +257,15 @@ public class FireStoreUtils {
         return outputs;
     }
 
-    // For batch operations, we want to also include the AbortedException as retryable
     static boolean shouldRetry(Throwable throwable) {
         if (throwable == null) {
             return false; // Did not find a retry-able exception
         }
         if (throwable instanceof DeadlineExceededException ||
             throwable instanceof UnavailableException ||
+            throwable instanceof AbortedException ||
             throwable instanceof InternalException ||
-            throwable instanceof StatusRuntimeException ||
-            throwable instanceof AbortedException) {
+            throwable instanceof StatusRuntimeException) {
             return true;
         }
         return shouldRetry(throwable.getCause());

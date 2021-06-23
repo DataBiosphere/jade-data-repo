@@ -68,8 +68,8 @@ public class DrsServiceTest {
 
     @Before
     public void before() throws Exception {
-        drsService = new DrsService(snapshotService,
-            fileService, drsIdService, samService, resourceService, configurationService, jobService, performanceLogger);
+        drsService = new DrsService(snapshotService, fileService, drsIdService, samService, resourceService,
+            configurationService, jobService, performanceLogger);
         when(jobService.getActivePodCount()).thenReturn(1);
         when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
 

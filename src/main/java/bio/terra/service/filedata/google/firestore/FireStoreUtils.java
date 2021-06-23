@@ -225,7 +225,7 @@ public class FireStoreUtils {
                         InternalException |
                         StatusRuntimeException |
                         ExecutionException ex) {
-                        if (shouldRetry(ex, true)) {
+                        if (shouldRetry(ex)) {
                             logger.warn("[batchOperation] Retry-able error in firestore future get - input: " +
                                 inputs.get(i) + " message: " + ex.getMessage());
                         } else
@@ -258,7 +258,7 @@ public class FireStoreUtils {
     }
 
     // For batch operations, we want to also include the AbortedException as retryable
-    static boolean shouldRetry(Throwable throwable, boolean isBatch) {
+    static boolean shouldRetry(Throwable throwable) {
         if (throwable == null) {
             return false; // Did not find a retry-able exception
         }
@@ -266,10 +266,10 @@ public class FireStoreUtils {
             throwable instanceof UnavailableException ||
             throwable instanceof InternalException ||
             throwable instanceof StatusRuntimeException ||
-            (isBatch && throwable instanceof AbortedException)) {
+            throwable instanceof AbortedException) {
             return true;
         }
-        return shouldRetry(throwable.getCause(), isBatch);
+        return shouldRetry(throwable.getCause());
     }
 
     public <T> T runTransactionWithRetry(Firestore firestore,
@@ -284,7 +284,7 @@ public class FireStoreUtils {
                 return transactionGet(transactionOp, transaction);
             } catch (Exception ex) {
                 final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry));
-                if (retry < firestoreRetries && FireStoreUtils.shouldRetry(ex, false)) {
+                if (retry < firestoreRetries && FireStoreUtils.shouldRetry(ex)) {
                     // perform retry
                     retry++;
                     logger.warn("[transaction retry] Retry-able error in firestore transactions - {} " +

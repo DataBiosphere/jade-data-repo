@@ -69,6 +69,7 @@ public class DatasetDeleteFlight extends Flight {
         // resource from SAM to ensure we can get the metadata needed to perform the operation.  Also need to run
         // before metadata is deleted since it is required by the step.
         addStep(new DeleteDatasetAuthzBqAclsStep(iamClient, datasetService, resourceService, datasetId, userReq));
+        addStep(new DeleteDatasetDeleteStorageAccountsStep(resourceService, datasetService, datasetId));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
         addStep(new UnlockDatasetStep(datasetDao, datasetId, false), lockDatasetRetry);

@@ -616,7 +616,7 @@ public class FireStoreDirectoryDao {
             retryNum++;
             final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retryNum));
             logger.warn("[lookupPathNoXn retry] Retry-able error in firestore transactions - will attempt retry #{}" +
-                    " after {} millisecond pause. Message: {}",
+                    " after {} second pause. Message: {}",
                 retryNum, retryWait, lastException.getMessage());
             TimeUnit.SECONDS.wait(retryWait);
         }

@@ -154,6 +154,7 @@ public class FireStoreUtils {
                 batchOperation(documents, generator);
             } while (documents.size() > 0);
         } catch (ExecutionException ex) {
+            // TODO - can we retry on this exception?
             throw new FileSystemExecutionException("scanning collection - execution exception", ex);
         }
     }
@@ -288,7 +289,7 @@ public class FireStoreUtils {
                     retry++;
                     logger.warn("[transaction retry] Retry-able error in firestore transactions - {} " +
                             "- will attempt retry #{}" +
-                            " after {} millisecond pause. Message: {}",
+                            " after {} second pause. Message: {}",
                         warnMessage, retry, retryWait, ex.getMessage());
                     TimeUnit.SECONDS.sleep(retryWait);
                 } else {

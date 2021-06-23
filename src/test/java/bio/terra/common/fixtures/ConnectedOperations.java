@@ -130,17 +130,17 @@ public class ConnectedOperations {
         // in the bookkeeping lists (createdDatasetIds/createdDatasetIds) in this class.
         when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASET)))
             .thenAnswer((Answer<List<UUID>>) invocation
-                -> new ArrayList<>(createdDatasetIds));
+                -> createdDatasetIds);
         when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
             .thenAnswer((Answer<List<UUID>>) invocation
-                -> new ArrayList<>(createdSnapshotIds));
+                -> createdSnapshotIds);
         doNothing().when(samService).deleteSnapshotResource(any(), any());
         doNothing().when(samService).deleteDatasetResource(any(), any());
 
         // Mock the billing profile calls
         when(samService.listAuthorizedResources(any(), eq(IamResourceType.SPEND_PROFILE)))
             .thenAnswer((Answer<List<UUID>>) invocation
-                -> new ArrayList<>(createdProfileIds));
+                -> createdProfileIds);
         when(samService.hasActions(any(), eq(IamResourceType.SPEND_PROFILE), any())).thenReturn(true);
 
         doNothing().when(samService).createProfileResource(any(), any());

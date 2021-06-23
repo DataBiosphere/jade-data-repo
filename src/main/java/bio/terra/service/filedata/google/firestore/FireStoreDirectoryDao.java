@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -104,8 +105,7 @@ public class FireStoreDirectoryDao {
         String lookupDirPath = makeLookupPath(createEntry.getPath());
 
         fireStoreUtils.runTransactionWithRetry(firestore,
-            (xn) -> {
-
+            xn -> {
                 for (String testPath = lookupDirPath;
                      !testPath.isEmpty();
                      testPath = fireStoreUtils.getDirectoryPath(testPath)) {
@@ -121,12 +121,12 @@ public class FireStoreDirectoryDao {
                 }
 
                 // transition point from reading to writing in the transaction
-
                 for (FireStoreDirectoryEntry dirToCreate : createList) {
                     xn.set(getDocRef(firestore, collectionId, dirToCreate), dirToCreate);
                 }
 
                 xn.set(getDocRef(firestore, collectionId, createEntry), createEntry);
+                return null;
             },
             "createFileRef", " creating file directory for collection Id: " + collectionId);
     }
@@ -193,43 +193,15 @@ public class FireStoreDirectoryDao {
     }
 
     // Returns null if not found - upper layers do any throwing
-    private FireStoreDirectoryEntry runTransactionWithRetry(Firestore firestore,
-                                                            LookupFunction lookupFunction,
-                                                            String transactionOp,
-                                                            String warnMessage) throws InterruptedException {
-        for (int i = 0; i < LOOKUP_RETRIES; i++) {
-            try {
-                ApiFuture<FireStoreDirectoryEntry> transaction =
-                    firestore.runTransaction(
-                        xn -> {
-                            DocumentSnapshot docSnap = lookupFunction.apply(xn);
-                            if (docSnap == null) {
-                                return null;
-                            }
-                            return docSnap.toObject(FireStoreDirectoryEntry.class);
-                        });
-
-                return fireStoreUtils.transactionGet(transactionOp, transaction);
-            } catch (Exception ex) {
-                if (FireStoreUtils.shouldRetry(ex)) {
-                    logger.warn("Retry-able error in firestore future get - " +
-                        warnMessage + " message: " + ex.getMessage());
-                } else {
-                    throw new FileSystemExecutionException(transactionOp + " execution exception", ex);
-                }
-            }
-
-            TimeUnit.SECONDS.sleep(1);
-        }
-        throw new FileSystemExecutionException(transactionOp + " failed - no more retries");
-    }
-
-    // Returns null if not found - upper layers do any throwing
     public FireStoreDirectoryEntry retrieveById(
         Firestore firestore, String collectionId, String fileId) throws InterruptedException {
 
-        return runTransactionWithRetry(firestore, (xn) -> lookupByFileId(firestore, collectionId, fileId, xn),
+        DocumentSnapshot docSnap = fireStoreUtils.runTransactionWithRetry(firestore,
+            xn -> lookupByFileId(firestore, collectionId, fileId, xn),
             "retrieveById", " file id: " + fileId);
+
+        return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreDirectoryEntry.class))
+            .orElse(null);
     }
 
     // Returns null if not found - upper layers do any throwing
@@ -238,11 +210,12 @@ public class FireStoreDirectoryDao {
 
         String lookupPath = makeLookupPath(fullPath);
 
-        return runTransactionWithRetry(firestore, (xn) -> lookupByFilePath(firestore, collectionId, lookupPath, xn),
+        DocumentSnapshot docSnap = fireStoreUtils.runTransactionWithRetry(firestore,
+            xn -> lookupByFilePath(firestore, collectionId, lookupPath, xn),
             "retrieveByPath", " path: " + lookupPath);
+        return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreDirectoryEntry.class))
+            .orElse(null);
     }
-
-
 
 
     public List<String> validateRefIds(

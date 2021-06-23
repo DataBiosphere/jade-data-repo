@@ -6,10 +6,12 @@ import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
+import bio.terra.model.ConfigParameterModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.cloud.firestore.Firestore;
+import io.grpc.StatusRuntimeException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -62,6 +64,11 @@ public class FireStoreFileDaoTest {
         configurationService.reset();
         datasetId = UUID.randomUUID().toString();
         firestore = TestFirestoreProvider.getFirestore();
+    }
+
+    @After
+    public void cleanup() {
+        configurationService.reset();
     }
 
     @Test
@@ -121,9 +128,12 @@ public class FireStoreFileDaoTest {
     }
 
     // Default settings of the thought should result in a retry failure
-    @Test(expected = FileSystemExecutionException.class)
+    @Test(expected = StatusRuntimeException.class)
     public void faultRetrieveRetryFail() throws Exception {
         configurationService.setFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT.name(), true);
+
+        setConfigParameterValue(ConfigEnum.FIRESTORE_RETRIES, "1", "setRetryParameter");
+
         FireStoreFile file1 = makeFile();
         String objectId = file1.getFileId();
 
@@ -135,7 +145,7 @@ public class FireStoreFileDaoTest {
     public void faultRetrieveRetrySuccess() throws Exception {
         ConfigFaultCountedModel countedModel = new ConfigFaultCountedModel()
             .skipFor(0)
-            .insert(5)
+            .insert(3)
             .rate(100)
             .rateStyle(ConfigFaultCountedModel.RateStyleEnum.FIXED);
 
@@ -170,5 +180,16 @@ public class FireStoreFileDaoTest {
             .bucketResourceId("BostonBucket")
             .gspath("gs://server.example.com/" + fileId)
             .size(FILE_SIZE);
+    }
+
+    private void setConfigParameterValue(ConfigEnum config, String newValue, String label) {
+        ConfigModel retryConfigModel = new ConfigModel()
+            .name(config.name())
+            .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
+            .parameter(new ConfigParameterModel().value(newValue));
+        ConfigGroupModel group = new ConfigGroupModel()
+            .label(label)
+            .addGroupItem(retryConfigModel);
+        configurationService.setConfig(group);
     }
 }

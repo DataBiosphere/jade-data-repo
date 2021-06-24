@@ -157,7 +157,6 @@ public class GoogleProjectService {
         resourceDao.deleteProjectMetadata(projectIdList);
     }
 
-    // package access for use in tests
     public Project getProject(String googleProjectId) {
         try {
             CloudResourceManager resourceManager = cloudResourceManager();

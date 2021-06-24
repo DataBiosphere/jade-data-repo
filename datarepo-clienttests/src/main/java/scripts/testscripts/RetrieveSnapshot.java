@@ -43,6 +43,7 @@ public class RetrieveSnapshot extends SimpleDataset {
 
   private SnapshotSummaryModel snapshotSummaryModel;
   private List<BlobId> scratchFiles = new ArrayList<>();
+  private String drsId;
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     Optional<String> profileName;
@@ -155,17 +156,28 @@ public class RetrieveSnapshot extends SimpleDataset {
         "Successfully created snapshot: {} with user {} ",
         snapshotSummaryModel.getName(),
         datasetCreator.name);
+    drsId = "v1_" + snapshotSummaryModel.getId() + "_" + fileId;
   }
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
+    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
+    DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
+
     SnapshotModel snapshotModel =
         repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId(), Collections.emptyList());
     logger.debug(
         "Successfully retrieved snaphot: {}, data project: {}",
         snapshotModel.getName(),
+        snapshotModel.getDataProject());
+
+    DRSObject object = dataRepositoryServiceApi.getObject(drsId, false);
+    logger.debug(
+        "Successfully retrieved drs object: {}, with id: {} and data project: {}",
+        object.getName(),
+        drsId,
         snapshotModel.getDataProject());
   }
 

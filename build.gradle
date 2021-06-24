@@ -129,6 +129,12 @@ tasks.withType(JacocoReport) {
         csv.enabled false
         html.destination file("${buildDir}/jacocoHtml")
     }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['bio/terra/model/**'])
+        }))
+    }
 }
 
 jacocoTestCoverageVerification {

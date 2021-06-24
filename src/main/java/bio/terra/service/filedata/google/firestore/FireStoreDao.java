@@ -190,13 +190,20 @@ public class FireStoreDao {
     public FSItem retrieveByPath(FSContainerInterface container,
                                  String fullPath,
                                  int enumerateDepth) throws InterruptedException {
-        Firestore firestore =
+        Firestore fsItemFirestore =
             FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
+        Firestore metadataFirestore = getMetadataFirestoreConnection(container);
         String containerId = container.getId().toString();
 
-        FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveByPath(firestore, containerId, fullPath);
+        FireStoreDirectoryEntry fireStoreDirectoryEntry =
+            directoryDao.retrieveByPath(fsItemFirestore, containerId, fullPath);
         return retrieveWorker(
-            firestore, containerId, enumerateDepth, fireStoreDirectoryEntry, fullPath);
+            fsItemFirestore,
+            metadataFirestore,
+            containerId,
+            enumerateDepth,
+            fireStoreDirectoryEntry,
+            fullPath);
     }
 
     /**
@@ -212,12 +219,19 @@ public class FireStoreDao {
     public FSItem retrieveById(FSContainerInterface container,
                                String fileId,
                                int enumerateDepth) throws InterruptedException {
-        Firestore firestore =
+        Firestore fsItemFirestore =
             FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
+        Firestore metadataFirestore = getMetadataFirestoreConnection(container);
         String datasetId = container.getId().toString();
 
-        FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveById(firestore, datasetId, fileId);
-        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, fileId);
+        FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveById(fsItemFirestore, datasetId, fileId);
+        return retrieveWorker(
+            fsItemFirestore,
+            metadataFirestore,
+            datasetId,
+            enumerateDepth,
+            fireStoreDirectoryEntry,
+            fileId);
     }
 
 
@@ -226,10 +240,18 @@ public class FireStoreDao {
                                           int enumerateDepth) throws InterruptedException {
         String projectName = snapshot.getDataProject();
         String datasetId = snapshot.getId().toString();
-        Firestore firestore = FireStoreProject.get(projectName).getFirestore();
+        Firestore fsItemFirestore = FireStoreProject.get(projectName).getFirestore();
+        Firestore metadataFirestore =
+            FireStoreProject.get(snapshot.getFirstSourceDatasetProject().getDataProject()).getFirestore();
 
-        FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveById(firestore, datasetId, fileId);
-        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, fileId);
+        FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveById(fsItemFirestore, datasetId, fileId);
+        return retrieveWorker(
+            fsItemFirestore,
+            metadataFirestore,
+            datasetId,
+            enumerateDepth,
+            fireStoreDirectoryEntry,
+            fileId);
     }
 
     /**
@@ -295,8 +317,22 @@ public class FireStoreDao {
 
     // -- private methods --
 
-    // The context string provides either the file id or the file path, for use in error messages.
-    private FSItem retrieveWorker(Firestore firestore,
+    /**
+     * Retrieves an FSItem object
+     * @param fsItemFirestore The firestore collection that contains the collection with the virtual file system. This
+     *                        can be a dataset or snapshot project based collection
+     * @param metadataFirestore The firestore collection that contains te collection with the file object metadata.
+     *                          This is always a dataset based project collection
+     * @param collectionId The ID of the collection in the fsItemFirestore connection that contains the virtual file
+     *                     system objects
+     * @param enumerateDepth how far to enumerate the directory structure
+     * @param fireStoreDirectoryEntry The object to enumerate entries within
+     * @param context provides either the file id or the file path, for use in error messages.
+     * @return An {@link FSItem} representation of the passed in fireStoreDirectoryEntry with nested FSItems
+     * @throws InterruptedException
+     */
+    private FSItem retrieveWorker(Firestore fsItemFirestore,
+                                  Firestore metadataFirestore,
                                   String collectionId,
                                   int enumerateDepth,
                                   FireStoreDirectoryEntry fireStoreDirectoryEntry,
@@ -306,7 +342,7 @@ public class FireStoreDao {
         }
 
         if (fireStoreDirectoryEntry.getIsFileRef()) {
-            FSItem fsFile = makeFSFile(firestore, collectionId, fireStoreDirectoryEntry);
+            FSItem fsFile = makeFSFile(metadataFirestore, collectionId, fireStoreDirectoryEntry);
             if (fsFile == null) {
                 // We found a file in the directory that is not done being created. We treat this
                 // as not found.
@@ -316,10 +352,24 @@ public class FireStoreDao {
             return fsFile;
         }
 
-        return makeFSDir(firestore, collectionId, enumerateDepth, fireStoreDirectoryEntry);
+        return makeFSDir(fsItemFirestore, metadataFirestore, collectionId, enumerateDepth, fireStoreDirectoryEntry);
     }
 
-    private FSItem makeFSDir(Firestore firestore,
+    /**
+     * Create an FSItem object
+     * @param fsItemFirestore The firestore collection that contains the collection with the virtual file system. This
+     *                        can be a dataset or snapshot project based collection
+     * @param metadataFirestore The firestore collection that contains te collection with the file object metadata.
+     *                          This is always a dataset based project collection
+     * @param collectionId The ID of the collection in the fsItemFirestore connection that contains the virtual file
+     *                     system objects
+     * @param level how far to enumerate the directory structure
+     * @param fireStoreDirectoryEntry The object to enumerate entries within
+     * @return An {@link FSItem} representation of the passed in fireStoreDirectoryEntry with nested FSItems
+     * @throws InterruptedException
+     */
+    private FSItem makeFSDir(Firestore fsItemFirestore,
+                             Firestore metadataFirestore,
                              String collectionId,
                              int level,
                              FireStoreDirectoryEntry fireStoreDirectoryEntry) throws InterruptedException {
@@ -345,17 +395,17 @@ public class FireStoreDao {
         if (level != 0) {
             List<FSItem> fsContents = new ArrayList<>();
             List<FireStoreDirectoryEntry> dirContents =
-                directoryDao.enumerateDirectory(firestore, collectionId, fullPath);
+                directoryDao.enumerateDirectory(fsItemFirestore, collectionId, fullPath);
             for (FireStoreDirectoryEntry fso : dirContents) {
                 if (fso.getIsFileRef()) {
                     // Files that are in the middle of being ingested can have a directory entry, but not yet have
                     // a file entry. We do not return files that do not yet have a file entry.
-                    FSItem fsFile = makeFSFile(firestore, collectionId, fso);
+                    FSItem fsFile = makeFSFile(metadataFirestore, collectionId, fso);
                     if (fsFile != null) {
                         fsContents.add(fsFile);
                     }
                 } else {
-                    fsContents.add(makeFSDir(firestore, collectionId, level - 1, fso));
+                    fsContents.add(makeFSDir(fsItemFirestore, metadataFirestore, collectionId, level - 1, fso));
                 }
             }
             fsDir.contents(fsContents);
@@ -365,7 +415,7 @@ public class FireStoreDao {
     }
 
     // Handle files - the fireStoreDirectoryEntry is a reference to a file in a dataset.
-    private FSItem makeFSFile(Firestore firestore,
+    private FSItem makeFSFile(Firestore datasetFirestore,
                               String collectionId,
                               FireStoreDirectoryEntry fireStoreDirectoryEntry) throws InterruptedException {
         if (!fireStoreDirectoryEntry.getIsFileRef()) {
@@ -379,7 +429,7 @@ public class FireStoreDao {
         // Lookup the file in its owning dataset, not in the collection. The collection may be a snapshot directory
         // pointing to the files in one or more datasets.
         FireStoreFile fireStoreFile =
-            fileDao.retrieveFileMetadata(firestore, fireStoreDirectoryEntry.getDatasetId(), fileId);
+            fileDao.retrieveFileMetadata(datasetFirestore, fireStoreDirectoryEntry.getDatasetId(), fileId);
         if (fireStoreFile == null) {
             return null;
         }
@@ -509,6 +559,21 @@ public class FireStoreDao {
             logger.info("Snapshot compute updating batch of {} directory entries", batchSize);
             directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
             updateBatch.clear();
+        }
+    }
+
+    private Firestore getMetadataFirestoreConnection(FSContainerInterface container) {
+        if (container instanceof Dataset) {
+            return FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
+        } else if (container instanceof Snapshot) {
+            String datasetProjectId = ((Snapshot) container).getFirstSnapshotSource()
+                .getDataset()
+                .getProjectResource()
+                .getGoogleProjectId();
+            return FireStoreProject.get(datasetProjectId).getFirestore();
+        } else {
+            throw new IllegalArgumentException("Unrecognized FSContainerInterface implementation: " +
+                container.getClass());
         }
     }
 

@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
+
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -13,13 +15,6 @@ import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import com.google.cloud.firestore.Firestore;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,8 +24,12 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 // Operations on a file often need to touch file and directory collections that is,
 // the FireStoreFileDao and the FireStoreDirectoryDao.
@@ -296,7 +295,7 @@ public class FireStoreDao {
     // -- private methods --
 
     // The context string provides either the file id or the file path, for use in error messages.
-    private FSItem retrieveWorker(Firestore firestore,
+    private FSItem retrieveWorker(Firestore datasetFirestore,
                                   String collectionId,
                                   int enumerateDepth,
                                   FireStoreDirectoryEntry fireStoreDirectoryEntry,
@@ -306,7 +305,7 @@ public class FireStoreDao {
         }
 
         if (fireStoreDirectoryEntry.getIsFileRef()) {
-            FSItem fsFile = makeFSFile(firestore, collectionId, fireStoreDirectoryEntry);
+            FSItem fsFile = makeFSFile(datasetFirestore, collectionId, fireStoreDirectoryEntry);
             if (fsFile == null) {
                 // We found a file in the directory that is not done being created. We treat this
                 // as not found.
@@ -316,7 +315,7 @@ public class FireStoreDao {
             return fsFile;
         }
 
-        return makeFSDir(firestore, collectionId, enumerateDepth, fireStoreDirectoryEntry);
+        return makeFSDir(datasetFirestore, collectionId, enumerateDepth, fireStoreDirectoryEntry);
     }
 
     private FSItem makeFSDir(Firestore firestore,
@@ -365,7 +364,7 @@ public class FireStoreDao {
     }
 
     // Handle files - the fireStoreDirectoryEntry is a reference to a file in a dataset.
-    private FSItem makeFSFile(Firestore firestore,
+    private FSItem makeFSFile(Firestore datasetFirestore,
                               String collectionId,
                               FireStoreDirectoryEntry fireStoreDirectoryEntry) throws InterruptedException {
         if (!fireStoreDirectoryEntry.getIsFileRef()) {
@@ -379,7 +378,7 @@ public class FireStoreDao {
         // Lookup the file in its owning dataset, not in the collection. The collection may be a snapshot directory
         // pointing to the files in one or more datasets.
         FireStoreFile fireStoreFile =
-            fileDao.retrieveFileMetadata(firestore, fireStoreDirectoryEntry.getDatasetId(), fileId);
+            fileDao.retrieveFileMetadata(datasetFirestore, fireStoreDirectoryEntry.getDatasetId(), fileId);
         if (fireStoreFile == null) {
             return null;
         }

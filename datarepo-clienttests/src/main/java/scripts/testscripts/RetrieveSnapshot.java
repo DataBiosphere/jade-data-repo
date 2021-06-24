@@ -1,11 +1,13 @@
 package scripts.testscripts;
 
+import bio.terra.datarepo.api.DataRepositoryServiceApi;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
+import bio.terra.datarepo.model.DRSObject;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
@@ -163,8 +165,8 @@ public class RetrieveSnapshot extends SimpleDataset {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
-    ApiClient apiClient = DataRepoUtils.getClientForTestUser(testUser, server);
-    DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
+    ApiClient drsApiClient = DataRepoUtils.getClientForTestUser(testUser, server);
+    DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(drsApiClient);
 
     SnapshotModel snapshotModel =
         repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId(), Collections.emptyList());

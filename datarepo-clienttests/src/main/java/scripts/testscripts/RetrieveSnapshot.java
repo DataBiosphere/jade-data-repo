@@ -1,15 +1,18 @@
 package scripts.testscripts;
 
+import bio.terra.datarepo.api.DataRepositoryServiceApi;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
 import bio.terra.datarepo.model.BulkLoadArrayResultModel;
 import bio.terra.datarepo.model.BulkLoadFileModel;
+import bio.terra.datarepo.model.DRSObject;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.PolicyMemberRequest;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import com.google.cloud.storage.BlobId;
@@ -43,6 +46,7 @@ public class RetrieveSnapshot extends SimpleDataset {
 
   private SnapshotSummaryModel snapshotSummaryModel;
   private List<BlobId> scratchFiles = new ArrayList<>();
+  private String drsId;
 
   public void setup(List<TestUserSpecification> testUsers) throws Exception {
     Optional<String> profileName;
@@ -151,21 +155,37 @@ public class RetrieveSnapshot extends SimpleDataset {
     snapshotSummaryModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
+
+    repositoryApi.addSnapshotPolicyMember(
+        snapshotSummaryModel.getId(),
+        "steward",
+        new PolicyMemberRequest().email("nmalfroy.dev@gmail.com"));
     logger.info(
         "Successfully created snapshot: {} with user {} ",
         snapshotSummaryModel.getName(),
         datasetCreator.name);
+    drsId = "v1_" + snapshotSummaryModel.getId() + "_" + fileId;
   }
 
   public void userJourney(TestUserSpecification testUser) throws Exception {
     ApiClient apiClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
+    ApiClient drsApiClient = DataRepoUtils.getClientForTestUser(datasetCreator, server);
+    DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(drsApiClient);
+
     SnapshotModel snapshotModel =
         repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId(), Collections.emptyList());
     logger.debug(
-        "Successfully retrieved snaphot: {}, data project: {}",
+        "Successfully retrieved snapshot: {}, data project: {}",
         snapshotModel.getName(),
+        snapshotModel.getDataProject());
+
+    DRSObject drsObject = dataRepositoryServiceApi.getObject(drsId, false);
+    logger.debug(
+        "Successfully retrieved drs object: {}, with id: {} and data project: {}",
+        drsObject.getName(),
+        drsId,
         snapshotModel.getDataProject());
   }
 

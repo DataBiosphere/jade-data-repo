@@ -61,7 +61,7 @@ jobs:
           secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/dev/azure-test applicationsecret | AZURE_CREDENTIALS_SECRET ;
-            secret/dsde/terra/kernel/dev/dev/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
+            secret/dsde/terra/kernel/integration/tools/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
       - name: "Write RBS SA to a file"
         run: |
           # write vault token

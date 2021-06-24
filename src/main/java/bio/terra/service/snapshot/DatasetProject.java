@@ -1,19 +1,18 @@
 package bio.terra.service.snapshot;
 
-import java.util.List;
 import java.util.UUID;
 
-public class SnapshotProject {
+public class DatasetProject {
     private UUID id;
     private String name;
     private UUID profileId;
     private String dataProject; // Project id of the snapshot data project--which is a string and feels like a name
-    private List<DatasetProject> sourceDatasetProjects;
+
     public UUID getId() {
         return id;
     }
 
-    public SnapshotProject id(UUID id) {
+    public DatasetProject id(UUID id) {
         this.id = id;
         return this;
     }
@@ -22,7 +21,7 @@ public class SnapshotProject {
         return name;
     }
 
-    public SnapshotProject name(String name) {
+    public DatasetProject name(String name) {
         this.name = name;
         return this;
     }
@@ -31,7 +30,7 @@ public class SnapshotProject {
         return profileId;
     }
 
-    public SnapshotProject profileId(UUID profileId) {
+    public DatasetProject profileId(UUID profileId) {
         this.profileId = profileId;
         return this;
     }
@@ -40,22 +39,8 @@ public class SnapshotProject {
         return dataProject;
     }
 
-    public SnapshotProject dataProject(String dataProject) {
+    public DatasetProject dataProject(String dataProject) {
         this.dataProject = dataProject;
         return this;
     }
-
-    public List<DatasetProject> getSourceDatasetProjects() {
-        return sourceDatasetProjects;
-    }
-
-    public DatasetProject getFirstSourceDatasetProject() {
-        return sourceDatasetProjects.iterator().next();
-    }
-    public SnapshotProject sourceDatasetProjects(List<DatasetProject> sourceDatasetProjects) {
-        this.sourceDatasetProjects = sourceDatasetProjects;
-        return this;
-    }
-
-
 }

@@ -148,7 +148,10 @@ public class SnapshotService {
                 .stream()
                 .map(this::makeSummaryModelFromSummary)
                 .collect(Collectors.toList());
-        return new EnumerateSnapshotModel().items(models).total(enumeration.getTotal());
+        return new EnumerateSnapshotModel()
+            .items(models)
+            .total(enumeration.getTotal())
+            .filteredTotal(enumeration.getFilteredTotal());
     }
 
     /**

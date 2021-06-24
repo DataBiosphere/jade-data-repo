@@ -128,7 +128,10 @@ public class DatasetService {
             .stream()
             .map(DatasetJsonConversion::datasetSummaryModelFromDatasetSummary)
             .collect(Collectors.toList());
-        return new EnumerateDatasetModel().items(summaries).total(datasetEnum.getTotal());
+        return new EnumerateDatasetModel()
+            .items(summaries)
+            .total(datasetEnum.getTotal())
+            .filteredTotal(datasetEnum.getFilteredTotal());
     }
 
     public String delete(String id, AuthenticatedUserRequest userReq) {

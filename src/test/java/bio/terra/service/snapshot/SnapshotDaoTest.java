@@ -319,7 +319,8 @@ public class SnapshotDaoTest {
             null, "==foo==", null, datasetIds, snapshotIdList);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered and retrieved 2 snapshots", summaryList.size(), equalTo(2));
-        assertThat("filtered total 3", summaryEnum.getTotal(), equalTo(3));
+        assertThat("filtered total 3", summaryEnum.getFilteredTotal(), equalTo(3));
+        assertThat("total 6", summaryEnum.getTotal(), equalTo(6));
         for (int i = 0; i < 2; i++) {
             assertThat("first 2 ids match", snapshotIdList.get(i * 2), equalTo(summaryList.get(i).getId()));
         }

@@ -91,8 +91,9 @@ public class DeleteSnapshotPrimaryDataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // This step is not undoable. We only get here when the
-        // metadata delete that comes after will has a dismal failure.
-        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
+        // metadata delete that comes after has a dismal failure.
+        // Retry in an attempt to not have a dismal failure
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY,
                 new IllegalStateException("Attempt to undo permanent delete"));
     }
 }

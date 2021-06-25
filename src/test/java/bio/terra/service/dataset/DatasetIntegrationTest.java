@@ -389,7 +389,7 @@ public class DatasetIntegrationTest extends UsersBase {
                 profileId,
                 requestModelAll);
         snapshotIds.add(snapshotSummaryAll.getId());
-        SnapshotModel snapshotAll = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId());
+        SnapshotModel snapshotAll = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId(), null);
         // The steward is the custodian in this case, so is a reader in big query.
         BigQuery bigQueryAll = BigQueryFixtures.getBigQuery(snapshotAll.getDataProject(), stewardToken);
 
@@ -426,7 +426,7 @@ public class DatasetIntegrationTest extends UsersBase {
                 requestModelLess);
         snapshotIds.add(snapshotSummaryLess.getId());
 
-        SnapshotModel snapshotLess = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId());
+        SnapshotModel snapshotLess = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId(), null);
         BigQuery bigQueryLess = BigQueryFixtures.getBigQuery(snapshotLess.getDataProject(), stewardToken);
 
         // make sure the old counts stayed the same

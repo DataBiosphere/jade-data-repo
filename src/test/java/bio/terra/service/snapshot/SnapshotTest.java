@@ -148,7 +148,7 @@ public class SnapshotTest extends UsersBase {
             equalTo(HttpStatus.UNAUTHORIZED));
 
         DataRepoResponse<SnapshotModel> getSnapResp = dataRepoFixtures.getSnapshotRaw(
-            discoverer(), snapshotSummary.getId());
+            discoverer(), snapshotSummary.getId(), null);
         assertThat("Discoverer is not authorized to get a dataSnapshot",
             getSnapResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
@@ -239,7 +239,7 @@ public class SnapshotTest extends UsersBase {
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("new snapshot has the correct number of tables",
             requestModel.getContents().get(0).getRowIdSpec().getTables().size(),
@@ -269,7 +269,7 @@ public class SnapshotTest extends UsersBase {
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     }
 
@@ -288,7 +288,7 @@ public class SnapshotTest extends UsersBase {
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
@@ -348,7 +348,7 @@ public class SnapshotTest extends UsersBase {
                 profileId,
                 requestModel);
         createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("There should be 5 snapshot relationships", snapshot.getRelationships().size(), 5);
 

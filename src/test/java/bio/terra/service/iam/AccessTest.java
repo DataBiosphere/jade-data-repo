@@ -18,6 +18,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.configuration.ConfigEnum;
 import com.google.auth.oauth2.AccessToken;
@@ -170,10 +171,15 @@ public class AccessTest extends UsersBase {
                 profileId,
                 "ingest-test-snapshot.json");
 
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
+        SnapshotModel snapshotModel =
+            dataRepoFixtures.getSnapshot(custodian(),
+                snapshotSummaryModel.getId(),
+                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
         BigQuery bigQuery = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         try {
-            BigQueryFixtures.datasetExists(bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
+            BigQueryFixtures.datasetExists(bigQuery,
+                snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+                snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
             fail("reader shouldn't be able to access bq dataset before it is shared with them");
         } catch (IllegalStateException e) {
             assertThat("checking message for exception error",
@@ -244,7 +250,7 @@ public class AccessTest extends UsersBase {
             "file-acl-test-snapshot.json");
         snapshotIds.add(snapshotSummaryModel.getId());
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(),
-                snapshotSummaryModel.getId());
+                snapshotSummaryModel.getId(), null);
 
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),

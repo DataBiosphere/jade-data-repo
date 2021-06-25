@@ -14,6 +14,7 @@ import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamResourceType;
@@ -142,7 +143,10 @@ public class EncodeFixture {
         // issues have shown. We make a BigQuery request as the test to see that READER has access.
         // We need to get the snapshot, rather than the snapshot summary in order to make a query.
         // TODO: Add dataProject to SnapshotSummaryModel?
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId());
+        SnapshotModel snapshotModel =
+            dataRepoFixtures.getSnapshot(custodian,
+                snapshotSummary.getId(),
+                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         logger.info("Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",

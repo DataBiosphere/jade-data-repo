@@ -195,8 +195,7 @@ public class ResourceService {
     private boolean storageAccountIsForBillingProfile(AzureStorageAccountResource storageAccount,
                                                       BillingProfileModel billingProfile) {
         AzureApplicationDeploymentResource resource = storageAccount.getApplicationResource();
-        UUID billingProfileId = UUID.fromString(billingProfile.getId());
-        return resource.getProfileId().equals(billingProfileId);
+        return resource.getProfileId().equals(billingProfile.getId());
     }
 
     /**
@@ -344,7 +343,7 @@ public class ResourceService {
         return projectService.markUnusedProjectsForDelete(profileId);
     }
 
-    public List<UUID> markUnusedApplicationDeploymentsForDelete(String profileId) {
+    public List<UUID> markUnusedApplicationDeploymentsForDelete(UUID profileId) {
         return applicationDeploymentService.markUnusedApplicationDeploymentsForDelete(profileId);
     }
 

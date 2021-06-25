@@ -10,7 +10,6 @@ import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.UUID;
@@ -69,14 +69,13 @@ public class AzureApplicationDeploymentService {
         try {
             AzureApplicationDeploymentResource applicationResource =
                 resourceDao.retrieveApplicationDeploymentByName(billingProfile.getApplicationDeploymentName());
-            String resourceProfileId = applicationResource.getProfileId().toString();
-            if (StringUtils.equals(resourceProfileId, billingProfile.getId())) {
+            if (Objects.equals(applicationResource.getProfileId(), billingProfile.getId())) {
                 return applicationResource;
             }
             throw new MismatchedBillingProfilesException(
                 "Cannot reuse existing application deployment " +
                     applicationResource.getAzureApplicationDeploymentName() +
-                    " from profile " + resourceProfileId +
+                    " from profile " + applicationResource.getProfileId() +
                     " with a different profile " + billingProfile.getId());
         } catch (AzureResourceNotFoundException e) {
             logger.info("no application deployment resource found for application name: {}",
@@ -90,8 +89,8 @@ public class AzureApplicationDeploymentService {
         return resourceDao.retrieveApplicationDeploymentById(id);
     }
 
-    public List<UUID> markUnusedApplicationDeploymentsForDelete(String profileId) {
-        return resourceDao.markUnusedApplicationDeploymentsForDelete(UUID.fromString(profileId));
+    public List<UUID> markUnusedApplicationDeploymentsForDelete(UUID profileId) {
+        return resourceDao.markUnusedApplicationDeploymentsForDelete(profileId);
     }
 
     public void deleteApplicationDeploymentMetadata(List<UUID> applicationIds) {
@@ -154,7 +153,7 @@ public class AzureApplicationDeploymentService {
 
         // TODO: should we store version?
         var resource = new AzureApplicationDeploymentResource()
-            .profileId(UUID.fromString(billingProfile.getId()))
+            .profileId(billingProfile.getId())
             .azureApplicationDeploymentId(applicationDeployment.id())
             .azureApplicationDeploymentName(billingProfile.getApplicationDeploymentName())
             .azureResourceGroupName(managedResourceGroupName)

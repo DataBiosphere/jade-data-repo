@@ -21,14 +21,14 @@ public class DeleteProfileMarkUnusedApplicationDeployments implements Step {
     private final ProfileService profileService;
     private final ResourceService resourceService;
     private final AuthenticatedUserRequest user;
-    private final String profileId;
+    private final UUID profileId;
 
     private static final Logger logger = LoggerFactory.getLogger(DeleteProfileMarkUnusedApplicationDeployments.class);
 
     public DeleteProfileMarkUnusedApplicationDeployments(ProfileService profileService,
                                                          ResourceService resourceService,
                                                          AuthenticatedUserRequest user,
-                                                         String profileId) {
+                                                         UUID profileId) {
         this.profileService = profileService;
         this.resourceService = resourceService;
         this.user = user;

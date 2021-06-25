@@ -169,7 +169,7 @@ public class DataRepoFixtures {
         return createDataset(user, profileId, filename, CloudPlatform.GCP);
     }
     public DatasetSummaryModel createDataset(TestConfiguration.User user,
-                                             String profileId,
+                                             UUID profileId,
                                              String filename,
                                              CloudPlatform cloudPlatform) throws Exception {
         DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename, cloudPlatform);
@@ -192,7 +192,7 @@ public class DataRepoFixtures {
     }
 
     public void createDatasetError(TestConfiguration.User user,
-                                   String profileId,
+                                   UUID profileId,
                                    String filename,
                                    HttpStatus checkStatus,
                                    CloudPlatform cloudPlatform) throws Exception {

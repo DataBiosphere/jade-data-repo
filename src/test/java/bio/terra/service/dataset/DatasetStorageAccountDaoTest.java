@@ -74,7 +74,7 @@ public class DatasetStorageAccountDaoTest {
     public void setUp() throws Exception {
         BillingProfileRequestModel profileRequest = ProfileFixtures.randomizeAzureBillingProfileRequest();
         billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
-        billingProfileIds.add(UUID.fromString(billingProfile.getId()));
+        billingProfileIds.add(billingProfile.getId());
 
         GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
         projectId = resourceDao.createProject(projectResource);

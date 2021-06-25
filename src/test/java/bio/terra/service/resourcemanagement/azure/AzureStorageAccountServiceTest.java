@@ -72,10 +72,10 @@ public class AzureStorageAccountServiceTest {
         service = new AzureStorageAccountService(resourceDao, resourceConfiguration, profileDao);
 
         billingProfileModel = ProfileFixtures.randomAzureBillingProfile();
-        when(profileDao.getBillingProfileById(UUID.fromString(billingProfileModel.getId())))
+        when(profileDao.getBillingProfileById(billingProfileModel.getId()))
             .thenReturn(billingProfileModel);
         applicationResource = new AzureApplicationDeploymentResource()
-            .profileId(UUID.fromString(billingProfileModel.getId()))
+            .profileId(billingProfileModel.getId())
             .azureResourceGroupName(MANAGED_GROUP_NAME)
             .azureApplicationDeploymentName(APPLICATION_DEPLOYMENT_NAME)
             .storageAccountSkuType(STORAGE_SKU_TYPE);
@@ -97,7 +97,7 @@ public class AzureStorageAccountServiceTest {
     public void testGetStorageAccountResourceByIdAndCheckCloudFound() {
         UUID storageAccountId = UUID.randomUUID();
         when(resourceDao.retrieveStorageAccountById(storageAccountId)).thenReturn(new AzureStorageAccountResource()
-            .profileId(UUID.fromString(billingProfileModel.getId()))
+            .profileId(billingProfileModel.getId())
             .applicationResource(applicationResource)
             .name(STORAGE_ACCOUNT_NAME));
 
@@ -110,7 +110,7 @@ public class AzureStorageAccountServiceTest {
     public void testGetStorageAccountResourceByIdAndCheckCloudNotFound() {
         UUID storageAccountId = UUID.randomUUID();
         when(resourceDao.retrieveStorageAccountById(storageAccountId)).thenReturn(new AzureStorageAccountResource()
-            .profileId(UUID.fromString(billingProfileModel.getId()))
+            .profileId(billingProfileModel.getId())
             .applicationResource(applicationResource)
             .name(STORAGE_ACCOUNT_NAME));
 

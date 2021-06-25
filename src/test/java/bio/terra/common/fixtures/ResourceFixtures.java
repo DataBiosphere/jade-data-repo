@@ -34,7 +34,7 @@ public final class ResourceFixtures {
             .defaultRegion(AzureRegion.DEFAULT_AZURE_REGION)
             .storageAccountSkuType(AzureStorageAccountSkuType.STANDARD_LRS)
             .storageAccountPrefix("tdr")
-            .profileId(UUID.fromString(billingProfile.getId()));
+            .profileId(billingProfile.getId());
     }
 
     public static String shuffleString(String input) {

@@ -81,7 +81,7 @@ public class ResourceServiceUnitTest {
         .projectResource(projectResource);
 
     private final BillingProfileModel profileModel =
-        ProfileFixtures.randomAzureBillingProfile().id(billingProfileId.toString());
+        ProfileFixtures.randomAzureBillingProfile().id(billingProfileId);
     private final UUID applicationId = UUID.randomUUID();
     private final UUID storageAccountId = UUID.randomUUID();
     private static final String MANAGED_RESOURCE_GROUP_NAME = "mgd-grp-1";

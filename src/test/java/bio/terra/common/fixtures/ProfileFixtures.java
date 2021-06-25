@@ -48,7 +48,7 @@ public final class ProfileFixtures {
                                                                            final String applicationDeploymentName,
                                                                            final String accountId) {
         return new BillingProfileModel()
-            .id(UUID.randomUUID().toString())
+            .id(UUID.randomUUID())
             .cloudPlatform(CloudPlatform.AZURE)
             .billingAccountId(accountId)
             .tenantId(tenantId.toString())

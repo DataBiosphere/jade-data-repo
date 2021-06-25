@@ -19,7 +19,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -78,13 +77,13 @@ public class AzureResourceDaoTest {
         boolean allStorageDeleted = storageAccounts.stream()
             .allMatch(sa -> azureResourceDao.deleteStorageAccountMetadata(sa.getName(), null));
 
-        azureResourceDao.markUnusedApplicationDeploymentsForDelete(UUID.fromString(billingProfile.getId()));
+        azureResourceDao.markUnusedApplicationDeploymentsForDelete(billingProfile.getId());
         azureResourceDao.deleteApplicationDeploymentMetadata(
             applicationDeployments.stream()
                 .map(AzureApplicationDeploymentResource::getId)
                 .collect(Collectors.toList()));
 
-        profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
+        profileDao.deleteBillingProfileById(billingProfile.getId());
 
         assertThat("All storage accounts were deleted", allStorageDeleted, equalTo(true));
     }
@@ -92,7 +91,7 @@ public class AzureResourceDaoTest {
     @Test
     public void oneApplicationOneBillingProfilesTwoStorageAccounts() throws Exception {
         var retrievedAppDeployments =
-            azureResourceDao.retrieveApplicationDeploymentsByBillingProfileId(UUID.fromString(billingProfile.getId()));
+            azureResourceDao.retrieveApplicationDeploymentsByBillingProfileId(billingProfile.getId());
 
         assertThat("Application Deployment count should be 1", retrievedAppDeployments.size(), equalTo(1));
 

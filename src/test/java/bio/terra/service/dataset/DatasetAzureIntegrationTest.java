@@ -28,6 +28,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -55,8 +56,8 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     @Autowired private AuthService authService;
 
     private String stewardToken;
-    private String datasetId;
-    private String profileId;
+    private UUID datasetId;
+    private UUID profileId;
 
     @Before
     public void setup() throws Exception {

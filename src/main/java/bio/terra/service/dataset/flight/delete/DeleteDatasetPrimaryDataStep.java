@@ -12,6 +12,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -72,7 +73,9 @@ public class DeleteDatasetPrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // can't undo delete
-        return StepResult.getStepResultSuccess();
+        // This step is not undoable.
+        // Retry in an attempt to not have a dismal failure
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY,
+            new IllegalStateException("Attempt to undo permanent delete"));
     }
 }

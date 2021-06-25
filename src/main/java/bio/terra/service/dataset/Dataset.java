@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import org.apache.commons.lang3.StringUtils;
 
@@ -175,5 +176,10 @@ public class Dataset implements FSContainerInterface {
     public Dataset projectResource(GoogleProjectResource projectResource) {
         this.projectResource = projectResource;
         return this;
+    }
+
+    @Override
+    public FireStoreProject firestoreConnection() {
+        return FireStoreProject.get(getProjectResource().getGoogleProjectId());
     }
 }

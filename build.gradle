@@ -132,7 +132,7 @@ tasks.withType(JacocoReport) {
 
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['bio/terra/model/**'])
+            fileTree(dir: it, exclude: ['bio/terra/grammar/**'])
         }))
     }
 }
@@ -363,7 +363,7 @@ sourceSets {
         configFile file("config/checkstyle/checkstyle.xml")
     }
     jacoco {
-        toolVersion '0.8.2'
+        toolVersion '0.8.3'
     }
 }
 

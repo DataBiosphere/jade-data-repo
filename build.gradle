@@ -129,6 +129,12 @@ tasks.withType(JacocoReport) {
         csv.enabled false
         html.destination file("${buildDir}/jacocoHtml")
     }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['bio/terra/grammar/**'])
+        }))
+    }
 }
 
 jacocoTestCoverageVerification {
@@ -143,6 +149,7 @@ jacocoTestCoverageVerification {
     }
 }
 check.dependsOn jacocoTestCoverageVerification
+check.dependsOn jacocoTestReport
 
 repositories {
     mavenCentral()
@@ -359,7 +366,7 @@ sourceSets {
         configFile file("config/checkstyle/checkstyle.xml")
     }
     jacoco {
-        toolVersion '0.8.2'
+        toolVersion '0.8.3'
     }
 }
 

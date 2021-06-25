@@ -9,6 +9,7 @@ public class SnapshotProject {
     private UUID profileId;
     private String dataProject; // Project id of the snapshot data project--which is a string and feels like a name
     private List<DatasetProject> sourceDatasetProjects;
+
     public UUID getId() {
         return id;
     }
@@ -52,6 +53,7 @@ public class SnapshotProject {
     public DatasetProject getFirstSourceDatasetProject() {
         return sourceDatasetProjects.iterator().next();
     }
+
     public SnapshotProject sourceDatasetProjects(List<DatasetProject> sourceDatasetProjects) {
         this.sourceDatasetProjects = sourceDatasetProjects;
         return this;

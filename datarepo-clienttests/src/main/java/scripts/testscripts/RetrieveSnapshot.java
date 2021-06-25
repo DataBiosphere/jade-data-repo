@@ -12,7 +12,6 @@ import bio.terra.datarepo.model.DeleteResponseModel;
 import bio.terra.datarepo.model.IngestRequestModel;
 import bio.terra.datarepo.model.IngestResponseModel;
 import bio.terra.datarepo.model.JobModel;
-import bio.terra.datarepo.model.PolicyMemberRequest;
 import bio.terra.datarepo.model.SnapshotModel;
 import bio.terra.datarepo.model.SnapshotSummaryModel;
 import com.google.cloud.storage.BlobId;
@@ -156,10 +155,6 @@ public class RetrieveSnapshot extends SimpleDataset {
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createSnapshotJobResponse, SnapshotSummaryModel.class);
 
-    repositoryApi.addSnapshotPolicyMember(
-        snapshotSummaryModel.getId(),
-        "steward",
-        new PolicyMemberRequest().email("nmalfroy.dev@gmail.com"));
     logger.info(
         "Successfully created snapshot: {} with user {} ",
         snapshotSummaryModel.getName(),

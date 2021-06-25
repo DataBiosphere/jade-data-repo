@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 
 import java.util.UUID;
@@ -9,4 +10,5 @@ import java.util.UUID;
 public interface FSContainerInterface {
     UUID getId();
     GoogleProjectResource getProjectResource();
+    FireStoreProject firestoreConnection();
 }

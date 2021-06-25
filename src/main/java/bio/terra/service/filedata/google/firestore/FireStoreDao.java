@@ -192,7 +192,7 @@ public class FireStoreDao {
                                  int enumerateDepth) throws InterruptedException {
         Firestore fsItemFirestore =
             FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
-        Firestore metadataFirestore = getMetadataFirestoreConnection(container);
+        Firestore metadataFirestore = container.firestoreConnection().getFirestore();
         String containerId = container.getId().toString();
 
         FireStoreDirectoryEntry fireStoreDirectoryEntry =
@@ -221,7 +221,7 @@ public class FireStoreDao {
                                int enumerateDepth) throws InterruptedException {
         Firestore fsItemFirestore =
             FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
-        Firestore metadataFirestore = getMetadataFirestoreConnection(container);
+        Firestore metadataFirestore = container.firestoreConnection().getFirestore();
         String datasetId = container.getId().toString();
 
         FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveById(fsItemFirestore, datasetId, fileId);
@@ -559,21 +559,6 @@ public class FireStoreDao {
             logger.info("Snapshot compute updating batch of {} directory entries", batchSize);
             directoryDao.batchStoreDirectoryEntry(firestore, snapshotId, updateBatch);
             updateBatch.clear();
-        }
-    }
-
-    private Firestore getMetadataFirestoreConnection(FSContainerInterface container) {
-        if (container instanceof Dataset) {
-            return FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
-        } else if (container instanceof Snapshot) {
-            String datasetProjectId = ((Snapshot) container).getFirstSnapshotSource()
-                .getDataset()
-                .getProjectResource()
-                .getGoogleProjectId();
-            return FireStoreProject.get(datasetProjectId).getFirestore();
-        } else {
-            throw new IllegalArgumentException("Unrecognized FSContainerInterface implementation: " +
-                container.getClass());
         }
     }
 

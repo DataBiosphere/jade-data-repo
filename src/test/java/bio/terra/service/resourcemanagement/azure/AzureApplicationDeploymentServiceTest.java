@@ -54,7 +54,7 @@ public class AzureApplicationDeploymentServiceTest {
     @Before
     public void setUp() throws Exception {
         service = new AzureApplicationDeploymentService(resourceDao, resourceConfiguration,
-            ApplicationConfiguration.OBJECT_MAPPER);
+            new ApplicationConfiguration().objectMapper());
     }
 
     @Test

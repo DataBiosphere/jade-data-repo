@@ -77,6 +77,7 @@ public class FireStoreDependencyDao {
             } catch (FirestoreException ex) {
                 retryCount++;
                 if (retryCount > fireStoreUtils.getFirestoreRetries()) {
+                    logger.error("[datasetHasSnapshotReference retry] Ran out of retries");
                     throw ex;
                 }
             }

@@ -8,7 +8,7 @@ import java.util.function.Supplier;
 /**
  * Utility methods for working across cloud providers
  */
-public class CloudUtil {
+public final class CloudUtil {
 
     public static final CloudPlatform DEFAULT_CLOUD_PLATFORM = CloudPlatform.GCP;
 

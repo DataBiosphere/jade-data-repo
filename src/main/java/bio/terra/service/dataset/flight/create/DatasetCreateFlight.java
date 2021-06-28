@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.create;
 
+import bio.terra.common.CloudUtil;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -54,10 +55,13 @@ public class DatasetCreateFlight extends Flight {
         addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
 
         // Get or create the storage account where the dataset resources will be created for Azure
-        addStep(new CreateDatasetGetOrCreateStorageAccountStep(
-            resourceService,
-            datasetRequest,
-            azureDataLocationSelector));
+        CloudUtil.cloudExecute(
+            datasetRequest.getCloudPlatform(),
+            () -> { },
+            () -> addStep(new CreateDatasetGetOrCreateStorageAccountStep(
+                resourceService,
+                datasetRequest,
+                azureDataLocationSelector)));
 
         // Generate the dateset id and stored it in the working map
         addStep(new CreateDatasetIdStep());
@@ -66,7 +70,10 @@ public class DatasetCreateFlight extends Flight {
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
 
         // For azure backed datasets, add a link co connect the storage account to the dataset
-        addStep(new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao, datasetRequest));
+        CloudUtil.cloudExecute(
+            datasetRequest.getCloudPlatform(),
+            () -> { },
+            () -> addStep(new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao, datasetRequest)));
 
         addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao));
 

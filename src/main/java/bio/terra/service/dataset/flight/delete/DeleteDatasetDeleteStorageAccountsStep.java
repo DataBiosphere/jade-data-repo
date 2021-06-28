@@ -1,6 +1,5 @@
 package bio.terra.service.dataset.flight.delete;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -29,14 +28,8 @@ public class DeleteDatasetDeleteStorageAccountsStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) throws InterruptedException {
         Dataset dataset = datasetService.retrieve(datasetId);
-        boolean isAzureDataset = dataset.getStorage().stream()
-            .anyMatch(s -> s.getCloudPlatform() == CloudPlatform.AZURE);
-        if (isAzureDataset) {
-            logger.info("Deleting a storage account for Azure backed dataset");
-            resourceService.deleteStorageAccount(dataset, context.getFlightId());
-        } else {
-            logger.info("Not an Azure backed dataset so no action to take");
-        }
+        logger.info("Deleting a storage account for Azure backed dataset");
+        resourceService.deleteStorageAccount(dataset, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 

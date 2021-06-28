@@ -13,6 +13,7 @@ import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.azure.AzureAuthzService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
@@ -115,11 +116,13 @@ public class ProfileService {
      */
     public String deleteProfile(UUID id, AuthenticatedUserRequest user) {
         iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id.toString(), IamAction.DELETE);
+        BillingProfileModel billingProfile = profileDao.getBillingProfileById(id);
 
         String description = String.format("Delete billing profile id '%s'", id);
         return jobService
             .newJob(description, ProfileDeleteFlight.class, null, user)
             .addParameter(ProfileMapKeys.PROFILE_ID, id)
+            .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), billingProfile.getCloudPlatform())
             .submit();
     }
 

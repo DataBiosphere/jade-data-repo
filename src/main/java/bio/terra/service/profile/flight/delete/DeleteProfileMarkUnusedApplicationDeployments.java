@@ -1,7 +1,5 @@
 package bio.terra.service.profile.flight.delete;
 
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
@@ -37,13 +35,9 @@ public class DeleteProfileMarkUnusedApplicationDeployments implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        BillingProfileModel profileModel = profileService.getProfileById(profileId, user);
         FlightMap workingMap = context.getWorkingMap();
-        workingMap.put(ProfileMapKeys.PROFILE_MODEL, profileModel);
-        if (profileModel.getCloudPlatform() == CloudPlatform.AZURE) {
-            List<UUID> appIdList = resourceService.markUnusedApplicationDeploymentsForDelete(profileId);
-            workingMap.put(ProfileMapKeys.PROFILE_APPLICATION_DEPLOYMENT_ID_LIST, appIdList);
-        }
+        List<UUID> appIdList = resourceService.markUnusedApplicationDeploymentsForDelete(profileId);
+        workingMap.put(ProfileMapKeys.PROFILE_APPLICATION_DEPLOYMENT_ID_LIST, appIdList);
         return StepResult.getStepResultSuccess();
     }
 

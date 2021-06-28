@@ -101,11 +101,11 @@ public class ResourceService {
      * @param flightId       used to lock the bucket metadata during possible creation
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws CorruptMetadataException in two cases.
-     * <ol>
-     *     <le>if the bucket already exists, but the metadata does not AND
-     *     the application property allowReuseExistingBuckets=false.</le>
-     *     <le>if the metadata exists, but the bucket does not</le>
-     * </ol>
+     * <ul>
+     *     <li>if the bucket already exists, but the metadata does not AND
+     *     the application property allowReuseExistingBuckets=false.</li>
+     *     <li>if the metadata exists, but the bucket does not</li>
+     * </ul>
      */
     public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
                                                          GoogleProjectResource projectResource,
@@ -127,11 +127,11 @@ public class ResourceService {
      * @param flightId       used to lock the bucket metadata during possible creation
      * @return a reference to the bucket as a POJO AzureStorageAccountResource
      * @throws CorruptMetadataException in two cases.
-     * <ol>
-     *     <le>if the storage account already exists, but the metadata does not AND
-     *     the application property allowReuseExistingBuckets=false.</le>
-     *     <le>if the metadata exists, but the storage account does not</le>
-     * </ol>
+     * <ul>
+     *     <li>if the storage account already exists, but the metadata does not AND
+     *     the application property allowReuseExistingBuckets=false.</li>
+     *     <li>if the metadata exists, but the storage account does not</li>
+     * </ul>
      */
     public AzureStorageAccountResource getOrCreateStorageAccount(Dataset dataset,
                                                                  BillingProfileModel billingProfile,

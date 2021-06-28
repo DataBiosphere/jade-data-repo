@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 public class ProfileDeleteFlightTest {
 
     @Mock
-    ApplicationContext context;
+    private ApplicationContext context;
 
     @Before
     public void setup() throws Exception {

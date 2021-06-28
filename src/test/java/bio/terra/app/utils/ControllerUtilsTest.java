@@ -39,13 +39,13 @@ public class ControllerUtilsTest {
         ResponseEntity entity = ControllerUtils.jobToResponse(jobModel);
         assertEquals(entity.getStatusCode(), HttpStatus.ACCEPTED);
         assertTrue(entity.getHeaders().containsKey("Location"));
-        assertEquals(entity.getHeaders().getFirst("Location"),"/api/repository/v1/jobs/id");
+        assertEquals(entity.getHeaders().getFirst("Location"), "/api/repository/v1/jobs/id");
 
         jobModel.setJobStatus(JobStatusEnum.SUCCEEDED);
         entity = ControllerUtils.jobToResponse(jobModel);
         assertEquals(entity.getStatusCode(), HttpStatus.OK);
         assertTrue(entity.getHeaders().containsKey("Location"));
-        assertEquals(entity.getHeaders().getFirst("Location"),"/api/repository/v1/jobs/id/result");
+        assertEquals(entity.getHeaders().getFirst("Location"), "/api/repository/v1/jobs/id/result");
     }
 
 }

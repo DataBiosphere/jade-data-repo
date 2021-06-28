@@ -2,9 +2,9 @@ package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
-import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
 import bio.terra.stairway.ShortUUID;
 import com.azure.core.management.Region;
 import com.azure.core.management.exception.ManagementException;
@@ -44,8 +44,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Map;
@@ -135,8 +133,10 @@ public class AzureResourceConfigurationTest {
         ManagedApplicationDeployment applicationDeployment = createManagedApplication(client, profileModel);
 
         logger.info("Creating a storage account in the managed application...");
-        String storageAccountName = "sa" + armUniqueString(applicationDeployment.applicationDeploymentName);
-        String fileSystemName = "f" + armUniqueString(applicationDeployment.applicationDeploymentName);
+        String storageAccountName =
+            "sa" + AzureDataLocationSelector.armUniqueString(applicationDeployment.applicationDeploymentName, 13);
+        String fileSystemName =
+            "f" + AzureDataLocationSelector.armUniqueString(applicationDeployment.applicationDeploymentName, 13);
         // Note that this fails (e.g. authenticating using the end user's tenant
         assertThat("Get expected error", assertThrows(ManagementException.class, () -> {
             client.storageAccounts().define(storageAccountName)
@@ -376,27 +376,5 @@ public class AzureResourceConfigurationTest {
         return client.generateSas(new DataLakeServiceSasSignatureValues(expiryTime, permission)
             // Version is set to a version of the token signing API the supports keys that permit listing files
             .setVersion("2020-04-08"));
-    }
-
-    /**
-     * Generate a 13 character unique string in a way that mimics what azure's ARM template function uses.
-     * Note: this method is deterministic (e.g. calling with the same seed value will provide the same result)
-     * @param seed The value to generate a unique string for
-     * @return A 13 character unique string based on what was passed into seed
-     */
-    private String armUniqueString(String seed) {
-        try {
-            MessageDigest md = MessageDigest.getInstance("SHA-512");
-            byte[] digest = md.digest(seed.getBytes(StandardCharsets.UTF_8));
-            StringBuilder result = new StringBuilder();
-            for (int i = 0; i < 13; i++) {
-                int b = Byte.toUnsignedInt(digest[i]);
-                char c = (char) ((b % 26) + (byte) 'a');
-                result.append(c);
-            }
-            return result.toString();
-        } catch (NoSuchAlgorithmException e) {
-            throw new NotImplementedException("SHA512 not supported in this JVM", e);
-        }
     }
 }

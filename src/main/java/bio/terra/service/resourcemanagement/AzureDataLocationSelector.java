@@ -26,7 +26,7 @@ public class AzureDataLocationSelector {
      * @param size The number of characters to generate
      * @return An n-character unique string based on what was passed into seed
      */
-    private String armUniqueString(String seed, int size) {
+    public static String armUniqueString(String seed, int size) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-512");
             byte[] digest = md.digest(seed.getBytes(StandardCharsets.UTF_8));

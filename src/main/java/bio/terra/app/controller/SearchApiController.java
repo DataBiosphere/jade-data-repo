@@ -28,13 +28,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Controller
 @Api(tags = {"search"})
@@ -109,11 +107,10 @@ public class SearchApiController implements SearchApi {
         List<UUID> accessibleIds =
             iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
 
-        final List<String> snapshotIds = searchQueryRequest.getSnapshotIds();
+        final List<UUID> snapshotIds = searchQueryRequest.getSnapshotIds();
 
         Set<UUID> requestIds =
-            snapshotIds == null || snapshotIds.isEmpty() ? Collections.emptySet() :
-                snapshotIds.stream().map(UUID::fromString).collect(Collectors.toSet());
+            snapshotIds == null || snapshotIds.isEmpty() ? Set.of() : Set.copyOf(snapshotIds);
 
         Set<UUID> inaccessibleIds = new HashSet<>(requestIds);
         accessibleIds.forEach(inaccessibleIds::remove);

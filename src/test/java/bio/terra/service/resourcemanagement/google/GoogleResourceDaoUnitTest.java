@@ -65,13 +65,13 @@ public class GoogleResourceDaoUnitTest {
         for (GoogleProjectResource project : projects) {
             googleResourceDao.deleteProject(project.getId());
         }
-        profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
+        profileDao.deleteBillingProfileById(billingProfile.getId());
     }
 
     @Test
     public void twoDatasetsTwoBillingProfilesTwoBuckets() throws Exception {
         List<GoogleProjectResource> retrievedProjects = googleResourceDao.retrieveProjectsByBillingProfileId(
-            UUID.fromString(billingProfile.getId()));
+            billingProfile.getId());
 
         assertThat("Project Count should be 2", retrievedProjects.size(), equalTo(2));
     }

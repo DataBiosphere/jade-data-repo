@@ -74,10 +74,10 @@ public class FileTest extends UsersBase {
     private TestConfiguration testConfiguration;
 
     private DatasetSummaryModel datasetSummaryModel;
-    private String datasetId;
-    private String snapshotId;
+    private UUID datasetId;
+    private UUID snapshotId;
     private List<String> fileIds;
-    private String profileId;
+    private UUID profileId;
 
     @Before
     public void setup() throws Exception {
@@ -96,7 +96,7 @@ public class FileTest extends UsersBase {
         fileIds = new ArrayList<>();
         logger.info("created dataset " + datasetId);
         dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
+            steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     }
 
     @After

@@ -35,7 +35,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,8 +113,8 @@ public class GoogleProjectService {
 
         try {
             GoogleProjectResource projectResource = resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
-            String resourceProfileId = projectResource.getProfileId().toString();
-            if (StringUtils.equals(resourceProfileId, billingProfile.getId())) {
+            UUID resourceProfileId = projectResource.getProfileId();
+            if (resourceProfileId.equals(billingProfile.getId())) {
                 return projectResource;
             }
             throw new MismatchedBillingProfilesException(
@@ -143,8 +142,8 @@ public class GoogleProjectService {
         return resourceDao.retrieveProjectById(id);
     }
 
-    public List<UUID> markUnusedProjectsForDelete(String profileId) {
-        return resourceDao.markUnusedProjectsForDelete(UUID.fromString(profileId));
+    public List<UUID> markUnusedProjectsForDelete(UUID profileId) {
+        return resourceDao.markUnusedProjectsForDelete(profileId);
     }
 
     public void deleteUnusedProjects(List<UUID> projectIdList) {
@@ -157,8 +156,7 @@ public class GoogleProjectService {
         resourceDao.deleteProjectMetadata(projectIdList);
     }
 
-    // package access for use in tests
-    Project getProject(String googleProjectId) {
+    public Project getProject(String googleProjectId) {
         try {
             CloudResourceManager resourceManager = cloudResourceManager();
             CloudResourceManager.Projects.Get request = resourceManager.projects().get(googleProjectId);
@@ -247,7 +245,7 @@ public class GoogleProjectService {
 
         GoogleProjectResource googleProjectResource =
             new GoogleProjectResource()
-                .profileId(UUID.fromString(billingProfile.getId()))
+                .profileId(billingProfile.getId())
                 .googleProjectId(googleProjectId)
                 .googleProjectNumber(googleProjectNumber);
 
@@ -614,7 +612,7 @@ public class GoogleProjectService {
 
     public void updateProjectsBillingAccount(BillingProfileModel billingProfileModel) {
         List<GoogleProjectResource> projects = resourceDao
-            .retrieveProjectsByBillingProfileId(UUID.fromString(billingProfileModel.getId()));
+            .retrieveProjectsByBillingProfileId(billingProfileModel.getId());
 
         if (projects.size() == 0) {
             logger.info("No projects attached to billing profile so nothing to update.");
@@ -634,7 +632,7 @@ public class GoogleProjectService {
                                      BillingProfileModel billingProfile) {
         GoogleProjectResource googleProjectResource =
             new GoogleProjectResource()
-                .profileId(UUID.fromString(billingProfile.getId()))
+                .profileId(billingProfile.getId())
                 .googleProjectId(googleProjectId)
                 .googleProjectNumber(googleProjectNumber);
 

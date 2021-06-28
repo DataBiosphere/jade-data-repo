@@ -7,7 +7,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 public final class ResourceFixtures {
     private ResourceFixtures() {}
@@ -18,7 +17,7 @@ public final class ResourceFixtures {
         return new GoogleProjectResource()
             .googleProjectId(ProfileFixtures.randomizeName("fake-test-project-id"))
             .googleProjectNumber(shuffleString("123456789012"))
-            .profileId(UUID.fromString(billingProfile.getId()));
+            .profileId(billingProfile.getId());
     }
 
     public static String shuffleString(String input) {

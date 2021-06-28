@@ -287,7 +287,7 @@ public class SnapshotConnectedTest {
 
         List<UUID> snapshotIds = snapshotList
             .stream()
-            .map(snapshot -> UUID.fromString(snapshot.getId()))
+            .map(snapshot -> snapshot.getId())
             .collect(Collectors.toList());
 
         when(samService.listAuthorizedResources(any(), any())).thenReturn(snapshotIds);
@@ -336,7 +336,7 @@ public class SnapshotConnectedTest {
         assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
         // check that the snapshot metadata row is unlocked
-        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotModel.getId()));
+        String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotModel.getId());
         assertNull("snapshot row is unlocked", exclusiveLock);
 
         // try to create the same snapshot again and check that it fails
@@ -372,7 +372,7 @@ public class SnapshotConnectedTest {
         assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
         // check that the snapshot metadata row is unlocked
-        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotModel.getId()));
+        String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotModel.getId());
         assertNull("snapshot row is unlocked", exclusiveLock);
 
         // delete and confirm deleted
@@ -436,7 +436,7 @@ public class SnapshotConnectedTest {
             "snapshot-test-snapshot.json", "_d2_");
 
         // check that the snapshot metadata row is unlocked
-        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+        String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotSummary.getId());
         assertNull("snapshot row is unlocked", exclusiveLock);
 
         // retrieve the snapshot and check that it finds it
@@ -467,7 +467,7 @@ public class SnapshotConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // note: asserts are below outside the hang block
-        exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+        exclusiveLock = snapshotDao.getExclusiveLockState(snapshotSummary.getId());
 
         // retrieve the snapshot and check that it returns not found
         // note: asserts are below outside the hang block
@@ -559,7 +559,7 @@ public class SnapshotConnectedTest {
             datasetRefSummary, "simple-with-filerefs-snapshot.json", "");
 
         // check that the snapshot metadata row is unlocked
-        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+        String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotSummary.getId());
         assertNull("snapshot row is unlocked", exclusiveLock);
 
         /*
@@ -598,7 +598,7 @@ public class SnapshotConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch and get to the hang
 
         // check that the snapshot metadata row has an exclusive lock
-        exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+        exclusiveLock = snapshotDao.getExclusiveLockState(snapshotSummary.getId());
 
         // lookup the snapshot file by id and check that it's NOT found
         MockHttpServletResponse failedGetSnapshotByIdResponse =
@@ -688,7 +688,7 @@ public class SnapshotConnectedTest {
             datasetRefSummary, "simple-with-filerefs-snapshot.json", "");
 
         // check that the snapshot metadata row is unlocked
-        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+        String exclusiveLock = snapshotDao.getExclusiveLockState(snapshotSummary.getId());
         assertNull("snapshot row is unlocked", exclusiveLock);
 
         /*
@@ -733,15 +733,15 @@ public class SnapshotConnectedTest {
         return connectedOperations.createDataset(billingProfile, resourcePath);
     }
 
-    private void loadCsvData(String datasetId, String tableName, String resourcePath) throws Exception {
+    private void loadCsvData(UUID datasetId, String tableName, String resourcePath) throws Exception {
         loadData(datasetId, tableName, resourcePath, IngestRequestModel.FormatEnum.CSV);
     }
 
-    private void loadJsonData(String datasetId, String tableName, String resourcePath) throws Exception {
+    private void loadJsonData(UUID datasetId, String tableName, String resourcePath) throws Exception {
         loadData(datasetId, tableName, resourcePath, IngestRequestModel.FormatEnum.JSON);
     }
 
-    private void loadData(String datasetId,
+    private void loadData(UUID datasetId,
                           String tableName,
                           String resourcePath,
                           IngestRequestModel.FormatEnum format) throws Exception {
@@ -845,7 +845,7 @@ public class SnapshotConnectedTest {
         return summary;
     }
 
-    private SnapshotModel getTestSnapshot(String id,
+    private SnapshotModel getTestSnapshot(UUID id,
                                         SnapshotRequestModel snapshotRequest,
                                         DatasetSummaryModel datasetSummary) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + id))

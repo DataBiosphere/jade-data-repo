@@ -73,10 +73,10 @@ public class SnapshotTest extends UsersBase {
 
 
     private static final Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
-    private String profileId;
+    private UUID profileId;
     private DatasetSummaryModel datasetSummaryModel;
-    private String datasetId;
-    private final List<String> createdSnapshotIds = new ArrayList<>();
+    private UUID datasetId;
+    private final List<UUID> createdSnapshotIds = new ArrayList<>();
     private String stewardToken;
 
     @Before
@@ -148,7 +148,7 @@ public class SnapshotTest extends UsersBase {
             equalTo(HttpStatus.UNAUTHORIZED));
 
         DataRepoResponse<SnapshotModel> getSnapResp = dataRepoFixtures.getSnapshotRaw(
-            discoverer(), snapshotSummary.getId());
+            discoverer(), snapshotSummary.getId(), null);
         assertThat("Discoverer is not authorized to get a dataSnapshot",
             getSnapResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
@@ -180,7 +180,7 @@ public class SnapshotTest extends UsersBase {
 
         EnumerateSnapshotModel enumSnapByBadDatasetId = dataRepoFixtures.enumerateSnapshotsByDatasetIds(
             steward(),
-            Collections.singletonList(UUID.randomUUID().toString()));
+            Collections.singletonList(UUID.randomUUID()));
 
         assertThat("Dataset filters to dataSnapshots",
             enumSnapByBadDatasetId.getTotal(),
@@ -205,8 +205,8 @@ public class SnapshotTest extends UsersBase {
             bqDatasetName,
             participantTable);
         TableResult participantIds = BigQueryFixtures.query(sql, bigQuery);
-        List<String> participantIdList = StreamSupport.stream(participantIds.getValues().spliterator(), false)
-            .map(v -> v.get(0).getStringValue())
+        List<UUID> participantIdList = StreamSupport.stream(participantIds.getValues().spliterator(), false)
+            .map(v -> UUID.fromString(v.get(0).getStringValue()))
             .collect(Collectors.toList());
         sql = String.format("SELECT %s FROM `%s.%s.%s`",
             PdaoConstant.PDAO_ROW_ID_COLUMN,
@@ -214,8 +214,8 @@ public class SnapshotTest extends UsersBase {
             bqDatasetName,
             sampleTable);
         TableResult sampleIds = BigQueryFixtures.query(sql, bigQuery);
-        List<String> sampleIdList = StreamSupport.stream(sampleIds.getValues().spliterator(), false)
-            .map(v -> v.get(0).getStringValue())
+        List<UUID> sampleIdList = StreamSupport.stream(sampleIds.getValues().spliterator(), false)
+            .map(v -> UUID.fromString(v.get(0).getStringValue()))
             .collect(Collectors.toList());
 
         // swap in these row ids in the request
@@ -239,7 +239,7 @@ public class SnapshotTest extends UsersBase {
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("new snapshot has the correct number of tables",
             requestModel.getContents().get(0).getRowIdSpec().getTables().size(),
@@ -269,7 +269,7 @@ public class SnapshotTest extends UsersBase {
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     }
 
@@ -288,7 +288,7 @@ public class SnapshotTest extends UsersBase {
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
@@ -348,7 +348,7 @@ public class SnapshotTest extends UsersBase {
                 profileId,
                 requestModel);
         createdSnapshotIds.add(snapshotSummary.getId());
-        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
         assertEquals("There should be 5 snapshot relationships", snapshot.getRelationships().size(), 5);
 

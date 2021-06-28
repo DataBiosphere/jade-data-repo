@@ -87,7 +87,7 @@ public class SnapshotDaoTest {
     public void setup() throws Exception {
         BillingProfileModel billingProfile =
             profileDao.createBillingProfile(ProfileFixtures.randomBillingProfileRequest(), "hi@hi.hi");
-        profileId = UUID.fromString(billingProfile.getId());
+        profileId = billingProfile.getId();
 
         GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
         projectId = resourceDao.createProject(projectResource);
@@ -96,7 +96,7 @@ public class SnapshotDaoTest {
             DatasetRequestModel.class);
         datasetRequest
             .name(datasetRequest.getName() + UUID.randomUUID().toString())
-            .defaultProfileId(profileId.toString());
+            .defaultProfileId(profileId);
 
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         dataset.projectResourceId(projectId);
@@ -109,7 +109,7 @@ public class SnapshotDaoTest {
         dataset = datasetDao.retrieve(datasetId);
 
         snapshotRequest = jsonLoader.loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)
-            .profileId(profileId.toString());
+            .profileId(profileId);
         snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
 
         // Populate the snapshotId with random; delete should quietly not find it.
@@ -313,6 +313,30 @@ public class SnapshotDaoTest {
             assertTrue("snapshot filter by name and region returns correct snapshot source region",
                     snapshot.getFirstSnapshotSource().getDataset().getDatasetSummary()
                             .datasetStorageContainsRegion(GoogleRegion.DEFAULT_GOOGLE_REGION));
+
+            // Test retrieve SnapshotProject object
+            SnapshotProject snapshotProject = snapshotDao.retrieveSnapshotProject(s.getId(), true);
+            assertThat("snapshot project id matches", snapshotProject.getId(), equalTo(s.getId()));
+            assertThat("snapshot project name matches", snapshotProject.getName(), equalTo(s.getName()));
+            assertThat("snapshot project profile id matches", snapshotProject.getProfileId(),
+                equalTo(snapshot.getProfileId()));
+            assertThat("snapshot project data project name matches", snapshotProject.getDataProject(),
+                equalTo(snapshot.getProjectResource().getGoogleProjectId()));
+            assertThat("snapshot project has a single source dataset",
+                snapshotProject.getSourceDatasetProjects().size(),
+                equalTo(1));
+            assertThat("dataset project id matches",
+                snapshotProject.getFirstSourceDatasetProject().getId(),
+                equalTo(snapshot.getFirstSnapshotSource().getDataset().getId()));
+            assertThat("dataset project name matches",
+                snapshotProject.getFirstSourceDatasetProject().getName(),
+                equalTo(snapshot.getFirstSnapshotSource().getDataset().getName()));
+            assertThat("dataset project profile id matches",
+                snapshotProject.getFirstSourceDatasetProject().getProfileId(),
+                equalTo(snapshot.getFirstSnapshotSource().getDataset().getProjectResource().getProfileId()));
+            assertThat("dataset project data project name matches",
+                snapshotProject.getFirstSourceDatasetProject().getDataProject(),
+                equalTo(snapshot.getFirstSnapshotSource().getDataset().getProjectResource().getGoogleProjectId()));
         }
 
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(0, 2, null,

@@ -7,12 +7,14 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
+import java.util.UUID;
+
 public class DeleteProfileAuthzIamStep implements Step {
     private final ProfileService profileService;
-    private final String profileId;
+    private final UUID profileId;
 
     public DeleteProfileAuthzIamStep(ProfileService profileService,
-                                     String profileId) {
+                                     UUID profileId) {
         this.profileService = profileService;
         this.profileId = profileId;
 

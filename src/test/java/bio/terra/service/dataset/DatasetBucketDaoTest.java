@@ -85,7 +85,7 @@ public class DatasetBucketDaoTest {
         bucketResourceUtils.setAllowReuseExistingBuckets(configurationService, true);
         BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
         billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
-        billingProfileIds.add(UUID.fromString(billingProfile.getId()));
+        billingProfileIds.add(billingProfile.getId());
 
         projectResource = ResourceFixtures.randomProjectResource(billingProfile);
         projectId = resourceDao.createProject(projectResource);
@@ -128,7 +128,7 @@ public class DatasetBucketDaoTest {
         datasetBucketDao.createDatasetBucketLink(datasetId, bucketResourceId);
 
         String newProjectName = datasetBucketDao.getProjectResourceForBucket(datasetId,
-            UUID.fromString(billingProfile.getId()));
+            billingProfile.getId());
 
         assertEquals("Should retrieve existing project", projectResource.getGoogleProjectId(),
             newProjectName);
@@ -136,9 +136,9 @@ public class DatasetBucketDaoTest {
         //Get Project given new billing profile
         BillingProfileRequestModel profileRequest2 = ProfileFixtures.randomBillingProfileRequest();
         BillingProfileModel billingProfile2 = profileDao.createBillingProfile(profileRequest2, "testUser");
-        billingProfileIds.add(UUID.fromString(billingProfile2.getId()));
+        billingProfileIds.add(billingProfile2.getId());
         String newBillingIdProjectName = datasetBucketDao.getProjectResourceForBucket(datasetId,
-            UUID.fromString(billingProfile2.getId()));
+            billingProfile2.getId());
         assertEquals("Should NOT retrieve existing project", null,
             newBillingIdProjectName);
 
@@ -148,7 +148,7 @@ public class DatasetBucketDaoTest {
         UUID bucketResourceId2 = createBucket();
         bucketResourceIds.add(bucketResourceId2);
         String newDatasetIdProjectName = datasetBucketDao.getProjectResourceForBucket(datasetId2,
-            UUID.fromString(billingProfile.getId()));
+            billingProfile.getId());
         assertEquals("Should NOT retrieve existing project", null,
             newDatasetIdProjectName);
     }

@@ -32,7 +32,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
 
         IngestResponseModel ingestResponse = new IngestResponseModel()
             .dataset(dataset.getName())
-            .datasetId(dataset.getId().toString())
+            .datasetId(dataset.getId())
             .table(ingestRequest.getTable())
             .path(ingestRequest.getPath())
             .loadTag(ingestRequest.getLoadTag())

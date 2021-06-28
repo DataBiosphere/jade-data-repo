@@ -25,6 +25,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
@@ -106,7 +107,7 @@ public class SoftDeleteDataset extends SimpleDataset {
             repositoryApi, ingestTabularDataJobResponse, IngestResponseModel.class);
     logger.info("Successfully loaded data into dataset: {}", ingestResponse.getDataset());
 
-    String datasetId = datasetSummaryModel.getId();
+    UUID datasetId = datasetSummaryModel.getId();
     DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId, Collections.emptyList());
     String dataProject = datasetModel.getDataProject();
     String tableName = datasetModel.getSchema().getTables().get(0).getName();

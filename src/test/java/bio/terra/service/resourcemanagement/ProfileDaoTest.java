@@ -65,7 +65,7 @@ public class ProfileDaoTest {
     private BillingProfileModel makeProfile() {
         BillingProfileRequestModel profileRequest = ProfileFixtures.randomBillingProfileRequest();
         BillingProfileModel billingProfileModel = profileDao.createBillingProfile(profileRequest, "me@me.me");
-        UUID profileId = UUID.fromString(billingProfileModel.getId());
+        UUID profileId = billingProfileModel.getId();
         profileIds.add(profileId);
         return billingProfileModel;
     }
@@ -85,13 +85,13 @@ public class ProfileDaoTest {
             .applicationDeploymentName(applicationName);
         var azureBillingProfile =
             profileDao.createBillingProfile(azureBillingProfileRequest, "me@me.me");
-        var azureProfileId = UUID.fromString(azureBillingProfile.getId());
+        var azureProfileId = azureBillingProfile.getId();
         profileIds.add(azureProfileId);
 
         var retrievedGoogleBillingProfile =
-            profileDao.getBillingProfileById(UUID.fromString(googleBillingProfile.getId()));
+            profileDao.getBillingProfileById(googleBillingProfile.getId());
         var retrievedAzureBillingProfile =
-            profileDao.getBillingProfileById(UUID.fromString(azureBillingProfile.getId()));
+            profileDao.getBillingProfileById(azureBillingProfile.getId());
 
         assertThat("GCP is the default cloud platform",
             retrievedGoogleBillingProfile.getCloudPlatform(),
@@ -118,7 +118,7 @@ public class ProfileDaoTest {
 
     @Test(expected = ProfileNotFoundException.class)
     public void profileDeleteTest() {
-        UUID profileId = UUID.fromString(makeProfile().getId());
+        UUID profileId = makeProfile().getId();
         boolean deleted = profileDao.deleteBillingProfileById(profileId);
         assertThat("able to delete", deleted, equalTo(true));
         profileDao.getBillingProfileById(profileId);
@@ -133,7 +133,7 @@ public class ProfileDaoTest {
         String newBillingAccount = ProfileFixtures.randomBillingAccountId();
 
         // Check existing state: Test billing profile set as expected
-        String testBA = profileDao.getBillingProfileById(UUID.fromString(profile.getId())).getBillingAccountId();
+        String testBA = profileDao.getBillingProfileById(profile.getId()).getBillingAccountId();
         assertThat("Billing account should be equal.", testBA, equalTo(oldBillingAccount));
 
         // test the update function
@@ -152,7 +152,7 @@ public class ProfileDaoTest {
     @Test(expected = ProfileNotFoundException.class)
     public void updateNonExistentProfile() {
         BillingProfileUpdateModel updateModel = new BillingProfileUpdateModel()
-            .id(UUID.randomUUID().toString())
+            .id(UUID.randomUUID())
             .billingAccountId(ProfileFixtures.randomBillingAccountId())
             .description("random");
         profileDao.updateBillingProfileById(updateModel);
@@ -163,7 +163,7 @@ public class ProfileDaoTest {
         Map<UUID, String> profileIdToAccountId = new HashMap<>();
         List<UUID> accessibleProfileId = new ArrayList<>();
         for (int i = 0; i < 6; i++) {
-            UUID enumProfileId = UUID.fromString(makeProfile().getId());
+            UUID enumProfileId = makeProfile().getId();
             BillingProfileModel enumProfile = profileDao.getBillingProfileById(enumProfileId);
             profileIdToAccountId.put(enumProfileId, enumProfile.getBillingAccountId());
             accessibleProfileId.add(enumProfileId);
@@ -193,7 +193,7 @@ public class ProfileDaoTest {
         assertThat("received expected number of profiles", profiles.size(), equalTo(expected));
 
         for (BillingProfileModel profile : profiles) {
-            UUID profileId = UUID.fromString(profile.getId());
+            UUID profileId = profile.getId();
             if (profileIdToAccountId.containsKey(profileId)) {
                 assertThat("account id matches profile id",
                     profile.getBillingAccountId(),

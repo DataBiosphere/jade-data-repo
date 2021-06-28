@@ -46,7 +46,7 @@ public class DatasetUtilsTest {
     public void convertDatasetTest() throws Exception {
         UUID fakeProfileId = UUID.randomUUID();
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(
-            "ingest-test-dataset.json", DatasetRequestModel.class).defaultProfileId(fakeProfileId.toString());
+            "ingest-test-dataset.json", DatasetRequestModel.class).defaultProfileId(fakeProfileId);
         Dataset convertedDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         for (DatasetTable table : convertedDataset.getTables()) {
             Assert.assertNotNull(table.getRawTableName());

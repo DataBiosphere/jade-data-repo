@@ -81,7 +81,7 @@ public class FileIngestBulkFlight extends Flight {
 
         // Parameters dependent on which request we get
         int maxFailedFileLoads;
-        String profileId;
+        UUID profileId;
 
         if (isArray) {
             BulkLoadArrayRequestModel loadRequest =

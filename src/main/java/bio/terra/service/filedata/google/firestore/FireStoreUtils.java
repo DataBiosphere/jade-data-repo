@@ -1,8 +1,9 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
 import com.google.api.gax.rpc.DeadlineExceededException;
@@ -33,12 +34,23 @@ import java.util.concurrent.TimeUnit;
 public class FireStoreUtils {
 
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
+    private static final int SLEEP_BASE_SECONDS = 1;
 
-    private int firestoreRetries;
+    private ConfigurationService configurationService;
 
     @Autowired
-    public FireStoreUtils(GoogleResourceConfiguration googleResourceConfiguration) {
-        firestoreRetries = googleResourceConfiguration.getFirestoreRetries();
+    public FireStoreUtils(ConfigurationService configurationService) {
+        this.configurationService = configurationService;
+    }
+
+    public int getFirestoreRetries() {
+        try {
+            return configurationService.getParameterValue(ConfigEnum.FIRESTORE_RETRIES);
+        } catch (Exception ex) {
+            logger.info("No value set for FIRESTORE_RETRIES parameter. Defaulting to 1.");
+            return 1;
+        }
+
     }
 
     <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {
@@ -66,21 +78,21 @@ public class FireStoreUtils {
             // TODO: in general, log + rethrow is bad form. For now, I want to make sure we see these in
             //  the log as they happen. Once we are comfortable that retry is working properly, we can
             //  rely on the Stairway debug logging as needed.
-            String msg = "FirestoreUtils.handleExecutionException - Retrying aborted exception: " + aex;
+            String msg = "[" + op + "] FirestoreUtils.handleExecutionException - Retrying aborted exception: " + aex;
             logger.info(msg);
             return new FileSystemAbortTransactionException(msg, aex);
         }
         if (throwable instanceof FirestoreException) {
             FirestoreException fex = (FirestoreException) throwable;
-            String msg = "FirestoreUtils.handleExecutionException - Retrying firestore exception: " + fex;
+            String msg = "[" + op + "] FirestoreUtils.handleExecutionException - Retrying firestore exception: " + fex;
             logger.info(msg);
             return new FileSystemAbortTransactionException(msg, fex);
         }
         if (throwable instanceof RuntimeException) {
-            logger.info("FirestoreUtils.handleExecutionException - RuntimeException");
+            logger.info("[{}] FirestoreUtils.handleExecutionException - RuntimeException", op);
             return (RuntimeException) throwable;
         }
-        logger.info("FirestoreUtils.handleExecutionException - Wrapping w/ FileSystemExecutionException");
+        logger.info("[{}] FirestoreUtils.handleExecutionException - Wrapping w/ FileSystemExecutionException", op);
         return new FileSystemExecutionException(op + " - execution exception wrapping: " + throwable, throwable);
     }
 
@@ -136,21 +148,29 @@ public class FireStoreUtils {
                                int batchSize,
                                ApiFutureGenerator<V, QueryDocumentSnapshot> generator) throws InterruptedException {
         CollectionReference datasetCollection = firestore.collection(collectionId);
-        try {
-            int batchCount = 0;
-            List<QueryDocumentSnapshot> documents;
-            do {
-                ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
-                documents = future.get().getDocuments();
-                batchCount++;
-                if (!documents.isEmpty()) {
-                    logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
+        int retry = 0;
+        while (true) {
+            try {
+                int batchCount = 0;
+                List<QueryDocumentSnapshot> documents;
+                do {
+                    ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
+                    documents = future.get().getDocuments();
+                    batchCount++;
+                    if (!documents.isEmpty()) {
+                        logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
+                    }
+                    batchOperation(documents, generator);
+                } while (documents.size() > 0);
+                return;
+            } catch (ExecutionException ex) {
+                retry++;
+                if (retry > getFirestoreRetries()) {
+                    throw new FileSystemExecutionException("scanning collection - execution exception", ex);
                 }
-                batchOperation(documents, generator);
-            } while (documents.size() > 0);
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("scanning collection - execution exception", ex);
+            }
         }
+
     }
 
     String computeMd5(String input) {
@@ -164,7 +184,7 @@ public class FireStoreUtils {
         return Long.toHexString(crc.getValue());
     }
 
-    private static final int SLEEP_BASE_MILLISECONDS = 1000;
+
 
     /**
      * Perform the specified Firestore operation against a specified list of inputs in batch.
@@ -219,8 +239,8 @@ public class FireStoreUtils {
                         InternalException |
                         StatusRuntimeException |
                         ExecutionException ex) {
-                        if (shouldRetry(ex)) {
-                            logger.warn("Retry-able error in firestore future get - input: " +
+                        if (shouldRetry(ex, true)) {
+                            logger.warn("[batchOperation] Retry-able error in firestore future get - input: " +
                                 inputs.get(i) + " message: " + ex.getMessage());
                         } else
                             throw new FileSystemExecutionException("batch operation failed", ex);
@@ -233,69 +253,63 @@ public class FireStoreUtils {
                 break;
             }
 
-            final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, noProgressCount)).longValue();
+            final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, noProgressCount));
             if (completeCount == 0) {
                 noProgressCount++;
-                if (noProgressCount > firestoreRetries) {
+                if (noProgressCount > getFirestoreRetries()) {
                     throw new FileSystemExecutionException("batch operation failed. " +
-                        firestoreRetries + " tries with no progress.");
+                        getFirestoreRetries() + " tries with no progress.");
                 } else {
-                    logger.info("will attempt retry #{} after {} millisecond pause.", noProgressCount, retryWait);
+                    logger.info("[batchOperation] will attempt retry #{} after {} millisecond pause.",
+                        noProgressCount, retryWait);
                 }
             }
             // Exponential backoff
-            TimeUnit.MILLISECONDS.sleep(retryWait);
+            TimeUnit.SECONDS.sleep(retryWait);
         }
 
         return outputs;
     }
 
-    static boolean shouldRetry(Throwable throwable) {
+    // For batch operations, we want to also include the AbortedException as retryable
+    static boolean shouldRetry(Throwable throwable, boolean isBatch) {
         if (throwable == null) {
             return false; // Did not find a retry-able exception
         }
         if (throwable instanceof DeadlineExceededException ||
             throwable instanceof UnavailableException ||
-            throwable instanceof AbortedException ||
             throwable instanceof InternalException ||
-            throwable instanceof StatusRuntimeException) {
-
+            throwable instanceof StatusRuntimeException ||
+            (isBatch && throwable instanceof AbortedException)) {
             return true;
         }
-        return shouldRetry(throwable.getCause());
+        return shouldRetry(throwable.getCause(), isBatch);
     }
 
-    // TODO - convert this to a generic, remove duplicate code from FireStoreDirectoryDao
-    interface FirestoreFunction {
-        void apply(Transaction xn) throws InterruptedException;
-    }
-
-    public void runTransactionWithRetry(Firestore firestore,
-                                        FirestoreFunction firestoreFunction,
-                                        String transactionOp,
-                                        String warnMessage) throws InterruptedException {
+    public <T> T runTransactionWithRetry(Firestore firestore,
+                                         Transaction.Function<T> firestoreFunction,
+                                         String transactionOp,
+                                         String warnMessage) throws InterruptedException {
         int retry = 0;
         while (true) {
             try {
-                ApiFuture<Void> transaction =
-                    firestore.runTransaction(
-                        xn -> {
-                            firestoreFunction.apply(xn);
-                            return null;
-                        });
+                ApiFuture<T> transaction = firestore.runTransaction(firestoreFunction);
 
-                transactionGet(transactionOp, transaction);
-                return;
+                return transactionGet(transactionOp, transaction);
             } catch (Exception ex) {
-                final long retryWait = SLEEP_BASE_MILLISECONDS * Double.valueOf(Math.pow(2.5, retry)).longValue();
-                if (FireStoreUtils.shouldRetry(ex) && retry < firestoreRetries) {
+                final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry));
+                if (retry < getFirestoreRetries() && FireStoreUtils.shouldRetry(ex, false)) {
                     // perform retry
                     retry++;
-                    logger.warn("Retry-able error in firestore future get - {} - will attempt retry #{}" +
-                            " after {} millisecond pause. Message: {}",
+                    logger.warn("[transaction retry] Retry-able error in firestore transactions - {} " +
+                            "- will attempt retry #{}" +
+                            " after {} second pause. Message: {}",
                         warnMessage, retry, retryWait, ex.getMessage());
-                    TimeUnit.MILLISECONDS.sleep(retryWait);
+                    TimeUnit.SECONDS.sleep(retryWait);
                 } else {
+                    if (retry > getFirestoreRetries()) {
+                        logger.error("[transaction retry] Ran out of retries - {}", warnMessage);
+                    }
                     throw ex;
                 }
             }

@@ -86,8 +86,8 @@ public class DrsTest extends UsersBase {
 
     private String custodianToken;
     private SnapshotModel snapshotModel;
-    private String profileId;
-    private String datasetId;
+    private UUID profileId;
+    private UUID datasetId;
     private Map<IamRole, String> datasetIamRoles;
     private Map<IamRole, String> snapshotIamRoles;
 
@@ -97,7 +97,7 @@ public class DrsTest extends UsersBase {
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
         EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
-        snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
+        snapshotModel = dataRepoFixtures.getSnapshot(steward(), setupResult.getSummaryModel().getId(), null);
         profileId = setupResult.getProfileId();
         datasetId = setupResult.getDatasetId();
         AuthenticatedUserRequest authenticatedStewardRequest =
@@ -105,9 +105,9 @@ public class DrsTest extends UsersBase {
         AuthenticatedUserRequest authenticatedCustodianRequest =
             new AuthenticatedUserRequest().email(custodian().getEmail()).token(Optional.of(custodianToken));
         datasetIamRoles = iamService.retrievePolicyEmails(authenticatedStewardRequest,
-            IamResourceType.DATASET, UUID.fromString(datasetId));
+            IamResourceType.DATASET, datasetId);
         snapshotIamRoles = iamService.retrievePolicyEmails(authenticatedCustodianRequest,
-            IamResourceType.DATASNAPSHOT, UUID.fromString(snapshotModel.getId()));
+            IamResourceType.DATASNAPSHOT, snapshotModel.getId());
         logger.info("setup complete");
     }
 
@@ -168,7 +168,8 @@ public class DrsTest extends UsersBase {
         String filePath = drsObjectFile.getAliases().get(0);
         String dirPath = StringUtils.prependIfMissing(getDirectoryPath(filePath), "/");
 
-        FileModel fsObject = dataRepoFixtures.getSnapshotFileByName(steward(), snapshotModel.getId(), dirPath);
+        FileModel fsObject = dataRepoFixtures.getSnapshotFileByName(steward(),
+                snapshotModel.getId(), dirPath);
         String dirObjectId = "v1_" + snapshotModel.getId() + "_" + fsObject.getFileId();
 
         final DRSObject drsObjectDirectory = dataRepoFixtures.drsGetObject(reader(), dirObjectId);
@@ -283,7 +284,8 @@ public class DrsTest extends UsersBase {
         assertThat("a 404 NOT_FOUND response is returned",
             badFileResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
 
-        String nonExistentSnapshotObjectId = drsObjectId.replace(snapshotModel.getId(), UUID.randomUUID().toString());
+        String nonExistentSnapshotObjectId = drsObjectId.replace(snapshotModel.getId().toString(),
+                UUID.randomUUID().toString());
         logger.info("Non-existent snapshot DRS Object Id - file: {}", nonExistentSnapshotObjectId);
         DrsResponse<DRSObject> badSnapshotResponse = dataRepoFixtures.drsGetObjectRaw(reader(),
             nonExistentSnapshotObjectId);

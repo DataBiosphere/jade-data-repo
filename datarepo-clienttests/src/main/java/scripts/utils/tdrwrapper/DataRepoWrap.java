@@ -132,7 +132,7 @@ public class DataRepoWrap {
   // -- billing profile alphabetically --
 
   public PolicyResponse addProfilePolicyMember(
-      String profileId, String policyName, String userEmail) {
+      UUID profileId, String policyName, String userEmail) {
     PolicyMemberRequest addRequest = new PolicyMemberRequest().email(userEmail);
     return apiCallThrow(
         () -> resourcesApi.addProfilePolicyMember(addRequest, profileId, policyName));
@@ -156,7 +156,7 @@ public class DataRepoWrap {
 
     BillingProfileRequestModel createProfileRequest =
         new BillingProfileRequestModel()
-            .id(UUID.randomUUID().toString())
+            .id(UUID.randomUUID())
             .biller("direct")
             .billingAccountId(billingAccount)
             .profileName(profileName)
@@ -167,18 +167,18 @@ public class DataRepoWrap {
     return new WrapFuture<>(jobResponse.getId(), repositoryApi, BillingProfileModel.class);
   }
 
-  public DeleteResponseModel deleteProfile(String profileId) throws Exception {
+  public DeleteResponseModel deleteProfile(UUID profileId) throws Exception {
     WrapFuture<DeleteResponseModel> wrapFuture = deleteProfileFuture(profileId);
     return wrapFuture.get();
   }
 
-  public WrapFuture<DeleteResponseModel> deleteProfileFuture(String profileId) {
+  public WrapFuture<DeleteResponseModel> deleteProfileFuture(UUID profileId) {
     JobModel jobResponse = apiCallThrow(() -> resourcesApi.deleteProfile(profileId));
     return new WrapFuture<>(jobResponse.getId(), repositoryApi, DeleteResponseModel.class);
   }
 
   public PolicyResponse deleteProfilePolicyMember(
-      String profileId, String policyName, String userEmail) {
+      UUID profileId, String policyName, String userEmail) {
 
     return apiCallThrow(
         () -> resourcesApi.deleteProfilePolicyMember(profileId, policyName, userEmail));
@@ -188,23 +188,23 @@ public class DataRepoWrap {
     return DataRepoWrap.apiCallThrow(() -> resourcesApi.enumerateProfiles(offset, limit));
   }
 
-  public BillingProfileModel retrieveProfile(String profileId) {
+  public BillingProfileModel retrieveProfile(UUID profileId) {
     return DataRepoWrap.apiCallThrow(() -> resourcesApi.retrieveProfile(profileId));
   }
 
-  public PolicyResponse retrieveProfilePolicies(String id) {
+  public PolicyResponse retrieveProfilePolicies(UUID id) {
     return apiCallThrow(() -> resourcesApi.retrieveProfilePolicies(id));
   }
 
   // -- dataset --
 
-  public PolicyResponse addDatasetPolicyMember(String id, String policyName, String userEmail) {
+  public PolicyResponse addDatasetPolicyMember(UUID id, String policyName, String userEmail) {
     PolicyMemberRequest addRequest = new PolicyMemberRequest().email(userEmail);
     return apiCallThrow(() -> repositoryApi.addDatasetPolicyMember(id, policyName, addRequest));
   }
 
   public DatasetSummaryModel createDataset(
-      String profileId, String apipayloadFilename, boolean randomizeName) throws Exception {
+      UUID profileId, String apipayloadFilename, boolean randomizeName) throws Exception {
 
     WrapFuture<DatasetSummaryModel> wrapFuture =
         createDatasetFuture(profileId, apipayloadFilename, randomizeName);
@@ -213,7 +213,7 @@ public class DataRepoWrap {
   }
 
   public WrapFuture<DatasetSummaryModel> createDatasetFuture(
-      String profileId, String apipayloadFilename, boolean randomizeName) throws Exception {
+      UUID profileId, String apipayloadFilename, boolean randomizeName) throws Exception {
     // use Jackson to map the stream contents to a DatasetRequestModel object
     InputStream datasetRequestFile =
         FileUtils.getResourceFileHandle("apipayloads/" + apipayloadFilename);
@@ -230,12 +230,12 @@ public class DataRepoWrap {
     return new WrapFuture<>(jobResponse.getId(), repositoryApi, DatasetSummaryModel.class);
   }
 
-  public DeleteResponseModel deleteDataset(String id) throws Exception {
+  public DeleteResponseModel deleteDataset(UUID id) throws Exception {
     WrapFuture<DeleteResponseModel> wrapFuture = deleteDatasetFuture(id);
     return wrapFuture.get();
   }
 
-  public WrapFuture<DeleteResponseModel> deleteDatasetFuture(String id) throws Exception {
+  public WrapFuture<DeleteResponseModel> deleteDatasetFuture(UUID id) throws Exception {
     JobModel jobResponse = apiCallThrow(() -> repositoryApi.deleteDataset(id));
 
     return new WrapFuture<>(jobResponse.getId(), repositoryApi, DeleteResponseModel.class);
@@ -244,7 +244,7 @@ public class DataRepoWrap {
   // -- snapshot --
 
   public SnapshotSummaryModel createSnapshot(
-      String profileId, String apipayloadFilename, String datasetName, boolean randomizeName)
+      UUID profileId, String apipayloadFilename, String datasetName, boolean randomizeName)
       throws Exception {
 
     WrapFuture<SnapshotSummaryModel> wrapFuture =
@@ -254,7 +254,7 @@ public class DataRepoWrap {
   }
 
   public WrapFuture<SnapshotSummaryModel> createSnapshotFuture(
-      String profileId, String apipayloadFilename, String datasetName, boolean randomizeName)
+      UUID profileId, String apipayloadFilename, String datasetName, boolean randomizeName)
       throws Exception {
     // use Jackson to map the stream contents to a SnapshotRequestModel object
     InputStream SnapshotRequestFile =
@@ -273,12 +273,12 @@ public class DataRepoWrap {
     return new WrapFuture<>(jobResponse.getId(), repositoryApi, SnapshotSummaryModel.class);
   }
 
-  public DeleteResponseModel deleteSnapshot(String id) throws Exception {
+  public DeleteResponseModel deleteSnapshot(UUID id) throws Exception {
     WrapFuture<DeleteResponseModel> wrapFuture = deleteSnapshotFuture(id);
     return wrapFuture.get();
   }
 
-  public WrapFuture<DeleteResponseModel> deleteSnapshotFuture(String id) throws Exception {
+  public WrapFuture<DeleteResponseModel> deleteSnapshotFuture(UUID id) throws Exception {
     JobModel jobResponse = apiCallThrow(() -> repositoryApi.deleteSnapshot(id));
 
     return new WrapFuture<>(jobResponse.getId(), repositoryApi, DeleteResponseModel.class);

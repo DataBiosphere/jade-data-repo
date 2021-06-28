@@ -2,20 +2,19 @@ package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
 import com.google.api.core.SettableApiFuture;
-import com.google.api.gax.grpc.GrpcStatusCode;
-import com.google.api.gax.rpc.AbortedException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Transaction;
 import com.google.cloud.firestore.WriteResult;
+
 import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +23,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  * FireStoreFileDao provides CRUD operations on the file collection in Firestore.
@@ -55,11 +54,16 @@ class FireStoreFileDao {
         this.executor = executor;
     }
 
+
+
     void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) throws InterruptedException {
         String collectionId = makeCollectionId(datasetId);
         fireStoreUtils.runTransactionWithRetry(firestore,
-            (xn) -> xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile),
-            "createFileMetadata", " creating file metadata for dataset Id: " + datasetId);
+            xn -> {
+                xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
+                return null;
+            }, "createFileMetadata",
+            " creating file metadata for dataset Id: " + datasetId);
     }
 
     boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId) throws InterruptedException {
@@ -77,9 +81,6 @@ class FireStoreFileDao {
         return fireStoreUtils.transactionGet("deleteFileMetadata", transaction);
     }
 
-    private static final int MAX_RETRIES = 10;
-    private static final int RETRY_MILLISECONDS = 500;
-
     // Returns null on not found
     // We needed to add local retrying to this code path, because it is used in
     // computeDirectory inside of the create snapshot code. We do potentially thousands
@@ -88,38 +89,21 @@ class FireStoreFileDao {
     FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileId)
         throws InterruptedException {
 
-        int retry = 0;
-        while (true) {
-            try {
-                String collectionId = makeCollectionId(datasetId);
-                ApiFuture<FireStoreFile> transaction = firestore.runTransaction(xn -> {
-                    DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
-                    if (docSnap == null || !docSnap.exists()) {
-                        return null;
-                    }
-                    return docSnap.toObject(FireStoreFile.class);
-                });
+        String collectionId = makeCollectionId(datasetId);
+
+        return fireStoreUtils.runTransactionWithRetry(firestore,
+            xn -> {
+                DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
 
                 // Fault insertion to test retry
                 if (configurationService.testInsertFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT)) {
-                    throw new AbortedException(
-                        new FileSystemAbortTransactionException("fault insertion"),
-                        GrpcStatusCode.of(Status.Code.ABORTED),
-                        true);
+                    throw new StatusRuntimeException(Status.fromCodeValue(500));
                 }
 
-                return fireStoreUtils.transactionGet("retrieveFileMetadata", transaction);
-            } catch (AbortedException ex) {
-                if (retry < MAX_RETRIES) {
-                    // perform retry
-                    retry++;
-                    logger.info("Retry retrieveFileMetadata {} of {}", retry, MAX_RETRIES);
-                    TimeUnit.MILLISECONDS.sleep(RETRY_MILLISECONDS);
-                } else {
-                    throw new FileSystemExecutionException("Retries exhausted", ex);
-                }
-            }
-        }
+                return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreFile.class))
+                    .orElse(null);
+            }, "retrieveFileMetadata",
+            " retrieving file metadata for dataset Id: " + datasetId);
     }
 
     /**

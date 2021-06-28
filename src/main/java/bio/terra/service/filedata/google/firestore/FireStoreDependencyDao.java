@@ -10,6 +10,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
@@ -67,9 +68,19 @@ public class FireStoreDependencyDao {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
-        // check to see if the datasets collection contains any dependencies
-        boolean hasDependencies = depColl.listDocuments().iterator().hasNext();
-        return hasDependencies;
+        // TODO - use generic retry library
+        int retryCount = 0;
+        while (true) {
+            try {
+                // check to see if the datasets collection contains any dependencies
+                return depColl.listDocuments().iterator().hasNext();
+            } catch (FirestoreException ex) {
+                retryCount++;
+                if (retryCount > fireStoreUtils.getFirestoreRetries()) {
+                    throw ex;
+                }
+            }
+        }
     }
 
     public List<String> getDatasetSnapshotFileIds(Dataset dataset, String snapshotId) throws InterruptedException {

@@ -4,6 +4,7 @@ import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CloudUtil;
 import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.Relationship;
@@ -36,9 +37,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public final class DatasetJsonConversion {
+import static bio.terra.common.CloudUtil.DEFAULT_CLOUD_PLATFORM;
 
-    private static final CloudPlatform DEFAULT_CLOUD_PLATFORM = CloudPlatform.GCP;
+public final class DatasetJsonConversion {
 
     // only allow use of static methods
     private DatasetJsonConversion() {}
@@ -67,14 +68,12 @@ public final class DatasetJsonConversion {
         CloudPlatform cloudPlatform = Optional.ofNullable(datasetRequest.getCloudPlatform())
             .orElse(DEFAULT_CLOUD_PLATFORM);
 
-        final List<? extends StorageResource<?, ?>> storageResources;
-        if (cloudPlatform == CloudPlatform.GCP) {
-            storageResources = createGcpStorageResourceValues(datasetRequest);
-        } else if (cloudPlatform == CloudPlatform.AZURE) {
-            storageResources = createAzureStorageResourceValues(datasetRequest);
-        } else {
-            throw new UnsupportedOperationException(cloudPlatform + " is not a recognized Cloud Platform");
-        }
+        final List<? extends StorageResource<?, ?>> storageResources =
+            CloudUtil.cloudExecute(
+                cloudPlatform,
+                () -> createGcpStorageResourceValues(datasetRequest),
+                () -> createAzureStorageResourceValues(datasetRequest)
+            );
 
         return new Dataset(new DatasetSummary()
                 .name(datasetRequest.getName())
@@ -87,15 +86,11 @@ public final class DatasetJsonConversion {
     }
 
     public static GoogleRegion getRegionFromDatasetRequestModel(DatasetRequestModel datasetRequestModel) {
-        // Default to GCP if no platform was specified
-        if (datasetRequestModel.getCloudPlatform() == null ||
-            datasetRequestModel.getCloudPlatform() == CloudPlatform.GCP) {
-            return GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
-        } else if (datasetRequestModel.getCloudPlatform() == CloudPlatform.AZURE) {
-            return GoogleRegion.fromValueWithDefault(datasetRequestModel.getGcpRegion());
-        } else {
-            throw new IllegalArgumentException("Invalid cloud type");
-        }
+        return CloudUtil.cloudExecute(
+            datasetRequestModel.getCloudPlatform(),
+            () -> GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion()),
+            () -> GoogleRegion.fromValueWithDefault(datasetRequestModel.getGcpRegion())
+        );
     }
 
     public static AzureRegion getAzureRegionFromDatasetRequestModel(DatasetRequestModel datasetRequestModel) {
@@ -122,11 +117,11 @@ public final class DatasetJsonConversion {
         DatasetRequestModel datasetRequestModel) {
         final AzureRegion region = getAzureRegionFromDatasetRequestModel(datasetRequestModel);
         // TODO: once we no longer require GCP resources to back Azure datasets, stop concatenating
-        return Stream.of(
+        return Stream.concat(
             Arrays.stream(AzureCloudResource.values()).map(resource -> new AzureStorageResource(null,
                 resource,
                 region)),
-            createGcpStorageResourceValues(datasetRequestModel).stream()).flatMap(s -> s)
+            createGcpStorageResourceValues(datasetRequestModel).stream())
         .collect(Collectors.toList());
     }
 

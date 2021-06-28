@@ -21,7 +21,7 @@ import java.util.UUID;
 
 import static bio.terra.common.DaoUtils.retryQuery;
 
-/**
+/*
  * A NOTE ON CONCURRENCY CONTROL FOR THE DATASET STORAGE ACCOUNT TABLE
  * The successful_ingest counter is a concurrency control mechanism to avoid locking the dataset-storage-account row.
  * The only important values are 0 or greater than 0. A row with a counter of 0 is equivalent to no row;

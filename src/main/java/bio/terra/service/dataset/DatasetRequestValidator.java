@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CloudUtil;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.AssetModel;
@@ -377,36 +378,25 @@ public class DatasetRequestValidator implements Validator {
                 errors.rejectValue("region", "InvalidRegionForPlatform",
                     "Cannot set a region when a cloudPlatform is not provided.");
             } else {
-                boolean supported = false;
-                switch (datasetRequest.getCloudPlatform()) {
-                    case GCP:
-                        supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
-                        if (!supported) {
-                            errors.rejectValue("region", "InvalidRegionForPlatform",
-                                "Valid regions for " +
-                                    CloudPlatform.GCP +
-                                    " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
-                        }
-                        break;
-                    case AZURE:
-                        supported = SUPPORTED_AZURE_REGIONS.contains(datasetRequest.getRegion().toLowerCase());
-                        if (!supported) {
-                            errors.rejectValue("region", "InvalidRegionForPlatform",
-                                "Valid regions for " +
-                                    CloudPlatform.AZURE +
-                                    " are: " + String.join(", ", SUPPORTED_AZURE_REGIONS));
-                        }
+                CloudUtil.cloudExecute(
+                    datasetRequest.getCloudPlatform(),
+                    () ->
+                        ensureValidRegion(CloudPlatform.GCP,
+                            datasetRequest.getRegion(),
+                            SUPPORTED_GOOGLE_REGIONS,
+                            errors),
+                    () -> {
+                        ensureValidRegion(CloudPlatform.AZURE,
+                            datasetRequest.getRegion(),
+                            SUPPORTED_AZURE_REGIONS,
+                            errors);
 
-                        // TODO remove once we no longer depend on GCP resources for Azure datasets and snashots
-                        supported = SUPPORTED_GOOGLE_REGIONS.contains(datasetRequest.getGcpRegion().toLowerCase());
-                        if (!supported) {
-                            errors.rejectValue("region", "InvalidRegionForPlatform",
-                                "Valid regions for " +
-                                    CloudPlatform.GCP +
-                                    " are: " + String.join(", ", SUPPORTED_GOOGLE_REGIONS));
-                        }
-                        return;
-                }
+                        ensureValidRegion(CloudPlatform.GCP,
+                            datasetRequest.getRegion(),
+                            SUPPORTED_GOOGLE_REGIONS,
+                            errors);
+                    }
+                );
             }
         }
     }
@@ -421,6 +411,16 @@ public class DatasetRequestValidator implements Validator {
                 validateSchema(schema, errors);
             }
             validateRegion(datasetRequest, errors);
+        }
+    }
+
+    private void ensureValidRegion(CloudPlatform platform,
+                                   String region,
+                                   List<String> supportedRegions,
+                                   Errors errors) {
+        if (!supportedRegions.contains(region.toLowerCase())) {
+            errors.rejectValue("region", "InvalidRegionForPlatform",
+                "Valid regions for " + platform +  " are: " + String.join(", ", supportedRegions));
         }
     }
 }

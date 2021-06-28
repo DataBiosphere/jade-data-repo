@@ -41,6 +41,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -196,50 +198,46 @@ public class DrsService {
         SnapshotProject snapshotProject = snapshotService.retrieveAvailableSnapshotProject(snapshot.getId());
         GoogleProjectResource projectResource = snapshot.getProjectResource();
 
-        FSItem fsObject = null;
-        try {
-            String lookupTimer = performanceLogger.timerStart();
-            fsObject = fileService.lookupSnapshotFSItem(
-                snapshotProject,
-                drsId.getFsObjectId(),
-                1);
-
-            performanceLogger.timerEndAndLog(
-                lookupTimer,
-                objectId, // not a flight, so no job id
-                this.getClass().getName(),
-                "fileService.lookupSnapshotFSItem");
-        } catch (InterruptedException ex) {
-            throw new FileSystemExecutionException("Unexpected interruption during file system processing", ex);
-        }
-
-        GcsPdao.GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(fsObject.getPath());
-        String gsBucket = locator.getBucket();
-
-        if (doesAccessIdMatch(accessId, object)) {
+        List<DRSAccessMethod> matchingAccessMethods = getAccessMethodsMatchingAccessId(accessId, object);
+        if (matchingAccessMethods.size() > 0) {
             Storage storage = StorageOptions.newBuilder().setProjectId(projectResource.getGoogleProjectId()).build().getService();
+            String urlString = matchingAccessMethods.get(0).getAccessUrl().toString();
+            Pattern gsBucketRegex = Pattern.compile("(?<=//)(.*?)(?=/)");
+            Matcher bucketMatcher =  gsBucketRegex.matcher(urlString);
 
-            // Define resource
-            BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(gsBucket, object.getName())).build();
+            if (bucketMatcher.find()) {
+                String gsBucket = bucketMatcher.group();
+                Pattern gsPathRegex = Pattern.compile(String.format("(?<=%s/)(.*)", gsBucket));
+                Matcher pathMatcher =  gsPathRegex.matcher(urlString);
 
-            URL url =
-                storage.signUrl(blobInfo, 15, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
+                if (pathMatcher.find()) {
+                    String path = pathMatcher.group();
+                    // Define resource
+                    BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(gsBucket, path)).build();
 
-            return new DRSAccessURL().url(url.toString());
+                    URL url =
+                        storage.signUrl(blobInfo, 15, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
+
+                    return new DRSAccessURL().url(url.toString());
+                }
+                else {
+                    throw new IllegalArgumentException("Was not able to find bucket");
+                }
+            } else {
+                throw new IllegalArgumentException("Was not able to find bucket");
+            }
         } else {
             throw new IllegalArgumentException("No matching access ID " + accessId + " was found on object " + objectId);
         }
-
     }
 
-    private boolean doesAccessIdMatch(String accessId, DRSObject object) {
-        List<DRSAccessMethod> matchingAccessMethods = object.getAccessMethods().stream()
+    private List<DRSAccessMethod> getAccessMethodsMatchingAccessId(String accessId,
+        DRSObject object) {
+        return object.getAccessMethods().stream()
             .filter(
-                drsAccessMethod -> drsAccessMethod.getAccessId().equals(accessId) && drsAccessMethod
-                    .getType().equals(TypeEnum.GS))
+                drsAccessMethod -> drsAccessMethod.getType().equals(TypeEnum.GS) && drsAccessMethod
+                    .getAccessId().equals(accessId))
             .collect(Collectors.toList());
-
-        return matchingAccessMethods.size() > 0;
     }
 
     private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {

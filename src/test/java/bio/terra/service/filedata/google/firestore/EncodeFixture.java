@@ -14,6 +14,7 @@ import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamResourceType;
@@ -51,21 +52,21 @@ public class EncodeFixture {
     @Autowired private TestConfiguration testConfiguration;
 
     public static class SetupResult {
-        private final String profileId;
-        private final String datasetId;
+        private final UUID profileId;
+        private final UUID datasetId;
         private final SnapshotSummaryModel summaryModel;
 
-        public SetupResult(String profileId, String datasetId, SnapshotSummaryModel summaryModel) {
+        public SetupResult(UUID profileId, UUID datasetId, SnapshotSummaryModel summaryModel) {
             this.profileId = profileId;
             this.datasetId = datasetId;
             this.summaryModel = summaryModel;
         }
 
-        public String getDatasetId() {
+        public UUID getDatasetId() {
             return datasetId;
         }
 
-        public String getProfileId() {
+        public UUID getProfileId() {
             return profileId;
         }
 
@@ -82,7 +83,7 @@ public class EncodeFixture {
         TestConfiguration.User custodian,
         TestConfiguration.User reader) throws Exception {
 
-        String profileId = dataRepoFixtures.createBillingProfile(steward).getId();
+        UUID profileId = dataRepoFixtures.createBillingProfile(steward).getId();
         dataRepoFixtures.addPolicyMember(
             steward,
             profileId,
@@ -92,7 +93,7 @@ public class EncodeFixture {
 
         DatasetSummaryModel datasetSummary =
             dataRepoFixtures.createDataset(steward, profileId, "encodefiletest-dataset.json");
-        String datasetId = datasetSummary.getId();
+        UUID datasetId = datasetSummary.getId();
 
         dataRepoFixtures.addDatasetPolicyMember(
             steward,
@@ -142,17 +143,27 @@ public class EncodeFixture {
         // issues have shown. We make a BigQuery request as the test to see that READER has access.
         // We need to get the snapshot, rather than the snapshot summary in order to make a query.
         // TODO: Add dataProject to SnapshotSummaryModel?
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId());
+        SnapshotModel snapshotModel =
+            dataRepoFixtures.getSnapshot(custodian,
+                snapshotSummary.getId(),
+                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
-        BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
+        logger.info("Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",
+            snapshotModel.getName(),
+            snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+            snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
+        BigQueryFixtures.hasAccess(bigQueryReader,
+            snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+            snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
+        logger.info("Successfully checked access");
         return new SetupResult(profileId, datasetId, snapshotSummary);
     }
 
     private String loadFiles(
-        String datasetId,
-        String profileId,
+        UUID datasetId,
+        UUID profileId,
         TestConfiguration.User user,
         Storage storage) throws Exception {
         // Open the source data from the bucket

@@ -148,22 +148,29 @@ public class FireStoreUtils {
                                int batchSize,
                                ApiFutureGenerator<V, QueryDocumentSnapshot> generator) throws InterruptedException {
         CollectionReference datasetCollection = firestore.collection(collectionId);
-        try {
-            int batchCount = 0;
-            List<QueryDocumentSnapshot> documents;
-            do {
-                ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
-                documents = future.get().getDocuments();
-                batchCount++;
-                if (!documents.isEmpty()) {
-                    logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
+        int retry = 0;
+        while (true) {
+            try {
+                int batchCount = 0;
+                List<QueryDocumentSnapshot> documents;
+                do {
+                    ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
+                    documents = future.get().getDocuments();
+                    batchCount++;
+                    if (!documents.isEmpty()) {
+                        logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
+                    }
+                    batchOperation(documents, generator);
+                } while (documents.size() > 0);
+                return;
+            } catch (ExecutionException ex) {
+                retry++;
+                if (retry > getFirestoreRetries()) {
+                    throw new FileSystemExecutionException("scanning collection - execution exception", ex);
                 }
-                batchOperation(documents, generator);
-            } while (documents.size() > 0);
-        } catch (ExecutionException ex) {
-            // TODO - can we retry on this exception?
-            throw new FileSystemExecutionException("scanning collection - execution exception", ex);
+            }
         }
+
     }
 
     String computeMd5(String input) {

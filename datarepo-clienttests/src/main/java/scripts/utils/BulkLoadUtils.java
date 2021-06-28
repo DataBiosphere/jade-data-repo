@@ -12,6 +12,7 @@ import com.google.cloud.storage.BlobId;
 import common.utils.FileUtils;
 import common.utils.StorageUtils;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.ServiceAccountSpecification;
@@ -24,7 +25,7 @@ public class BulkLoadUtils {
   // 2.5 files per minute, so two instances should do 5 files per minute. To run 5 minutes we should
   // run 25 files.
   public static BulkLoadArrayRequestModel buildBulkLoadFileRequest(
-      int filesToLoad, String billingProfileId) {
+      int filesToLoad, UUID billingProfileId) {
     String loadTag = FileUtils.randomizeName("longtest");
 
     return buildLoadArray(
@@ -38,7 +39,7 @@ public class BulkLoadUtils {
 
   // This bulk load should be short, with small files and stored locally.
   public static BulkLoadArrayRequestModel buildBulkLoadFileRequest100B(
-      int filesToLoad, String billingProfileId) {
+      int filesToLoad, UUID billingProfileId) {
     String loadTag = FileUtils.randomizeName("100Btest");
 
     return buildLoadArray(
@@ -52,7 +53,7 @@ public class BulkLoadUtils {
 
   private static BulkLoadArrayRequestModel buildLoadArray(
       int filesToLoad,
-      String billingProfileId,
+      UUID billingProfileId,
       String loadTag,
       int numberOfSourceFiles,
       String sourcePrefix,

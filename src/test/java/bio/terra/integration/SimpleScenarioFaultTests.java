@@ -27,6 +27,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -52,9 +53,9 @@ public class SimpleScenarioFaultTests extends UsersBase {
     @Autowired
     private TestConfiguration testConfig;
 
-    private String profileId;
-    private String datasetId;
-    private String snapshotId;
+    private UUID profileId;
+    private UUID datasetId;
+    private UUID snapshotId;
 
     @Before
     public void setup() throws Exception {

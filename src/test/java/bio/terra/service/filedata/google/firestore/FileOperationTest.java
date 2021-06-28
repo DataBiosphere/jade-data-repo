@@ -341,7 +341,8 @@ public class FileOperationTest {
             .addGroupItem(loadHistoryChunkSize);
         configService.setConfig(configGroupModel);
 
-        BulkLoadArrayRequestModel arrayLoad = makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest", 0, fileCount);
+        BulkLoadArrayRequestModel arrayLoad = makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest",
+                0, fileCount);
 
         BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
         checkLoadSummary(result.getLoadSummary(), arrayLoad.getLoadTag(), fileCount, fileCount, 0, 0);
@@ -358,7 +359,8 @@ public class FileOperationTest {
         ArrayList<String> ids = new ArrayList<>();
         queryLoadHistoryTableResult.iterateAll().forEach(r -> ids.add(r.get(columnToQuery).getStringValue()));
 
-        assertThat("Number of files in datarepo_load_history table match load summary", ids.size(), equalTo(fileCount));
+        assertThat("Number of files in datarepo_load_history table match load summary",
+                ids.size(), equalTo(fileCount));
         for (String bq_file_id:ids) {
             assertNotNull("fileIdMap should contain File_id from datarepo_load_history",
                 fileIdMap.containsValue(bq_file_id));
@@ -370,7 +372,8 @@ public class FileOperationTest {
 
         for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
             checkFileResultSuccess(fileResult);
-            assertThat("FileId matches", fileResult.getFileId(), equalTo(fileIdMap.get(fileResult.getTargetPath())));
+            assertThat("FileId matches", fileResult.getFileId(),
+                    equalTo(fileIdMap.get(fileResult.getTargetPath())));
         }
     }
 
@@ -388,7 +391,7 @@ public class FileOperationTest {
         BulkLoadArrayRequestModel arrayLoad2 = makeSuccessArrayLoad("arrayMultiDoubleSuccess", fileCount, fileCount);
         String loadTag1 = arrayLoad1.getLoadTag();
         String loadTag2 = arrayLoad2.getLoadTag();
-        String datasetId = datasetSummary.getId();
+        UUID datasetId = datasetSummary.getId();
 
         MvcResult result1 = connectedOperations.ingestArrayRaw(datasetId, arrayLoad1);
         MvcResult result2 = connectedOperations.ingestArrayRaw(datasetId, arrayLoad2);
@@ -515,7 +518,8 @@ public class FileOperationTest {
         BulkLoadRequestModel loadRequest =
             makeBulkFileLoad("multiFileLoadSuccessTest", 0, 0, false, new boolean[]{true, true, true, true});
 
-        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(),
+                loadRequest);
         checkLoadSummary(result, loadRequest.getLoadTag(), 4, 4, 0, 0);
 
         // retry successful load to make sure it still succeeds and does nothing
@@ -735,7 +739,7 @@ public class FileOperationTest {
         return String.format("/dd/files/foo/ValidFileName%d.pdf", validFileCounter);
     }
 
-    private FileLoadModel makeFileLoad(String profileId) {
+    private FileLoadModel makeFileLoad(UUID profileId) {
         String targetDir = Names.randomizeName("dir");
         String uri = "gs://" + testConfig.getIngestbucket() + "/files/" + testPdfFile;
         String targetPath = "/dd/files/" + targetDir + "/" + testPdfFile;

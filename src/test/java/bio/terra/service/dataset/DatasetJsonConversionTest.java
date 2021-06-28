@@ -94,10 +94,10 @@ public class DatasetJsonConversionTest {
 
         datasetModel = new DatasetModel()
             .name(DATASET_NAME)
-            .id(DATASET_ID.toString())
+            .id(DATASET_ID)
             .description(DATASET_DESCRIPTION)
             .createdDate(DATASET_CREATION_DATE.toString())
-            .defaultProfileId(DATASET_PROFILE_ID.toString())
+            .defaultProfileId(DATASET_PROFILE_ID)
             .schema(new DatasetSpecificationModel()
                 .addTablesItem(new TableModel()
                     .name(DATASET_TABLE_NAME)

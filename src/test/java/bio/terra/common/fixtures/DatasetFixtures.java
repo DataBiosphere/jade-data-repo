@@ -28,7 +28,7 @@ public final class DatasetFixtures {
     //  the method we use for other JSON tests: reading a resource file.
     public static DatasetSummaryModel buildMinimalDatasetSummary() {
         return new DatasetSummaryModel()
-            .id("Minimal")
+            .id(UUID.randomUUID())
             .name("Minimal")
             .description("This is a sample dataset definition");
     }
@@ -101,7 +101,7 @@ public final class DatasetFixtures {
         return new DatasetRequestModel()
             .name("Minimal")
             .description("This is a sample dataset definition")
-            .defaultProfileId(UUID.randomUUID().toString())
+            .defaultProfileId(UUID.randomUUID())
             .schema(buildSchema());
     }
 

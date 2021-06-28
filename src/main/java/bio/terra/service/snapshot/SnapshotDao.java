@@ -271,7 +271,16 @@ public class SnapshotDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public SnapshotProject retrieveSnapshotProject(UUID snapshotId, boolean onlyRetrieveAvailable) {
         logger.debug("retrieve snapshot id: " + snapshotId);
-        String sql = "SELECT snapshot.id, name, snapshot.profile_id, google_project_id FROM snapshot " +
+        String sql = "SELECT snapshot.id, name, snapshot.profile_id, google_project_id, " +
+            // Select the source dataset project information
+            "(SELECT jsonb_agg(ds)\n" +
+            "  FROM (SELECT d.id, d.name, p.profile_id as \"profileId\", p.google_project_id as \"dataProject\"\n" +
+            "        FROM snapshot_source ss, dataset d, project_resource p\n" +
+            "        WHERE ss.dataset_id = d.id" +
+            "        AND d.project_resource_id = p.id" +
+            "        AND snapshot.id = ss.snapshot_id) ds)" +
+            "  AS dataset_sources " +
+            "FROM snapshot " +
             "JOIN project_resource ON snapshot.project_resource_id = project_resource.id " +
             "WHERE snapshot.id = :id";
         if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
@@ -329,12 +338,22 @@ public class SnapshotDao {
 
     private SnapshotProject retrieveSnapshotProject(String sql, MapSqlParameterSource params) {
         try {
-            SnapshotProject snapshotProject = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
-                new SnapshotProject()
+            SnapshotProject snapshotProject = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> {
+                List<DatasetProject> datasetProjects;
+                try {
+                    datasetProjects = objectMapper.readValue(
+                        rs.getString("dataset_sources"),
+                        new TypeReference<>() {});
+                } catch (JsonProcessingException e) {
+                    throw new CorruptMetadataException("Invalid dataset sources for snapshot");
+                }
+                return new SnapshotProject()
                     .id(rs.getObject("id", UUID.class))
                     .name(rs.getString("name"))
                     .profileId(rs.getObject("profile_id", UUID.class))
-                    .dataProject(rs.getString("google_project_id")));
+                    .dataProject(rs.getString("google_project_id"))
+                    .sourceDatasetProjects(datasetProjects);
+            });
             return snapshotProject;
         } catch (EmptyResultDataAccessException ex) {
             return null;

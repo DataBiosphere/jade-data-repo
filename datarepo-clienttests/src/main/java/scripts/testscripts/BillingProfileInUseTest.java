@@ -22,6 +22,7 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -66,7 +67,7 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
     try {
       // owner1 creates the profile and grants ownerUser2 and userUser the "user" role
       profile = ownerUser1Api.createProfile(billingAccount, "profile_permission_test", true);
-      String profileId = profile.getId();
+      UUID profileId = profile.getId();
       logger.info("ProfileId: {}", profileId);
 
       ownerUser1Api.addProfilePolicyMember(profileId, "user", ownerUser2.userEmail);
@@ -118,7 +119,7 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
     }
   }
 
-  private void tryDeleteProfile(DataRepoWrap wrap, String id, boolean expectSuccess)
+  private void tryDeleteProfile(DataRepoWrap wrap, UUID id, boolean expectSuccess)
       throws Exception {
     boolean success;
     try {
@@ -130,8 +131,7 @@ public class BillingProfileInUseTest extends BillingProfileUsers {
     assertThat("success meets expectations", success, equalTo(expectSuccess));
   }
 
-  private void ingestDataIntoDataset(DatasetSummaryModel dataset, String profileId)
-      throws Exception {
+  private void ingestDataIntoDataset(DatasetSummaryModel dataset, UUID profileId) throws Exception {
     // load data into the new dataset
     // note that there's a fileref in the dataset
     // ingest a file -- TODO CannedTestData.getMeA1KBFile

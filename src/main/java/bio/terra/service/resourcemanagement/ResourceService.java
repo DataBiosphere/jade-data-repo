@@ -230,7 +230,7 @@ public class ResourceService {
         return Collections.unmodifiableMap(policyMap);
     }
 
-    public List<UUID> markUnusedProjectsForDelete(String profileId) {
+    public List<UUID> markUnusedProjectsForDelete(UUID profileId) {
         return projectService.markUnusedProjectsForDelete(profileId);
     }
 

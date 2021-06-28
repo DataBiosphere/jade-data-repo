@@ -70,7 +70,7 @@ public class SnapshotServiceTest {
         mockSnapshot();
         assertThat(service.retrieveAvailableSnapshotModel(snapshotId), equalTo(
             new SnapshotModel()
-                .id(snapshotId.toString())
+                .id(snapshotId)
                 .name(SNAPSHOT_NAME)
                 .description(SNAPSHOT_DESCRIPTION)
                 .createdDate(createdDate.toString())
@@ -78,7 +78,7 @@ public class SnapshotServiceTest {
                 .tables(List.of(new TableModel()
                     .name(SNAPSHOT_TABLE_NAME)))
                 .relationships(Collections.emptyList())
-                .profileId(profileId.toString())
+                .profileId(profileId)
                 .dataProject(SNAPSHOT_DATA_PROJECT)
         ));
     }
@@ -88,7 +88,7 @@ public class SnapshotServiceTest {
         mockSnapshot();
         assertThat(service.retrieveAvailableSnapshotModel(snapshotId, List.of(SnapshotRequestAccessIncludeModel.NONE)),
             equalTo(new SnapshotModel()
-                .id(snapshotId.toString())
+                .id(snapshotId)
                 .name(SNAPSHOT_NAME)
                 .description(SNAPSHOT_DESCRIPTION)
                 .createdDate(createdDate.toString())));
@@ -112,7 +112,7 @@ public class SnapshotServiceTest {
         assertThat(service.retrieveAvailableSnapshotModel(snapshotId, List.of(
             SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION)),
             equalTo(new SnapshotModel()
-                .id(snapshotId.toString())
+                .id(snapshotId)
                 .name(SNAPSHOT_NAME)
                 .description(SNAPSHOT_DESCRIPTION)
                 .createdDate(createdDate.toString())
@@ -146,12 +146,12 @@ public class SnapshotServiceTest {
             SnapshotRequestAccessIncludeModel.SOURCES
             )),
             equalTo(new SnapshotModel()
-                .id(snapshotId.toString())
+                .id(snapshotId)
                 .name(SNAPSHOT_NAME)
                 .description(SNAPSHOT_DESCRIPTION)
                 .createdDate(createdDate.toString())
                 .source(Collections.emptyList())
-                .profileId(profileId.toString())));
+                .profileId(profileId)));
     }
 
     private void mockSnapshot() {

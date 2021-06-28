@@ -18,6 +18,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.configuration.ConfigEnum;
 import com.google.auth.oauth2.AccessToken;
@@ -81,9 +82,9 @@ public class AccessTest extends UsersBase {
     private String readerToken;
     private String custodianToken;
     private DatasetSummaryModel datasetSummaryModel;
-    private String datasetId;
-    private String profileId;
-    private List<String> snapshotIds;
+    private UUID datasetId;
+    private UUID profileId;
+    private List<UUID> snapshotIds;
 
     @Before
     public void setup() throws Exception {
@@ -98,7 +99,7 @@ public class AccessTest extends UsersBase {
 
     @After
     public void teardown() throws Exception {
-        for (String snapshotId : snapshotIds) {
+        for (UUID snapshotId : snapshotIds) {
             dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
         }
         if (datasetId != null) {
@@ -170,10 +171,15 @@ public class AccessTest extends UsersBase {
                 profileId,
                 "ingest-test-snapshot.json");
 
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
+        SnapshotModel snapshotModel =
+            dataRepoFixtures.getSnapshot(custodian(),
+                snapshotSummaryModel.getId(),
+                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
         BigQuery bigQuery = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         try {
-            BigQueryFixtures.datasetExists(bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
+            BigQueryFixtures.datasetExists(bigQuery,
+                snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+                snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
             fail("reader shouldn't be able to access bq dataset before it is shared with them");
         } catch (IllegalStateException e) {
             assertThat("checking message for exception error",
@@ -192,7 +198,7 @@ public class AccessTest extends UsersBase {
         assertThat("correctly added reader", iamService.isAuthorized(
             authenticatedReaderRequest,
             IamResourceType.DATASNAPSHOT,
-            snapshotSummaryModel.getId(),
+            snapshotSummaryModel.getId().toString(),
             IamAction.READ_DATA), equalTo(true));
 
         boolean readerHasAccess =
@@ -243,7 +249,8 @@ public class AccessTest extends UsersBase {
             profileId,
             "file-acl-test-snapshot.json");
         snapshotIds.add(snapshotSummaryModel.getId());
-        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(),
+                snapshotSummaryModel.getId(), null);
 
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),
@@ -256,7 +263,7 @@ public class AccessTest extends UsersBase {
         boolean authorized = iamService.isAuthorized(
             authenticatedReaderRequest,
             IamResourceType.DATASNAPSHOT,
-            snapshotModel.getId(),
+            snapshotModel.getId().toString(),
             IamAction.READ_DATA);
         assertTrue("correctly added reader", authorized);
 

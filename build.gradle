@@ -43,7 +43,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.118.0-SNAPSHOT'
+    version '1.123.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -129,6 +129,12 @@ tasks.withType(JacocoReport) {
         csv.enabled false
         html.destination file("${buildDir}/jacocoHtml")
     }
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['bio/terra/grammar/**'])
+        }))
+    }
 }
 
 jacocoTestCoverageVerification {
@@ -143,6 +149,7 @@ jacocoTestCoverageVerification {
     }
 }
 check.dependsOn jacocoTestCoverageVerification
+check.dependsOn jacocoTestReport
 
 repositories {
     mavenCentral()
@@ -216,6 +223,9 @@ dependencies {
     } else {
         implementation 'bio.terra:terra-common-lib:0.0.16-SNAPSHOT'
     }
+
+    implementation group: "bio.terra", name: "terra-resource-buffer-client", version: "0.4.3-SNAPSHOT"
+    implementation group: "org.glassfish.jersey.inject", name: "jersey-hk2", version: "2.30.1"
 
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
@@ -356,7 +366,7 @@ sourceSets {
         configFile file("config/checkstyle/checkstyle.xml")
     }
     jacoco {
-        toolVersion '0.8.2'
+        toolVersion '0.8.3'
     }
 }
 

@@ -108,7 +108,7 @@ public class DatasetDaoTest {
     @After
     public void teardown() {
         resourceDao.deleteProject(projectId);
-        profileDao.deleteBillingProfileById(UUID.fromString(billingProfile.getId()));
+        profileDao.deleteBillingProfileById(billingProfile.getId());
     }
 
     @Test(expected = DatasetNotFoundException.class)

@@ -16,6 +16,7 @@ import com.google.cloud.bigquery.TableResult;
 import common.utils.BigQueryUtils;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -119,8 +120,8 @@ public class DatasetCustodianPermissions extends SimpleDataset {
    * @param repositoryApi the api object to query
    * @return true if the endpoint returns an unauthorized error, false if it does not
    */
-  private static boolean retrieveDatasetIsUnauthorized(
-      RepositoryApi repositoryApi, String datasetId) throws ApiException {
+  private static boolean retrieveDatasetIsUnauthorized(RepositoryApi repositoryApi, UUID datasetId)
+      throws ApiException {
     boolean caughtAccessException = false;
     try {
       DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetId, Collections.emptyList());

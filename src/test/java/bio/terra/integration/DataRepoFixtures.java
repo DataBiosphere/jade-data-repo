@@ -31,6 +31,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestAccessIncludeModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.iam.IamResourceType;
@@ -48,6 +49,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -93,12 +95,12 @@ public class DataRepoFixtures {
         return postResponse.getResponseObject().get();
     }
 
-    public void deleteProfile(TestConfiguration.User user, String profileId) throws Exception {
+    public void deleteProfile(TestConfiguration.User user, UUID profileId) throws Exception {
         DataRepoResponse<DeleteResponseModel> deleteResponse = deleteProfileLog(user, profileId);
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteProfileLog(TestConfiguration.User user, String profileId)
+    public DataRepoResponse<DeleteResponseModel> deleteProfileLog(TestConfiguration.User user, UUID profileId)
         throws Exception {
 
         DataRepoResponse<JobModel> jobResponse = dataRepoClient.delete(
@@ -111,7 +113,7 @@ public class DataRepoFixtures {
 
     // datasets
 
-    private DataRepoResponse<JobModel> createDatasetRaw(TestConfiguration.User user, String profileId, String filename)
+    private DataRepoResponse<JobModel> createDatasetRaw(TestConfiguration.User user, UUID profileId, String filename)
         throws Exception {
         DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
         requestModel.setDefaultProfileId(profileId);
@@ -126,7 +128,7 @@ public class DataRepoFixtures {
     }
 
     public DatasetSummaryModel createDataset(TestConfiguration.User user,
-                                             String profileId,
+                                             UUID profileId,
                                              String filename) throws Exception {
         DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename);
         assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
@@ -141,7 +143,7 @@ public class DataRepoFixtures {
     }
 
     public void createDatasetError(TestConfiguration.User user,
-                                         String profileId,
+                                         UUID profileId,
                                          String filename,
                                          HttpStatus checkStatus) throws Exception {
         DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename);
@@ -158,7 +160,7 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<JobModel> deleteDataRaw(TestConfiguration.User user,
-                                                    String datasetId,
+                                                    UUID datasetId,
                                                     DataDeletionRequest request) throws Exception {
         String url = String.format("/api/repository/v1/datasets/%s/deletes", datasetId);
         String json = TestUtils.mapToJson(request);
@@ -166,7 +168,7 @@ public class DataRepoFixtures {
     }
 
     public void deleteData(TestConfiguration.User user,
-                           String datasetId,
+                           UUID datasetId,
                            DataDeletionRequest request) throws Exception {
         DataRepoResponse<JobModel> jobResponse = deleteDataRaw(user, datasetId, request);
         DataRepoResponse<DeleteResponseModel> deleteResponse =
@@ -174,18 +176,18 @@ public class DataRepoFixtures {
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<JobModel> deleteDatasetLaunch(TestConfiguration.User user, String datasetId)
+    public DataRepoResponse<JobModel> deleteDatasetLaunch(TestConfiguration.User user, UUID datasetId)
         throws Exception {
         return dataRepoClient.delete(
             user, "/api/repository/v1/datasets/" + datasetId, JobModel.class);
     }
 
-    public void deleteDataset(TestConfiguration.User user, String datasetId) throws Exception {
+    public void deleteDataset(TestConfiguration.User user, UUID datasetId) throws Exception {
         DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetLog(user, datasetId);
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteDatasetLog(TestConfiguration.User user, String datasetId)
+    public DataRepoResponse<DeleteResponseModel> deleteDatasetLog(TestConfiguration.User user, UUID datasetId)
         throws Exception {
 
         DataRepoResponse<JobModel> jobResponse = deleteDatasetLaunch(user, datasetId);
@@ -210,11 +212,11 @@ public class DataRepoFixtures {
 
     public DataRepoResponse<DatasetModel> getDatasetRaw(
         TestConfiguration.User user,
-        String datasetId) throws Exception {
+        UUID datasetId) throws Exception {
         return dataRepoClient.get(user, "/api/repository/v1/datasets/" + datasetId, DatasetModel.class);
     }
 
-    public DatasetModel getDataset(TestConfiguration.User user, String datasetId) throws Exception {
+    public DatasetModel getDataset(TestConfiguration.User user, UUID datasetId) throws Exception {
         DataRepoResponse<DatasetModel> response = getDatasetRaw(user, datasetId);
         assertThat("dataset is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("dataset get response is present", response.getResponseObject().isPresent());
@@ -222,7 +224,7 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<Object> addPolicyMemberRaw(TestConfiguration.User user,
-                                                       String resourceId,
+                                                       UUID resourceId,
                                                        IamRole role,
                                                        String userEmail,
                                                        IamResourceType iamResourceType) throws Exception {
@@ -247,7 +249,7 @@ public class DataRepoFixtures {
     }
 
     public void addPolicyMember(TestConfiguration.User user,
-                                String resourceId,
+                                UUID resourceId,
                                 IamRole role,
                                 String newMemberEmail,
                                 IamResourceType iamResourceType) throws Exception {
@@ -260,7 +262,7 @@ public class DataRepoFixtures {
 
     // adding dataset policy
     public void addDatasetPolicyMember(TestConfiguration.User user,
-                                                   String datasetId,
+                                                   UUID datasetId,
                                                    IamRole role,
                                                    String newMemberEmail) throws Exception {
         addPolicyMember(user, datasetId, role, newMemberEmail, IamResourceType.DATASET);
@@ -268,14 +270,14 @@ public class DataRepoFixtures {
 
     // adding dataset asset
     public DataRepoResponse<JobModel> addDatasetAssetRaw(TestConfiguration.User user,
-                                   String datasetId,
+                                   UUID datasetId,
                                    AssetModel assetModel) throws Exception {
         return dataRepoClient.post(user, "/api/repository/v1/datasets/" + datasetId + "/assets",
             TestUtils.mapToJson(assetModel), JobModel.class);
     }
 
     public void addDatasetAsset(TestConfiguration.User user,
-                                String datasetId,
+                                UUID datasetId,
                                 AssetModel assetModel) throws Exception {
         // TODO add the assetModel as a builder object
         DataRepoResponse<JobModel> response = addDatasetAssetRaw(user, datasetId, assetModel);
@@ -287,7 +289,7 @@ public class DataRepoFixtures {
 
     // adding snapshot policy
     public void addSnapshotPolicyMember(TestConfiguration.User user,
-                                       String snapshotId,
+                                       UUID snapshotId,
                                        IamRole role,
                                        String newMemberEmail) throws Exception {
         addPolicyMember(user, snapshotId, role, newMemberEmail, IamResourceType.DATASNAPSHOT);
@@ -296,7 +298,7 @@ public class DataRepoFixtures {
     public DataRepoResponse<JobModel> createSnapshotRaw(
         TestConfiguration.User user,
         String datasetName,
-        String profileId,
+        UUID profileId,
         SnapshotRequestModel requestModel,
         boolean randomizeName) throws Exception {
 
@@ -317,7 +319,7 @@ public class DataRepoFixtures {
     public SnapshotSummaryModel createSnapshotWithRequest(
         TestConfiguration.User user,
         String datasetName,
-        String profileId,
+        UUID profileId,
         SnapshotRequestModel snapshotRequest) throws Exception {
         return createSnapshotWithRequest(user, datasetName, profileId, snapshotRequest, true);
     }
@@ -325,7 +327,7 @@ public class DataRepoFixtures {
     public SnapshotSummaryModel createSnapshotWithRequest(
         TestConfiguration.User user,
         String datasetName,
-        String profileId,
+        UUID profileId,
         SnapshotRequestModel snapshotRequest,
         boolean randomizeName) throws Exception {
         DataRepoResponse<JobModel> jobResponse =
@@ -336,7 +338,7 @@ public class DataRepoFixtures {
     public SnapshotSummaryModel createSnapshot(
         TestConfiguration.User user,
         String datasetName,
-        String profileId,
+        UUID profileId,
         String filename) throws Exception {
         return createSnapshot(user, datasetName, profileId, filename, true);
     }
@@ -344,7 +346,7 @@ public class DataRepoFixtures {
     public SnapshotSummaryModel createSnapshot(
         TestConfiguration.User user,
         String datasetName,
-        String profileId,
+        UUID profileId,
         String filename,
         boolean randomizeName) throws Exception {
         SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
@@ -366,20 +368,33 @@ public class DataRepoFixtures {
         return snapshotResponse.getResponseObject().get();
     }
 
-    public DataRepoResponse<SnapshotModel> getSnapshotRaw(TestConfiguration.User user, String snapshotId)
+    public DataRepoResponse<SnapshotModel> getSnapshotRaw(TestConfiguration.User user,
+                                                          UUID snapshotId,
+                                                          List<SnapshotRequestAccessIncludeModel> include)
         throws Exception {
-        return dataRepoClient.get(user, "/api/repository/v1/snapshots/" + snapshotId, SnapshotModel.class);
+        String includeParam;
+        if  (include != null && !include.isEmpty()) {
+            includeParam =
+                "?" + include.stream().map(i -> "include=" + i.toString()).collect(Collectors.joining("&"));
+        } else {
+            includeParam = "";
+        }
+        return dataRepoClient.get(user,
+            "/api/repository/v1/snapshots/" + snapshotId + includeParam,
+            SnapshotModel.class);
     }
 
-    public SnapshotModel getSnapshot(TestConfiguration.User user, String snapshotId) throws Exception {
-        DataRepoResponse<SnapshotModel> response = getSnapshotRaw(user, snapshotId);
+    public SnapshotModel getSnapshot(TestConfiguration.User user,
+                                     UUID snapshotId,
+                                     List<SnapshotRequestAccessIncludeModel> include) throws Exception {
+        DataRepoResponse<SnapshotModel> response = getSnapshotRaw(user, snapshotId, include);
         assertThat("dataset is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("dataset get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
     public DataRepoResponse<EnumerateSnapshotModel> enumerateSnapshotsByDatasetIdsRaw(
-        TestConfiguration.User user, List<String> datasetIds) throws Exception {
+        TestConfiguration.User user, List<UUID> datasetIds) throws Exception {
         String datasetIdsString;
         List<String> datasetIdsQuery = ListUtils.emptyIfNull(datasetIds).stream()
             .map(id -> "datasetIds=" + id).collect(Collectors.toList());
@@ -392,7 +407,7 @@ public class DataRepoFixtures {
     }
 
     public EnumerateSnapshotModel enumerateSnapshotsByDatasetIds(
-        TestConfiguration.User user, List<String> datasetIds) throws Exception {
+        TestConfiguration.User user, List<UUID> datasetIds) throws Exception {
         DataRepoResponse<EnumerateSnapshotModel> response = enumerateSnapshotsByDatasetIdsRaw(user, datasetIds);
         assertThat("snapshot enumeration is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("snapshot get response is present", response.getResponseObject().isPresent());
@@ -413,12 +428,12 @@ public class DataRepoFixtures {
         return response.getResponseObject().get();
     }
 
-    public void deleteSnapshot(TestConfiguration.User user, String snapshotId) throws Exception {
+    public void deleteSnapshot(TestConfiguration.User user, UUID snapshotId) throws Exception {
         DataRepoResponse<DeleteResponseModel> deleteResponse = deleteSnapshotLog(user, snapshotId);
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteSnapshotLog(TestConfiguration.User user, String snapshotId)
+    public DataRepoResponse<DeleteResponseModel> deleteSnapshotLog(TestConfiguration.User user, UUID snapshotId)
         throws Exception {
 
         DataRepoResponse<JobModel> jobResponse = deleteSnapshotLaunch(user, snapshotId);
@@ -428,7 +443,7 @@ public class DataRepoFixtures {
         return dataRepoClient.waitForResponseLog(user, jobResponse, DeleteResponseModel.class);
     }
 
-    public DataRepoResponse<JobModel> deleteSnapshotLaunch(TestConfiguration.User user, String snapshotId)
+    public DataRepoResponse<JobModel> deleteSnapshotLaunch(TestConfiguration.User user, UUID snapshotId)
         throws Exception {
         return dataRepoClient.delete(user, "/api/repository/v1/snapshots/" + snapshotId, JobModel.class);
     }
@@ -444,7 +459,7 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<JobModel> ingestJsonDataLaunch(
-        TestConfiguration.User user, String datasetId, IngestRequestModel request) throws Exception {
+        TestConfiguration.User user, UUID datasetId, IngestRequestModel request) throws Exception {
         String ingestBody = TestUtils.mapToJson(request);
         return dataRepoClient.post(
             user,
@@ -454,7 +469,7 @@ public class DataRepoFixtures {
     }
 
     public IngestResponseModel ingestJsonData(
-        TestConfiguration.User user, String datasetId, IngestRequestModel request) throws Exception {
+        TestConfiguration.User user, UUID datasetId, IngestRequestModel request) throws Exception {
 
         DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, datasetId, request);
         assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
@@ -472,8 +487,8 @@ public class DataRepoFixtures {
 
     public DataRepoResponse<JobModel> ingestFileLaunch(
         TestConfiguration.User user,
-        String datasetId,
-        String profileId,
+        UUID datasetId,
+        UUID profileId,
         String sourceGsPath,
         String targetPath) throws Exception {
 
@@ -495,8 +510,8 @@ public class DataRepoFixtures {
 
     public FileModel ingestFile(
         TestConfiguration.User user,
-        String datasetId,
-        String profileId,
+        UUID datasetId,
+        UUID profileId,
         String sourceGsPath,
         String targetPath) throws Exception {
         DataRepoResponse<JobModel> resp = ingestFileLaunch(user, datasetId, profileId, sourceGsPath, targetPath);
@@ -511,7 +526,7 @@ public class DataRepoFixtures {
 
     public BulkLoadArrayResultModel bulkLoadArray(
         TestConfiguration.User user,
-        String datasetId,
+        UUID datasetId,
         BulkLoadArrayRequestModel requestModel) throws Exception {
 
         String json = TestUtils.mapToJson(requestModel);
@@ -539,12 +554,12 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<FileModel> getFileByIdRaw(
-        TestConfiguration.User user, String datasetId, String fileId) throws Exception {
+        TestConfiguration.User user, UUID datasetId, String fileId) throws Exception {
         return dataRepoClient.get(
             user, "/api/repository/v1/datasets/" + datasetId + "/files/" + fileId, FileModel.class);
     }
 
-    public FileModel getFileById(TestConfiguration.User user, String datasetId, String fileId) throws Exception {
+    public FileModel getFileById(TestConfiguration.User user, UUID datasetId, String fileId) throws Exception {
         DataRepoResponse<FileModel> response = getFileByIdRaw(user, datasetId, fileId);
         assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("file get response is present", response.getResponseObject().isPresent());
@@ -552,14 +567,14 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<FileModel> getFileByNameRaw(
-        TestConfiguration.User user, String datasetId, String path) throws Exception {
+        TestConfiguration.User user, UUID datasetId, String path) throws Exception {
         return dataRepoClient.get(
             user,
             "/api/repository/v1/datasets/" + datasetId + "/filesystem/objects?path=" + path,
             FileModel.class);
     }
 
-    public FileModel getFileByName(TestConfiguration.User user, String datasetId, String path) throws Exception {
+    public FileModel getFileByName(TestConfiguration.User user, UUID datasetId, String path) throws Exception {
         DataRepoResponse<FileModel> response = getFileByNameRaw(user, datasetId, path);
         assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("file get response is present", response.getResponseObject().isPresent());
@@ -567,14 +582,14 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<FileModel> getSnapshotFileByIdRaw(TestConfiguration.User user,
-                                                                  String snapshotId,
+                                                                  UUID snapshotId,
                                                                   String fileId) throws Exception {
         return dataRepoClient.get(
             user, "/api/repository/v1/snapshots/" + snapshotId + "/files/" + fileId, FileModel.class);
     }
 
     public FileModel getSnapshotFileById(TestConfiguration.User user,
-                                             String snapshotId,
+                                             UUID snapshotId,
                                              String fileId) throws Exception {
         DataRepoResponse<FileModel> response = getSnapshotFileByIdRaw(user, snapshotId, fileId);
         assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
@@ -583,7 +598,7 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<FileModel> getSnapshotFileByNameRaw(TestConfiguration.User user,
-                                                                    String snapshotId,
+                                                                    UUID snapshotId,
                                                                     String path) throws Exception {
         return dataRepoClient.get(
             user,
@@ -592,7 +607,7 @@ public class DataRepoFixtures {
     }
 
     public FileModel getSnapshotFileByName(TestConfiguration.User user,
-                                               String snapshotId,
+                                               UUID snapshotId,
                                                String path) throws Exception {
         DataRepoResponse<FileModel> response = getSnapshotFileByNameRaw(user, snapshotId, path);
         assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
@@ -601,7 +616,7 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<JobModel> deleteFileLaunch(
-        TestConfiguration.User user, String datasetId, String fileId) throws Exception {
+        TestConfiguration.User user, UUID datasetId, String fileId) throws Exception {
         return dataRepoClient.delete(
             user,
             "/api/repository/v1/datasets/" + datasetId + "/files/" + fileId,
@@ -609,7 +624,7 @@ public class DataRepoFixtures {
     }
 
     public void deleteFile(
-        TestConfiguration.User user, String datasetId, String fileId) throws Exception {
+        TestConfiguration.User user, UUID datasetId, String fileId) throws Exception {
         DataRepoResponse<JobModel> launchResp = deleteFileLaunch(user, datasetId, fileId);
         assertTrue("delete launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
         assertTrue("delete launch response is present", launchResp.getResponseObject().isPresent());

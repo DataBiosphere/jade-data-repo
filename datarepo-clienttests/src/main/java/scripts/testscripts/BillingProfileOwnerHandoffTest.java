@@ -2,6 +2,7 @@ package scripts.testscripts;
 
 import bio.terra.datarepo.model.BillingProfileModel;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -39,7 +40,7 @@ public class BillingProfileOwnerHandoffTest extends BillingProfileUsers {
 
     try {
       profile = ownerUser1Api.createProfile(billingAccount, "profile_permission_test", true);
-      String profileId = profile.getId();
+      UUID profileId = profile.getId();
 
       ownerUser1Api.addProfilePolicyMember(profileId, "owner", userUser.userEmail);
       userUserApi.deleteProfilePolicyMember(profileId, "owner", ownerUser2.userEmail);

@@ -44,7 +44,7 @@ public final class DatasetJsonConversion {
         Map<String, DatasetTable> tablesMap = new HashMap<>();
         Map<String, Relationship> relationshipsMap = new HashMap<>();
         List<AssetSpecification> assetSpecifications = new ArrayList<>();
-        UUID defaultProfileId = UUID.fromString(datasetRequest.getDefaultProfileId());
+        UUID defaultProfileId = datasetRequest.getDefaultProfileId();
         DatasetSpecificationModel datasetSpecification = datasetRequest.getSchema();
         datasetSpecification.getTables().forEach(tableModel ->
                 tablesMap.put(tableModel.getName(), tableModelToTable(tableModel)));
@@ -102,11 +102,11 @@ public final class DatasetJsonConversion {
 
     public static DatasetSummaryModel datasetSummaryModelFromDatasetSummary(DatasetSummary datasetSummary) {
         return new DatasetSummaryModel()
-                .id(datasetSummary.getId().toString())
+                .id(datasetSummary.getId())
                 .name(datasetSummary.getName())
                 .description(datasetSummary.getDescription())
                 .createdDate(datasetSummary.getCreatedDate().toString())
-                .defaultProfileId(datasetSummary.getDefaultProfileId().toString())
+                .defaultProfileId(datasetSummary.getDefaultProfileId())
                 .storage(storageResourceModelFromDatasetSummary(datasetSummary));
 
     }
@@ -114,7 +114,7 @@ public final class DatasetJsonConversion {
     public static DatasetModel populateDatasetModelFromDataset(Dataset dataset,
                                                                List<DatasetRequestAccessIncludeModel> include) {
         DatasetModel datasetModel = new DatasetModel()
-            .id(dataset.getId().toString())
+            .id(dataset.getId())
             .name(dataset.getName())
             .description(dataset.getDescription())
             .createdDate(dataset.getCreatedDate().toString());
@@ -124,7 +124,7 @@ public final class DatasetJsonConversion {
         }
 
         if (include.contains(DatasetRequestAccessIncludeModel.PROFILE)) {
-            datasetModel.defaultProfileId(dataset.getDefaultProfileId().toString());
+            datasetModel.defaultProfileId(dataset.getDefaultProfileId());
         }
 
         if (include.contains(DatasetRequestAccessIncludeModel.SCHEMA)) {
@@ -356,19 +356,5 @@ public final class DatasetJsonConversion {
                     .stream()
                     .map(assetRelationship -> assetRelationship.getDatasetRelationship().getName())
                     .collect(Collectors.toList()));
-    }
-
-    private static List<String> uuidsToStrings(List<UUID> uuids) {
-        if (uuids == null) {
-            return null;
-        }
-        return uuids.stream().map(UUID::toString).collect(Collectors.toList());
-    }
-
-    private static List<UUID> stringsToUUIDs(List<String> strings) {
-        if (strings == null) {
-            return null;
-        }
-        return strings.stream().map(UUID::fromString).collect(Collectors.toList());
     }
 }

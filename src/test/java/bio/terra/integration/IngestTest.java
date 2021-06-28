@@ -24,6 +24,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -48,9 +49,9 @@ public class IngestTest extends UsersBase {
     private TestConfiguration testConfig;
 
     private DatasetSummaryModel datasetSummaryModel;
-    private String datasetId;
-    private String profileId;
-    private final List<String> createdSnapshotIds = new ArrayList<>();
+    private UUID datasetId;
+    private UUID profileId;
+    private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
     @Before
     public void setup() throws Exception {
@@ -70,7 +71,7 @@ public class IngestTest extends UsersBase {
 
     @After
     public void teardown() throws Exception {
-        for (String snapshotId : createdSnapshotIds) {
+        for (UUID snapshotId : createdSnapshotIds) {
             dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotId);
         }
 

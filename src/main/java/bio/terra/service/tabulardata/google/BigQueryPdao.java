@@ -74,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -587,16 +588,16 @@ public class BigQueryPdao {
                 .reverseTableLookup(tableName)
                 .orElseThrow(() -> new CorruptMetadataException("cannot find destination table: " + tableName));
 
-            List<String> rowIds = table.getRowIds();
+            List<UUID> rowIds = table.getRowIds();
 
             if (rowIds.size() > 0) {
                 // we break apart the list of rowIds for better scaleability
-                List<List<String>> rowIdChunks = ListUtils.partition(rowIds, 10000);
+                List<List<UUID>> rowIdChunks = ListUtils.partition(rowIds, 10000);
                 // partition returns consecutive sublists of a list, each of the same size (final list may be smaller)
                 // partitioning a list containing [a, b, c, d, e] with a partition size of 3 yields [[a, b, c], [d, e]]
                 // -- an outer list containing two inner lists of three and two elements, all in the original order.
 
-                for (List<String> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
+                for (List<UUID> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
                     ST sqlTemplate = new ST(loadRootRowIdsTemplate);
                     sqlTemplate.add("project", snapshotProjectId);
                     sqlTemplate.add("snapshot", snapshotName);
@@ -619,7 +620,7 @@ public class BigQueryPdao {
             if (countValue.getLongValue() != rowIds.size()) {
                 logger.error("Invalid row ids supplied: rowIds=" + rowIds.size() +
                     " count=" + countValue.getLongValue());
-                for (String rowId : rowIds) {
+                for (UUID rowId : rowIds) {
                     logger.error(" rowIdIn: " + rowId);
                 }
                 throw new PdaoException("Invalid row ids supplied");
@@ -1431,7 +1432,7 @@ public class BigQueryPdao {
     }
 
     // for each table in a dataset (source), collect row id matches ON the row id
-    public RowIdMatch matchRowIds(SnapshotSource source, String tableName, List<String> rowIds)
+    public RowIdMatch matchRowIds(SnapshotSource source, String tableName, List<UUID> rowIds)
         throws InterruptedException {
 
         // One source: grab it and navigate to the relevant parts
@@ -1450,12 +1451,12 @@ public class BigQueryPdao {
         // ids and the mismatched ids
         RowIdMatch rowIdMatch = new RowIdMatch();
 
-        List<List<String>> rowIdChunks = ListUtils.partition(rowIds, 10000);
+        List<List<UUID>> rowIdChunks = ListUtils.partition(rowIds, 10000);
         // partition returns consecutive sublists of a list, each of the same size (final list may be smaller)
         // partitioning a list containing [a, b, c, d, e] with a partition size of 3 yields [[a, b, c], [d, e]]
         // -- an outer list containing two inner lists of three and two elements, all in the original order.
 
-        for (List<String> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
+        for (List<UUID> rowIdChunk : rowIdChunks) { // each loop will load a chunk of rowIds as an INSERT
             // To prevent BQ choking on a huge array, split it up into chunks
             ST sqlTemplate = new ST(mapValuesToRowsTemplate); // This query fails w >100k rows
             sqlTemplate.add("datasetProject", datasetBigQueryProject.getProjectId());

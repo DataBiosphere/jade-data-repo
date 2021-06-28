@@ -256,12 +256,7 @@ paths:
       description: Retrieve a billing profile by id
       operationId: retrieveProfile
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Billing profile
@@ -296,12 +291,7 @@ paths:
         The final return is of type definitions/DeleteResponseModel.
       operationId: deleteProfile
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Redirect for profile delete result
@@ -359,12 +349,7 @@ paths:
       description: Retrieve the read and discover policies for the profile
       operationId: retrieveProfilePolicies
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Policy
@@ -441,12 +426,7 @@ paths:
       description: Removes a member from the specified policy for the profile
       operationId: deleteProfilePolicyMember
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: policyName
           in: path
           description: The relevant policy
@@ -616,12 +596,7 @@ paths:
       description: Retrieve a snapshot by id
       operationId: retrieveSnapshot
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: include
           in: query
           description: A list of what to include with the snapshot object
@@ -663,12 +638,7 @@ paths:
       description: Delete a snapshot by id
       operationId: deleteSnapshot
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Redirect for snapshot successful deletion
@@ -725,12 +695,7 @@ paths:
       description: Lookup metadata for one file
       operationId: lookupSnapshotFileById
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: fileid
           in: path
           description: A file id
@@ -783,12 +748,7 @@ paths:
       description: Lookup metadata for one file
       operationId: lookupSnapshotFileByPath
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: path
           in: query
           description: URL-encoded full path to a file or directory
@@ -841,12 +801,7 @@ paths:
       description: Retrieve the read and discover policies for the snapshot
       operationId: retrieveSnapshotPolicies
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Policy
@@ -880,12 +835,7 @@ paths:
       description: Adds a member to the specified policy for the snapshot
       operationId: addSnapshotPolicyMember
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: policyName
           in: path
           description: The relevant policy
@@ -937,12 +887,7 @@ paths:
       description: Removes a member from the specified policy for the snapshot
       operationId: deleteSnapshotPolicyMember
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: policyName
           in: path
           description: The relevant policy
@@ -1095,12 +1040,7 @@ paths:
       description: Retrieve a dataset by id
       operationId: retrieveDataset
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: include
           in: query
           description: A list of what to include with the dataset object
@@ -1142,12 +1082,7 @@ paths:
       description: Delete a dataset by id
       operationId: deleteDataset
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Redirect for dataset successful deletion
@@ -1204,12 +1139,7 @@ paths:
       description: Retrieve the read and discover policies for the snapshot
       operationId: retrieveDatasetPolicies
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       responses:
         200:
           description: Policy
@@ -1243,12 +1173,7 @@ paths:
       description: Adds a member to the specified policy for the dataset
       operationId: addDatasetPolicyMember
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: policyName
           in: path
           description: The relevant policy
@@ -1300,12 +1225,7 @@ paths:
       description: Removes the member from the specified policy for the dataset
       operationId: deleteDatasetPolicyMember
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: policyName
           in: path
           description: The relevant policy
@@ -1355,12 +1275,7 @@ paths:
       description: Ingest data into a dataset table
       operationId: ingestDataset
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       requestBody:
         description: Ingest request
         content:
@@ -1419,12 +1334,7 @@ paths:
       description: Add an asset definiion to a dataset
       operationId: addDatasetAssetSpecifications
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       requestBody:
         description: Asset definition to add to the dataset
         content:
@@ -1477,12 +1387,7 @@ paths:
       description: Remove an asset definition from a dataset
       operationId: removeDatasetAssetSpecifications
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: assetid
           in: path
           description: An asset id
@@ -1532,12 +1437,7 @@ paths:
       description: Applies deletes to primary tabular data in a dataset
       operationId: applyDatasetDataDeletion
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       requestBody:
         description: Description of the data in the dataset to delete
         content:
@@ -1595,12 +1495,7 @@ paths:
       description: Ingest one file into the dataset file system; async returns a FileModel
       operationId: ingestFile
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       requestBody:
         description: Ingest file request
         content:
@@ -1663,12 +1558,7 @@ paths:
         dataset file system or it will not exist.
       operationId: bulkFileLoad
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       requestBody:
         description: >-
           Bulk file load request with file list in an external file. Load summary results
@@ -1732,12 +1622,7 @@ paths:
         interface.
       operationId: bulkFileResultsGet
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: loadtag
           in: path
           description: a load tag
@@ -1807,12 +1692,7 @@ paths:
         deleted. Otherwise, all results associated with the loadTag are deleted.
       operationId: bulkFileResultsDelete
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: loadtag
           in: path
           description: a load tag
@@ -1871,12 +1751,7 @@ paths:
         dataset file system or it will not exist.
       operationId: bulkFileLoadArray
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
       requestBody:
         description: >-
           Bulk file load request with file list in the body of the request and load
@@ -1937,12 +1812,7 @@ paths:
       description: Lookup metadata for one file
       operationId: lookupFileById
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: fileid
           in: path
           description: A file id
@@ -1996,12 +1866,7 @@ paths:
         a dataset. Subsequent lookups will give not found errors.
       operationId: deleteFile
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: fileid
           in: path
           description: A file id
@@ -2058,12 +1923,7 @@ paths:
       description: Lookup metadata for one file
       operationId: lookupFileByPath
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/parameters/Id'
         - name: path
           in: query
           description: URL-encoded full path to a file or directory
@@ -2711,6 +2571,11 @@ components:
         Dataset and snapshot names follow this pattern. It is the same as ObjectNameProperty, but has
         a greater maxLength.
     UniqueIdProperty:
+      type: string
+      format: uuid
+      description: >
+        Unique identifier for a dataset, snapshot, etc.
+    UniqueIdPropertyString:
       pattern: ^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}
       type: string
       description: >
@@ -2746,10 +2611,10 @@ components:
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
         tenantId:
-          $ref: '#/components/schemas/UniqueIdProperty'
+          $ref: '#/components/schemas/UniqueIdPropertyString'
           description: An optional tenant id for Azure
         subscriptionId:
-          $ref: '#/components/schemas/UniqueIdProperty'
+          $ref: '#/components/schemas/UniqueIdPropertyString'
           description: an optional subscription id for Azure
         resourceGroupName:
           type: string
@@ -2793,10 +2658,10 @@ components:
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
         tenantId:
-          $ref: '#/components/schemas/UniqueIdProperty'
+          $ref: '#/components/schemas/UniqueIdPropertyString'
           description: An optional tenant id for Azure
         subscriptionId:
-          $ref: '#/components/schemas/UniqueIdProperty'
+          $ref: '#/components/schemas/UniqueIdPropertyString'
           description: an optional subscription id for Azure
         resourceGroupName:
           type: string
@@ -4353,6 +4218,7 @@ components:
       required: true
       schema:
         type: string
+        format: uuid
     SnapshotPolicyName:
       name: policyName
       in: path

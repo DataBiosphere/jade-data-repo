@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
 import java.util.List;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestUserSpecification;
@@ -42,7 +43,7 @@ public class BillingProfileRoleAccessTest extends BillingProfileUsers {
 
     try {
       profile = ownerUser1Api.createProfile(billingAccount, "profile_permission_test", true);
-      String profileId = profile.getId();
+      UUID profileId = profile.getId();
       logger.info("ProfileId: {}", profileId);
 
       // Remove stewards from the owner list. Otherwise, voldemort has access by default :(

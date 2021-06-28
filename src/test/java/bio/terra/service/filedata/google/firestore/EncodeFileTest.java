@@ -264,7 +264,7 @@ public class EncodeFileTest {
     }
 
     private void testSnapEnum(Map<String, List<String>> dirmap,
-                              String snapshotId,
+                              UUID snapshotId,
                               String datasetPath,
                               int inDepth) throws Exception {
         FileModel fsObj = connectedOperations.lookupSnapshotFileByPathSuccess(snapshotId, datasetPath, inDepth);
@@ -391,7 +391,7 @@ public class EncodeFileTest {
         }
     }
 
-    private String loadFiles(String datasetId,
+    private String loadFiles(UUID datasetId,
                              boolean insertBadId,
                              boolean insertBadRow,
                              String bucketName) throws Exception {

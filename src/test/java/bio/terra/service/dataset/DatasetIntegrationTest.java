@@ -89,9 +89,9 @@ public class DatasetIntegrationTest extends UsersBase {
     @Autowired private TestConfiguration testConfiguration;
 
     private String stewardToken;
-    private String datasetId;
-    private String profileId;
-    private List<String> snapshotIds;
+    private UUID datasetId;
+    private UUID profileId;
+    private List<UUID> snapshotIds;
 
     @Before
     public void setup() throws Exception {
@@ -106,7 +106,7 @@ public class DatasetIntegrationTest extends UsersBase {
     @After
     public void teardown() throws Exception {
         dataRepoFixtures.resetConfig(steward());
-        for (String snapshotId : snapshotIds) {
+        for (UUID snapshotId : snapshotIds) {
             dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
         }
 
@@ -389,7 +389,7 @@ public class DatasetIntegrationTest extends UsersBase {
                 profileId,
                 requestModelAll);
         snapshotIds.add(snapshotSummaryAll.getId());
-        SnapshotModel snapshotAll = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId());
+        SnapshotModel snapshotAll = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId(), null);
         // The steward is the custodian in this case, so is a reader in big query.
         BigQuery bigQueryAll = BigQueryFixtures.getBigQuery(snapshotAll.getDataProject(), stewardToken);
 
@@ -426,7 +426,7 @@ public class DatasetIntegrationTest extends UsersBase {
                 requestModelLess);
         snapshotIds.add(snapshotSummaryLess.getId());
 
-        SnapshotModel snapshotLess = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId());
+        SnapshotModel snapshotLess = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId(), null);
         BigQuery bigQueryLess = BigQueryFixtures.getBigQuery(snapshotLess.getDataProject(), stewardToken);
 
         // make sure the old counts stayed the same
@@ -479,10 +479,10 @@ public class DatasetIntegrationTest extends UsersBase {
         assertThat("count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
     }
 
-    private String ingestedDataset() throws Exception {
+    private UUID ingestedDataset() throws Exception {
         DatasetSummaryModel datasetSummaryModel =
             dataRepoFixtures.createDataset(steward(), profileId, "ingest-test-dataset.json");
-        String datasetId = datasetSummaryModel.getId();
+        UUID datasetId = datasetSummaryModel.getId();
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);

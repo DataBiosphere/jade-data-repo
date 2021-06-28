@@ -1,9 +1,12 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.buffer.model.HandoutRequestBody;
+import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.profile.google.GoogleBillingService;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.exception.AppengineException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
@@ -75,6 +78,7 @@ public class GoogleProjectService {
   private final GoogleResourceConfiguration resourceConfiguration;
   private final ObjectMapper objectMapper;
   private final ConfigurationService configService;
+    private final BufferService bufferService;
 
   @Autowired
   public GoogleProjectService(
@@ -82,13 +86,15 @@ public class GoogleProjectService {
       GoogleResourceConfiguration resourceConfiguration,
       GoogleBillingService billingService,
       ConfigurationService configService,
-      ObjectMapper objectMapper) {
-    this.resourceDao = resourceDao;
-    this.resourceConfiguration = resourceConfiguration;
-    this.billingService = billingService;
-    this.configService = configService;
-    this.objectMapper = objectMapper;
-  }
+      ObjectMapper objectMapper,
+    BufferService bufferService) {
+        this.resourceDao = resourceDao;
+        this.resourceConfiguration = resourceConfiguration;
+        this.billingService = billingService;
+        this.configService = configService;
+        this.objectMapper = objectMapper;
+        this.bufferService = bufferService;
+    }
 
   /**
    * Note: the billing profile used here must be authorized via the profile service before
@@ -139,9 +145,57 @@ public class GoogleProjectService {
     return newProject(googleProjectId, billingProfile, roleIdentityMapping, region);
   }
 
-  public GoogleProjectResource getProjectResourceById(UUID id) {
-    return resourceDao.retrieveProjectById(id);
-  }
+  /**
+     * Note: the billing profile used here must be authorized via the
+     * profile service before attempting to use it here
+     *
+     * @param handoutRequestId     google's id of the project
+     * @param billingProfile      previously authorized billing profile
+     * @param roleIdentityMapping permissions to set
+     * @param region              region of dataset/snapshot
+     * @return project resource object
+     * @throws InterruptedException if shutting down
+     */
+    public GoogleProjectResource getOrCreateProjectRBS(
+            String handoutRequestId,
+            BillingProfileModel billingProfile,
+            Map<String, List<String>> roleIdentityMapping,
+            GoogleRegion region)
+            throws InterruptedException {
+
+        // Get or request project from RBS
+        HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
+        ResourceInfo resource = bufferService.handoutResource(request);
+        String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+
+        try {
+            // If we already have a DR record for this project, return the project resource
+            // Should only happen if the flight fails & the step gets retried
+            GoogleProjectResource projectResource = resourceDao.retrieveProjectByGoogleProjectId(projectId);
+            String resourceProfileId = projectResource.getProfileId().toString();
+            if (StringUtils.equals(resourceProfileId, billingProfile.getId())) {
+                return projectResource;
+            }
+            throw new MismatchedBillingProfilesException(
+                    "Cannot reuse existing project " + projectResource.getGoogleProjectId() +
+                            " from profile " + resourceProfileId +
+                            " with a different profile " + billingProfile.getId());
+        } catch (GoogleResourceNotFoundException e) {
+            logger.info("no project resource found for projectId: {}", projectId);
+        }
+
+        // Otherwise this project needs to be initialized
+        Project project = getProject(projectId);
+        if (project == null) {
+            throw new GoogleResourceException("Could not get project after creation");
+        }
+        return initializeProject(project, billingProfile, roleIdentityMapping, false, region);
+
+    }
+
+    public GoogleProjectResource getProjectResourceById(UUID id) {
+        return resourceDao.retrieveProjectById(id);
+    }
 
   public List<UUID> markUnusedProjectsForDelete(UUID profileId) {
     return resourceDao.markUnusedProjectsForDelete(profileId);

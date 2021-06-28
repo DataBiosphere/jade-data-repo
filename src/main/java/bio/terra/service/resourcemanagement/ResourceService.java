@@ -285,11 +285,14 @@ public class ResourceService {
       throws InterruptedException, GoogleResourceNamingException {
 
     GoogleProjectResource googleProjectResource =
-        projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForDataset(), billingProfile, getStewardPolicy(), region);
+        projectService.getOrCreateProjectRBS(
+            dataLocationSelector.projectIdForDataset(),
+            billingProfile,
+            getStewardPolicy(),
+            region);
+        return googleProjectResource.getId();
 
-    return googleProjectResource.getId();
-  }
+    }
 
   /**
    * Look up an existing project resource given its id

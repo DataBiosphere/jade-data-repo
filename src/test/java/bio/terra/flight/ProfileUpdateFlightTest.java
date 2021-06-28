@@ -1,8 +1,7 @@
 package bio.terra.flight;
 
 import bio.terra.common.category.Unit;
-import bio.terra.service.profile.ProfileService;
-import bio.terra.service.profile.flight.create.ProfileCreateFlight;
+import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
 import org.junit.Before;
@@ -16,7 +15,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 
 @Category(Unit.class)
-public class ProfileCreateFlightTest {
+public class ProfileUpdateFlightTest {
 
     @Mock
     ApplicationContext context;
@@ -28,16 +27,15 @@ public class ProfileCreateFlightTest {
 
     @Test
     public void testConstructFlight() {
-        var flight = new ProfileCreateFlight(new FlightMap(), context);
+        var flight = new ProfileUpdateFlight(new FlightMap(), context);
         List steps = flight.context().getStepClassNames();
 
-        var packageName = "bio.terra.service.profile.flight.create";
+        var packageName = "bio.terra.service.profile.flight.update";
 
         assertEquals(steps.size(), 4);
-        assertEquals(steps.get(0), packageName + ".CreateProfileMetadataStep");
-        assertEquals(steps.get(1), packageName + ".CreateProfileVerifyAccountStep");
-        assertEquals(steps.get(2), packageName + ".CreateProfileVerifyDeployedApplicationStep");
-        assertEquals(steps.get(3), packageName + ".CreateProfileAuthzIamStep");
+        assertEquals(steps.get(0), packageName + ".UpdateProfileRetrieveExistingProfileStep");
+        assertEquals(steps.get(1), packageName + ".UpdateProfileMetadataStep");
+        assertEquals(steps.get(2), packageName + ".UpdateProfileVerifyAccountStep");
+        assertEquals(steps.get(3), packageName + ".UpdateProfileUpdateGCloudProject");
     }
-
 }

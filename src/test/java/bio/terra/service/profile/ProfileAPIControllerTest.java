@@ -2,6 +2,7 @@ package bio.terra.service.profile;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.JobModel.JobStatusEnum;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -75,5 +76,32 @@ public class ProfileAPIControllerTest {
         assertNotNull(entity);
     }
 
+    @Test
+    public void testUpdateProfile() {
+        AuthenticatedUserRequest user = mock(AuthenticatedUserRequest.class);
+        when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
+        when(profileService.updateProfile(any(), any())).thenReturn("jobId");
+
+        var jobModel = new JobModel();
+        jobModel.setJobStatus(JobStatusEnum.RUNNING);
+        when(jobService.retrieveJob(any(), any())).thenReturn(jobModel);
+
+        ResponseEntity entity = apiController.updateProfile(new BillingProfileUpdateModel());
+        assertNotNull(entity);
+    }
+
+    @Test
+    public void testDeleteProfile() {
+        AuthenticatedUserRequest user = mock(AuthenticatedUserRequest.class);
+        when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
+        when(profileService.deleteProfile(any(), any())).thenReturn("jobId");
+
+        var jobModel = new JobModel();
+        jobModel.setJobStatus(JobStatusEnum.RUNNING);
+        when(jobService.retrieveJob(any(), any())).thenReturn(jobModel);
+
+        ResponseEntity entity = apiController.deleteProfile("deleteId");
+        assertNotNull(entity);
+    }
 
 }

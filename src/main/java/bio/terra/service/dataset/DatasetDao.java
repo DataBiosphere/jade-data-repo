@@ -501,7 +501,7 @@ public class DatasetDao {
      * @param accessibleDatasetIds list of dataset ids that caller has access to (fetched from IAM service)
      * @return a list of dataset summary objects
      */
-    @Transactional(readOnly = true)
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public MetadataEnumeration<DatasetSummary> enumerate(
         int offset,
         int limit,

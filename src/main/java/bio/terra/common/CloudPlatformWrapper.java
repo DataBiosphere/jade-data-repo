@@ -28,8 +28,9 @@ public abstract class CloudPlatformWrapper {
         case AZURE:
             return AzurePlatform.INSTANCE;
         case GCP:
-        default:
             return GcpPlatform.INSTANCE;
+        default:
+            throw new UnsupportedOperationException(cloudPlatform + " is not a recognized Cloud Platform");
         }
     }
 

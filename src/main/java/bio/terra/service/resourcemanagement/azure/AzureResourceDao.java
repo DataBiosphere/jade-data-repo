@@ -69,8 +69,7 @@ public class AzureResourceDao {
             "    AND storage_account_resource.id = dataset_storage_account.storage_account_resource_id" +
             "    AND dataset_storage_account.successful_ingests > 0) AS sacnt" +
             " FROM application_deployment_resource AS app " +
-            " WHERE app" +
-            ".profile_id = :profile_id) AS X";
+            " WHERE app.profile_id = :profile_id) AS X";
 
     // Class for collecting results from the above query
     private static class AppRefs {
@@ -125,25 +124,25 @@ public class AzureResourceDao {
         return keyHolder.getId();
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public AzureApplicationDeploymentResource retrieveApplicationDeploymentById(UUID id) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
         return retrieveApplicationDeploymentBy(sqlApplicationRetrieveById, params);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public AzureApplicationDeploymentResource retrieveApplicationDeploymentByName(String applicationName) {
         MapSqlParameterSource params =
             new MapSqlParameterSource().addValue("azure_application_deployment_name", applicationName);
         return retrieveApplicationDeploymentBy(sqlApplicationRetrieveByDepName, params);
     }
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public AzureApplicationDeploymentResource retrieveApplicationDeploymentByIdForDelete(UUID id) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
         return retrieveApplicationDeploymentBy(sqlApplicationRetrieveByIdForDelete, params);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)
     public List<AzureApplicationDeploymentResource> retrieveApplicationDeploymentsByBillingProfileId(
         UUID billingProfileId) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("profile_id", billingProfileId);

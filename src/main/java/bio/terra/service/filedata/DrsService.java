@@ -195,7 +195,6 @@ public class DrsService {
 
         DrsId drsId = drsIdService.fromObjectId(objectId);
         Snapshot snapshot = snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()));
-        SnapshotProject snapshotProject = snapshotService.retrieveAvailableSnapshotProject(snapshot.getId());
         GoogleProjectResource projectResource = snapshot.getProjectResource();
 
         List<DRSAccessMethod> matchingAccessMethods = getAccessMethodsMatchingAccessId(accessId, object);

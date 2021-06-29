@@ -1,5 +1,17 @@
 package bio.terra.service.filedata;
 
+import static bio.terra.service.resourcemanagement.ResourceService.BQ_JOB_USER_ROLE;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -8,6 +20,7 @@ import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DRSAccessMethod;
+import bio.terra.model.DRSAccessMethod.TypeEnum;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.FileModel;
@@ -22,10 +35,27 @@ import bio.terra.service.iam.IamService;
 import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Acl;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.GeneralSecurityException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -40,30 +70,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.security.GeneralSecurityException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
-
-import static bio.terra.service.resourcemanagement.ResourceService.BQ_JOB_USER_ROLE;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 /*
  * WARNING: if making any changes to these tests make sure to notify the #dsp-batch channel! Describe the change and
@@ -83,6 +89,7 @@ public class DrsTest extends UsersBase {
     @Autowired private AuthService authService;
     @Autowired private IamService iamService;
     @Autowired private ConfigurationService configurationService;
+    @Autowired private DrsService drsService;
 
     private String custodianToken;
     private SnapshotModel snapshotModel;
@@ -90,6 +97,7 @@ public class DrsTest extends UsersBase {
     private UUID datasetId;
     private Map<IamRole, String> datasetIamRoles;
     private Map<IamRole, String> snapshotIamRoles;
+    private AuthenticatedUserRequest authenticatedStewardRequest;
 
     @Before
     public void setup() throws Exception {
@@ -100,7 +108,7 @@ public class DrsTest extends UsersBase {
         snapshotModel = dataRepoFixtures.getSnapshot(steward(), setupResult.getSummaryModel().getId(), null);
         profileId = setupResult.getProfileId();
         datasetId = setupResult.getDatasetId();
-        AuthenticatedUserRequest authenticatedStewardRequest =
+        authenticatedStewardRequest =
             new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
         AuthenticatedUserRequest authenticatedCustodianRequest =
             new AuthenticatedUserRequest().email(custodian().getEmail()).token(Optional.of(custodianToken));
@@ -160,6 +168,29 @@ public class DrsTest extends UsersBase {
             snapshotIamRoles.get(IamRole.STEWARD),
             snapshotIamRoles.get(IamRole.READER)
         ));
+
+        Optional<DRSAccessMethod> drsAccessMethod = drsObjectFile.getAccessMethods().stream()
+            .filter(accessMethod -> accessMethod.getType().equals(
+                TypeEnum.GS)).findFirst();
+
+        if (drsAccessMethod.isEmpty()) {
+            Assert.fail("missing access method for DRS object");
+        }
+
+        String drsAccessId = drsAccessMethod.get().getAccessId();
+        bio.terra.model.DRSAccessURL drsAccessURL = drsService.getAccessUrlForObjectId(authenticatedStewardRequest, drsObjectId, drsAccessId);
+
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            HttpUriRequest request = new HttpHead(drsAccessURL.getUrl());
+            request.setHeader("Authorization", String.format("Bearer %s", authenticatedStewardRequest.getToken()));
+            try (
+                CloseableHttpResponse response = client.execute(request);
+            ) {
+                assertThat("Drs signed URL is accessible",
+                    response.getStatusLine().getStatusCode(),
+                    equalTo(200));
+            }
+        }
 
         // We don't have a DRS URI for a directory, so we back into it by computing the parent path
         // and using the non-DRS interface to get that file. Then we use that to build the

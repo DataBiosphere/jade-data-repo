@@ -1,6 +1,6 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.common.CloudUtil;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -44,6 +44,8 @@ public class DatasetCreateFlight extends Flight {
         DatasetRequestModel datasetRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
 
+        var platform = CloudPlatformWrapper.of(datasetRequest.getCloudPlatform());
+
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
@@ -55,13 +57,12 @@ public class DatasetCreateFlight extends Flight {
         addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
 
         // Get or create the storage account where the dataset resources will be created for Azure
-        CloudUtil.cloudExecute(
-            datasetRequest.getCloudPlatform(),
-            () -> { },
-            () -> addStep(new CreateDatasetGetOrCreateStorageAccountStep(
+        if (platform.isAzure()) {
+            addStep(new CreateDatasetGetOrCreateStorageAccountStep(
                 resourceService,
                 datasetRequest,
-                azureDataLocationSelector)));
+                azureDataLocationSelector));
+        };
 
         // Generate the dateset id and stored it in the working map
         addStep(new CreateDatasetIdStep());
@@ -70,10 +71,9 @@ public class DatasetCreateFlight extends Flight {
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
 
         // For azure backed datasets, add a link co connect the storage account to the dataset
-        CloudUtil.cloudExecute(
-            datasetRequest.getCloudPlatform(),
-            () -> { },
-            () -> addStep(new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao, datasetRequest)));
+        if (platform.isGcp()) {
+            addStep(new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao, datasetRequest));
+        }
 
         addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao));
 

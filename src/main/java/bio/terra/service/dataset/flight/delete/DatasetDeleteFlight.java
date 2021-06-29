@@ -1,7 +1,7 @@
 package bio.terra.service.dataset.flight.delete;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.common.CloudUtil;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -54,8 +54,8 @@ public class DatasetDeleteFlight extends Flight {
             JobMapKeys.DATASET_ID.getKeyName(), String.class));
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-        CloudPlatform cloudPlatform = inputParameters.get(
-            JobMapKeys.CLOUD_PLATFORM.getKeyName(), CloudPlatform.class);
+        var platform = CloudPlatformWrapper.of(inputParameters.get(
+            JobMapKeys.CLOUD_PLATFORM.getKeyName(), CloudPlatform.class));
         RetryRule lockDatasetRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
         RetryRule primaryDataDeleteRetry = getDefaultExponentialBackoffRetryRule();
 
@@ -73,10 +73,9 @@ public class DatasetDeleteFlight extends Flight {
         // resource from SAM to ensure we can get the metadata needed to perform the operation.  Also need to run
         // before metadata is deleted since it is required by the step.
         addStep(new DeleteDatasetAuthzBqAclsStep(iamClient, datasetService, resourceService, datasetId, userReq));
-        CloudUtil.cloudExecute(
-            cloudPlatform,
-            () -> { },
-            () -> addStep(new DeleteDatasetDeleteStorageAccountsStep(resourceService, datasetService, datasetId)));
+        if (platform.isAzure()) {
+            addStep(new DeleteDatasetDeleteStorageAccountsStep(resourceService, datasetService, datasetId));
+        }
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
         addStep(new UnlockDatasetStep(datasetDao, datasetId, false), lockDatasetRetry);

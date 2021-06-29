@@ -4,6 +4,7 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.dataset.StorageResource;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -40,6 +41,9 @@ public enum GoogleRegion implements CloudRegion {
         US("us",  "us-east4", "us-east4");
 
     public static final GoogleRegion DEFAULT_GOOGLE_REGION = GoogleRegion.US_CENTRAL1;
+
+    public static final List<String> SUPPORTED_REGIONS =
+        Arrays.stream(GoogleRegion.values()).map(GoogleRegion::getValue).collect(Collectors.toUnmodifiableList());
 
     private final String value;
     private final String firestoreFallbackRegion;

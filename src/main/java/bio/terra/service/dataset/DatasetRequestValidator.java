@@ -1,13 +1,11 @@
 package bio.terra.service.dataset;
 
 import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.CloudUtil;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
@@ -41,9 +39,6 @@ import java.util.stream.Collectors;
  */
 @Component
 public class DatasetRequestValidator implements Validator {
-
-    private static final List<String> SUPPORTED_GOOGLE_REGIONS =
-        Arrays.stream(GoogleRegion.values()).map(GoogleRegion::getValue).collect(Collectors.toUnmodifiableList());
 
     private static final List<String> SUPPORTED_AZURE_REGIONS =
         Arrays.stream(AzureRegion.values()).map(AzureRegion::toString).collect(Collectors.toUnmodifiableList());
@@ -378,25 +373,8 @@ public class DatasetRequestValidator implements Validator {
                 errors.rejectValue("region", "InvalidRegionForPlatform",
                     "Cannot set a region when a cloudPlatform is not provided.");
             } else {
-                CloudUtil.cloudExecute(
-                    datasetRequest.getCloudPlatform(),
-                    () ->
-                        ensureValidRegion(CloudPlatform.GCP,
-                            datasetRequest.getRegion(),
-                            SUPPORTED_GOOGLE_REGIONS,
-                            errors),
-                    () -> {
-                        ensureValidRegion(CloudPlatform.AZURE,
-                            datasetRequest.getRegion(),
-                            SUPPORTED_AZURE_REGIONS,
-                            errors);
-
-                        ensureValidRegion(CloudPlatform.GCP,
-                            datasetRequest.getRegion(),
-                            SUPPORTED_GOOGLE_REGIONS,
-                            errors);
-                    }
-                );
+                CloudPlatformWrapper.of(datasetRequest.getCloudPlatform())
+                    .ensureValidRegion(datasetRequest.getRegion(), errors);
             }
         }
     }
@@ -411,16 +389,6 @@ public class DatasetRequestValidator implements Validator {
                 validateSchema(schema, errors);
             }
             validateRegion(datasetRequest, errors);
-        }
-    }
-
-    private void ensureValidRegion(CloudPlatform platform,
-                                   String region,
-                                   List<String> supportedRegions,
-                                   Errors errors) {
-        if (!supportedRegions.contains(region.toLowerCase())) {
-            errors.rejectValue("region", "InvalidRegionForPlatform",
-                "Valid regions for " + platform +  " are: " + String.join(", ", supportedRegions));
         }
     }
 }

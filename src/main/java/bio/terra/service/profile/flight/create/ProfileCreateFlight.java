@@ -1,6 +1,6 @@
 package bio.terra.service.profile.flight.create;
 
-import bio.terra.common.CloudUtil;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
@@ -25,10 +25,9 @@ public class ProfileCreateFlight extends Flight {
 
         addStep(new CreateProfileMetadataStep(profileService, request, user));
         addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
-        CloudUtil.cloudExecute(
-            request.getCloudPlatform(),
-            () -> { },
-            () -> addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user)));
+        if (CloudPlatformWrapper.of(request.getCloudPlatform()).isAzure()) {
+            addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));
+        }
         addStep(new CreateProfileAuthzIamStep(profileService, request, user));
     }
 

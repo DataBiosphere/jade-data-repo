@@ -1,6 +1,6 @@
 package bio.terra.service.profile.flight.delete;
 
-import bio.terra.common.CloudUtil;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
@@ -29,6 +29,7 @@ public class ProfileDeleteFlight extends Flight {
 
         CloudPlatform cloudPlatform = inputParameters.get(
             JobMapKeys.CLOUD_PLATFORM.getKeyName(), CloudPlatform.class);
+        var platform = CloudPlatformWrapper.of(cloudPlatform);
 
         // We do not delete unused Google projects at the point where they become unused; that is, the last
         // file or dataset or snapshot is deleted from them. Instead, we use this profile delete operation
@@ -51,21 +52,19 @@ public class ProfileDeleteFlight extends Flight {
         // complete the deletion of the billing profile.
         // In the case of Azure, metadata records are deleted but will fail if the underlying resources are in use
         addStep(new DeleteProfileMarkUnusedProjects(resourceService, profileId));
-        CloudUtil.cloudExecute(
-            cloudPlatform,
-            () -> { },
-            () -> addStep(new DeleteProfileMarkUnusedApplicationDeployments(profileService,
+        if (platform.isAzure()) {
+            addStep(new DeleteProfileMarkUnusedApplicationDeployments(profileService,
                 resourceService,
                 user,
-                profileId)));
+                profileId));
+        }
 
         addStep(new DeleteProfileDeleteUnusedProjects(resourceService));
         addStep(new DeleteProfileProjectMetadata(resourceService));
 
-        CloudUtil.cloudExecute(
-            cloudPlatform,
-            () -> { },
-            () -> addStep(new DeleteProfileApplicationDeploymentMetadata(resourceService)));
+        if (platform.isAzure()) {
+            addStep(new DeleteProfileApplicationDeploymentMetadata(resourceService));
+        }
 
         addStep(new DeleteProfileMetadataStep(profileService, profileId));
         addStep(new DeleteProfileAuthzIamStep(profileService, profileId));

@@ -1,9 +1,9 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -30,7 +30,7 @@ public class CreateDatasetGetOrCreateProjectStep implements Step {
     public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         BillingProfileModel profileModel = workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-        GoogleRegion region = DatasetJsonConversion.getRegionFromDatasetRequestModel(datasetRequestModel);
+        GoogleRegion region = CloudPlatformWrapper.of(datasetRequestModel.getCloudPlatform()).getRegionFromDatasetRequestModel(datasetRequestModel);
         // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
         // Either the project will have been created and we will find it, or we will create it.
         UUID projectResourceId;

@@ -1,6 +1,6 @@
 package bio.terra.integration;
 
-import bio.terra.common.CloudUtil;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.TestUtils;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
@@ -167,7 +167,7 @@ public class DataRepoFixtures {
     public DatasetSummaryModel createDataset(TestConfiguration.User user,
                                              UUID profileId,
                                              String filename) throws Exception {
-        return createDataset(user, profileId, filename, CloudUtil.DEFAULT_CLOUD_PLATFORM);
+        return createDataset(user, profileId, filename, CloudPlatformWrapper.DEFAULT);
     }
     public DatasetSummaryModel createDataset(TestConfiguration.User user,
                                              UUID profileId,

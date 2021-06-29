@@ -200,7 +200,8 @@ public class DrsService {
 
         List<DRSAccessMethod> matchingAccessMethods = getAccessMethodsMatchingAccessId(accessId, object);
         if (matchingAccessMethods.size() > 0) {
-            Storage storage = StorageOptions.newBuilder().setProjectId(projectResource.getGoogleProjectId()).build().getService();
+            Storage storage = StorageOptions.newBuilder()
+                .setProjectId(projectResource.getGoogleProjectId()).build().getService();
             String urlString = matchingAccessMethods.get(0).getAccessUrl().toString();
             Pattern gsBucketRegex = Pattern.compile("(?<=//)(.*?)(?=/)");
             Matcher bucketMatcher =  gsBucketRegex.matcher(urlString);
@@ -219,15 +220,15 @@ public class DrsService {
                         storage.signUrl(blobInfo, 15, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
 
                     return new DRSAccessURL().url(url.toString());
-                }
-                else {
+                } else {
                     throw new IllegalArgumentException("Was not able to find bucket");
                 }
             } else {
                 throw new IllegalArgumentException("Was not able to find bucket");
             }
         } else {
-            throw new IllegalArgumentException("No matching access ID " + accessId + " was found on object " + objectId);
+            throw new IllegalArgumentException(
+                "No matching access ID " + accessId + " was found on object " + objectId);
         }
     }
 

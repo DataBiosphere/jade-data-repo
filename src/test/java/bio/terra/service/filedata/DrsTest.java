@@ -178,11 +178,13 @@ public class DrsTest extends UsersBase {
         }
 
         String drsAccessId = drsAccessMethod.get().getAccessId();
-        bio.terra.model.DRSAccessURL drsAccessURL = drsService.getAccessUrlForObjectId(authenticatedStewardRequest, drsObjectId, drsAccessId);
+        bio.terra.model.DRSAccessURL drsAccessURL = drsService
+            .getAccessUrlForObjectId(authenticatedStewardRequest, drsObjectId, drsAccessId);
 
         try (CloseableHttpClient client = HttpClients.createDefault()) {
             HttpUriRequest request = new HttpHead(drsAccessURL.getUrl());
-            request.setHeader("Authorization", String.format("Bearer %s", authenticatedStewardRequest.getToken()));
+            request.setHeader("Authorization",
+                String.format("Bearer %s", authenticatedStewardRequest.getToken()));
             try (
                 CloseableHttpResponse response = client.execute(request);
             ) {

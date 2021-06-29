@@ -77,11 +77,14 @@ public abstract class CloudPlatformWrapper {
             return Arrays.stream(GoogleCloudResource.values()).map(resource -> {
                 final GoogleRegion finalRegion;
                 switch (resource) {
-                case FIRESTORE: finalRegion = region.getRegionOrFallbackFirestoreRegion();
+                case FIRESTORE:
+                    finalRegion = region.getRegionOrFallbackFirestoreRegion();
                     break;
-                case BUCKET: finalRegion = region.getRegionOrFallbackBucketRegion();
+                case BUCKET:
+                    finalRegion = region.getRegionOrFallbackBucketRegion();
                     break;
-                default: finalRegion = region;
+                default:
+                    finalRegion = region;
                 }
                 return new GoogleStorageResource(null, resource, finalRegion);
             }).collect(Collectors.toList());

@@ -27,6 +27,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.any;
@@ -104,11 +105,18 @@ public class ProfileServiceUnitTest {
 
     @Test(expected = IamForbiddenException.class)
     public void testUpdateProfileNoAccess() {
-
+        var user = new AuthenticatedUserRequest();
+        doThrow(IamForbiddenException.class).when(iamService).verifyAuthorization(
+                eq(user),
+                eq(IamResourceType.SPEND_PROFILE),
+                any(),
+                eq(IamAction.UPDATE_BILLING_ACCOUNT)
+        );
+        var billingProfileUpdateModel = new BillingProfileUpdateModel();
+        profileService.updateProfile(billingProfileUpdateModel, user);
     }
 
-
-        @Test
+    @Test
     public void testDeleteProfile() {
         var jobBuilder = mock(JobBuilder.class);
 
@@ -130,6 +138,18 @@ public class ProfileServiceUnitTest {
         assertEquals(result, "id");
     }
 
+    @Test(expected = IamForbiddenException.class)
+    public void testDeleteProfileNoAccess() {
+        var user = new AuthenticatedUserRequest();
+        doThrow(IamForbiddenException.class).when(iamService).verifyAuthorization(
+                eq(user),
+                eq(IamResourceType.SPEND_PROFILE),
+                any(),
+                eq(IamAction.DELETE)
+        );
+        profileService.deleteProfile("id", user);
+    }
+
     @Test
     public void testVerifyAccountHasAccess() {
         var user = new AuthenticatedUserRequest();
@@ -149,5 +169,4 @@ public class ProfileServiceUnitTest {
 
         profileService.verifyAccount(id, user);
     }
-
 }

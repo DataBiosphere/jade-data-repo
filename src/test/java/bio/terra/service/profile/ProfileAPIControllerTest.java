@@ -18,11 +18,12 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.ResponseEntity;
 
-import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.any;
-
 import javax.servlet.http.HttpServletRequest;
+import java.util.UUID;
+
+import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 @Category(Unit.class)
@@ -99,7 +100,7 @@ public class ProfileAPIControllerTest {
         jobModel.setJobStatus(JobStatusEnum.RUNNING);
         when(jobService.retrieveJob(any(), any())).thenReturn(jobModel);
 
-        ResponseEntity entity = apiController.deleteProfile("deleteId");
+        ResponseEntity entity = apiController.deleteProfile(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"));
         assertNotNull(entity);
     }
 

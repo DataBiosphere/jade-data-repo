@@ -21,7 +21,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -69,7 +69,6 @@ public class AssetModelValidationTest {
         assertThat("Main message is right",
             errorModel.getMessage(), containsString("Validation errors - see error details"));
         for (int i = 0; i < messageCodes.length; i++) {
-            String code = messageCodes[i];
             assertThat(context + ": correct message code (" + i + ")",
                 /**
                  * The global exception handler logs in this format:

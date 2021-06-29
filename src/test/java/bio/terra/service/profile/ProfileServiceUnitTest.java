@@ -25,6 +25,8 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.UUID;
+
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -81,7 +83,7 @@ public class ProfileServiceUnitTest {
     @Test
     public void testUpdateProfile() {
         var billingProfileUpdateModel = new BillingProfileUpdateModel();
-        billingProfileUpdateModel.setId("name");
+        billingProfileUpdateModel.setId(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"));
 
         var user = new AuthenticatedUserRequest();
 
@@ -126,7 +128,7 @@ public class ProfileServiceUnitTest {
         when(jobService.newJob(any(), eq(ProfileDeleteFlight.class), any(), any())).thenReturn(jobBuilder);
 
         var user = new AuthenticatedUserRequest();
-        String result = profileService.deleteProfile("name", user);
+        String result = profileService.deleteProfile(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), user);
         verify(iamService, times(1))
                 .verifyAuthorization(
                         eq(user),
@@ -147,7 +149,7 @@ public class ProfileServiceUnitTest {
                 any(),
                 eq(IamAction.DELETE)
         );
-        profileService.deleteProfile("id", user);
+        profileService.deleteProfile(UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"), user);
     }
 
     @Test

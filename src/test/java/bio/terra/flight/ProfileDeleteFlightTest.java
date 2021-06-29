@@ -5,6 +5,8 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.delete.ProfileDeleteFlight;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightMap;
+import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.context.ApplicationContext;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,16 +18,12 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
+@RunWith(MockitoJUnitRunner.StrictStubs.class)
 @Category(Unit.class)
 public class ProfileDeleteFlightTest {
 
     @Mock
     private ApplicationContext context;
-
-    @Before
-    public void setup() throws Exception {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     public void testConstructFlight() {

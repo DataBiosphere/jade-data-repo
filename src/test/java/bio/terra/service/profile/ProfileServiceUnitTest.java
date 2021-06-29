@@ -6,6 +6,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.job.JobBuilder;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.azure.AzureAuthzService;
@@ -20,11 +21,11 @@ import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccount
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.times;
@@ -32,7 +33,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-
+@RunWith(MockitoJUnitRunner.StrictStubs.class)
 @Category(Unit.class)
 public class ProfileServiceUnitTest {
 
@@ -52,8 +53,6 @@ public class ProfileServiceUnitTest {
 
     @Before
     public void setup() throws Exception {
-        MockitoAnnotations.openMocks(this);
-
         profileService = new ProfileService(
                 profileDao, iamService, jobService,
                 googleBillingService, azureAuthzService
@@ -71,8 +70,7 @@ public class ProfileServiceUnitTest {
 
         when(jobBuilder.submit()).thenReturn("id");
 
-        when(jobService.newJob(eq("Create billing profile 'name'"),
-                eq(ProfileCreateFlight.class), any(), any())).thenReturn(jobBuilder);
+        when(jobService.newJob(any(), eq(ProfileCreateFlight.class), any(), any())).thenReturn(jobBuilder);
 
         String result = profileService.createProfile(billingProfileRequestModel, user);
         verify(jobBuilder, times(1)).submit();
@@ -90,8 +88,7 @@ public class ProfileServiceUnitTest {
 
         when(jobBuilder.submit()).thenReturn("id");
 
-        when(jobService.newJob(eq("Update billing for profile id 'name'"),
-                eq(ProfileUpdateFlight.class), any(), any())).thenReturn(jobBuilder);
+        when(jobService.newJob(any(), eq(ProfileUpdateFlight.class), any(), any())).thenReturn(jobBuilder);
 
         String result = profileService.updateProfile(billingProfileUpdateModel, user);
         verify(iamService, times(1))
@@ -105,15 +102,20 @@ public class ProfileServiceUnitTest {
         assertEquals(result, "id");
     }
 
-    @Test
+    @Test(expected = IamForbiddenException.class)
+    public void testUpdateProfileNoAccess() {
+
+    }
+
+
+        @Test
     public void testDeleteProfile() {
         var jobBuilder = mock(JobBuilder.class);
 
         when(jobBuilder.submit()).thenReturn("id");
         when(jobBuilder.addParameter(eq(ProfileMapKeys.PROFILE_ID), eq("name"))).thenReturn(jobBuilder);
 
-        when(jobService.newJob(eq("Delete billing profile id 'name'"),
-                eq(ProfileDeleteFlight.class), any(), any())).thenReturn(jobBuilder);
+        when(jobService.newJob(any(), eq(ProfileDeleteFlight.class), any(), any())).thenReturn(jobBuilder);
 
         var user = new AuthenticatedUserRequest();
         String result = profileService.deleteProfile("name", user);
@@ -133,13 +135,9 @@ public class ProfileServiceUnitTest {
         var user = new AuthenticatedUserRequest();
         String id = "id";
 
-        when(googleBillingService.canAccess(any(), eq("id"))).thenReturn(true);
+        when(googleBillingService.canAccess(any(), eq(id))).thenReturn(true);
 
-        try {
-            profileService.verifyAccount(id, user);
-        } catch (Exception e) {
-            fail("No exception should've been thrown");
-        }
+        profileService.verifyAccount(id, user);
     }
 
     @Test(expected = InaccessibleBillingAccountException.class)
@@ -147,7 +145,7 @@ public class ProfileServiceUnitTest {
         var user = new AuthenticatedUserRequest();
         String id = "id";
 
-        when(googleBillingService.canAccess(any(), eq("id"))).thenReturn(false);
+        when(googleBillingService.canAccess(any(), eq(id))).thenReturn(false);
 
         profileService.verifyAccount(id, user);
     }

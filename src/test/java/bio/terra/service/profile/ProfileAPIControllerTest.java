@@ -13,17 +13,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.springframework.http.ResponseEntity;
 
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.mockito.ArgumentMatchers.any;
 
 import javax.servlet.http.HttpServletRequest;
 
+@RunWith(MockitoJUnitRunner.StrictStubs.class)
 @Category(Unit.class)
 public class ProfileAPIControllerTest {
 
@@ -48,8 +49,6 @@ public class ProfileAPIControllerTest {
 
     @Before
     public void setup() throws Exception {
-        MockitoAnnotations.openMocks(this);
-
         apiController = new ProfileApiController(
                 objectMapper,
                 request,
@@ -64,7 +63,7 @@ public class ProfileAPIControllerTest {
 
     @Test
     public void testCreateProfile() {
-        AuthenticatedUserRequest user = mock(AuthenticatedUserRequest.class);
+        var user = new AuthenticatedUserRequest();
         when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
         when(profileService.createProfile(any(), any())).thenReturn("jobId");
 
@@ -78,7 +77,7 @@ public class ProfileAPIControllerTest {
 
     @Test
     public void testUpdateProfile() {
-        AuthenticatedUserRequest user = mock(AuthenticatedUserRequest.class);
+        var user = new AuthenticatedUserRequest();
         when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
         when(profileService.updateProfile(any(), any())).thenReturn("jobId");
 
@@ -92,7 +91,7 @@ public class ProfileAPIControllerTest {
 
     @Test
     public void testDeleteProfile() {
-        AuthenticatedUserRequest user = mock(AuthenticatedUserRequest.class);
+        var user = new AuthenticatedUserRequest();
         when(authenticatedUserRequestFactory.from(any())).thenReturn(user);
         when(profileService.deleteProfile(any(), any())).thenReturn("jobId");
 

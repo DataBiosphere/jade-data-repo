@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 @Category(Unit.class)
 public class ControllerUtilsTest {
@@ -36,16 +35,14 @@ public class ControllerUtilsTest {
         jobModel.setId("id");
 
         jobModel.setJobStatus(JobStatusEnum.RUNNING);
-        ResponseEntity entity = ControllerUtils.jobToResponse(jobModel);
-        assertEquals(entity.getStatusCode(), HttpStatus.ACCEPTED);
-        assertTrue(entity.getHeaders().containsKey("Location"));
-        assertEquals(entity.getHeaders().getFirst("Location"), "/api/repository/v1/jobs/id");
+        ResponseEntity<JobModel> entity = ControllerUtils.jobToResponse(jobModel);
+        assertEquals(HttpStatus.ACCEPTED, entity.getStatusCode());
+        assertEquals("/api/repository/v1/jobs/id", entity.getHeaders().getFirst("Location"));
 
         jobModel.setJobStatus(JobStatusEnum.SUCCEEDED);
         entity = ControllerUtils.jobToResponse(jobModel);
-        assertEquals(entity.getStatusCode(), HttpStatus.OK);
-        assertTrue(entity.getHeaders().containsKey("Location"));
-        assertEquals(entity.getHeaders().getFirst("Location"), "/api/repository/v1/jobs/id/result");
+        assertEquals(HttpStatus.OK, entity.getStatusCode());
+        assertEquals("/api/repository/v1/jobs/id/result", entity.getHeaders().getFirst("Location"));
     }
 
 }

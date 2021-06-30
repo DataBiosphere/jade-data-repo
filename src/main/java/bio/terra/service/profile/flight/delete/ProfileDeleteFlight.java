@@ -18,8 +18,8 @@ public class ProfileDeleteFlight extends Flight {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    ProfileService profileService = (ProfileService) appContext.getBean("profileService");
-    ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
+    ProfileService profileService = appContext.getBean(ProfileService.class);
+    ResourceService resourceService = appContext.getBean(ResourceService.class);
 
     UUID profileId = inputParameters.get(ProfileMapKeys.PROFILE_ID, UUID.class);
 

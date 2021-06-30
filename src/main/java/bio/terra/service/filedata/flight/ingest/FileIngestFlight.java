@@ -1,7 +1,5 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
-
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigurationService;
@@ -26,8 +24,11 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
-import java.util.UUID;
 import org.springframework.context.ApplicationContext;
+
+import java.util.UUID;
+
+import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 // The FileIngestFlight is specific to firestore. Another cloud or file system implementation
 // might be quite different and would need a different flight.
@@ -38,20 +39,19 @@ public class FileIngestFlight extends Flight {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    FireStoreDao fileDao = (FireStoreDao) appContext.getBean("fireStoreDao");
-    FireStoreUtils fireStoreUtils = (FireStoreUtils) appContext.getBean("fireStoreUtils");
-    FileService fileService = (FileService) appContext.getBean("fileService");
-    GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
-    DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-    DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
-    ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
-    LoadService loadService = (LoadService) appContext.getBean("loadService");
-    ApplicationConfiguration appConfig =
-        (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
+    FireStoreDao fileDao =  appContext.getBean(FireStoreDao.class);
+    FireStoreUtils fireStoreUtils =  appContext.getBean(FireStoreUtils.class);
+    FileService fileService =  appContext.getBean(FileService.class);
+    GcsPdao gcsPdao =  appContext.getBean(GcsPdao.class);
+    DatasetService datasetService =  appContext.getBean(DatasetService.class);
+    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
+    ResourceService resourceService =  appContext.getBean(ResourceService.class);
+    LoadService loadService =  appContext.getBean(LoadService.class);
+        ApplicationConfiguration appConfig =  appContext.getBean(ApplicationConfiguration.class);
     ConfigurationService configService =
-        (ConfigurationService) appContext.getBean("configurationService");
-    ProfileService profileService = (ProfileService) appContext.getBean("profileService");
-    DatasetBucketDao datasetBucketDao = (DatasetBucketDao) appContext.getBean("datasetBucketDao");
+         appContext.getBean(ConfigurationService.class);
+    ProfileService profileService = appContext.getBean(ProfileService.class);
+    DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));

@@ -31,15 +31,14 @@ public class FileIngestWorkerFlight extends Flight {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    FireStoreDao fileDao = (FireStoreDao) appContext.getBean("fireStoreDao");
-    FireStoreUtils fireStoreUtils = (FireStoreUtils) appContext.getBean("fireStoreUtils");
-    FileService fileService = (FileService) appContext.getBean("fileService");
-    GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
-    DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-    ApplicationConfiguration appConfig =
-        (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
+    FireStoreDao fileDao =  appContext.getBean(FireStoreDao.class);
+    FireStoreUtils fireStoreUtils =  appContext.getBean(FireStoreUtils.class);
+    FileService fileService =  appContext.getBean(FileService.class);
+    GcsPdao gcsPdao =  appContext.getBean(GcsPdao.class);
+    DatasetService datasetService =  appContext.getBean(DatasetService.class);
+        ApplicationConfiguration appConfig =  appContext.getBean(ApplicationConfiguration.class);
     ConfigurationService configService =
-        (ConfigurationService) appContext.getBean("configurationService");
+         appContext.getBean(ConfigurationService.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));

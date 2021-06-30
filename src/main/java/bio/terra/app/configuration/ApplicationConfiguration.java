@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import io.grpc.internal.BackoffPolicy;
-import io.grpc.internal.ExponentialBackoffPolicy;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,7 +13,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.retry.support.RetryTemplate;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -400,20 +397,4 @@ public class ApplicationConfiguration {
             StartupInitializer.initialize(applicationContext);
         };
     }
-
-    @Bean
-    public RetryTemplate retryTemplate() {
-        RetryTemplate retryTemplate = new RetryTemplate();
-
-        BackffPolicy exponentialBackoffPolicy = new ExponentialBackoffPolicy();
-        retryTemplate.setBackOffPolicy(exponentialBackoffPolicy);
-
-
-        SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy();
-        retryPolicy.setMaxAttempts(2);
-        retryTemplate.setRetryPolicy(retryPolicy);
-
-        return retryTemplate;
-    }
-
 }

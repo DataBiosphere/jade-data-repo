@@ -22,6 +22,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -29,7 +31,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 @Component
 public class FireStoreUtils {
@@ -37,21 +38,15 @@ public class FireStoreUtils {
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
     private static final int SLEEP_BASE_SECONDS = 1;
 
-    private ConfigurationService configurationService;
+    private static int FIRESTORE_RETRIES = 4;
 
     @Autowired
     public FireStoreUtils(ConfigurationService configurationService) {
-        this.configurationService = configurationService;
+        FIRESTORE_RETRIES = configurationService.getParameterValue(ConfigEnum.FIRESTORE_RETRIES);
     }
 
     public int getFirestoreRetries() {
-        try {
-            return configurationService.getParameterValue(ConfigEnum.FIRESTORE_RETRIES);
-        } catch (Exception ex) {
-            logger.info("No value set for FIRESTORE_RETRIES parameter. Defaulting to 1.");
-            return 1;
-        }
-
+        return FIRESTORE_RETRIES;
     }
 
     <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {
@@ -280,34 +275,22 @@ public class FireStoreUtils {
         return shouldRetry(throwable.getCause(), isBatch);
     }
 
+    @Retryable(
+        value = {DeadlineExceededException.class, UnavailableException.class,
+            InternalException.class, StatusRuntimeException.class},
+        maxAttempts = 4, //I can't figure out how to dynamically get this value
+        backoff = @Backoff(random = true, delay = 1000, maxDelay = 5000, multiplier = 2),
+        listeners = {"retryListener"}
+    )
     public <T> T runTransactionWithRetry(Firestore firestore,
                                          Transaction.Function<T> firestoreFunction,
                                          String transactionOp,
                                          String warnMessage) throws InterruptedException {
-        int retry = 0;
-        while (true) {
-            try {
-                ApiFuture<T> transaction = firestore.runTransaction(firestoreFunction);
+        //TODO - logging just for testing
+        logger.info("[runTransactionWithRetry] {}", warnMessage);
+        ApiFuture<T> transaction = firestore.runTransaction(firestoreFunction);
 
-                return transactionGet(transactionOp, transaction);
-            } catch (Exception ex) {
-                final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry));
-                if (retry < getFirestoreRetries() && FireStoreUtils.shouldRetry(ex, false)) {
-                    // perform retry
-                    retry++;
-                    logger.warn("[transaction retry] Retry-able error in firestore transactions - {} " +
-                            "- will attempt retry #{}" +
-                            " after {} second pause. Message: {}",
-                        warnMessage, retry, retryWait, ex.getMessage());
-                    TimeUnit.SECONDS.sleep(retryWait);
-                } else {
-                    if (retry > getFirestoreRetries()) {
-                        logger.error("[transaction retry] Ran out of retries - {}", warnMessage);
-                    }
-                    throw ex;
-                }
-            }
-        }
+        return transactionGet(transactionOp, transaction);
     }
 
 }

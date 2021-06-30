@@ -12,7 +12,6 @@ import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.flight.VerifyAuthorizationStep;
-import bio.terra.service.iam.sam.SamIam;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
@@ -31,7 +30,7 @@ public class DatasetDataDeleteFlight extends Flight {
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
-    IamProviderInterface iamClient = appContext.getBean("iamProvider", SamIam.class);
+    IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
         ConfigurationService configService = appContext.getBean(ConfigurationService.class);
         ApplicationConfiguration appConfig =  appContext.getBean(ApplicationConfiguration.class);
 

@@ -11,7 +11,6 @@ import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.iam.sam.SamIam;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
@@ -34,7 +33,7 @@ public class DatasetCreateFlight extends Flight {
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
-    IamProviderInterface iamClient = appContext.getBean("iamProvider", SamIam.class);
+    IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
         ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
         AzureDataLocationSelector azureDataLocationSelector = appContext.getBean(AzureDataLocationSelector.class);

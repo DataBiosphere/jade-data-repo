@@ -1,10 +1,12 @@
 package bio.terra.service.profile;
 
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
@@ -116,13 +118,21 @@ public class ProfileService {
      */
     public String deleteProfile(UUID id, AuthenticatedUserRequest user) {
         iamService.verifyAuthorization(user, IamResourceType.SPEND_PROFILE, id.toString(), IamAction.DELETE);
-        BillingProfileModel billingProfile = profileDao.getBillingProfileById(id);
+        CloudPlatform platform;
+        try {
+            BillingProfileModel billingProfile = profileDao.getBillingProfileById(id);
+            platform = billingProfile.getCloudPlatform();
+        } catch (ProfileNotFoundException e) {
+            // Use default cloud profile if the billing profile does not exist and let the flight handle the object
+            // not being found
+            platform = CloudPlatformWrapper.DEFAULT;
+        }
 
         String description = String.format("Delete billing profile id '%s'", id);
         return jobService
             .newJob(description, ProfileDeleteFlight.class, null, user)
             .addParameter(ProfileMapKeys.PROFILE_ID, id)
-            .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), billingProfile.getCloudPlatform())
+            .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform)
             .submit();
     }
 

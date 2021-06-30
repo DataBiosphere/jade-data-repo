@@ -174,7 +174,7 @@ public class DatasetDaoTest {
                 EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, dataset1FromDB.getName(),
                 GoogleRegion.DEFAULT_GOOGLE_REGION.toString(), datasetIds);
         List<DatasetSummary> filteredNameAndRegionDatasets = filterNameAndRegionEnum.getItems();
-        assertThat("dataset filter by name and region returns correct total",
+        assertThat("dataset filter by name and region returns correct size results",
                 filteredNameAndRegionDatasets.size(),
                 equalTo(1));
         assertThat("dataset filter by name and region returns dataset with correct name",
@@ -185,6 +185,13 @@ public class DatasetDaoTest {
                         .stream()
                         .allMatch(datasetSummary ->
                                 datasetSummary.datasetStorageContainsRegion(GoogleRegion.DEFAULT_GOOGLE_REGION)));
+
+        assertThat("dataset filter by name and region returns correct total",
+            filterNameAndRegionEnum.getTotal(),
+            equalTo(2));
+        assertThat("dataset filter by name and region returns correct filtered total",
+            filterNameAndRegionEnum.getFilteredTotal(),
+            equalTo(1));
 
         MetadataEnumeration<DatasetSummary> filterRegionEnum = datasetDao.enumerate(0, 2,
             EnumerateSortByParam.CREATED_DATE, SqlSortDirection.ASC, null,

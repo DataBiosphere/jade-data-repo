@@ -2776,6 +2776,9 @@ components:
         total:
           type: integer
           description: Total number of datasets
+        filteredTotal:
+          type: integer
+          description: The number of datasets included in this enumeration
         items:
           type: array
           items:
@@ -3453,6 +3456,9 @@ components:
         total:
           type: integer
           description: Total number of snapshots
+        filteredTotal:
+          type: integer
+          description: The number of snapshots included in this enumeration
         items:
           type: array
           items:

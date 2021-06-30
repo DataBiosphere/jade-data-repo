@@ -18,6 +18,8 @@ import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -64,24 +66,17 @@ public class FireStoreDependencyDao {
         }
     }
 
+    @Retryable(
+        value = {FirestoreException.class},
+        maxAttempts = 4, //I can't figure out how to dynamically get this value
+        backoff = @Backoff(random = true, delay = 1000, maxDelay = 5000, multiplier = 2),
+        listeners = {"retryListener"}
+    )
     public boolean datasetHasSnapshotReference(Dataset dataset) {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
-        // TODO - use generic retry library
-        int retryCount = 0;
-        while (true) {
-            try {
-                // check to see if the datasets collection contains any dependencies
-                return depColl.listDocuments().iterator().hasNext();
-            } catch (FirestoreException ex) {
-                retryCount++;
-                if (retryCount > fireStoreUtils.getFirestoreRetries()) {
-                    logger.error("[datasetHasSnapshotReference retry] After {} retries, hit max retries", retryCount);
-                    throw ex;
-                }
-            }
-        }
+        return depColl.listDocuments().iterator().hasNext();
     }
 
     public List<String> getDatasetSnapshotFileIds(Dataset dataset, String snapshotId) throws InterruptedException {

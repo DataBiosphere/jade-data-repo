@@ -141,7 +141,7 @@ public class FireStoreUtils {
      */
     @Retryable(
         value = {FileSystemExecutionException.class},
-        maxAttempts = 4, //I can't figure out how to dynamically get this value
+        maxAttempts = 1, //I can't figure out how to dynamically get this value
         backoff = @Backoff(random = true, delay = 1000, maxDelay = 5000, multiplier = 2),
         listeners = {"retryListener"}
     )
@@ -284,8 +284,10 @@ public class FireStoreUtils {
     @Retryable(
         value = {DeadlineExceededException.class, UnavailableException.class,
             InternalException.class, StatusRuntimeException.class},
-        maxAttempts = 4, //I can't figure out how to dynamically get this value
-        backoff = @Backoff(random = true, delay = 1000, maxDelay = 5000, multiplier = 2),
+        //label = "RunTransactionWithRetry",
+        maxAttempts = 1, //I can't figure out how to dynamically get this value
+        backoff = @Backoff(delay = 10000, maxDelay = 100000, multiplier = 2),
+        //exceptionExpression = "Failed to retry transaction",
         listeners = {"retryListener"}
     )
     public <T> T runTransactionWithRetry(Firestore firestore,

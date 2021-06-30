@@ -64,8 +64,8 @@ public class CreateSnapshot extends SimpleDataset {
     BulkLoadResultModel loadSummary = result.getLoadSummary();
     assertThat(
         "Number of successful files loaded should equal total files.",
-        loadSummary.getTotalFiles(),
-        equalTo(loadSummary.getSucceededFiles()));
+        loadSummary.getSucceededFiles(),
+        equalTo(loadSummary.getTotalFiles()));
 
     // generate load for the simple dataset
     String testConfigGetIngestbucket = "jade-testdata";

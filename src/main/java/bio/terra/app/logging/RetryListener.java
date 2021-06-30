@@ -16,8 +16,7 @@ class RetryListener extends RetryListenerSupport {
     public <T, E extends Throwable> void close(RetryContext context,
                                                RetryCallback<T, E> callback, Throwable throwable) {
 
-        logger.error("Unable to recover from  Exception");
-        logger.error("Error ", throwable);
+        logger.info("closing retry");
         super.close(context, callback, throwable);
     }
 
@@ -32,7 +31,8 @@ class RetryListener extends RetryListenerSupport {
     @Override
     public <T, E extends Throwable> boolean open(RetryContext context,
                                                  RetryCallback<T, E> callback) {
-        logger.error("Exception Occurred, Retry Session Started ");
+        logger.info("Open retryable.");
+
         return super.open(context, callback);
     }
 }

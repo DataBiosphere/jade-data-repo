@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 
@@ -145,5 +146,14 @@ public class Snapshot implements FSContainerInterface {
         Map<UUID, Column> result = new HashMap<>();
         getTables().forEach(t -> t.getColumns().forEach(c -> result.put(c.getId(), c)));
         return result;
+    }
+
+    @Override
+    public FireStoreProject firestoreConnection() {
+        String datasetProjectId = getFirstSnapshotSource()
+            .getDataset()
+            .getProjectResource()
+            .getGoogleProjectId();
+        return FireStoreProject.get(datasetProjectId);
     }
 }

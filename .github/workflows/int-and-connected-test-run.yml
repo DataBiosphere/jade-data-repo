@@ -11,6 +11,7 @@ env:
   AZURE_CREDENTIALS_APPLICATIONID: 22cb243c-f1a5-43d8-8f12-6566bcce6542
   AZURE_CREDENTIALS_HOMETENANTID: fad90753-2022-4456-9b0a-c7e5b934e408
   JADE_USER_EMAIL: connected-tdr-user@notarealemail.org
+  RBS_CLIENT_CREDENTIAL_FILE_PATH: rbs-tools-sa.json
 on:
   pull_request:
     branches:
@@ -56,10 +57,15 @@ jobs:
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: approle
-          roleId: ${{ secrets.ROLE_ID }}
-          secretId: ${{ secrets.SECRET_ID }}
+          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
+          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/dev/azure-test applicationsecret | AZURE_CREDENTIALS_SECRET ;
+            secret/dsde/terra/kernel/integration/tools/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
+      - name: "Write RBS SA to a file"
+        run: |
+          # write vault token
+          base64 --decode <<< ${B64_RBS_APPLICATION_CREDENTIALS} > ${RBS_CLIENT_CREDENTIAL_FILE_PATH}
       - name: "Run Connected test via Gradle"
         uses: broadinstitute/datarepo-actions/actions/main@0.60.0
         with:
@@ -110,7 +116,7 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.127
+          helm_datarepo_api_chart_version: 0.0.133
           helm_datarepo_ui_chart_version: 0.0.77
           helm_gcloud_sqlproxy_chart_version: 0.19.7
           helm_oidc_proxy_chart_version: 0.0.22
@@ -136,6 +142,12 @@ jobs:
           actions_subcommand: 'gradleinttest'
           pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
+      - name: "Archive code coverage results"
+        uses: actions/upload-artifact@v2
+        with:
+          name: code-coverage-report
+          path: build/jacocoHtml
+          retention-days: 10
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()
         uses: broadinstitute/datarepo-actions/actions/main@0.60.0

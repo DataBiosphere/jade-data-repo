@@ -109,7 +109,7 @@ public class AzureResourceConfigurationTest {
         logger.info("Making sure storage account was deleted");
         // Make sure the storage account is deleted.  Timing affects what errors is thrown so wait until the final state
         // error is thrown.
-        Awaitility.waitAtMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
+        Awaitility.waitAtMost(5, TimeUnit.MINUTES).untilAsserted(() -> {
             try {
                 client.storageAccounts().getById(storageAccount.id());
             } catch (ManagementException e) {

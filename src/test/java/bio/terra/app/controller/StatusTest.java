@@ -20,8 +20,6 @@ import static org.junit.Assert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-
-
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -54,10 +52,14 @@ public class StatusTest {
             .andReturn();
         MockHttpServletResponse downResponse = result.getResponse();
         String responseBody = downResponse.getContentAsString();
-        assertThat("/Status response should indicate that postgres is down, and therefore the whole system is down.",
-            responseBody, startsWith("{\"ok\":false,\"systems\":{\"Postgres\":{\"ok\":false,\"critical\":true"));
+        assertThat("/Status response should indicate that the whole system is down.",
+            responseBody, startsWith("{\"ok\":false"));
+        assertThat("/Status response should indicate that postgres is down",
+                responseBody, containsString("\"Postgres\":{\"ok\":false,\"critical\":true"));
         assertThat("/Status response should indicate that sam is up",
             responseBody, containsString("\"Sam\":{\"ok\":true,\"critical\":true"));
+        assertThat("/Status response should indicate that rbs is up",
+                responseBody, containsString("\"ResourceBufferService\":{\"ok\":true,\"critical\":false"));
 
         configurationService.setFault(ConfigEnum.CRITICAL_SYSTEM_FAULT.name(), false);
         MvcResult upResult = this.mvc.perform(get("/status"))

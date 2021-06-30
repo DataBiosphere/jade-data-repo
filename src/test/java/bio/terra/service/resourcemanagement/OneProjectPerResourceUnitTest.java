@@ -6,6 +6,7 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
@@ -246,8 +247,9 @@ public class OneProjectPerResourceUnitTest {
         Dataset dataset;
         DatasetRequestModel datasetRequest1 =
             jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
-        datasetRequest1.name(datasetRequest1.getName() + UUID.randomUUID().toString())
-            .defaultProfileId(billingProfile.getId());
+        datasetRequest1.name(datasetRequest1.getName() + UUID.randomUUID())
+            .defaultProfileId(billingProfile.getId())
+            .cloudPlatform(CloudPlatform.GCP);
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest1);
         dataset.projectResource(project);
         dataset.projectResourceId(project.getId());

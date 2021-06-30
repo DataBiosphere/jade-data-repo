@@ -160,7 +160,8 @@ public class ConnectedOperations {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
         datasetRequest
             .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(profileModel.getId());
+            .defaultProfileId(profileModel.getId())
+            .cloudPlatform(profileModel.getCloudPlatform());
 
         return createDataset(datasetRequest);
     }

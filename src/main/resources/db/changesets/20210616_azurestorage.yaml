@@ -1,0 +1,168 @@
+databaseChangeLog:
+  - changeSet:
+      id: azure_storage
+      author: nm
+      changes:
+        - createTable:
+            tableName: application_deployment_resource
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: azure_application_deployment_id
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: azure_application_deployment_name
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: azure_resource_group_name
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: azure_synapse_workspace
+                  type: varchar(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: default_region
+                  type: varchar(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: storage_account_prefix
+                  type: varchar(10)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: storage_account_sku_type
+                  type: varchar(20)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: profile_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dep_app_billing_profile
+                    references: billing_profile(id)
+                    deleteCascade: false
+              - column:
+                  name: marked_for_delete
+                  type: boolean
+                  defaultValueBoolean: false
+        - createTable:
+            tableName: storage_account_resource
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: application_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_storage_app_resource
+                    references: application_deployment_resource(id)
+                    deleteCascade: false
+              - column:
+                  name: name
+                  type: varchar(24)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: datacontainer
+                  type: varchar(63)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: metadatacontainer
+                  type: varchar(63)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dbname
+                  type: varchar(63)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: flightid
+                  type: varchar(36)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: marked_for_delete
+                  type: boolean
+                  defaultValueBoolean: false
+        - createTable:
+            tableName: dataset_storage_account
+            remarks: |
+              This table links datasets to the storage accounts they use. There can be more than one storage accounts
+              in use by a dataset, because there are different payers for the data in the dataset.
+              More than one ingest can attempt to create this row, so we do not error on duplicate
+              entries and we do not try to delete it. Instead, we maintain a successful_ingest counter.
+              If the counter is zero, then no files have ever been successfully ingested into this storage account for
+              this dataset. That is equivalent to no link between the dataset and the storage account.
+            columns:
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_dataset_storage_account
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: storage_account_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_storage_account_resource_dataset_bucket
+                    references: storage_account_resource(id)
+                    deleteCascade: true
+              - column:
+                  name: successful_ingests
+                  type: int8
+                  constraints:
+                    nullable: false
+              - addPrimaryKey:
+                  tableName: dataset_storage_account
+                  columnNames: dataset_id, storage_account_resource_id
+                  constraintName: pk_dataset_storage_account
+        - addColumn:
+            tableName: dataset
+            columns:
+              - column:
+                  name: application_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_dataset_app_resource
+                    references: application_deployment_resource(id)
+                    deleteCascade: true
+
+        - addColumn:
+            tableName: snapshot
+            columns:
+              - column:
+                  name: application_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_snapshot_app_resource
+                    references: application_deployment_resource(id)
+                    deleteCascade: true

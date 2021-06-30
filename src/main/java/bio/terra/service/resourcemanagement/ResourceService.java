@@ -1,11 +1,17 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.app.model.AzureCloudResource;
+import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetBucketDao;
+import bio.terra.service.dataset.DatasetStorageAccountDao;
+import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
+import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
@@ -37,24 +43,33 @@ public class ResourceService {
     public static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
 
     private final DataLocationSelector dataLocationSelector;
+    private final AzureDataLocationSelector azureDataLocationSelector;
     private final GoogleProjectService projectService;
     private final GoogleBucketService bucketService;
+    private final AzureApplicationDeploymentService applicationDeploymentService;
+    private final AzureStorageAccountService storageAccountService;
     private final SamConfiguration samConfiguration;
-    private final DatasetBucketDao datasetBucketDao;
+    private final DatasetStorageAccountDao datasetStorageAccountDao;
 
 
     @Autowired
     public ResourceService(
         DataLocationSelector dataLocationSelector,
+        AzureDataLocationSelector azureDataLocationSelector,
         GoogleProjectService projectService,
         GoogleBucketService bucketService,
+        AzureApplicationDeploymentService applicationDeploymentService,
+        AzureStorageAccountService storageAccountService,
         SamConfiguration samConfiguration,
-        DatasetBucketDao datasetBucketDao) {
+        DatasetStorageAccountDao datasetStorageAccountDao) {
         this.dataLocationSelector = dataLocationSelector;
+        this.azureDataLocationSelector = azureDataLocationSelector;
         this.projectService = projectService;
         this.bucketService = bucketService;
+        this.applicationDeploymentService = applicationDeploymentService;
+        this.storageAccountService = storageAccountService;
         this.samConfiguration = samConfiguration;
-        this.datasetBucketDao = datasetBucketDao;
+        this.datasetStorageAccountDao = datasetStorageAccountDao;
     }
 
     /**
@@ -86,11 +101,11 @@ public class ResourceService {
      * @param flightId       used to lock the bucket metadata during possible creation
      * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws CorruptMetadataException in two cases.
-     * <ol>
-     *     <le>if the bucket already exists, but the metadata does not AND
-     *     the application property allowReuseExistingBuckets=false.</le>
-     *     <le>if the metadata exists, but the bucket does not</le>
-     * </ol>
+     * <ul>
+     *     <li>if the bucket already exists, but the metadata does not AND
+     *     the application property allowReuseExistingBuckets=false.</li>
+     *     <li>if the metadata exists, but the bucket does not</li>
+     * </ul>
      */
     public GoogleBucketResource getOrCreateBucketForFile(Dataset dataset,
                                                          GoogleProjectResource projectResource,
@@ -101,6 +116,86 @@ public class ResourceService {
             projectResource,
             (GoogleRegion) dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
             flightId);
+    }
+
+    /**
+     * Given an application deployment, get or create a storage account.
+     *
+     * @param dataset        dataset to create storage account for
+     * @param billingProfile authorized profile for billing account information case we need to
+     *                       create an application deployment or storage account
+     * @param flightId       used to lock the bucket metadata during possible creation
+     * @return a reference to the bucket as a POJO AzureStorageAccountResource
+     * @throws CorruptMetadataException in two cases.
+     * <ul>
+     *     <li>if the storage account already exists, but the metadata does not AND
+     *     the application property allowReuseExistingBuckets=false.</li>
+     *     <li>if the metadata exists, but the storage account does not</li>
+     * </ul>
+     */
+    public AzureStorageAccountResource getOrCreateStorageAccount(Dataset dataset,
+                                                                 BillingProfileModel billingProfile,
+                                                                 String flightId) throws InterruptedException {
+        final AzureRegion region =
+            (AzureRegion) dataset.getDatasetSummary().getStorageResourceRegion(AzureCloudResource.STORAGE_ACCOUNT);
+        // Every storage account needs to live in a deployed application's managed resource group, so we make sure that
+        // the application deployment is registered first
+        final AzureApplicationDeploymentResource applicationResource =
+            applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
+
+        List<UUID> storageAccountsForDataset =
+            datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
+
+        String storageAccountName = azureDataLocationSelector.storageAccountNameForDataset(
+            applicationResource.getStorageAccountPrefix(),
+            dataset.getName(),
+            billingProfile);
+
+        List<AzureStorageAccountResource> storageAccountsForBillingProfile = storageAccountsForDataset.stream()
+            .map(this::lookupStorageAccount)
+            .filter(a -> storageAccountIsForBillingProfile(a, billingProfile))
+            .collect(Collectors.toList());
+
+        // there should never be more than one storage account per dataset / billing profile,
+        // so we just take the first one
+        if (storageAccountsForBillingProfile.size() > 0) {
+            AzureStorageAccountResource storageAccount = storageAccountsForBillingProfile.get(0);
+            storageAccountName = storageAccount.getName();
+
+            if (storageAccountsForBillingProfile.size() > 1) {
+                logger.warn("Found more than one storage account associated with this dataset and billing profile");
+            }
+        }
+
+        return storageAccountService.getOrCreateStorageAccount(
+            storageAccountName,
+            applicationResource,
+            region,
+            flightId);
+    }
+
+    /**
+     * Delete the metadata and cloud storage account.  Note: this will not check references and delete the storage
+     * even if it contains data
+     * @param dataset The dataset whose storage account to delete
+     * @param flightId The flight that might potentially have the storage account locked
+     */
+    public void deleteStorageAccount(Dataset dataset,
+                                     String flightId) {
+        // Get list of linked accounts
+        List<UUID> sasToDelete = datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
+
+        sasToDelete.forEach(s -> {
+            logger.info("Deleting storage account id {}", s);
+            AzureStorageAccountResource storageAccountResource = storageAccountService.retrieveStorageAccountById(s);
+            storageAccountService.deleteCloudStorageAccount(storageAccountResource, flightId);
+        });
+    }
+
+    private boolean storageAccountIsForBillingProfile(AzureStorageAccountResource storageAccount,
+                                                      BillingProfileModel billingProfile) {
+        AzureApplicationDeploymentResource resource = storageAccount.getApplicationResource();
+        return resource.getProfileId().equals(billingProfile.getId());
     }
 
     /**
@@ -118,6 +213,10 @@ public class ResourceService {
 
     public GoogleBucketResource lookupBucket(UUID bucketResourceId) {
         return bucketService.getBucketResourceById(bucketResourceId, true);
+    }
+
+    public AzureStorageAccountResource lookupStorageAccount(UUID storageAccountResourceId) {
+        return storageAccountService.getStorageAccountResourceById(storageAccountResourceId, true);
     }
 
     /**
@@ -175,7 +274,7 @@ public class ResourceService {
      * Create a new project for a dataset,  if none exists already.
      *
      * @param billingProfile authorized billing profile to pay for the project
-     * @param region         the region to ceraate
+     * @param region         the region to create the project in
      * @return project resource id
      */
     public UUID getOrCreateDatasetProject(BillingProfileModel billingProfile,
@@ -192,13 +291,23 @@ public class ResourceService {
     }
 
     /**
-     * Look up in existing project resource given its id
+     * Look up an existing project resource given its id
      *
-     * @param projectResourceId unique idea for the project
+     * @param projectResourceId unique id for the project
      * @return project resource
      */
     public GoogleProjectResource getProjectResource(UUID projectResourceId) {
         return projectService.getProjectResourceById(projectResourceId);
+    }
+
+    /**
+     * Look up an existing application deployment resource given its id
+     *
+     * @param applicationId unique id for the application deployment
+     * @return application deployment resource
+     */
+    public AzureApplicationDeploymentResource getApplicationDeploymentResource(UUID applicationId) {
+        return applicationDeploymentService.getApplicationDeploymentResourceById(applicationId);
     }
 
     public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
@@ -234,12 +343,20 @@ public class ResourceService {
         return projectService.markUnusedProjectsForDelete(profileId);
     }
 
+    public List<UUID> markUnusedApplicationDeploymentsForDelete(UUID profileId) {
+        return applicationDeploymentService.markUnusedApplicationDeploymentsForDelete(profileId);
+    }
+
     public void deleteUnusedProjects(List<UUID> projectIdList) {
         projectService.deleteUnusedProjects(projectIdList);
     }
 
     public void deleteProjectMetadata(List<UUID> projectIdList) {
         projectService.deleteProjectMetadata(projectIdList);
+    }
+
+    public void deleteDeployedApplicationMetadata(List<UUID> applicationIdList) {
+        applicationDeploymentService.deleteApplicationDeploymentMetadata(applicationIdList);
     }
 
 }

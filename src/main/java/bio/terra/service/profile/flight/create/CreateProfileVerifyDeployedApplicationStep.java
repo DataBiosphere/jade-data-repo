@@ -1,7 +1,6 @@
 package bio.terra.service.profile.flight.create;
 
 import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
@@ -30,15 +29,11 @@ public class CreateProfileVerifyDeployedApplicationStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) throws InterruptedException {
-        if (request.getCloudPlatform() == CloudPlatform.AZURE) {
-            profileService.verifyDeployedApplication(
-                UUID.fromString(request.getSubscriptionId()),
-                request.getResourceGroupName(),
-                request.getApplicationDeploymentName(),
-                user);
-        } else {
-            logger.info("Billing profile is not an Azure billing profile.  Skipping Azure validation");
-        }
+        profileService.verifyDeployedApplication(
+            UUID.fromString(request.getSubscriptionId()),
+            request.getResourceGroupName(),
+            request.getApplicationDeploymentName(),
+            user);
         return StepResult.getStepResultSuccess();
     }
 

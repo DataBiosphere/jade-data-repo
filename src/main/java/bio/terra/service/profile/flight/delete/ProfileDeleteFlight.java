@@ -1,5 +1,9 @@
 package bio.terra.service.profile.flight.delete;
 
+import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.CloudPlatform;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -20,6 +24,12 @@ public class ProfileDeleteFlight extends Flight {
 
         UUID profileId = inputParameters.get(ProfileMapKeys.PROFILE_ID, UUID.class);
 
+        AuthenticatedUserRequest user = inputParameters.get(
+            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+
+        var platform = CloudPlatformWrapper.of(inputParameters.get(
+            JobMapKeys.CLOUD_PLATFORM.getKeyName(), CloudPlatform.class));
+
         // We do not delete unused Google projects at the point where they become unused; that is, the last
         // file or dataset or snapshot is deleted from them. Instead, we use this profile delete operation
         // to trigger the process of discovering and deleting any unused projects.
@@ -39,9 +49,22 @@ public class ProfileDeleteFlight extends Flight {
         //     deleted state, so no undo. This operation is transactional, so it either all gets done or not.
         // If at that point, the profile still has existing projects, we will error. Otherwise, we
         // complete the deletion of the billing profile.
+        // In the case of Azure, metadata records are deleted but will fail if the underlying resources are in use
         addStep(new DeleteProfileMarkUnusedProjects(resourceService, profileId));
+        if (platform.isAzure()) {
+            addStep(new DeleteProfileMarkUnusedApplicationDeployments(profileService,
+                resourceService,
+                user,
+                profileId));
+        }
+
         addStep(new DeleteProfileDeleteUnusedProjects(resourceService));
         addStep(new DeleteProfileProjectMetadata(resourceService));
+
+        if (platform.isAzure()) {
+            addStep(new DeleteProfileApplicationDeploymentMetadata(resourceService));
+        }
+
         addStep(new DeleteProfileMetadataStep(profileService, profileId));
         addStep(new DeleteProfileAuthzIamStep(profileService, profileId));
     }

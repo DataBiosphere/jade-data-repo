@@ -42,11 +42,15 @@ public class UsersBase {
 
 
     protected void setup() throws Exception {
-        admin = users.getUserForRole("admin");
-        steward = users.getUserForRole("steward");
-        custodian = users.getUserForRole("custodian");
-        reader = users.getUserForRole("reader");
-        discoverer = users.getUserForRole("discoverer");
+        setup(true);
+    }
+
+    protected void setup(boolean shuffle) throws Exception {
+        admin = users.getUserForRole("admin", shuffle);
+        steward = users.getUserForRole("steward", shuffle);
+        custodian = users.getUserForRole("custodian", shuffle);
+        reader = users.getUserForRole("reader", shuffle);
+        discoverer = users.getUserForRole("discoverer", shuffle);
         logger.info("steward: " + steward.getName() + "; custodian: " + custodian.getName() +
             "; reader: " + reader.getName() + "; discoverer: " + discoverer.getName());
     }

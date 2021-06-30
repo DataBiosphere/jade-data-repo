@@ -107,7 +107,7 @@ public class LoadDao {
             load = new Load()
                 .id(keyHolder.getId())
                 .loadTag(keyHolder.getString("load_tag"))
-                .locked(keyHolder.getField("locked", Boolean.class))
+                .locked(keyHolder.getField("locked", Boolean.class).orElse(false))
                 .lockingFlightId(keyHolder.getString("locking_flight_id"));
         }
 

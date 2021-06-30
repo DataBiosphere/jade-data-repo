@@ -10,6 +10,7 @@ public enum JobMapKeys {
     STATUS_CODE("status_code"),
     AUTH_USER_INFO("auth_user_info"),
     SUBJECT_ID("subjectId"),
+    CLOUD_PLATFORM("cloudPlatform"),
 
     // parameters for specific flight types
     DATASET_ID("datasetId"),

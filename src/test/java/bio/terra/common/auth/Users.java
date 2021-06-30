@@ -36,14 +36,18 @@ public class Users {
     }
 
     public TestConfiguration.User getUserForRole(String role) {
-        return getUsersForRole(role, 1).get(0);
+        return getUserForRole(role, true);
+    }
+
+    public TestConfiguration.User getUserForRole(String role, boolean shuffle) {
+        return getUsersForRole(role, 1, shuffle).get(0);
     }
 
     public TestConfiguration.User getUser(String name) {
         return userByName.get(name);
     }
 
-    public List<TestConfiguration.User> getUsersForRole(String role, int numUsers) {
+    public List<TestConfiguration.User> getUsersForRole(String role, int numUsers, boolean shuffle) {
         if (role == null) {
             throw new RuntimeException("Role not specified");
         }
@@ -51,7 +55,9 @@ public class Users {
         if (usersList.size() < numUsers) {
             throw new RuntimeException("not enough users for " + role);
         }
-        Collections.shuffle(usersList);
+        if (shuffle) {
+            Collections.shuffle(usersList);
+        }
         return usersList.subList(0, numUsers);
     }
 

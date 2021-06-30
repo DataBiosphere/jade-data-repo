@@ -105,8 +105,7 @@ public class StorageResourceDao {
             valuesList.add(String.format("(:dataset_id, :%s, :%s, :%s)",
                 regionParam, cloudResourceParam, platformParam));
 
-            params.addValue(regionParam, ((GoogleRegion) storageResource.getRegion())
-                    .name());
+            params.addValue(regionParam, storageResource.getRegion().name());
             params.addValue(cloudResourceParam, storageResource.getCloudResource().name());
             params.addValue(platformParam, storageResource.getCloudPlatform().name());
         }

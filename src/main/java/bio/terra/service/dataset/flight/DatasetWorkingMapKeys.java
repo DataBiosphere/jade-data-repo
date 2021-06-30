@@ -9,5 +9,7 @@ public final class DatasetWorkingMapKeys {
     public static final String ASSET_NAME_COLLISION = "assetNameCollision";
     public static final String POLICY_EMAILS = "policyEmails";
     public static final String PROJECT_RESOURCE_ID = "projectResourceId";
+    public static final String APPLICATION_DEPLOYMENT_RESOURCE_ID = "applicationDeploymentResourceId";
+    public static final String STORAGE_ACCOUNT_RESOURCE_ID = "storageAccountResourceId";
 
 }

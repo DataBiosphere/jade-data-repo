@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import bio.terra.common.Column;
 import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
+import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import org.apache.commons.lang3.StringUtils;
@@ -22,6 +23,7 @@ public class Dataset implements FSContainerInterface {
     private List<Relationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
     private GoogleProjectResource projectResource;
+    private AzureApplicationDeploymentResource applicationDeploymentResource;
 
     public Dataset() {
         datasetSummary = new DatasetSummary();
@@ -160,6 +162,15 @@ public class Dataset implements FSContainerInterface {
         return this;
     }
 
+    public UUID getApplicationDeploymentResourceId() {
+        return datasetSummary.getApplicationDeploymentResourceId();
+    }
+
+    public Dataset applicationDeploymentResourceId(UUID applicationDeploymentResourceId) {
+        datasetSummary.applicationDeploymentResourceId(applicationDeploymentResourceId);
+        return this;
+    }
+
     public List<? extends StorageResource<?, ?>> getStorage() {
         return datasetSummary.getStorage();
     }
@@ -181,5 +192,14 @@ public class Dataset implements FSContainerInterface {
     @Override
     public FireStoreProject firestoreConnection() {
         return FireStoreProject.get(getProjectResource().getGoogleProjectId());
+    }
+
+    public AzureApplicationDeploymentResource getApplicationDeploymentResource() {
+        return applicationDeploymentResource;
+    }
+
+    public Dataset applicationDeploymentResource(AzureApplicationDeploymentResource applicationDeploymentResource) {
+        this.applicationDeploymentResource = applicationDeploymentResource;
+        return this;
     }
 }

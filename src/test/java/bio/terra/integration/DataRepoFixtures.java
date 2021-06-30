@@ -1,5 +1,6 @@
 package bio.terra.integration;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.TestUtils;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
@@ -10,6 +11,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
@@ -88,7 +90,36 @@ public class DataRepoFixtures {
         DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.waitForResponse(
             user, jobResponse, BillingProfileModel.class);
 
-        assertThat("billing profile model is successfuly created", postResponse.getStatusCode(),
+        assertThat("billing profile model is successfully created", postResponse.getStatusCode(),
+            equalTo(HttpStatus.CREATED));
+        assertTrue("create billing profile model response is present",
+            postResponse.getResponseObject().isPresent());
+        return postResponse.getResponseObject().get();
+    }
+
+    // Create a Billing Profile model: expect successful creation
+    public BillingProfileModel createAzureBillingProfile(TestConfiguration.User user) throws Exception {
+        BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.billingProfileRequest(
+            ProfileFixtures.billingProfileForDeployedApplication(
+                testConfig.getTargetTenantId(),
+                testConfig.getTargetSubscriptionId(),
+                testConfig.getTargetResourceGroupName(),
+                testConfig.getTargetApplicationName(),
+                testConfig.getGoogleBillingAccountId()));
+        String json = TestUtils.mapToJson(billingProfileRequestModel);
+
+        DataRepoResponse<JobModel> jobResponse = dataRepoClient.post(
+            user,
+            "/api/resources/v1/profiles",
+            json,
+            JobModel.class);
+        assertTrue("profile create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("profile create launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.waitForResponse(
+            user, jobResponse, BillingProfileModel.class);
+
+        assertThat("billing profile model is successfully created", postResponse.getStatusCode(),
             equalTo(HttpStatus.CREATED));
         assertTrue("create billing profile model response is present",
             postResponse.getResponseObject().isPresent());
@@ -113,11 +144,17 @@ public class DataRepoFixtures {
 
     // datasets
 
-    private DataRepoResponse<JobModel> createDatasetRaw(TestConfiguration.User user, UUID profileId, String filename)
+    private DataRepoResponse<JobModel> createDatasetRaw(TestConfiguration.User user,
+                                                        UUID profileId,
+                                                        String filename,
+                                                        CloudPlatform cloudPlatform)
         throws Exception {
         DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
         requestModel.setDefaultProfileId(profileId);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
+        if (cloudPlatform != null && requestModel.getCloudPlatform() == null) {
+            requestModel.setCloudPlatform(cloudPlatform);
+        }
         String json = TestUtils.mapToJson(requestModel);
 
         return dataRepoClient.post(
@@ -130,7 +167,13 @@ public class DataRepoFixtures {
     public DatasetSummaryModel createDataset(TestConfiguration.User user,
                                              UUID profileId,
                                              String filename) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename);
+        return createDataset(user, profileId, filename, CloudPlatformWrapper.DEFAULT);
+    }
+    public DatasetSummaryModel createDataset(TestConfiguration.User user,
+                                             UUID profileId,
+                                             String filename,
+                                             CloudPlatform cloudPlatform) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename, cloudPlatform);
         assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
 
@@ -143,10 +186,18 @@ public class DataRepoFixtures {
     }
 
     public void createDatasetError(TestConfiguration.User user,
-                                         UUID profileId,
-                                         String filename,
-                                         HttpStatus checkStatus) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename);
+                                   UUID profileId,
+                                   String filename,
+                                   HttpStatus checkStatus) throws Exception {
+        createDatasetError(user, profileId, filename, checkStatus, CloudPlatform.GCP);
+    }
+
+    public void createDatasetError(TestConfiguration.User user,
+                                   UUID profileId,
+                                   String filename,
+                                   HttpStatus checkStatus,
+                                   CloudPlatform cloudPlatform) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, profileId, filename, cloudPlatform);
         assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
 

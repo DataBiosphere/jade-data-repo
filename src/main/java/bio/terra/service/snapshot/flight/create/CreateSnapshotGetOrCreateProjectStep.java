@@ -2,16 +2,13 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 
 public class CreateSnapshotGetOrCreateProjectStep implements Step {

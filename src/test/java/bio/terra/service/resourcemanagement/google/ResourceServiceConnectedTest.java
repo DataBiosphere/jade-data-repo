@@ -68,8 +68,8 @@ public class ResourceServiceConnectedTest {
     Map<String, List<String>> roleToStewardMap = new HashMap<>();
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
-        GoogleProjectResource projectResource =
-            projectService.getOrInitializeProject(projectId, profile, roleToStewardMap, GoogleRegion.DEFAULT_GOOGLE_REGION);
+        GoogleProjectResource projectResource = projectService.getOrInitializeProject(projectId,
+                profile, roleToStewardMap, GoogleRegion.DEFAULT_GOOGLE_REGION);
 
     Project project = projectService.getProject(projectId);
     assertThat("the project is active", project.getLifecycleState(), equalTo("ACTIVE"));

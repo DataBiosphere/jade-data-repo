@@ -4,7 +4,6 @@ import bio.terra.buffer.model.HandoutRequestBody;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.resourcemanagement.BufferService;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

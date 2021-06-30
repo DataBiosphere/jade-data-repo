@@ -1,8 +1,6 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.buffer.model.HandoutRequestBody;
-import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.profile.google.GoogleBillingService;
@@ -38,7 +36,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

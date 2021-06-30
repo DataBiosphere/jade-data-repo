@@ -68,8 +68,8 @@ public class FireStoreDependencyDao {
 
     @Retryable(
         value = {FirestoreException.class},
-        maxAttempts = 4, //I can't figure out how to dynamically get this value
-        backoff = @Backoff(random = true, delay = 1000, maxDelay = 5000, multiplier = 2),
+        maxAttemptsExpression = "${google.firestoreRetries}",
+        backoff = @Backoff(random = true, delay = 1000, maxDelay = 10000, multiplier = 2),
         listeners = {"retryListener"}
     )
     public boolean datasetHasSnapshotReference(Dataset dataset) {

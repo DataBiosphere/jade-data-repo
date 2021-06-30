@@ -38,15 +38,11 @@ public class FireStoreUtils {
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
     private static final int SLEEP_BASE_SECONDS = 1;
 
-    private static int FIRESTORE_RETRIES = 4;
+    private int FIRESTORE_RETRIES;
 
     @Autowired
     public FireStoreUtils(ConfigurationService configurationService) {
-        FIRESTORE_RETRIES = configurationService.getParameterValue(ConfigEnum.FIRESTORE_RETRIES);
-    }
-
-    public int getFirestoreRetries() {
-        return FIRESTORE_RETRIES;
+        this.FIRESTORE_RETRIES = configurationService.getParameterValue(ConfigEnum.FIRESTORE_RETRIES);
     }
 
     <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {
@@ -141,7 +137,7 @@ public class FireStoreUtils {
      */
     @Retryable(
         value = {FileSystemExecutionException.class},
-        maxAttempts = 1, //I can't figure out how to dynamically get this value
+        maxAttemptsExpression = "${google.firestoreRetries}",
         backoff = @Backoff(random = true, delay = 1000, maxDelay = 5000, multiplier = 2),
         listeners = {"retryListener"}
     )
@@ -251,9 +247,9 @@ public class FireStoreUtils {
             final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, noProgressCount));
             if (completeCount == 0) {
                 noProgressCount++;
-                if (noProgressCount > getFirestoreRetries()) {
+                if (noProgressCount > FIRESTORE_RETRIES) {
                     throw new FileSystemExecutionException("batch operation failed. " +
-                        getFirestoreRetries() + " tries with no progress.");
+                        FIRESTORE_RETRIES + " tries with no progress.");
                 } else {
                     logger.info("[batchOperation] will attempt retry #{} after {} millisecond pause.",
                         noProgressCount, retryWait);
@@ -284,10 +280,8 @@ public class FireStoreUtils {
     @Retryable(
         value = {DeadlineExceededException.class, UnavailableException.class,
             InternalException.class, StatusRuntimeException.class},
-        //label = "RunTransactionWithRetry",
-        maxAttempts = 2, //I can't figure out how to dynamically get this value
-        backoff = @Backoff(delay = 10000, maxDelay = 100000, multiplier = 2),
-        //exceptionExpression = "Failed to retry transaction",
+        maxAttemptsExpression = "${google.firestoreRetries}",
+        backoff = @Backoff(random = true, delay = 10000, maxDelay = 100000, multiplier = 2),
         listeners = {"retryListener"}
     )
     public <T> T runTransactionWithRetry(Firestore firestore,

@@ -286,10 +286,7 @@ public class FireStoreUtils {
     )
     public <T> T runTransactionWithRetry(Firestore firestore,
                                          Transaction.Function<T> firestoreFunction,
-                                         String transactionOp,
-                                         String warnMessage) throws InterruptedException {
-        //TODO - logging just for testing
-        logger.info("[runTransactionWithRetry] {}", warnMessage);
+                                         String transactionOp) throws InterruptedException {
         ApiFuture<T> transaction = firestore.runTransaction(firestoreFunction);
 
         return transactionGet(transactionOp, transaction);

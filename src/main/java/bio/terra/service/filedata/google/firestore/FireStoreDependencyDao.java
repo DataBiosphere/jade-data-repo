@@ -76,6 +76,7 @@ public class FireStoreDependencyDao {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
+        // check to see if the datasets collection contains any dependencies
         return depColl.listDocuments().iterator().hasNext();
     }
 

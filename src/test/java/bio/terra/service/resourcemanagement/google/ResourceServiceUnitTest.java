@@ -49,7 +49,10 @@ public class ResourceServiceUnitTest {
 
   @Mock private DataLocationSelector dataLocationSelector;
 
-  private final UUID billingProfileId = UUID.randomUUID();
+  @Mock
+    private AzureDataLocationSelector azureDataLocationSelector;
+
+    private final UUID billingProfileId = UUID.randomUUID();
 
   private final UUID datasetId = UUID.randomUUID();
 

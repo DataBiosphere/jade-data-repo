@@ -125,8 +125,8 @@ public class GoogleProjectService {
     try {
       GoogleProjectResource projectResource =
           resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
-      String resourceProfileId = projectResource.getProfileId().toString();
-      if (StringUtils.equals(resourceProfileId, billingProfile.getId())) {
+      UUID resourceProfileId = projectResource.getProfileId();
+      if (resourceProfileId.equals(billingProfile.getId())) {
                 return projectResource;
             }
             throw new MismatchedBillingProfilesException(
@@ -174,8 +174,8 @@ public class GoogleProjectService {
             // If we already have a DR record for this project, return the project resource
             // Should only happen if this step is retried or files are ingested in an existing dataset project
             GoogleProjectResource projectResource = resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
-            String resourceProfileId = projectResource.getProfileId().toString();
-            if (StringUtils.equals(resourceProfileId, billingProfile.getId())) {
+            UUID resourceProfileId = projectResource.getProfileId();
+            if (resourceProfileId.equals(billingProfile.getId())) {
                 return projectResource;
             }
             throw new MismatchedBillingProfilesException(
@@ -199,8 +199,8 @@ public class GoogleProjectService {
         return resourceDao.retrieveProjectById(id);
     }
 
-  public List<UUID> markUnusedProjectsForDelete(String profileId) {
-    return resourceDao.markUnusedProjectsForDelete(UUID.fromString(profileId));
+  public List<UUID> markUnusedProjectsForDelete(UUID profileId) {
+    return resourceDao.markUnusedProjectsForDelete(profileId);
   }
 
   public void deleteUnusedProjects(List<UUID> projectIdList) {
@@ -304,7 +304,7 @@ public class GoogleProjectService {
 
     GoogleProjectResource googleProjectResource =
         new GoogleProjectResource()
-            .profileId(UUID.fromString(billingProfile.getId()))
+            .profileId(billingProfile.getId())
             .googleProjectId(googleProjectId)
             .googleProjectNumber(googleProjectNumber);
 
@@ -681,7 +681,7 @@ public class GoogleProjectService {
 
   public void updateProjectsBillingAccount(BillingProfileModel billingProfileModel) {
     List<GoogleProjectResource> projects =
-        resourceDao.retrieveProjectsByBillingProfileId(UUID.fromString(billingProfileModel.getId()));
+        resourceDao.retrieveProjectsByBillingProfileId(billingProfileModel.getId());
 
     if (projects.size() == 0) {
       logger.info("No projects attached to billing profile so nothing to update.");
@@ -706,7 +706,7 @@ public class GoogleProjectService {
       String googleProjectNumber, String googleProjectId, BillingProfileModel billingProfile) {
     GoogleProjectResource googleProjectResource =
         new GoogleProjectResource()
-            .profileId(UUID.fromString(billingProfile.getId()))
+            .profileId(billingProfile.getId())
             .googleProjectId(googleProjectId)
             .googleProjectNumber(googleProjectNumber);
 

@@ -38,7 +38,7 @@ public class DataLocationSelector {
         // Condition: Requested billing profile matches source dataset's billing profile
         // Action: Re-use dataset's project
         UUID sourceDatasetBillingProfileId = dataset.getProjectResource().getProfileId();
-        UUID requestedBillingProfileId = UUID.fromString(billingProfile.getId());
+        UUID requestedBillingProfileId = billingProfile.getId();
         if (sourceDatasetBillingProfileId.equals(requestedBillingProfileId)) {
             return sourceDatasetGoogleProjectId;
         }
@@ -47,7 +47,7 @@ public class DataLocationSelector {
         // Condition: Ingest Billing profile != source dataset billing profile && project *already exists*
         // Action: Re-use bucket's project
         String bucketGoogleProjectId = datasetBucketDao.getProjectResourceForBucket(dataset.getId(),
-            UUID.fromString(billingProfile.getId()));
+            billingProfile.getId());
         if (bucketGoogleProjectId != null) {
             return bucketGoogleProjectId;
         }

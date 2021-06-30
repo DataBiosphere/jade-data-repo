@@ -4,17 +4,13 @@ import static bio.terra.service.resourcemanagement.google.GoogleProjectService.P
 import static bio.terra.service.resourcemanagement.google.GoogleProjectService.PermissionOp.REVOKE_PERMISSIONS;
 
 import bio.terra.app.configuration.SamConfiguration;
-import bio.terra.app.model.AzureCloudResource;
-import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.buffer.model.HandoutRequestBody;
+import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetStorageAccountDao;
-import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
-import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
+import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
@@ -42,32 +38,24 @@ public class ResourceService {
   public static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
 
   private final DataLocationSelector dataLocationSelector;
-  private final AzureDataLocationSelector azureDataLocationSelector;
   private final GoogleProjectService projectService;
-  private final GoogleBucketService bucketService;
-  private final AzureApplicationDeploymentService applicationDeploymentService;
-  private final AzureStorageAccountService storageAccountService;
-  private final SamConfiguration samConfiguration;
-  private final DatasetStorageAccountDao datasetStorageAccountDao;
+    private final GoogleBucketService bucketService;
+    private final SamConfiguration samConfiguration;
+    private final DatasetBucketDao datasetBucketDao;
 
-  @Autowired
-  public ResourceService(
-      DataLocationSelector dataLocationSelector,
-      AzureDataLocationSelector azureDataLocationSelector,
-      GoogleProjectService projectService,
-      GoogleBucketService bucketService,
-      AzureApplicationDeploymentService applicationDeploymentService,
-      AzureStorageAccountService storageAccountService,
-      SamConfiguration samConfiguration,
-      DatasetStorageAccountDao datasetStorageAccountDao) {
-    this.dataLocationSelector = dataLocationSelector;
-    this.azureDataLocationSelector = azureDataLocationSelector;
-    this.projectService = projectService;
-    this.bucketService = bucketService;
-    this.applicationDeploymentService = applicationDeploymentService;
-    this.storageAccountService = storageAccountService;
-    this.samConfiguration = samConfiguration;
-    this.datasetStorageAccountDao = datasetStorageAccountDao;
+
+    @Autowired
+    public ResourceService(
+        DataLocationSelector dataLocationSelector,
+        GoogleProjectService projectService,
+        GoogleBucketService bucketService,
+        SamConfiguration samConfiguration,
+        DatasetBucketDao datasetBucketDao) {
+        this.dataLocationSelector = dataLocationSelector;
+        this.projectService = projectService;
+        this.bucketService = bucketService;
+        this.samConfiguration = samConfiguration;
+        this.datasetBucketDao = datasetBucketDao;
   }
 
   /**
@@ -88,7 +76,7 @@ public class ResourceService {
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
     // Every bucket needs to live in a project, so we get or create a project first
-    return projectService.getOrCreateProject(
+    return projectService.getOrCreateProjectRBS(
         dataLocationSelector.projectIdForFile(
             dataset, sourceDatasetGoogleProjectId, billingProfile),
         billingProfile,
@@ -216,19 +204,28 @@ public class ResourceService {
   public GoogleBucketResource lookupBucket(String bucketResourceId) {
     return lookupBucket(UUID.fromString(bucketResourceId));
   }
+    /**
+     * Fetch an existing bucket and check that the associated cloud resource exists.
+     *
+     * @param bucketResourceId our identifier for the bucket
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
+     * @throws CorruptMetadataException        if the bucket_resource metadata row exists but the
+     *                                         cloud resource does not
+     */
+    public GoogleBucketResource lookupBucket(String bucketResourceId) {
+        return lookupBucket(UUID.fromString(bucketResourceId));
+    }
 
   public GoogleBucketResource lookupBucket(UUID bucketResourceId) {
     return bucketService.getBucketResourceById(bucketResourceId, true);
   }
 
-  public AzureStorageAccountResource lookupStorageAccount(UUID storageAccountResourceId) {
-    return storageAccountService.getStorageAccountResourceById(storageAccountResourceId, true);
-  }
-
-  /**
-   * Fetch an existing bucket_resource metadata row. Note this method does not check for the
-   * existence of the underlying cloud resource. This method is intended for places where an
-   * existence check on the associated cloud resource might be too much overhead (e.g. DRS lookups).
+    /**
+     * Fetch an existing bucket_resource metadata row. Note this method does not check for the
+     * existence of the underlying cloud resource. This method is intended for places where an
+     * existence check on the associated cloud resource might be too much overhead (e.g. DRS
+      lookups).
    * Most bucket lookups should use the lookupBucket method instead, which has additional overhead
    * but will catch metadata corruption errors sooner.
    *
@@ -268,8 +265,8 @@ public class ResourceService {
       throws InterruptedException, GoogleResourceNamingException {
 
     GoogleProjectResource googleProjectResource =
-        projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForSnapshot(), billingProfile, null, region);
+        projectService.getOrCreateProjectRBS(
+            null, billingProfile, null, region);
 
     return googleProjectResource.getId();
   }
@@ -278,7 +275,7 @@ public class ResourceService {
    * Create a new project for a dataset, if none exists already.
    *
    * @param billingProfile authorized billing profile to pay for the project
-   * @param region the region to create the project in
+   * @param region the region to ceraate
    * @return project resource id
    */
   public UUID getOrCreateDatasetProject(BillingProfileModel billingProfile, GoogleRegion region)
@@ -286,7 +283,7 @@ public class ResourceService {
 
     GoogleProjectResource googleProjectResource =
         projectService.getOrCreateProjectRBS(
-            dataLocationSelector.projectIdForDataset(),
+            null,
             billingProfile,
             getStewardPolicy(),
             region);
@@ -295,32 +292,24 @@ public class ResourceService {
     }
 
   /**
-   * Look up an existing project resource given its id
+   * Look up in existing project resource given its id
    *
-   * @param projectResourceId unique id for the project
+   * @param projectResourceId unique idea for the project
    * @return project resource
    */
   public GoogleProjectResource getProjectResource(UUID projectResourceId) {
     return projectService.getProjectResourceById(projectResourceId);
   }
 
-  /**
-   * Look up an existing application deployment resource given its id
-   *
-   * @param applicationId unique id for the application deployment
-   * @return application deployment resource
-   */
-  public AzureApplicationDeploymentResource getApplicationDeploymentResource(UUID applicationId) {
-    return applicationDeploymentService.getApplicationDeploymentResourceById(applicationId);
-  }
-
-  public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
-      throws InterruptedException {
-    final List<String> emails =
-        policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
-    projectService.updateIamPermissions(
-        Collections.singletonMap(BQ_JOB_USER_ROLE, emails), dataProject, ENABLE_PERMISSIONS);
-  }
+    public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
+        throws InterruptedException {
+        final List<String> emails = policyEmails.stream().map((e) -> "group:" + e)
+            .collect(Collectors.toList());
+        projectService.updateIamPermissions(
+            Collections.singletonMap(BQ_JOB_USER_ROLE, emails),
+            dataProject,
+            ENABLE_PERMISSIONS);
+    }
 
   public void revokePoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
       throws InterruptedException {
@@ -338,17 +327,13 @@ public class ResourceService {
     return Collections.unmodifiableMap(policyMap);
   }
 
-  public List<UUID> markUnusedProjectsForDelete(UUID profileId) {
+  public List<UUID> markUnusedProjectsForDelete(String profileId) {
     return projectService.markUnusedProjectsForDelete(profileId);
   }
 
-  public List<UUID> markUnusedApplicationDeploymentsForDelete(UUID profileId) {
-    return applicationDeploymentService.markUnusedApplicationDeploymentsForDelete(profileId);
-  }
-
-  public void deleteUnusedProjects(List<UUID> projectIdList) {
-    projectService.deleteUnusedProjects(projectIdList);
-  }
+    public void deleteUnusedProjects(List<UUID> projectIdList) {
+        projectService.deleteUnusedProjects(projectIdList);
+    }
 
   public void deleteProjectMetadata(List<UUID> projectIdList) {
     projectService.deleteProjectMetadata(projectIdList);

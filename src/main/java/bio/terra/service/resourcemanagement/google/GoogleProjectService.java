@@ -36,6 +36,14 @@ import com.google.api.services.serviceusage.v1.model.GoogleApiServiceusageV1Serv
 import com.google.api.services.serviceusage.v1.model.ListServicesResponse;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
@@ -117,13 +125,12 @@ public class GoogleProjectService {
     try {
       GoogleProjectResource projectResource =
           resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
-      UUID resourceProfileId = projectResource.getProfileId();
-      if (resourceProfileId.equals(billingProfile.getId())) {
-        return projectResource;
-      }
-      throw new MismatchedBillingProfilesException(
-          "Cannot reuse existing project "
-              + projectResource.getGoogleProjectId()
+      String resourceProfileId = projectResource.getProfileId().toString();
+      if (StringUtils.equals(resourceProfileId, billingProfile.getId())) {
+                return projectResource;
+            }
+            throw new MismatchedBillingProfilesException(
+                "Cannot reuse existing project " + projectResource.getGoogleProjectId()
               + " from profile "
               + resourceProfileId
               + " with a different profile "
@@ -149,7 +156,7 @@ public class GoogleProjectService {
      * Note: the billing profile used here must be authorized via the
      * profile service before attempting to use it here
      *
-     * @param handoutRequestId     google's id of the project
+     * @param projectId           google's id of the project
      * @param billingProfile      previously authorized billing profile
      * @param roleIdentityMapping permissions to set
      * @param region              region of dataset/snapshot
@@ -157,20 +164,24 @@ public class GoogleProjectService {
      * @throws InterruptedException if shutting down
      */
     public GoogleProjectResource getOrCreateProjectRBS(
-            String handoutRequestId,
+            String projectId,
             BillingProfileModel billingProfile,
             Map<String, List<String>> roleIdentityMapping,
             GoogleRegion region)
             throws InterruptedException {
 
-        // Get or request project from RBS
-        HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
-        ResourceInfo resource = bufferService.handoutResource(request);
-        String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+        // Request a project from RBS
+        if (projectId == null) {
+            String handoutRequestId = UUID.randomUUID().toString();
+            logger.info("handout request id: " + handoutRequestId);
+            HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
+            ResourceInfo resource = bufferService.handoutResource(request);
+            projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+        }
 
         try {
             // If we already have a DR record for this project, return the project resource
-            // Should only happen if the flight fails & the step gets retried
+            // Should only happen when ingesting files into a dataset using the same billing profile
             GoogleProjectResource projectResource = resourceDao.retrieveProjectByGoogleProjectId(projectId);
             String resourceProfileId = projectResource.getProfileId().toString();
             if (StringUtils.equals(resourceProfileId, billingProfile.getId())) {
@@ -197,8 +208,8 @@ public class GoogleProjectService {
         return resourceDao.retrieveProjectById(id);
     }
 
-  public List<UUID> markUnusedProjectsForDelete(UUID profileId) {
-    return resourceDao.markUnusedProjectsForDelete(profileId);
+  public List<UUID> markUnusedProjectsForDelete(String profileId) {
+    return resourceDao.markUnusedProjectsForDelete(UUID.fromString(profileId));
   }
 
   public void deleteUnusedProjects(List<UUID> projectIdList) {
@@ -211,23 +222,24 @@ public class GoogleProjectService {
     resourceDao.deleteProjectMetadata(projectIdList);
   }
 
-  public Project getProject(String googleProjectId) {
-    try {
-      CloudResourceManager resourceManager = cloudResourceManager();
-      CloudResourceManager.Projects.Get request = resourceManager.projects().get(googleProjectId);
-      return request.execute();
-    } catch (GoogleJsonResponseException e) {
-      // if the project does not exist, the API will return a 403 unauth. to prevent people probing
-      // for projects. We tolerate non-existent projects, because we want to be able to retry
-      // failures on deleting other projects.
-      if (e.getDetails().getCode() != 403) {
-        throw new GoogleResourceException("Unexpected error while checking on project state", e);
-      }
-      return null;
-    } catch (IOException | GeneralSecurityException e) {
-      throw new GoogleResourceException("Could not check on project state", e);
+  // package access for use in tests
+    public Project getProject(String googleProjectId) {
+        try {
+            CloudResourceManager resourceManager = cloudResourceManager();
+            CloudResourceManager.Projects.Get request = resourceManager.projects().get(googleProjectId);
+            return request.execute();
+        } catch (GoogleJsonResponseException e) {
+            // if the project does not exist, the API will return a 403 unauth. to prevent people probing
+            // for projects. We tolerate non-existent projects, because we want to be able to retry
+            // failures on deleting other projects.
+            if (e.getDetails().getCode() != 403) {
+                throw new GoogleResourceException("Unexpected error while checking on project state", e);
+            }
+            return null;
+        } catch (IOException | GeneralSecurityException e) {
+            throw new GoogleResourceException("Could not check on project state", e);
+        }
     }
-  }
 
   /**
    * Created a new google project. This process is not transactional or done in a stairway flight,
@@ -297,10 +309,11 @@ public class GoogleProjectService {
 
     String googleProjectNumber = project.getProjectNumber().toString();
     String googleProjectId = project.getProjectId();
+        logger.info("google project id: " + googleProjectId);
 
     GoogleProjectResource googleProjectResource =
         new GoogleProjectResource()
-            .profileId(billingProfile.getId())
+            .profileId(UUID.fromString(billingProfile.getId()))
             .googleProjectId(googleProjectId)
             .googleProjectNumber(googleProjectNumber);
 
@@ -677,7 +690,7 @@ public class GoogleProjectService {
 
   public void updateProjectsBillingAccount(BillingProfileModel billingProfileModel) {
     List<GoogleProjectResource> projects =
-        resourceDao.retrieveProjectsByBillingProfileId(billingProfileModel.getId());
+        resourceDao.retrieveProjectsByBillingProfileId(UUID.fromString(billingProfileModel.getId()));
 
     if (projects.size() == 0) {
       logger.info("No projects attached to billing profile so nothing to update.");
@@ -702,7 +715,7 @@ public class GoogleProjectService {
       String googleProjectNumber, String googleProjectId, BillingProfileModel billingProfile) {
     GoogleProjectResource googleProjectResource =
         new GoogleProjectResource()
-            .profileId(billingProfile.getId())
+            .profileId(UUID.fromString(billingProfile.getId()))
             .googleProjectId(googleProjectId)
             .googleProjectNumber(googleProjectNumber);
 

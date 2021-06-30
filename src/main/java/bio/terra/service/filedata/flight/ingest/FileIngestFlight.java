@@ -22,12 +22,15 @@ import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
+
+import javax.xml.crypto.Data;
 
 // The FileIngestFlight is specific to firestore. Another cloud or file system implementation
 // might be quite different and would need a different flight.
@@ -50,6 +53,8 @@ public class FileIngestFlight extends Flight {
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
+        DataLocationSelector dataLocationSelector =
+                (DataLocationSelector) appContext.getBean("dataLocationSelector");
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -111,7 +116,8 @@ public class FileIngestFlight extends Flight {
     addStep(new IngestFileIdStep(configService));
     addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
     addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), randomBackoffRetry);
-    addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
+    addStep(new IngestFileGetProjectStep(resourceService, dataset, dataLocationSelector));
+        addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
     addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));

@@ -109,8 +109,7 @@ public class ProfileServiceUnitTest {
                         eq(user),
                         eq(IamResourceType.SPEND_PROFILE),
                         eq(updateId.toString()),
-                        eq(IamAction.UPDATE_BILLING_ACCOUNT)
-                );
+                        eq(IamAction.UPDATE_BILLING_ACCOUNT));
         verify(jobBuilder, times(1)).submit();
         assertEquals(result, jobId);
     }
@@ -152,8 +151,7 @@ public class ProfileServiceUnitTest {
                         eq(user),
                         eq(IamResourceType.SPEND_PROFILE),
                         eq(deleteId.toString()),
-                        eq(IamAction.DELETE)
-                );
+                        eq(IamAction.DELETE));
         verify(jobBuilder, times(1)).submit();
         assertEquals(result, jobId);
     }

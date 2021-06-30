@@ -15,6 +15,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
@@ -29,7 +30,8 @@ public class DatasetCreateFlight extends Flight {
 
     // get the required daos and services to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
+    BufferService bufferService = (BufferService) appContext.getBean("bufferService");
+        DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
@@ -55,7 +57,10 @@ public class DatasetCreateFlight extends Flight {
         new AuthorizeBillingProfileUseStep(
             profileService, datasetRequest.getDefaultProfileId(), userReq));
 
-    // Get or create the project where the dataset resources will be created for GCP
+    // Get a new google project from RBS and store it in the working map
+        addStep(new CreateDatasetGetProjectStep(bufferService));
+
+        // Get or initialize the project where the dataset resources will be created
     addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
 
     // Get or create the storage account where the dataset resources will be created for Azure

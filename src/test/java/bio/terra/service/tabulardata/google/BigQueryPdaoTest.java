@@ -12,6 +12,8 @@ import static org.junit.Assert.assertEquals;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.buffer.model.HandoutRequestBody;
+import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
@@ -32,6 +34,7 @@ import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
@@ -87,6 +90,8 @@ public class BigQueryPdaoTest {
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ResourceService resourceService;
+    @Autowired
+    private BufferService bufferService;
 
   @MockBean private IamProviderInterface samService;
 
@@ -652,10 +657,14 @@ public class BigQueryPdaoTest {
             .getGoogleRegionFromDatasetRequestModel(datasetRequest);
     Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
     dataset.id(UUID.randomUUID());
-    UUID projectId = resourceService.getOrCreateDatasetProject(profileModel, region);
-    dataset
-        .projectResourceId(projectId)
-        .projectResource(resourceService.getProjectResource(projectId));
+    String handoutRequestId = UUID.randomUUID().toString();
+        HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
+        ResourceInfo resource = bufferService.handoutResource(request);
+        String googleProjectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+        UUID projectId = resourceService.getOrCreateDatasetProject(profileModel, googleProjectId, region);
+        dataset
+            .projectResourceId(projectId)
+            .projectResource(resourceService.getProjectResource(projectId));
 
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();

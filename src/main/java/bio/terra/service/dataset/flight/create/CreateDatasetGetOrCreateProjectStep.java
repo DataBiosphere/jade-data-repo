@@ -30,17 +30,12 @@ public class CreateDatasetGetOrCreateProjectStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     BillingProfileModel profileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-    GoogleRegion region =
-        CloudPlatformWrapper.of(datasetRequestModel.getCloudPlatform())
+    String projectId = workingMap.get(DatasetWorkingMapKeys.GOOGLE_PROJECT_ID, String.class);
+        GoogleRegion region = CloudPlatformWrapper.of(datasetRequestModel.getCloudPlatform())
             .getGoogleRegionFromDatasetRequestModel(datasetRequestModel);
     // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
-    // Either the project will have been created and we will find it, or we will create it.
-    UUID projectResourceId;
-    try {
-      projectResourceId = resourceService.getOrCreateDatasetProject(profileModel, region);
-    } catch (GoogleResourceNamingException e) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
-    }
+    // Either the project record will have been created and we will find it, or we will create it.
+        UUID projectResourceId = resourceService.getOrCreateDatasetProject(profileModel, projectId, region);
     workingMap.put(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
     return StepResult.getStepResultSuccess();
   }

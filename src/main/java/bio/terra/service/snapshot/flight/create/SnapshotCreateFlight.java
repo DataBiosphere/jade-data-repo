@@ -20,6 +20,7 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
@@ -40,7 +41,8 @@ public class SnapshotCreateFlight extends Flight {
 
     // get the required objects to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
+    BufferService bufferService = (BufferService) appContext.getBean("bufferService");
+        SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
@@ -79,7 +81,10 @@ public class SnapshotCreateFlight extends Flight {
     addStep(
         new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
 
-    // Get or create the project where the snapshot resources will be created
+    // Get a new google project from RBS and store it in the working map
+        addStep(new CreateSnapshotGetProjectStep(bufferService));
+
+        // Get or initialize the project where the snapshot resources will be created
     addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, firestoreRegion));
 
     // create the snapshot metadata object in postgres and lock it

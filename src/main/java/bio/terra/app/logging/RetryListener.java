@@ -16,7 +16,12 @@ class RetryListener extends RetryListenerSupport {
     public <T, E extends Throwable> void close(RetryContext context,
                                                RetryCallback<T, E> callback, Throwable throwable) {
 
-        logger.info("closing retry");
+        // Only log if retries have been exhausted
+        if (throwable != null) {
+            logger.error("[Retries Exhausted] Context: {}, Throwable: ", context, throwable);
+        } else {
+            logger.debug("Closing debugger after successful retry");
+        }
         super.close(context, callback, throwable);
     }
 
@@ -24,15 +29,15 @@ class RetryListener extends RetryListenerSupport {
     public <T, E extends Throwable> void onError(RetryContext context,
                                                  RetryCallback<T, E> callback,
                                                  Throwable throwable) {
-        logger.error("Exception Occurred, Retry Count {} ", context.getRetryCount());
+        logger.warn("[Retryable Exception] Retry Count {}, Context: {}, Throwable: ",
+            context.getRetryCount(), context, throwable);
         super.onError(context, callback, throwable);
     }
 
     @Override
     public <T, E extends Throwable> boolean open(RetryContext context,
                                                  RetryCallback<T, E> callback) {
-        logger.info("Open retryable.");
-
+        logger.debug("Hit Retryable Exception - opening retry function.");
         return super.open(context, callback);
     }
 }

@@ -285,7 +285,7 @@ public class FireStoreUtils {
         value = {DeadlineExceededException.class, UnavailableException.class,
             InternalException.class, StatusRuntimeException.class},
         //label = "RunTransactionWithRetry",
-        maxAttempts = 1, //I can't figure out how to dynamically get this value
+        maxAttempts = 2, //I can't figure out how to dynamically get this value
         backoff = @Backoff(delay = 10000, maxDelay = 100000, multiplier = 2),
         //exceptionExpression = "Failed to retry transaction",
         listeners = {"retryListener"}

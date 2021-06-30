@@ -172,7 +172,7 @@ public class GoogleProjectService {
 
         try {
             // If we already have a DR record for this project, return the project resource
-            // Should only happen when ingesting files into a dataset using the same billing profile
+            // Should only happen if this step is retried or files are ingested in an existing dataset project
             GoogleProjectResource projectResource = resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
             String resourceProfileId = projectResource.getProfileId().toString();
             if (StringUtils.equals(resourceProfileId, billingProfile.getId())) {

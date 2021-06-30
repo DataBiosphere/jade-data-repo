@@ -139,34 +139,33 @@ public class FireStoreUtils {
      * Our objects are small, so I think we can use the maximum batch size without
      * concern for using too much memory.
      */
+    @Retryable(
+        value = {FileSystemExecutionException.class},
+        maxAttempts = 4, //I can't figure out how to dynamically get this value
+        backoff = @Backoff(random = true, delay = 1000, maxDelay = 5000, multiplier = 2),
+        listeners = {"retryListener"}
+    )
     <V> void scanCollectionObjects(Firestore firestore,
                                String collectionId,
                                int batchSize,
                                ApiFutureGenerator<V, QueryDocumentSnapshot> generator) throws InterruptedException {
         CollectionReference datasetCollection = firestore.collection(collectionId);
-        int retry = 0;
-        while (true) {
-            try {
-                int batchCount = 0;
-                List<QueryDocumentSnapshot> documents;
-                do {
-                    ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
-                    documents = future.get().getDocuments();
-                    batchCount++;
-                    if (!documents.isEmpty()) {
-                        logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
-                    }
-                    batchOperation(documents, generator);
-                } while (documents.size() > 0);
-                return;
-            } catch (ExecutionException ex) {
-                retry++;
-                if (retry > getFirestoreRetries()) {
-                    throw new FileSystemExecutionException("scanning collection - execution exception", ex);
+        try {
+            int batchCount = 0;
+            List<QueryDocumentSnapshot> documents;
+            do {
+                ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
+                documents = future.get().getDocuments();
+                batchCount++;
+                if (!documents.isEmpty()) {
+                    logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
                 }
-            }
+                batchOperation(documents, generator);
+            } while (documents.size() > 0);
+            return;
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("scanning collection - execution exception", ex);
         }
-
     }
 
     String computeMd5(String input) {

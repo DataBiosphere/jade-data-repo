@@ -1,7 +1,5 @@
 package bio.terra.service.profile.flight.delete;
 
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightContext;
@@ -28,10 +26,7 @@ public class DeleteProfileApplicationDeploymentMetadata implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         List<UUID> appIdList = workingMap.get(ProfileMapKeys.PROFILE_APPLICATION_DEPLOYMENT_ID_LIST, List.class);
-        BillingProfileModel billingProfile = workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-        if (billingProfile.getCloudPlatform() == CloudPlatform.AZURE) {
-            resourceService.deleteDeployedApplicationMetadata(appIdList);
-        }
+        resourceService.deleteDeployedApplicationMetadata(appIdList);
         return StepResult.getStepResultSuccess();
     }
 

@@ -1,8 +1,11 @@
 package bio.terra.service.dataset;
 
 import bio.terra.app.controller.DatasetsApiController;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.AssetModel;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestAccessIncludeModel;
@@ -12,6 +15,7 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
@@ -22,6 +26,8 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
+import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import org.apache.commons.lang3.StringUtils;
@@ -40,16 +46,19 @@ public class DatasetService {
     private final JobService jobService; // for handling flight response
     private final ResourceService resourceService;
     private final LoadService loadService;
+    private final ProfileDao profileDao;
 
     @Autowired
     public DatasetService(DatasetDao datasetDao,
                           JobService jobService,
                           ResourceService resourceService,
-                          LoadService loadService) {
+                          LoadService loadService,
+                          ProfileDao profileDao) {
         this.datasetDao = datasetDao;
         this.jobService = jobService;
         this.resourceService = resourceService;
         this.loadService = loadService;
+        this.profileDao = profileDao;
     }
 
     public String createDataset(DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
@@ -133,9 +142,20 @@ public class DatasetService {
 
     public String delete(String id, AuthenticatedUserRequest userReq) {
         String description = "Delete dataset " + id;
+        CloudPlatform platform;
+        try {
+            Dataset dataset = retrieve(UUID.fromString(id));
+            BillingProfileModel profileModel = profileDao.getBillingProfileById(dataset.getDefaultProfileId());
+            platform = profileModel.getCloudPlatform();
+        } catch (DatasetNotFoundException | ProfileNotFoundException e) {
+            // Catching these exceptions allows for idempotent operations on delete
+            // We may eventually want to change the behavior to throw on dataset not found
+            platform = CloudPlatformWrapper.DEFAULT;
+        }
         return jobService
             .newJob(description, DatasetDeleteFlight.class, null, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+            .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform)
             .submit();
     }
 

@@ -1,7 +1,6 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -32,22 +31,18 @@ public class CreateDatasetGetOrCreateStorageAccountStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) throws InterruptedException {
-        if (datasetRequestModel.getCloudPlatform() == CloudPlatform.AZURE) {
-            logger.info("Creating a storage account for Azure backed dataset");
-            FlightMap workingMap = context.getWorkingMap();
-            BillingProfileModel profileModel = workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+        logger.info("Creating a storage account for Azure backed dataset");
+        FlightMap workingMap = context.getWorkingMap();
+        BillingProfileModel profileModel = workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
-            AzureStorageAccountResource storageAccount = resourceService.getOrCreateStorageAccount(
-                DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel),
-                profileModel,
-                context.getFlightId());
-            workingMap.put(DatasetWorkingMapKeys.APPLICATION_DEPLOYMENT_RESOURCE_ID,
-                storageAccount.getApplicationResource().getId());
-            workingMap.put(DatasetWorkingMapKeys.STORAGE_ACCOUNT_RESOURCE_ID,
-                storageAccount.getResourceId());
-        } else {
-            logger.info("Not an Azure backed dataset so no action to take");
-        }
+        AzureStorageAccountResource storageAccount = resourceService.getOrCreateStorageAccount(
+            DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel),
+            profileModel,
+            context.getFlightId());
+        workingMap.put(DatasetWorkingMapKeys.APPLICATION_DEPLOYMENT_RESOURCE_ID,
+            storageAccount.getApplicationResource().getId());
+        workingMap.put(DatasetWorkingMapKeys.STORAGE_ACCOUNT_RESOURCE_ID,
+            storageAccount.getResourceId());
         return StepResult.getStepResultSuccess();
     }
 

@@ -1,6 +1,5 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -26,16 +25,12 @@ public class CreateDatasetCreateStorageAccountLinkStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) throws InterruptedException {
-        if (datasetRequestModel.getCloudPlatform() == CloudPlatform.AZURE) {
-            logger.info("Creating a storage account link for Azure backed dataset");
-            FlightMap workingMap = context.getWorkingMap();
-            UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-            UUID storageAccountId = workingMap.get(DatasetWorkingMapKeys.STORAGE_ACCOUNT_RESOURCE_ID, UUID.class);
+        logger.info("Creating a storage account link for Azure backed dataset");
+        FlightMap workingMap = context.getWorkingMap();
+        UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+        UUID storageAccountId = workingMap.get(DatasetWorkingMapKeys.STORAGE_ACCOUNT_RESOURCE_ID, UUID.class);
 
-            datasetStorageAccountDao.createDatasetStorageAccountLink(datasetId, storageAccountId, false);
-        } else {
-            logger.info("Not an Azure backed dataset so no action to take");
-        }
+        datasetStorageAccountDao.createDatasetStorageAccountLink(datasetId, storageAccountId, false);
         return StepResult.getStepResultSuccess();
     }
 

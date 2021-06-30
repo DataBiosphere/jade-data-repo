@@ -1,6 +1,9 @@
 package bio.terra.app.model;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Valid regions in Azure.
@@ -76,6 +79,9 @@ public enum AzureRegion implements CloudRegion {
     BRAZIL_SOUTHEAST("brazilsoutheast");
 
     public static final AzureRegion DEFAULT_AZURE_REGION = AzureRegion.CENTRAL_US;
+
+    public static final List<String> SUPPORTED_REGIONS =
+        Arrays.stream(AzureRegion.values()).map(AzureRegion::toString).collect(Collectors.toUnmodifiableList());
 
     private final String value;
 

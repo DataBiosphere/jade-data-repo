@@ -86,7 +86,7 @@ public class ResourceService {
         final GoogleRegion region =
             (GoogleRegion) dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
         // Every bucket needs to live in a project, so we get or create a project first
-        return projectService.getOrCreateProject(
+        return projectService.getOrInitializeProject(
         projectId,
         billingProfile,
         null,
@@ -262,7 +262,7 @@ public class ResourceService {
                                            GoogleRegion region)
             throws InterruptedException {
 
-        GoogleProjectResource googleProjectResource = projectService.getOrCreateProject(
+        GoogleProjectResource googleProjectResource = projectService.getOrInitializeProject(
             projectId, billingProfile, null, region);
 
     return googleProjectResource.getId();
@@ -281,7 +281,7 @@ public class ResourceService {
             throws InterruptedException {
 
     GoogleProjectResource googleProjectResource =
-        projectService.getOrCreateProject(
+        projectService.getOrInitializeProject(
             projectId,
             billingProfile,
             getStewardPolicy(),

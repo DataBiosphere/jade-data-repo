@@ -1,13 +1,18 @@
 package bio.terra.service.dataset;
 
+import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.CloudResource;
+import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 public class DatasetSummary {
     private UUID id;
@@ -17,6 +22,7 @@ public class DatasetSummary {
     private UUID projectResourceId;
     private UUID applicationDeploymentResourceId;
     private Instant createdDate;
+    private List<BillingProfileModel> billingProfiles;
     private List<? extends StorageResource<?, ?>> storage;
 
     public UUID getId() {
@@ -91,17 +97,50 @@ public class DatasetSummary {
         return this;
     }
 
-    public CloudRegion getStorageResourceRegion(CloudResource storageResource) {
-        return storage.stream()
-            .filter(resource -> resource.getCloudResource() == storageResource)
+    public List<BillingProfileModel> getBillingProfiles() {
+        return billingProfiles;
+    }
+
+    public DatasetSummary billingProfiles(List<BillingProfileModel> billingProfiles) {
+        this.billingProfiles = billingProfiles;
+        return this;
+    }
+
+    public BillingProfileModel getDefaultBillingProfile() {
+        return billingProfiles.stream()
+            .filter(b -> b.getId().equals(defaultProfileId))
             .findFirst()
-            .map(StorageResource::getRegion)
-            .orElseThrow(() -> new StorageResourceNotFoundException(
-                String.format("%s could not be found for %s ", storageResource, id)));
+            .orElseThrow();
+    }
+
+    public CloudRegion getStorageResourceRegion(CloudResource storageResource) {
+        return getCloudResourceAttribute(storageResource, StorageResource::getRegion);
     }
 
     public boolean datasetStorageContainsRegion(GoogleRegion region) {
         return storage.stream()
-                .anyMatch(sr -> sr.getRegion().equals(region));
+            .anyMatch(sr -> sr.getRegion().equals(region));
+    }
+
+    public CloudPlatform getStorageCloudPlatform() {
+        // A Dataset should not have both a bucket and a storage account at this point
+        return storage.stream().filter(s -> s.getCloudResource() == GoogleCloudResource.BUCKET ||
+            s.getCloudResource() == AzureCloudResource.STORAGE_ACCOUNT)
+            .findAny()
+            .map(s -> getCloudResourceAttribute(s.getCloudResource(), StorageResource::getCloudPlatform))
+            .orElseThrow();
+    }
+
+    public CloudPlatform getStorageResourceCloudPlatform(CloudResource cloudResource) {
+        return getCloudResourceAttribute(cloudResource, StorageResource::getCloudPlatform);
+    }
+
+    private <T> T getCloudResourceAttribute(CloudResource cloudResource, Function<StorageResource<?, ?>, T> accessor) {
+        return storage.stream()
+            .filter(resource -> resource.getCloudResource() == cloudResource)
+            .findFirst()
+            .map(accessor)
+            .orElseThrow(() -> new StorageResourceNotFoundException(
+                String.format("%s could not be found for dataset %s", cloudResource.name(), id)));
     }
 }

@@ -97,7 +97,7 @@ public class ProfileServiceUnitTest {
 
         var user = new AuthenticatedUserRequest();
         when(jobService.newJob(
-                any(),
+                anyString(),
                 eq(ProfileUpdateFlight.class),
                 eq(billingProfileUpdateModel),
                 eq(user))

@@ -13,6 +13,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.SnapshotRequestModel;
@@ -95,8 +96,9 @@ public class SnapshotDaoTest {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject("snapshot-test-dataset.json",
             DatasetRequestModel.class);
         datasetRequest
-            .name(datasetRequest.getName() + UUID.randomUUID().toString())
-            .defaultProfileId(profileId);
+            .name(datasetRequest.getName() + UUID.randomUUID())
+            .defaultProfileId(profileId)
+            .cloudPlatform(CloudPlatform.GCP);
 
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         dataset.projectResourceId(projectId);
@@ -343,7 +345,8 @@ public class SnapshotDaoTest {
             null, "==foo==", null, datasetIds, snapshotIdList);
         List<SnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered and retrieved 2 snapshots", summaryList.size(), equalTo(2));
-        assertThat("filtered total 3", summaryEnum.getTotal(), equalTo(3));
+        assertThat("filtered total 3", summaryEnum.getFilteredTotal(), equalTo(3));
+        assertThat("total 6", summaryEnum.getTotal(), equalTo(6));
         for (int i = 0; i < 2; i++) {
             assertThat("first 2 ids match", snapshotIdList.get(i * 2), equalTo(summaryList.get(i).getId()));
         }

@@ -8,6 +8,7 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
@@ -272,7 +273,7 @@ public class DatasetBucketDaoTest {
     private UUID createDataset(String datasetFile) throws Exception {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
         String newName = datasetRequest.getName() + UUID.randomUUID().toString();
-        datasetRequest.name(newName).defaultProfileId(billingProfile.getId());
+        datasetRequest.name(newName).defaultProfileId(billingProfile.getId()).cloudPlatform(CloudPlatform.GCP);
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         dataset.projectResourceId(projectId);
         String createFlightId = UUID.randomUUID().toString();

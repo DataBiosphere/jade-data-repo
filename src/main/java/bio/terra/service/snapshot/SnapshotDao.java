@@ -436,11 +436,6 @@ public class SnapshotDao {
         List<String> whereClauses = new ArrayList<>();
         DaoUtils.addAuthzSnapshotIdsClause(accessibleSnapshotIds, params, whereClauses);
         whereClauses.add(" flightid IS NULL"); // exclude snapshots that are exclusively locked
-
-        // add the filter to the clause to get the actual items
-        DaoUtils.addFilterClause(filter, params, whereClauses);
-        DaoUtils.addRegionFilterClause(region, params, whereClauses, "snapshot_source.dataset_id");
-
         String joinSql = " JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id ";
 
         if (!datasetIds.isEmpty()) {
@@ -448,15 +443,29 @@ public class SnapshotDao {
             whereClauses.add(datasetMatchSql);
             params.addValue("datasetIds", datasetIds);
         }
-        String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
 
-        // get total count of objects
+        // get filtered total count of objects
         String countSql = "SELECT count(snapshot.id) AS total FROM snapshot " +
             joinSql +
-            whereSql;
+            " WHERE " + StringUtils.join(whereClauses, " AND ");
         Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
         if (total == null) {
-            throw new CorruptMetadataException("Impossible null value from count");
+            throw new CorruptMetadataException("Impossible null value from total count");
+        }
+
+        // add the filter to the clause to get the actual items
+        DaoUtils.addFilterClause(filter, params, whereClauses);
+        DaoUtils.addRegionFilterClause(region, params, whereClauses, "snapshot_source.dataset_id");
+
+        String whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
+
+        // get filtered total count of objects
+        String filteredCountSql = "SELECT count(snapshot.id) AS total FROM snapshot " +
+            joinSql +
+            " WHERE " + StringUtils.join(whereClauses, " AND ");
+        Integer filteredTotal = jdbcTemplate.queryForObject(filteredCountSql, params, Integer.class);
+        if (filteredTotal == null) {
+            throw new CorruptMetadataException("Impossible null value from filtered count");
         }
 
         String sql = "SELECT snapshot.id, name, description, created_date, profile_id, snapshot_source.id, " +
@@ -472,7 +481,8 @@ public class SnapshotDao {
 
         return new MetadataEnumeration<SnapshotSummary>()
             .items(summaries)
-            .total(total);
+            .total(total)
+            .filteredTotal(filteredTotal);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE, readOnly = true)

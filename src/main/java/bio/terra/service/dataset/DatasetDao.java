@@ -59,7 +59,8 @@ public class DatasetDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
     private static final String summaryQueryColumns =
-        " dataset.id, name, description, default_profile_id, project_resource_id, created_date, ";
+        " dataset.id, name, description, default_profile_id, project_resource_id, application_resource_id, " +
+            "created_date, ";
 
     private static final String datasetStorageQuery = "(SELECT jsonb_agg(sr) " +
             "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
@@ -310,14 +311,16 @@ public class DatasetDao {
     public void createAndLock(Dataset dataset, String flightId) throws IOException {
         logger.debug("Lock Operation: createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
-            "(name, default_profile_id, id, project_resource_id, flightid, description, sharedlock) " +
-            "VALUES (:name, :default_profile_id, :id, :project_resource_id, :flightid, :description," +
-            " ARRAY[]::TEXT[]) ";
+            "(name, default_profile_id, id, project_resource_id, application_resource_id, flightid, description, " +
+            "sharedlock) " +
+            "VALUES (:name, :default_profile_id, :id, :project_resource_id, :application_resource_id, :flightid, " +
+            ":description, ARRAY[]::TEXT[]) ";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
             .addValue("default_profile_id", dataset.getDefaultProfileId())
             .addValue("project_resource_id", dataset.getProjectResourceId())
+            .addValue("application_resource_id", dataset.getApplicationDeploymentResourceId())
             .addValue("id", dataset.getId())
             .addValue("flightid", flightId)
             .addValue("description", dataset.getDescription());
@@ -429,10 +432,14 @@ public class DatasetDao {
                 dataset.tables(tableDao.retrieveTables(dataset.getId()));
                 relationshipDao.retrieve(dataset);
                 assetDao.retrieve(dataset);
-                // Retrieve the project resource associated with the dataset
+                // Retrieve the project and application deployment resource associated with the dataset
                 // This is a bit sketchy filling in the object via a dao in another package.
                 // It seemed like the cleanest thing to me at the time.
                 dataset.projectResource(resourceService.getProjectResource(dataset.getProjectResourceId()));
+                if (dataset.getApplicationDeploymentResourceId() != null) {
+                    dataset.applicationDeploymentResource(
+                        resourceService.getApplicationDeploymentResource(dataset.getApplicationDeploymentResourceId()));
+                }
             }
             return dataset;
         } catch (EmptyResultDataAccessException ex) {
@@ -501,6 +508,7 @@ public class DatasetDao {
      * @param accessibleDatasetIds list of dataset ids that caller has access to (fetched from IAM service)
      * @return a list of dataset summary objects
      */
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public MetadataEnumeration<DatasetSummary> enumerate(
         int offset,
         int limit,
@@ -520,7 +528,7 @@ public class DatasetDao {
             StringUtils.join(whereClauses, " AND ");
         Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
         if (total == null) {
-            throw new CorruptMetadataException("Impossible null value from count");
+            throw new CorruptMetadataException("Impossible null value from total count");
         }
 
         // add the filters to the clause to get the actual items
@@ -531,6 +539,16 @@ public class DatasetDao {
         if (!whereClauses.isEmpty()) {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
+
+        // get the filtered total count of objects without offset and limit
+        String filteredTotalSql = "SELECT count(id) AS total FROM dataset WHERE " +
+            StringUtils.join(whereClauses, " AND ");
+
+        Integer filteredTotal = jdbcTemplate.queryForObject(filteredTotalSql, params, Integer.class);
+        if (filteredTotal == null) {
+            throw new CorruptMetadataException("Impossible null value from filtered count");
+        }
+
         String sql = "SELECT " +
             summaryQueryColumns +
             datasetStorageQuery +
@@ -541,7 +559,8 @@ public class DatasetDao {
 
         return new MetadataEnumeration<DatasetSummary>()
             .items(summaries)
-            .total(total);
+            .total(total)
+            .filteredTotal(filteredTotal);
     }
 
 
@@ -554,7 +573,7 @@ public class DatasetDao {
                         new TypeReference<>() {});
             } catch (JsonProcessingException e) {
                 throw new CorruptMetadataException(String.format("Invalid storage for dataset - id: %s",
-                        rs.getString("id")));
+                        rs.getString("id")), e);
             }
             return new DatasetSummary()
                 .id(rs.getObject("id", UUID.class))
@@ -562,6 +581,7 @@ public class DatasetDao {
                 .description(rs.getString("description"))
                 .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class))
+                .applicationDeploymentResourceId(rs.getObject("application_resource_id", UUID.class))
                 .createdDate(rs.getTimestamp("created_date").toInstant())
                 .storage(storageResources);
         }

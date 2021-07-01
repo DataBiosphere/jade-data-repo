@@ -98,6 +98,7 @@ public class DrsTest extends UsersBase {
     private Map<IamRole, String> datasetIamRoles;
     private Map<IamRole, String> snapshotIamRoles;
     private AuthenticatedUserRequest authenticatedStewardRequest;
+    private AuthenticatedUserRequest authenticatedCustodianRequest;
 
     @Before
     public void setup() throws Exception {
@@ -110,7 +111,7 @@ public class DrsTest extends UsersBase {
         datasetId = setupResult.getDatasetId();
         authenticatedStewardRequest =
             new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
-        AuthenticatedUserRequest authenticatedCustodianRequest =
+        authenticatedCustodianRequest =
             new AuthenticatedUserRequest().email(custodian().getEmail()).token(Optional.of(custodianToken));
         datasetIamRoles = iamService.retrievePolicyEmails(authenticatedStewardRequest,
             IamResourceType.DATASET, datasetId);
@@ -179,12 +180,12 @@ public class DrsTest extends UsersBase {
 
         String drsAccessId = drsAccessMethod.get().getAccessId();
         bio.terra.model.DRSAccessURL drsAccessURL = drsService
-            .getAccessUrlForObjectId(authenticatedStewardRequest, drsObjectId, drsAccessId);
+            .getAccessUrlForObjectId(authenticatedCustodianRequest, drsObjectId, drsAccessId);
 
         try (CloseableHttpClient client = HttpClients.createDefault()) {
             HttpUriRequest request = new HttpHead(drsAccessURL.getUrl());
             request.setHeader("Authorization",
-                String.format("Bearer %s", authenticatedStewardRequest.getToken()));
+                String.format("Bearer %s", authenticatedCustodianRequest.getToken()));
             try (
                 CloseableHttpResponse response = client.execute(request);
             ) {

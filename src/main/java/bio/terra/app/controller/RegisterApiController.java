@@ -9,6 +9,8 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.PolicyMemberValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
+import java.util.Optional;
+import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,62 +20,58 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.InitBinder;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.Optional;
-
 @Controller
 @Api(tags = {"register"})
 public class RegisterApiController implements RegisterApi {
 
-    private Logger logger = LoggerFactory.getLogger(RegisterApiController.class);
+  private Logger logger = LoggerFactory.getLogger(RegisterApiController.class);
 
-    private final ObjectMapper objectMapper;
-    private final HttpServletRequest request;
-    private final IamService iamService;
-    private final PolicyMemberValidator policyMemberValidator;
-    private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
-    private final AssetModelValidator assetModelValidator;
+  private final ObjectMapper objectMapper;
+  private final HttpServletRequest request;
+  private final IamService iamService;
+  private final PolicyMemberValidator policyMemberValidator;
+  private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+  private final AssetModelValidator assetModelValidator;
 
-    @Autowired
-    public RegisterApiController(
-            ObjectMapper objectMapper,
-            HttpServletRequest request,
-            IamService iamService,
-            PolicyMemberValidator policyMemberValidator,
-            AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
-            AssetModelValidator assetModelValidator
-    ) {
-        this.objectMapper = objectMapper;
-        this.request = request;
-        this.iamService = iamService;
-        this.policyMemberValidator = policyMemberValidator;
-        this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
-        this.assetModelValidator = assetModelValidator;
-    }
+  @Autowired
+  public RegisterApiController(
+      ObjectMapper objectMapper,
+      HttpServletRequest request,
+      IamService iamService,
+      PolicyMemberValidator policyMemberValidator,
+      AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
+      AssetModelValidator assetModelValidator) {
+    this.objectMapper = objectMapper;
+    this.request = request;
+    this.iamService = iamService;
+    this.policyMemberValidator = policyMemberValidator;
+    this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
+    this.assetModelValidator = assetModelValidator;
+  }
 
-    @InitBinder
-    protected void initBinder(final WebDataBinder binder) {
-        binder.addValidators(policyMemberValidator);
-        binder.addValidators(assetModelValidator);
-    }
+  @InitBinder
+  protected void initBinder(final WebDataBinder binder) {
+    binder.addValidators(policyMemberValidator);
+    binder.addValidators(assetModelValidator);
+  }
 
-    @Override
-    public Optional<ObjectMapper> getObjectMapper() {
-        return Optional.ofNullable(objectMapper);
-    }
+  @Override
+  public Optional<ObjectMapper> getObjectMapper() {
+    return Optional.ofNullable(objectMapper);
+  }
 
-    @Override
-    public Optional<HttpServletRequest> getRequest() {
-        return Optional.ofNullable(request);
-    }
+  @Override
+  public Optional<HttpServletRequest> getRequest() {
+    return Optional.ofNullable(request);
+  }
 
-    private AuthenticatedUserRequest getAuthenticatedInfo() {
-        return authenticatedUserRequestFactory.from(request);
-    }
+  private AuthenticatedUserRequest getAuthenticatedInfo() {
+    return authenticatedUserRequestFactory.from(request);
+  }
 
-    @Override
-    public ResponseEntity<UserStatusInfo> user() {
-        UserStatusInfo info = iamService.getUserInfo(getAuthenticatedInfo());
-        return new ResponseEntity<>(info, HttpStatus.OK);
-    }
+  @Override
+  public ResponseEntity<UserStatusInfo> user() {
+    UserStatusInfo info = iamService.getUserInfo(getAuthenticatedInfo());
+    return new ResponseEntity<>(info, HttpStatus.OK);
+  }
 }

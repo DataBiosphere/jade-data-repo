@@ -1,153 +1,152 @@
 package bio.terra.common.configuration;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.stereotype.Component;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.stereotype.Component;
 
 @Component
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "it")
 public class TestConfiguration {
-    private String jadeApiUrl;
-    private String jadePemFileName;
-    private String jadeEmail;
-    private String ingestbucket;
-    private List<User> users = new ArrayList<>();
-    private String googleProjectId;
-    private String googleBillingAccountId;
-    private UUID targetTenantId;
-    private UUID targetSubscriptionId;
-    private String targetResourceGroupName;
-    private String targetApplicationName;
+  private String jadeApiUrl;
+  private String jadePemFileName;
+  private String jadeEmail;
+  private String ingestbucket;
+  private List<User> users = new ArrayList<>();
+  private String googleProjectId;
+  private String googleBillingAccountId;
+  private UUID targetTenantId;
+  private UUID targetSubscriptionId;
+  private String targetResourceGroupName;
+  private String targetApplicationName;
 
-    public static class User {
-        private String role;
-        private String name;
-        private String email;
-        private String subjectId;
+  public static class User {
+    private String role;
+    private String name;
+    private String email;
+    private String subjectId;
 
-        public String getRole() {
-            return role;
-        }
-
-        public void setRole(String role) {
-            this.role = role;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getEmail() {
-            return email;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-        }
-
-        public String getSubjectId() {
-            return subjectId;
-        }
-
-        public void setSubjectId(String subjectId) {
-            this.subjectId = subjectId;
-        }
+    public String getRole() {
+      return role;
     }
 
-    public String getJadeApiUrl() {
-        return jadeApiUrl;
+    public void setRole(String role) {
+      this.role = role;
     }
 
-    public void setJadeApiUrl(String jadeApiUrl) {
-        this.jadeApiUrl = jadeApiUrl;
+    public String getName() {
+      return name;
     }
 
-    public String getJadePemFileName() {
-        return jadePemFileName;
+    public void setName(String name) {
+      this.name = name;
     }
 
-    public void setJadePemFileName(String jadePemFileName) {
-        this.jadePemFileName = jadePemFileName;
+    public String getEmail() {
+      return email;
     }
 
-    public String getJadeEmail() {
-        return jadeEmail;
+    public void setEmail(String email) {
+      this.email = email;
     }
 
-    public void setJadeEmail(String jadeSAEmail) {
-        this.jadeEmail = jadeSAEmail;
+    public String getSubjectId() {
+      return subjectId;
     }
 
-    public String getIngestbucket() {
-        return ingestbucket;
+    public void setSubjectId(String subjectId) {
+      this.subjectId = subjectId;
     }
+  }
 
-    public void setIngestbucket(String ingestbucket) {
-        this.ingestbucket = ingestbucket;
-    }
+  public String getJadeApiUrl() {
+    return jadeApiUrl;
+  }
 
-    public List<User> getUsers() {
-        return users;
-    }
+  public void setJadeApiUrl(String jadeApiUrl) {
+    this.jadeApiUrl = jadeApiUrl;
+  }
 
-    public void setUsers(List<User> users) {
-        this.users = users;
-    }
+  public String getJadePemFileName() {
+    return jadePemFileName;
+  }
 
-    public String getGoogleProjectId() {
-        return googleProjectId;
-    }
+  public void setJadePemFileName(String jadePemFileName) {
+    this.jadePemFileName = jadePemFileName;
+  }
 
-    public void setGoogleProjectId(String googleProjectId) {
-        this.googleProjectId = googleProjectId;
-    }
+  public String getJadeEmail() {
+    return jadeEmail;
+  }
 
-    public String getGoogleBillingAccountId() {
-        return googleBillingAccountId;
-    }
+  public void setJadeEmail(String jadeSAEmail) {
+    this.jadeEmail = jadeSAEmail;
+  }
 
-    public void setGoogleBillingAccountId(String googleBillingAccountId) {
-        this.googleBillingAccountId = googleBillingAccountId;
-    }
+  public String getIngestbucket() {
+    return ingestbucket;
+  }
 
-    public UUID getTargetTenantId() {
-        return targetTenantId;
-    }
+  public void setIngestbucket(String ingestbucket) {
+    this.ingestbucket = ingestbucket;
+  }
 
-    public void setTargetTenantId(UUID targetTenantId) {
-        this.targetTenantId = targetTenantId;
-    }
+  public List<User> getUsers() {
+    return users;
+  }
 
-    public UUID getTargetSubscriptionId() {
-        return targetSubscriptionId;
-    }
+  public void setUsers(List<User> users) {
+    this.users = users;
+  }
 
-    public void setTargetSubscriptionId(UUID targetSubscriptionId) {
-        this.targetSubscriptionId = targetSubscriptionId;
-    }
+  public String getGoogleProjectId() {
+    return googleProjectId;
+  }
 
-    public String getTargetResourceGroupName() {
-        return targetResourceGroupName;
-    }
+  public void setGoogleProjectId(String googleProjectId) {
+    this.googleProjectId = googleProjectId;
+  }
 
-    public void setTargetResourceGroupName(String targetResourceGroupName) {
-        this.targetResourceGroupName = targetResourceGroupName;
-    }
+  public String getGoogleBillingAccountId() {
+    return googleBillingAccountId;
+  }
 
-    public String getTargetApplicationName() {
-        return targetApplicationName;
-    }
+  public void setGoogleBillingAccountId(String googleBillingAccountId) {
+    this.googleBillingAccountId = googleBillingAccountId;
+  }
 
-    public void setTargetApplicationName(String targetApplicationName) {
-        this.targetApplicationName = targetApplicationName;
-    }
+  public UUID getTargetTenantId() {
+    return targetTenantId;
+  }
+
+  public void setTargetTenantId(UUID targetTenantId) {
+    this.targetTenantId = targetTenantId;
+  }
+
+  public UUID getTargetSubscriptionId() {
+    return targetSubscriptionId;
+  }
+
+  public void setTargetSubscriptionId(UUID targetSubscriptionId) {
+    this.targetSubscriptionId = targetSubscriptionId;
+  }
+
+  public String getTargetResourceGroupName() {
+    return targetResourceGroupName;
+  }
+
+  public void setTargetResourceGroupName(String targetResourceGroupName) {
+    this.targetResourceGroupName = targetResourceGroupName;
+  }
+
+  public String getTargetApplicationName() {
+    return targetApplicationName;
+  }
+
+  public void setTargetApplicationName(String targetApplicationName) {
+    this.targetApplicationName = targetApplicationName;
+  }
 }

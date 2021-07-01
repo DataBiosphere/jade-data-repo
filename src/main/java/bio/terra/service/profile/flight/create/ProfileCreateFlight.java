@@ -11,24 +11,23 @@ import org.springframework.context.ApplicationContext;
 
 public class ProfileCreateFlight extends Flight {
 
-    public ProfileCreateFlight(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+  public ProfileCreateFlight(FlightMap inputParameters, Object applicationContext) {
+    super(inputParameters, applicationContext);
 
-        ApplicationContext appContext = (ApplicationContext) applicationContext;
-        ProfileService profileService = (ProfileService) appContext.getBean("profileService");
+    ApplicationContext appContext = (ApplicationContext) applicationContext;
+    ProfileService profileService = (ProfileService) appContext.getBean("profileService");
 
-        BillingProfileRequestModel request =
-            inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BillingProfileRequestModel.class);
+    BillingProfileRequestModel request =
+        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BillingProfileRequestModel.class);
 
-        AuthenticatedUserRequest user = inputParameters.get(
-            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest user =
+        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-        addStep(new CreateProfileMetadataStep(profileService, request, user));
-        addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
-        if (CloudPlatformWrapper.of(request.getCloudPlatform()).isAzure()) {
-            addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));
-        }
-        addStep(new CreateProfileAuthzIamStep(profileService, request, user));
+    addStep(new CreateProfileMetadataStep(profileService, request, user));
+    addStep(new CreateProfileVerifyAccountStep(profileService, request, user));
+    if (CloudPlatformWrapper.of(request.getCloudPlatform()).isAzure()) {
+      addStep(new CreateProfileVerifyDeployedApplicationStep(profileService, request, user));
     }
-
+    addStep(new CreateProfileAuthzIamStep(profileService, request, user));
+  }
 }

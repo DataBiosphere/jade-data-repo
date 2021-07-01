@@ -15,32 +15,33 @@ import org.springframework.http.HttpStatus;
 
 public class CreateProfileMetadataStep implements Step {
 
-    private final ProfileService profileService;
-    private final BillingProfileRequestModel profileRequest;
-    private final AuthenticatedUserRequest user;
-    private static final Logger logger = LoggerFactory.getLogger(CreateProfileMetadataStep.class);
+  private final ProfileService profileService;
+  private final BillingProfileRequestModel profileRequest;
+  private final AuthenticatedUserRequest user;
+  private static final Logger logger = LoggerFactory.getLogger(CreateProfileMetadataStep.class);
 
-    public CreateProfileMetadataStep(ProfileService profileService,
-                                     BillingProfileRequestModel profileRequest,
-                                     AuthenticatedUserRequest user) {
-        this.profileService = profileService;
-        this.profileRequest = profileRequest;
-        this.user = user;
-    }
+  public CreateProfileMetadataStep(
+      ProfileService profileService,
+      BillingProfileRequestModel profileRequest,
+      AuthenticatedUserRequest user) {
+    this.profileService = profileService;
+    this.profileRequest = profileRequest;
+    this.user = user;
+  }
 
-    @Override
-    public StepResult doStep(FlightContext context) {
-        BillingProfileModel profileModel = profileService.createProfileMetadata(profileRequest, user);
-        FlightMap workingMap = context.getWorkingMap();
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), profileModel);
-        workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
-        return StepResult.getStepResultSuccess();
-    }
+  @Override
+  public StepResult doStep(FlightContext context) {
+    BillingProfileModel profileModel = profileService.createProfileMetadata(profileRequest, user);
+    FlightMap workingMap = context.getWorkingMap();
+    workingMap.put(JobMapKeys.RESPONSE.getKeyName(), profileModel);
+    workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
+    return StepResult.getStepResultSuccess();
+  }
 
-    @Override
-    public StepResult undoStep(FlightContext context) {
-        logger.debug("Profile creation failed. Deleting metadata.");
-        profileService.deleteProfileMetadata(profileRequest.getId());
-        return StepResult.getStepResultSuccess();
-    }
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    logger.debug("Profile creation failed. Deleting metadata.");
+    profileService.deleteProfileMetadata(profileRequest.getId());
+    return StepResult.getStepResultSuccess();
+  }
 }

@@ -7,15 +7,13 @@ import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingExcept
 
 public interface DataLocationSelector {
 
-    String projectIdForDataset() throws GoogleResourceNamingException;
+  String projectIdForDataset() throws GoogleResourceNamingException;
 
-    String projectIdForSnapshot() throws GoogleResourceNamingException;
+  String projectIdForSnapshot() throws GoogleResourceNamingException;
 
-    String projectIdForFile(Dataset dataset,
-                            String sourceDatasetGoogleProjectId,
-                            BillingProfileModel billingProfile)
-        throws GoogleResourceException, GoogleResourceNamingException;
+  String projectIdForFile(
+      Dataset dataset, String sourceDatasetGoogleProjectId, BillingProfileModel billingProfile)
+      throws GoogleResourceException, GoogleResourceNamingException;
 
-    String bucketForFile(String projectId)
-        throws GoogleResourceNamingException;
+  String bucketForFile(String projectId) throws GoogleResourceNamingException;
 }

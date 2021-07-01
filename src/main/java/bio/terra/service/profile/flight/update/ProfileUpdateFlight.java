@@ -11,27 +11,27 @@ import org.springframework.context.ApplicationContext;
 
 public class ProfileUpdateFlight extends Flight {
 
-    public ProfileUpdateFlight(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+  public ProfileUpdateFlight(FlightMap inputParameters, Object applicationContext) {
+    super(inputParameters, applicationContext);
 
-        ApplicationContext appContext = (ApplicationContext) applicationContext;
-        ProfileService profileService = (ProfileService) appContext.getBean("profileService");
-        GoogleProjectService googleProjectService =
-            (GoogleProjectService) appContext.getBean("googleProjectService");
+    ApplicationContext appContext = (ApplicationContext) applicationContext;
+    ProfileService profileService = (ProfileService) appContext.getBean("profileService");
+    GoogleProjectService googleProjectService =
+        (GoogleProjectService) appContext.getBean("googleProjectService");
 
-        BillingProfileUpdateModel request =
-            inputParameters.get(JobMapKeys.REQUEST.getKeyName(), bio.terra.model.BillingProfileUpdateModel.class);
+    BillingProfileUpdateModel request =
+        inputParameters.get(
+            JobMapKeys.REQUEST.getKeyName(), bio.terra.model.BillingProfileUpdateModel.class);
 
-        AuthenticatedUserRequest user = inputParameters.get(
-            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+    AuthenticatedUserRequest user =
+        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-        addStep(new UpdateProfileRetrieveExistingProfileStep(profileService, request, user));
-        //update billing account id metadata
-        addStep(new UpdateProfileMetadataStep(profileService, request, user));
-        // Make sure valid account before changing in gcloud project
-        addStep(new UpdateProfileVerifyAccountStep(profileService, user));
-        // Update billing profile in gcloud project
-        addStep(new UpdateProfileUpdateGCloudProject(googleProjectService));
-    }
-
+    addStep(new UpdateProfileRetrieveExistingProfileStep(profileService, request, user));
+    // update billing account id metadata
+    addStep(new UpdateProfileMetadataStep(profileService, request, user));
+    // Make sure valid account before changing in gcloud project
+    addStep(new UpdateProfileVerifyAccountStep(profileService, user));
+    // Update billing profile in gcloud project
+    addStep(new UpdateProfileUpdateGCloudProject(googleProjectService));
+  }
 }

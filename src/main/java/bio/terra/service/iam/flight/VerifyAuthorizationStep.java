@@ -11,39 +11,39 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
 /**
- * Shareable step for running authz checks inside flights
- * We use the IamProviderInterface directly here because we want to allow
- * the InterruptedException to propagate in flights.
+ * Shareable step for running authz checks inside flights We use the IamProviderInterface directly
+ * here because we want to allow the InterruptedException to propagate in flights.
  */
 public class VerifyAuthorizationStep implements Step {
-    private final IamProviderInterface iamProvider;
-    private final IamResourceType iamResourceType;
-    private final String resourceId;
-    private final IamAction action;
+  private final IamProviderInterface iamProvider;
+  private final IamResourceType iamResourceType;
+  private final String resourceId;
+  private final IamAction action;
 
-    public VerifyAuthorizationStep(IamProviderInterface iamProvider,
-                                   IamResourceType iamResourceType,
-                                   String resourceId,
-                                   IamAction action) {
-        this.iamProvider = iamProvider;
-        this.iamResourceType = iamResourceType;
-        this.resourceId = resourceId;
-        this.action = action;
-    }
+  public VerifyAuthorizationStep(
+      IamProviderInterface iamProvider,
+      IamResourceType iamResourceType,
+      String resourceId,
+      IamAction action) {
+    this.iamProvider = iamProvider;
+    this.iamResourceType = iamResourceType;
+    this.resourceId = resourceId;
+    this.action = action;
+  }
 
-    @Override
-    public StepResult doStep(FlightContext context) throws InterruptedException {
-        FlightMap parameterMap = context.getInputParameters();
-        AuthenticatedUserRequest userReq =
-            parameterMap.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+  @Override
+  public StepResult doStep(FlightContext context) throws InterruptedException {
+    FlightMap parameterMap = context.getInputParameters();
+    AuthenticatedUserRequest userReq =
+        parameterMap.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-        iamProvider.verifyAuthorization(userReq, iamResourceType, resourceId, action);
-        return StepResult.getStepResultSuccess();
-    }
+    iamProvider.verifyAuthorization(userReq, iamResourceType, resourceId, action);
+    return StepResult.getStepResultSuccess();
+  }
 
-    @Override
-    public StepResult undoStep(FlightContext context) {
-        // Nothing to undo
-        return StepResult.getStepResultSuccess();
-    }
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    // Nothing to undo
+    return StepResult.getStepResultSuccess();
+  }
 }

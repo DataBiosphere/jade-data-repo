@@ -528,6 +528,7 @@ public class DatasetDao {
      * @param accessibleDatasetIds list of dataset ids that caller has access to (fetched from IAM service)
      * @return a list of dataset summary objects
      */
+    @Transactional(readOnly = true, propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public MetadataEnumeration<DatasetSummary> enumerate(
         int offset,
         int limit,
@@ -547,7 +548,7 @@ public class DatasetDao {
             StringUtils.join(whereClauses, " AND ");
         Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
         if (total == null) {
-            throw new CorruptMetadataException("Impossible null value from count");
+            throw new CorruptMetadataException("Impossible null value from total count");
         }
 
         // add the filters to the clause to get the actual items
@@ -558,6 +559,16 @@ public class DatasetDao {
         if (!whereClauses.isEmpty()) {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
+
+        // get the filtered total count of objects without offset and limit
+        String filteredTotalSql = "SELECT count(id) AS total FROM dataset WHERE " +
+            StringUtils.join(whereClauses, " AND ");
+
+        Integer filteredTotal = jdbcTemplate.queryForObject(filteredTotalSql, params, Integer.class);
+        if (filteredTotal == null) {
+            throw new CorruptMetadataException("Impossible null value from filtered count");
+        }
+
         String sql = "SELECT " +
             summaryQueryColumns +
             datasetStorageQuery +
@@ -569,7 +580,8 @@ public class DatasetDao {
 
         return new MetadataEnumeration<DatasetSummary>()
             .items(summaries)
-            .total(total);
+            .total(total)
+            .filteredTotal(filteredTotal);
     }
 
 

@@ -42,7 +42,6 @@ dependencies {
         samClient = "0.1-9435410-SNAP"
     }
 
-    spotbugs 'com.github.spotbugs:spotbugs:4.2.2'
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junit}")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:${junit}")
     compileOnly "com.google.code.findbugs:annotations:${findbugsAnnotations}"

@@ -2,12 +2,14 @@ package bio.terra.service.profile;
 
 import bio.terra.common.category.Unit;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.job.JobBuilder;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.azure.AzureAuthzService;
 import bio.terra.service.profile.flight.ProfileMapKeys;
@@ -17,6 +19,7 @@ import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import org.junit.Before;
 import org.junit.Test;
@@ -136,6 +139,12 @@ public class ProfileServiceUnitTest {
         when(jobBuilder.submit()).thenReturn(jobId);
         UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
         when(jobBuilder.addParameter(eq(ProfileMapKeys.PROFILE_ID), eq(deleteId))).thenReturn(jobBuilder);
+        when(jobBuilder.addParameter(eq(JobMapKeys.CLOUD_PLATFORM.getKeyName()), eq(CloudPlatform.GCP)))
+                .thenReturn(jobBuilder);
+
+        var billingProfileModel = new BillingProfileModel();
+        billingProfileModel.setCloudPlatform(CloudPlatform.GCP);
+        when(profileDao.getBillingProfileById(deleteId)).thenReturn(billingProfileModel);
 
         var user = new AuthenticatedUserRequest();
         when(jobService.newJob(

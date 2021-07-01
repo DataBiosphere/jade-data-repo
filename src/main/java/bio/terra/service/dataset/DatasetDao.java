@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
@@ -62,10 +63,27 @@ public class DatasetDao {
         " dataset.id, name, description, default_profile_id, project_resource_id, application_resource_id, " +
             "created_date, ";
 
-    private static final String datasetStorageQuery = "(SELECT jsonb_agg(sr) " +
-            "FROM (SELECT region, cloud_resource as \"cloudResource\", " +
-            "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" " +
-            "FROM storage_resource WHERE dataset_id = dataset.id) sr) AS storage ";
+    private static final String datasetStorageQuery = "(SELECT jsonb_agg(json_build_object( " +
+        "'region', region, " +
+        "'cloudResource', cloud_resource, " +
+        "'cloudPlatform', cloud_platform, " +
+        "'datasetId', dataset_id)) " +
+        "FROM storage_resource WHERE dataset_id = dataset.id) AS storage, ";
+
+    private static final String billingProfileQuery = "(SELECT json_agg(json_build_object(" +
+        "'id', id, " +
+        "'profileName', name, " +
+        "'biller', biller, " +
+        "'billingAccountId', billing_account_id, " +
+        "'description', description, " +
+        "'cloudPlatform', cloud_platform, " +
+        "'tenantId', tenant_id, " +
+        "'subscriptionId', subscription_id, " +
+        "'resourceGroupName', resource_group_name, " +
+        "'applicationDeploymentName', application_deployment_name, " +
+        "'createdDate', created_date, " +
+        "'createdBy', created_by)) " +
+        "FROM billing_profile where id = dataset.default_profile_id) AS billing_profiles ";
 
     @Autowired
     public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,
@@ -470,6 +488,7 @@ public class DatasetDao {
             String sql = "SELECT " +
                 summaryQueryColumns +
                 datasetStorageQuery +
+                billingProfileQuery +
                 "FROM dataset WHERE dataset.id = :id";
             if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
                 sql += " AND flightid IS NULL";
@@ -486,6 +505,7 @@ public class DatasetDao {
             String sql = "SELECT " +
                 summaryQueryColumns +
                 datasetStorageQuery +
+                billingProfileQuery +
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
@@ -541,6 +561,7 @@ public class DatasetDao {
         String sql = "SELECT " +
             summaryQueryColumns +
             datasetStorageQuery +
+            billingProfileQuery +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
@@ -555,23 +576,33 @@ public class DatasetDao {
 
     private class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
         public DatasetSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+            UUID datasetId = rs.getObject("id", UUID.class);
             List<? extends StorageResource<?, ?>> storageResources;
             try {
                 storageResources = objectMapper.readValue(rs.getString("storage"),
                         new TypeReference<>() {});
             } catch (JsonProcessingException e) {
                 throw new CorruptMetadataException(String.format("Invalid storage for dataset - id: %s",
-                        rs.getString("id")), e);
+                        datasetId), e);
+            }
+            List<BillingProfileModel> billingProfileModels;
+            try {
+                billingProfileModels = objectMapper.readValue(rs.getString("billing_profiles"),
+                    new TypeReference<>() {});
+            } catch (JsonProcessingException e) {
+                throw new CorruptMetadataException(String.format("Invalid billing profiles for dataset - id: %s",
+                datasetId), e);
             }
             return new DatasetSummary()
-                .id(rs.getObject("id", UUID.class))
+                .id(datasetId)
                 .name(rs.getString("name"))
                 .description(rs.getString("description"))
                 .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class))
                 .applicationDeploymentResourceId(rs.getObject("application_resource_id", UUID.class))
                 .createdDate(rs.getTimestamp("created_date").toInstant())
-                .storage(storageResources);
+                .storage(storageResources)
+                .billingProfiles(billingProfileModels);
         }
     }
 

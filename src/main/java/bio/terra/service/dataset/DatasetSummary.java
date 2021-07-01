@@ -5,6 +5,7 @@ import bio.terra.app.model.CloudRegion;
 import bio.terra.app.model.CloudResource;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
 
@@ -21,6 +22,7 @@ public class DatasetSummary {
     private UUID projectResourceId;
     private UUID applicationDeploymentResourceId;
     private Instant createdDate;
+    private List<BillingProfileModel> billingProfiles;
     private List<? extends StorageResource<?, ?>> storage;
 
     public UUID getId() {
@@ -95,6 +97,22 @@ public class DatasetSummary {
         return this;
     }
 
+    public List<BillingProfileModel> getBillingProfiles() {
+        return billingProfiles;
+    }
+
+    public DatasetSummary billingProfiles(List<BillingProfileModel> billingProfiles) {
+        this.billingProfiles = billingProfiles;
+        return this;
+    }
+
+    public BillingProfileModel getDefaultBillingProfile() {
+        return billingProfiles.stream()
+            .filter(b -> b.getId().equals(defaultProfileId))
+            .findFirst()
+            .orElseThrow();
+    }
+
     public CloudRegion getStorageResourceRegion(CloudResource storageResource) {
         return getCloudResourceAttribute(storageResource, StorageResource::getRegion);
     }
@@ -105,6 +123,7 @@ public class DatasetSummary {
     }
 
     public CloudPlatform getStorageCloudPlatform() {
+        // A Dataset should not have both a bucket and a storage account at this point
         return storage.stream().filter(s -> s.getCloudResource() == GoogleCloudResource.BUCKET ||
             s.getCloudResource() == AzureCloudResource.STORAGE_ACCOUNT)
             .findAny()

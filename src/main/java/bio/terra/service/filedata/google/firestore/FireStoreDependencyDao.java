@@ -10,6 +10,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
@@ -64,24 +65,14 @@ public class FireStoreDependencyDao {
         }
     }
 
-    public boolean datasetHasSnapshotReference(Dataset dataset) {
+    public boolean datasetHasSnapshotReference(Dataset dataset) throws InterruptedException {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
-        CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
-        // TODO - use generic retry library
-        int retryCount = 0;
-        while (true) {
-            try {
-                // check to see if the datasets collection contains any dependencies
-                return depColl.listDocuments().iterator().hasNext();
-            } catch (FirestoreException ex) {
-                retryCount++;
-                if (retryCount > fireStoreUtils.getFirestoreRetries()) {
-                    logger.error("[datasetHasSnapshotReference retry] After {} retries, hit max retries", retryCount);
-                    throw ex;
-                }
-            }
-        }
+        Firestore firestore = fireStoreProject.getFirestore();
+
+        // check to see if the datasets collection contains any dependencies
+        Query collectionQuery = firestore.collection(dependencyCollectionName);
+        return fireStoreUtils.queryNotEmpty(firestore, collectionQuery);
     }
 
     public List<String> getDatasetSnapshotFileIds(Dataset dataset, String snapshotId) throws InterruptedException {

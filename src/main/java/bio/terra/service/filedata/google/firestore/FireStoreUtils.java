@@ -12,6 +12,7 @@ import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreException;
+import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.Transaction;
@@ -24,11 +25,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class FireStoreUtils {
@@ -37,6 +41,17 @@ public class FireStoreUtils {
     private static final int SLEEP_BASE_SECONDS = 1;
 
     private ConfigurationService configurationService;
+
+    private static final List<Type> batchExceptionList = Arrays.asList(DeadlineExceededException.class,
+        UnavailableException.class,
+        InternalException.class,
+        StatusRuntimeException.class,
+        AbortedException.class);
+
+    private static final List<Type> transactionRetryExceptionList = Arrays.asList(DeadlineExceededException.class,
+        UnavailableException.class,
+        InternalException.class,
+        StatusRuntimeException.class);
 
     @Autowired
     public FireStoreUtils(ConfigurationService configurationService) {
@@ -50,7 +65,14 @@ public class FireStoreUtils {
             logger.info("No value set for FIRESTORE_RETRIES parameter. Defaulting to 1.");
             return 1;
         }
+    }
 
+    public static List<Type> getBatchExceptionList() {
+        return batchExceptionList;
+    }
+
+    public static List<Type> getTransactionRetryExceptionList() {
+        return transactionRetryExceptionList;
     }
 
     <T> T transactionGet(String op, ApiFuture<T> transaction) throws InterruptedException {
@@ -156,7 +178,8 @@ public class FireStoreUtils {
                     ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
                     return future.get().getDocuments();
                 }, "scanCollectionObjects",
-                " scanning " + batchSize + " items for collection id: " + collectionId);
+                " scanning " + batchSize + " items for collection id: " + collectionId,
+                transactionRetryExceptionList);
             batchCount++;
             if (!documents.isEmpty()) {
                 logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
@@ -232,7 +255,7 @@ public class FireStoreUtils {
                         InternalException |
                         StatusRuntimeException |
                         ExecutionException ex) {
-                        if (shouldRetry(ex, true)) {
+                        if (shouldRetry(ex, batchExceptionList)) {
                             logger.warn("[batchOperation] Retry-able error in firestore future get - input: " +
                                 inputs.get(i) + " message: " + ex.getMessage());
                         } else
@@ -265,24 +288,24 @@ public class FireStoreUtils {
     }
 
     // For batch operations, we want to also include the AbortedException as retryable
-    static boolean shouldRetry(Throwable throwable, boolean isBatch) {
+    static boolean shouldRetry(Throwable throwable, List<Type> retryableExceptions) {
         if (throwable == null) {
             return false; // Did not find a retry-able exception
         }
-        if (throwable instanceof DeadlineExceededException ||
-            throwable instanceof UnavailableException ||
-            throwable instanceof InternalException ||
-            throwable instanceof StatusRuntimeException ||
-            (isBatch && throwable instanceof AbortedException)) {
-            return true;
+        Class<? extends Throwable> throwableClass = throwable.getClass();
+        for (Type exceptionType : retryableExceptions) {
+            if (throwableClass.isInstance(exceptionType)) {
+                return true;
+            }
         }
-        return shouldRetry(throwable.getCause(), isBatch);
+        return shouldRetry(throwable.getCause(), retryableExceptions);
     }
 
     public <T> T runTransactionWithRetry(Firestore firestore,
                                          Transaction.Function<T> firestoreFunction,
                                          String transactionOp,
-                                         String warnMessage) throws InterruptedException {
+                                         String warnMessage,
+                                         List<Type> retryableExceptionList) throws InterruptedException {
         int retry = 0;
         while (true) {
             try {
@@ -291,7 +314,7 @@ public class FireStoreUtils {
                 return transactionGet(transactionOp, transaction);
             } catch (Exception ex) {
                 final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry));
-                if (retry < getFirestoreRetries() && FireStoreUtils.shouldRetry(ex, false)) {
+                if (retry < getFirestoreRetries() && FireStoreUtils.shouldRetry(ex, retryableExceptionList)) {
                     // perform retry
                     retry++;
                     logger.warn("[transaction retry] Retry-able error in firestore transactions - {} " +
@@ -307,6 +330,18 @@ public class FireStoreUtils {
                 }
             }
         }
+    }
+
+    public boolean queryNotEmpty(Firestore firestore,
+                                 Query query) throws InterruptedException {
+        int docCount = runTransactionWithRetry(firestore, (xn -> {
+                ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
+                return querySnapshot.get().getDocuments().size();
+            }), "collectionIsEmpty",
+            "Checking if collection is empty",
+            Arrays.asList(FirestoreException.class));
+        return docCount > 0;
+
     }
 
 }

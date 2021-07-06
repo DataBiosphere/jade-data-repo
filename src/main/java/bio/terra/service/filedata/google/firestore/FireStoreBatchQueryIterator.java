@@ -73,7 +73,7 @@ public class FireStoreBatchQueryIterator {
                 }
                 return currentList;
             } catch (Exception ex) {
-                if (FireStoreUtils.shouldRetry(ex, true)) {
+                if (FireStoreUtils.shouldRetry(ex, FireStoreUtils.getBatchExceptionList())) {
                     logger.warn("Retry-able error in firestore future get - message: " + ex.getMessage());
                 } else {
                     throw new FileSystemExecutionException("get batch execution exception", ex);

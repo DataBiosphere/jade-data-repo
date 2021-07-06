@@ -63,7 +63,8 @@ class FireStoreFileDao {
                 xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
                 return null;
             }, "createFileMetadata",
-            " creating file metadata for dataset Id: " + datasetId);
+            " creating file metadata for dataset Id: " + datasetId,
+            fireStoreUtils.getTransactionRetryExceptionList());
     }
 
     boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId) throws InterruptedException {
@@ -103,7 +104,8 @@ class FireStoreFileDao {
                 return Optional.ofNullable(docSnap).map(d -> docSnap.toObject(FireStoreFile.class))
                     .orElse(null);
             }, "retrieveFileMetadata",
-            " retrieving file metadata for dataset Id: " + datasetId);
+            " retrieving file metadata for dataset Id: " + datasetId,
+            fireStoreUtils.getTransactionRetryExceptionList());
     }
 
     /**

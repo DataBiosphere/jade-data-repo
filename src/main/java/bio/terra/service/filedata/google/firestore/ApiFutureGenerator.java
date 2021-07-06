@@ -4,5 +4,5 @@ import com.google.api.core.ApiFuture;
 
 @FunctionalInterface
 public interface ApiFutureGenerator<T, V> {
-    ApiFuture<T> accept(V input) throws InterruptedException;
+  ApiFuture<T> accept(V input) throws InterruptedException;
 }

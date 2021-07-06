@@ -9,29 +9,27 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-
 public class UpdateProfileVerifyAccountStep implements Step {
-    private final ProfileService profileService;
-    private final AuthenticatedUserRequest user;
+  private final ProfileService profileService;
+  private final AuthenticatedUserRequest user;
 
-    public UpdateProfileVerifyAccountStep(ProfileService profileService,
-                                      AuthenticatedUserRequest user) {
-        this.profileService = profileService;
-        this.user = user;
-    }
+  public UpdateProfileVerifyAccountStep(
+      ProfileService profileService, AuthenticatedUserRequest user) {
+    this.profileService = profileService;
+    this.user = user;
+  }
 
-    @Override
-    public StepResult doStep(FlightContext context) throws InterruptedException {
-        FlightMap workingMap = context.getWorkingMap();
-        BillingProfileModel newBillingProfileModel = workingMap.get(JobMapKeys.RESPONSE.getKeyName(),
-            BillingProfileModel.class);
-        profileService.verifyAccount(newBillingProfileModel.getBillingAccountId(), user);
-        return StepResult.getStepResultSuccess();
-    }
+  @Override
+  public StepResult doStep(FlightContext context) throws InterruptedException {
+    FlightMap workingMap = context.getWorkingMap();
+    BillingProfileModel newBillingProfileModel =
+        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), BillingProfileModel.class);
+    profileService.verifyAccount(newBillingProfileModel.getBillingAccountId(), user);
+    return StepResult.getStepResultSuccess();
+  }
 
-    @Override
-    public StepResult undoStep(FlightContext context) throws InterruptedException {
-        return StepResult.getStepResultSuccess();
-    }
+  @Override
+  public StepResult undoStep(FlightContext context) throws InterruptedException {
+    return StepResult.getStepResultSuccess();
+  }
 }
-

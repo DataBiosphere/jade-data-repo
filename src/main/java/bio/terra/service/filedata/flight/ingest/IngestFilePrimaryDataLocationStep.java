@@ -18,60 +18,58 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IngestFilePrimaryDataLocationStep implements Step {
-    private final Logger logger = LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
-    private final ResourceService resourceService;
-    private final Dataset dataset;
+  private final Logger logger = LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
+  private final ResourceService resourceService;
+  private final Dataset dataset;
 
-    public IngestFilePrimaryDataLocationStep(ResourceService resourceService,
-                                             Dataset dataset) {
-        this.resourceService = resourceService;
-        this.dataset = dataset;
+  public IngestFilePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {
+    this.resourceService = resourceService;
+    this.dataset = dataset;
+  }
 
+  @Override
+  public StepResult doStep(FlightContext context) throws InterruptedException {
+    FlightMap workingMap = context.getWorkingMap();
+    Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
+    if (loadComplete == null || !loadComplete) {
+      // Retrieve the already authorized billing profile from the working map and retrieve
+      // or create a bucket in the context of that profile and the dataset.
+      GoogleProjectResource googleProjectResource =
+          workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
+
+      try {
+        GoogleBucketResource bucketForFile =
+            resourceService.getOrCreateBucketForFile(
+                dataset, googleProjectResource, context.getFlightId());
+        workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
+      } catch (BucketLockException blEx) {
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
+      } catch (GoogleResourceNamingException ex) {
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+      }
     }
+    return StepResult.getStepResultSuccess();
+  }
 
-    @Override
-    public StepResult doStep(FlightContext context) throws InterruptedException {
-        FlightMap workingMap = context.getWorkingMap();
-        Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
-        if (loadComplete == null || !loadComplete) {
-            // Retrieve the already authorized billing profile from the working map and retrieve
-            // or create a bucket in the context of that profile and the dataset.
-            GoogleProjectResource googleProjectResource =
-                workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    // There is not much to undo here. It is possible that a bucket was created in the last step. We
+    // could look to
+    // see if there are no other files in the bucket and delete it here, but I think it is likely
+    // the bucket will
+    // be used again.
+    FlightMap workingMap = context.getWorkingMap();
+    BillingProfileModel billingProfile =
+        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+    GoogleProjectResource googleProjectResource =
+        workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
 
-            try {
-                GoogleBucketResource bucketForFile =
-                    resourceService.getOrCreateBucketForFile(
-                        dataset,
-                        googleProjectResource,
-                        context.getFlightId());
-                workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
-            } catch (BucketLockException blEx) {
-                return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
-            } catch (GoogleResourceNamingException ex) {
-                return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
-            }
-        }
-        return StepResult.getStepResultSuccess();
+    try {
+      resourceService.updateBucketMetadata(
+          googleProjectResource.getGoogleProjectId(), billingProfile, context.getFlightId());
+    } catch (GoogleResourceNamingException e) {
+      logger.error(e.getMessage());
     }
-
-    @Override
-    public StepResult undoStep(FlightContext context) {
-        // There is not much to undo here. It is possible that a bucket was created in the last step. We could look to
-        // see if there are no other files in the bucket and delete it here, but I think it is likely the bucket will
-        // be used again.
-        FlightMap workingMap = context.getWorkingMap();
-        BillingProfileModel billingProfile =
-            workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-        GoogleProjectResource googleProjectResource =
-            workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);
-
-        try {
-            resourceService.updateBucketMetadata(
-                googleProjectResource.getGoogleProjectId(), billingProfile, context.getFlightId());
-        } catch (GoogleResourceNamingException e) {
-            logger.error(e.getMessage());
-        }
-        return StepResult.getStepResultSuccess();
-    }
+    return StepResult.getStepResultSuccess();
+  }
 }

@@ -11,12 +11,11 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ElasticSearchConfiguration {
 
-    @Bean
-    public RestHighLevelClient client(
-            @Value("${elasticsearch.hostname}") String hostname,
-            @Value("${elasticsearch.port}") int port
-    ) {
-        RestClientBuilder builder = RestClient.builder(new HttpHost(hostname, port));
-        return new RestHighLevelClient(builder);
-    }
+  @Bean
+  public RestHighLevelClient client(
+      @Value("${elasticsearch.hostname}") String hostname,
+      @Value("${elasticsearch.port}") int port) {
+    RestClientBuilder builder = RestClient.builder(new HttpHost(hostname, port));
+    return new RestHighLevelClient(builder);
+  }
 }

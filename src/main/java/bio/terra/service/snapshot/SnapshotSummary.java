@@ -6,64 +6,64 @@ import java.util.List;
 import java.util.UUID;
 
 public class SnapshotSummary {
-    private UUID id;
-    private String name;
-    private String description;
-    private Instant createdDate;
-    private UUID profileId;
-    private List<StorageResource> storage;
+  private UUID id;
+  private String name;
+  private String description;
+  private Instant createdDate;
+  private UUID profileId;
+  private List<StorageResource> storage;
 
-    public UUID getId() {
-        return id;
-    }
+  public UUID getId() {
+    return id;
+  }
 
-    public SnapshotSummary id(UUID id) {
-        this.id = id;
-        return this;
-    }
+  public SnapshotSummary id(UUID id) {
+    this.id = id;
+    return this;
+  }
 
-    public String getName() {
-        return name;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public SnapshotSummary name(String name) {
-        this.name = name;
-        return this;
-    }
+  public SnapshotSummary name(String name) {
+    this.name = name;
+    return this;
+  }
 
-    public String getDescription() {
-        return description;
-    }
+  public String getDescription() {
+    return description;
+  }
 
-    public SnapshotSummary description(String description) {
-        this.description = description;
-        return this;
-    }
+  public SnapshotSummary description(String description) {
+    this.description = description;
+    return this;
+  }
 
-    public Instant getCreatedDate() {
-        return createdDate;
-    }
+  public Instant getCreatedDate() {
+    return createdDate;
+  }
 
-    public SnapshotSummary createdDate(Instant createdDate) {
-        this.createdDate = createdDate;
-        return this;
-    }
+  public SnapshotSummary createdDate(Instant createdDate) {
+    this.createdDate = createdDate;
+    return this;
+  }
 
-    public UUID getProfileId() {
-        return profileId;
-    }
+  public UUID getProfileId() {
+    return profileId;
+  }
 
-    public SnapshotSummary profileId(UUID profileId) {
-        this.profileId = profileId;
-        return this;
-    }
+  public SnapshotSummary profileId(UUID profileId) {
+    this.profileId = profileId;
+    return this;
+  }
 
-    public List<StorageResource> getStorage() {
-        return storage;
-    }
+  public List<StorageResource> getStorage() {
+    return storage;
+  }
 
-    public SnapshotSummary storage(List<StorageResource> storage) {
-        this.storage = storage;
-        return this;
-    }
+  public SnapshotSummary storage(List<StorageResource> storage) {
+    this.storage = storage;
+    return this;
+  }
 }

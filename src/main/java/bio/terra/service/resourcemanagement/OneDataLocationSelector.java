@@ -13,36 +13,35 @@ import org.springframework.stereotype.Component;
 @Component
 public class OneDataLocationSelector implements DataLocationSelector {
 
-    private final GoogleResourceConfiguration resourceConfiguration;
+  private final GoogleResourceConfiguration resourceConfiguration;
 
-    @Autowired
-    public OneDataLocationSelector(GoogleResourceConfiguration resourceConfiguration) {
-        this.resourceConfiguration = resourceConfiguration;
-    }
+  @Autowired
+  public OneDataLocationSelector(GoogleResourceConfiguration resourceConfiguration) {
+    this.resourceConfiguration = resourceConfiguration;
+  }
 
-    private String oneProject() {
-        return resourceConfiguration.getSingleDataProjectId();
-    }
+  private String oneProject() {
+    return resourceConfiguration.getSingleDataProjectId();
+  }
 
-    @Override
-    public String projectIdForDataset() {
-        return oneProject();
-    }
+  @Override
+  public String projectIdForDataset() {
+    return oneProject();
+  }
 
-    @Override
-    public String projectIdForSnapshot() {
-        return oneProject();
-    }
+  @Override
+  public String projectIdForSnapshot() {
+    return oneProject();
+  }
 
-    @Override
-    public String projectIdForFile(Dataset dataset,
-                                   String sourceDatasetGoogleProjectId,
-                                   BillingProfileModel billingProfile) {
-        return oneProject();
-    }
+  @Override
+  public String projectIdForFile(
+      Dataset dataset, String sourceDatasetGoogleProjectId, BillingProfileModel billingProfile) {
+    return oneProject();
+  }
 
-    @Override
-    public String bucketForFile(String projectId) {
-        return oneProject() + "-bucket";
-    }
+  @Override
+  public String bucketForFile(String projectId) {
+    return oneProject() + "-bucket";
+  }
 }

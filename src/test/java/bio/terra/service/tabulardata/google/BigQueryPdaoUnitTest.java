@@ -56,7 +56,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -66,7 +66,6 @@ import static org.mockito.Mockito.when;
 @Category(Unit.class)
 @RunWith(MockitoJUnitRunner.class)
 public class BigQueryPdaoUnitTest {
-
 
     private static final UUID DATASET_ID = UUID.randomUUID();
     private static final UUID SNAPSHOT_ID = UUID.randomUUID();

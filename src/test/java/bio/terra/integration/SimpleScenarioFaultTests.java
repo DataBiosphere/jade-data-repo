@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 // This test provides a method that performs a simple scenario of creating a dataset, ingesting some rows,
 // making a snapshot, and then deleting everything.

@@ -32,7 +32,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class FireStoreUtils {
@@ -335,10 +334,9 @@ public class FireStoreUtils {
     public boolean queryNotEmpty(Firestore firestore,
                                  Query query) throws InterruptedException {
         int docCount = runTransactionWithRetry(firestore, (xn -> {
-                ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
-                return querySnapshot.get().getDocuments().size();
-            }), "collectionIsEmpty",
-            "Checking if collection is empty",
+            ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
+            return querySnapshot.get().getDocuments().size();
+        }), "collectionIsEmpty", "Checking if collection is empty",
             Arrays.asList(FirestoreException.class));
         return docCount > 0;
 

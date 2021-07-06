@@ -30,7 +30,7 @@ public class DatasetCreateFlight extends Flight {
 
     // get the required daos and services to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    BufferService bufferService = (BufferService) appContext.getBean("bufferService");
+    BufferService bufferService = appContext.getBean("bufferService", BufferService.class);
         DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);

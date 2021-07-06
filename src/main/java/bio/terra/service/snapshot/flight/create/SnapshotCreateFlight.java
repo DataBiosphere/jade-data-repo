@@ -41,7 +41,7 @@ public class SnapshotCreateFlight extends Flight {
 
     // get the required objects to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    BufferService bufferService = (BufferService) appContext.getBean("bufferService");
+    BufferService bufferService = appContext.getBean("bufferService", BufferService.class);
         SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);

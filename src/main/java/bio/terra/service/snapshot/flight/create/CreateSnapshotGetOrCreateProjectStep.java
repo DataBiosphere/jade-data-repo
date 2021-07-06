@@ -26,11 +26,12 @@ public class CreateSnapshotGetOrCreateProjectStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     BillingProfileModel profileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-        String projectId = workingMap.get(SnapshotWorkingMapKeys.GOOGLE_PROJECT_ID, String.class);
+    String projectId = workingMap.get(SnapshotWorkingMapKeys.GOOGLE_PROJECT_ID, String.class);
 
     // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
     // Either the project will have been created8and we will find it, or we will create.
-    UUID projectResourceId = resourceService.getOrCreateSnapshotProject(profileModel, projectId, region);
+    UUID projectResourceId =
+        resourceService.getOrCreateSnapshotProject(profileModel, projectId, region);
     workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
     return StepResult.getStepResultSuccess();
   }

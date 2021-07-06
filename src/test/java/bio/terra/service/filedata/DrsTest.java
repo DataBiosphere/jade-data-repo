@@ -152,11 +152,9 @@ public class DrsTest extends UsersBase {
     validateDrsObject(drsObjectFile, drsObjectId);
     assertNull("Contents of file is null", drsObjectFile.getContents());
     // TODO: re-add once CA-1406 is resolved
-    /*
-    TestUtils.validateDrsAccessMethods(
+    /*TestUtils.validateDrsAccessMethods(
         drsObjectFile.getAccessMethods(),
-        authService.getDirectAccessAuthToken(steward().getEmail()));
-     */
+        authService.getDirectAccessAuthToken(steward().getEmail()));*/
     Map<String, List<Acl>> preDeleteAcls =
         TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
     validateContainsAcls(preDeleteAcls.values().iterator().next());
@@ -382,8 +380,12 @@ public class DrsTest extends UsersBase {
   private void validateDoesNotContainAcls(List<Acl> acls) {
     final Collection<String> entities =
         CollectionUtils.collect(acls, a -> a.getEntity().toString());
-    assertThat("Doesn't have custodian ACLs", entities, not(empty()));
     assertThat(
+        "Doesn't have custodian ACLs",
+        entities,
+        not(empty()));
+    assertThat(
+
         "Doesn't have reader ACLs",
         entities,
         not(hasItem(String.format("group-%s", snapshotIamRoles.get(IamRole.READER)))));

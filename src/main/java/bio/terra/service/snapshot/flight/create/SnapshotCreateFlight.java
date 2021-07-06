@@ -42,18 +42,21 @@ public class SnapshotCreateFlight extends Flight {
     // get the required objects to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     BufferService bufferService = appContext.getBean("bufferService", BufferService.class);
-        SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
-    SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
-    FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
-    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
-    IamService iamClient = appContext.getBean(IamService.class);
+    SnapshotDao snapshotDao =  appContext.getBean(SnapshotDao.class);
+    SnapshotService snapshotService =  appContext.getBean(SnapshotService.class);
+    BigQueryPdao bigQueryPdao =  appContext.getBean(BigQueryPdao.class);
+    FireStoreDependencyDao dependencyDao =
+         appContext.getBean(FireStoreDependencyDao.class);
+    FireStoreDao fileDao =  appContext.getBean(FireStoreDao.class);
+    IamService iamClient =  appContext.getBean(IamService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ConfigurationService configService =
+         appContext.getBean(ConfigurationService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
-    PerformanceLogger performanceLogger = appContext.getBean(PerformanceLogger.class);
+    PerformanceLogger performanceLogger =
+         appContext.getBean(PerformanceLogger.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
 
     SnapshotRequestModel snapshotReq =
@@ -82,9 +85,9 @@ public class SnapshotCreateFlight extends Flight {
         new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
 
     // Get a new google project from RBS and store it in the working map
-        addStep(new CreateSnapshotGetProjectStep(bufferService));
+    addStep(new CreateSnapshotGetProjectStep(bufferService));
 
-        // Get or initialize the project where the snapshot resources will be created
+    // Get or initialize the project where the snapshot resources will be created
     addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, firestoreRegion));
 
     // create the snapshot metadata object in postgres and lock it

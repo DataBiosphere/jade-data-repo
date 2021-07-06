@@ -45,14 +45,13 @@ public class ResourceServiceUnitTest {
 
   @Mock private DatasetStorageAccountDao datasetStorageAccountDao;
 
-  @Mock private AzureApplicationDeploymentService applicationDeploymentService;
+  @Mockprivate AzureApplicationDeploymentService applicationDeploymentService;
 
   @Mock private DataLocationSelector dataLocationSelector;
 
-  @Mock
-    private AzureDataLocationSelector azureDataLocationSelector;
+  @Mock private AzureDataLocationSelector azureDataLocationSelector;
 
-    private final UUID billingProfileId = UUID.randomUUID();
+  private final UUID billingProfileId = UUID.randomUUID();
 
   private final UUID datasetId = UUID.randomUUID();
 

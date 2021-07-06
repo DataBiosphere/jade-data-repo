@@ -30,7 +30,6 @@ import bio.terra.stairway.RetryRule;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
-
 // The FileIngestFlight is specific to firestore. Another cloud or file system implementation
 // might be quite different and would need a different flight.
 // TODO: Refactor flights when we do the cloud refactor work.
@@ -40,20 +39,22 @@ public class FileIngestFlight extends Flight {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
-    FireStoreUtils fireStoreUtils = appContext.getBean(FireStoreUtils.class);
-    FileService fileService = appContext.getBean(FileService.class);
-    GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
-    DatasetService datasetService = appContext.getBean(DatasetService.class);
+    FireStoreDao fileDao =  appContext.getBean(FireStoreDao.class);
+    FireStoreUtils fireStoreUtils =  appContext.getBean(FireStoreUtils.class);
+    FileService fileService =  appContext.getBean(FileService.class);
+    GcsPdao gcsPdao =  appContext.getBean(GcsPdao.class);
+    DatasetService datasetService =  appContext.getBean(DatasetService.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
-    ResourceService resourceService = appContext.getBean(ResourceService.class);
-    LoadService loadService = appContext.getBean(LoadService.class);
-    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
-    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ResourceService resourceService =  appContext.getBean(ResourceService.class);
+    LoadService loadService =  appContext.getBean(LoadService.class);
+    ApplicationConfiguration appConfig =
+         appContext.getBean(ApplicationConfiguration.class);
+    ConfigurationService configService =
+         appContext.getBean(ConfigurationService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
-        DataLocationSelector dataLocationSelector =
-                appContext.getBean("dataLocationSelector", DataLocationSelector.class);
+    DataLocationSelector dataLocationSelector =
+        appContext.getBean("dataLocationSelector", DataLocationSelector.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -116,7 +117,7 @@ public class FileIngestFlight extends Flight {
     addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
     addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), randomBackoffRetry);
     addStep(new IngestFileGetProjectStep(resourceService, dataset, dataLocationSelector));
-        addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
+    addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
     addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));

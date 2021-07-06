@@ -37,17 +37,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -92,7 +81,7 @@ public class OneProjectPerResourceUnitTest {
     GoogleProjectResource projectResource1 =
         ResourceFixtures.randomProjectResource(billingProfiles.get(0));
     String projectId1 = ProfileFixtures.randomizeName("fake-test-project-id");
-        projectResource1.googleProjectId(projectId1);
+    projectResource1.googleProjectId(projectId1);
     UUID projectResourceId1 = resourceDao.createProject(projectResource1);
     projectResource1.id(projectResourceId1);
     projectResource1.profileId(billingProfiles.get(0).getId());
@@ -101,7 +90,7 @@ public class OneProjectPerResourceUnitTest {
     GoogleProjectResource projectResource2 =
         ResourceFixtures.randomProjectResource(billingProfiles.get(1));
     String projectId2 = ProfileFixtures.randomizeName("fake-test-project-id");
-        projectResource2.googleProjectId(projectId2);
+    projectResource2.googleProjectId(projectId2);
     UUID projectResourceId2 = resourceDao.createProject(projectResource2);
     projectResource2.id(projectResourceId2);
     projectResource2.profileId(billingProfiles.get(1).getId());
@@ -130,12 +119,13 @@ public class OneProjectPerResourceUnitTest {
 
     // Same billing profile as source dataset, so same project id
     String fileProjectId =
-        dataLocationSelector.projectIdForFile(dataset,
-            datasetProjectId, billingProfiles.get(0));
-        assertThat("For same billing, dataset and file project are the same",
-            fileProjectId, equalTo(datasetProjectId));
-        String bucketProjectId =
-                dataLocationSelector.bucketForFile(projects.get(0).getGoogleProjectId());
+        dataLocationSelector.projectIdForFile(dataset, datasetProjectId, billingProfiles.get(0));
+    assertThat(
+        "For same billing, dataset and file project are the same",
+        fileProjectId,
+        equalTo(datasetProjectId));
+    String bucketProjectId =
+        dataLocationSelector.bucketForFile(projects.get(0).getGoogleProjectId());
     assertThat(
         "File project are the same, plus bucket suffix",
         bucketProjectId,
@@ -144,11 +134,12 @@ public class OneProjectPerResourceUnitTest {
     // Different billing profile than source dataset
     BillingProfileModel newBillingProfile = billingProfiles.get(0).id(UUID.randomUUID());
 
-        String diffFileProjectId = dataLocationSelector
-            .projectIdForFile(dataset, datasetProjectId, newBillingProfile);
-        assertThat(
-            "For different billing, dataset and file project live in different projects",
-            diffFileProjectId, not(datasetProjectId));
+    String diffFileProjectId =
+        dataLocationSelector.projectIdForFile(dataset, datasetProjectId, newBillingProfile);
+    assertThat(
+        "For different billing, dataset and file project live in different projects",
+        diffFileProjectId,
+        not(datasetProjectId));
 
     String diffBucketProjectId = dataLocationSelector.bucketForFile(diffFileProjectId);
     assertThat(
@@ -226,21 +217,22 @@ public class OneProjectPerResourceUnitTest {
     dataLocationSelector.bucketForFile("project.test_test_project.test_test_project.test");
   }
 
-    private Dataset createDataset(BillingProfileModel billingProfile, GoogleProjectResource project)
-        throws IOException {
-        Dataset dataset;
-        DatasetRequestModel datasetRequest1 =
-            jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
-        datasetRequest1.name(datasetRequest1.getName() + UUID.randomUUID())
-            .defaultProfileId(billingProfile.getId())
-            .cloudPlatform(CloudPlatform.GCP);
-        dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest1);
-        dataset.projectResource(project);
-        dataset.projectResourceId(project.getId());
-        String createFlightId1 = UUID.randomUUID().toString();
-        dataset.id(UUID.randomUUID());
-        datasetDao.createAndLock(dataset, createFlightId1);
-        datasetDao.unlockExclusive(dataset.getId(), createFlightId1);
-        return dataset;
-    }
+  private Dataset createDataset(BillingProfileModel billingProfile, GoogleProjectResource project)
+      throws IOException {
+    Dataset dataset;
+    DatasetRequestModel datasetRequest1 =
+        jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
+    datasetRequest1
+        .name(datasetRequest1.getName() + UUID.randomUUID())
+        .defaultProfileId(billingProfile.getId())
+        .cloudPlatform(CloudPlatform.GCP);
+    dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest1);
+    dataset.projectResource(project);
+    dataset.projectResourceId(project.getId());
+    String createFlightId1 = UUID.randomUUID().toString();
+    dataset.id(UUID.randomUUID());
+    datasetDao.createAndLock(dataset, createFlightId1);
+    datasetDao.unlockExclusive(dataset.getId(), createFlightId1);
+    return dataset;
+  }
 }

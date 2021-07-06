@@ -90,8 +90,7 @@ public class BigQueryPdaoTest {
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ResourceService resourceService;
-    @Autowired
-    private BufferService bufferService;
+  @Autowired private BufferService bufferService;
 
   @MockBean private IamProviderInterface samService;
 
@@ -658,13 +657,14 @@ public class BigQueryPdaoTest {
     Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
     dataset.id(UUID.randomUUID());
     String handoutRequestId = UUID.randomUUID().toString();
-        HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
-        ResourceInfo resource = bufferService.handoutResource(request);
-        String googleProjectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
-        UUID projectId = resourceService.getOrCreateDatasetProject(profileModel, googleProjectId, region);
-        dataset
-            .projectResourceId(projectId)
-            .projectResource(resourceService.getProjectResource(projectId));
+    HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
+    ResourceInfo resource = bufferService.handoutResource(request);
+    String googleProjectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+    UUID projectId =
+        resourceService.getOrCreateDatasetProject(profileModel, googleProjectId, region);
+    dataset
+        .projectResourceId(projectId)
+        .projectResource(resourceService.getProjectResource(projectId));
 
     String createFlightId = UUID.randomUUID().toString();
     UUID datasetId = UUID.randomUUID();

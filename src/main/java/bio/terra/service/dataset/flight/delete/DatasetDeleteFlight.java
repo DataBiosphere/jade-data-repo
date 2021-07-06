@@ -33,17 +33,20 @@ public class DatasetDeleteFlight extends Flight {
 
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
-    SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
-    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
-    GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    DatasetDao datasetDao =  appContext.getBean(DatasetDao.class);
+    SnapshotDao snapshotDao =  appContext.getBean(SnapshotDao.class);
+    BigQueryPdao bigQueryPdao =  appContext.getBean(BigQueryPdao.class);
+    GcsPdao gcsPdao =  appContext.getBean(GcsPdao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
-    FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
-    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
-    IamService iamClient = appContext.getBean(IamService.class);
+    FireStoreDependencyDao dependencyDao =
+         appContext.getBean(FireStoreDependencyDao.class);
+    FireStoreDao fileDao =  appContext.getBean(FireStoreDao.class);
+    IamService iamClient =  appContext.getBean(IamService.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
-    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    ConfigurationService configService =
+         appContext.getBean(ConfigurationService.class);
+    ApplicationConfiguration appConfig =
+         appContext.getBean(ApplicationConfiguration.class);
 
     // get data from inputs that steps need
     UUID datasetId =

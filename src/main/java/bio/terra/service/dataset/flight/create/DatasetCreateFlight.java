@@ -31,12 +31,13 @@ public class DatasetCreateFlight extends Flight {
     // get the required daos and services to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     BufferService bufferService = appContext.getBean("bufferService", BufferService.class);
-        DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
+    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
-    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ConfigurationService configService =
+         appContext.getBean(ConfigurationService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     AzureDataLocationSelector azureDataLocationSelector =
         appContext.getBean(AzureDataLocationSelector.class);
@@ -58,9 +59,9 @@ public class DatasetCreateFlight extends Flight {
             profileService, datasetRequest.getDefaultProfileId(), userReq));
 
     // Get a new google project from RBS and store it in the working map
-        addStep(new CreateDatasetGetProjectStep(bufferService));
+    addStep(new CreateDatasetGetProjectStep(bufferService));
 
-        // Get or initialize the project where the dataset resources will be created
+    // Get or initialize the project where the dataset resources will be created
     addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
 
     // Get or create the storage account where the dataset resources will be created for Azure

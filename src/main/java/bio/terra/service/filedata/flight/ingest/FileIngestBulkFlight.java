@@ -60,7 +60,7 @@ public class FileIngestBulkFlight extends Flight {
     ProfileService profileService = appContext.getBean(ProfileService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
-        DataLocationSelector dataLocationSelector = appContext.getBean(DataLocationSelector.class);
+    DataLocationSelector dataLocationSelector = appContext.getBean(DataLocationSelector.class);
 
     // Common input parameters
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -135,7 +135,7 @@ public class FileIngestBulkFlight extends Flight {
     addStep(new LockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
     addStep(new IngestFileGetProjectStep(resourceService, dataset, dataLocationSelector));
-        addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
+    addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
 

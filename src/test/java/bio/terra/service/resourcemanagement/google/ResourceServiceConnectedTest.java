@@ -54,12 +54,13 @@ public class ResourceServiceConnectedTest {
     connectedOperations.teardown();
   }
 
-    @Test
-    public void createAndDeleteProjectTest() throws Exception {
-        // the project id can't be more than 30 characters
-        HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(UUID.randomUUID().toString());
-        ResourceInfo resource = bufferService.handoutResource(request);
-        String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+  @Test
+  public void createAndDeleteProjectTest() throws Exception {
+    // the project id can't be more than 30 characters
+    HandoutRequestBody request =
+        new HandoutRequestBody().handoutRequestId(UUID.randomUUID().toString());
+    ResourceInfo resource = bufferService.handoutResource(request);
+    String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
 
     String role = "roles/bigquery.jobUser";
     String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";
@@ -68,8 +69,9 @@ public class ResourceServiceConnectedTest {
     Map<String, List<String>> roleToStewardMap = new HashMap<>();
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
-        GoogleProjectResource projectResource = projectService.getOrInitializeProject(projectId,
-                profile, roleToStewardMap, GoogleRegion.DEFAULT_GOOGLE_REGION);
+    GoogleProjectResource projectResource =
+        projectService.getOrInitializeProject(
+            projectId, profile, roleToStewardMap, GoogleRegion.DEFAULT_GOOGLE_REGION);
 
     Project project = projectService.getProject(projectId);
     assertThat("the project is active", project.getLifecycleState(), equalTo("ACTIVE"));

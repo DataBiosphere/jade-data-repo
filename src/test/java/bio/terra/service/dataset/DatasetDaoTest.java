@@ -41,7 +41,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.Matchers.emptyIterable;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -256,7 +256,7 @@ public class DatasetDaoTest {
 
             assertThat("dataset has billing profiles returned from the database",
                 fromDB.getDatasetSummary().getBillingProfiles(),
-                is(not(emptyIterable())));
+                is(not(empty())));
 
             assertThat("dataset default Billing Profile matches default profile id",
                 fromDB.getDatasetSummary().getDefaultBillingProfile().getId(),

@@ -597,7 +597,7 @@ public class DatasetDao {
                 throw new CorruptMetadataException(String.format("Invalid storage for dataset - id: %s",
                         datasetId), e);
             }
-            List<BillingProfileModel> billingProfileModels;
+           final List<BillingProfileModel> billingProfileModels;
             try {
                 billingProfileModels = objectMapper.readValue(rs.getString("billing_profiles"),
                     new TypeReference<>() {});

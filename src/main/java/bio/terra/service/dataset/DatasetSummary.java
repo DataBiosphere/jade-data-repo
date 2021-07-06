@@ -124,10 +124,10 @@ public class DatasetSummary {
 
     public CloudPlatform getStorageCloudPlatform() {
         // A Dataset should not have both a bucket and a storage account at this point
-        return storage.stream().filter(s -> s.getCloudResource() == GoogleCloudResource.BUCKET ||
-            s.getCloudResource() == AzureCloudResource.STORAGE_ACCOUNT)
-            .findAny()
-            .map(s -> getCloudResourceAttribute(s.getCloudResource(), StorageResource::getCloudPlatform))
+        return storage.stream().filter(sr -> sr.getCloudResource() == GoogleCloudResource.BUCKET ||
+            sr.getCloudResource() == AzureCloudResource.STORAGE_ACCOUNT)
+            .findFirst()
+            .map(StorageResource::getCloudPlatform)
             .orElseThrow();
     }
 
@@ -137,7 +137,7 @@ public class DatasetSummary {
 
     private <T> T getCloudResourceAttribute(CloudResource cloudResource, Function<StorageResource<?, ?>, T> accessor) {
         return storage.stream()
-            .filter(resource -> resource.getCloudResource() == cloudResource)
+            .filter(sr -> sr.getCloudResource() == cloudResource)
             .findFirst()
             .map(accessor)
             .orElseThrow(() -> new StorageResourceNotFoundException(

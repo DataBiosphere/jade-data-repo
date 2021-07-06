@@ -33,10 +33,6 @@ public abstract class CloudPlatformWrapper {
         }
     }
 
-    public boolean is(CloudPlatform cloudPlatform) {
-        return false;
-    }
-
     public boolean isGcp() {
         return false;
     }
@@ -57,11 +53,13 @@ public abstract class CloudPlatformWrapper {
         }
     }
 
+    public abstract boolean is(CloudPlatform cloudPlatform);
+
     public abstract List<? extends StorageResource<?, ?>>
         createStorageResourceValues(DatasetRequestModel datasetRequest);
 
     public static Stream<? extends StorageResource<?, ?>>
-        createGoogleResourcesForAzure(DatasetRequestModel datasetRequestModel) {
+    getGoogleResourcesForAzure(DatasetRequestModel datasetRequestModel) {
         return CloudPlatformWrapper.of(CloudPlatform.GCP).createStorageResourceValues(datasetRequestModel)
             .stream()
             .filter(s -> s.getCloudResource() != GoogleCloudResource.BUCKET);
@@ -136,7 +134,7 @@ public abstract class CloudPlatformWrapper {
                 Stream.of(AzureCloudResource.values()).map(resource -> new AzureStorageResource(null,
                     resource,
                     region)),
-                CloudPlatformWrapper.createGoogleResourcesForAzure(datasetRequest))
+                CloudPlatformWrapper.getGoogleResourcesForAzure(datasetRequest))
                 .collect(Collectors.toList());
         }
 

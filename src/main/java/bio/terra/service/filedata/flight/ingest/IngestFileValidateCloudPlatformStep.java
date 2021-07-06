@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 public class IngestFileValidateCloudPlatformStep implements Step {
 
-    private final Logger logger = LoggerFactory.getLogger(IngestFileValidateCloudPlatformStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(IngestFileValidateCloudPlatformStep.class);
     private final Dataset dataset;
 
     public IngestFileValidateCloudPlatformStep(Dataset dataset) {

@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
 
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
 
 
@@ -38,18 +39,17 @@ public class CloudPlatformWrapperTest {
             .region(AzureRegion.DEFAULT_AZURE_REGION.name());
 
         // Need to convert to Strings for Hamcrest Matchers to accept types.
-        List<String> resourcesForAzure = CloudPlatformWrapper.of(CloudPlatform.AZURE)
+        List<CloudResource> resourcesForAzure = CloudPlatformWrapper.of(CloudPlatform.AZURE)
             .createStorageResourceValues(dummyDatasetRequestModel)
             .stream().map(StorageResource::getCloudResource)
-            .map(CloudResource::name)
             .collect(Collectors.toList());
 
         assertThat("creating storage resources for Azure results in resources that are actually used",
             resourcesForAzure,
-            hasItems(AzureCloudResource.APPLICATION_DEPLOYMENT.name(),
-                AzureCloudResource.STORAGE_ACCOUNT.name(),
-                GoogleCloudResource.BIGQUERY.name(),
-                GoogleCloudResource.FIRESTORE.name()));
+            contains(AzureCloudResource.APPLICATION_DEPLOYMENT,
+                AzureCloudResource.STORAGE_ACCOUNT,
+                GoogleCloudResource.BIGQUERY,
+                GoogleCloudResource.FIRESTORE));
 
     }
 }

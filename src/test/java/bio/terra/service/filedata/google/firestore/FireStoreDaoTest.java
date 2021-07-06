@@ -3,10 +3,14 @@ package bio.terra.service.filedata.google.firestore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.category.Connected;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import com.google.cloud.firestore.Firestore;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -42,6 +46,8 @@ public class FireStoreDaoTest {
 
   @Autowired private FireStoreUtils fireStoreUtils;
 
+  @Autowired private FireStoreDependencyDao fireStoreDependencyDao;
+
   private Firestore firestore;
   private String pretendDatasetId;
   private String collectionId;
@@ -73,6 +79,10 @@ public class FireStoreDaoTest {
   public void snapshotTest() throws Exception {
     String collectionId = "fsdaoDset_" + pretendDatasetId;
     String snapshotId = "fsdaoSnap_" + pretendDatasetId;
+    GoogleProjectResource projectResource =
+        new GoogleProjectResource().googleProjectId(System.getenv("GOOGLE_CLOUD_DATA_PROJECT"));
+    Dataset dataset =
+        new Dataset().id(UUID.fromString(pretendDatasetId)).projectResource(projectResource);
 
     // Make files that will be in the snapshot
     List<FireStoreDirectoryEntry> snapObjects = new ArrayList<>();
@@ -109,6 +119,28 @@ public class FireStoreDaoTest {
       assertThat("objectId matches", snapObject.getFileId(), equalTo(dsetObject.getFileId()));
       assertThat("path does not match", snapObject.getPath(), not(equalTo(dsetObject.getPath())));
     }
+
+    // ------ test FireStoreDependencyDao ----
+    // Before setting up the dependency file system, assert datasetHasSnapshotReference returns
+    // false
+    boolean noDependencies = fireStoreDependencyDao.datasetHasSnapshotReference(dataset);
+    assertFalse("Dataset should not yet have dependencies", noDependencies);
+
+    // Create dependency file system
+    fireStoreDependencyDao.storeSnapshotFileDependencies(dataset, snapshotId, fileIdList);
+
+    // Snapshot and File Dependency should now exist for dataset
+    boolean hasReference = fireStoreDependencyDao.datasetHasSnapshotReference(dataset);
+    assertTrue("Dataset should have dependencies", hasReference);
+
+    boolean hasFileReference =
+        fireStoreDependencyDao.fileHasSnapshotReference(dataset, snapObjects.get(0).getFileId());
+    assertTrue("File should be referenced in snapshot", hasFileReference);
+
+    // Validate dataset files do not have references
+    boolean noFileReference =
+        fireStoreDependencyDao.fileHasSnapshotReference(dataset, dsetObjects.get(0).getFileId());
+    assertFalse("No dependency on files not referenced in snapshot", noFileReference);
 
     // Validate we cannot lookup dataset files in the snapshot
     for (FireStoreDirectoryEntry dsetObject : dsetObjects) {

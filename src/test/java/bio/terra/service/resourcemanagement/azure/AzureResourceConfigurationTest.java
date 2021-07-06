@@ -118,7 +118,7 @@ public class AzureResourceConfigurationTest {
                 client.storageAccounts().getById(storageAccount.id());
               } catch (ManagementException e) {
                 logger.info("Expected error:", e);
-                assertThat(e.getValue().getCode(), equalTo("ResourceNotFound"));
+                assertThat(e.getValue().getCode(), equalTo("StorageAccountNotFound"));
                 assertThat(
                     "Deleted storage account isn't found",
                     e.getMessage(),

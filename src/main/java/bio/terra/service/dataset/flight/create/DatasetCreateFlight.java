@@ -30,14 +30,13 @@ public class DatasetCreateFlight extends Flight {
 
     // get the required daos and services to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    BufferService bufferService = appContext.getBean("bufferService", BufferService.class);
+    BufferService bufferService = appContext.getBean(BufferService.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
-    ConfigurationService configService =
-         appContext.getBean(ConfigurationService.class);
+    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     AzureDataLocationSelector azureDataLocationSelector =
         appContext.getBean(AzureDataLocationSelector.class);

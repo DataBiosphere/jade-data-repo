@@ -7,7 +7,6 @@ import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;

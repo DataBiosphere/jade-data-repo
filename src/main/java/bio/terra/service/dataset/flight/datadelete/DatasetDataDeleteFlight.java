@@ -31,10 +31,8 @@ public class DatasetDataDeleteFlight extends Flight {
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
-    ConfigurationService configService =
-         appContext.getBean(ConfigurationService.class);
-    ApplicationConfiguration appConfig =
-         appContext.getBean(ApplicationConfiguration.class);
+    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
 
     // get data from inputs that steps need
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);

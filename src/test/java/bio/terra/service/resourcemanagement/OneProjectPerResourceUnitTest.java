@@ -3,10 +3,14 @@ package bio.terra.service.resourcemanagement;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 
+import bio.terra.buffer.model.CloudResourceUid;
+import bio.terra.buffer.model.GoogleProjectUid;
+import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -35,6 +39,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
@@ -52,6 +57,8 @@ public class OneProjectPerResourceUnitTest {
   @Autowired private GoogleResourceDao resourceDao;
 
   @Autowired private DataLocationSelector dataLocationSelector;
+
+  @MockBean private BufferService bufferService;
 
   @Autowired private GoogleResourceConfiguration resourceConfiguration;
 
@@ -134,12 +141,23 @@ public class OneProjectPerResourceUnitTest {
     // Different billing profile than source dataset
     BillingProfileModel newBillingProfile = billingProfiles.get(0).id(UUID.randomUUID());
 
+    var rbsProjectId = "foobar";
+    given(bufferService.handoutResource(any()))
+        .willReturn(
+            new ResourceInfo()
+                .cloudResourceUid(
+                    new CloudResourceUid()
+                        .googleProjectUid(new GoogleProjectUid().projectId(rbsProjectId))));
     String diffFileProjectId =
         dataLocationSelector.projectIdForFile(dataset, datasetProjectId, newBillingProfile);
     assertThat(
         "For different billing, dataset and file project live in different projects",
         diffFileProjectId,
         not(datasetProjectId));
+    assertThat(
+        "The new project id for file was retrieved from RBS",
+        diffFileProjectId,
+        equalTo(rbsProjectId));
 
     String diffBucketProjectId = dataLocationSelector.bucketForFile(diffFileProjectId);
     assertThat(
@@ -185,6 +203,13 @@ public class OneProjectPerResourceUnitTest {
         equalTo(bucketName1));
 
     // Different billing profile
+    var rbsProjectId = "foobar";
+    given(bufferService.handoutResource(any()))
+        .willReturn(
+            new ResourceInfo()
+                .cloudResourceUid(
+                    new CloudResourceUid()
+                        .googleProjectUid(new GoogleProjectUid().projectId(rbsProjectId))));
     String bucketProject2 =
         dataLocationSelector.projectIdForFile(
             datasets.get(0), projects.get(1).getGoogleProjectId(), billingProfiles.get(1));
@@ -193,6 +218,10 @@ public class OneProjectPerResourceUnitTest {
         bucketProject2,
         not(projects.get(0).getGoogleProjectId()));
     String bucketName2 = dataLocationSelector.bucketForFile(bucketProject2);
+
+    assertThat(
+        "Project ID is retrieved from new RBS project", bucketProject2, equalTo(rbsProjectId));
+
     assertThat(
         "Bucket project and bucket name should be the same plus -bucket suffix",
         bucketProject2 + "-bucket",

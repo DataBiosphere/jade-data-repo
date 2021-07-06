@@ -134,13 +134,13 @@ public class EncodeFixture {
             custodian,
             snapshotSummary.getId(),
             List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
-
     logger.info(
         "Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",
         snapshotModel.getName(),
         snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
         snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
-   // TODO: re-add once CA-1406 is resolved
+
+    // TODO: re-add once CA-1406 is resolved
     /*
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
         BigQuery bigQueryReader =
@@ -151,7 +151,8 @@ public class EncodeFixture {
         snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
     assertThat("has access to BQ", hasAccess, equalTo(true));
-         */logger.info("Successfully checked access");
+         */
+    logger.info("Successfully checked access");
     return new SetupResult(profileId, datasetId, snapshotSummary);
   }
 

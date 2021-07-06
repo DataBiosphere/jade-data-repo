@@ -45,7 +45,7 @@ public class ResourceServiceUnitTest {
 
   @Mock private DatasetStorageAccountDao datasetStorageAccountDao;
 
-  @Mockprivate AzureApplicationDeploymentService applicationDeploymentService;
+  @Mock private AzureApplicationDeploymentService applicationDeploymentService;
 
   @Mock private DataLocationSelector dataLocationSelector;
 

@@ -34,20 +34,17 @@ public class SnapshotDeleteFlight extends Flight {
 
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    SnapshotDao snapshotDao =  appContext.getBean(SnapshotDao.class);
+    SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
-    FireStoreDependencyDao dependencyDao =
-         appContext.getBean(FireStoreDependencyDao.class);
-    FireStoreDao fileDao =  appContext.getBean(FireStoreDao.class);
-    BigQueryPdao bigQueryPdao =  appContext.getBean(BigQueryPdao.class);
+    FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
+    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
+    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
-    IamService iamClient =  appContext.getBean(IamService.class);
+    IamService iamClient = appContext.getBean(IamService.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
-    DatasetService datasetService =  appContext.getBean(DatasetService.class);
-    ConfigurationService configService =
-         appContext.getBean(ConfigurationService.class);
-    ApplicationConfiguration appConfig =
-         appContext.getBean(ApplicationConfiguration.class);
+    DatasetService datasetService = appContext.getBean(DatasetService.class);
+    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
 
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());

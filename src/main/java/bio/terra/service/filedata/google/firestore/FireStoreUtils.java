@@ -148,29 +148,22 @@ public class FireStoreUtils {
                                int batchSize,
                                ApiFutureGenerator<V, QueryDocumentSnapshot> generator) throws InterruptedException {
         CollectionReference datasetCollection = firestore.collection(collectionId);
-        int retry = 0;
-        while (true) {
-            try {
-                int batchCount = 0;
-                List<QueryDocumentSnapshot> documents;
-                do {
+        int batchCount = 0;
+        List<QueryDocumentSnapshot> documents;
+        do {
+            documents = runTransactionWithRetry(firestore,
+                xn -> {
                     ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
-                    documents = future.get().getDocuments();
-                    batchCount++;
-                    if (!documents.isEmpty()) {
-                        logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
-                    }
-                    batchOperation(documents, generator);
-                } while (documents.size() > 0);
-                return;
-            } catch (ExecutionException ex) {
-                retry++;
-                if (retry > getFirestoreRetries()) {
-                    throw new FileSystemExecutionException("scanning collection - execution exception", ex);
-                }
+                    return future.get().getDocuments();
+                }, "scanCollectionObjects",
+                " scanning " + batchSize + " items for collection id: " + collectionId);
+            batchCount++;
+            if (!documents.isEmpty()) {
+                logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
             }
-        }
+            batchOperation(documents, generator);
 
+        } while (documents.size() > 0);
     }
 
     String computeMd5(String input) {

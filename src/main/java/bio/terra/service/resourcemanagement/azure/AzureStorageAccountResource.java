@@ -100,6 +100,17 @@ public class AzureStorageAccountResource {
     return this;
   }
 
+  public String determineContainer(ContainerType containerType) {
+    switch (containerType) {
+      case DATA:
+        return getDataContainer();
+      case METADATA:
+        return getMetadataContainer();
+      default:
+        throw new IllegalArgumentException("Invalid container type");
+    }
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -147,5 +158,10 @@ public class AzureStorageAccountResource {
         .append("dbName", dbName)
         .append("region", region)
         .toString();
+  }
+
+  public enum ContainerType {
+    DATA,
+    METADATA
   }
 }

@@ -2,7 +2,7 @@ package bio.terra.integration;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+ import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;

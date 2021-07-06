@@ -1,7 +1,7 @@
 package bio.terra.integration;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+ import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;

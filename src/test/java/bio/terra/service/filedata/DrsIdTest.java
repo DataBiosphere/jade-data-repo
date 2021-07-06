@@ -1,7 +1,7 @@
 package bio.terra.service.filedata;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+ import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;

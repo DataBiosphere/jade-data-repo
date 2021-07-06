@@ -2,7 +2,7 @@ package bio.terra.service.load;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThat;
+ import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.load.exception.LoadLockFailureException;

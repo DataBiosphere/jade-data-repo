@@ -7,7 +7,7 @@ import static bio.terra.service.resourcemanagement.azure.AzureApplicationDeploym
 import static bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService.STORAGE_PREFIX_KEY;
 import static bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService.STORAGE_TYPE_KEY;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.configuration.ApplicationConfiguration;

@@ -34,7 +34,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @Category(Unit.class)
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(MockitoJUnitRunner.StrictStubs.class)
 public class ResourceServiceUnitTest {
 
   @InjectMocks private ResourceService resourceService;

@@ -141,7 +141,7 @@ public abstract class CloudPlatformWrapper {
       final AzureRegion region = AzureRegion.fromValueWithDefault(datasetRequest.getRegion());
       // TODO: once we no longer require GCP resources to back Azure datasets, stop concatenating
       return Stream.concat(
-              Stream.of(AzureCloudResource.values())
+              Stream.of(AzureCloudResource.APPLICATION_DEPLOYMENT, AzureCloudResource.STORAGE_ACCOUNT)
                   .map(resource -> new AzureStorageResource(null, resource, region)),
               CloudPlatformWrapper.getGoogleResourcesForAzure(datasetRequest))
           .collect(Collectors.toList());

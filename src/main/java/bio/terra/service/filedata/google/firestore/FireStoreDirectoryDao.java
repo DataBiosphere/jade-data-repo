@@ -130,8 +130,7 @@ public class FireStoreDirectoryDao {
           return null;
         },
         "createFileRef",
-        " creating file directory for collection Id: " + collectionId,
-        fireStoreUtils.getTransactionRetryExceptionList());
+        " creating file directory for collection Id: " + collectionId);
   }
 
   // true - directory entry existed and was deleted; false - directory entry did not exist
@@ -203,8 +202,7 @@ public class FireStoreDirectoryDao {
             firestore,
             xn -> lookupByFileId(firestore, collectionId, fileId, xn),
             "retrieveById",
-            " file id: " + fileId,
-            fireStoreUtils.getTransactionRetryExceptionList());
+            " file id: " + fileId);
 
     return Optional.ofNullable(docSnap)
         .map(d -> docSnap.toObject(FireStoreDirectoryEntry.class))
@@ -222,8 +220,7 @@ public class FireStoreDirectoryDao {
             firestore,
             xn -> lookupByFilePath(firestore, collectionId, lookupPath, xn),
             "retrieveByPath",
-            " path: " + lookupPath,
-            fireStoreUtils.getTransactionRetryExceptionList());
+            " path: " + lookupPath);
     return Optional.ofNullable(docSnap)
         .map(d -> docSnap.toObject(FireStoreDirectoryEntry.class))
         .orElse(null);

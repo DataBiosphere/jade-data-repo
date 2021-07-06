@@ -62,8 +62,7 @@ class FireStoreFileDao {
           return null;
         },
         "createFileMetadata",
-        " creating file metadata for dataset Id: " + datasetId,
-        fireStoreUtils.getTransactionRetryExceptionList());
+        " creating file metadata for dataset Id: " + datasetId);
   }
 
   boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId)
@@ -109,8 +108,7 @@ class FireStoreFileDao {
               .orElse(null);
         },
         "retrieveFileMetadata",
-        " retrieving file metadata for dataset Id: " + datasetId,
-        fireStoreUtils.getTransactionRetryExceptionList());
+        " retrieving file metadata for dataset Id: " + datasetId);
   }
 
   /**

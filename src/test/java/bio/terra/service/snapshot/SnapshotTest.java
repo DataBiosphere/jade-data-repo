@@ -1,9 +1,9 @@
 package bio.terra.service.snapshot;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
- import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.auth.AuthService;

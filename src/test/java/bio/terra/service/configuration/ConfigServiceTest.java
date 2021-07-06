@@ -5,12 +5,12 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.UNIT_TEST_COUNTED_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.UNIT_TEST_SIMPLE_FAULT;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertFalse;
- import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 

@@ -1,12 +1,12 @@
 package bio.terra.service.resourcemanagement;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyOrNullString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
- import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.ProfileFixtures;

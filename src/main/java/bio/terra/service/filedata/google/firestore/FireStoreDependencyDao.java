@@ -6,7 +6,6 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATC
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import com.google.api.client.util.Lists;
 import com.google.api.core.ApiFuture;
@@ -21,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,31 +50,24 @@ public class FireStoreDependencyDao {
 
   public boolean fileHasSnapshotReference(Dataset dataset, String fileId)
       throws InterruptedException {
-    FireStoreProject fireStoreProject =
-        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
+    Firestore firestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
-    CollectionReference depColl =
-        fireStoreProject.getFirestore().collection(dependencyCollectionName);
-    Query query = depColl.whereEqualTo("fileId", fileId).limit(1);
-    ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
-    try {
-      List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-      return (documents.size() > 0);
-    } catch (ExecutionException ex) {
-      throw new FileSystemExecutionException("has reference - execution exception", ex);
-    }
+    // check if firestore collection with file id has any documents
+    CollectionReference depColl = firestore.collection(dependencyCollectionName);
+    Query query = depColl.whereEqualTo("fileId", fileId).limit(1);
+    return fireStoreUtils.collectionHasDocuments(firestore, query);
   }
 
   public boolean datasetHasSnapshotReference(Dataset dataset) throws InterruptedException {
-    FireStoreProject fireStoreProject =
-        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
+    Firestore firestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
-    Firestore firestore = fireStoreProject.getFirestore();
 
     // check to see if the datasets collection contains any dependencies
     Query collectionQuery = firestore.collection(dependencyCollectionName);
-    return fireStoreUtils.queryNotEmpty(firestore, collectionQuery);
+    return fireStoreUtils.collectionHasDocuments(firestore, collectionQuery);
   }
 
   public List<String> getDatasetSnapshotFileIds(Dataset dataset, String snapshotId)

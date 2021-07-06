@@ -338,12 +338,13 @@ public class FireStoreUtils {
     }
   }
 
-  public boolean queryNotEmpty(Firestore firestore, Query query) throws InterruptedException {
+  public boolean collectionHasDocuments(Firestore firestore, Query collectionQuery)
+      throws InterruptedException {
     int docCount =
         runTransactionWithRetry(
             firestore,
             (xn -> {
-              ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
+              ApiFuture<QuerySnapshot> querySnapshot = xn.get(collectionQuery);
               return querySnapshot.get().getDocuments().size();
             }),
             "collectionIsEmpty",

@@ -136,7 +136,7 @@ public class AzureStorageAccountService {
       AzureRegion region,
       String flightId)
       throws InterruptedException {
-
+    logger.info("Creating storage account {}", storageAccountName);
     // Try to get the storage account record and the storage account object
     BillingProfileModel profileModel =
         profileDao.getBillingProfileById(applicationResource.getProfileId());

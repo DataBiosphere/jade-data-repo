@@ -347,8 +347,8 @@ public class FireStoreUtils {
               ApiFuture<QuerySnapshot> querySnapshot = xn.get(collectionQuery);
               return querySnapshot.get().getDocuments().size();
             }),
-            "collectionIsEmpty",
-            "Checking if collection is empty");
+            "collectionHasDocuments",
+            "Querying firestore and checking if collection is empty");
     return docCount > 0;
   }
 }

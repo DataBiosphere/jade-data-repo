@@ -26,17 +26,14 @@ public class FileDeleteFlight extends Flight {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    FireStoreDao fileDao = (FireStoreDao) appContext.getBean("fireStoreDao");
-    FireStoreDependencyDao dependencyDao =
-        (FireStoreDependencyDao) appContext.getBean("fireStoreDependencyDao");
-    GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
-    DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-    DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
-    ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
-    ApplicationConfiguration appConfig =
-        (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
-    ConfigurationService configService =
-        (ConfigurationService) appContext.getBean("configurationService");
+    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
+    FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
+    GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    DatasetService datasetService = appContext.getBean(DatasetService.class);
+    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
+    ResourceService resourceService = appContext.getBean(ResourceService.class);
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
 
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
     String fileId = inputParameters.get(JobMapKeys.FILE_ID.getKeyName(), String.class);

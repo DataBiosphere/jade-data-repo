@@ -282,7 +282,7 @@ public class SnapshotDao {
       isolation = Isolation.SERIALIZABLE,
       readOnly = true)
   public Snapshot retrieveSnapshot(UUID snapshotId, boolean onlyRetrieveAvailable) {
-    logger.debug("retrieve snapshot id: " + snapshotId);
+    logger.info("retrieve snapshot id: " + snapshotId);
     String sql = "SELECT * FROM snapshot WHERE id = :id";
     if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
       sql += " AND flightid IS NULL";

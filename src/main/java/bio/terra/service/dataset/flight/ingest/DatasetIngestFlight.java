@@ -24,14 +24,12 @@ public class DatasetIngestFlight extends Flight {
 
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
-    DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-    BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
-    FireStoreDao fileDao = (FireStoreDao) appContext.getBean("fireStoreDao");
-    ConfigurationService configService =
-        (ConfigurationService) appContext.getBean("configurationService");
-    ApplicationConfiguration appConfig =
-        (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
+    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
+    DatasetService datasetService = appContext.getBean(DatasetService.class);
+    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
+    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
 
     // get data from inputs that steps need
     UUID datasetId =

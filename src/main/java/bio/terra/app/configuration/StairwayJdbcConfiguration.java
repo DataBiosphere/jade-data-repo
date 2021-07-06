@@ -7,5 +7,4 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "db.stairway")
-public class StairwayJdbcConfiguration extends JdbcConfiguration {
-}
+public class StairwayJdbcConfiguration extends JdbcConfiguration {}

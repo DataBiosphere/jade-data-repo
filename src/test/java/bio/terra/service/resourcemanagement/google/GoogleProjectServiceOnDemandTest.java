@@ -16,16 +16,14 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(OnDemand.class)
 public class GoogleProjectServiceOnDemandTest {
 
-    @Autowired
-    private GoogleProjectService projectService;
+  @Autowired private GoogleProjectService projectService;
 
-    @Test
-    public void testInitFirestore() throws InterruptedException {
-        // Test the explicit activation of a Firestore DB in an empty project
-        // Note, runner needs to populate in a project id and number before running
-        projectService.enableServices(new GoogleProjectResource()
-            .googleProjectId("")
-            .googleProjectNumber(""),
-            GoogleRegion.DEFAULT_GOOGLE_REGION);
-    }
+  @Test
+  public void testInitFirestore() throws InterruptedException {
+    // Test the explicit activation of a Firestore DB in an empty project
+    // Note, runner needs to populate in a project id and number before running
+    projectService.enableServices(
+        new GoogleProjectResource().googleProjectId("").googleProjectNumber(""),
+        GoogleRegion.DEFAULT_GOOGLE_REGION);
+  }
 }

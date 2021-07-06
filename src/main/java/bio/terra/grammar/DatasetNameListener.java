@@ -7,15 +7,15 @@ import java.util.Set;
 
 public class DatasetNameListener extends SQLBaseListener {
 
-    private final Set<String> datasetNames = new HashSet<>();
+  private final Set<String> datasetNames = new HashSet<>();
 
-    @Override
-    public void enterDataset_name(SQLParser.Dataset_nameContext ctx) {
-        String name = ctx.getText();
-        datasetNames.add(name);
-    }
+  @Override
+  public void enterDataset_name(SQLParser.Dataset_nameContext ctx) {
+    String name = ctx.getText();
+    datasetNames.add(name);
+  }
 
-    public List<String> getDatasetNames() {
-        return new ArrayList<>(datasetNames);
-    }
+  public List<String> getDatasetNames() {
+    return new ArrayList<>(datasetNames);
+  }
 }

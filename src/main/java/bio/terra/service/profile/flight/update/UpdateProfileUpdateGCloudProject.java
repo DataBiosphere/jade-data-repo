@@ -11,33 +11,33 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UpdateProfileUpdateGCloudProject implements Step {
-    private static final Logger logger = LoggerFactory.getLogger(UpdateProfileUpdateGCloudProject.class);
-    private final GoogleProjectService googleProjectService;
+  private static final Logger logger =
+      LoggerFactory.getLogger(UpdateProfileUpdateGCloudProject.class);
+  private final GoogleProjectService googleProjectService;
 
-    public UpdateProfileUpdateGCloudProject(GoogleProjectService projectService) {
-        this.googleProjectService = projectService;
-    }
+  public UpdateProfileUpdateGCloudProject(GoogleProjectService projectService) {
+    this.googleProjectService = projectService;
+  }
 
-    @Override
-    public StepResult doStep(FlightContext context) throws InterruptedException {
-        FlightMap workingMap = context.getWorkingMap();
-        BillingProfileModel newBillingProfileModel =
-            workingMap.get(JobMapKeys.RESPONSE.getKeyName(), BillingProfileModel.class);
+  @Override
+  public StepResult doStep(FlightContext context) throws InterruptedException {
+    FlightMap workingMap = context.getWorkingMap();
+    BillingProfileModel newBillingProfileModel =
+        workingMap.get(JobMapKeys.RESPONSE.getKeyName(), BillingProfileModel.class);
 
-        googleProjectService.updateProjectsBillingAccount(newBillingProfileModel);
+    googleProjectService.updateProjectsBillingAccount(newBillingProfileModel);
 
-        return StepResult.getStepResultSuccess();
-    }
+    return StepResult.getStepResultSuccess();
+  }
 
-    @Override
-    public StepResult undoStep(FlightContext context) throws InterruptedException {
-        FlightMap workingMap = context.getWorkingMap();
-        BillingProfileModel existingBillingProfileModel =
-            workingMap.get(JobMapKeys.REVERT_TO.getKeyName(), BillingProfileModel.class);
+  @Override
+  public StepResult undoStep(FlightContext context) throws InterruptedException {
+    FlightMap workingMap = context.getWorkingMap();
+    BillingProfileModel existingBillingProfileModel =
+        workingMap.get(JobMapKeys.REVERT_TO.getKeyName(), BillingProfileModel.class);
 
-        googleProjectService.updateProjectsBillingAccount(existingBillingProfileModel);
+    googleProjectService.updateProjectsBillingAccount(existingBillingProfileModel);
 
-        return StepResult.getStepResultSuccess();
-    }
+    return StepResult.getStepResultSuccess();
+  }
 }
-

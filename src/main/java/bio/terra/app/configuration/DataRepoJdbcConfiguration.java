@@ -14,9 +14,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @ConfigurationProperties(prefix = "db.datarepo")
 public class DataRepoJdbcConfiguration extends JdbcConfiguration {
 
-    @Bean("dataRepoTransactionManager")
-    public PlatformTransactionManager getTransactionManager() {
-        return new DataSourceTransactionManager(getDataSource());
-    }
-
+  @Bean("dataRepoTransactionManager")
+  public PlatformTransactionManager getTransactionManager() {
+    return new DataSourceTransactionManager(getDataSource());
+  }
 }

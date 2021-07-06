@@ -38,10 +38,10 @@ import org.springframework.validation.Validator;
 @Component
 public class DatasetRequestValidator implements Validator {
 
-    @Override
-    public boolean supports(Class<?> clazz) {
-      return true;
-    }
+  @Override
+  public boolean supports(Class<?> clazz) {
+    return true;
+  }
 
   private static class SchemaValidationContext {
 

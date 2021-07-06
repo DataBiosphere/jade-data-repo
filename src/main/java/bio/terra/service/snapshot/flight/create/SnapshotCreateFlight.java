@@ -40,19 +40,18 @@ public class SnapshotCreateFlight extends Flight {
 
     // get the required objects to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    SnapshotDao snapshotDao =  appContext.getBean(SnapshotDao.class);
-    SnapshotService snapshotService =  appContext.getBean(SnapshotService.class);
-    BigQueryPdao bigQueryPdao =  appContext.getBean(BigQueryPdao.class);
-    FireStoreDependencyDao dependencyDao =
-         appContext.getBean(FireStoreDependencyDao.class);
-    FireStoreDao fileDao =  appContext.getBean(FireStoreDao.class);
-    IamService iamClient =  appContext.getBean(IamService.class);
+    SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
+    SnapshotService snapshotService = appContext.getBean(SnapshotService.class);
+    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
+    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
+    IamService iamClient = appContext.getBean(IamService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
-        ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
-        PerformanceLogger performanceLogger = appContext.getBean(PerformanceLogger.class);
+    PerformanceLogger performanceLogger = appContext.getBean(PerformanceLogger.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
 
     SnapshotRequestModel snapshotReq =

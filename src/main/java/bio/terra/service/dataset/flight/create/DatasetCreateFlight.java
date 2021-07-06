@@ -34,10 +34,12 @@ public class DatasetCreateFlight extends Flight {
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
-        ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
-        AzureDataLocationSelector azureDataLocationSelector = appContext.getBean(AzureDataLocationSelector.class);
-        DatasetStorageAccountDao datasetStorageAccountDao = appContext.getBean(DatasetStorageAccountDao.class);
+    AzureDataLocationSelector azureDataLocationSelector =
+        appContext.getBean(AzureDataLocationSelector.class);
+    DatasetStorageAccountDao datasetStorageAccountDao =
+        appContext.getBean(DatasetStorageAccountDao.class);
 
     DatasetRequestModel datasetRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);

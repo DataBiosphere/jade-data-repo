@@ -127,23 +127,26 @@ public class EncodeFixture {
     dataRepoFixtures.addSnapshotPolicyMember(
         custodian, snapshotSummary.getId(), IamRole.READER, reader.getEmail());
 
-        // We wait here for SAM to sync. We expect this to take 5 minutes. It can take more as recent
-        // issues have shown. We make a BigQuery request as the test to see that READER has access.
-        // We need to get the snapshot, rather than the snapshot summary in order to make a query.
-        // TODO: Add dataProject to SnapshotSummaryModel?
-        SnapshotModel snapshotModel =
-            dataRepoFixtures.getSnapshot(custodian,
-                snapshotSummary.getId(),
-                List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
-        String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
-        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
-        logger.info("Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",
-            snapshotModel.getName(),
-            snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
-            snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
+    // We wait here for SAM to sync. We expect this to take 5 minutes. It can take more as recent
+    // issues have shown. We make a BigQuery request as the test to see that READER has access.
+    // We need to get the snapshot, rather than the snapshot summary in order to make a query.
+    // TODO: Add dataProject to SnapshotSummaryModel?
+    SnapshotModel snapshotModel =
+        dataRepoFixtures.getSnapshot(
+            custodian,
+            snapshotSummary.getId(),
+            List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
+    String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
+    BigQuery bigQueryReader =
+        BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
+    logger.info(
+        "Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",
+        snapshotModel.getName(),
+        snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
+        snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
-        // TODO: re-add once CA-1406 is resolved
-        /*
+    // TODO: re-add once CA-1406 is resolved
+    /*
         boolean hasAccess = BigQueryFixtures.hasAccess(
         bigQueryReader,
         snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
@@ -151,9 +154,9 @@ public class EncodeFixture {
 
     assertThat("has access to BQ", hasAccess, equalTo(true));
          */
-        logger.info("Successfully checked access");
-        return new SetupResult(profileId, datasetId, snapshotSummary);
-    }
+    logger.info("Successfully checked access");
+    return new SetupResult(profileId, datasetId, snapshotSummary);
+  }
 
   private String loadFiles(
       UUID datasetId, UUID profileId, TestConfiguration.User user, Storage storage)

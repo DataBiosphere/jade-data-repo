@@ -33,20 +33,17 @@ public class DatasetDeleteFlight extends Flight {
 
     // get the required daos to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
-    SnapshotDao snapshotDao = (SnapshotDao) appContext.getBean("snapshotDao");
-    BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
-    GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
-    ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
-    FireStoreDependencyDao dependencyDao =
-        (FireStoreDependencyDao) appContext.getBean("fireStoreDependencyDao");
-    FireStoreDao fileDao = (FireStoreDao) appContext.getBean("fireStoreDao");
-    IamService iamClient = (IamService) appContext.getBean("iamService");
-    DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-    ConfigurationService configService =
-        (ConfigurationService) appContext.getBean("configurationService");
-    ApplicationConfiguration appConfig =
-        (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
+    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
+    SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
+    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    ResourceService resourceService = appContext.getBean(ResourceService.class);
+    FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
+    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
+    IamService iamClient = appContext.getBean(IamService.class);
+    DatasetService datasetService = appContext.getBean(DatasetService.class);
+    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
 
     // get data from inputs that steps need
     UUID datasetId =

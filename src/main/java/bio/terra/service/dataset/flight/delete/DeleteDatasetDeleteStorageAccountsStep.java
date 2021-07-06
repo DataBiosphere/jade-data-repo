@@ -11,7 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DeleteDatasetDeleteStorageAccountsStep implements Step {
-  private static Logger logger =
+  private static final Logger logger =
       LoggerFactory.getLogger(DeleteDatasetDeleteStorageAccountsStep.class);
   private final ResourceService resourceService;
   private final DatasetService datasetService;

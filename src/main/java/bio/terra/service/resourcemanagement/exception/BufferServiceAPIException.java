@@ -7,19 +7,19 @@ import org.springframework.http.HttpStatus;
 
 /** Wrapper exception for non-200 responses from calls to Buffer Service. */
 public class BufferServiceAPIException extends ErrorReportException {
-    private final ApiException apiException;
+  private final ApiException apiException;
 
-    public BufferServiceAPIException(ApiException bufferException) {
-        super(
-                "Error from Buffer Service: ",
-                bufferException,
-                Collections.singletonList(bufferException.getResponseBody()),
-                HttpStatus.resolve(bufferException.getCode()));
-        this.apiException = bufferException;
-    }
+  public BufferServiceAPIException(ApiException bufferException) {
+    super(
+        "Error from Buffer Service: ",
+        bufferException,
+        Collections.singletonList(bufferException.getResponseBody()),
+        HttpStatus.resolve(bufferException.getCode()));
+    this.apiException = bufferException;
+  }
 
-    /** Get the HTTP status code of the underlying response from Buffer Service. */
-    public int getApiExceptionStatus() {
-        return apiException.getCode();
-    }
+  /** Get the HTTP status code of the underlying response from Buffer Service. */
+  public int getApiExceptionStatus() {
+    return apiException.getCode();
+  }
 }

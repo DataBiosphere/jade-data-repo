@@ -8,38 +8,37 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-
 import java.util.UUID;
 
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromArrayStep implements Step {
 
-    private final LoadService loadService;
+  private final LoadService loadService;
 
-    public IngestPopulateFileStateFromArrayStep(LoadService loadService) {
-        this.loadService = loadService;
-    }
+  public IngestPopulateFileStateFromArrayStep(LoadService loadService) {
+    this.loadService = loadService;
+  }
 
-    @Override
-    public StepResult doStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        BulkLoadArrayRequestModel loadRequest =
-            inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadArrayRequestModel.class);
+  @Override
+  public StepResult doStep(FlightContext context) {
+    FlightMap inputParameters = context.getInputParameters();
+    BulkLoadArrayRequestModel loadRequest =
+        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadArrayRequestModel.class);
 
-        FlightMap workingMap = context.getWorkingMap();
-        UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
+    FlightMap workingMap = context.getWorkingMap();
+    UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 
-        loadService.populateFiles(loadId, loadRequest.getLoadArray());
+    loadService.populateFiles(loadId, loadRequest.getLoadArray());
 
-        return StepResult.getStepResultSuccess();
-    }
+    return StepResult.getStepResultSuccess();
+  }
 
-    @Override
-    public StepResult undoStep(FlightContext context) {
-        FlightMap workingMap = context.getWorkingMap();
-        UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    FlightMap workingMap = context.getWorkingMap();
+    UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 
-        loadService.cleanFiles(loadId);
-        return StepResult.getStepResultSuccess();
-    }
+    loadService.cleanFiles(loadId);
+    return StepResult.getStepResultSuccess();
+  }
 }

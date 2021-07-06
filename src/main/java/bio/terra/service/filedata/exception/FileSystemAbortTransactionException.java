@@ -8,15 +8,15 @@ import bio.terra.common.exception.InternalServerErrorException;
 // I also think it mis-reports index scan results under high concurrency.
 
 public class FileSystemAbortTransactionException extends InternalServerErrorException {
-    public FileSystemAbortTransactionException(String message) {
-        super(message);
-    }
+  public FileSystemAbortTransactionException(String message) {
+    super(message);
+  }
 
-    public FileSystemAbortTransactionException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public FileSystemAbortTransactionException(String message, Throwable cause) {
+    super(message, cause);
+  }
 
-    public FileSystemAbortTransactionException(Throwable cause) {
-        super(cause);
-    }
+  public FileSystemAbortTransactionException(Throwable cause) {
+    super(cause);
+  }
 }

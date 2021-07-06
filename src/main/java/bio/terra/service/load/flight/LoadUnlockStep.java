@@ -9,22 +9,22 @@ import bio.terra.stairway.StepResult;
 // It expects to find LoadMapKeys.LOAD_TAG in the working map.
 
 public class LoadUnlockStep implements Step {
-    private final LoadService loadService;
+  private final LoadService loadService;
 
-    public LoadUnlockStep(LoadService loadService) {
-        this.loadService = loadService;
-    }
+  public LoadUnlockStep(LoadService loadService) {
+    this.loadService = loadService;
+  }
 
-    @Override
-    public StepResult doStep(FlightContext context) {
-        String loadTag = loadService.getLoadTag(context);
-        loadService.unlockLoad(loadTag, context.getFlightId());
-        return StepResult.getStepResultSuccess();
-    }
+  @Override
+  public StepResult doStep(FlightContext context) {
+    String loadTag = loadService.getLoadTag(context);
+    loadService.unlockLoad(loadTag, context.getFlightId());
+    return StepResult.getStepResultSuccess();
+  }
 
-    @Override
-    public StepResult undoStep(FlightContext context) {
-        // No undo for unlock
-        return StepResult.getStepResultSuccess();
-    }
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    // No undo for unlock
+    return StepResult.getStepResultSuccess();
+  }
 }

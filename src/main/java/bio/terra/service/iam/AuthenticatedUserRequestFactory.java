@@ -4,6 +4,5 @@ import javax.servlet.http.HttpServletRequest;
 
 public interface AuthenticatedUserRequestFactory {
 
-    AuthenticatedUserRequest from(HttpServletRequest servletRequest);
-
+  AuthenticatedUserRequest from(HttpServletRequest servletRequest);
 }

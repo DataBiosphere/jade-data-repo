@@ -1,23 +1,22 @@
 package bio.terra.service.snapshot.exception;
 
 import bio.terra.common.exception.BadRequestException;
-
 import java.util.List;
 
 public class InvalidSnapshotException extends BadRequestException {
-    public InvalidSnapshotException(String message) {
-        super(message);
-    }
+  public InvalidSnapshotException(String message) {
+    super(message);
+  }
 
-    public InvalidSnapshotException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public InvalidSnapshotException(String message, Throwable cause) {
+    super(message, cause);
+  }
 
-    public InvalidSnapshotException(Throwable cause) {
-        super(cause);
-    }
+  public InvalidSnapshotException(Throwable cause) {
+    super(cause);
+  }
 
-    public InvalidSnapshotException(String message, Throwable cause, List<String> errorDetails) {
-        super(message, cause, errorDetails);
-    }
+  public InvalidSnapshotException(String message, Throwable cause, List<String> errorDetails) {
+    super(message, cause, errorDetails);
+  }
 }

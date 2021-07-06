@@ -2,8 +2,8 @@ plugins {
     id 'java'
     id 'application'
     id "com.google.cloud.tools.jib" version "1.6.1"
-    id 'com.diffplug.gradle.spotless' version '3.27.2'
-    id 'com.github.spotbugs' version '4.7.0'
+    id "com.diffplug.spotless" version "5.14.0"
+    id 'com.github.spotbugs' version '4.7.1'
 }
 
 repositories {
@@ -42,7 +42,6 @@ dependencies {
         samClient = "0.1-9435410-SNAP"
     }
 
-    spotbugs 'com.github.spotbugs:spotbugs:4.2.2'
     testImplementation("org.junit.jupiter:junit-jupiter-api:${junit}")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:${junit}")
     compileOnly "com.google.code.findbugs:annotations:${findbugsAnnotations}"

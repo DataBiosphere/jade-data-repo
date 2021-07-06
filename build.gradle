@@ -30,15 +30,14 @@ plugins {
     id 'org.liquibase.gradle' version '2.0.1'
     id "org.gradle.test-retry" version "1.2.0"
     id 'antlr'
-    id 'com.github.spotbugs' version '4.7.0'
+    id 'com.github.spotbugs' version '4.7.1'
     id "org.hidetake.swagger.generator" version "2.18.2"
     id "org.springframework.boot" version "2.4.6"
     id "idea"
     id "java"
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
     id "jacoco"
-    id "checkstyle"
-    id "com.srcclr.gradle" version "3.1.0"
+    id "com.diffplug.spotless" version "5.14.0"
 }
 
 allprojects {
@@ -360,11 +359,6 @@ sourceSets {
         compileClasspath += generated.output
         runtimeClasspath += generated.output
     }
-    checkstyle {
-        toolVersion '7.8.1'
-        checkstyleGenerated.enabled = false // Don't check generated code
-        configFile file("config/checkstyle/checkstyle.xml")
-    }
     jacoco {
         toolVersion '0.8.3'
     }
@@ -428,6 +422,15 @@ liquibase {
     }
 }
 
+spotless {
+    java {
+        target project.fileTree(project.rootDir) {
+            include '**/*.java'
+            exclude 'build/**/*.*'
+        }
+        googleJavaFormat()
+    }
+}
 
 // -- Test tasks --
 // The default 'test' task runs all of the unit tests.
@@ -498,4 +501,5 @@ compileGeneratedJava.dependsOn swaggerSources.server.code
 compileGeneratedJava.dependsOn generateGrammarSource
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava
+compileJava.dependsOn spotlessApply
 ideaModule.dependsOn swaggerSources.server.code

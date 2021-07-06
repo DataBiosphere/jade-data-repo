@@ -16,58 +16,57 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import org.springframework.http.HttpStatus;
-
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 
 public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
-    private BigQueryPdao bigQueryPdao;
-    private SnapshotDao snapshotDao;
-    private SnapshotService snapshotService;
-    private SnapshotRequestModel snapshotReq;
+  private BigQueryPdao bigQueryPdao;
+  private SnapshotDao snapshotDao;
+  private SnapshotService snapshotService;
+  private SnapshotRequestModel snapshotReq;
 
-    public CreateSnapshotPrimaryDataRowIdsStep(BigQueryPdao bigQueryPdao,
-                                               SnapshotDao snapshotDao,
-                                               SnapshotService snapshotService,
-                                               SnapshotRequestModel snapshotReq) {
-        this.bigQueryPdao = bigQueryPdao;
-        this.snapshotDao = snapshotDao;
-        this.snapshotService = snapshotService;
-        this.snapshotReq = snapshotReq;
-    }
+  public CreateSnapshotPrimaryDataRowIdsStep(
+      BigQueryPdao bigQueryPdao,
+      SnapshotDao snapshotDao,
+      SnapshotService snapshotService,
+      SnapshotRequestModel snapshotReq) {
+    this.bigQueryPdao = bigQueryPdao;
+    this.snapshotDao = snapshotDao;
+    this.snapshotService = snapshotService;
+    this.snapshotReq = snapshotReq;
+  }
 
-    @Override
-    public StepResult doStep(FlightContext context) throws InterruptedException {
-        SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-        SnapshotSource source = snapshot.getFirstSnapshotSource();
-        SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
+  @Override
+  public StepResult doStep(FlightContext context) throws InterruptedException {
+    SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
+    Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
+    SnapshotSource source = snapshot.getFirstSnapshotSource();
+    SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
 
-        // for each table, make sure all of the row ids match
-        for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
-            List<UUID> rowIds = table.getRowIds();
-            if (!rowIds.isEmpty()) {
-                RowIdMatch rowIdMatch = bigQueryPdao.matchRowIds(source, table.getTableName(), rowIds);
-                if (!rowIdMatch.getUnmatchedInputValues().isEmpty()) {
-                    String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
-                    String message = String.format("Mismatched row ids: '%s'", unmatchedValues);
-                    FlightUtils.setErrorResponse(context, message, HttpStatus.BAD_REQUEST);
-                    return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
-                }
-            }
+    // for each table, make sure all of the row ids match
+    for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
+      List<UUID> rowIds = table.getRowIds();
+      if (!rowIds.isEmpty()) {
+        RowIdMatch rowIdMatch = bigQueryPdao.matchRowIds(source, table.getTableName(), rowIds);
+        if (!rowIdMatch.getUnmatchedInputValues().isEmpty()) {
+          String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
+          String message = String.format("Mismatched row ids: '%s'", unmatchedValues);
+          FlightUtils.setErrorResponse(context, message, HttpStatus.BAD_REQUEST);
+          return new StepResult(
+              StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
-        bigQueryPdao.createSnapshotWithProvidedIds(snapshot, contentsModel);
-
-        return StepResult.getStepResultSuccess();
+      }
     }
+    bigQueryPdao.createSnapshotWithProvidedIds(snapshot, contentsModel);
 
-    @Override
-    public StepResult undoStep(FlightContext context) throws InterruptedException {
-        snapshotService.undoCreateSnapshot(snapshotReq.getName());
-        return StepResult.getStepResultSuccess();
-    }
+    return StepResult.getStepResultSuccess();
+  }
 
+  @Override
+  public StepResult undoStep(FlightContext context) throws InterruptedException {
+    snapshotService.undoCreateSnapshot(snapshotReq.getName());
+    return StepResult.getStepResultSuccess();
+  }
 }
-

@@ -12,33 +12,32 @@ import bio.terra.stairway.StepResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class DeleteFilePrimaryDataStep implements Step {
-    private static final Logger logger = LoggerFactory.getLogger(DeleteFilePrimaryDataStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(DeleteFilePrimaryDataStep.class);
 
-    private final GcsPdao gcsPdao;
-    private final ResourceService resourceService;
+  private final GcsPdao gcsPdao;
+  private final ResourceService resourceService;
 
-    public DeleteFilePrimaryDataStep(GcsPdao gcsPdao, ResourceService resourceService) {
-        this.gcsPdao = gcsPdao;
-        this.resourceService = resourceService;
+  public DeleteFilePrimaryDataStep(GcsPdao gcsPdao, ResourceService resourceService) {
+    this.gcsPdao = gcsPdao;
+    this.resourceService = resourceService;
+  }
+
+  @Override
+  public StepResult doStep(FlightContext context) {
+    FlightMap workingMap = context.getWorkingMap();
+    FireStoreFile fireStoreFile = workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreFile.class);
+    if (fireStoreFile != null) {
+      GoogleBucketResource bucketResource =
+          resourceService.lookupBucket(fireStoreFile.getBucketResourceId());
+      gcsPdao.deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
     }
+    return StepResult.getStepResultSuccess();
+  }
 
-    @Override
-    public StepResult doStep(FlightContext context) {
-        FlightMap workingMap = context.getWorkingMap();
-        FireStoreFile fireStoreFile = workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreFile.class);
-        if (fireStoreFile != null) {
-            GoogleBucketResource bucketResource = resourceService.lookupBucket(fireStoreFile.getBucketResourceId());
-            gcsPdao.deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
-        }
-        return StepResult.getStepResultSuccess();
-    }
-
-    @Override
-    public StepResult undoStep(FlightContext context) {
-        // No undo is possible - the file either still exists or it doesn't
-        return StepResult.getStepResultSuccess();
-    }
-
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    // No undo is possible - the file either still exists or it doesn't
+    return StepResult.getStepResultSuccess();
+  }
 }

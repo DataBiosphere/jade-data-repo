@@ -1,5 +1,9 @@
 package bio.terra.integration;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -25,6 +29,13 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -40,18 +51,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
-
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ActiveProfiles({"google", "integrationtest"})
@@ -59,263 +58,271 @@ import static org.hamcrest.MatcherAssert.assertThat;
 @Category(Integration.class)
 public class FileTest extends UsersBase {
 
-    private static Logger logger = LoggerFactory.getLogger(FileTest.class);
+  private static Logger logger = LoggerFactory.getLogger(FileTest.class);
 
-    @Autowired
-    private AuthService authService;
+  @Autowired private AuthService authService;
 
-    @Autowired
-    private DataRepoFixtures dataRepoFixtures;
+  @Autowired private DataRepoFixtures dataRepoFixtures;
 
-    @Autowired
-    private DataRepoClient dataRepoClient;
+  @Autowired private DataRepoClient dataRepoClient;
 
-    @Autowired
-    private TestConfiguration testConfiguration;
+  @Autowired private TestConfiguration testConfiguration;
 
-    private DatasetSummaryModel datasetSummaryModel;
-    private UUID datasetId;
-    private UUID snapshotId;
-    private List<String> fileIds;
-    private UUID profileId;
+  private DatasetSummaryModel datasetSummaryModel;
+  private UUID datasetId;
+  private UUID snapshotId;
+  private List<String> fileIds;
+  private UUID profileId;
 
-    @Before
-    public void setup() throws Exception {
-        super.setup();
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
-        dataRepoFixtures.addPolicyMember(
-            steward(),
-            profileId,
-            IamRole.USER,
-            custodian().getEmail(),
-            IamResourceType.SPEND_PROFILE);
+  @Before
+  public void setup() throws Exception {
+    super.setup();
+    profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    dataRepoFixtures.addPolicyMember(
+        steward(), profileId, IamRole.USER, custodian().getEmail(), IamResourceType.SPEND_PROFILE);
 
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
-        datasetId = datasetSummaryModel.getId();
-        snapshotId = null;
-        fileIds = new ArrayList<>();
-        logger.info("created dataset " + datasetId);
-        dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+    datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
+    datasetId = datasetSummaryModel.getId();
+    snapshotId = null;
+    fileIds = new ArrayList<>();
+    logger.info("created dataset " + datasetId);
+    dataRepoFixtures.addDatasetPolicyMember(
+        steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    if (snapshotId != null) {
+      dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
     }
-
-    @After
-    public void tearDown() throws Exception {
-        if (snapshotId != null) {
-            dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
-        }
-        if (datasetId != null) {
-            fileIds.forEach(f -> {
-                try {
-                    dataRepoFixtures.deleteFile(steward(), datasetId, f);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-            dataRepoFixtures.deleteDataset(steward(), datasetId);
-        }
-        if (profileId != null) {
-            dataRepoFixtures.deleteProfile(steward(), profileId);
-        }
+    if (datasetId != null) {
+      fileIds.forEach(
+          f -> {
+            try {
+              dataRepoFixtures.deleteFile(steward(), datasetId, f);
+            } catch (Exception e) {
+              e.printStackTrace();
+            }
+          });
+      dataRepoFixtures.deleteDataset(steward(), datasetId);
     }
+    if (profileId != null) {
+      dataRepoFixtures.deleteProfile(steward(), profileId);
+    }
+  }
 
-    // The purpose of this test is to have a long-running workload that completes successfully
-    // while we delete pods and have them recover.
-    // Marked ignore for normal testing.
-    @Ignore
-    @Test
-    public void longFileLoadTest() throws Exception {
-        // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when they are
-        //  not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5 files per minute,
-        //  so two instances should do 5 files per minute. To run 5 minutes we should run 25 files.
-        //  (There are 25 files in the directory, so if we need more we should do a reuse scheme like the fileLoadTest)
-        final int filesToLoad = 25;
+  // The purpose of this test is to have a long-running workload that completes successfully
+  // while we delete pods and have them recover.
+  // Marked ignore for normal testing.
+  @Ignore
+  @Test
+  public void longFileLoadTest() throws Exception {
+    // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when
+    // they are
+    //  not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5
+    // files per minute,
+    //  so two instances should do 5 files per minute. To run 5 minutes we should run 25 files.
+    //  (There are 25 files in the directory, so if we need more we should do a reuse scheme like
+    // the fileLoadTest)
+    final int filesToLoad = 25;
 
-        String loadTag = Names.randomizeName("longtest");
+    String loadTag = Names.randomizeName("longtest");
 
-        BulkLoadArrayRequestModel
-            arrayLoad = new BulkLoadArrayRequestModel()
+    BulkLoadArrayRequestModel arrayLoad =
+        new BulkLoadArrayRequestModel()
             .profileId(profileId)
             .loadTag(loadTag)
             .maxFailedFileLoads(filesToLoad); // do not stop if there is a failure.
 
-        logger.info("longFileLoadTest loading " + filesToLoad + " files into dataset id " + datasetId);
+    logger.info("longFileLoadTest loading " + filesToLoad + " files into dataset id " + datasetId);
 
-        for (int i = 0; i < filesToLoad; i++) {
-            String tailPath = String.format("/fileloadscaletest/file1GB-%02d.txt", i);
-            String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
-            String targetPath = "/" + loadTag + tailPath;
+    for (int i = 0; i < filesToLoad; i++) {
+      String tailPath = String.format("/fileloadscaletest/file1GB-%02d.txt", i);
+      String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
+      String targetPath = "/" + loadTag + tailPath;
 
-            BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
-            model.description("bulk load file " + i)
-                .sourcePath(sourcePath)
-                .targetPath(targetPath);
-            arrayLoad.addLoadArrayItem(model);
-        }
-
-        BulkLoadArrayResultModel result = dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
-        BulkLoadResultModel loadSummary = result.getLoadSummary();
-        logger.info("Total files    : " + loadSummary.getTotalFiles());
-        logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
-        logger.info("Failed files   : " + loadSummary.getFailedFiles());
-        logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
+      BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
+      model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);
+      arrayLoad.addLoadArrayItem(model);
     }
 
-    // DR-612 filesystem corruption test; use a non-existent file to make sure everything errors
-    // Do file ingests in parallel using a filename that will cause failure
-    @Test
-    public void fileParallelFailedLoadTest() throws Exception {
-        List<DataRepoResponse<JobModel>> responseList = new ArrayList<>();
-        String gsPath = "gs://" + testConfiguration.getIngestbucket() + "/nonexistentfile";
-        String filePath = "/foo" + UUID.randomUUID().toString() + "/bar";
+    BulkLoadArrayResultModel result =
+        dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
+    BulkLoadResultModel loadSummary = result.getLoadSummary();
+    logger.info("Total files    : " + loadSummary.getTotalFiles());
+    logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
+    logger.info("Failed files   : " + loadSummary.getFailedFiles());
+    logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
+  }
 
-        for (int i = 0; i < 20; i++) {
-            DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
-                steward(), datasetId, profileId, gsPath, filePath + i);
-            responseList.add(launchResp);
-        }
+  // DR-612 filesystem corruption test; use a non-existent file to make sure everything errors
+  // Do file ingests in parallel using a filename that will cause failure
+  @Test
+  public void fileParallelFailedLoadTest() throws Exception {
+    List<DataRepoResponse<JobModel>> responseList = new ArrayList<>();
+    String gsPath = "gs://" + testConfiguration.getIngestbucket() + "/nonexistentfile";
+    String filePath = "/foo" + UUID.randomUUID().toString() + "/bar";
 
-        int failureCount = 0;
-        for (DataRepoResponse<JobModel> resp : responseList) {
-            DataRepoResponse<FileModel> response = dataRepoClient.waitForResponse(steward(), resp, FileModel.class);
-            if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
-                System.out.println("Got expected not found");
-            } else {
-                System.out.println("Unexpected: " + response.getStatusCode().toString());
-                if (response.getErrorObject().isPresent()) {
-                    ErrorModel errorModel = response.getErrorObject().get();
-                    System.out.println("Error: " + errorModel.getMessage());
-                }
-                failureCount++;
-            }
-        }
-
-        assertThat("No unexpected failures", failureCount, equalTo(0));
+    for (int i = 0; i < 20; i++) {
+      DataRepoResponse<JobModel> launchResp =
+          dataRepoFixtures.ingestFileLaunch(steward(), datasetId, profileId, gsPath, filePath + i);
+      responseList.add(launchResp);
     }
 
-    @Test
-    @SuppressFBWarnings(
-        value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
-        justification = "Spurious RCN check; related to Java 11")
-    public void fileUnauthorizedPermissionsTest() throws Exception {
+    int failureCount = 0;
+    for (DataRepoResponse<JobModel> resp : responseList) {
+      DataRepoResponse<FileModel> response =
+          dataRepoClient.waitForResponse(steward(), resp, FileModel.class);
+      if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
+        System.out.println("Got expected not found");
+      } else {
+        System.out.println("Unexpected: " + response.getStatusCode().toString());
+        if (response.getErrorObject().isPresent()) {
+          ErrorModel errorModel = response.getErrorObject().get();
+          System.out.println("Error: " + errorModel.getMessage());
+        }
+        failureCount++;
+      }
+    }
 
-        String gsPath = "gs://" + testConfiguration.getIngestbucket();
-        String filePath = "/foo/bar";
+    assertThat("No unexpected failures", failureCount, equalTo(0));
+  }
 
-        FileModel fileModel = dataRepoFixtures.ingestFile(
+  @Test
+  @SuppressFBWarnings(
+      value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+      justification = "Spurious RCN check; related to Java 11")
+  public void fileUnauthorizedPermissionsTest() throws Exception {
+
+    String gsPath = "gs://" + testConfiguration.getIngestbucket();
+    String filePath = "/foo/bar";
+
+    FileModel fileModel =
+        dataRepoFixtures.ingestFile(
             steward(), datasetId, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
-        String fileId = fileModel.getFileId();
+    String fileId = fileModel.getFileId();
 
-        String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId);
+    String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId);
 
-        String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
-        BlobInfo targetBlobInfo = BlobInfo
-            .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
-            .build();
+    String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
+    BlobInfo targetBlobInfo =
+        BlobInfo.newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath)).build();
 
-        Storage storage = StorageOptions.getDefaultInstance().getService();
-        try (WriteChannel writer = storage.writer(targetBlobInfo)) {
-            writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
-        }
-
-        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
-        IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, request);
-
-        assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
-
-        // validates success
-        dataRepoFixtures.getFileById(steward(), datasetId, fileId);
-        dataRepoFixtures.getFileById(custodian(), datasetId, fileId);
-
-        DataRepoResponse<FileModel> readerResp = dataRepoFixtures.getFileByIdRaw(reader(), datasetId, fileId);
-        assertThat("Reader is not authorized to get a file from a dataset",
-            readerResp.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
-
-        // get file by id
-        DataRepoResponse<FileModel> discovererResp =
-            dataRepoFixtures.getFileByIdRaw(discoverer(), datasetId, fileId);
-        assertThat("Discoverer is not authorized to get a file from a dataset",
-            discovererResp.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
-
-        // get file by name validates success
-        dataRepoFixtures.getFileByName(steward(), datasetId, filePath);
-        dataRepoFixtures.getFileByName(custodian(), datasetId, filePath);
-
-        readerResp = dataRepoFixtures.getFileByNameRaw(reader(), datasetId, filePath);
-        assertThat("Reader is not authorized to get a file from a dataset",
-            readerResp.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
-
-        discovererResp = dataRepoFixtures.getFileByNameRaw(discoverer(), datasetId, filePath);
-        assertThat("Discoverer is not authorized to get file",
-            discovererResp.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
-
-        // delete
-        DataRepoResponse<JobModel> job = dataRepoFixtures.deleteFileLaunch(reader(), datasetId, fileId);
-        assertThat("Reader is not authorized to delete file",
-            job.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
-
-        // validates success
-        dataRepoFixtures.deleteFile(custodian(), datasetId, fileId);
+    Storage storage = StorageOptions.getDefaultInstance().getService();
+    try (WriteChannel writer = storage.writer(targetBlobInfo)) {
+      writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
     }
 
-    @Test
-    public void fileUncommonNameTest() throws Exception {
-        String gsPath = "gs://" + testConfiguration.getIngestbucket();
-        String filePath = "/foo/bar";
+    IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
+    IngestResponseModel ingestResponseModel =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
-        FileModel fileModel = dataRepoFixtures.ingestFile(
-            steward(), datasetId, profileId, gsPath + "/files/file with space and #hash%percent+plus.txt", filePath);
-        String fileId = fileModel.getFileId();
+    assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
-        int numRows = 1000;
-        String json = IntStream.range(0, numRows)
+    // validates success
+    dataRepoFixtures.getFileById(steward(), datasetId, fileId);
+    dataRepoFixtures.getFileById(custodian(), datasetId, fileId);
+
+    DataRepoResponse<FileModel> readerResp =
+        dataRepoFixtures.getFileByIdRaw(reader(), datasetId, fileId);
+    assertThat(
+        "Reader is not authorized to get a file from a dataset",
+        readerResp.getStatusCode(),
+        equalTo(HttpStatus.UNAUTHORIZED));
+
+    // get file by id
+    DataRepoResponse<FileModel> discovererResp =
+        dataRepoFixtures.getFileByIdRaw(discoverer(), datasetId, fileId);
+    assertThat(
+        "Discoverer is not authorized to get a file from a dataset",
+        discovererResp.getStatusCode(),
+        equalTo(HttpStatus.UNAUTHORIZED));
+
+    // get file by name validates success
+    dataRepoFixtures.getFileByName(steward(), datasetId, filePath);
+    dataRepoFixtures.getFileByName(custodian(), datasetId, filePath);
+
+    readerResp = dataRepoFixtures.getFileByNameRaw(reader(), datasetId, filePath);
+    assertThat(
+        "Reader is not authorized to get a file from a dataset",
+        readerResp.getStatusCode(),
+        equalTo(HttpStatus.UNAUTHORIZED));
+
+    discovererResp = dataRepoFixtures.getFileByNameRaw(discoverer(), datasetId, filePath);
+    assertThat(
+        "Discoverer is not authorized to get file",
+        discovererResp.getStatusCode(),
+        equalTo(HttpStatus.UNAUTHORIZED));
+
+    // delete
+    DataRepoResponse<JobModel> job = dataRepoFixtures.deleteFileLaunch(reader(), datasetId, fileId);
+    assertThat(
+        "Reader is not authorized to delete file",
+        job.getStatusCode(),
+        equalTo(HttpStatus.UNAUTHORIZED));
+
+    // validates success
+    dataRepoFixtures.deleteFile(custodian(), datasetId, fileId);
+  }
+
+  @Test
+  public void fileUncommonNameTest() throws Exception {
+    String gsPath = "gs://" + testConfiguration.getIngestbucket();
+    String filePath = "/foo/bar";
+
+    FileModel fileModel =
+        dataRepoFixtures.ingestFile(
+            steward(),
+            datasetId,
+            profileId,
+            gsPath + "/files/file with space and #hash%percent+plus.txt",
+            filePath);
+    String fileId = fileModel.getFileId();
+
+    int numRows = 1000;
+    String json =
+        IntStream.range(0, numRows)
             .mapToObj(i -> String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId))
             .collect(Collectors.joining("\n"));
 
-        String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
-        BlobInfo targetBlobInfo = BlobInfo
-            .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
-            .build();
+    String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
+    BlobInfo targetBlobInfo =
+        BlobInfo.newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath)).build();
 
-        Storage storage = StorageOptions.getDefaultInstance().getService();
-        try (WriteChannel writer = storage.writer(targetBlobInfo)) {
-            writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
-        }
-
-        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
-        IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, request);
-
-        assertThat("right number of rows were  ingested", ingestResponseModel.getRowCount(), equalTo((long) numRows));
-
-        // Create a snapshot exposing the one row and grant read access to our reader.
-        SnapshotSummaryModel snapshotSummaryModel = dataRepoFixtures.createSnapshot(
-            custodian(),
-            datasetSummaryModel.getName(),
-            profileId,
-            "file-acl-test-snapshot.json");
-        snapshotId = snapshotSummaryModel.getId();
-
-        /*
-         * WARNING: if making any changes to this test make sure to notify the #dsp-batch channel! Describe the change
-         * and any consequences downstream to DRS clients.
-         */
-        // Use DRS API to lookup the file by DRS ID
-        String drsObjectId = String.format("v1_%s_%s", snapshotId, fileId);
-        // Should fail due to insufficient permissions
-        assertThatThrownBy(() -> dataRepoFixtures.drsGetObject(steward(), drsObjectId));
-        DRSObject drsObject = dataRepoFixtures.drsGetObject(custodian(), drsObjectId);
-
-        logger.info("Drs Object: {}", drsObject);
-
-        TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods(),
-            authService.getDirectAccessAuthToken(custodian().getEmail()));
+    Storage storage = StorageOptions.getDefaultInstance().getService();
+    try (WriteChannel writer = storage.writer(targetBlobInfo)) {
+      writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
     }
 
+    IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
+    IngestResponseModel ingestResponseModel =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+
+    assertThat(
+        "right number of rows were  ingested",
+        ingestResponseModel.getRowCount(),
+        equalTo((long) numRows));
+
+    // Create a snapshot exposing the one row and grant read access to our reader.
+    SnapshotSummaryModel snapshotSummaryModel =
+        dataRepoFixtures.createSnapshot(
+            custodian(), datasetSummaryModel.getName(), profileId, "file-acl-test-snapshot.json");
+    snapshotId = snapshotSummaryModel.getId();
+
+    /*
+     * WARNING: if making any changes to this test make sure to notify the #dsp-batch channel! Describe the change
+     * and any consequences downstream to DRS clients.
+     */
+    // Use DRS API to lookup the file by DRS ID
+    String drsObjectId = String.format("v1_%s_%s", snapshotId, fileId);
+    // Should fail due to insufficient permissions
+    assertThatThrownBy(() -> dataRepoFixtures.drsGetObject(steward(), drsObjectId));
+    DRSObject drsObject = dataRepoFixtures.drsGetObject(custodian(), drsObjectId);
+
+    logger.info("Drs Object: {}", drsObject);
+
+    TestUtils.validateDrsAccessMethods(
+        drsObject.getAccessMethods(), authService.getDirectAccessAuthToken(custodian().getEmail()));
+  }
 }

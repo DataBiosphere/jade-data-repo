@@ -7,15 +7,15 @@ import bio.terra.common.exception.NotFoundException;
  * any consequences downstream to DRS clients.
  */
 public class DrsObjectNotFoundException extends NotFoundException {
-    public DrsObjectNotFoundException(String message) {
-        super(message);
-    }
+  public DrsObjectNotFoundException(String message) {
+    super(message);
+  }
 
-    public DrsObjectNotFoundException(String message, Throwable cause) {
-        super(message, cause);
-    }
+  public DrsObjectNotFoundException(String message, Throwable cause) {
+    super(message, cause);
+  }
 
-    public DrsObjectNotFoundException(Throwable cause) {
-        super(cause);
-    }
+  public DrsObjectNotFoundException(Throwable cause) {
+    super(cause);
+  }
 }

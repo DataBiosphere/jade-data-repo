@@ -5,13 +5,11 @@ import bio.terra.stairway.FlightMap;
 
 public class JobTestShutdownFlight extends Flight {
 
-    public JobTestShutdownFlight(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+  public JobTestShutdownFlight(FlightMap inputParameters, Object applicationContext) {
+    super(inputParameters, applicationContext);
 
-        Integer flightWaitSeconds = inputParameters.get("flightWaitSeconds", Integer.class);
+    Integer flightWaitSeconds = inputParameters.get("flightWaitSeconds", Integer.class);
 
-        addStep(new JobTestShutdownStep(flightWaitSeconds));
-    }
-
-
+    addStep(new JobTestShutdownStep(flightWaitSeconds));
+  }
 }

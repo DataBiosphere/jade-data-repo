@@ -4,32 +4,27 @@ import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-/**
- * Given blob ingredients and a storage object, make a writer
- */
+/** Given blob ingredients and a storage object, make a writer */
 public class GcsChannelWriter implements Closeable {
-    private final WriteChannel writer;
+  private final WriteChannel writer;
 
-    public GcsChannelWriter(Storage storage, String bucket, String targetPath) {
-        BlobInfo targetBlobInfo = BlobInfo
-            .newBuilder(BlobId.of(bucket, targetPath))
-            .build();
+  public GcsChannelWriter(Storage storage, String bucket, String targetPath) {
+    BlobInfo targetBlobInfo = BlobInfo.newBuilder(BlobId.of(bucket, targetPath)).build();
 
-        this.writer = storage.writer(targetBlobInfo);
-    }
+    this.writer = storage.writer(targetBlobInfo);
+  }
 
-    public int write(String line) throws IOException {
-        return writer.write(ByteBuffer.wrap(line.getBytes(StandardCharsets.UTF_8)));
-    }
+  public int write(String line) throws IOException {
+    return writer.write(ByteBuffer.wrap(line.getBytes(StandardCharsets.UTF_8)));
+  }
 
-    @Override
-    public void close() throws IOException {
-        writer.close();
-    }
+  @Override
+  public void close() throws IOException {
+    writer.close();
+  }
 }

@@ -12,120 +12,117 @@ import org.springframework.context.annotation.Configuration;
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "google")
 public class GoogleResourceConfiguration {
-    private String applicationName;
-    private long projectCreateTimeoutSeconds;
-    private String projectId;
-    private String parentResourceType;
-    private String parentResourceId;
-    private String singleDataProjectId;
-    private String dataProjectPrefix;
-    private String defaultFirestoreLocation;
-    private int firestoreRetries;
-    private boolean allowReuseExistingProjects;
-    private boolean allowReuseExistingBuckets;
+  private String applicationName;
+  private long projectCreateTimeoutSeconds;
+  private String projectId;
+  private String parentResourceType;
+  private String parentResourceId;
+  private String singleDataProjectId;
+  private String dataProjectPrefix;
+  private String defaultFirestoreLocation;
+  private int firestoreRetries;
+  private boolean allowReuseExistingProjects;
+  private boolean allowReuseExistingBuckets;
 
-    public String getApplicationName() {
-        return applicationName;
-    }
+  public String getApplicationName() {
+    return applicationName;
+  }
 
-    public void setApplicationName(String applicationName) {
-        this.applicationName = applicationName;
-    }
+  public void setApplicationName(String applicationName) {
+    this.applicationName = applicationName;
+  }
 
-    public long getProjectCreateTimeoutSeconds() {
-        return projectCreateTimeoutSeconds;
-    }
+  public long getProjectCreateTimeoutSeconds() {
+    return projectCreateTimeoutSeconds;
+  }
 
-    public void setProjectCreateTimeoutSeconds(long projectCreateTimeoutSeconds) {
-        this.projectCreateTimeoutSeconds = projectCreateTimeoutSeconds;
-    }
+  public void setProjectCreateTimeoutSeconds(long projectCreateTimeoutSeconds) {
+    this.projectCreateTimeoutSeconds = projectCreateTimeoutSeconds;
+  }
 
-    public String getProjectId() {
-        return projectId;
-    }
+  public String getProjectId() {
+    return projectId;
+  }
 
-    public void setProjectId(String projectId) {
-        this.projectId = projectId;
-    }
+  public void setProjectId(String projectId) {
+    this.projectId = projectId;
+  }
 
-    public String getParentResourceType() {
-        return parentResourceType;
-    }
+  public String getParentResourceType() {
+    return parentResourceType;
+  }
 
-    public void setParentResourceType(String parentResourceType) {
-        this.parentResourceType = parentResourceType;
-    }
+  public void setParentResourceType(String parentResourceType) {
+    this.parentResourceType = parentResourceType;
+  }
 
-    public String getParentResourceId() {
-        return parentResourceId;
-    }
+  public String getParentResourceId() {
+    return parentResourceId;
+  }
 
-    public void setParentResourceId(String parentResourceId) {
-        this.parentResourceId = parentResourceId;
-    }
+  public void setParentResourceId(String parentResourceId) {
+    this.parentResourceId = parentResourceId;
+  }
 
-    public String getSingleDataProjectId() {
-        return singleDataProjectId;
-    }
+  public String getSingleDataProjectId() {
+    return singleDataProjectId;
+  }
 
-    public void setSingleDataProjectId(String singleDataProjectId) {
-        this.singleDataProjectId = singleDataProjectId;
-    }
+  public void setSingleDataProjectId(String singleDataProjectId) {
+    this.singleDataProjectId = singleDataProjectId;
+  }
 
-    public String getDataProjectPrefix() {
-        return dataProjectPrefix;
-    }
+  public String getDataProjectPrefix() {
+    return dataProjectPrefix;
+  }
 
-    public void setDataProjectPrefix(String dataProjectPrefix) {
-        this.dataProjectPrefix = dataProjectPrefix;
-    }
+  public void setDataProjectPrefix(String dataProjectPrefix) {
+    this.dataProjectPrefix = dataProjectPrefix;
+  }
 
-    public boolean getAllowReuseExistingProjects() {
-        return allowReuseExistingProjects;
-    }
+  public boolean getAllowReuseExistingProjects() {
+    return allowReuseExistingProjects;
+  }
 
-    public void setAllowReuseExistingProjects(boolean allowReuseExistingProjects) {
-        this.allowReuseExistingProjects = allowReuseExistingProjects;
-    }
+  public void setAllowReuseExistingProjects(boolean allowReuseExistingProjects) {
+    this.allowReuseExistingProjects = allowReuseExistingProjects;
+  }
 
-    public boolean getAllowReuseExistingBuckets() {
-        return allowReuseExistingBuckets;
-    }
+  public boolean getAllowReuseExistingBuckets() {
+    return allowReuseExistingBuckets;
+  }
 
-    public void setAllowReuseExistingBuckets(boolean allowReuseExistingBuckets) {
-        this.allowReuseExistingBuckets = allowReuseExistingBuckets;
-    }
+  public void setAllowReuseExistingBuckets(boolean allowReuseExistingBuckets) {
+    this.allowReuseExistingBuckets = allowReuseExistingBuckets;
+  }
 
-    public String getDefaultFirestoreLocation() {
-        return defaultFirestoreLocation;
-    }
+  public String getDefaultFirestoreLocation() {
+    return defaultFirestoreLocation;
+  }
 
-    public void setDefaultFirestoreLocation(String defaultFirestoreLocation) {
-        this.defaultFirestoreLocation = defaultFirestoreLocation;
-    }
+  public void setDefaultFirestoreLocation(String defaultFirestoreLocation) {
+    this.defaultFirestoreLocation = defaultFirestoreLocation;
+  }
 
-    public int getFirestoreRetries() {
-        return firestoreRetries;
-    }
+  public int getFirestoreRetries() {
+    return firestoreRetries;
+  }
 
-    public void setFirestoreRetries(int firestoreRetries) {
-        this.firestoreRetries = firestoreRetries;
-    }
+  public void setFirestoreRetries(int firestoreRetries) {
+    this.firestoreRetries = firestoreRetries;
+  }
 
-    // TODO: Is this used?
-    @Bean("firestore")
-    public Firestore firestore() {
-        return FirestoreOptions.newBuilder()
-            .setProjectId(projectId)
-            .build()
-            .getService();
-    }
+  // TODO: Is this used?
+  @Bean("firestore")
+  public Firestore firestore() {
+    return FirestoreOptions.newBuilder().setProjectId(projectId).build().getService();
+  }
 
-    public String getDataProjectPrefixToUse() {
-        if (StringUtils.isAllBlank(getDataProjectPrefix())) {
-            return getProjectId();
-        } else {
-            return getDataProjectPrefix();
-        }
+  public String getDataProjectPrefixToUse() {
+    if (StringUtils.isAllBlank(getDataProjectPrefix())) {
+      return getProjectId();
+    } else {
+      return getDataProjectPrefix();
     }
+  }
 }

@@ -71,7 +71,6 @@ public class AssetModelValidationTest {
         errorModel.getMessage(),
         containsString("Validation errors - see error details"));
     for (int i = 0; i < messageCodes.length; i++) {
-      String code = messageCodes[i];
       assertThat(
           context + ": correct message code (" + i + ")",
           /**

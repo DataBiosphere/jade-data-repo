@@ -41,9 +41,11 @@ import org.elasticsearch.search.SearchHits;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.StrictStubs.class)
 @Category(Unit.class)
 public class SearchServiceTest {
   private static final String sqlQuery =
@@ -75,7 +77,6 @@ public class SearchServiceTest {
 
   @Before
   public void setup() throws Exception {
-    MockitoAnnotations.openMocks(this);
     service = new SearchService(bigQueryPdao, client);
 
     searchIndexRequest = getSearchIndexRequest();

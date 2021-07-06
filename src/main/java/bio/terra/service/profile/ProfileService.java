@@ -41,7 +41,7 @@ public class ProfileService {
   private final ProfileDao profileDao;
   private final IamService iamService;
   private final JobService jobService;
-  private final GoogleBillingService billingService;
+  private final GoogleBillingService googleBillingService;
   private final AzureAuthzService azureAuthzService;
 
   @Autowired
@@ -49,12 +49,12 @@ public class ProfileService {
       ProfileDao profileDao,
       IamService iamService,
       JobService jobService,
-      GoogleBillingService billingService,
+      GoogleBillingService googleBillingService,
       AzureAuthzService azureAuthzService) {
     this.profileDao = profileDao;
     this.iamService = iamService;
     this.jobService = jobService;
-    this.billingService = billingService;
+    this.googleBillingService = googleBillingService;
     this.azureAuthzService = azureAuthzService;
   }
 
@@ -216,7 +216,7 @@ public class ProfileService {
     //  For now we just make sure that the building account is accessible to the
     //  TDR service account.
     String billingAccountId = profileModel.getBillingAccountId();
-    if (!billingService.repositoryCanAccess(billingAccountId)) {
+    if (!googleBillingService.repositoryCanAccess(billingAccountId)) {
       throw new InaccessibleBillingAccountException(
           "The repository needs access to billing account "
               + billingAccountId
@@ -283,7 +283,7 @@ public class ProfileService {
 
   // Verify user access to the billing account during billing profile creation
   public void verifyAccount(String billingAccountId, AuthenticatedUserRequest user) {
-    if (!billingService.canAccess(user, billingAccountId)) {
+    if (!googleBillingService.canAccess(user, billingAccountId)) {
       throw new InaccessibleBillingAccountException(
           "The user '"
               + user.getEmail()

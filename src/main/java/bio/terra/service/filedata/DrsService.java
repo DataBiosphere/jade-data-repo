@@ -15,6 +15,7 @@ import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.filedata.google.gcs.GcsPdao.GcsLocator;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
@@ -27,6 +28,10 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -37,8 +42,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -52,9 +55,11 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DrsService {
+
   private final Logger logger = LoggerFactory.getLogger("bio.terra.service.filedata.DrsService");
 
   private static final String DRS_OBJECT_VERSION = "0";
+  private static final int URL_TTL = 15;
   // atomic counter that we incr on request arrival and decr on request response
   private final AtomicInteger currentDRSRequests = new AtomicInteger(0);
 
@@ -76,7 +81,8 @@ public class DrsService {
       ResourceService resourceService,
       ConfigurationService configurationService,
       JobService jobService,
-      PerformanceLogger performanceLogger) {
+      PerformanceLogger performanceLogger,
+      GcsPdao gcsPdao) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -88,6 +94,7 @@ public class DrsService {
   }
 
   private class DrsRequestResource implements AutoCloseable {
+
     DrsRequestResource() {
       // make sure not too many requests are being made at once
       int podCount = jobService.getActivePodCount();
@@ -112,14 +119,14 @@ public class DrsService {
   /**
    * Look up the DRS object for a DRS object ID.
    *
-   * @param authUser the user to authenticate this request for
+   * @param authUser    the user to authenticate this request for
    * @param drsObjectId the object ID to look up
-   * @param expand if false and drsObjectId refers to a bundle, then the returned array contains
-   *     only those objects directly contained in the bundle
+   * @param expand      if false and drsObjectId refers to a bundle, then the returned array
+   *                    contains only those objects directly contained in the bundle
    * @return the DRS object for this ID
-   * @throws IllegalArgumentException if there iis an issue with the object id
+   * @throws IllegalArgumentException  if there iis an issue with the object id
    * @throws SnapshotNotFoundException if the snapshot for the DRS object cannot be found
-   * @throws TooManyRequestsException if there are too many concurrent DRS lookup requests
+   * @throws TooManyRequestsException  if there are too many concurrent DRS lookup requests
    */
   public DRSObject lookupObjectByDrsId(
       AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
@@ -139,7 +146,8 @@ public class DrsService {
             this.getClass().getName(),
             "snapshotService.retrieveAvailable");
       } catch (IllegalArgumentException ex) {
-        throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
+        throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'",
+            ex);
       } catch (SnapshotNotFoundException ex) {
         throw new DrsObjectNotFoundException(
             "No snapshot found for DRS object id '" + drsObjectId + "'", ex);
@@ -162,7 +170,8 @@ public class DrsService {
       FSItem fsObject = null;
       try {
         String lookupTimer = performanceLogger.timerStart();
-        fsObject = fileService.lookupSnapshotFSItem(snapshotProject, drsId.getFsObjectId(), depth);
+        fsObject = fileService
+            .lookupSnapshotFSItem(snapshotProject, drsId.getFsObjectId(), depth);
 
         performanceLogger.timerEndAndLog(
             lookupTimer,
@@ -186,45 +195,33 @@ public class DrsService {
 
   public DRSAccessURL getAccessUrlForObjectId(
       AuthenticatedUserRequest authUser, String objectId, String accessId) {
-    DRSObject object = lookupObjectByDrsId(authUser, objectId, false);
+    DRSObject drsObject = lookupObjectByDrsId(authUser, objectId, false);
 
     DrsId drsId = drsIdService.fromObjectId(objectId);
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()));
     GoogleProjectResource projectResource = snapshot.getProjectResource();
 
     List<DRSAccessMethod> matchingAccessMethods =
-        getAccessMethodsMatchingAccessId(accessId, object);
+        getAccessMethodsMatchingAccessId(accessId, drsObject);
+
     if (matchingAccessMethods.size() > 0) {
       Storage storage =
           StorageOptions.newBuilder()
               .setProjectId(projectResource.getGoogleProjectId())
               .build()
               .getService();
-      String urlString = matchingAccessMethods.get(0).getAccessUrl().toString();
-      Pattern gsBucketRegex = Pattern.compile("(?<=//)(.*?)(?=/)");
-      Matcher bucketMatcher = gsBucketRegex.matcher(urlString);
+      String gsPath = matchingAccessMethods.get(0).getAccessUrl().toString();
+      GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(gsPath);
 
-      if (bucketMatcher.find()) {
-        String gsBucket = bucketMatcher.group();
-        Pattern gsPathRegex = Pattern.compile(String.format("(?<=%s/)(.*)", gsBucket));
-        Matcher pathMatcher = gsPathRegex.matcher(urlString);
+      BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath()))
+          .build();
 
-        if (pathMatcher.find()) {
-          String path = pathMatcher.group();
-          // Define resource
-          BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(gsBucket, path)).build();
+      URL url =
+          storage.signUrl(
+              blobInfo, URL_TTL, TimeUnit.MINUTES,
+              Storage.SignUrlOption.withV4Signature());
 
-          URL url =
-              storage.signUrl(
-                  blobInfo, 15, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
-
-          return new DRSAccessURL().url(url.toString());
-        } else {
-          throw new IllegalArgumentException("Was not able to find bucket");
-        }
-      } else {
-        throw new IllegalArgumentException("Was not able to find bucket");
-      }
+      return new DRSAccessURL().url(url.toString());
     } else {
       throw new IllegalArgumentException(
           "No matching access ID " + accessId + " was found on object " + objectId);
@@ -286,7 +283,8 @@ public class DrsService {
     DRSObject dirObject = makeCommonDrsObject(fsDir, snapshotId);
 
     DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum("0");
-    dirObject.size(0L).addChecksumsItem(drsChecksum).contents(makeContentsList(fsDir, snapshotId));
+    dirObject.size(0L).addChecksumsItem(drsChecksum)
+        .contents(makeContentsList(fsDir, snapshotId));
 
     return dirObject;
   }

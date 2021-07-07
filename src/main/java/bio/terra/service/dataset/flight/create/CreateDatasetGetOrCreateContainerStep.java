@@ -15,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CreateDatasetGetOrCreateContainerStep implements Step {
-  private static Logger logger =
+  private static final Logger logger =
       LoggerFactory.getLogger(CreateDatasetGetOrCreateContainerStep.class);
   private final ResourceService resourceService;
   private final DatasetRequestModel datasetRequestModel;

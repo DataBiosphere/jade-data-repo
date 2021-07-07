@@ -24,12 +24,9 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 
 @RunWith(MockitoJUnitRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
 @Category(Unit.class)
 public class AzureContainerPdaoTest {
 
@@ -72,7 +69,7 @@ public class AzureContainerPdaoTest {
   public void testCreateContainer() {
     DataLakeFileSystemClient dataLakeFileSystemClient = mock(DataLakeFileSystemClient.class);
     DataLakeStorageException exception = mock(DataLakeStorageException.class);
-    when(exception.getStatusCode()).thenReturn(404);
+    when(exception.getStatusCode()).thenReturn(HttpStatus.NOT_FOUND.value());
     when(dataLakeFileSystemClient.getProperties()).thenThrow(exception);
     when(dataLakeServiceClient.getFileSystemClient("d")).thenReturn(dataLakeFileSystemClient);
 
@@ -85,7 +82,7 @@ public class AzureContainerPdaoTest {
   public void testGetOrCreateContainerNoPermissions() {
     DataLakeFileSystemClient dataLakeFileSystemClient = mock(DataLakeFileSystemClient.class);
     DataLakeStorageException exception = mock(DataLakeStorageException.class);
-    when(exception.getStatusCode()).thenReturn(403);
+    when(exception.getStatusCode()).thenReturn(HttpStatus.FORBIDDEN.value());
     when(dataLakeFileSystemClient.getProperties()).thenThrow(exception);
     when(dataLakeServiceClient.getFileSystemClient("md")).thenReturn(dataLakeFileSystemClient);
 

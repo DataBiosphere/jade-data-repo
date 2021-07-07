@@ -6,6 +6,7 @@ import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -42,7 +43,7 @@ public class AzureContainerPdao {
       fileSystemClient.getProperties();
       return fileSystemClient;
     } catch (DataLakeStorageException e) {
-      if (e.getStatusCode() == 404) {
+      if (e.getStatusCode() == HttpStatus.NOT_FOUND.value()) {
         return dataLakeClient.createFileSystem(
             storageAccountResource.determineContainer(containerType));
       }

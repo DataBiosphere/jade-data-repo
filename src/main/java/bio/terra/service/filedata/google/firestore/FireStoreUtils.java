@@ -345,7 +345,8 @@ public class FireStoreUtils {
         runTransactionWithRetry(
             firestore,
             (xn -> {
-              ApiFuture<QuerySnapshot> querySnapshot = xn.get(collectionQuery);
+              Query limitedQuery = collectionQuery.limit(1);
+              ApiFuture<QuerySnapshot> querySnapshot = xn.get(limitedQuery);
               return querySnapshot.get().getDocuments().size();
             }),
             "collectionHasDocuments",

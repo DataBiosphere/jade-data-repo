@@ -45,6 +45,7 @@ public class CloudPlatformWrapperTest {
             AzureCloudResource.APPLICATION_DEPLOYMENT,
             AzureCloudResource.STORAGE_ACCOUNT,
             GoogleCloudResource.BIGQUERY,
-            GoogleCloudResource.FIRESTORE));
+            GoogleCloudResource.FIRESTORE,
+            GoogleCloudResource.BUCKET));
   }
 }

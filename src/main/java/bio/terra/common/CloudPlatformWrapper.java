@@ -57,12 +57,12 @@ public abstract class CloudPlatformWrapper {
   public abstract List<? extends StorageResource<?, ?>> createStorageResourceValues(
       DatasetRequestModel datasetRequest);
 
-  public static Stream<? extends StorageResource<?, ?>> getGoogleResourcesForAzure(
+  // This doesn't really do anything for now, but as we move more things into Azure,
+  // It will be helpful to use this to grab just the GCP resources we're still using.
+  public static List<? extends StorageResource<?, ?>> getGoogleResourcesForAzure(
       DatasetRequestModel datasetRequestModel) {
     return CloudPlatformWrapper.of(CloudPlatform.GCP)
-        .createStorageResourceValues(datasetRequestModel)
-        .stream()
-        .filter(s -> s.getCloudResource() != GoogleCloudResource.BUCKET);
+        .createStorageResourceValues(datasetRequestModel);
   }
 
   public abstract GoogleRegion getGoogleRegionFromDatasetRequestModel(
@@ -144,7 +144,7 @@ public abstract class CloudPlatformWrapper {
               Stream.of(
                       AzureCloudResource.APPLICATION_DEPLOYMENT, AzureCloudResource.STORAGE_ACCOUNT)
                   .map(resource -> new AzureStorageResource(null, resource, region)),
-              CloudPlatformWrapper.getGoogleResourcesForAzure(datasetRequest))
+              CloudPlatformWrapper.getGoogleResourcesForAzure(datasetRequest).stream())
           .collect(Collectors.toList());
     }
 

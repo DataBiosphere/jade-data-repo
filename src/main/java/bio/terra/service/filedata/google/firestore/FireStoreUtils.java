@@ -171,8 +171,9 @@ public class FireStoreUtils {
           runTransactionWithRetry(
               firestore,
               xn -> {
-                ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
-                return future.get().getDocuments();
+                Query query = datasetCollection.limit(batchSize);
+                ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
+                return querySnapshot.get().getDocuments();
               },
               "scanCollectionObjects",
               " scanning " + batchSize + " items for collection id: " + collectionId);

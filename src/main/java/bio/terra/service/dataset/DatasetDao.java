@@ -31,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -95,7 +96,7 @@ public class DatasetDao {
       ConfigurationService configurationService,
       ResourceService resourceService,
       StorageResourceDao storageResourceDao,
-      ObjectMapper objectMapper)
+      @Qualifier("daoObjectMapper") ObjectMapper objectMapper)
       throws SQLException {
     this.jdbcTemplate = jdbcTemplate;
     this.tableDao = tableDao;

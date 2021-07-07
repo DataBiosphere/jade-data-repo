@@ -343,6 +343,14 @@ public class ApplicationConfiguration {
     return new ObjectMapper()
         .registerModule(new ParameterNamesModule())
         .registerModule(new Jdk8Module())
+        .registerModule(new JavaTimeModule());
+  }
+
+  @Bean("daoObjectMapper")
+  public ObjectMapper daoObjectMapper() {
+    return new ObjectMapper()
+        .registerModule(new ParameterNamesModule())
+        .registerModule(new Jdk8Module())
         .registerModule(new JavaTimeModule())
         .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_VALUES, true);
   }

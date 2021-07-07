@@ -101,14 +101,7 @@ public class AzureStorageAccountResource {
   }
 
   public String determineContainer(ContainerType containerType) {
-    switch (containerType) {
-      case DATA:
-        return getDataContainer();
-      case METADATA:
-        return getMetadataContainer();
-      default:
-        throw new IllegalArgumentException("Invalid container type");
-    }
+    return containerType.getContainer(this);
   }
 
   @Override
@@ -161,7 +154,17 @@ public class AzureStorageAccountResource {
   }
 
   public enum ContainerType {
-    DATA,
-    METADATA
+    DATA() {
+      String getContainer(AzureStorageAccountResource account) {
+        return account.getDataContainer();
+      }
+    },
+    METADATA() {
+      String getContainer(AzureStorageAccountResource account) {
+        return account.getMetadataContainer();
+      }
+    };
+
+    abstract String getContainer(AzureStorageAccountResource account);
   }
 }

@@ -1,12 +1,11 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +19,8 @@ public class FireStoreBatchQueryIterator {
   private final int batchSize;
   private List<QueryDocumentSnapshot> currentList;
   private int count;
+  private FireStoreUtils fireStoreUtils;
+  private Firestore firestore;
 
   /**
    * Construct and iterator over a query with a specific batch size.
@@ -27,11 +28,14 @@ public class FireStoreBatchQueryIterator {
    * @param baseQuery the base query
    * @param batchSize the size of batches to request
    */
-  public FireStoreBatchQueryIterator(Query baseQuery, int batchSize) {
+  public FireStoreBatchQueryIterator(
+      Firestore firestore, Query baseQuery, int batchSize, FireStoreUtils fireStoreUtils) {
+    this.firestore = firestore;
     this.baseQuery = baseQuery;
     this.batchSize = batchSize;
     this.currentList = null;
     this.count = 0;
+    this.fireStoreUtils = fireStoreUtils;
   }
 
   /**
@@ -59,26 +63,20 @@ public class FireStoreBatchQueryIterator {
     logger.info("Retrieving batch {} with batch size of {}", count, batchSize);
     count++;
 
-    for (int i = 0; i < RETRIES; i++) {
-      ApiFuture<QuerySnapshot> querySnapshot = query.get();
+    currentList =
+        fireStoreUtils.runTransactionWithRetry(
+            firestore,
+            xn -> {
+              ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
+              return querySnapshot.get().getDocuments();
+            },
+            "getBatch",
+            " Retrieving batch " + count + " with batch size of " + batchSize);
 
-      try {
-        currentList = querySnapshot.get().getDocuments();
-        if (currentList.size() == 0) {
-          // Nothing to return so we at the end of the iteration
-          return null;
-        }
-        return currentList;
-      } catch (Exception ex) {
-        if (FireStoreUtils.shouldRetry(ex, true)) {
-          logger.warn("Retry-able error in firestore future get - message: " + ex.getMessage());
-        } else {
-          throw new FileSystemExecutionException("get batch execution exception", ex);
-        }
-      }
-
-      TimeUnit.SECONDS.sleep(SLEEP_SECONDS);
+    if (currentList.size() == 0) {
+      // Nothing to return so we at the end of the iteration
+      return null;
     }
-    throw new FileSystemExecutionException("get batch failed - no more retries");
+    return currentList;
   }
 }

@@ -96,12 +96,13 @@ public class FireStoreDependencyDao {
     FireStoreProject fireStoreProject =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
     String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
-    CollectionReference depColl =
-        fireStoreProject.getFirestore().collection(dependencyCollectionName);
+    Firestore firestore = fireStoreProject.getFirestore();
+    CollectionReference depColl = firestore.collection(dependencyCollectionName);
 
     Query query = depColl.whereEqualTo("snapshotId", snapshotId);
     int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
-    FireStoreBatchQueryIterator queryIterator = new FireStoreBatchQueryIterator(query, batchSize);
+    FireStoreBatchQueryIterator queryIterator =
+        new FireStoreBatchQueryIterator(firestore, query, batchSize, fireStoreUtils);
 
     List<String> fileIds = new ArrayList<>();
     for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
@@ -200,12 +201,15 @@ public class FireStoreDependencyDao {
     FireStoreProject fireStoreProject =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
     String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
-    CollectionReference depColl =
-        fireStoreProject.getFirestore().collection(dependencyCollectionName);
+    Firestore firestore = fireStoreProject.getFirestore();
+    CollectionReference depColl = firestore.collection(dependencyCollectionName);
 
     Query query = depColl.whereEqualTo("snapshotId", snapshotId);
     int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
-    FireStoreBatchQueryIterator queryIterator = new FireStoreBatchQueryIterator(query, batchSize);
+
+    // TODO - Could we just use scan collections instead?
+    FireStoreBatchQueryIterator queryIterator =
+        new FireStoreBatchQueryIterator(firestore, query, batchSize, fireStoreUtils);
 
     for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
         batch != null;

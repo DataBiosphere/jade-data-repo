@@ -427,6 +427,7 @@ spotless {
         target project.fileTree(project.rootDir) {
             include '**/*.java'
             exclude 'build/**/*.*'
+            exclude '**/generated/**/*.*'
         }
         googleJavaFormat()
     }

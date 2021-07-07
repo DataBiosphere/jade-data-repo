@@ -81,8 +81,7 @@ public class DrsService {
       ResourceService resourceService,
       ConfigurationService configurationService,
       JobService jobService,
-      PerformanceLogger performanceLogger,
-      GcsPdao gcsPdao) {
+      PerformanceLogger performanceLogger) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;

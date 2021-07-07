@@ -13,7 +13,7 @@ public class RemoveAssetSpecFlight extends Flight {
 
     // get the required daos and services to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    AssetDao assetDao = (AssetDao) appContext.getBean("assetDao");
+    AssetDao assetDao = appContext.getBean(AssetDao.class);
 
     // create job to remove the assetspec from the dataset
     addStep(new DeleteDatasetAssetStep(assetDao));

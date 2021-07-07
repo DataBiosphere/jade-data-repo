@@ -4,7 +4,6 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -20,7 +19,6 @@ import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
@@ -136,19 +134,24 @@ public class EncodeFixture {
             custodian,
             snapshotSummary.getId(),
             List.of(SnapshotRequestAccessIncludeModel.ACCESS_INFORMATION));
-    String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
-    BigQuery bigQueryReader =
-        BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
     logger.info(
         "Checking BQ access for snapshot {} in data project {} with BQ dataset named {}",
         snapshotModel.getName(),
         snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
         snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
-    BigQueryFixtures.hasAccess(
+
+    // TODO: re-add once CA-1406 is resolved
+    /*
+        String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
+        BigQuery bigQueryReader =
+            BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
+        boolean hasAccess = BigQueryFixtures.hasAccess(
         bigQueryReader,
         snapshotModel.getAccessInformation().getBigQuery().getProjectId(),
         snapshotModel.getAccessInformation().getBigQuery().getDatasetName());
 
+    assertThat("has access to BQ", hasAccess, equalTo(true));
+         */
     logger.info("Successfully checked access");
     return new SetupResult(profileId, datasetId, snapshotSummary);
   }

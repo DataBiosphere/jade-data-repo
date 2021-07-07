@@ -112,6 +112,7 @@ public class AzureResourceConfigurationTest {
     // the final state
     // error is thrown.
     Awaitility.waitAtMost(5, TimeUnit.MINUTES)
+        .pollInterval(5, TimeUnit.SECONDS)
         .untilAsserted(
             () -> {
               try {

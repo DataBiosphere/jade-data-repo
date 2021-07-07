@@ -38,20 +38,18 @@ public class FileIngestFlight extends Flight {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    FireStoreDao fileDao = (FireStoreDao) appContext.getBean("fireStoreDao");
-    FireStoreUtils fireStoreUtils = (FireStoreUtils) appContext.getBean("fireStoreUtils");
-    FileService fileService = (FileService) appContext.getBean("fileService");
-    GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
-    DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-    DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
-    ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
-    LoadService loadService = (LoadService) appContext.getBean("loadService");
-    ApplicationConfiguration appConfig =
-        (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
-    ConfigurationService configService =
-        (ConfigurationService) appContext.getBean("configurationService");
-    ProfileService profileService = (ProfileService) appContext.getBean("profileService");
-    DatasetBucketDao datasetBucketDao = (DatasetBucketDao) appContext.getBean("datasetBucketDao");
+    FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
+    FireStoreUtils fireStoreUtils = appContext.getBean(FireStoreUtils.class);
+    FileService fileService = appContext.getBean(FileService.class);
+    GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    DatasetService datasetService = appContext.getBean(DatasetService.class);
+    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
+    ResourceService resourceService = appContext.getBean(ResourceService.class);
+    LoadService loadService = appContext.getBean(LoadService.class);
+    ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ProfileService profileService = appContext.getBean(ProfileService.class);
+    DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));

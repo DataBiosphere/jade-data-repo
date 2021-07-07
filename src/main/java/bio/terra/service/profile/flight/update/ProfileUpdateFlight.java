@@ -15,9 +15,8 @@ public class ProfileUpdateFlight extends Flight {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    ProfileService profileService = (ProfileService) appContext.getBean("profileService");
-    GoogleProjectService googleProjectService =
-        (GoogleProjectService) appContext.getBean("googleProjectService");
+    ProfileService profileService = appContext.getBean(ProfileService.class);
+    GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
 
     BillingProfileUpdateModel request =
         inputParameters.get(

@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import bio.terra.app.model.AzureRegion;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.ValidationUtils;
@@ -38,11 +37,6 @@ import org.springframework.validation.Validator;
  */
 @Component
 public class DatasetRequestValidator implements Validator {
-
-  private static final List<String> SUPPORTED_AZURE_REGIONS =
-      Arrays.stream(AzureRegion.values())
-          .map(AzureRegion::toString)
-          .collect(Collectors.toUnmodifiableList());
 
   @Override
   public boolean supports(Class<?> clazz) {

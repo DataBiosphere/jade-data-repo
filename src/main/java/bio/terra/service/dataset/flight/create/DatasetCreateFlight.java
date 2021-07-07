@@ -29,18 +29,17 @@ public class DatasetCreateFlight extends Flight {
 
     // get the required daos and services to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
-    DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-    ResourceService resourceService = (ResourceService) appContext.getBean("resourceService");
-    BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
-    IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
-    ConfigurationService configService =
-        (ConfigurationService) appContext.getBean("configurationService");
-    ProfileService profileService = (ProfileService) appContext.getBean("profileService");
+    DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
+    DatasetService datasetService = appContext.getBean(DatasetService.class);
+    ResourceService resourceService = appContext.getBean(ResourceService.class);
+    BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
+    ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ProfileService profileService = appContext.getBean(ProfileService.class);
     AzureDataLocationSelector azureDataLocationSelector =
-        (AzureDataLocationSelector) appContext.getBean("azureDataLocationSelector");
+        appContext.getBean(AzureDataLocationSelector.class);
     DatasetStorageAccountDao datasetStorageAccountDao =
-        (DatasetStorageAccountDao) appContext.getBean("datasetStorageAccountDao");
+        appContext.getBean(DatasetStorageAccountDao.class);
 
     DatasetRequestModel datasetRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);

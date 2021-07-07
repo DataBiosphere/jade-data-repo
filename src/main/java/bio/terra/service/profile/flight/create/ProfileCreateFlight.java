@@ -15,7 +15,7 @@ public class ProfileCreateFlight extends Flight {
     super(inputParameters, applicationContext);
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
-    ProfileService profileService = (ProfileService) appContext.getBean("profileService");
+    ProfileService profileService = appContext.getBean(ProfileService.class);
 
     BillingProfileRequestModel request =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BillingProfileRequestModel.class);

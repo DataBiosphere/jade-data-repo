@@ -153,9 +153,12 @@ public class DrsTest extends UsersBase {
     final DRSObject drsObjectFile = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
     validateDrsObject(drsObjectFile, drsObjectId);
     assertNull("Contents of file is null", drsObjectFile.getContents());
+    // TODO: re-add once CA-1406 is resolved
+    /*
     TestUtils.validateDrsAccessMethods(
         drsObjectFile.getAccessMethods(),
         authService.getDirectAccessAuthToken(steward().getEmail()));
+     */
     Map<String, List<Acl>> preDeleteAcls =
         TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
     validateContainsAcls(preDeleteAcls.values().iterator().next());

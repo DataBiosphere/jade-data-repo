@@ -501,5 +501,5 @@ compileGeneratedJava.dependsOn swaggerSources.server.code
 compileGeneratedJava.dependsOn generateGrammarSource
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava
-compileJava.dependsOn spotlessApply
+compileJava.dependsOn spotlessCheck
 ideaModule.dependsOn swaggerSources.server.code

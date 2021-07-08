@@ -504,7 +504,7 @@ ideaModule.dependsOn swaggerSources.server.code
 
 // Run spotless check when running in github actions, otherwise run spotless apply.
 compileJava {
-    if (System.getProperty('CI')) {
+    if (System.getenv('CI')) {
         dependsOn(spotlessCheck)
     } else {
         dependsOn(spotlessApply)

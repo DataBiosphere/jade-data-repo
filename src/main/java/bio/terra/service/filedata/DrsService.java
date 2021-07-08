@@ -244,7 +244,7 @@ public class DrsService {
     DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getGspath());
 
     GoogleRegion region = bucketResource.getRegion();
-    String accessId = "gcp-" + region.name();
+    String accessId = "gcp-" + region.getValue();
     DRSAccessMethod gsAccessMethod =
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)

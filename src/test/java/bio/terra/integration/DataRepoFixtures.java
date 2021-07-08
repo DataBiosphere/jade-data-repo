@@ -61,13 +61,17 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class DataRepoFixtures {
+
   private static Logger logger = LoggerFactory.getLogger(DataRepoFixtures.class);
 
-  @Autowired private JsonLoader jsonLoader;
+  @Autowired
+  private JsonLoader jsonLoader;
 
-  @Autowired private DataRepoClient dataRepoClient;
+  @Autowired
+  private DataRepoClient dataRepoClient;
 
-  @Autowired private TestConfiguration testConfig;
+  @Autowired
+  private TestConfiguration testConfig;
 
   // Create a Billing Profile model: expect successful creation
   public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
@@ -438,8 +442,8 @@ public class DataRepoFixtures {
       includeParam =
           "?"
               + include.stream()
-                  .map(i -> "include=" + i.toString())
-                  .collect(Collectors.joining("&"));
+              .map(i -> "include=" + i.toString())
+              .collect(Collectors.joining("&"));
     } else {
       includeParam = "";
     }
@@ -708,6 +712,14 @@ public class DataRepoFixtures {
   public DrsResponse<DRSObject> drsGetObjectRaw(TestConfiguration.User user, String drsObjectId)
       throws Exception {
     return dataRepoClient.drsGet(user, "/ga4gh/drs/v1/objects/" + drsObjectId, DRSObject.class);
+  }
+
+  public DrsResponse<bio.terra.model.DRSAccessURL> getObjectAccessUrl(TestConfiguration.User user, String drsObjectId,
+      String accessId)
+      throws Exception {
+    return dataRepoClient
+        .drsGet(user, "/ga4gh/drs/v1/objects/" + drsObjectId + "/access/" + accessId,
+            bio.terra.model.DRSAccessURL.class);
   }
 
   /*

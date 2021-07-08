@@ -19,6 +19,24 @@ public class ConnectedTestConfiguration {
   private UUID targetSubscriptionId;
   private String targetResourceGroupName;
   private String targetApplicationName;
+  private String sourceStorageAccountName;
+  private String destinationStorageAccountName;
+
+  public String getSourceStorageAccountName() {
+    return sourceStorageAccountName;
+  }
+
+  public void setSourceStorageAccountName(String sourceStorageAccountName) {
+    this.sourceStorageAccountName = sourceStorageAccountName;
+  }
+
+  public String getDestinationStorageAccountName() {
+    return destinationStorageAccountName;
+  }
+
+  public void setDestinationStorageAccountName(String destinationStorageAccountName) {
+    this.destinationStorageAccountName = destinationStorageAccountName;
+  }
 
   public String getIngestbucket() {
     return ingestbucket;

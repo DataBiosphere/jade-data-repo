@@ -189,14 +189,18 @@ public class SnapshotConnectedTest {
         tables.stream().filter(t -> t.getName().equals("sample")).findFirst();
     assertThat("participant table exists", participantTable.isPresent(), equalTo(true));
     assertThat("sample table exists", sampleTable.isPresent(), equalTo(true));
+
+    BigQueryProject bigQuerySnapshotProject =
+        TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshotModel.getName());
+
     long snapshotParticipants =
-        queryForCount(summaryModel.getName(), "participant", bigQueryProject);
+        queryForCount(summaryModel.getName(), "participant", bigQuerySnapshotProject);
     assertThat("dataset participants loaded properly", snapshotParticipants, equalTo(1L));
     assertThat(
         "participant row count matches expectation",
         participantTable.get().getRowCount(),
         equalTo(1));
-    long snapshotSamples = queryForCount(summaryModel.getName(), "sample", bigQueryProject);
+    long snapshotSamples = queryForCount(summaryModel.getName(), "sample", bigQuerySnapshotProject);
     assertThat("dataset samples loaded properly", snapshotSamples, equalTo(2L));
     assertThat("sample row count matches expectation", sampleTable.get().getRowCount(), equalTo(2));
     List<RelationshipModel> relationships = snapshotModel.getRelationships();
@@ -260,10 +264,12 @@ public class SnapshotConnectedTest {
     SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
     getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetArraySummary);
 
+    BigQueryProject bigQuerySnaphsotProject =
+        TestUtils.bigQueryProjectForSnapshotName(snapshotDao, summaryModel.getName());
     long snapshotParticipants =
-        queryForCount(summaryModel.getName(), "participant", bigQueryProject);
+        queryForCount(summaryModel.getName(), "participant", bigQuerySnaphsotProject);
     assertThat("dataset participants loaded properly", snapshotParticipants, equalTo(2L));
-    long snapshotSamples = queryForCount(summaryModel.getName(), "sample", bigQueryProject);
+    long snapshotSamples = queryForCount(summaryModel.getName(), "sample", bigQuerySnaphsotProject);
     assertThat("dataset samples loaded properly", snapshotSamples, equalTo(3L));
   }
 

@@ -9,12 +9,15 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.StringListCompare;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import com.google.cloud.firestore.Firestore;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -41,6 +44,8 @@ public class FireStoreDirectoryDaoTest {
 
   @Autowired private FireStoreUtils fireStoreUtils;
 
+  @Autowired private ConfigurationService configurationService;
+
   private String pretendDatasetId;
   private String collectionId;
   private Firestore firestore;
@@ -50,6 +55,11 @@ public class FireStoreDirectoryDaoTest {
     pretendDatasetId = UUID.randomUUID().toString();
     collectionId = "directoryDaoTest_" + pretendDatasetId;
     firestore = TestFirestoreProvider.getFirestore();
+  }
+
+  @After
+  public void cleanup() {
+    configurationService.reset();
   }
 
   @Test
@@ -136,6 +146,9 @@ public class FireStoreDirectoryDaoTest {
     StringListCompare listCompare = new StringListCompare(mismatches, badids);
     assertTrue("Bad ids match", listCompare.compare());
 
+    // Test FireStoreBatchQueryIterator by making the batch size small
+    configurationService.setConfigParameterValue(
+        ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE, "1", "setFirestoreQueryBatchSizeParameter");
     // Test enumeration with adir. We should get three things back: two files (A1, A2) and a
     // directory (bdir).
     List<FireStoreDirectoryEntry> enumList =

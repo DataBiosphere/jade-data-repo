@@ -113,6 +113,17 @@ public class ConfigurationService {
     return new ConfigListModel().items(priorConfigList).total(priorConfigList.size());
   }
 
+  public void setConfigParameterValue(ConfigEnum config, String newValue, String label) {
+    bio.terra.model.ConfigModel retryConfigModel =
+        new bio.terra.model.ConfigModel()
+            .name(config.name())
+            .configType(bio.terra.model.ConfigModel.ConfigTypeEnum.PARAMETER)
+            .parameter(new bio.terra.model.ConfigParameterModel().value(newValue));
+    ConfigGroupModel group =
+        new bio.terra.model.ConfigGroupModel().label(label).addGroupItem(retryConfigModel);
+    setConfig(group);
+  }
+
   public ConfigModel getConfig(String name) {
     ConfigBase config = lookup(name);
     return config.get();

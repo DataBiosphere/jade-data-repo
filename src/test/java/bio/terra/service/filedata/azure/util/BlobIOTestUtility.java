@@ -37,7 +37,7 @@ public class BlobIOTestUtility {
   private final BlobContainerClient destinationBlobContainerClient;
   private String sourceContainerName;
   private String destinationContainerName;
-  private final String STORAGE_ENDPOINT_PATTERN = "https://%s.blob.core.windows.net/%s";
+  private static final String STORAGE_ENDPOINT_PATTERN = "https://%s.blob.core.windows.net/%s";
   private final TokenCredential tokenCredential;
 
   public BlobIOTestUtility(

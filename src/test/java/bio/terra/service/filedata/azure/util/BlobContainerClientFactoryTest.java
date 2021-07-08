@@ -7,13 +7,11 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
-import com.azure.core.credential.AzureSasCredential;
 import com.azure.core.credential.TokenCredential;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobUrlParts;
-import com.azure.storage.common.StorageSharedKeyCredential;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,8 +51,6 @@ public class BlobContainerClientFactoryTest {
   private String containerName;
   private String blobName;
   private TokenCredential tokenCredential;
-  private AzureSasCredential sasCredential;
-  private StorageSharedKeyCredential sharedKeyCredential;
 
   @Before
   public void setUp() {
@@ -68,11 +64,6 @@ public class BlobContainerClientFactoryTest {
     accountName = connectedTestConfiguration.getSourceStorageAccountName();
     tokenCredential = azureResourceConfiguration.getAppToken();
     containerName = blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();
-    String sharedKey = getSourceStorageAccountPrimarySharedKey();
-    sasCredential =
-        new AzureSasCredential(
-            blobIOTestUtility.generateContainerSasTokenWithReadAndListPermissions(sharedKey));
-    sharedKeyCredential = new StorageSharedKeyCredential(accountName, sharedKey);
     blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).stream().findFirst().get();
   }
 

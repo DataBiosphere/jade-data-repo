@@ -118,14 +118,14 @@ public class DrsService {
   /**
    * Look up the DRS object for a DRS object ID.
    *
-   * @param authUser    the user to authenticate this request for
+   * @param authUser the user to authenticate this request for
    * @param drsObjectId the object ID to look up
-   * @param expand      if false and drsObjectId refers to a bundle, then the returned array
-   *                    contains only those objects directly contained in the bundle
+   * @param expand if false and drsObjectId refers to a bundle, then the returned array contains
+   *     only those objects directly contained in the bundle
    * @return the DRS object for this ID
-   * @throws IllegalArgumentException  if there iis an issue with the object id
+   * @throws IllegalArgumentException if there iis an issue with the object id
    * @throws SnapshotNotFoundException if the snapshot for the DRS object cannot be found
-   * @throws TooManyRequestsException  if there are too many concurrent DRS lookup requests
+   * @throws TooManyRequestsException if there are too many concurrent DRS lookup requests
    */
   public DRSObject lookupObjectByDrsId(
       AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
@@ -145,8 +145,7 @@ public class DrsService {
             this.getClass().getName(),
             "snapshotService.retrieveAvailable");
       } catch (IllegalArgumentException ex) {
-        throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'",
-            ex);
+        throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
       } catch (SnapshotNotFoundException ex) {
         throw new DrsObjectNotFoundException(
             "No snapshot found for DRS object id '" + drsObjectId + "'", ex);
@@ -169,8 +168,7 @@ public class DrsService {
       FSItem fsObject = null;
       try {
         String lookupTimer = performanceLogger.timerStart();
-        fsObject = fileService
-            .lookupSnapshotFSItem(snapshotProject, drsId.getFsObjectId(), depth);
+        fsObject = fileService.lookupSnapshotFSItem(snapshotProject, drsId.getFsObjectId(), depth);
 
         performanceLogger.timerEndAndLog(
             lookupTimer,
@@ -209,16 +207,15 @@ public class DrsService {
               .setProjectId(projectResource.getGoogleProjectId())
               .build()
               .getService();
-      String gsPath = matchingAccessMethods.get(0).getAccessUrl().toString();
+      String gsPath = matchingAccessMethods.get(0).getAccessUrl().getUrl();
       GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(gsPath);
 
-      BlobInfo blobInfo = BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath()))
-          .build();
+      BlobInfo blobInfo =
+          BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
 
       URL url =
           storage.signUrl(
-              blobInfo, URL_TTL, TimeUnit.MINUTES,
-              Storage.SignUrlOption.withV4Signature());
+              blobInfo, URL_TTL, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
 
       return new DRSAccessURL().url(url.toString());
     } else {
@@ -282,8 +279,7 @@ public class DrsService {
     DRSObject dirObject = makeCommonDrsObject(fsDir, snapshotId);
 
     DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum("0");
-    dirObject.size(0L).addChecksumsItem(drsChecksum)
-        .contents(makeContentsList(fsDir, snapshotId));
+    dirObject.size(0L).addChecksumsItem(drsChecksum).contents(makeContentsList(fsDir, snapshotId));
 
     return dirObject;
   }

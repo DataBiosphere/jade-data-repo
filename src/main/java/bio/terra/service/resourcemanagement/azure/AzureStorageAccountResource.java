@@ -100,6 +100,10 @@ public class AzureStorageAccountResource {
     return this;
   }
 
+  public String determineContainer(ContainerType containerType) {
+    return containerType.getContainer(this);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
@@ -147,5 +151,20 @@ public class AzureStorageAccountResource {
         .append("dbName", dbName)
         .append("region", region)
         .toString();
+  }
+
+  public enum ContainerType {
+    DATA() {
+      String getContainer(AzureStorageAccountResource account) {
+        return account.getDataContainer();
+      }
+    },
+    METADATA() {
+      String getContainer(AzureStorageAccountResource account) {
+        return account.getMetadataContainer();
+      }
+    };
+
+    abstract String getContainer(AzureStorageAccountResource account);
   }
 }

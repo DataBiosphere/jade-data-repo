@@ -5,6 +5,7 @@ import bio.terra.common.PdaoConstant;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSpecificationModel;
@@ -407,8 +408,14 @@ public class DatasetRequestValidator implements Validator {
             "InvalidRegionForPlatform",
             "Cannot set a region when a cloudPlatform is not provided.");
       } else {
-        CloudPlatformWrapper.of(datasetRequest.getCloudPlatform())
-            .ensureValidRegion(datasetRequest.getRegion(), errors);
+        CloudPlatformWrapper cloudWrapper =
+            CloudPlatformWrapper.of(datasetRequest.getCloudPlatform());
+        cloudWrapper.ensureValidRegion(datasetRequest.getRegion(), errors);
+
+        if (cloudWrapper.isAzure()) {
+          CloudPlatformWrapper.of(CloudPlatform.GCP)
+              .ensureValidRegion(datasetRequest.getGcpRegion(), errors);
+        }
       }
     }
   }

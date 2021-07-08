@@ -12,6 +12,7 @@ import com.google.api.gax.rpc.UnavailableException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreException;
+import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.Transaction;
@@ -163,28 +164,26 @@ public class FireStoreUtils {
       ApiFutureGenerator<V, QueryDocumentSnapshot> generator)
       throws InterruptedException {
     CollectionReference datasetCollection = firestore.collection(collectionId);
-    int retry = 0;
-    while (true) {
-      try {
-        int batchCount = 0;
-        List<QueryDocumentSnapshot> documents;
-        do {
-          ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
-          documents = future.get().getDocuments();
-          batchCount++;
-          if (!documents.isEmpty()) {
-            logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
-          }
-          batchOperation(documents, generator);
-        } while (documents.size() > 0);
-        return;
-      } catch (ExecutionException ex) {
-        retry++;
-        if (retry > getFirestoreRetries()) {
-          throw new FileSystemExecutionException("scanning collection - execution exception", ex);
-        }
+    int batchCount = 0;
+    List<QueryDocumentSnapshot> documents;
+    do {
+      documents =
+          runTransactionWithRetry(
+              firestore,
+              xn -> {
+                Query query = datasetCollection.limit(batchSize);
+                ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
+                return querySnapshot.get().getDocuments();
+              },
+              "scanCollectionObjects",
+              " scanning " + batchSize + " items for collection id: " + collectionId);
+      batchCount++;
+      if (!documents.isEmpty()) {
+        logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
       }
-    }
+      batchOperation(documents, generator);
+
+    } while (documents.size() > 0);
   }
 
   String computeMd5(String input) {
@@ -338,5 +337,20 @@ public class FireStoreUtils {
         }
       }
     }
+  }
+
+  public boolean collectionHasDocuments(Firestore firestore, Query collectionQuery)
+      throws InterruptedException {
+    int docCount =
+        runTransactionWithRetry(
+            firestore,
+            (xn -> {
+              Query limitedQuery = collectionQuery.limit(1);
+              ApiFuture<QuerySnapshot> querySnapshot = xn.get(limitedQuery);
+              return querySnapshot.get().getDocuments().size();
+            }),
+            "collectionHasDocuments",
+            "Querying firestore and checking if collection is empty");
+    return docCount > 0;
   }
 }

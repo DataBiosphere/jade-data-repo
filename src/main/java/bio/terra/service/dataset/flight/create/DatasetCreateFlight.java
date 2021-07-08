@@ -16,6 +16,8 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -38,6 +40,7 @@ public class DatasetCreateFlight extends Flight {
     ProfileService profileService = appContext.getBean(ProfileService.class);
     AzureDataLocationSelector azureDataLocationSelector =
         appContext.getBean(AzureDataLocationSelector.class);
+    AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
     DatasetStorageAccountDao datasetStorageAccountDao =
         appContext.getBean(DatasetStorageAccountDao.class);
 
@@ -63,6 +66,16 @@ public class DatasetCreateFlight extends Flight {
       addStep(
           new CreateDatasetGetOrCreateStorageAccountStep(
               resourceService, datasetRequest, azureDataLocationSelector));
+
+      // Create the metadata container
+      addStep(
+          new CreateDatasetGetOrCreateContainerStep(
+              resourceService, datasetRequest, azureContainerPdao, ContainerType.METADATA));
+
+      // Create the data container
+      addStep(
+          new CreateDatasetGetOrCreateContainerStep(
+              resourceService, datasetRequest, azureContainerPdao, ContainerType.DATA));
     }
 
     // Generate the dateset id and stored it in the working map

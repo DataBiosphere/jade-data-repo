@@ -6,14 +6,13 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATC
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import com.google.api.client.util.Lists;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
-import com.google.cloud.firestore.FirestoreException;
+import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
@@ -21,7 +20,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,43 +50,24 @@ public class FireStoreDependencyDao {
 
   public boolean fileHasSnapshotReference(Dataset dataset, String fileId)
       throws InterruptedException {
-    FireStoreProject fireStoreProject =
-        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
+    Firestore firestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
-    CollectionReference depColl =
-        fireStoreProject.getFirestore().collection(dependencyCollectionName);
-    Query query = depColl.whereEqualTo("fileId", fileId).limit(1);
-    ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
-    try {
-      List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-      return (documents.size() > 0);
-    } catch (ExecutionException ex) {
-      throw new FileSystemExecutionException("has reference - execution exception", ex);
-    }
+    // check if firestore collection with file id has any documents
+    CollectionReference depColl = firestore.collection(dependencyCollectionName);
+    Query query = depColl.whereEqualTo("fileId", fileId).limit(1);
+    return fireStoreUtils.collectionHasDocuments(firestore, query);
   }
 
-  public boolean datasetHasSnapshotReference(Dataset dataset) {
-    FireStoreProject fireStoreProject =
-        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId());
+  public boolean datasetHasSnapshotReference(Dataset dataset) throws InterruptedException {
+    Firestore firestore =
+        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
-    CollectionReference depColl =
-        fireStoreProject.getFirestore().collection(dependencyCollectionName);
-    // TODO - use generic retry library
-    int retryCount = 0;
-    while (true) {
-      try {
-        // check to see if the datasets collection contains any dependencies
-        return depColl.listDocuments().iterator().hasNext();
-      } catch (FirestoreException ex) {
-        retryCount++;
-        if (retryCount > fireStoreUtils.getFirestoreRetries()) {
-          logger.error(
-              "[datasetHasSnapshotReference retry] After {} retries, hit max retries", retryCount);
-          throw ex;
-        }
-      }
-    }
+
+    // check to see if the datasets collection contains any dependencies
+    Query collectionQuery = firestore.collection(dependencyCollectionName);
+    return fireStoreUtils.collectionHasDocuments(firestore, collectionQuery);
   }
 
   public List<String> getDatasetSnapshotFileIds(Dataset dataset, String snapshotId)

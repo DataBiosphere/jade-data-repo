@@ -112,7 +112,6 @@ public abstract class CloudPlatformWrapper {
     @Override
     public void ensureValidRegion(String region, Errors errors) {
       ensureValidRegion(CloudPlatform.AZURE, region, AzureRegion.SUPPORTED_REGIONS, errors);
-      ensureValidRegion(CloudPlatform.GCP, region, GoogleRegion.SUPPORTED_REGIONS, errors);
     }
 
     @Override

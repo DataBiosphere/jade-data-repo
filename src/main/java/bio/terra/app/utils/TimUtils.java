@@ -93,7 +93,7 @@ public final class TimUtils {
     String t = s.substring(PREFIX.length()).replaceAll(COLON, ":").replaceAll(PERIOD, ".");
     int len = CAPITAL.length();
     int index;
-    while ((index = t.indexOf(CAPITAL)) != -1) {
+                     while ((index = t.indexOf(CAPITAL)) != -1) {
       t =
           t.substring(0, index)
               + Character.toUpperCase(t.charAt(index + len))

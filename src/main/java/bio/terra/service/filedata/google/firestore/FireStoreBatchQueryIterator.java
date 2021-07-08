@@ -1,19 +1,14 @@
 package bio.terra.service.filedata.google.firestore;
 
-import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
-import com.google.cloud.firestore.QuerySnapshot;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FireStoreBatchQueryIterator {
   private static final Logger logger = LoggerFactory.getLogger(FireStoreBatchQueryIterator.class);
-
-  private static final int RETRIES = 3;
-  private static final int SLEEP_SECONDS = 1;
 
   private final Query baseQuery;
   private final int batchSize;
@@ -66,12 +61,9 @@ public class FireStoreBatchQueryIterator {
     currentList =
         fireStoreUtils.runTransactionWithRetry(
             firestore,
-            xn -> {
-              ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
-              return querySnapshot.get().getDocuments();
-            },
+            xn -> xn.get(query).get().getDocuments(),
             "getBatch",
-            " Retrieving batch " + count + " with batch size of " + batchSize);
+            "Retrieving batch " + count + " with batch size of " + batchSize);
 
     if (currentList.size() == 0) {
       // Nothing to return so we at the end of the iteration

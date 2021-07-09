@@ -1,13 +1,13 @@
-package bio.terra.service.snapshot.flight.create;
+package bio.terra.datarepo.service.snapshot.flight.create;
 
-import bio.terra.common.exception.NotFoundException;
-import bio.terra.common.exception.UnauthorizedException;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamRole;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.datarepo.common.exception.NotFoundException;
+import bio.terra.datarepo.common.exception.UnauthorizedException;
+import bio.terra.datarepo.model.SnapshotRequestModel;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.iam.IamRole;
+import bio.terra.datarepo.service.iam.IamService;
+import bio.terra.datarepo.service.snapshot.SnapshotService;
+import bio.terra.datarepo.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

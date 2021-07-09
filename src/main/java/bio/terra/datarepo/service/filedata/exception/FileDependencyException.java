@@ -1,6 +1,6 @@
-package bio.terra.service.filedata.exception;
+package bio.terra.datarepo.service.filedata.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.BadRequestException;
 
 public class FileDependencyException extends BadRequestException {
   public FileDependencyException(String message) {

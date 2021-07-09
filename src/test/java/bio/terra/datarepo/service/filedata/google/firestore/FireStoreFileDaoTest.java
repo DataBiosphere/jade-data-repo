@@ -1,4 +1,4 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -7,15 +7,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import bio.terra.common.category.Connected;
-import bio.terra.common.fixtures.StringListCompare;
-import bio.terra.model.ConfigFaultCountedModel;
-import bio.terra.model.ConfigFaultModel;
-import bio.terra.model.ConfigGroupModel;
-import bio.terra.model.ConfigModel;
-import bio.terra.model.ConfigParameterModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.datarepo.common.category.Connected;
+import bio.terra.datarepo.common.fixtures.StringListCompare;
+import bio.terra.datarepo.model.ConfigFaultCountedModel;
+import bio.terra.datarepo.model.ConfigFaultModel;
+import bio.terra.datarepo.model.ConfigGroupModel;
+import bio.terra.datarepo.model.ConfigModel;
+import bio.terra.datarepo.model.ConfigParameterModel;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
 import com.google.cloud.firestore.Firestore;
 import io.grpc.StatusRuntimeException;
 import java.util.ArrayList;
@@ -42,7 +42,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Connected.class)
 public class FireStoreFileDaoTest {
   private final Logger logger =
-      LoggerFactory.getLogger("bio.terra.service.filedata.google.firestore.FireStoreFileDaoTest");
+      LoggerFactory.getLogger(
+          "bio.terra.datarepo.service.filedata.google.firestore.FireStoreFileDaoTest");
   private final Long FILE_SIZE = 42L;
   private final Long CHANGED_FILE_SIZE = 22L;
 

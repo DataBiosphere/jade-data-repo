@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight;
+package bio.terra.datarepo.service.dataset.flight;
 
 public final class DatasetWorkingMapKeys {
   private DatasetWorkingMapKeys() {}

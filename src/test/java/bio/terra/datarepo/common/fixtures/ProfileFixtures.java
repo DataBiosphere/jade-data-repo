@@ -1,8 +1,8 @@
-package bio.terra.common.fixtures;
+package bio.terra.datarepo.common.fixtures;
 
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.CloudPlatform;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.CloudPlatform;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;

@@ -1,6 +1,6 @@
-package bio.terra.service.resourcemanagement.exception;
+package bio.terra.datarepo.service.resourcemanagement.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.BadRequestException;
 import java.util.List;
 
 public class StorageAccountLockException extends BadRequestException {

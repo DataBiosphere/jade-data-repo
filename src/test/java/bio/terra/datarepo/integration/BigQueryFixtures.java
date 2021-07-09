@@ -6,10 +6,10 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
 
-import bio.terra.common.PdaoConstant;
-import bio.terra.common.TestUtils;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.SnapshotModel;
+import bio.terra.datarepo.common.PdaoConstant;
+import bio.terra.datarepo.common.TestUtils;
+import bio.terra.datarepo.model.DatasetModel;
+import bio.terra.datarepo.model.SnapshotModel;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;

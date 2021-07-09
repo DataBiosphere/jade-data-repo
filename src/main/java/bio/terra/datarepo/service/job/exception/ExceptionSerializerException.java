@@ -1,6 +1,6 @@
-package bio.terra.service.job.exception;
+package bio.terra.datarepo.service.job.exception;
 
-import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
 
 // Exception for failures serializing and deserializing exceptions
 public class ExceptionSerializerException extends InternalServerErrorException {

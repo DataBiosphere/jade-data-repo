@@ -1,4 +1,4 @@
-package bio.terra.app.configuration;
+package bio.terra.datarepo.app.configuration;
 
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;

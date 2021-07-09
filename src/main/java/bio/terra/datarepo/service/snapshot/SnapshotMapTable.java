@@ -1,6 +1,6 @@
-package bio.terra.service.snapshot;
+package bio.terra.datarepo.service.snapshot;
 
-import bio.terra.service.dataset.DatasetTable;
+import bio.terra.datarepo.service.dataset.DatasetTable;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;

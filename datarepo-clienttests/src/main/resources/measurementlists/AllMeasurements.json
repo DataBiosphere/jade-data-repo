@@ -21,13 +21,13 @@
     {
       "name": "PerformanceLoggerElapsedTime",
       "description": "PerformanceLogger enumerateProfiles timer elapsed time.",
-      "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"],
+      "parameters": ["bio.terra.datarepo.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"],
       "saveRawDataPoints": true
     },
     {
       "name": "PerformanceLoggerCount",
       "description": "PerformanceLogger enumerateProfiles timer integer count.",
-      "parameters": ["bio.terra.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"],
+      "parameters": ["bio.terra.datarepo.service.resourcemanagement.ResourcesApiController", "enumerateProfiles"],
       "saveRawDataPoints": true
     },
     {

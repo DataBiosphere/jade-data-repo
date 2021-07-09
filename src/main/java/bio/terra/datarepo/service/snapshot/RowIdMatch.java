@@ -1,4 +1,4 @@
-package bio.terra.service.snapshot;
+package bio.terra.datarepo.service.snapshot;
 
 import java.util.ArrayList;
 import java.util.Collections;

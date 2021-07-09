@@ -1,4 +1,4 @@
-package bio.terra.service.profile.flight;
+package bio.terra.datarepo.service.profile.flight;
 
 public final class ProfileMapKeys {
   public static final String PROFILE_ID = "profileId";

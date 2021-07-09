@@ -1,13 +1,13 @@
-package bio.terra.service.profile.azure;
+package bio.terra.datarepo.service.profile.azure;
 
-import static bio.terra.service.profile.azure.AzureAuthzService.AUTH_PARAM_KEY;
+import static bio.terra.datarepo.service.profile.azure.AzureAuthzService.AUTH_PARAM_KEY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.category.Unit;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
 import com.azure.resourcemanager.resources.models.GenericResources;

@@ -1,13 +1,13 @@
-package bio.terra.service.load;
+package bio.terra.datarepo.service.load;
 
-import bio.terra.model.BulkLoadFileModel;
-import bio.terra.model.BulkLoadFileResultModel;
-import bio.terra.model.BulkLoadFileState;
-import bio.terra.model.BulkLoadHistoryModel;
-import bio.terra.model.BulkLoadResultModel;
-import bio.terra.service.filedata.FSFileInfo;
-import bio.terra.service.load.exception.LoadLockFailureException;
-import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.datarepo.model.BulkLoadFileModel;
+import bio.terra.datarepo.model.BulkLoadFileResultModel;
+import bio.terra.datarepo.model.BulkLoadFileState;
+import bio.terra.datarepo.model.BulkLoadHistoryModel;
+import bio.terra.datarepo.model.BulkLoadResultModel;
+import bio.terra.datarepo.service.filedata.FSFileInfo;
+import bio.terra.datarepo.service.load.exception.LoadLockFailureException;
+import bio.terra.datarepo.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import java.time.Instant;

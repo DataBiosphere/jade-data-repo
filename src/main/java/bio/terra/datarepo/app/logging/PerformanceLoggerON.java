@@ -1,4 +1,4 @@
-package bio.terra.app.logging;
+package bio.terra.datarepo.app.logging;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

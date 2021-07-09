@@ -1,12 +1,12 @@
-package bio.terra.service.iam.sam;
+package bio.terra.datarepo.service.iam.sam;
 
 import static java.time.Instant.now;
 
-import bio.terra.common.exception.DataRepoException;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.exception.IamInternalServerErrorException;
-import bio.terra.service.iam.exception.IamUnauthorizedException;
+import bio.terra.datarepo.common.exception.DataRepoException;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.iam.exception.IamInternalServerErrorException;
+import bio.terra.datarepo.service.iam.exception.IamUnauthorizedException;
 import com.google.api.client.http.HttpStatusCodes;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;

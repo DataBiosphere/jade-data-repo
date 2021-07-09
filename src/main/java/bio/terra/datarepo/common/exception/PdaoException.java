@@ -1,4 +1,4 @@
-package bio.terra.common.exception;
+package bio.terra.datarepo.common.exception;
 
 public class PdaoException extends InternalServerErrorException {
   public PdaoException(String message) {

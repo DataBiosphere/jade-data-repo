@@ -1,8 +1,8 @@
-package bio.terra.service.profile.flight;
+package bio.terra.datarepo.service.profile.flight;
 
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.profile.ProfileService;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

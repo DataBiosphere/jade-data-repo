@@ -1,8 +1,8 @@
-package bio.terra.service.job;
+package bio.terra.datarepo.service.job;
 
-import bio.terra.common.exception.DataRepoException;
-import bio.terra.service.job.exception.ExceptionSerializerException;
-import bio.terra.service.job.exception.JobResponseException;
+import bio.terra.datarepo.common.exception.DataRepoException;
+import bio.terra.datarepo.service.job.exception.ExceptionSerializerException;
+import bio.terra.datarepo.service.job.exception.JobResponseException;
 import bio.terra.stairway.ExceptionSerializer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,15 +1,15 @@
-package bio.terra.service.snapshot.flight.create;
+package bio.terra.datarepo.service.snapshot.flight.create;
 
-import bio.terra.common.FlightUtils;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.SnapshotSummary;
-import bio.terra.service.snapshot.exception.InvalidSnapshotException;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.datarepo.common.FlightUtils;
+import bio.terra.datarepo.model.SnapshotRequestModel;
+import bio.terra.datarepo.model.SnapshotSummaryModel;
+import bio.terra.datarepo.service.snapshot.Snapshot;
+import bio.terra.datarepo.service.snapshot.SnapshotDao;
+import bio.terra.datarepo.service.snapshot.SnapshotService;
+import bio.terra.datarepo.service.snapshot.SnapshotSummary;
+import bio.terra.datarepo.service.snapshot.exception.InvalidSnapshotException;
+import bio.terra.datarepo.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.datarepo.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

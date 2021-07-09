@@ -1,4 +1,4 @@
-package bio.terra.common.fixtures;
+package bio.terra.datarepo.common.fixtures;
 
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;

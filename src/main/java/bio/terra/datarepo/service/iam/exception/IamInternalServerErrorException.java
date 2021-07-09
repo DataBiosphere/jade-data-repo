@@ -1,6 +1,6 @@
-package bio.terra.service.iam.exception;
+package bio.terra.datarepo.service.iam.exception;
 
-import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
 import java.util.List;
 
 public class IamInternalServerErrorException extends InternalServerErrorException {

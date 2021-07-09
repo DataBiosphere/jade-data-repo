@@ -3,8 +3,8 @@ package bio.terra.flight;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import bio.terra.common.category.Unit;
-import bio.terra.service.profile.flight.update.ProfileUpdateFlight;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.service.profile.flight.update.ProfileUpdateFlight;
 import bio.terra.stairway.FlightMap;
 import java.util.List;
 import org.junit.Test;
@@ -23,7 +23,7 @@ public class ProfileUpdateFlightTest {
   @Test
   public void testConstructFlight() {
     var flight = new ProfileUpdateFlight(new FlightMap(), context);
-    var packageName = "bio.terra.service.profile.flight.update";
+    var packageName = "bio.terra.datarepo.service.profile.flight.update";
 
     assertThat(
         flight.context().getStepClassNames(),

@@ -1,6 +1,6 @@
-package bio.terra.service.resourcemanagement.exception;
+package bio.terra.datarepo.service.resourcemanagement.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.BadRequestException;
 
 public class InaccessibleApplicationDeploymentException extends BadRequestException {
   public InaccessibleApplicationDeploymentException(String message) {

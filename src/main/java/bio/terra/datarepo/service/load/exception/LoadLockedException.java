@@ -1,6 +1,6 @@
-package bio.terra.service.load.exception;
+package bio.terra.datarepo.service.load.exception;
 
-import bio.terra.common.exception.ConflictException;
+import bio.terra.datarepo.common.exception.ConflictException;
 
 public class LoadLockedException extends ConflictException {
   public LoadLockedException(String message) {

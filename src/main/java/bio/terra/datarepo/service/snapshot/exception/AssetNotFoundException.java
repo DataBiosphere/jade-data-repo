@@ -1,6 +1,6 @@
-package bio.terra.service.snapshot.exception;
+package bio.terra.datarepo.service.snapshot.exception;
 
-import bio.terra.common.exception.NotFoundException;
+import bio.terra.datarepo.common.exception.NotFoundException;
 
 public class AssetNotFoundException extends NotFoundException {
   public AssetNotFoundException(String message) {

@@ -1,8 +1,8 @@
-package bio.terra.service.snapshot;
+package bio.terra.datarepo.service.snapshot;
 
-import bio.terra.common.Table;
-import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.Dataset;
+import bio.terra.datarepo.common.Table;
+import bio.terra.datarepo.service.dataset.AssetSpecification;
+import bio.terra.datarepo.service.dataset.Dataset;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;

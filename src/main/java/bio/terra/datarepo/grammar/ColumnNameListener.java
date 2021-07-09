@@ -1,4 +1,4 @@
-package bio.terra.grammar;
+package bio.terra.datarepo.grammar;
 
 import java.util.ArrayList;
 import java.util.HashSet;

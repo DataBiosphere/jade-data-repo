@@ -1,6 +1,6 @@
-package bio.terra.service.upgrade.exception;
+package bio.terra.datarepo.service.upgrade.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.BadRequestException;
 
 public class InvalidCustomNameException extends BadRequestException {
   public InvalidCustomNameException(String message) {

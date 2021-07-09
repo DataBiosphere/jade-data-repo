@@ -1,15 +1,15 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import bio.terra.app.model.AzureCloudResource;
-import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.GoogleCloudResource;
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.datarepo.app.model.AzureCloudResource;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.GoogleCloudResource;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.common.fixtures.JsonLoader;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,6 +1,5 @@
-package bio.terra.service.resourcemanagement;
+package bio.terra.datarepo.service.resourcemanagement;
 
-import bio.terra.app.configuration.ResourceBufferServiceConfiguration;
 import bio.terra.buffer.api.BufferApi;
 import bio.terra.buffer.api.UnauthenticatedApi;
 import bio.terra.buffer.client.ApiClient;
@@ -10,9 +9,10 @@ import bio.terra.buffer.model.PoolInfo;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.buffer.model.SystemStatus;
 import bio.terra.buffer.model.SystemStatusSystems;
-import bio.terra.model.RepositoryStatusModelSystems;
-import bio.terra.service.resourcemanagement.exception.BufferServiceAPIException;
-import bio.terra.service.resourcemanagement.exception.BufferServiceAuthorizationException;
+import bio.terra.datarepo.app.configuration.ResourceBufferServiceConfiguration;
+import bio.terra.datarepo.model.RepositoryStatusModelSystems;
+import bio.terra.datarepo.service.resourcemanagement.exception.BufferServiceAPIException;
+import bio.terra.datarepo.service.resourcemanagement.exception.BufferServiceAuthorizationException;
 import java.io.IOException;
 import java.util.Map;
 import org.slf4j.Logger;

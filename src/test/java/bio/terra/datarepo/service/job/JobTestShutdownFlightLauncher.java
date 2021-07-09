@@ -1,7 +1,7 @@
-package bio.terra.service.job;
+package bio.terra.datarepo.service.job;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.job.exception.JobServiceShutdownException;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.job.exception.JobServiceShutdownException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;

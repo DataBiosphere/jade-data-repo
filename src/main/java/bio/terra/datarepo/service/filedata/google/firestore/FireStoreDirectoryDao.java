@@ -1,14 +1,14 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE;
 
-import bio.terra.app.logging.PerformanceLogger;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.datarepo.app.logging.PerformanceLogger;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.filedata.exception.FileSystemAbortTransactionException;
+import bio.terra.datarepo.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
 import com.google.cloud.firestore.CollectionReference;

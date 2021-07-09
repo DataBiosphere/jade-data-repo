@@ -1,19 +1,19 @@
-package bio.terra.service.filedata.flight.delete;
+package bio.terra.datarepo.service.filedata.flight.delete;
 
-import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
+import static bio.terra.datarepo.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.LockDatasetStep;
-import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.app.configuration.ApplicationConfiguration;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetDao;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.dataset.flight.LockDatasetStep;
+import bio.terra.datarepo.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsPdao;
+import bio.terra.datarepo.service.job.JobMapKeys;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;

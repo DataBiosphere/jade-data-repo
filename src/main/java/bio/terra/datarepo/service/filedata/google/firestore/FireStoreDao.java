@@ -1,19 +1,19 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
-import bio.terra.app.logging.PerformanceLogger;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.FSContainerInterface;
-import bio.terra.service.filedata.FSDir;
-import bio.terra.service.filedata.FSFile;
-import bio.terra.service.filedata.FSItem;
-import bio.terra.service.filedata.exception.DirectoryMetadataComputeException;
-import bio.terra.service.filedata.exception.FileNotFoundException;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotProject;
+import bio.terra.datarepo.app.logging.PerformanceLogger;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.filedata.FSContainerInterface;
+import bio.terra.datarepo.service.filedata.FSDir;
+import bio.terra.datarepo.service.filedata.FSFile;
+import bio.terra.datarepo.service.filedata.FSItem;
+import bio.terra.datarepo.service.filedata.exception.DirectoryMetadataComputeException;
+import bio.terra.datarepo.service.filedata.exception.FileNotFoundException;
+import bio.terra.datarepo.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.datarepo.service.snapshot.Snapshot;
+import bio.terra.datarepo.service.snapshot.SnapshotProject;
 import com.google.cloud.firestore.Firestore;
 import java.time.Instant;
 import java.util.ArrayList;

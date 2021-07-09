@@ -1,8 +1,8 @@
-package bio.terra.service.profile.flight.delete;
+package bio.terra.datarepo.service.profile.flight.delete;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.profile.ProfileService;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.job.JobMapKeys;
+import bio.terra.datarepo.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

@@ -1,6 +1,6 @@
-package bio.terra.service.filedata.exception;
+package bio.terra.datarepo.service.filedata.exception;
 
-import bio.terra.common.exception.NotFoundException;
+import bio.terra.datarepo.common.exception.NotFoundException;
 
 /*
  * WARNING: if making any changes to this class make sure to notify the #dsp-batch channel! Describe the change and

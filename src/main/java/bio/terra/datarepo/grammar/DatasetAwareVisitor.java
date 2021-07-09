@@ -1,7 +1,7 @@
-package bio.terra.grammar;
+package bio.terra.datarepo.grammar;
 
-import bio.terra.grammar.exception.MissingDatasetException;
-import bio.terra.model.DatasetModel;
+import bio.terra.datarepo.grammar.exception.MissingDatasetException;
+import bio.terra.datarepo.model.DatasetModel;
 import java.util.Map;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;

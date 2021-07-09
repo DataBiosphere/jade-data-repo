@@ -1,10 +1,10 @@
-package bio.terra.service.filedata;
+package bio.terra.datarepo.service.filedata;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import bio.terra.common.category.Unit;
-import bio.terra.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.service.filedata.exception.InvalidDrsIdException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 

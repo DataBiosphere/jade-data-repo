@@ -1,6 +1,6 @@
-package bio.terra.app.configuration;
+package bio.terra.datarepo.app.configuration;
 
-import bio.terra.app.utils.startup.StartupInitializer;
+import bio.terra.datarepo.app.utils.startup.StartupInitializer;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;

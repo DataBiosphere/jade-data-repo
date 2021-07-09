@@ -1,7 +1,7 @@
-package bio.terra.service.dataset.flight.delete;
+package bio.terra.datarepo.service.dataset.flight.delete;
 
-import bio.terra.service.dataset.AssetDao;
-import bio.terra.service.dataset.flight.create.DeleteDatasetAssetStep;
+import bio.terra.datarepo.service.dataset.AssetDao;
+import bio.terra.datarepo.service.dataset.flight.create.DeleteDatasetAssetStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;

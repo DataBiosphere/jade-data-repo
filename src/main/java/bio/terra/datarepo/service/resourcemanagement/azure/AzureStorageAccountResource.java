@@ -1,6 +1,6 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
-import bio.terra.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.AzureRegion;
 import java.util.Objects;
 import java.util.UUID;
 import org.apache.commons.lang3.builder.ToStringBuilder;

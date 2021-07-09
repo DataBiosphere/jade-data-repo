@@ -1,14 +1,14 @@
-package bio.terra.service.upgrade;
+package bio.terra.datarepo.service.upgrade;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.common.exception.NotImplementedException;
-import bio.terra.model.UpgradeModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.job.JobService;
-import bio.terra.service.upgrade.exception.InvalidCustomNameException;
+import bio.terra.datarepo.app.configuration.ApplicationConfiguration;
+import bio.terra.datarepo.common.exception.NotImplementedException;
+import bio.terra.datarepo.model.UpgradeModel;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.iam.IamAction;
+import bio.terra.datarepo.service.iam.IamResourceType;
+import bio.terra.datarepo.service.iam.IamService;
+import bio.terra.datarepo.service.job.JobService;
+import bio.terra.datarepo.service.upgrade.exception.InvalidCustomNameException;
 import bio.terra.stairway.Flight;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

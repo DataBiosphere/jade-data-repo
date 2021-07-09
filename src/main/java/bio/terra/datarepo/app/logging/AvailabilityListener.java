@@ -1,4 +1,4 @@
-package bio.terra.app.logging;
+package bio.terra.datarepo.app.logging;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

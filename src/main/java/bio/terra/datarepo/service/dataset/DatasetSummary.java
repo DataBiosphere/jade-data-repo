@@ -1,13 +1,13 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.app.model.AzureCloudResource;
-import bio.terra.app.model.CloudRegion;
-import bio.terra.app.model.CloudResource;
-import bio.terra.app.model.GoogleCloudResource;
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.CloudPlatform;
-import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
+import bio.terra.datarepo.app.model.AzureCloudResource;
+import bio.terra.datarepo.app.model.CloudRegion;
+import bio.terra.datarepo.app.model.CloudResource;
+import bio.terra.datarepo.app.model.GoogleCloudResource;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.service.dataset.exception.StorageResourceNotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

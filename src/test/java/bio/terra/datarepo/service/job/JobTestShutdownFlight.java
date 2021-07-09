@@ -1,4 +1,4 @@
-package bio.terra.service.job;
+package bio.terra.datarepo.service.job;
 
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;

@@ -1,4 +1,4 @@
-package bio.terra.service.iam;
+package bio.terra.datarepo.service.iam;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;

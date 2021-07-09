@@ -1,4 +1,4 @@
-package bio.terra.common.exception;
+package bio.terra.datarepo.common.exception;
 
 public class PdaoInvalidUriException extends BadRequestException {
   public PdaoInvalidUriException(String message) {

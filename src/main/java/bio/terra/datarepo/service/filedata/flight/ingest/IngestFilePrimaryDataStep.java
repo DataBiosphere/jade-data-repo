@@ -1,16 +1,16 @@
-package bio.terra.service.filedata.flight.ingest;
+package bio.terra.datarepo.service.filedata.flight.ingest;
 
-import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
+import static bio.terra.datarepo.service.filedata.DrsService.getLastNameFromPath;
 
-import bio.terra.model.FileLoadModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.FSFileInfo;
-import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.datarepo.model.FileLoadModel;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.filedata.FSFileInfo;
+import bio.terra.datarepo.service.filedata.flight.FileMapKeys;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsPdao;
+import bio.terra.datarepo.service.job.JobMapKeys;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

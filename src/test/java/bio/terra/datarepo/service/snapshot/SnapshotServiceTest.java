@@ -1,21 +1,21 @@
-package bio.terra.service.snapshot;
+package bio.terra.datarepo.service.snapshot;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.category.Unit;
-import bio.terra.model.AccessInfoBigQueryModel;
-import bio.terra.model.AccessInfoBigQueryModelTable;
-import bio.terra.model.AccessInfoModel;
-import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestAccessIncludeModel;
-import bio.terra.model.TableModel;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.service.job.JobService;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.AccessInfoBigQueryModel;
+import bio.terra.datarepo.model.AccessInfoBigQueryModelTable;
+import bio.terra.datarepo.model.AccessInfoModel;
+import bio.terra.datarepo.model.SnapshotModel;
+import bio.terra.datarepo.model.SnapshotRequestAccessIncludeModel;
+import bio.terra.datarepo.model.TableModel;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.datarepo.service.job.JobService;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryPdao;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;

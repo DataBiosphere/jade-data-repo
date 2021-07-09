@@ -1,6 +1,6 @@
-package bio.terra.service.filedata.exception;
+package bio.terra.datarepo.service.filedata.exception;
 
-import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
 
 // This exception is inspired by the fix to DR-612. FireStore will abort transactions due to high
 // concurrency.

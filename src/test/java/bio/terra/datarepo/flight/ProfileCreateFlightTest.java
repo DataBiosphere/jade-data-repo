@@ -3,11 +3,11 @@ package bio.terra.flight;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import bio.terra.common.category.Unit;
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.CloudPlatform;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.profile.flight.create.ProfileCreateFlight;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.service.job.JobMapKeys;
+import bio.terra.datarepo.service.profile.flight.create.ProfileCreateFlight;
 import bio.terra.stairway.FlightMap;
 import java.util.List;
 import org.junit.Test;
@@ -33,7 +33,7 @@ public class ProfileCreateFlightTest {
 
     var flight = new ProfileCreateFlight(inputParameters, context);
 
-    var packageName = "bio.terra.service.profile.flight.create";
+    var packageName = "bio.terra.datarepo.service.profile.flight.create";
     assertThat(
         flight.context().getStepClassNames(),
         is(
@@ -54,7 +54,7 @@ public class ProfileCreateFlightTest {
 
     var flight = new ProfileCreateFlight(inputParameters, context);
 
-    var packageName = "bio.terra.service.profile.flight.create";
+    var packageName = "bio.terra.datarepo.service.profile.flight.create";
     assertThat(
         flight.context().getStepClassNames(),
         is(

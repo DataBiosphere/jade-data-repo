@@ -1,12 +1,12 @@
-package bio.terra.service.resourcemanagement;
+package bio.terra.datarepo.service.resourcemanagement;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.buffer.model.HandoutRequestBody;
 import bio.terra.buffer.model.ResourceInfo;
-import bio.terra.common.category.Connected;
-import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.datarepo.common.category.Connected;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectService;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import java.util.UUID;
 import org.junit.Test;

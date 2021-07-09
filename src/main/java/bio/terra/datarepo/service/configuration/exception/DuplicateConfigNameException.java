@@ -1,6 +1,6 @@
-package bio.terra.service.configuration.exception;
+package bio.terra.datarepo.service.configuration.exception;
 
-import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
 
 public class DuplicateConfigNameException extends InternalServerErrorException {
   public DuplicateConfigNameException(String message, Throwable cause) {

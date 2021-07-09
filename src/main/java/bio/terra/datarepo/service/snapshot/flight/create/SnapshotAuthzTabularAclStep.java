@@ -1,15 +1,15 @@
-package bio.terra.service.snapshot.flight.create;
+package bio.terra.datarepo.service.snapshot.flight.create;
 
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT;
 
-import bio.terra.common.FlightUtils;
-import bio.terra.common.exception.PdaoException;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.IamRole;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.datarepo.common.FlightUtils;
+import bio.terra.datarepo.common.exception.PdaoException;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.iam.IamRole;
+import bio.terra.datarepo.service.snapshot.Snapshot;
+import bio.terra.datarepo.service.snapshot.SnapshotService;
+import bio.terra.datarepo.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

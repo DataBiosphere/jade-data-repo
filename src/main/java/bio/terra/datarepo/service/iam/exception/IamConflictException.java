@@ -1,6 +1,6 @@
-package bio.terra.service.iam.exception;
+package bio.terra.datarepo.service.iam.exception;
 
-import bio.terra.common.exception.ConflictException;
+import bio.terra.datarepo.common.exception.ConflictException;
 import java.util.List;
 
 public class IamConflictException extends ConflictException {

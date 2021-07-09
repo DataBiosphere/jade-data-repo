@@ -1,14 +1,14 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.app.configuration.DataRepoJdbcConfiguration;
-import bio.terra.app.model.AzureCloudResource;
-import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.GoogleCloudResource;
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.DaoKeyHolder;
-import bio.terra.model.CloudPlatform;
-import bio.terra.service.dataset.exception.InvalidStorageException;
-import bio.terra.service.dataset.exception.StorageResourceNotFoundException;
+import bio.terra.datarepo.app.configuration.DataRepoJdbcConfiguration;
+import bio.terra.datarepo.app.model.AzureCloudResource;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.GoogleCloudResource;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.common.DaoKeyHolder;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.service.dataset.exception.InvalidStorageException;
+import bio.terra.datarepo.service.dataset.exception.StorageResourceNotFoundException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;

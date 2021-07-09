@@ -1,8 +1,8 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.app.model.AzureCloudResource;
-import bio.terra.app.model.AzureRegion;
-import bio.terra.model.CloudPlatform;
+import bio.terra.datarepo.app.model.AzureCloudResource;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.model.CloudPlatform;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import java.util.UUID;
 

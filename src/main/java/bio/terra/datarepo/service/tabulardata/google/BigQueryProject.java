@@ -1,9 +1,9 @@
-package bio.terra.service.tabulardata.google;
+package bio.terra.datarepo.service.tabulardata.google;
 
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.exception.PdaoException;
-import bio.terra.service.dataset.BigQueryPartitionConfigV1;
-import bio.terra.service.snapshot.Snapshot;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.common.exception.PdaoException;
+import bio.terra.datarepo.service.dataset.BigQueryPartitionConfigV1;
+import bio.terra.datarepo.service.snapshot.Snapshot;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -50,7 +50,7 @@ public final class BigQueryProject {
     PROJECT_CACHE.put(bigQueryProject.getProjectId(), bigQueryProject);
   }
 
-  public static BigQueryProject from(bio.terra.service.dataset.Dataset dataset) {
+  public static BigQueryProject from(bio.terra.datarepo.service.dataset.Dataset dataset) {
     return get(dataset.getProjectResource().getGoogleProjectId());
   }
 

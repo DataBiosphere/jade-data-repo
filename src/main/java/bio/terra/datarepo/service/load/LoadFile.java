@@ -1,6 +1,6 @@
-package bio.terra.service.load;
+package bio.terra.datarepo.service.load;
 
-import bio.terra.model.BulkLoadFileState;
+import bio.terra.datarepo.model.BulkLoadFileState;
 import java.util.UUID;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;

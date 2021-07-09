@@ -1,8 +1,8 @@
-package bio.terra.service.dataset.flight;
+package bio.terra.datarepo.service.dataset.flight;
 
-import bio.terra.common.exception.RetryQueryException;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.exception.DatasetLockException;
+import bio.terra.datarepo.common.exception.RetryQueryException;
+import bio.terra.datarepo.service.dataset.DatasetDao;
+import bio.terra.datarepo.service.dataset.exception.DatasetLockException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

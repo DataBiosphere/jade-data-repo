@@ -1,4 +1,4 @@
-package bio.terra.app.controller;
+package bio.terra.datarepo.app.controller;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -7,15 +7,15 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import bio.terra.common.TestUtils;
-import bio.terra.common.category.Unit;
-import bio.terra.model.ErrorModel;
-import bio.terra.model.SnapshotRequestAssetModel;
-import bio.terra.model.SnapshotRequestContentsModel;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotRequestQueryModel;
-import bio.terra.model.SnapshotRequestRowIdModel;
-import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.datarepo.common.TestUtils;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.ErrorModel;
+import bio.terra.datarepo.model.SnapshotRequestAssetModel;
+import bio.terra.datarepo.model.SnapshotRequestContentsModel;
+import bio.terra.datarepo.model.SnapshotRequestModel;
+import bio.terra.datarepo.model.SnapshotRequestQueryModel;
+import bio.terra.datarepo.model.SnapshotRequestRowIdModel;
+import bio.terra.datarepo.model.SnapshotRequestRowIdTableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.Collections;

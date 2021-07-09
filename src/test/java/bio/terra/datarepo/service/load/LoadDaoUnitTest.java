@@ -1,15 +1,15 @@
-package bio.terra.service.load;
+package bio.terra.datarepo.service.load;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import bio.terra.common.category.Unit;
-import bio.terra.model.BulkLoadFileModel;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.FSFileInfo;
-import bio.terra.service.load.exception.LoadLockedException;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.BulkLoadFileModel;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.filedata.FSFileInfo;
+import bio.terra.datarepo.service.load.exception.LoadLockedException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

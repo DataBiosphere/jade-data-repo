@@ -1,12 +1,12 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.exception.FileSystemCorruptException;
-import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.filedata.exception.FileSystemCorruptException;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
 import com.google.api.client.util.Lists;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;

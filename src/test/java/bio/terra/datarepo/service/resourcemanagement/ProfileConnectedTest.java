@@ -1,4 +1,4 @@
-package bio.terra.service.resourcemanagement;
+package bio.terra.datarepo.service.resourcemanagement;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -8,16 +8,16 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.Matchers.startsWith;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.common.ValidationUtils;
-import bio.terra.common.category.Connected;
-import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.model.CloudPlatform;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.profile.ProfileDao;
+import bio.terra.datarepo.app.configuration.ApplicationConfiguration;
+import bio.terra.datarepo.app.configuration.ConnectedTestConfiguration;
+import bio.terra.datarepo.common.ValidationUtils;
+import bio.terra.datarepo.common.category.Connected;
+import bio.terra.datarepo.common.fixtures.ConnectedOperations;
+import bio.terra.datarepo.common.fixtures.ProfileFixtures;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.iam.IamProviderInterface;
+import bio.terra.datarepo.service.profile.ProfileDao;
 import java.util.List;
 import java.util.UUID;
 import org.junit.After;

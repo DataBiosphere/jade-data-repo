@@ -1,6 +1,6 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.common.Column;
+import bio.terra.datarepo.common.Column;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

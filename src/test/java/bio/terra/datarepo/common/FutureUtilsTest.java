@@ -1,9 +1,9 @@
-package bio.terra.common;
+package bio.terra.datarepo.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bio.terra.common.category.Unit;
+import bio.terra.datarepo.common.category.Unit;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;

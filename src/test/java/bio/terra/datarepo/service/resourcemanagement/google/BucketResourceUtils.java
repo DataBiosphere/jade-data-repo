@@ -1,10 +1,10 @@
-package bio.terra.service.resourcemanagement.google;
+package bio.terra.datarepo.service.resourcemanagement.google;
 
-import bio.terra.model.ConfigGroupModel;
-import bio.terra.model.ConfigModel;
-import bio.terra.model.ConfigParameterModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.datarepo.model.ConfigGroupModel;
+import bio.terra.datarepo.model.ConfigModel;
+import bio.terra.datarepo.model.ConfigParameterModel;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
 
 public class BucketResourceUtils {
   boolean getAllowReuseExistingBuckets(ConfigurationService configService) {

@@ -1,12 +1,12 @@
-package bio.terra.service.dataset.flight.ingest;
+package bio.terra.datarepo.service.dataset.flight.ingest;
 
-import bio.terra.model.IngestRequestModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.DatasetUtils;
+import bio.terra.datarepo.model.IngestRequestModel;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.dataset.DatasetTable;
+import bio.terra.datarepo.service.dataset.DatasetUtils;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

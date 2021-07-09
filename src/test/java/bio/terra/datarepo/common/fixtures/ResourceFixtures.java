@@ -1,11 +1,11 @@
-package bio.terra.common.fixtures;
+package bio.terra.datarepo.common.fixtures;
 
-import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.AzureStorageAccountSkuType;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
-import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.AzureStorageAccountSkuType;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.datarepo.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectResource;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

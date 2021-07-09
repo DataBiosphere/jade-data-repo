@@ -1,4 +1,4 @@
-package bio.terra.common.configuration;
+package bio.terra.datarepo.common.configuration;
 
 import java.util.ArrayList;
 import java.util.List;

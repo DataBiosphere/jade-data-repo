@@ -1,13 +1,13 @@
-package bio.terra.service.resourcemanagement;
+package bio.terra.datarepo.service.resourcemanagement;
 
-import bio.terra.common.Table;
-import bio.terra.model.AccessInfoBigQueryModel;
-import bio.terra.model.AccessInfoBigQueryModelTable;
-import bio.terra.model.AccessInfoModel;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.datarepo.common.Table;
+import bio.terra.datarepo.model.AccessInfoBigQueryModel;
+import bio.terra.datarepo.model.AccessInfoBigQueryModelTable;
+import bio.terra.datarepo.model.AccessInfoModel;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.snapshot.Snapshot;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryPdao;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;

@@ -1,6 +1,6 @@
-package bio.terra.service.configuration;
+package bio.terra.datarepo.service.configuration;
 
-import bio.terra.service.configuration.exception.ConfigNotFoundException;
+import bio.terra.datarepo.service.configuration.exception.ConfigNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 
 /**

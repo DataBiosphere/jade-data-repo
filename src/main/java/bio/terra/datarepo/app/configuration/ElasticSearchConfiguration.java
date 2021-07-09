@@ -1,4 +1,4 @@
-package bio.terra.app.configuration;
+package bio.terra.datarepo.app.configuration;
 
 import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;

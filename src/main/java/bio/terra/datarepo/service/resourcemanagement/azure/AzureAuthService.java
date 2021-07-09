@@ -1,6 +1,6 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
-import bio.terra.model.BillingProfileModel;
+import bio.terra.datarepo.model.BillingProfileModel;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.datalake.DataLakeServiceClient;

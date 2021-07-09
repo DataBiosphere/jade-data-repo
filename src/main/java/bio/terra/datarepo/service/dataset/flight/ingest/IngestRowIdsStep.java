@@ -1,8 +1,8 @@
-package bio.terra.service.dataset.flight.ingest;
+package bio.terra.datarepo.service.dataset.flight.ingest;
 
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

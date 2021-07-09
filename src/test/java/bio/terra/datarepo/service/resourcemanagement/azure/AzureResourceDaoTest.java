@@ -1,14 +1,14 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import bio.terra.app.model.AzureRegion;
-import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.common.fixtures.ResourceFixtures;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.profile.ProfileDao;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.common.fixtures.ProfileFixtures;
+import bio.terra.datarepo.common.fixtures.ResourceFixtures;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.profile.ProfileDao;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

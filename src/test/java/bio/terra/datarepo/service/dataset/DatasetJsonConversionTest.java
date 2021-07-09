@@ -1,20 +1,20 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import bio.terra.common.Column;
-import bio.terra.common.category.Unit;
-import bio.terra.model.AccessInfoModel;
-import bio.terra.model.AssetModel;
-import bio.terra.model.AssetTableModel;
-import bio.terra.model.ColumnModel;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetRequestAccessIncludeModel;
-import bio.terra.model.DatasetSpecificationModel;
-import bio.terra.model.TableDataType;
-import bio.terra.model.TableModel;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.datarepo.common.Column;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.AccessInfoModel;
+import bio.terra.datarepo.model.AssetModel;
+import bio.terra.datarepo.model.AssetTableModel;
+import bio.terra.datarepo.model.ColumnModel;
+import bio.terra.datarepo.model.DatasetModel;
+import bio.terra.datarepo.model.DatasetRequestAccessIncludeModel;
+import bio.terra.datarepo.model.DatasetSpecificationModel;
+import bio.terra.datarepo.model.TableDataType;
+import bio.terra.datarepo.model.TableModel;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectResource;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Collections;
@@ -163,7 +163,7 @@ public class DatasetJsonConversionTest {
                 .accessInformation(
                     new AccessInfoModel()
                         .bigQuery(
-                            new bio.terra.model.AccessInfoBigQueryModel()
+                            new bio.terra.datarepo.model.AccessInfoBigQueryModel()
                                 .datasetName(expectedDatasetName)
                                 .projectId(DATASET_DATA_PROJECT)
                                 .datasetId(DATASET_DATA_PROJECT + ":" + expectedDatasetName)
@@ -179,7 +179,7 @@ public class DatasetJsonConversionTest {
                                         + "&page=dataset")
                                 .tables(
                                     List.of(
-                                        new bio.terra.model.AccessInfoBigQueryModelTable()
+                                        new bio.terra.datarepo.model.AccessInfoBigQueryModelTable()
                                             .name(DATASET_TABLE_NAME)
                                             .qualifiedName(
                                                 DATASET_DATA_PROJECT

@@ -5,19 +5,19 @@
     {
       "name": "PerformanceLoggerElapsedTime",
       "description": "PerformanceLogger drs lookup timer elapsed time.",
-      "parameters": ["bio.terra.service.filedata.DrsService", "snapshotService.retrieveAvailable"],
+      "parameters": ["bio.terra.datarepo.service.filedata.DrsService", "snapshotService.retrieveAvailable"],
       "saveRawDataPoints": true
     },
     {
       "name": "PerformanceLoggerElapsedTime",
       "description": "PerformanceLogger drs lookup timer elapsed time.",
-      "parameters": ["bio.terra.service.filedata.DrsService", "samService.verifyAuthorization"],
+      "parameters": ["bio.terra.datarepo.service.filedata.DrsService", "samService.verifyAuthorization"],
       "saveRawDataPoints": true
     },
     {
       "name": "PerformanceLoggerElapsedTime",
       "description": "PerformanceLogger drs lookup timer elapsed time.",
-      "parameters": ["bio.terra.service.filedata.DrsService", "fileService.lookupSnapshotFSItem"],
+      "parameters": ["bio.terra.datarepo.service.filedata.DrsService", "fileService.lookupSnapshotFSItem"],
       "saveRawDataPoints": true
     }
   ]

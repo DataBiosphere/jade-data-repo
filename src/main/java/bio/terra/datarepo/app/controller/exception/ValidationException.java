@@ -1,6 +1,6 @@
-package bio.terra.app.controller.exception;
+package bio.terra.datarepo.app.controller.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.BadRequestException;
 import java.util.List;
 
 public class ValidationException extends BadRequestException {

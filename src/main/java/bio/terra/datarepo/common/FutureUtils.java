@@ -1,6 +1,6 @@
-package bio.terra.common;
+package bio.terra.datarepo.common;
 
-import bio.terra.app.controller.exception.ApiException;
+import bio.terra.datarepo.app.controller.exception.ApiException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;

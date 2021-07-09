@@ -1,6 +1,6 @@
-package bio.terra.service.resourcemanagement.exception;
+package bio.terra.datarepo.service.resourcemanagement.exception;
 
-import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
 
 public class BillingServiceException extends InternalServerErrorException {
   public BillingServiceException(String message) {

@@ -1,14 +1,14 @@
-package bio.terra.service.filedata.flight.ingest;
+package bio.terra.datarepo.service.filedata.flight.ingest;
 
-import bio.terra.model.BulkLoadFileModel;
-import bio.terra.model.BulkLoadRequestModel;
-import bio.terra.service.filedata.exception.BulkLoadControlFileException;
-import bio.terra.service.filedata.google.gcs.GcsBufferedReader;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.load.LoadService;
-import bio.terra.service.load.flight.LoadMapKeys;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.datarepo.model.BulkLoadFileModel;
+import bio.terra.datarepo.model.BulkLoadRequestModel;
+import bio.terra.datarepo.service.filedata.exception.BulkLoadControlFileException;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsBufferedReader;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsPdao;
+import bio.terra.datarepo.service.job.JobMapKeys;
+import bio.terra.datarepo.service.load.LoadService;
+import bio.terra.datarepo.service.load.flight.LoadMapKeys;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

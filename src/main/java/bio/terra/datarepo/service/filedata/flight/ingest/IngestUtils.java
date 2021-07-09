@@ -1,7 +1,7 @@
-package bio.terra.service.filedata.flight.ingest;
+package bio.terra.datarepo.service.filedata.flight.ingest;
 
-import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.datarepo.service.filedata.flight.FileMapKeys;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 
 public final class IngestUtils {

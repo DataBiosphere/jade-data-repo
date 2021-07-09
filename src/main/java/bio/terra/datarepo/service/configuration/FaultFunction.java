@@ -1,4 +1,4 @@
-package bio.terra.service.configuration;
+package bio.terra.datarepo.service.configuration;
 
 /** FaultFunction provides a lambda target for a function with no parameters and no return value. */
 @FunctionalInterface

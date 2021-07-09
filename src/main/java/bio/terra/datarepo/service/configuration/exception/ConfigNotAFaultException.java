@@ -1,6 +1,6 @@
-package bio.terra.service.configuration.exception;
+package bio.terra.datarepo.service.configuration.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.BadRequestException;
 
 public class ConfigNotAFaultException extends BadRequestException {
   public ConfigNotAFaultException(String message, Throwable cause) {

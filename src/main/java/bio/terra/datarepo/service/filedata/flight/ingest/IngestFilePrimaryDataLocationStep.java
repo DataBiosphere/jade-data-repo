@@ -1,14 +1,14 @@
-package bio.terra.service.filedata.flight.ingest;
+package bio.terra.datarepo.service.filedata.flight.ingest;
 
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.exception.BucketLockException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.filedata.flight.FileMapKeys;
+import bio.terra.datarepo.service.profile.flight.ProfileMapKeys;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceNamingException;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

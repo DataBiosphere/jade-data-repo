@@ -1,9 +1,9 @@
-package bio.terra.service.configuration;
+package bio.terra.datarepo.service.configuration;
 
-import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.model.ConfigModel;
-import bio.terra.model.ConfigParameterModel;
-import bio.terra.service.configuration.exception.UnsupportedConfigDatatypeException;
+import bio.terra.datarepo.app.controller.exception.ValidationException;
+import bio.terra.datarepo.model.ConfigModel;
+import bio.terra.datarepo.model.ConfigParameterModel;
+import bio.terra.datarepo.service.configuration.exception.UnsupportedConfigDatatypeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

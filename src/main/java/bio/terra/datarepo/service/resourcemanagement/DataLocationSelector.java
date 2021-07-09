@@ -1,9 +1,9 @@
-package bio.terra.service.resourcemanagement;
+package bio.terra.datarepo.service.resourcemanagement;
 
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceNamingException;
 
 public interface DataLocationSelector {
 

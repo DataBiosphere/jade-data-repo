@@ -1,13 +1,13 @@
-package bio.terra.service.search;
+package bio.terra.datarepo.service.search;
 
-import bio.terra.app.utils.TimUtils;
-import bio.terra.model.SearchIndexModel;
-import bio.terra.model.SearchIndexRequest;
-import bio.terra.model.SearchQueryRequest;
-import bio.terra.model.SearchQueryResultModel;
-import bio.terra.service.search.exception.SearchException;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.datarepo.app.utils.TimUtils;
+import bio.terra.datarepo.model.SearchIndexModel;
+import bio.terra.datarepo.model.SearchIndexRequest;
+import bio.terra.datarepo.model.SearchQueryRequest;
+import bio.terra.datarepo.model.SearchQueryResultModel;
+import bio.terra.datarepo.service.search.exception.SearchException;
+import bio.terra.datarepo.service.snapshot.Snapshot;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryPdao;
 import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.ArrayList;

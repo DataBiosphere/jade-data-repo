@@ -1,18 +1,18 @@
-package bio.terra.service.dataset.flight.datadelete;
+package bio.terra.datarepo.service.dataset.flight.datadelete;
 
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getDataset;
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
-import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getSuffix;
+import static bio.terra.datarepo.service.dataset.flight.datadelete.DataDeletionUtils.getDataset;
+import static bio.terra.datarepo.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
+import static bio.terra.datarepo.service.dataset.flight.datadelete.DataDeletionUtils.getSuffix;
 
-import bio.terra.common.FlightUtils;
-import bio.terra.model.DataDeletionRequest;
-import bio.terra.model.DataDeletionTableModel;
-import bio.terra.model.DeleteResponseModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.datarepo.common.FlightUtils;
+import bio.terra.datarepo.model.DataDeletionRequest;
+import bio.terra.datarepo.model.DataDeletionTableModel;
+import bio.terra.datarepo.model.DeleteResponseModel;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

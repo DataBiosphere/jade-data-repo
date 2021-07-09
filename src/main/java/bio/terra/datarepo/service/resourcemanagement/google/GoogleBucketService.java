@@ -1,15 +1,15 @@
-package bio.terra.service.resourcemanagement.google;
+package bio.terra.datarepo.service.resourcemanagement.google;
 
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.google.gcs.GcsProject;
-import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
-import bio.terra.service.resourcemanagement.exception.BucketLockException;
-import bio.terra.service.resourcemanagement.exception.BucketLockFailureException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsProject;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsProjectFactory;
+import bio.terra.datarepo.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.datarepo.service.resourcemanagement.exception.BucketLockFailureException;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceNotFoundException;
+import bio.terra.datarepo.service.snapshot.exception.CorruptMetadataException;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;

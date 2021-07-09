@@ -1,9 +1,9 @@
-package bio.terra.service.iam;
+package bio.terra.datarepo.service.iam;
 
-import bio.terra.model.PolicyModel;
-import bio.terra.model.RepositoryStatusModelSystems;
-import bio.terra.model.UserStatusInfo;
-import bio.terra.service.iam.exception.IamUnauthorizedException;
+import bio.terra.datarepo.model.PolicyModel;
+import bio.terra.datarepo.model.RepositoryStatusModelSystems;
+import bio.terra.datarepo.model.UserStatusInfo;
+import bio.terra.datarepo.service.iam.exception.IamUnauthorizedException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;

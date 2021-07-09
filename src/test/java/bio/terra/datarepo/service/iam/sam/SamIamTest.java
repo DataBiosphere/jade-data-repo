@@ -1,4 +1,4 @@
-package bio.terra.service.iam.sam;
+package bio.terra.datarepo.service.iam.sam;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -8,17 +8,17 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bio.terra.app.configuration.SamConfiguration;
-import bio.terra.common.category.Unit;
-import bio.terra.model.PolicyModel;
-import bio.terra.model.RepositoryStatusModelSystems;
-import bio.terra.model.UserStatusInfo;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamRole;
+import bio.terra.datarepo.app.configuration.SamConfiguration;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.PolicyModel;
+import bio.terra.datarepo.model.RepositoryStatusModelSystems;
+import bio.terra.datarepo.model.UserStatusInfo;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.iam.IamAction;
+import bio.terra.datarepo.service.iam.IamResourceType;
+import bio.terra.datarepo.service.iam.IamRole;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -169,7 +169,7 @@ public class SamIamTest {
             new RepositoryStatusModelSystems()
                 .ok(false)
                 .message(
-                    "Sam status check failed: bio.terra.service.iam.exception.IamInternalServerErrorException: "
+                    "Sam status check failed: bio.terra.datarepo.service.iam.exception.IamInternalServerErrorException: "
                         + "BOOM!"));
   }
 

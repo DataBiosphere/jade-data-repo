@@ -1,22 +1,22 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
-import static bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService.DEFAULT_REGION_KEY;
-import static bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService.MANAGED_RESOURCE_GROUP_ID_KEY;
-import static bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService.PARAMETERS_KEY;
-import static bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService.PARAMETER_VALUE_KEY;
-import static bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService.STORAGE_PREFIX_KEY;
-import static bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService.STORAGE_TYPE_KEY;
+import static bio.terra.datarepo.service.resourcemanagement.azure.AzureApplicationDeploymentService.DEFAULT_REGION_KEY;
+import static bio.terra.datarepo.service.resourcemanagement.azure.AzureApplicationDeploymentService.MANAGED_RESOURCE_GROUP_ID_KEY;
+import static bio.terra.datarepo.service.resourcemanagement.azure.AzureApplicationDeploymentService.PARAMETERS_KEY;
+import static bio.terra.datarepo.service.resourcemanagement.azure.AzureApplicationDeploymentService.PARAMETER_VALUE_KEY;
+import static bio.terra.datarepo.service.resourcemanagement.azure.AzureApplicationDeploymentService.STORAGE_PREFIX_KEY;
+import static bio.terra.datarepo.service.resourcemanagement.azure.AzureApplicationDeploymentService.STORAGE_TYPE_KEY;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.AzureStorageAccountSkuType;
-import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
+import bio.terra.datarepo.app.configuration.ApplicationConfiguration;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.AzureStorageAccountSkuType;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.common.fixtures.ProfileFixtures;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
 import com.azure.resourcemanager.resources.models.GenericResources;

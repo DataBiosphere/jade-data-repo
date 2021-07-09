@@ -1,11 +1,11 @@
-package bio.terra.service.snapshot.flight.create;
+package bio.terra.datarepo.service.snapshot.flight.create;
 
-import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.datarepo.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 
-import bio.terra.grammar.Query;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.snapshot.exception.MismatchedValueException;
+import bio.terra.datarepo.grammar.Query;
+import bio.terra.datarepo.model.SnapshotRequestModel;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.snapshot.exception.MismatchedValueException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

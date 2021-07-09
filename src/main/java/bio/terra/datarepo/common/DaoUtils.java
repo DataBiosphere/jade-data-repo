@@ -1,8 +1,8 @@
-package bio.terra.common;
+package bio.terra.datarepo.common;
 
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SqlSortDirection;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.model.EnumerateSortByParam;
+import bio.terra.datarepo.model.SqlSortDirection;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;

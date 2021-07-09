@@ -1,23 +1,23 @@
-package bio.terra.service.profile;
+package bio.terra.datarepo.service.profile;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.category.Connected;
-import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.BillingProfileUpdateModel;
-import bio.terra.model.ErrorModel;
-import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.profile.google.GoogleBillingService;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
+import bio.terra.datarepo.app.configuration.ConnectedTestConfiguration;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.common.category.Connected;
+import bio.terra.datarepo.common.fixtures.ConnectedOperations;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.BillingProfileUpdateModel;
+import bio.terra.datarepo.model.ErrorModel;
+import bio.terra.datarepo.service.iam.IamProviderInterface;
+import bio.terra.datarepo.service.profile.google.GoogleBillingService;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleResourceDao;
 import com.google.api.client.util.Lists;
 import java.util.HashMap;
 import java.util.List;

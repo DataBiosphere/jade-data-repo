@@ -1,4 +1,4 @@
-package bio.terra.service.load;
+package bio.terra.datarepo.service.load;
 
 import java.util.List;
 import org.apache.commons.lang3.builder.ToStringBuilder;

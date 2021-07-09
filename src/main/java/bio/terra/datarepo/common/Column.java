@@ -1,7 +1,7 @@
-package bio.terra.common;
+package bio.terra.datarepo.common;
 
-import bio.terra.model.ColumnModel;
-import bio.terra.model.TableDataType;
+import bio.terra.datarepo.model.ColumnModel;
+import bio.terra.datarepo.model.TableDataType;
 import java.util.UUID;
 
 public class Column {

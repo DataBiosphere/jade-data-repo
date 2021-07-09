@@ -1,6 +1,6 @@
-package bio.terra.service.snapshot.exception;
+package bio.terra.datarepo.service.snapshot.exception;
 
-import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
 import java.util.List;
 
 public class SnapshotLockException extends InternalServerErrorException {

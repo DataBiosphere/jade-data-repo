@@ -1,10 +1,10 @@
-package bio.terra.service.profile.flight.create;
+package bio.terra.datarepo.service.profile.flight.create;
 
-import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.profile.ProfileService;
+import bio.terra.datarepo.common.CloudPlatformWrapper;
+import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.job.JobMapKeys;
+import bio.terra.datarepo.service.profile.ProfileService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;

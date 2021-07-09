@@ -1,4 +1,4 @@
-package bio.terra.common;
+package bio.terra.datarepo.common;
 
 import java.sql.Timestamp;
 import java.time.Instant;

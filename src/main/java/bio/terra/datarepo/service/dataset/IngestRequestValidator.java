@@ -1,7 +1,7 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.model.FileLoadModel;
-import bio.terra.model.IngestRequestModel;
+import bio.terra.datarepo.model.FileLoadModel;
+import bio.terra.datarepo.model.IngestRequestModel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import javax.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;

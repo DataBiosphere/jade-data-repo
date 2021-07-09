@@ -1,6 +1,6 @@
-package bio.terra.service.job.exception;
+package bio.terra.datarepo.service.job.exception;
 
-import bio.terra.common.exception.ServiceUnavailableException;
+import bio.terra.datarepo.common.exception.ServiceUnavailableException;
 
 public class JobServiceShutdownException extends ServiceUnavailableException {
   public JobServiceShutdownException(String message) {

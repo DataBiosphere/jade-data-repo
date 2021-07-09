@@ -1,4 +1,4 @@
-package bio.terra.app.controller;
+package bio.terra.datarepo.app.controller;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -7,10 +7,10 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import bio.terra.common.TestUtils;
-import bio.terra.common.category.Unit;
-import bio.terra.model.AssetModel;
-import bio.terra.model.ErrorModel;
+import bio.terra.datarepo.common.TestUtils;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.AssetModel;
+import bio.terra.datarepo.model.ErrorModel;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;

@@ -1,8 +1,8 @@
-package bio.terra.common;
+package bio.terra.datarepo.common;
 
 import static org.mockito.Mockito.when;
 
-import bio.terra.service.tabulardata.google.BigQueryProject;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.PageImpl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.FieldValue;

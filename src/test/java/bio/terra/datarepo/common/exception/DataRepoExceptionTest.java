@@ -1,8 +1,8 @@
-package bio.terra.common.exception;
+package bio.terra.datarepo.common.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bio.terra.common.category.Unit;
+import bio.terra.datarepo.common.category.Unit;
 import java.util.Arrays;
 import java.util.List;
 import junit.framework.TestCase;
@@ -16,13 +16,14 @@ public class DataRepoExceptionTest extends TestCase {
         new TestDataRepoException("BOOM", Arrays.asList("foo", "bar"));
     assertThat(exception.toString())
         .isEqualTo(
-            "bio.terra.common.exception.DataRepoExceptionTest$TestDataRepoException: BOOM Details: foo; bar");
+            "bio.terra.datarepo.common.exception.DataRepoExceptionTest$TestDataRepoException: BOOM Details: foo; bar");
   }
 
   public void testToStringWithNoMessages() {
     final DataRepoException exception = new TestDataRepoException("BOOM");
     assertThat(exception.toString())
-        .isEqualTo("bio.terra.common.exception.DataRepoExceptionTest$TestDataRepoException: BOOM");
+        .isEqualTo(
+            "bio.terra.datarepo.common.exception.DataRepoExceptionTest$TestDataRepoException: BOOM");
   }
 
   /** Test extension of abstract class to test printing of messages */

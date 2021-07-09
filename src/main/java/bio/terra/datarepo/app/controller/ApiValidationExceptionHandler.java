@@ -1,9 +1,9 @@
-package bio.terra.app.controller;
+package bio.terra.datarepo.app.controller;
 
 import static java.util.stream.Collectors.toList;
 
-import bio.terra.common.exception.DataRepoException;
-import bio.terra.model.ErrorModel;
+import bio.terra.datarepo.common.exception.DataRepoException;
+import bio.terra.datarepo.model.ErrorModel;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;

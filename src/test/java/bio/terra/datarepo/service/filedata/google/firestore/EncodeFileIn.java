@@ -1,4 +1,4 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
 // POJO for mapping to and from /jade-testdata/encodetest/file.json
 public class EncodeFileIn {

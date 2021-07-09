@@ -1,11 +1,11 @@
-package bio.terra.service.snapshot.flight.create;
+package bio.terra.datarepo.service.snapshot.flight.create;
 
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.profile.flight.ProfileMapKeys;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceNamingException;
+import bio.terra.datarepo.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

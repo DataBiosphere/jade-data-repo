@@ -1,11 +1,11 @@
-package bio.terra.common.configuration;
+package bio.terra.datarepo.common.configuration;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import bio.terra.common.category.Connected;
+import bio.terra.datarepo.common.category.Connected;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;

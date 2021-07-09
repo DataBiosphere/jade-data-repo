@@ -1,20 +1,20 @@
-package bio.terra.service.snapshot;
+package bio.terra.datarepo.service.snapshot;
 
-import bio.terra.common.DaoKeyHolder;
-import bio.terra.common.DaoUtils;
-import bio.terra.common.MetadataEnumeration;
-import bio.terra.model.EnumerateSortByParam;
-import bio.terra.model.SqlSortDirection;
-import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.StorageResource;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import bio.terra.service.snapshot.exception.InvalidSnapshotException;
-import bio.terra.service.snapshot.exception.MissingRowCountsException;
-import bio.terra.service.snapshot.exception.SnapshotLockException;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.datarepo.common.DaoKeyHolder;
+import bio.terra.datarepo.common.DaoUtils;
+import bio.terra.datarepo.common.MetadataEnumeration;
+import bio.terra.datarepo.model.EnumerateSortByParam;
+import bio.terra.datarepo.model.SqlSortDirection;
+import bio.terra.datarepo.service.dataset.AssetSpecification;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetDao;
+import bio.terra.datarepo.service.dataset.StorageResource;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.datarepo.service.snapshot.exception.InvalidSnapshotException;
+import bio.terra.datarepo.service.snapshot.exception.MissingRowCountsException;
+import bio.terra.datarepo.service.snapshot.exception.SnapshotLockException;
+import bio.terra.datarepo.service.snapshot.exception.SnapshotNotFoundException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -42,7 +42,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class SnapshotDao {
-  private final Logger logger = LoggerFactory.getLogger("bio.terra.service.snapshot.SnapshotDao");
+  private final Logger logger =
+      LoggerFactory.getLogger("bio.terra.datarepo.service.snapshot.SnapshotDao");
 
   private final NamedParameterJdbcTemplate jdbcTemplate;
   private final SnapshotTableDao snapshotTableDao;

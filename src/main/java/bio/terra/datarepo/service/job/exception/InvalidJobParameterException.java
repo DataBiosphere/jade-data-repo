@@ -1,6 +1,6 @@
-package bio.terra.service.job.exception;
+package bio.terra.datarepo.service.job.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.BadRequestException;
 
 public class InvalidJobParameterException extends BadRequestException {
   public InvalidJobParameterException(String message) {

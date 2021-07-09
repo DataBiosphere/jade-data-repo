@@ -1,4 +1,4 @@
-package bio.terra.app.model;
+package bio.terra.datarepo.app.model;
 
 import java.util.Arrays;
 import java.util.List;

@@ -1,6 +1,6 @@
-package bio.terra.service.resourcemanagement.exception;
+package bio.terra.datarepo.service.resourcemanagement.exception;
 
-import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.datarepo.common.exception.UnauthorizedException;
 
 public class BufferServiceAuthorizationException extends UnauthorizedException {
 

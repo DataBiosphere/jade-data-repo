@@ -1,10 +1,10 @@
-package bio.terra.service.profile.flight.update;
+package bio.terra.datarepo.service.profile.flight.update;
 
-import bio.terra.model.BillingProfileUpdateModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.profile.ProfileService;
-import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.datarepo.model.BillingProfileUpdateModel;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.job.JobMapKeys;
+import bio.terra.datarepo.service.profile.ProfileService;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -20,7 +20,8 @@ public class ProfileUpdateFlight extends Flight {
 
     BillingProfileUpdateModel request =
         inputParameters.get(
-            JobMapKeys.REQUEST.getKeyName(), bio.terra.model.BillingProfileUpdateModel.class);
+            JobMapKeys.REQUEST.getKeyName(),
+            bio.terra.datarepo.model.BillingProfileUpdateModel.class);
 
     AuthenticatedUserRequest user =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);

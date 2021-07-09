@@ -1,14 +1,14 @@
-package bio.terra.service.resourcemanagement.google;
+package bio.terra.datarepo.service.resourcemanagement.google;
 
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.profile.google.GoogleBillingService;
-import bio.terra.service.resourcemanagement.exception.AppengineException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
-import bio.terra.service.resourcemanagement.exception.MismatchedBillingProfilesException;
-import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.profile.google.GoogleBillingService;
+import bio.terra.datarepo.service.resourcemanagement.exception.AppengineException;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceNotFoundException;
+import bio.terra.datarepo.service.resourcemanagement.exception.MismatchedBillingProfilesException;
+import bio.terra.datarepo.service.resourcemanagement.exception.UpdatePermissionsFailedException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;

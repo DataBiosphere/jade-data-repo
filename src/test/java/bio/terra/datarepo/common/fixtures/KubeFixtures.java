@@ -1,4 +1,4 @@
-package bio.terra.common.fixtures;
+package bio.terra.datarepo.common.fixtures;
 
 public class KubeFixtures {
 

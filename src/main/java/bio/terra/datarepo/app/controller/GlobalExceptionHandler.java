@@ -1,16 +1,16 @@
-package bio.terra.app.controller;
+package bio.terra.datarepo.app.controller;
 
-import bio.terra.common.exception.BadRequestException;
-import bio.terra.common.exception.ConflictException;
-import bio.terra.common.exception.DataRepoException;
-import bio.terra.common.exception.InternalServerErrorException;
-import bio.terra.common.exception.NotFoundException;
-import bio.terra.common.exception.NotImplementedException;
-import bio.terra.common.exception.ServiceUnavailableException;
-import bio.terra.common.exception.UnauthorizedException;
-import bio.terra.model.ErrorModel;
-import bio.terra.service.iam.sam.SamIam;
-import bio.terra.service.job.exception.JobResponseException;
+import bio.terra.datarepo.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.ConflictException;
+import bio.terra.datarepo.common.exception.DataRepoException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.NotFoundException;
+import bio.terra.datarepo.common.exception.NotImplementedException;
+import bio.terra.datarepo.common.exception.ServiceUnavailableException;
+import bio.terra.datarepo.common.exception.UnauthorizedException;
+import bio.terra.datarepo.model.ErrorModel;
+import bio.terra.datarepo.service.iam.sam.SamIam;
+import bio.terra.datarepo.service.job.exception.JobResponseException;
 import java.util.Collections;
 import java.util.List;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -26,7 +26,7 @@ import org.springframework.web.servlet.NoHandlerFoundException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
   private final Logger logger =
-      LoggerFactory.getLogger("bio.terra.controller.exception.GlobalExceptionHandler");
+      LoggerFactory.getLogger("bio.terra.datarepo.api.exception.GlobalExceptionHandler");
 
   // -- data repository base exceptions --
   @ExceptionHandler(NotFoundException.class)

@@ -1,7 +1,7 @@
-package bio.terra.service.resourcemanagement.google;
+package bio.terra.datarepo.service.resourcemanagement.google;
 
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.category.OnDemand;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.common.category.OnDemand;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;

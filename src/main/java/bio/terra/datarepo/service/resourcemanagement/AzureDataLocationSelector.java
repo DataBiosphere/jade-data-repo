@@ -1,7 +1,7 @@
-package bio.terra.service.resourcemanagement;
+package bio.terra.datarepo.service.resourcemanagement;
 
-import bio.terra.common.exception.NotImplementedException;
-import bio.terra.model.BillingProfileModel;
+import bio.terra.datarepo.common.exception.NotImplementedException;
+import bio.terra.datarepo.model.BillingProfileModel;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

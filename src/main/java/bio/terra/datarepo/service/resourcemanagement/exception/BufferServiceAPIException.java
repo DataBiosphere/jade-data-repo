@@ -1,4 +1,4 @@
-package bio.terra.service.resourcemanagement.exception;
+package bio.terra.datarepo.service.resourcemanagement.exception;
 
 import bio.terra.buffer.client.ApiException;
 import bio.terra.common.exception.ErrorReportException;

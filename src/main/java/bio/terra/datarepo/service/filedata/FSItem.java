@@ -1,4 +1,4 @@
-package bio.terra.service.filedata;
+package bio.terra.datarepo.service.filedata;
 
 import java.time.Instant;
 import java.util.UUID;

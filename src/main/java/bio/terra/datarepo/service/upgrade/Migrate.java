@@ -1,7 +1,7 @@
-package bio.terra.service.upgrade;
+package bio.terra.datarepo.service.upgrade;
 
-import bio.terra.app.configuration.DataRepoJdbcConfiguration;
-import bio.terra.service.upgrade.exception.MigrateException;
+import bio.terra.datarepo.app.configuration.DataRepoJdbcConfiguration;
+import bio.terra.datarepo.service.upgrade.exception.MigrateException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -32,7 +32,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class Migrate {
-  private static final Logger logger = LoggerFactory.getLogger("bio.terra.service.upgrade");
+  private static final Logger logger =
+      LoggerFactory.getLogger("bio.terra.datarepo.service.upgrade");
   private final DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
   private final MigrateConfiguration migrateConfiguration;
 

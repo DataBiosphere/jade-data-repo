@@ -1,4 +1,4 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -10,14 +10,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.AzureStorageAccountSkuType;
-import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.exception.StorageAccountLockException;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.AzureStorageAccountSkuType;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.common.fixtures.ProfileFixtures;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.profile.ProfileDao;
+import bio.terra.datarepo.service.resourcemanagement.exception.StorageAccountLockException;
+import bio.terra.datarepo.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.ShortUUID;
 import com.azure.core.management.exception.ManagementError;
 import com.azure.core.management.exception.ManagementException;

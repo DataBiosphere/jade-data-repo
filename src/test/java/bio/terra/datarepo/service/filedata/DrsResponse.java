@@ -1,7 +1,7 @@
-package bio.terra.service.filedata;
+package bio.terra.datarepo.service.filedata;
 
+import bio.terra.datarepo.model.DRSError;
 import bio.terra.integration.ObjectOrErrorResponse;
-import bio.terra.model.DRSError;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
 

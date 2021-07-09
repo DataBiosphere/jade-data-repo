@@ -1,6 +1,6 @@
-package bio.terra.service.iam.exception;
+package bio.terra.datarepo.service.iam.exception;
 
-import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.datarepo.common.exception.UnauthorizedException;
 import java.util.List;
 
 public class IamForbiddenException extends UnauthorizedException {

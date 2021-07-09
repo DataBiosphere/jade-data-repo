@@ -1,6 +1,6 @@
-package bio.terra.service.profile.exception;
+package bio.terra.datarepo.service.profile.exception;
 
-import bio.terra.common.exception.NotFoundException;
+import bio.terra.datarepo.common.exception.NotFoundException;
 
 public class ProfileNotFoundException extends NotFoundException {
   public ProfileNotFoundException(String message) {

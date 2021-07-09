@@ -1,4 +1,4 @@
-package bio.terra.service.job;
+package bio.terra.datarepo.service.job;
 
 public enum JobMapKeys {
   // parameters for all flight types

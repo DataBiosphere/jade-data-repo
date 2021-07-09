@@ -1,6 +1,6 @@
-package bio.terra.service.snapshot;
+package bio.terra.datarepo.service.snapshot;
 
-import bio.terra.common.Column;
+import bio.terra.datarepo.common.Column;
 import java.util.UUID;
 
 public class SnapshotMapColumn {

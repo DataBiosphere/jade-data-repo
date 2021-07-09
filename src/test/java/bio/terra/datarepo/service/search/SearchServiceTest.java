@@ -1,4 +1,4 @@
-package bio.terra.service.search;
+package bio.terra.datarepo.service.search;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -6,16 +6,16 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import bio.terra.app.utils.TimUtils;
-import bio.terra.common.category.Unit;
-import bio.terra.model.SearchIndexModel;
-import bio.terra.model.SearchIndexRequest;
-import bio.terra.model.SearchQueryRequest;
-import bio.terra.model.SearchQueryResultModel;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotTable;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.datarepo.app.utils.TimUtils;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.SearchIndexModel;
+import bio.terra.datarepo.model.SearchIndexRequest;
+import bio.terra.datarepo.model.SearchQueryRequest;
+import bio.terra.datarepo.model.SearchQueryResultModel;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.datarepo.service.snapshot.Snapshot;
+import bio.terra.datarepo.service.snapshot.SnapshotTable;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryPdao;
 import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.util.ArrayList;

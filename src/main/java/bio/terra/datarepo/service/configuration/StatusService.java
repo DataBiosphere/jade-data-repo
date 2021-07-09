@@ -1,10 +1,10 @@
-package bio.terra.service.configuration;
+package bio.terra.datarepo.service.configuration;
 
-import bio.terra.model.RepositoryStatusModel;
-import bio.terra.model.RepositoryStatusModelSystems;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.BufferService;
+import bio.terra.datarepo.model.RepositoryStatusModel;
+import bio.terra.datarepo.model.RepositoryStatusModelSystems;
+import bio.terra.datarepo.service.dataset.DatasetDao;
+import bio.terra.datarepo.service.iam.IamProviderInterface;
+import bio.terra.datarepo.service.resourcemanagement.BufferService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

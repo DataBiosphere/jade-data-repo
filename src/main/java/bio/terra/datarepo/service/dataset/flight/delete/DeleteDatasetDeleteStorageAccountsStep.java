@@ -1,8 +1,8 @@
-package bio.terra.service.dataset.flight.delete;
+package bio.terra.datarepo.service.dataset.flight.delete;
 
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

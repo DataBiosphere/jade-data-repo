@@ -1,6 +1,6 @@
-package bio.terra.service.load.flight;
+package bio.terra.datarepo.service.load.flight;
 
-import bio.terra.service.load.LoadService;
+import bio.terra.datarepo.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

@@ -1,14 +1,14 @@
-package bio.terra.service.iam;
+package bio.terra.datarepo.service.iam;
 
-import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
-import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
 
-import bio.terra.model.PolicyModel;
-import bio.terra.model.UserStatusInfo;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.exception.IamForbiddenException;
-import bio.terra.service.iam.exception.IamUnauthorizedException;
-import bio.terra.service.iam.exception.IamUnavailableException;
+import bio.terra.datarepo.model.PolicyModel;
+import bio.terra.datarepo.model.UserStatusInfo;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.iam.exception.IamForbiddenException;
+import bio.terra.datarepo.service.iam.exception.IamUnauthorizedException;
+import bio.terra.datarepo.service.iam.exception.IamUnavailableException;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;

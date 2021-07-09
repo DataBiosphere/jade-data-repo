@@ -1,9 +1,9 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.filedata.exception.FileSystemAbortTransactionException;
+import bio.terra.datarepo.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
 import com.google.api.gax.rpc.DeadlineExceededException;

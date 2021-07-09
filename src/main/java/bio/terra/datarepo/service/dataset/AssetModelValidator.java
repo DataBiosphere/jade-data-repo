@@ -1,8 +1,8 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.common.ValidationUtils;
-import bio.terra.model.AssetModel;
-import bio.terra.model.AssetTableModel;
+import bio.terra.datarepo.common.ValidationUtils;
+import bio.terra.datarepo.model.AssetModel;
+import bio.terra.datarepo.model.AssetTableModel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.List;
 import javax.validation.constraints.NotNull;

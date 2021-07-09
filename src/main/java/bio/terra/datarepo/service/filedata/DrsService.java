@@ -1,28 +1,28 @@
-package bio.terra.service.filedata;
+package bio.terra.datarepo.service.filedata;
 
-import bio.terra.app.controller.exception.TooManyRequestsException;
-import bio.terra.app.logging.PerformanceLogger;
-import bio.terra.model.DRSAccessMethod;
-import bio.terra.model.DRSAccessURL;
-import bio.terra.model.DRSChecksum;
-import bio.terra.model.DRSContentsObject;
-import bio.terra.model.DRSObject;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.filedata.exception.InvalidDrsIdException;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.job.JobService;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.snapshot.SnapshotProject;
-import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.datarepo.app.controller.exception.TooManyRequestsException;
+import bio.terra.datarepo.app.logging.PerformanceLogger;
+import bio.terra.datarepo.model.DRSAccessMethod;
+import bio.terra.datarepo.model.DRSAccessURL;
+import bio.terra.datarepo.model.DRSChecksum;
+import bio.terra.datarepo.model.DRSContentsObject;
+import bio.terra.datarepo.model.DRSObject;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.filedata.exception.DrsObjectNotFoundException;
+import bio.terra.datarepo.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.datarepo.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsPdao;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.iam.IamAction;
+import bio.terra.datarepo.service.iam.IamResourceType;
+import bio.terra.datarepo.service.iam.IamService;
+import bio.terra.datarepo.service.job.JobService;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.datarepo.service.snapshot.SnapshotProject;
+import bio.terra.datarepo.service.snapshot.SnapshotService;
+import bio.terra.datarepo.service.snapshot.exception.SnapshotNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -43,7 +43,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class DrsService {
-  private final Logger logger = LoggerFactory.getLogger("bio.terra.service.filedata.DrsService");
+  private final Logger logger =
+      LoggerFactory.getLogger("bio.terra.datarepo.service.filedata.DrsService");
 
   private static final String DRS_OBJECT_VERSION = "0";
   // atomic counter that we incr on request arrival and decr on request response

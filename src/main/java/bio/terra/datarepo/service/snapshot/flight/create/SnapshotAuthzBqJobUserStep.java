@@ -1,10 +1,10 @@
-package bio.terra.service.snapshot.flight.create;
+package bio.terra.datarepo.service.snapshot.flight.create;
 
-import bio.terra.service.iam.IamRole;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.datarepo.service.iam.IamRole;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.service.snapshot.Snapshot;
+import bio.terra.datarepo.service.snapshot.SnapshotService;
+import bio.terra.datarepo.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

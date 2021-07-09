@@ -1,4 +1,4 @@
-package bio.terra.common.category;
+package bio.terra.datarepo.common.category;
 
 /** Integration test category. */
 public interface Integration {}

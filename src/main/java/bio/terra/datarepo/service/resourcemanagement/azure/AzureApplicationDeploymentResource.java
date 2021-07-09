@@ -1,7 +1,7 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
-import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.AzureStorageAccountSkuType;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.AzureStorageAccountSkuType;
 import java.util.Objects;
 import java.util.UUID;
 import org.apache.commons.lang3.builder.ToStringBuilder;

@@ -1,6 +1,6 @@
-package bio.terra.service.iam;
+package bio.terra.datarepo.service.iam;
 
-import bio.terra.service.iam.exception.IamUnauthorizedException;
+import bio.terra.datarepo.service.iam.exception.IamUnauthorizedException;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.Objects;
 import java.util.Optional;

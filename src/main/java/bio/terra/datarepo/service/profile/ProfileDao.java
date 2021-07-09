@@ -1,14 +1,14 @@
-package bio.terra.service.profile;
+package bio.terra.datarepo.service.profile;
 
-import bio.terra.common.DaoKeyHolder;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.BillingProfileUpdateModel;
-import bio.terra.model.CloudPlatform;
-import bio.terra.model.EnumerateBillingProfileModel;
-import bio.terra.service.profile.exception.ProfileInUseException;
-import bio.terra.service.profile.exception.ProfileNotFoundException;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.datarepo.common.DaoKeyHolder;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.BillingProfileUpdateModel;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.model.EnumerateBillingProfileModel;
+import bio.terra.datarepo.service.profile.exception.ProfileInUseException;
+import bio.terra.datarepo.service.profile.exception.ProfileNotFoundException;
+import bio.terra.datarepo.service.snapshot.exception.CorruptMetadataException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;

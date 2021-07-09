@@ -1,10 +1,10 @@
-package bio.terra.service.resourcemanagement.google;
+package bio.terra.datarepo.service.resourcemanagement.google;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import bio.terra.common.category.Unit;
-import bio.terra.service.resourcemanagement.exception.AppengineException;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.service.resourcemanagement.exception.AppengineException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;

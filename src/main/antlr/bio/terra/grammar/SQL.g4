@@ -1,7 +1,7 @@
 grammar SQL;
 
 @header {
-    package bio.terra.grammar;
+package bio.terra.datarepo.grammar;
 }
 
 // includes EOF in order to match the entire input

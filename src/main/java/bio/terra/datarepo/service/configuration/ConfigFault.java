@@ -1,8 +1,8 @@
-package bio.terra.service.configuration;
+package bio.terra.datarepo.service.configuration;
 
-import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.model.ConfigFaultModel;
-import bio.terra.model.ConfigModel;
+import bio.terra.datarepo.app.controller.exception.ValidationException;
+import bio.terra.datarepo.model.ConfigFaultModel;
+import bio.terra.datarepo.model.ConfigModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

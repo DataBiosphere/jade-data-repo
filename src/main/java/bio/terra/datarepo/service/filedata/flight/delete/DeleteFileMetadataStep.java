@@ -1,8 +1,8 @@
-package bio.terra.service.filedata.flight.delete;
+package bio.terra.datarepo.service.filedata.flight.delete;
 
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.filedata.exception.FileSystemAbortTransactionException;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

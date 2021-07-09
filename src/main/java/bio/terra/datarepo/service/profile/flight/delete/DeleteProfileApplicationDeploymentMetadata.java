@@ -1,7 +1,7 @@
-package bio.terra.service.profile.flight.delete;
+package bio.terra.datarepo.service.profile.flight.delete;
 
-import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.service.profile.flight.ProfileMapKeys;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

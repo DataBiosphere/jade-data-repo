@@ -1,6 +1,6 @@
-package bio.terra.grammar;
+package bio.terra.datarepo.grammar;
 
-import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.datarepo.grammar.exception.InvalidQueryException;
 import java.util.List;
 import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStream;

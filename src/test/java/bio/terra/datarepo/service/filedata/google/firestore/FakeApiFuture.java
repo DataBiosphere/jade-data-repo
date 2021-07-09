@@ -1,4 +1,4 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
 import static io.grpc.Status.Code.DEADLINE_EXCEEDED;
 

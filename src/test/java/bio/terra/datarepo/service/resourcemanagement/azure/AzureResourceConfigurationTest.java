@@ -1,4 +1,4 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -6,11 +6,11 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.common.category.Connected;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.CloudPlatform;
-import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
+import bio.terra.datarepo.app.configuration.ConnectedTestConfiguration;
+import bio.terra.datarepo.common.category.Connected;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.service.resourcemanagement.AzureDataLocationSelector;
 import bio.terra.stairway.ShortUUID;
 import com.azure.core.management.Region;
 import com.azure.core.management.exception.ManagementException;

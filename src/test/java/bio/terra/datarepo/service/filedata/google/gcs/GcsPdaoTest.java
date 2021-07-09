@@ -1,9 +1,9 @@
-package bio.terra.service.filedata.google.gcs;
+package bio.terra.datarepo.service.filedata.google.gcs;
 
-import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.common.category.Connected;
-import bio.terra.common.exception.PdaoInvalidUriException;
-import bio.terra.common.exception.PdaoSourceFileNotFoundException;
+import bio.terra.datarepo.app.configuration.ConnectedTestConfiguration;
+import bio.terra.datarepo.common.category.Connected;
+import bio.terra.datarepo.common.exception.PdaoInvalidUriException;
+import bio.terra.datarepo.common.exception.PdaoSourceFileNotFoundException;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;

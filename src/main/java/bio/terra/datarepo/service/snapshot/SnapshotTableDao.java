@@ -1,9 +1,9 @@
-package bio.terra.service.snapshot;
+package bio.terra.datarepo.service.snapshot;
 
-import bio.terra.common.Column;
-import bio.terra.common.DaoKeyHolder;
-import bio.terra.common.Table;
-import bio.terra.model.TableDataType;
+import bio.terra.datarepo.common.Column;
+import bio.terra.datarepo.common.DaoKeyHolder;
+import bio.terra.datarepo.common.Table;
+import bio.terra.datarepo.model.TableDataType;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;

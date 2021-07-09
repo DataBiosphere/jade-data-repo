@@ -1,12 +1,12 @@
-package bio.terra.service.snapshot;
+package bio.terra.datarepo.service.snapshot;
 
-import bio.terra.common.ValidationUtils;
-import bio.terra.model.SnapshotRequestAssetModel;
-import bio.terra.model.SnapshotRequestContentsModel;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotRequestQueryModel;
-import bio.terra.model.SnapshotRequestRowIdModel;
-import bio.terra.model.SnapshotRequestRowIdTableModel;
+import bio.terra.datarepo.common.ValidationUtils;
+import bio.terra.datarepo.model.SnapshotRequestAssetModel;
+import bio.terra.datarepo.model.SnapshotRequestContentsModel;
+import bio.terra.datarepo.model.SnapshotRequestModel;
+import bio.terra.datarepo.model.SnapshotRequestQueryModel;
+import bio.terra.datarepo.model.SnapshotRequestRowIdModel;
+import bio.terra.datarepo.model.SnapshotRequestRowIdTableModel;
 import java.util.List;
 import java.util.UUID;
 import javax.validation.constraints.NotNull;

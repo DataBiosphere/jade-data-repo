@@ -1,6 +1,6 @@
-package bio.terra.grammar.exception;
+package bio.terra.datarepo.grammar.exception;
 
-import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
 
 public class MissingDatasetException extends InternalServerErrorException {
 

@@ -1,6 +1,6 @@
-package bio.terra.service.dataset.exception;
+package bio.terra.datarepo.service.dataset.exception;
 
-import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
 import java.util.List;
 
 public class DatasetLockException extends InternalServerErrorException {

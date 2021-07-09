@@ -1,13 +1,13 @@
-package bio.terra.service.dataset.flight.delete;
+package bio.terra.datarepo.service.dataset.flight.delete;
 
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsPdao;
+import bio.terra.datarepo.service.job.JobMapKeys;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

@@ -1,4 +1,4 @@
-package bio.terra.app.model;
+package bio.terra.datarepo.app.model;
 
 import com.azure.resourcemanager.storage.models.SkuName;
 import com.azure.resourcemanager.storage.models.StorageAccountSkuType;

@@ -1,4 +1,4 @@
-package bio.terra.app.model;
+package bio.terra.datarepo.app.model;
 
 /** Google cloud resources used by TDR. */
 public enum GoogleCloudResource implements CloudResource {

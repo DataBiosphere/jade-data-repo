@@ -1,8 +1,8 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.common.Column;
-import bio.terra.common.DaoKeyHolder;
-import bio.terra.common.Relationship;
+import bio.terra.datarepo.common.Column;
+import bio.terra.datarepo.common.DaoKeyHolder;
+import bio.terra.datarepo.common.Relationship;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

@@ -1,6 +1,6 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.common.Relationship;
+import bio.terra.datarepo.common.Relationship;
 import java.util.UUID;
 
 public class AssetRelationship {

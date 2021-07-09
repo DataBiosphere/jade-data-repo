@@ -1,6 +1,6 @@
-package bio.terra.service.iam.exception;
+package bio.terra.datarepo.service.iam.exception;
 
-import bio.terra.common.exception.ServiceUnavailableException;
+import bio.terra.datarepo.common.exception.ServiceUnavailableException;
 import java.util.List;
 
 public class IamUnavailableException extends ServiceUnavailableException {

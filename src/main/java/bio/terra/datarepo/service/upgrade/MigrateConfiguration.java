@@ -1,4 +1,4 @@
-package bio.terra.service.upgrade;
+package bio.terra.datarepo.service.upgrade;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

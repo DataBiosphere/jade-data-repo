@@ -1,11 +1,11 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.common.Column;
-import bio.terra.common.Relationship;
-import bio.terra.service.filedata.FSContainerInterface;
-import bio.terra.service.filedata.google.firestore.FireStoreProject;
-import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.datarepo.common.Column;
+import bio.terra.datarepo.common.Relationship;
+import bio.terra.datarepo.service.filedata.FSContainerInterface;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreProject;
+import bio.terra.datarepo.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectResource;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;

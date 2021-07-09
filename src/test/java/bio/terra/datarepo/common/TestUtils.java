@@ -1,18 +1,18 @@
-package bio.terra.common;
+package bio.terra.datarepo.common;
 
-import static bio.terra.service.filedata.google.gcs.GcsPdao.getBlobFromGsPath;
+import static bio.terra.datarepo.service.filedata.google.gcs.GcsPdao.getBlobFromGsPath;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import bio.terra.model.DRSAccessMethod;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.tabulardata.google.BigQueryProject;
+import bio.terra.datarepo.model.DRSAccessMethod;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetDao;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryPdao;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;

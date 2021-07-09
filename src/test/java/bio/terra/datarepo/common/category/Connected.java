@@ -1,4 +1,4 @@
-package bio.terra.common.category;
+package bio.terra.datarepo.common.category;
 
 /**
  * Connected test category. Tests in this category require credentials allowing access to a GCP

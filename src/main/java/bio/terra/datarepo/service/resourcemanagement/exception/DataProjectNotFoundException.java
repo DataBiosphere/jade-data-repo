@@ -1,6 +1,6 @@
-package bio.terra.service.resourcemanagement.exception;
+package bio.terra.datarepo.service.resourcemanagement.exception;
 
-import bio.terra.common.exception.NotFoundException;
+import bio.terra.datarepo.common.exception.NotFoundException;
 
 public class DataProjectNotFoundException extends NotFoundException {
   public DataProjectNotFoundException(String message) {

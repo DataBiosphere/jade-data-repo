@@ -1,6 +1,6 @@
-package bio.terra.service.configuration.exception;
+package bio.terra.datarepo.service.configuration.exception;
 
-import bio.terra.common.exception.NotFoundException;
+import bio.terra.datarepo.common.exception.NotFoundException;
 
 public class ConfigNotFoundException extends NotFoundException {
   public ConfigNotFoundException(String message, Throwable cause) {

@@ -1,13 +1,13 @@
-package bio.terra.service.snapshot.flight.delete;
+package bio.terra.datarepo.service.snapshot.flight.delete;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamRole;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.iam.IamResourceType;
+import bio.terra.datarepo.service.iam.IamRole;
+import bio.terra.datarepo.service.iam.IamService;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.service.snapshot.Snapshot;
+import bio.terra.datarepo.service.snapshot.SnapshotService;
+import bio.terra.datarepo.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

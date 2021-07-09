@@ -1,18 +1,18 @@
-package bio.terra.app.controller;
+package bio.terra.datarepo.app.controller;
 
-import static bio.terra.app.utils.ControllerUtils.jobToResponse;
+import static bio.terra.datarepo.app.utils.ControllerUtils.jobToResponse;
 
-import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.controller.JobsApi;
-import bio.terra.model.JobModel;
-import bio.terra.service.dataset.AssetModelValidator;
-import bio.terra.service.dataset.DatasetRequestValidator;
-import bio.terra.service.dataset.IngestRequestValidator;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
-import bio.terra.service.iam.PolicyMemberValidator;
-import bio.terra.service.job.JobService;
-import bio.terra.service.snapshot.SnapshotRequestValidator;
+import bio.terra.datarepo.api.JobsApi;
+import bio.terra.datarepo.app.controller.exception.ValidationException;
+import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.service.dataset.AssetModelValidator;
+import bio.terra.datarepo.service.dataset.DatasetRequestValidator;
+import bio.terra.datarepo.service.dataset.IngestRequestValidator;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequestFactory;
+import bio.terra.datarepo.service.iam.PolicyMemberValidator;
+import bio.terra.datarepo.service.job.JobService;
+import bio.terra.datarepo.service.snapshot.SnapshotRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.List;

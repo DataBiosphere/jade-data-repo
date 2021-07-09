@@ -1,7 +1,7 @@
-package bio.terra.service.profile;
+package bio.terra.datarepo.service.profile;
 
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.CloudPlatform;
+import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.CloudPlatform;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.regex.Pattern;
 import javax.validation.constraints.NotNull;

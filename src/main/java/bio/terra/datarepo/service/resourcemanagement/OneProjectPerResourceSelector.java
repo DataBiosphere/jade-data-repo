@@ -1,11 +1,11 @@
-package bio.terra.service.resourcemanagement;
+package bio.terra.datarepo.service.resourcemanagement;
 
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetBucketDao;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceNamingException;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.google.common.hash.Hashing;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;

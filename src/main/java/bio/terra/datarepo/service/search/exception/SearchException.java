@@ -1,6 +1,6 @@
-package bio.terra.service.search.exception;
+package bio.terra.datarepo.service.search.exception;
 
-import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
 
 public class SearchException extends InternalServerErrorException {
   public SearchException(String message) {

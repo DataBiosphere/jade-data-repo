@@ -1,13 +1,13 @@
-package bio.terra.service.load;
+package bio.terra.datarepo.service.load;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
 
-import bio.terra.common.category.Unit;
-import bio.terra.service.load.exception.LoadLockFailureException;
-import bio.terra.service.load.exception.LoadLockedException;
-import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.service.load.exception.LoadLockFailureException;
+import bio.terra.datarepo.service.load.exception.LoadLockedException;
+import bio.terra.datarepo.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import java.util.Collections;

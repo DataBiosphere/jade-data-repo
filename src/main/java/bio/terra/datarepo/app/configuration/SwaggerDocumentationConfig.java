@@ -1,4 +1,4 @@
-package bio.terra.app.configuration;
+package bio.terra.datarepo.app.configuration;
 
 import static com.google.common.base.Predicates.or;
 import static springfox.documentation.builders.PathSelectors.regex;

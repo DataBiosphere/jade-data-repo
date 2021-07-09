@@ -1,6 +1,6 @@
-package bio.terra.service.filedata;
+package bio.terra.datarepo.service.filedata;
 
-import static bio.terra.service.resourcemanagement.ResourceService.BQ_JOB_USER_ROLE;
+import static bio.terra.datarepo.service.resourcemanagement.ResourceService.BQ_JOB_USER_ROLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.endsWith;
@@ -12,25 +12,25 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import bio.terra.common.TestUtils;
-import bio.terra.common.auth.AuthService;
-import bio.terra.common.category.Integration;
+import bio.terra.datarepo.common.TestUtils;
+import bio.terra.datarepo.common.auth.AuthService;
+import bio.terra.datarepo.common.category.Integration;
+import bio.terra.datarepo.model.DRSAccessMethod;
+import bio.terra.datarepo.model.DRSChecksum;
+import bio.terra.datarepo.model.DRSObject;
+import bio.terra.datarepo.model.FileModel;
+import bio.terra.datarepo.model.SnapshotModel;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.filedata.google.firestore.EncodeFixture;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.iam.IamResourceType;
+import bio.terra.datarepo.service.iam.IamRole;
+import bio.terra.datarepo.service.iam.IamService;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
-import bio.terra.model.DRSAccessMethod;
-import bio.terra.model.DRSChecksum;
-import bio.terra.model.DRSObject;
-import bio.terra.model.FileModel;
-import bio.terra.model.SnapshotModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.google.firestore.EncodeFixture;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamRole;
-import bio.terra.service.iam.IamService;
 import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Acl;
@@ -233,15 +233,17 @@ public class DrsTest extends UsersBase {
         "object is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
 
     // Now lets cap the number allowed
-    bio.terra.model.ConfigModel concurrentConfig =
+    bio.terra.datarepo.model.ConfigModel concurrentConfig =
         configurationService.getConfig(ConfigEnum.DRS_LOOKUP_MAX.name());
 
     concurrentConfig.setParameter(
-        new bio.terra.model.ConfigParameterModel().value(failureMaxValue));
-    bio.terra.model.ConfigGroupModel failureConfigGroupModel =
-        new bio.terra.model.ConfigGroupModel().label("DRSTest").addGroupItem(concurrentConfig);
+        new bio.terra.datarepo.model.ConfigParameterModel().value(failureMaxValue));
+    bio.terra.datarepo.model.ConfigGroupModel failureConfigGroupModel =
+        new bio.terra.datarepo.model.ConfigGroupModel()
+            .label("DRSTest")
+            .addGroupItem(concurrentConfig);
 
-    List<bio.terra.model.ConfigModel> failureConfigList =
+    List<bio.terra.datarepo.model.ConfigModel> failureConfigList =
         dataRepoFixtures.setConfigList(steward(), failureConfigGroupModel).getItems();
     logger.info("Config model : " + failureConfigList.get(0));
 

@@ -1,7 +1,7 @@
-package bio.terra.service.filedata;
+package bio.terra.datarepo.service.filedata;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.datarepo.app.configuration.ApplicationConfiguration;
+import bio.terra.datarepo.service.filedata.exception.InvalidDrsIdException;
 import java.net.URI;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;

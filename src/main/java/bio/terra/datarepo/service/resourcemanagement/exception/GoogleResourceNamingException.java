@@ -1,4 +1,4 @@
-package bio.terra.service.resourcemanagement.exception;
+package bio.terra.datarepo.service.resourcemanagement.exception;
 
 public class GoogleResourceNamingException extends Exception {
   public GoogleResourceNamingException(String message) {

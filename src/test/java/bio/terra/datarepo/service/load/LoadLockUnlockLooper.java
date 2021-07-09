@@ -1,6 +1,6 @@
-package bio.terra.service.load;
+package bio.terra.datarepo.service.load;
 
-import bio.terra.service.load.exception.LoadLockedException;
+import bio.terra.datarepo.service.load.exception.LoadLockedException;
 
 public class LoadLockUnlockLooper implements Runnable {
   private LoadDao loadDao;

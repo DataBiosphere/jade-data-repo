@@ -1,15 +1,15 @@
-package bio.terra.service.iam.sam;
+package bio.terra.datarepo.service.iam.sam;
 
-import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
-import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
-import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
 
-import bio.terra.common.category.Unit;
-import bio.terra.model.ConfigGroupModel;
-import bio.terra.model.ConfigModel;
-import bio.terra.model.ConfigParameterModel;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.exception.IamInternalServerErrorException;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.ConfigGroupModel;
+import bio.terra.datarepo.model.ConfigModel;
+import bio.terra.datarepo.model.ConfigParameterModel;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.iam.exception.IamInternalServerErrorException;
 import com.google.api.client.http.HttpStatusCodes;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.junit.Before;

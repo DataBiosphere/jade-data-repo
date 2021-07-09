@@ -1,7 +1,7 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.common.Column;
-import bio.terra.common.Table;
+import bio.terra.datarepo.common.Column;
+import bio.terra.datarepo.common.Table;
 import java.util.UUID;
 
 public class AssetColumn {

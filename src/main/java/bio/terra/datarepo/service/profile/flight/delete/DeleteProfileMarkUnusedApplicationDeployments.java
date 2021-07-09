@@ -1,11 +1,11 @@
-package bio.terra.service.profile.flight.delete;
+package bio.terra.datarepo.service.profile.flight.delete;
 
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.CloudPlatform;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.profile.ProfileService;
-import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.profile.ProfileService;
+import bio.terra.datarepo.service.profile.flight.ProfileMapKeys;
+import bio.terra.datarepo.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

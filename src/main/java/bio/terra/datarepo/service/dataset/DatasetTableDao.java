@@ -1,12 +1,12 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.app.configuration.DataRepoJdbcConfiguration;
-import bio.terra.common.Column;
-import bio.terra.common.DaoKeyHolder;
-import bio.terra.common.DaoUtils;
-import bio.terra.common.Table;
-import bio.terra.model.TableDataType;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.datarepo.app.configuration.DataRepoJdbcConfiguration;
+import bio.terra.datarepo.common.Column;
+import bio.terra.datarepo.common.DaoKeyHolder;
+import bio.terra.datarepo.common.DaoUtils;
+import bio.terra.datarepo.common.Table;
+import bio.terra.datarepo.model.TableDataType;
+import bio.terra.datarepo.service.snapshot.exception.CorruptMetadataException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.sql.Connection;

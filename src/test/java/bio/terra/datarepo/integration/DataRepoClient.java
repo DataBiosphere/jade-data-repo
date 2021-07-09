@@ -1,13 +1,13 @@
 package bio.terra.integration;
 
-import static bio.terra.common.TestUtils.mapFromJson;
+import static bio.terra.datarepo.common.TestUtils.mapFromJson;
 
-import bio.terra.common.auth.AuthService;
-import bio.terra.common.configuration.TestConfiguration;
-import bio.terra.model.DRSError;
-import bio.terra.model.ErrorModel;
-import bio.terra.model.JobModel;
-import bio.terra.service.filedata.DrsResponse;
+import bio.terra.datarepo.common.auth.AuthService;
+import bio.terra.datarepo.common.configuration.TestConfiguration;
+import bio.terra.datarepo.model.DRSError;
+import bio.terra.datarepo.model.ErrorModel;
+import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.service.filedata.DrsResponse;
 import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;

@@ -1,9 +1,9 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.app.model.CloudRegion;
-import bio.terra.app.model.CloudResource;
-import bio.terra.model.CloudPlatform;
-import bio.terra.model.StorageResourceModel;
+import bio.terra.datarepo.app.model.CloudRegion;
+import bio.terra.datarepo.app.model.CloudResource;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.model.StorageResourceModel;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.util.Objects;

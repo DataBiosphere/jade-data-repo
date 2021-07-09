@@ -1,4 +1,4 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -10,10 +10,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.category.Unit;
-import bio.terra.common.exception.PdaoException;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.common.exception.PdaoException;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;

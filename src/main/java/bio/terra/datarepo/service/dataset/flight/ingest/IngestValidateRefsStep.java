@@ -1,13 +1,13 @@
-package bio.terra.service.dataset.flight.ingest;
+package bio.terra.datarepo.service.dataset.flight.ingest;
 
-import bio.terra.common.Column;
-import bio.terra.common.Table;
-import bio.terra.model.TableDataType;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.exception.InvalidFileRefException;
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.datarepo.common.Column;
+import bio.terra.datarepo.common.Table;
+import bio.terra.datarepo.model.TableDataType;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.dataset.exception.InvalidFileRefException;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.datarepo.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

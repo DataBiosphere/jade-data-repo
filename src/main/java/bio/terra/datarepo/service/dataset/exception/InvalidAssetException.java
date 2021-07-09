@@ -1,6 +1,6 @@
-package bio.terra.service.dataset.exception;
+package bio.terra.datarepo.service.dataset.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.BadRequestException;
 import java.util.List;
 
 public class InvalidAssetException extends BadRequestException {

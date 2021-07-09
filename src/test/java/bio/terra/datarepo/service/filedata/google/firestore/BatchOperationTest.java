@@ -1,15 +1,15 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.app.configuration.SamConfiguration;
-import bio.terra.common.category.Unit;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.datarepo.app.configuration.ApplicationConfiguration;
+import bio.terra.datarepo.app.configuration.SamConfiguration;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsConfiguration;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleResourceConfiguration;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.Before;

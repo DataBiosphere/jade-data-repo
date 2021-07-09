@@ -1,6 +1,6 @@
-package bio.terra.app.utils.startup;
+package bio.terra.datarepo.app.utils.startup;
 
-import bio.terra.service.job.JobService;
+import bio.terra.datarepo.service.job.JobService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;

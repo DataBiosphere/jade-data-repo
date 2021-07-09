@@ -1,6 +1,6 @@
-package bio.terra.app.controller.exception;
+package bio.terra.datarepo.app.controller.exception;
 
-import bio.terra.common.exception.DataRepoException;
+import bio.terra.datarepo.common.exception.DataRepoException;
 
 /** This exception maps to HttpStatus.TOO_MANY_REQUESTS in the GlobalExceptionHandler. */
 public class TooManyRequestsException extends DataRepoException {

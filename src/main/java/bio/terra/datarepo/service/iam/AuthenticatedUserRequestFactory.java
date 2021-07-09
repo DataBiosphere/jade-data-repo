@@ -1,4 +1,4 @@
-package bio.terra.service.iam;
+package bio.terra.datarepo.service.iam;
 
 import javax.servlet.http.HttpServletRequest;
 

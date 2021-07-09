@@ -1,10 +1,10 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.common.PdaoConstant;
-import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetRequestModel;
+import bio.terra.datarepo.common.PdaoConstant;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.common.fixtures.JsonLoader;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.model.DatasetRequestModel;
 import java.util.Arrays;
 import java.util.UUID;
 import org.hamcrest.Matchers;

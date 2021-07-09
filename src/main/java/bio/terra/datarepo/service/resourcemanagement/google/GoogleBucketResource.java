@@ -1,6 +1,6 @@
-package bio.terra.service.resourcemanagement.google;
+package bio.terra.datarepo.service.resourcemanagement.google;
 
-import bio.terra.app.model.GoogleRegion;
+import bio.terra.datarepo.app.model.GoogleRegion;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.UUID;
 

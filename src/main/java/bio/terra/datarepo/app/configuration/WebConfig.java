@@ -1,6 +1,6 @@
-package bio.terra.app.configuration;
+package bio.terra.datarepo.app.configuration;
 
-import bio.terra.app.logging.LoggerInterceptor;
+import bio.terra.datarepo.app.logging.LoggerInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;

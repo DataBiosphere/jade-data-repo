@@ -1,6 +1,6 @@
-package bio.terra.service.snapshot.exception;
+package bio.terra.datarepo.service.snapshot.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.BadRequestException;
 
 public class MismatchedValueException extends BadRequestException {
   public MismatchedValueException(String message) {

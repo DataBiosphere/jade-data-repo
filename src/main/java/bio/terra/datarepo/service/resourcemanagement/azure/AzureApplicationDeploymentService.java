@@ -1,11 +1,11 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
-import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.AzureStorageAccountSkuType;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
-import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
-import bio.terra.service.resourcemanagement.exception.MismatchedBillingProfilesException;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.AzureStorageAccountSkuType;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.datarepo.service.resourcemanagement.exception.AzureResourceNotFoundException;
+import bio.terra.datarepo.service.resourcemanagement.exception.MismatchedBillingProfilesException;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
 import com.fasterxml.jackson.databind.JsonNode;

@@ -1,4 +1,4 @@
-package bio.terra.service.iam;
+package bio.terra.datarepo.service.iam;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.eq;
@@ -6,10 +6,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.category.Unit;
-import bio.terra.model.PolicyModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.PolicyModel;
+import bio.terra.datarepo.service.configuration.ConfigEnum;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;

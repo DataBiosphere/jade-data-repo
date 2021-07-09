@@ -1,14 +1,14 @@
-package bio.terra.service.resourcemanagement.google;
+package bio.terra.datarepo.service.resourcemanagement.google;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.common.fixtures.ResourceFixtures;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.service.profile.ProfileDao;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.common.fixtures.ProfileFixtures;
+import bio.terra.datarepo.common.fixtures.ResourceFixtures;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.service.profile.ProfileDao;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;

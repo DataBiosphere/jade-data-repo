@@ -1,9 +1,9 @@
-package bio.terra.service.profile.google;
+package bio.terra.datarepo.service.profile.google;
 
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.resourcemanagement.exception.BillingServiceException;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.resourcemanagement.exception.BillingServiceException;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectResource;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.rpc.ApiException;
 import com.google.api.resourcenames.ResourceName;

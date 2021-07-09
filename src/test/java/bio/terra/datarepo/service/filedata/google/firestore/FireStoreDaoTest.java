@@ -1,4 +1,4 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -8,9 +8,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import bio.terra.common.category.Connected;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.datarepo.common.category.Connected;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectResource;
 import com.google.cloud.firestore.Firestore;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -36,7 +36,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Connected.class)
 public class FireStoreDaoTest {
   private final Logger logger =
-      LoggerFactory.getLogger("bio.terra.service.filedata.google.firestore.FireStoreDaoTest");
+      LoggerFactory.getLogger(
+          "bio.terra.datarepo.service.filedata.google.firestore.FireStoreDaoTest");
 
   @Autowired private FireStoreDirectoryDao directoryDao;
 

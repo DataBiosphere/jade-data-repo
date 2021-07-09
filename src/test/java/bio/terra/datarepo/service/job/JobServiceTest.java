@@ -1,12 +1,12 @@
-package bio.terra.service.job;
+package bio.terra.datarepo.service.job;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.common.category.Unit;
-import bio.terra.model.JobModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.app.configuration.ApplicationConfiguration;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import java.util.ArrayList;
 import java.util.List;

@@ -1,4 +1,4 @@
-package bio.terra.service.iam.sam;
+package bio.terra.datarepo.service.iam.sam;
 
 import com.google.gson.annotations.SerializedName;
 import io.swagger.annotations.ApiModelProperty;

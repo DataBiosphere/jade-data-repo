@@ -1,4 +1,4 @@
-package bio.terra.common.exception;
+package bio.terra.datarepo.common.exception;
 
 import java.util.List;
 

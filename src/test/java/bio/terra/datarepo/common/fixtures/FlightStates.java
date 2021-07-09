@@ -1,9 +1,9 @@
-package bio.terra.common.fixtures;
+package bio.terra.datarepo.common.fixtures;
 
-import static bio.terra.common.fixtures.DatasetFixtures.buildMinimalDatasetSummary;
+import static bio.terra.datarepo.common.fixtures.DatasetFixtures.buildMinimalDatasetSummary;
 
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.job.JobMapKeys;
+import bio.terra.datarepo.model.DatasetSummaryModel;
+import bio.terra.datarepo.service.job.JobMapKeys;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;

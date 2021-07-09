@@ -1,4 +1,4 @@
-package bio.terra.app.logging;
+package bio.terra.datarepo.app.logging;
 
 import java.time.Duration;
 import org.springframework.context.annotation.Profile;

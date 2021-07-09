@@ -1,6 +1,6 @@
-package bio.terra.app.model;
+package bio.terra.datarepo.app.model;
 
-import bio.terra.common.EnumUtils;
+import bio.terra.datarepo.common.EnumUtils;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;

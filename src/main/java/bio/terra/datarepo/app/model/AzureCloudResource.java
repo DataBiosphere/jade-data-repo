@@ -1,4 +1,4 @@
-package bio.terra.app.model;
+package bio.terra.datarepo.app.model;
 
 /** Azure cloud resources used by TDR. */
 public enum AzureCloudResource implements CloudResource {

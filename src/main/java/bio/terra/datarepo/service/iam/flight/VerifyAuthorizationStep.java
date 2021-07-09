@@ -1,10 +1,10 @@
-package bio.terra.service.iam.flight;
+package bio.terra.datarepo.service.iam.flight;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamAction;
-import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.job.JobMapKeys;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.iam.IamAction;
+import bio.terra.datarepo.service.iam.IamProviderInterface;
+import bio.terra.datarepo.service.iam.IamResourceType;
+import bio.terra.datarepo.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

@@ -1,4 +1,4 @@
-package bio.terra.service.load.flight;
+package bio.terra.datarepo.service.load.flight;
 
 public final class LoadMapKeys {
   public static final String LOAD_TAG = "loadTag";

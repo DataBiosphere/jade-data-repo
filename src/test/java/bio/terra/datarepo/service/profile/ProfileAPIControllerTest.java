@@ -1,4 +1,4 @@
-package bio.terra.service.profile;
+package bio.terra.datarepo.service.profile;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -9,18 +9,18 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import bio.terra.common.category.Unit;
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.BillingProfileUpdateModel;
-import bio.terra.model.JobModel;
-import bio.terra.model.JobModel.JobStatusEnum;
-import bio.terra.model.PolicyMemberRequest;
-import bio.terra.model.PolicyModel;
-import bio.terra.model.PolicyResponse;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.AuthenticatedUserRequestFactory;
-import bio.terra.service.iam.PolicyMemberValidator;
-import bio.terra.service.job.JobService;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.BillingProfileUpdateModel;
+import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.JobModel.JobStatusEnum;
+import bio.terra.datarepo.model.PolicyMemberRequest;
+import bio.terra.datarepo.model.PolicyModel;
+import bio.terra.datarepo.model.PolicyResponse;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequestFactory;
+import bio.terra.datarepo.service.iam.PolicyMemberValidator;
+import bio.terra.datarepo.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
 import javax.servlet.http.HttpServletRequest;

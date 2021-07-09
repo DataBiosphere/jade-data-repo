@@ -1,18 +1,18 @@
-package bio.terra.service.snapshot.flight.create;
+package bio.terra.datarepo.service.snapshot.flight.create;
 
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT;
 
-import bio.terra.app.controller.exception.ApiException;
-import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.iam.IamRole;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.SnapshotSource;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.datarepo.app.controller.exception.ApiException;
+import bio.terra.datarepo.service.configuration.ConfigurationService;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsPdao;
+import bio.terra.datarepo.service.iam.IamRole;
+import bio.terra.datarepo.service.snapshot.Snapshot;
+import bio.terra.datarepo.service.snapshot.SnapshotService;
+import bio.terra.datarepo.service.snapshot.SnapshotSource;
+import bio.terra.datarepo.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

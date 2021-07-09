@@ -1,4 +1,4 @@
-package bio.terra;
+package bio.terra.datarepo;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.ExitCodeGenerator;

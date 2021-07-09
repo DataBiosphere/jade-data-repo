@@ -1,14 +1,14 @@
-package bio.terra.common;
+package bio.terra.datarepo.common;
 
-import bio.terra.app.model.AzureCloudResource;
-import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.GoogleCloudResource;
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.service.dataset.AzureStorageResource;
-import bio.terra.service.dataset.GoogleStorageResource;
-import bio.terra.service.dataset.StorageResource;
+import bio.terra.datarepo.app.model.AzureCloudResource;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.GoogleCloudResource;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.model.DatasetRequestModel;
+import bio.terra.datarepo.service.dataset.AzureStorageResource;
+import bio.terra.datarepo.service.dataset.GoogleStorageResource;
+import bio.terra.datarepo.service.dataset.StorageResource;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;

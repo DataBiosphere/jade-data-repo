@@ -1,7 +1,7 @@
-package bio.terra.common;
+package bio.terra.datarepo.common;
 
-import bio.terra.model.ErrorModel;
-import bio.terra.service.job.JobMapKeys;
+import bio.terra.datarepo.model.ErrorModel;
+import bio.terra.datarepo.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleExponentialBackoff;

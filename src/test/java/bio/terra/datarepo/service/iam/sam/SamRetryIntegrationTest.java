@@ -1,18 +1,18 @@
-package bio.terra.service.iam.sam;
+package bio.terra.datarepo.service.iam.sam;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import bio.terra.app.configuration.SamConfiguration;
-import bio.terra.common.auth.AuthService;
-import bio.terra.common.category.Integration;
+import bio.terra.datarepo.app.configuration.SamConfiguration;
+import bio.terra.datarepo.common.auth.AuthService;
+import bio.terra.datarepo.common.category.Integration;
+import bio.terra.datarepo.model.PolicyModel;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.iam.IamProviderInterface;
+import bio.terra.datarepo.service.iam.IamResourceType;
+import bio.terra.datarepo.service.iam.IamRole;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
-import bio.terra.model.PolicyModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamRole;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;

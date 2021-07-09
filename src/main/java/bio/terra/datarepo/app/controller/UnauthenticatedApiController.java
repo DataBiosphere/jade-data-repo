@@ -1,13 +1,13 @@
-package bio.terra.app.controller;
+package bio.terra.datarepo.app.controller;
 
-import bio.terra.app.configuration.OauthConfiguration;
-import bio.terra.app.configuration.SamConfiguration;
-import bio.terra.app.configuration.TerraConfiguration;
-import bio.terra.controller.UnauthenticatedApi;
-import bio.terra.model.RepositoryConfigurationModel;
-import bio.terra.model.RepositoryStatusModel;
-import bio.terra.service.configuration.StatusService;
-import bio.terra.service.job.JobService;
+import bio.terra.datarepo.api.UnauthenticatedApi;
+import bio.terra.datarepo.app.configuration.OauthConfiguration;
+import bio.terra.datarepo.app.configuration.SamConfiguration;
+import bio.terra.datarepo.app.configuration.TerraConfiguration;
+import bio.terra.datarepo.model.RepositoryConfigurationModel;
+import bio.terra.datarepo.model.RepositoryStatusModel;
+import bio.terra.datarepo.service.configuration.StatusService;
+import bio.terra.datarepo.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.io.IOException;

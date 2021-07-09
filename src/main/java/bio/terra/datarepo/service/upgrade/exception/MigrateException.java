@@ -1,6 +1,6 @@
-package bio.terra.service.upgrade.exception;
+package bio.terra.datarepo.service.upgrade.exception;
 
-import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.datarepo.common.exception.InternalServerErrorException;
 
 public class MigrateException extends InternalServerErrorException {
   public MigrateException(String message) {

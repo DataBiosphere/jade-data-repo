@@ -1,15 +1,15 @@
-package bio.terra.grammar;
+package bio.terra.datarepo.grammar;
 
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import bio.terra.common.PdaoConstant;
-import bio.terra.common.category.Unit;
-import bio.terra.grammar.exception.InvalidQueryException;
-import bio.terra.grammar.exception.MissingDatasetException;
-import bio.terra.grammar.google.BigQueryVisitor;
-import bio.terra.model.DatasetModel;
+import bio.terra.datarepo.common.PdaoConstant;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.grammar.exception.InvalidQueryException;
+import bio.terra.datarepo.grammar.exception.MissingDatasetException;
+import bio.terra.datarepo.grammar.google.BigQueryVisitor;
+import bio.terra.datarepo.model.DatasetModel;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

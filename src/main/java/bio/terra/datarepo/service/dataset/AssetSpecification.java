@@ -1,4 +1,4 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
 import java.util.ArrayList;
 import java.util.Collections;

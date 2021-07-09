@@ -1,14 +1,14 @@
-package bio.terra.service.filedata.flight.ingest;
+package bio.terra.datarepo.service.filedata.flight.ingest;
 
-import bio.terra.model.FileLoadModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
-import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
-import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.filedata.google.firestore.FireStoreUtils;
-import bio.terra.service.job.JobMapKeys;
+import bio.terra.datarepo.model.FileLoadModel;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.filedata.exception.FileSystemAbortTransactionException;
+import bio.terra.datarepo.service.filedata.flight.FileMapKeys;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreUtils;
+import bio.terra.datarepo.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

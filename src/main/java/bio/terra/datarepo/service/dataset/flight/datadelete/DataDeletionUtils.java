@@ -1,9 +1,9 @@
-package bio.terra.service.dataset.flight.datadelete;
+package bio.terra.datarepo.service.dataset.flight.datadelete;
 
-import bio.terra.model.DataDeletionRequest;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.job.JobMapKeys;
+import bio.terra.datarepo.model.DataDeletionRequest;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import java.util.UUID;
 

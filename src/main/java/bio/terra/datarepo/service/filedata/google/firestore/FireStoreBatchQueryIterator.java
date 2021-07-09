@@ -1,6 +1,6 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.datarepo.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;

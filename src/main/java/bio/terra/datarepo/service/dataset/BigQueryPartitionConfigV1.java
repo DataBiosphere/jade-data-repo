@@ -1,4 +1,4 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.cloud.bigquery.RangePartitioning;

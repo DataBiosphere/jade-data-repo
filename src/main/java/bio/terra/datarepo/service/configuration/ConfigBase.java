@@ -1,8 +1,8 @@
-package bio.terra.service.configuration;
+package bio.terra.datarepo.service.configuration;
 
-import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.model.ConfigModel;
-import bio.terra.service.configuration.exception.InvalidConfigTypeException;
+import bio.terra.datarepo.app.controller.exception.ValidationException;
+import bio.terra.datarepo.model.ConfigModel;
+import bio.terra.datarepo.service.configuration.exception.InvalidConfigTypeException;
 
 public abstract class ConfigBase {
   private final ConfigModel.ConfigTypeEnum configType;

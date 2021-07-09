@@ -1,6 +1,6 @@
-package bio.terra.grammar.exception;
+package bio.terra.datarepo.grammar.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.datarepo.common.exception.BadRequestException;
 
 public class InvalidQueryException extends BadRequestException {
 

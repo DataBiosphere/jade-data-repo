@@ -1,9 +1,9 @@
-package bio.terra.app.utils;
+package bio.terra.datarepo.app.utils;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import bio.terra.common.category.Unit;
+import bio.terra.datarepo.common.category.Unit;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 

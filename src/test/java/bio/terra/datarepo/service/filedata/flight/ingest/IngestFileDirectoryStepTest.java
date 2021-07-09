@@ -1,15 +1,15 @@
-package bio.terra.service.filedata.flight.ingest;
+package bio.terra.datarepo.service.filedata.flight.ingest;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-import bio.terra.common.category.Unit;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreUtils;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.filedata.flight.FileMapKeys;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;

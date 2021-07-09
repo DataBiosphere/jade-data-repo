@@ -1,10 +1,10 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.app.configuration.DataRepoJdbcConfiguration;
-import bio.terra.common.Column;
-import bio.terra.common.DaoKeyHolder;
-import bio.terra.common.Relationship;
-import bio.terra.service.dataset.exception.InvalidAssetException;
+import bio.terra.datarepo.app.configuration.DataRepoJdbcConfiguration;
+import bio.terra.datarepo.common.Column;
+import bio.terra.datarepo.common.DaoKeyHolder;
+import bio.terra.datarepo.common.Relationship;
+import bio.terra.datarepo.service.dataset.exception.InvalidAssetException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;

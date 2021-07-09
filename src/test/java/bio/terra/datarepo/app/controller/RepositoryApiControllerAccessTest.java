@@ -1,15 +1,15 @@
-package bio.terra.app.controller;
+package bio.terra.datarepo.app.controller;
 
-import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
-import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
+import static bio.terra.datarepo.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import bio.terra.common.category.Integration;
+import bio.terra.datarepo.common.category.Integration;
+import bio.terra.datarepo.model.ConfigGroupModel;
+import bio.terra.datarepo.model.ConfigModel;
+import bio.terra.datarepo.model.ConfigParameterModel;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
-import bio.terra.model.ConfigGroupModel;
-import bio.terra.model.ConfigModel;
-import bio.terra.model.ConfigParameterModel;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

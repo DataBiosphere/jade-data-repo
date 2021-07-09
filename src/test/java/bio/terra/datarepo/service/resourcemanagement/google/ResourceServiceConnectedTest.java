@@ -1,14 +1,14 @@
-package bio.terra.service.resourcemanagement.google;
+package bio.terra.datarepo.service.resourcemanagement.google;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 
-import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.category.OnDemand;
-import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.model.BillingProfileModel;
+import bio.terra.datarepo.app.configuration.ConnectedTestConfiguration;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.common.category.OnDemand;
+import bio.terra.datarepo.common.fixtures.ConnectedOperations;
+import bio.terra.datarepo.model.BillingProfileModel;
 import com.google.api.client.util.Lists;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import java.util.HashMap;

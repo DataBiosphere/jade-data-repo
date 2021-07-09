@@ -1,8 +1,8 @@
-package bio.terra.service.profile.flight.delete;
+package bio.terra.datarepo.service.profile.flight.delete;
 
-import bio.terra.common.FlightUtils;
-import bio.terra.model.DeleteResponseModel;
-import bio.terra.service.profile.ProfileService;
+import bio.terra.datarepo.common.FlightUtils;
+import bio.terra.datarepo.model.DeleteResponseModel;
+import bio.terra.datarepo.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

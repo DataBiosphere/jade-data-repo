@@ -1,7 +1,7 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import bio.terra.common.PdaoConstant;
-import bio.terra.model.DatasetRequestModel;
+import bio.terra.datarepo.common.PdaoConstant;
+import bio.terra.datarepo.model.DatasetRequestModel;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.stringtemplate.v4.ST;

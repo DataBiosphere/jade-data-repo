@@ -1,6 +1,6 @@
 package bio.terra.integration;
 
-import bio.terra.model.ErrorModel;
+import bio.terra.datarepo.model.ErrorModel;
 import java.util.Optional;
 import org.springframework.http.HttpStatus;
 

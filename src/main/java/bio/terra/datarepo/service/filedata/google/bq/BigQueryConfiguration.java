@@ -1,4 +1,4 @@
-package bio.terra.service.filedata.google.bq;
+package bio.terra.datarepo.service.filedata.google.bq;
 
 import java.util.Optional;
 import org.springframework.boot.context.properties.ConfigurationProperties;

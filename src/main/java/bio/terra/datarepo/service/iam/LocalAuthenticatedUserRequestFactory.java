@@ -1,6 +1,6 @@
-package bio.terra.service.iam;
+package bio.terra.datarepo.service.iam;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.datarepo.app.configuration.ApplicationConfiguration;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;

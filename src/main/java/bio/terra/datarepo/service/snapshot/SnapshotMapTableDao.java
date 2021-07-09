@@ -1,10 +1,10 @@
-package bio.terra.service.snapshot;
+package bio.terra.datarepo.service.snapshot;
 
-import bio.terra.common.Column;
-import bio.terra.common.DaoKeyHolder;
-import bio.terra.common.Table;
-import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.datarepo.common.Column;
+import bio.terra.datarepo.common.DaoKeyHolder;
+import bio.terra.datarepo.common.Table;
+import bio.terra.datarepo.service.dataset.DatasetTable;
+import bio.terra.datarepo.service.snapshot.exception.CorruptMetadataException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

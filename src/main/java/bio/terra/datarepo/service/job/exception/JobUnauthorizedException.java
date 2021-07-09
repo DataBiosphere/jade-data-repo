@@ -1,6 +1,6 @@
-package bio.terra.service.job.exception;
+package bio.terra.datarepo.service.job.exception;
 
-import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.datarepo.common.exception.UnauthorizedException;
 
 public class JobUnauthorizedException extends UnauthorizedException {
   public JobUnauthorizedException(String message) {

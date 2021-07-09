@@ -1,11 +1,11 @@
-package bio.terra.service.resourcemanagement;
+package bio.terra.datarepo.service.resourcemanagement;
 
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.service.dataset.DatasetBucketDao;
-import bio.terra.service.resourcemanagement.exception.BucketLockException;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.resourcemanagement.google.GoogleBucketService;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.service.dataset.DatasetBucketDao;
+import bio.terra.datarepo.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleBucketService;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectResource;
 import java.util.UUID;
 
 public class BucketResourceLockTester implements Runnable {

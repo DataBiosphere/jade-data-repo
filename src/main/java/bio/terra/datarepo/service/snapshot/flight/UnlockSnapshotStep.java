@@ -1,7 +1,7 @@
-package bio.terra.service.snapshot.flight;
+package bio.terra.datarepo.service.snapshot.flight;
 
-import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.exception.SnapshotLockException;
+import bio.terra.datarepo.service.snapshot.SnapshotDao;
+import bio.terra.datarepo.service.snapshot.exception.SnapshotLockException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

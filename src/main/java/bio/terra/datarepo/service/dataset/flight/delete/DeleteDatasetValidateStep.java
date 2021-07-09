@@ -1,12 +1,12 @@
-package bio.terra.service.dataset.flight.delete;
+package bio.terra.datarepo.service.dataset.flight.delete;
 
-import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.exception.FileSystemCorruptException;
-import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.SnapshotSummary;
+import bio.terra.datarepo.app.controller.exception.ValidationException;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.DatasetService;
+import bio.terra.datarepo.service.filedata.exception.FileSystemCorruptException;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.datarepo.service.snapshot.SnapshotDao;
+import bio.terra.datarepo.service.snapshot.SnapshotSummary;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

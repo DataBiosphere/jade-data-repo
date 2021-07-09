@@ -1,4 +1,4 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -7,20 +7,20 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import bio.terra.app.model.AzureCloudResource;
-import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.GoogleCloudResource;
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.TestUtils;
-import bio.terra.common.auth.AuthService;
-import bio.terra.common.category.Integration;
+import bio.terra.datarepo.app.model.AzureCloudResource;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.GoogleCloudResource;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.common.TestUtils;
+import bio.terra.datarepo.common.auth.AuthService;
+import bio.terra.datarepo.common.category.Integration;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.model.DatasetModel;
+import bio.terra.datarepo.model.DatasetSummaryModel;
+import bio.terra.datarepo.model.EnumerateDatasetModel;
+import bio.terra.datarepo.model.StorageResourceModel;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
-import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.StorageResourceModel;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;

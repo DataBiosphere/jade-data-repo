@@ -1,4 +1,4 @@
-package bio.terra.common.fixtures;
+package bio.terra.datarepo.common.fixtures;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;

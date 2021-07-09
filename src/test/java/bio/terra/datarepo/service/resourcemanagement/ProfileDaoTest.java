@@ -1,4 +1,4 @@
-package bio.terra.service.resourcemanagement;
+package bio.terra.datarepo.service.resourcemanagement;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -8,16 +8,16 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
 
-import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.BillingProfileUpdateModel;
-import bio.terra.model.CloudPlatform;
-import bio.terra.model.EnumerateBillingProfileModel;
-import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.profile.ProfileService;
-import bio.terra.service.profile.exception.ProfileNotFoundException;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.common.fixtures.ProfileFixtures;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.BillingProfileUpdateModel;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.model.EnumerateBillingProfileModel;
+import bio.terra.datarepo.service.profile.ProfileDao;
+import bio.terra.datarepo.service.profile.ProfileService;
+import bio.terra.datarepo.service.profile.exception.ProfileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;

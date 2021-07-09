@@ -1,10 +1,10 @@
-package bio.terra.service.filedata.flight.ingest;
+package bio.terra.datarepo.service.filedata.flight.ingest;
 
-import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.exception.NotImplementedException;
-import bio.terra.model.CloudPlatform;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.datarepo.common.CloudPlatformWrapper;
+import bio.terra.datarepo.common.exception.NotImplementedException;
+import bio.terra.datarepo.model.CloudPlatform;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.dataset.exception.IngestFailureException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

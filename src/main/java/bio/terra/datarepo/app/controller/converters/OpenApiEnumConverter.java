@@ -1,6 +1,6 @@
-package bio.terra.app.controller.converters;
+package bio.terra.datarepo.app.controller.converters;
 
-import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.datarepo.app.controller.exception.ValidationException;
 import java.util.Collections;
 import org.springframework.core.convert.converter.Converter;
 

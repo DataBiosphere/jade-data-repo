@@ -1,9 +1,9 @@
-package bio.terra.grammar.google;
+package bio.terra.datarepo.grammar.google;
 
-import bio.terra.common.PdaoConstant;
-import bio.terra.grammar.DatasetAwareVisitor;
-import bio.terra.grammar.SQLParser;
-import bio.terra.model.DatasetModel;
+import bio.terra.datarepo.common.PdaoConstant;
+import bio.terra.datarepo.grammar.DatasetAwareVisitor;
+import bio.terra.datarepo.grammar.SQLParser;
+import bio.terra.datarepo.model.DatasetModel;
 import java.util.Map;
 
 public class BigQueryVisitor extends DatasetAwareVisitor {

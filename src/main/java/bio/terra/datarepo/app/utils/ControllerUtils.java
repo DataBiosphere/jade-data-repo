@@ -1,7 +1,7 @@
-package bio.terra.app.utils;
+package bio.terra.datarepo.app.utils;
 
-import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.model.JobModel;
+import bio.terra.datarepo.app.controller.exception.ValidationException;
+import bio.terra.datarepo.model.JobModel;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.http.HttpStatus;

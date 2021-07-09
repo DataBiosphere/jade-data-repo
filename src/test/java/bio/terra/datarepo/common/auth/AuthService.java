@@ -1,6 +1,6 @@
-package bio.terra.common.auth;
+package bio.terra.datarepo.common.auth;
 
-import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.datarepo.common.configuration.TestConfiguration;
 import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;

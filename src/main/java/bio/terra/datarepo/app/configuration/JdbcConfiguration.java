@@ -1,4 +1,4 @@
-package bio.terra.app.configuration;
+package bio.terra.datarepo.app.configuration;
 
 import java.util.Properties;
 import org.apache.commons.dbcp2.ConnectionFactory;

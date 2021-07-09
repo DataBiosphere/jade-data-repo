@@ -1,8 +1,8 @@
 package bio.terra.integration;
 
-import bio.terra.common.auth.AuthService;
-import bio.terra.common.auth.Users;
-import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.datarepo.common.auth.AuthService;
+import bio.terra.datarepo.common.auth.Users;
+import bio.terra.datarepo.common.configuration.TestConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

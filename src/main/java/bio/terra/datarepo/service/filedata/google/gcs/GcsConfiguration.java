@@ -1,4 +1,4 @@
-package bio.terra.service.filedata.google.gcs;
+package bio.terra.datarepo.service.filedata.google.gcs;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

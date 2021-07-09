@@ -1,12 +1,12 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
-import bio.terra.app.model.AzureRegion;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.exception.AzureResourceException;
-import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
-import bio.terra.service.resourcemanagement.exception.StorageAccountLockException;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.profile.ProfileDao;
+import bio.terra.datarepo.service.resourcemanagement.exception.AzureResourceException;
+import bio.terra.datarepo.service.resourcemanagement.exception.AzureResourceNotFoundException;
+import bio.terra.datarepo.service.resourcemanagement.exception.StorageAccountLockException;
+import bio.terra.datarepo.service.snapshot.exception.CorruptMetadataException;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import java.util.Optional;

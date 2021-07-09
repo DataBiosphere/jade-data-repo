@@ -1,4 +1,4 @@
-package bio.terra.service.snapshot.flight;
+package bio.terra.datarepo.service.snapshot.flight;
 
 public final class SnapshotWorkingMapKeys {
   private SnapshotWorkingMapKeys() {}

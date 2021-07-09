@@ -1,12 +1,12 @@
-package bio.terra.service.resourcemanagement.google;
+package bio.terra.datarepo.service.resourcemanagement.google;
 
-import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.DaoKeyHolder;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
-import bio.terra.service.profile.exception.ProfileInUseException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.datarepo.app.model.GoogleRegion;
+import bio.terra.datarepo.common.DaoKeyHolder;
+import bio.terra.datarepo.service.filedata.google.gcs.GcsConfiguration;
+import bio.terra.datarepo.service.profile.exception.ProfileInUseException;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceNotFoundException;
+import bio.terra.datarepo.service.snapshot.exception.CorruptMetadataException;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;

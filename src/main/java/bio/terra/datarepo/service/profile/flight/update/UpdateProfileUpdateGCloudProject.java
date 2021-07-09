@@ -1,8 +1,8 @@
-package bio.terra.service.profile.flight.update;
+package bio.terra.datarepo.service.profile.flight.update;
 
-import bio.terra.model.BillingProfileModel;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.service.job.JobMapKeys;
+import bio.terra.datarepo.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

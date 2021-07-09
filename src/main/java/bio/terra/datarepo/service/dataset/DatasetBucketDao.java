@@ -1,10 +1,10 @@
-package bio.terra.service.dataset;
+package bio.terra.datarepo.service.dataset;
 
-import static bio.terra.common.DaoUtils.retryQuery;
+import static bio.terra.datarepo.common.DaoUtils.retryQuery;
 
-import bio.terra.common.exception.RetryQueryException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.datarepo.common.exception.RetryQueryException;
+import bio.terra.datarepo.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.datarepo.service.snapshot.exception.CorruptMetadataException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;

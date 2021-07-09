@@ -1,10 +1,10 @@
-package bio.terra.service.dataset.flight.ingest;
+package bio.terra.datarepo.service.dataset.flight.ingest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
-import bio.terra.common.category.Unit;
-import bio.terra.service.dataset.exception.InvalidUriException;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.service.dataset.exception.InvalidUriException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;

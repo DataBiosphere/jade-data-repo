@@ -1,10 +1,10 @@
-package bio.terra.service.job;
+package bio.terra.datarepo.service.job;
 
 import static org.junit.Assert.assertTrue;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.common.category.Unit;
-import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.app.configuration.ApplicationConfiguration;
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;

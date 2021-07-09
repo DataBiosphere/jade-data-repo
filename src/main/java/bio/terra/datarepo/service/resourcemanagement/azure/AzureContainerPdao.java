@@ -1,7 +1,7 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
-import bio.terra.common.exception.PdaoException;
-import bio.terra.model.BillingProfileModel;
+import bio.terra.datarepo.common.exception.PdaoException;
+import bio.terra.datarepo.model.BillingProfileModel;
 import com.azure.storage.file.datalake.DataLakeFileSystemClient;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.models.DataLakeStorageException;

@@ -1,6 +1,6 @@
-package bio.terra.service.snapshot;
+package bio.terra.datarepo.service.snapshot;
 
-import bio.terra.service.dataset.StorageResource;
+import bio.terra.datarepo.service.dataset.StorageResource;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

@@ -1,7 +1,7 @@
-package bio.terra.service.filedata.flight.ingest;
+package bio.terra.datarepo.service.filedata.flight.ingest;
 
-import bio.terra.service.load.LoadService;
-import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.datarepo.service.load.LoadService;
+import bio.terra.datarepo.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

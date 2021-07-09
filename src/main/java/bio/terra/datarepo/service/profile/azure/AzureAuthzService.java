@@ -1,8 +1,8 @@
-package bio.terra.service.profile.azure;
+package bio.terra.datarepo.service.profile.azure;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
-import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import bio.terra.datarepo.service.iam.AuthenticatedUserRequest;
+import bio.terra.datarepo.service.resourcemanagement.MetadataDataAccessUtils;
+import bio.terra.datarepo.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
 import java.util.Map;

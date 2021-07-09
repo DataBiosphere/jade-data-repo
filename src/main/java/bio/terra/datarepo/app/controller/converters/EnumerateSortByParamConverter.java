@@ -1,6 +1,6 @@
-package bio.terra.app.controller.converters;
+package bio.terra.datarepo.app.controller.converters;
 
-import bio.terra.model.EnumerateSortByParam;
+import bio.terra.datarepo.model.EnumerateSortByParam;
 import java.util.Arrays;
 import org.springframework.stereotype.Component;
 

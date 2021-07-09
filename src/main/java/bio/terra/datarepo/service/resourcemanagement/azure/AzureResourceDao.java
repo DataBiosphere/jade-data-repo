@@ -1,12 +1,12 @@
-package bio.terra.service.resourcemanagement.azure;
+package bio.terra.datarepo.service.resourcemanagement.azure;
 
-import bio.terra.app.model.AzureRegion;
-import bio.terra.app.model.AzureStorageAccountSkuType;
-import bio.terra.common.DaoKeyHolder;
-import bio.terra.service.profile.exception.ProfileInUseException;
-import bio.terra.service.resourcemanagement.exception.AzureResourceException;
-import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.datarepo.app.model.AzureRegion;
+import bio.terra.datarepo.app.model.AzureStorageAccountSkuType;
+import bio.terra.datarepo.common.DaoKeyHolder;
+import bio.terra.datarepo.service.profile.exception.ProfileInUseException;
+import bio.terra.datarepo.service.resourcemanagement.exception.AzureResourceException;
+import bio.terra.datarepo.service.resourcemanagement.exception.AzureResourceNotFoundException;
+import bio.terra.datarepo.service.snapshot.exception.CorruptMetadataException;
 import com.google.api.client.util.Objects;
 import java.sql.SQLException;
 import java.util.List;

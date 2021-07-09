@@ -1,4 +1,4 @@
-package bio.terra.service.filedata.google.firestore;
+package bio.terra.datarepo.service.filedata.google.firestore;
 
 // POJO for storing dependency documents in FireStore
 // Each dependency document maps a snapshot to a dataset/file-in-dataset.

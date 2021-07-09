@@ -1,7 +1,7 @@
-package bio.terra.service.iam;
+package bio.terra.datarepo.service.iam;
 
-import bio.terra.common.ValidationUtils;
-import bio.terra.model.PolicyMemberRequest;
+import bio.terra.datarepo.common.ValidationUtils;
+import bio.terra.datarepo.model.PolicyMemberRequest;
 import javax.validation.constraints.NotNull;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;

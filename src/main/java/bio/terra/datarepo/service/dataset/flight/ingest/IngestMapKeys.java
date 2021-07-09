@@ -1,4 +1,4 @@
-package bio.terra.service.dataset.flight.ingest;
+package bio.terra.datarepo.service.dataset.flight.ingest;
 
 public final class IngestMapKeys {
   private IngestMapKeys() {}

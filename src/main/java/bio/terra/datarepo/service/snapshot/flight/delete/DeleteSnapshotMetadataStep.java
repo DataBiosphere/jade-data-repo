@@ -1,10 +1,10 @@
-package bio.terra.service.snapshot.flight.delete;
+package bio.terra.datarepo.service.snapshot.flight.delete;
 
-import bio.terra.common.FlightUtils;
-import bio.terra.model.DeleteResponseModel;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.datarepo.common.FlightUtils;
+import bio.terra.datarepo.model.DeleteResponseModel;
+import bio.terra.datarepo.service.snapshot.Snapshot;
+import bio.terra.datarepo.service.snapshot.SnapshotDao;
+import bio.terra.datarepo.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

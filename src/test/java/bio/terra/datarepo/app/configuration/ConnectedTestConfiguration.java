@@ -1,4 +1,4 @@
-package bio.terra.app.configuration;
+package bio.terra.datarepo.app.configuration;
 
 import java.util.UUID;
 import org.springframework.boot.context.properties.ConfigurationProperties;

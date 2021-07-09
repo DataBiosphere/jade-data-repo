@@ -1,6 +1,6 @@
-package bio.terra.service.dataset.exception;
+package bio.terra.datarepo.service.dataset.exception;
 
-import bio.terra.common.exception.NotFoundException;
+import bio.terra.datarepo.common.exception.NotFoundException;
 
 public class DatasetNotFoundException extends NotFoundException {
   public DatasetNotFoundException(String message) {

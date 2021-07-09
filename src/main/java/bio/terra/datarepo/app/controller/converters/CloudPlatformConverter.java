@@ -1,6 +1,6 @@
-package bio.terra.app.controller.converters;
+package bio.terra.datarepo.app.controller.converters;
 
-import bio.terra.model.CloudPlatform;
+import bio.terra.datarepo.model.CloudPlatform;
 import java.util.Arrays;
 import org.springframework.stereotype.Component;
 

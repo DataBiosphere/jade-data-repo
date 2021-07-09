@@ -1,6 +1,6 @@
-package bio.terra.common.auth;
+package bio.terra.datarepo.common.auth;
 
-import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.datarepo.common.configuration.TestConfiguration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

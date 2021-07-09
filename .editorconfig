@@ -14,24 +14,14 @@ end_of_line=lf
 trim_trailing_whitespace=true
 insert_final_newline=true
 indent_style=space
-indent_size=4
+indent_size=2
 max_line_length = 100
 ij_visual_guides = 100
 
 [*.java]
-indent_size = 2
 ij_continuation_indent_size = 4
+ij_java_class_count_to_use_import_on_demand = 1000
 ij_java_indent_case_from_switch = true
+ij_java_imports_layout = $*,|,*
+ij_java_names_count_to_use_import_on_demand = 1000
 ij_java_wrap_comments = true
-
-[*.json]
-indent_style=space
-indent_size=2
-
-[{*.ddl,*.sql}]
-indent_style=space
-indent_size=2
-
-[{*.yml,*.yaml}]
-indent_style=space
-indent_size=2

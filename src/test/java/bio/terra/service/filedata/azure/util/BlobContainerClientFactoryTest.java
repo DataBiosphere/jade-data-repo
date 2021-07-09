@@ -57,12 +57,13 @@ public class BlobContainerClientFactoryTest {
 
     blobIOTestUtility =
         new BlobIOTestUtility(
-            azureResourceConfiguration.getAppToken(),
+            azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
             connectedTestConfiguration.getDestinationStorageAccountName());
 
     accountName = connectedTestConfiguration.getSourceStorageAccountName();
-    tokenCredential = azureResourceConfiguration.getAppToken();
+    tokenCredential =
+        azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId());
     containerName = blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();
     blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).stream().findFirst().get();
   }
@@ -119,6 +120,7 @@ public class BlobContainerClientFactoryTest {
   private String getSourceStorageAccountPrimarySharedKey() {
     AzureResourceManager client =
         this.azureResourceConfiguration.getClient(
+            this.connectedTestConfiguration.getTargetTenantId(),
             this.connectedTestConfiguration.getTargetSubscriptionId());
 
     return client

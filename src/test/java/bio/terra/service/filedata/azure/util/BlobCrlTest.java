@@ -51,7 +51,7 @@ public class BlobCrlTest {
   public void setUp() throws Exception {
     blobIOTestUtility =
         new BlobIOTestUtility(
-            azureResourceConfiguration.getAppToken(),
+            azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
             connectedTestConfiguration.getDestinationStorageAccountName());
 
@@ -76,7 +76,7 @@ public class BlobCrlTest {
   }
 
   @Test
-  public void testGetBlobProperties_SizeInPropetiesMatches() {
+  public void testGetBlobProperties_SizeInPropertiesMatches() {
     String blobName = "myBlob";
     blobIOTestUtility.uploadDestinationFile(blobName, MiB / 10);
 

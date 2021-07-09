@@ -56,7 +56,7 @@ public class BlobContainerCopierTest {
 
     blobIOTestUtility =
         new BlobIOTestUtility(
-            azureResourceConfiguration.getAppToken(),
+            azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
             connectedTestConfiguration.getDestinationStorageAccountName());
 
@@ -163,7 +163,7 @@ public class BlobContainerCopierTest {
   }
 
   @Test
-  public void testCopySingleBLobWithSignedURl_FileIsCopied() {
+  public void testCopySingleBlobWithSignedURl_FileIsCopied() {
     String blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).stream().findFirst().get();
 
     BlobContainerClientFactory sourceFactory = createSourceClientFactoryWithSharedKey();
@@ -202,6 +202,7 @@ public class BlobContainerCopierTest {
   private String getSourceStorageAccountPrimarySharedKey() {
     AzureResourceManager client =
         this.azureResourceConfiguration.getClient(
+            this.connectedTestConfiguration.getTargetTenantId(),
             this.connectedTestConfiguration.getTargetSubscriptionId());
 
     return client
@@ -246,7 +247,8 @@ public class BlobContainerCopierTest {
     copier.setSourceClientFactory(
         new BlobContainerClientFactory(
             this.connectedTestConfiguration.getSourceStorageAccountName(),
-            this.azureResourceConfiguration.getAppToken(),
+            this.azureResourceConfiguration.getAppToken(
+                this.connectedTestConfiguration.getTargetTenantId()),
             sourceContainer));
 
     return copier;

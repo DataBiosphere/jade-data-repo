@@ -1,6 +1,7 @@
 package bio.terra.datarepo.common.exception;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.endsWith;
 
 import bio.terra.datarepo.common.category.Unit;
 import java.util.Arrays;
@@ -12,17 +13,13 @@ import org.junit.experimental.categories.Category;
 public class DataRepoExceptionTest extends TestCase {
 
   public void testToStringWithMessages() {
-    final DataRepoException exception =
-        new TestDataRepoException("BOOM", Arrays.asList("foo", "bar"));
-    assertThat(exception.toString())
-        .isEqualTo(
-            "bio.terra.common.exception.DataRepoExceptionTest$TestDataRepoException: BOOM Details: foo; bar");
+    var exception = new TestDataRepoException("BOOM", Arrays.asList("foo", "bar"));
+    assertThat(exception.toString(), endsWith("TestDataRepoException: BOOM Details: foo; bar"));
   }
 
   public void testToStringWithNoMessages() {
-    final DataRepoException exception = new TestDataRepoException("BOOM");
-    assertThat(exception.toString())
-        .isEqualTo("bio.terra.common.exception.DataRepoExceptionTest$TestDataRepoException: BOOM");
+    var exception = new TestDataRepoException("BOOM");
+    assertThat(exception.toString(), endsWith("TestDataRepoException: BOOM"));
   }
 
   /** Test extension of abstract class to test printing of messages */

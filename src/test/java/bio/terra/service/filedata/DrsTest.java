@@ -20,6 +20,7 @@ import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DRSAccessMethod;
+import bio.terra.model.DRSAccessMethod.TypeEnum;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.FileModel;
@@ -48,7 +49,13 @@ import java.util.UUID;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -74,6 +81,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class DrsTest extends UsersBase {
+
   private static final Logger logger = LoggerFactory.getLogger(DrsTest.class);
 
   @Autowired private DataRepoClient dataRepoClient;
@@ -89,6 +97,8 @@ public class DrsTest extends UsersBase {
   private UUID datasetId;
   private Map<IamRole, String> datasetIamRoles;
   private Map<IamRole, String> snapshotIamRoles;
+  private AuthenticatedUserRequest authenticatedStewardRequest;
+  private AuthenticatedUserRequest authenticatedCustodianRequest;
 
   @Before
   public void setup() throws Exception {
@@ -101,9 +111,9 @@ public class DrsTest extends UsersBase {
         dataRepoFixtures.getSnapshot(steward(), setupResult.getSummaryModel().getId(), null);
     profileId = setupResult.getProfileId();
     datasetId = setupResult.getDatasetId();
-    AuthenticatedUserRequest authenticatedStewardRequest =
+    authenticatedStewardRequest =
         new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
-    AuthenticatedUserRequest authenticatedCustodianRequest =
+    authenticatedCustodianRequest =
         new AuthenticatedUserRequest()
             .email(custodian().getEmail())
             .token(Optional.of(custodianToken));
@@ -168,6 +178,33 @@ public class DrsTest extends UsersBase {
     // Reader
     validateBQJobUserRolePresent(
         Arrays.asList(snapshotIamRoles.get(IamRole.STEWARD), snapshotIamRoles.get(IamRole.READER)));
+
+    Optional<DRSAccessMethod> drsAccessMethod =
+        drsObjectFile.getAccessMethods().stream()
+            .filter(accessMethod -> accessMethod.getType().equals(TypeEnum.GS))
+            .findFirst();
+
+    assertThat("DRS access method is present", drsAccessMethod.isPresent(), equalTo(true));
+
+    String drsAccessId = drsAccessMethod.get().getAccessId();
+    DrsResponse<bio.terra.model.DRSAccessURL> drsAccessUrlResponse =
+        dataRepoFixtures.getObjectAccessUrl(custodian(), drsObjectId, drsAccessId);
+
+    if (drsAccessUrlResponse.getResponseObject().isEmpty()) {
+      Assert.fail("Access URL response object is empty");
+    }
+
+    bio.terra.model.DRSAccessURL drsAccessURL = drsAccessUrlResponse.getResponseObject().get();
+
+    try (CloseableHttpClient client = HttpClients.createDefault()) {
+      HttpUriRequest request = new HttpHead(drsAccessURL.getUrl());
+      try (CloseableHttpResponse response = client.execute(request); ) {
+        assertThat(
+            "Drs signed URL is accessible",
+            response.getStatusLine().getStatusCode(),
+            equalTo(HttpStatus.OK.value()));
+      }
+    }
 
     // We don't have a DRS URI for a directory, so we back into it by computing the parent path
     // and using the non-DRS interface to get that file. Then we use that to build the

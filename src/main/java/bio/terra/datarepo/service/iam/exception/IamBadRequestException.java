@@ -1,0 +1,18 @@
+package bio.terra.datarepo.service.iam.exception;
+
+import bio.terra.datarepo.common.exception.BadRequestException;
+import java.util.List;
+
+public class IamBadRequestException extends BadRequestException {
+  public IamBadRequestException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public IamBadRequestException(Throwable cause) {
+    super(cause);
+  }
+
+  public IamBadRequestException(String message, List<String> errorDetails) {
+    super(message, errorDetails);
+  }
+}

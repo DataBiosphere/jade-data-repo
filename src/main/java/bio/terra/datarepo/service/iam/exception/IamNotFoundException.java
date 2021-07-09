@@ -1,0 +1,18 @@
+package bio.terra.datarepo.service.iam.exception;
+
+import bio.terra.datarepo.common.exception.NotFoundException;
+import java.util.List;
+
+public class IamNotFoundException extends NotFoundException {
+  public IamNotFoundException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public IamNotFoundException(Throwable cause) {
+    super(cause);
+  }
+
+  public IamNotFoundException(String message, List<String> errorDetails) {
+    super(message, errorDetails);
+  }
+}

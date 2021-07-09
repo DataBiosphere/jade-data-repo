@@ -1,0 +1,101 @@
+package bio.terra.datarepo.app.controller;
+
+import static java.util.stream.Collectors.toList;
+
+import bio.terra.datarepo.common.exception.DataRepoException;
+import bio.terra.datarepo.model.ErrorModel;
+import java.util.Collections;
+import java.util.List;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.springframework.beans.TypeMismatchException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+import org.springframework.web.util.WebUtils;
+
+@ControllerAdvice
+public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandler {
+
+  /**
+   * Since the default {@link ResponseEntityExceptionHandler#handleExceptionInternal} method is
+   * often passed a null body, we override it and substitute the exception's error message into an
+   * ErrorModel and return that in the response instead.
+   */
+  @Override
+  protected ResponseEntity<Object> handleExceptionInternal(
+      Exception ex,
+      @Nullable Object body,
+      HttpHeaders headers,
+      HttpStatus status,
+      WebRequest request) {
+
+    if (HttpStatus.INTERNAL_SERVER_ERROR == status) {
+      request.setAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE, ex, WebRequest.SCOPE_REQUEST);
+    }
+
+    Object responseBody = body;
+    if (responseBody == null) {
+      responseBody =
+          new ErrorModel()
+              .message(status + " - see error details")
+              .addErrorDetailItem(ex.getMessage());
+    }
+
+    return new ResponseEntity<>(responseBody, headers, status);
+  }
+
+  @Override
+  protected ResponseEntity<Object> handleMethodArgumentNotValid(
+      MethodArgumentNotValidException ex,
+      HttpHeaders headers,
+      HttpStatus status,
+      WebRequest request) {
+    BindingResult bindingResult = ex.getBindingResult();
+
+    List<String> errorDetails =
+        bindingResult.getFieldErrors().stream().map(this::formatFieldError).collect(toList());
+
+    ErrorModel errorModel =
+        new ErrorModel().message("Validation errors - see error details").errorDetail(errorDetails);
+
+    return new ResponseEntity<>(errorModel, HttpStatus.BAD_REQUEST);
+  }
+
+  @Override
+  protected ResponseEntity<Object> handleTypeMismatch(
+      TypeMismatchException ex, HttpHeaders headers, HttpStatus status, WebRequest request) {
+    final String message;
+    final List<String> details;
+    Throwable rootCause = ExceptionUtils.getRootCause(ex);
+
+    if (rootCause instanceof DataRepoException) {
+      message = rootCause.getMessage();
+      details = ((DataRepoException) rootCause).getErrorDetails();
+    } else {
+      message = status + " - see error details";
+      details = Collections.singletonList(rootCause.getMessage());
+    }
+
+    ErrorModel errorModel = new ErrorModel().message(message).errorDetail(details);
+
+    return new ResponseEntity<>(errorModel, headers, status);
+  }
+
+  private String formatFieldError(FieldError error) {
+    StringBuilder builder =
+        new StringBuilder().append(String.format("%s: '%s'", error.getField(), error.getCode()));
+    String defaultMessage = error.getDefaultMessage();
+    if (StringUtils.isNotEmpty(defaultMessage)) {
+      builder.append(String.format(" (%s)", defaultMessage));
+    }
+    return builder.toString();
+  }
+}

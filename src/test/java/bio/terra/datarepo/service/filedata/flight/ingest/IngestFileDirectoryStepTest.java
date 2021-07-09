@@ -1,0 +1,67 @@
+package bio.terra.datarepo.service.filedata.flight.ingest;
+
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+
+import bio.terra.datarepo.common.category.Unit;
+import bio.terra.datarepo.service.dataset.Dataset;
+import bio.terra.datarepo.service.filedata.flight.FileMapKeys;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.datarepo.service.filedata.google.firestore.FireStoreUtils;
+import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.Stairway;
+import bio.terra.stairway.StepResult;
+import java.util.Collections;
+import java.util.UUID;
+import junit.framework.TestCase;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit4.SpringRunner;
+
+@RunWith(SpringRunner.class)
+@Category(Unit.class)
+public class IngestFileDirectoryStepTest extends TestCase {
+
+  @MockBean private FireStoreDao fireStoreDaoService;
+
+  @MockBean private FireStoreUtils fireStoreUtils;
+
+  @MockBean private Dataset dataset;
+
+  private final UUID fileUuid = UUID.randomUUID();
+
+  private void runTest(String ingestFileAction) throws Exception {
+    given(fireStoreDaoService.deleteDirectoryEntry(dataset, fileUuid.toString())).willReturn(true);
+
+    IngestFileDirectoryStep step =
+        new IngestFileDirectoryStep(fireStoreDaoService, fireStoreUtils, dataset);
+
+    FlightContext flightContext = new FlightContext(new FlightMap(), "", Collections.emptyList());
+    flightContext.getWorkingMap().put(FileMapKeys.FILE_ID, fileUuid.toString());
+    flightContext.getWorkingMap().put(FileMapKeys.INGEST_FILE_ACTION, ingestFileAction);
+    flightContext.setStairway(mock(Stairway.class));
+
+    assertEquals(StepResult.getStepResultSuccess(), step.undoStep(flightContext));
+  }
+
+  @Test
+  public void testCreateEntryUndoStep() throws Exception {
+    runTest("createEntry");
+
+    // Verify that the delete was called on createEntry undo.
+    verify(fireStoreDaoService).deleteDirectoryEntry(dataset, fileUuid.toString());
+  }
+
+  @Test
+  public void testCheckEntryUndoStep() throws Exception {
+    runTest("checkEntry");
+
+    // Verify that the delete was not called on checkEntry undo.
+    verify(fireStoreDaoService, never()).deleteDirectoryEntry(dataset, fileUuid.toString());
+  }
+}

@@ -33,10 +33,10 @@ logger("io.swagger.models.parameters.AbstractSerializableParameter", ERROR)
 
 // enable the next 4 lines to see acl and policies
 /*
-logger("bio.terra.service.dataset.flight.create.CreateDatasetAuthzIamStep", DEBUG);
-logger("bio.terra.service.dataset.flight.create.CreateDatasetAuthzPrimaryDataStep", DEBUG);
-logger("bio.terra.service.iam.sam.SamIam", DEBUG);
-logger("bio.terra.service.tabulardata.google.BigQueryProject", DEBUG);
+logger("bio.terra.datarepo.service.dataset.flight.create.CreateDatasetAuthzIamStep", DEBUG);
+logger("bio.terra.datarepo.service.dataset.flight.create.CreateDatasetAuthzPrimaryDataStep", DEBUG);
+logger("bio.terra.datarepo.service.iam.sam.SamIam", DEBUG);
+logger("bio.terra.datarepo.service.tabulardata.google.BigQueryProject", DEBUG);
 */
 
 // root sets the default logging level and appenders

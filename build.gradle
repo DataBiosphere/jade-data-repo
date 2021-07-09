@@ -131,7 +131,7 @@ tasks.withType(JacocoReport) {
 
     afterEvaluate {
         classDirectories.setFrom(files(classDirectories.files.collect {
-            fileTree(dir: it, exclude: ['bio/terra/grammar/**'])
+            fileTree(dir: it, exclude: ['bio/terra/datarepo/grammar/**'])
         }))
     }
 }
@@ -309,9 +309,10 @@ swaggerSources {
             outputDir = file("${buildDir}/generated-src/swagger")
             components = ["models", "apis"]
             rawOptions = [
-                "--invoker-package", "bio.terra",
-                "--api-package", "bio.terra.controller",
-                "--model-package", "bio.terra.model",
+                "--invoker-package", "bio.terra.datarepo",
+                "--api-package", "bio.terra.datarepo.api",
+                "--model-package", "bio.terra.datarepo.model",
+                "--group-id", "bio.terra.datarepo",
                 "-D", "interfaceOnly=true," +
                     "useTags=true," +
                     "dateLibrary=java8"

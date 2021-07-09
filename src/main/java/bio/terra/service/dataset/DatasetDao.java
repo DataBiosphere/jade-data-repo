@@ -6,6 +6,7 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.exception.RetryQueryException;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.RepositoryStatusModelSystems;
 import bio.terra.model.SqlSortDirection;
@@ -30,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -62,10 +64,28 @@ public class DatasetDao {
           + "created_date, ";
 
   private static final String datasetStorageQuery =
-      "(SELECT jsonb_agg(sr) "
-          + "FROM (SELECT region, cloud_resource as \"cloudResource\", "
-          + "lower(cloud_platform) as \"cloudPlatform\", dataset_id as \"datasetId\" "
-          + "FROM storage_resource WHERE dataset_id = dataset.id) sr) AS storage ";
+      "(SELECT jsonb_agg(json_build_object( "
+          + "'region', region, "
+          + "'cloudResource', cloud_resource, "
+          + "'cloudPlatform', cloud_platform, "
+          + "'datasetId', dataset_id)) "
+          + "FROM storage_resource WHERE dataset_id = dataset.id) AS storage, ";
+
+  private static final String billingProfileQuery =
+      "(SELECT json_agg(json_build_object("
+          + "'id', id, "
+          + "'profileName', name, "
+          + "'biller', biller, "
+          + "'billingAccountId', billing_account_id, "
+          + "'description', description, "
+          + "'cloudPlatform', cloud_platform, "
+          + "'tenantId', tenant_id, "
+          + "'subscriptionId', subscription_id, "
+          + "'resourceGroupName', resource_group_name, "
+          + "'applicationDeploymentName', application_deployment_name, "
+          + "'createdDate', created_date, "
+          + "'createdBy', created_by)) "
+          + "FROM billing_profile where id = dataset.default_profile_id) AS billing_profiles ";
 
   @Autowired
   public DatasetDao(
@@ -76,7 +96,7 @@ public class DatasetDao {
       ConfigurationService configurationService,
       ResourceService resourceService,
       StorageResourceDao storageResourceDao,
-      ObjectMapper objectMapper)
+      @Qualifier("daoObjectMapper") ObjectMapper objectMapper)
       throws SQLException {
     this.jdbcTemplate = jdbcTemplate;
     this.tableDao = tableDao;
@@ -511,6 +531,7 @@ public class DatasetDao {
           "SELECT "
               + summaryQueryColumns
               + datasetStorageQuery
+              + billingProfileQuery
               + "FROM dataset WHERE dataset.id = :id";
       if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
         sql += " AND flightid IS NULL";
@@ -525,7 +546,11 @@ public class DatasetDao {
   public DatasetSummary retrieveSummaryByName(String name) {
     try {
       String sql =
-          "SELECT " + summaryQueryColumns + datasetStorageQuery + "FROM dataset WHERE name = :name";
+          "SELECT "
+              + summaryQueryColumns
+              + datasetStorageQuery
+              + billingProfileQuery
+              + "FROM dataset WHERE name = :name";
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
       return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
     } catch (EmptyResultDataAccessException ex) {
@@ -595,6 +620,7 @@ public class DatasetDao {
         "SELECT "
             + summaryQueryColumns
             + datasetStorageQuery
+            + billingProfileQuery
             + "FROM dataset "
             + whereSql
             + DaoUtils.orderByClause(sort, direction)
@@ -610,23 +636,33 @@ public class DatasetDao {
 
   private class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
     public DatasetSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+      UUID datasetId = rs.getObject("id", UUID.class);
       List<? extends StorageResource<?, ?>> storageResources;
       try {
         storageResources =
             objectMapper.readValue(rs.getString("storage"), new TypeReference<>() {});
       } catch (JsonProcessingException e) {
         throw new CorruptMetadataException(
-            String.format("Invalid storage for dataset - id: %s", rs.getString("id")), e);
+            String.format("Invalid storage for dataset - id: %s", datasetId), e);
+      }
+      final List<BillingProfileModel> billingProfileModels;
+      try {
+        billingProfileModels =
+            objectMapper.readValue(rs.getString("billing_profiles"), new TypeReference<>() {});
+      } catch (JsonProcessingException e) {
+        throw new CorruptMetadataException(
+            String.format("Invalid billing profiles for dataset - id: %s", datasetId), e);
       }
       return new DatasetSummary()
-          .id(rs.getObject("id", UUID.class))
+          .id(datasetId)
           .name(rs.getString("name"))
           .description(rs.getString("description"))
           .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
           .projectResourceId(rs.getObject("project_resource_id", UUID.class))
           .applicationDeploymentResourceId(rs.getObject("application_resource_id", UUID.class))
           .createdDate(rs.getTimestamp("created_date").toInstant())
-          .storage(storageResources);
+          .storage(storageResources)
+          .billingProfiles(billingProfileModels);
     }
   }
 

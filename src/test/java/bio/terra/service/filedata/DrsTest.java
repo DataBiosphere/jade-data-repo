@@ -3,7 +3,6 @@ package bio.terra.service.filedata;
 import static bio.terra.service.resourcemanagement.ResourceService.BQ_JOB_USER_ROLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -382,7 +381,10 @@ public class DrsTest extends UsersBase {
   private void validateDoesNotContainAcls(List<Acl> acls) {
     final Collection<String> entities =
         CollectionUtils.collect(acls, a -> a.getEntity().toString());
-    assertThat("Doesn't have custodian ACLs", entities, not(empty()));
+    assertThat(
+        "Doesn't have custodian ACLs",
+        entities,
+        not(hasItem(String.format("group-%s", snapshotIamRoles.get(IamRole.CUSTODIAN)))));
     assertThat(
         "Doesn't have reader ACLs",
         entities,

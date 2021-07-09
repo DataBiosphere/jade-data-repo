@@ -440,14 +440,14 @@ spotless {
 // connected tests and running all of the tests.
 test {
     useJUnit {
-        includeCategories 'bio.terra.common.category.Unit'
+        includeCategories 'bio.terra.datarepo.common.category.Unit'
     }
     outputs.upToDateWhen { false }
 }
 
 task testConnected(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.common.category.Connected'
+        includeCategories 'bio.terra.datarepo.common.category.Connected'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
@@ -462,7 +462,7 @@ task testConnected(type: Test) {
 
 task testIntegration(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.common.category.Integration'
+        includeCategories 'bio.terra.datarepo.common.category.Integration'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
@@ -476,14 +476,14 @@ task testIntegration(type: Test) {
 
 task testUnit(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.common.category.Unit'
+        includeCategories 'bio.terra.datarepo.common.category.Unit'
     }
     outputs.upToDateWhen { false }
 }
 
 task testOnDemand(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.common.category.OnDemand'
+        includeCategories 'bio.terra.datarepo.common.category.OnDemand'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
@@ -494,7 +494,7 @@ task testOnDemand(type: Test) {
 task testAll(type: Test) {
     useJUnit {
         // Note: explicitly not including OnDemand tests
-        includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
+        includeCategories 'bio.terra.datarepo.common.category.Connected', 'bio.terra.datarepo.common.category.Unit'
     }
     outputs.upToDateWhen { false }
 }

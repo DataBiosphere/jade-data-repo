@@ -98,7 +98,7 @@ done
 
 
 if [[ -z ${NAMESPACE} ]] && ! ${LOCAL}; then
-    stderr "Must provide a namespace using the '-n' option or use -l for local database"
+    stderr "Must provide a namespace using the '-n' option or use '-l' for local database"
     exit 1
 fi
 

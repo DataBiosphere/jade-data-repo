@@ -85,18 +85,12 @@ public class DrsTest extends UsersBase {
 
   private static final Logger logger = LoggerFactory.getLogger(DrsTest.class);
 
-  @Autowired
-  private DataRepoClient dataRepoClient;
-  @Autowired
-  private DataRepoFixtures dataRepoFixtures;
-  @Autowired
-  private EncodeFixture encodeFixture;
-  @Autowired
-  private AuthService authService;
-  @Autowired
-  private IamService iamService;
-  @Autowired
-  private ConfigurationService configurationService;
+  @Autowired private DataRepoClient dataRepoClient;
+  @Autowired private DataRepoFixtures dataRepoFixtures;
+  @Autowired private EncodeFixture encodeFixture;
+  @Autowired private AuthService authService;
+  @Autowired private IamService iamService;
+  @Autowired private ConfigurationService configurationService;
 
   private String custodianToken;
   private SnapshotModel snapshotModel;
@@ -205,11 +199,11 @@ public class DrsTest extends UsersBase {
 
     try (CloseableHttpClient client = HttpClients.createDefault()) {
       HttpUriRequest request = new HttpHead(drsAccessURL.getUrl());
-      try (CloseableHttpResponse response = client.execute(request);) {
+      try (CloseableHttpResponse response = client.execute(request); ) {
         assertThat(
-            "Drs signed URL is accessible", response.getStatusLine().getStatusCode(),
-            equalTo(HttpStatus.OK
-                .value()));
+            "Drs signed URL is accessible",
+            response.getStatusLine().getStatusCode(),
+            equalTo(HttpStatus.OK.value()));
       }
     }
 
@@ -407,9 +401,7 @@ public class DrsTest extends UsersBase {
     return StringUtils.join(pathParts, '/', 0, endIndex);
   }
 
-  /**
-   * Given a set of file ACLs, make sure that the expected policy ACLs are present
-   */
+  /** Given a set of file ACLs, make sure that the expected policy ACLs are present */
   private void validateContainsAcls(List<Acl> acls) {
     final Collection<String> entities =
         CollectionUtils.collect(acls, a -> a.getEntity().toString());
@@ -423,9 +415,7 @@ public class DrsTest extends UsersBase {
         hasItem(String.format("group-%s", snapshotIamRoles.get(IamRole.READER))));
   }
 
-  /**
-   * Given a set of file ACLs, make sure that the expected policy ACLs are present
-   */
+  /** Given a set of file ACLs, make sure that the expected policy ACLs are present */
   private void validateDoesNotContainAcls(List<Acl> acls) {
     final Collection<String> entities =
         CollectionUtils.collect(acls, a -> a.getEntity().toString());
@@ -436,9 +426,7 @@ public class DrsTest extends UsersBase {
         not(hasItem(String.format("group-%s", snapshotIamRoles.get(IamRole.READER)))));
   }
 
-  /**
-   * Verify that the specified member emails all have the BQ job user role in the data project
-   */
+  /** Verify that the specified member emails all have the BQ job user role in the data project */
   private void validateBQJobUserRolePresent(Collection<String> members)
       throws GeneralSecurityException, IOException {
     List<Binding> bindings = TestUtils.getPolicy(snapshotModel.getDataProject()).getBindings();

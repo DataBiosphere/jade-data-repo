@@ -118,14 +118,14 @@ public class DrsService {
   /**
    * Look up the DRS object for a DRS object ID.
    *
-   * @param authUser    the user to authenticate this request for
+   * @param authUser the user to authenticate this request for
    * @param drsObjectId the object ID to look up
-   * @param expand      if false and drsObjectId refers to a bundle, then the returned array
-   *                    contains only those objects directly contained in the bundle
+   * @param expand if false and drsObjectId refers to a bundle, then the returned array contains
+   *     only those objects directly contained in the bundle
    * @return the DRS object for this ID
-   * @throws IllegalArgumentException  if there iis an issue with the object id
+   * @throws IllegalArgumentException if there iis an issue with the object id
    * @throws SnapshotNotFoundException if the snapshot for the DRS object cannot be found
-   * @throws TooManyRequestsException  if there are too many concurrent DRS lookup requests
+   * @throws TooManyRequestsException if there are too many concurrent DRS lookup requests
    */
   public DRSObject lookupObjectByDrsId(
       AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
@@ -200,8 +200,10 @@ public class DrsService {
 
     DRSAccessMethod matchingAccessMethod =
         getAccessMethodMatchingAccessId(accessId, drsObject)
-            .orElseThrow(() -> new IllegalArgumentException(
-                "No matching access ID " + accessId + " was found on object " + objectId));
+            .orElseThrow(
+                () ->
+                    new IllegalArgumentException(
+                        "No matching access ID " + accessId + " was found on object " + objectId));
 
     Storage storage =
         StorageOptions.newBuilder()

@@ -28,9 +28,9 @@ import org.springframework.test.context.junit4.SpringRunner;
  * Note: To run these tests the following must be set:
  *
  * <UL>
- *   <LI>AZURE_CREDENTIALS_APPLICATIONID
- *   <LI>AZURE_CREDENTIALS_HOMETENANTID
- *   <LI>AZURE_CREDENTIALS_SECRET
+ *   <LI>AZURE_CREDENTIALS_APPLICATIONID</LI>
+ *   <LI>AZURE_CREDENTIALS_HOMETENANTID</LI>
+ *   <LI>AZURE_CREDENTIALS_SECRET</LI>
  * </UL>
  *
  * Where AZURE_CREDENTIALS_HOMETENANTID must be the tenant of the source and destination storage

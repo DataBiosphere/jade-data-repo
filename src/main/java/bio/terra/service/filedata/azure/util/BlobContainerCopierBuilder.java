@@ -78,7 +78,7 @@ public final class BlobContainerCopierBuilder {
 
     if (Strings.isEmpty(permissions) || !permissions.contains("r")) {
       throw new IllegalArgumentException(
-          appendBlobGuidanceToErrorMessage("List permission is required."));
+          appendBlobGuidanceToErrorMessage("Read permission is required."));
     }
 
     this.sourceBlobUrl = url;
@@ -118,7 +118,7 @@ public final class BlobContainerCopierBuilder {
     return this;
   }
 
-  public BlobContainerCopier buildCopier() {
+  public BlobContainerCopier build() {
     BlobContainerCopier copier = new BlobContainerCopier(this.destinationClientFactory);
 
     copier.setPollingInterval(this.pollingInterval);

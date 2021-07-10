@@ -36,7 +36,7 @@ public class BlobCrl {
         .destinationClientFactory(this.blobContainerClientFactory)
         .sourceClientFactory(clientFactory)
         .sourceContainerPrefix(blobPrefix)
-        .buildCopier();
+        .build();
   }
 
   /**
@@ -54,7 +54,7 @@ public class BlobCrl {
         .destinationClientFactory(this.blobContainerClientFactory)
         .sourceClientFactory(clientFactory)
         .sourceDestinationPairs(pairs)
-        .buildCopier();
+        .build();
   }
 
   /**
@@ -79,7 +79,7 @@ public class BlobCrl {
         .sourceClientFactory(clientFactory)
         .sourceDestinationPairs(
             Arrays.asList(new BlobCopySourceDestinationPair(sourceBlobName, destinationBlobName)))
-        .buildCopier();
+        .build();
   }
 
   /**
@@ -104,7 +104,7 @@ public class BlobCrl {
                     "Source Blob URL is null. It must be a valid URL with read permissions")
                 .toString())
         .destinationBlobName(destinationBlobName)
-        .buildCopier();
+        .build();
   }
 
   /**

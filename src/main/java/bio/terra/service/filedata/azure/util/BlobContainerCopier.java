@@ -211,12 +211,8 @@ public class BlobContainerCopier {
   }
 
   private boolean isSourceBlobEmpty(String sourceName) {
-    return this.sourceClientFactory
-            .getBlobContainerClient()
-            .getBlobClient(sourceName)
-            .getProperties()
-            .getBlobSize()
-        == 0;
+    BlobClient client = this.sourceClientFactory.getBlobContainerClient().getBlobClient(sourceName);
+    return client.getProperties().getBlobSize() == 0;
   }
 
   private ListBlobsOptions createListBlobsOptions(String blobPrefix) {

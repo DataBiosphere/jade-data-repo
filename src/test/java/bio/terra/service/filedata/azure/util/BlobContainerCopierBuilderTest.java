@@ -28,7 +28,7 @@ public class BlobContainerCopierBuilderTest {
         new BlobContainerCopierBuilder()
             .sourceClientFactory(sourceFactory)
             .destinationClientFactory(destinationFactory)
-            .buildCopier();
+            .build();
 
     assertThat(
         copier,
@@ -45,7 +45,7 @@ public class BlobContainerCopierBuilderTest {
             .sourceClientFactory(sourceFactory)
             .destinationClientFactory(destinationFactory)
             .sourceDestinationPairs(pairs)
-            .buildCopier();
+            .build();
 
     assertThat(
         copier,
@@ -66,7 +66,7 @@ public class BlobContainerCopierBuilderTest {
             .sourceBlobUrl(sourceBlobUrl)
             .destinationBlobName(destinationBlobName)
             .destinationClientFactory(destinationFactory)
-            .buildCopier();
+            .build();
 
     assertThat(
         copier,
@@ -78,7 +78,6 @@ public class BlobContainerCopierBuilderTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void testSourceFactoryIsMissing_ThrowsIllegalArgumentException() {
-    copier =
-        new BlobContainerCopierBuilder().destinationClientFactory(destinationFactory).buildCopier();
+    copier = new BlobContainerCopierBuilder().destinationClientFactory(destinationFactory).build();
   }
 }

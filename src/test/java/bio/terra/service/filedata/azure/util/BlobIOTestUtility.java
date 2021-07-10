@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.azure.util;
 
+import static bio.terra.service.resourcemanagement.AzureDataLocationSelector.armUniqueString;
+
 import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
@@ -16,6 +18,7 @@ import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.lang.RandomStringUtils;
 
 /**
  * Test component that facilitates the creation and deletion of data in Azure storage for testing
@@ -93,7 +96,7 @@ public class BlobIOTestUtility {
   }
 
   private String generateNewTempContainerName() {
-    return UUID.randomUUID().toString().toLowerCase().replace("-", "").substring(0, 30);
+    return armUniqueString(RandomStringUtils.random(10), 30);
   }
 
   public List<String> uploadSourceFiles(int numOfFiles, long length) {

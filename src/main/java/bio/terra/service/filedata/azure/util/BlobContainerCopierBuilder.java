@@ -14,20 +14,17 @@ public final class BlobContainerCopierBuilder {
   public static final int DEFAULT_POLLING_INTERVAL_IN_SECONDS = 5;
   private static final int MIN_POLLING_INTERVAL = 2;
   private static final int MIN_LIST_TIMEOUT = 10;
+  private static final String EMPTY_PREFIX = "";
 
   private BlobContainerClientFactory sourceClientFactory;
   private BlobContainerClientFactory destinationClientFactory;
-  private String sourceContainerPrefix;
+  private String sourceContainerPrefix = EMPTY_PREFIX;
   private String sourceBlobUrl;
   private Duration pollingInterval = Duration.ofSeconds(DEFAULT_POLLING_INTERVAL_IN_SECONDS);
   private Duration listOperationTimeout =
       Duration.ofSeconds(DEFAULT_LIST_OPERATION_TIMEOUT_IN_SECONDS);
   private List<BlobCopySourceDestinationPair> sourceDestinationPairs;
   private String destinationBlobName;
-
-  public BlobContainerCopierBuilder() {
-    this.sourceContainerPrefix = "";
-  }
 
   public BlobContainerCopierBuilder destinationBlobName(String destinationBlobName) {
     this.destinationBlobName = destinationBlobName;

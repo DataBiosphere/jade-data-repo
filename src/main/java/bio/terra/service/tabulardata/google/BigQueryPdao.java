@@ -1524,7 +1524,10 @@ public class BigQueryPdao {
   private void deleteViewAcls(
       String datasetBqDatasetName, Snapshot snapshot, String snapshotProjectId)
       throws InterruptedException {
-    BigQueryProject bigQueryProject = BigQueryProject.from(snapshot);
+    BigQueryProject bigQuerySnapshotProject = BigQueryProject.from(snapshot);
+    BigQueryProject bigQueryDatasetProject =
+        BigQueryProject.from(snapshot.getFirstSnapshotSource().getDataset());
+
     List<String> viewsToDelete =
         snapshot.getTables().stream()
             .map(
@@ -1551,7 +1554,8 @@ public class BigQueryPdao {
     viewsToDelete.forEach(
         tableName -> logger.info("Deleting ACLs for view " + snapshotName + "." + tableName));
     List<Acl> acls = convertToViewAcls(snapshotProjectId, snapshotName, viewsToDelete);
-    bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
+    bigQuerySnapshotProject.removeDatasetAcls(datasetBqDatasetName, acls);
+    bigQueryDatasetProject.removeDatasetAcls(datasetBqDatasetName, acls);
   }
 
   /*

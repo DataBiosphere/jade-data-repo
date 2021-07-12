@@ -122,14 +122,6 @@ public class BlobIOTestUtility {
     return blobName;
   }
 
-  public String getSourceContainerEndpoint() {
-    return this.sourceBlobContainerClient.getBlobContainerUrl();
-  }
-
-  public String getDestinationContainerEndpoint() {
-    return this.destinationBlobContainerClient.getBlobContainerUrl();
-  }
-
   private InputStream createInputStream(long length) {
     return new InputStream() {
       private long dataProduced;

@@ -256,7 +256,7 @@ public class FireStoreDirectoryDao {
     CollectionReference dirColl = firestore.collection(collectionId);
     Query query = dirColl.whereEqualTo("path", dirPath);
     FireStoreBatchQueryIterator queryIterator =
-        new FireStoreBatchQueryIterator(firestore, query, batchSize, fireStoreUtils);
+        new FireStoreBatchQueryIterator(query, batchSize, fireStoreUtils);
 
     List<FireStoreDirectoryEntry> entryList = new ArrayList<>();
     for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();

@@ -81,7 +81,7 @@ public class FireStoreDependencyDao {
     Query query = depColl.whereEqualTo("snapshotId", snapshotId);
     int batchSize = configurationService.getParameterValue(FIRESTORE_QUERY_BATCH_SIZE);
     FireStoreBatchQueryIterator queryIterator =
-        new FireStoreBatchQueryIterator(firestore, query, batchSize, fireStoreUtils);
+        new FireStoreBatchQueryIterator(query, batchSize, fireStoreUtils);
 
     List<String> fileIds = new ArrayList<>();
     for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
@@ -188,7 +188,7 @@ public class FireStoreDependencyDao {
 
     // TODO - Could we just use scan collections instead?
     FireStoreBatchQueryIterator queryIterator =
-        new FireStoreBatchQueryIterator(firestore, query, batchSize, fireStoreUtils);
+        new FireStoreBatchQueryIterator(query, batchSize, fireStoreUtils);
 
     for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
         !batch.isEmpty();

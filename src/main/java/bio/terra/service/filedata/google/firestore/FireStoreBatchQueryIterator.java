@@ -24,9 +24,9 @@ public class FireStoreBatchQueryIterator {
    * @param batchSize the size of batches to request
    */
   public FireStoreBatchQueryIterator(
-      Firestore firestore, Query baseQuery, int batchSize, FireStoreUtils fireStoreUtils) {
-    this.firestore = firestore;
+      Query baseQuery, int batchSize, FireStoreUtils fireStoreUtils) {
     this.baseQuery = baseQuery;
+    this.firestore = baseQuery.getFirestore();
     this.batchSize = batchSize;
     this.currentList = null;
     this.count = 0;
@@ -58,11 +58,12 @@ public class FireStoreBatchQueryIterator {
     logger.info("Retrieving batch {} with batch size of {}", count, batchSize);
     count++;
 
-    currentList = fireStoreUtils.runTransactionWithRetry(
-        firestore,
-        xn -> xn.get(query).get().getDocuments(),
-        "getBatch",
-        "Retrieving batch " + count + " with batch size of " + batchSize);
+    currentList =
+        fireStoreUtils.runTransactionWithRetry(
+            firestore,
+            xn -> xn.get(query).get().getDocuments(),
+            "getBatch",
+            "Retrieving batch " + count + " with batch size of " + batchSize);
 
     return currentList;
   }

@@ -66,7 +66,7 @@ public class FireStoreBatchQueryIterator {
             "Retrieving batch " + count + " with batch size of " + batchSize);
 
     if (currentList.size() == 0) {
-      // Nothing to return so we at the end of the iteration
+      // Nothing to return so we're at the end of the iteration
       return null;
     }
     return currentList;

@@ -58,17 +58,12 @@ public class FireStoreBatchQueryIterator {
     logger.info("Retrieving batch {} with batch size of {}", count, batchSize);
     count++;
 
-    currentList =
-        fireStoreUtils.runTransactionWithRetry(
-            firestore,
-            xn -> xn.get(query).get().getDocuments(),
-            "getBatch",
-            "Retrieving batch " + count + " with batch size of " + batchSize);
+    currentList = fireStoreUtils.runTransactionWithRetry(
+        firestore,
+        xn -> xn.get(query).get().getDocuments(),
+        "getBatch",
+        "Retrieving batch " + count + " with batch size of " + batchSize);
 
-    if (currentList.size() == 0) {
-      // Nothing to return so we're at the end of the iteration
-      return null;
-    }
     return currentList;
   }
 }

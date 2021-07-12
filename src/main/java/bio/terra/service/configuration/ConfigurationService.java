@@ -54,6 +54,7 @@ import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
+import bio.terra.model.ConfigParameterModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import bio.terra.service.configuration.exception.DuplicateConfigNameException;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
@@ -115,7 +116,7 @@ public class ConfigurationService {
 
   public void setConfigParameterValue(ConfigEnum config, String newValue, String label) {
     ConfigModel retryConfigModel =
-         new ConfigModel()
+        new ConfigModel()
             .name(config.name())
             .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
             .parameter(new ConfigParameterModel().value(newValue));

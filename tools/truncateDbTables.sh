@@ -15,7 +15,7 @@ declare PROXY_COMMAND_PID=""
 function finish {
   unset PGPASSWORD
 
-  if ps -p "${PROXY_COMMAND_PID}" > /dev/null; then
+  if ! ${LOCAL} && ps -p "${PROXY_COMMAND_PID}" > /dev/null; then
     kill "${PROXY_COMMAND_PID}"
   fi
 }

@@ -114,14 +114,12 @@ public class ConfigurationService {
   }
 
   public void setConfigParameterValue(ConfigEnum config, String newValue, String label) {
-    bio.terra.model.ConfigModel retryConfigModel =
-        new bio.terra.model.ConfigModel()
+    ConfigModel retryConfigModel =
+         new ConfigModel()
             .name(config.name())
-            .configType(bio.terra.model.ConfigModel.ConfigTypeEnum.PARAMETER)
-            .parameter(new bio.terra.model.ConfigParameterModel().value(newValue));
-    ConfigGroupModel group =
-        new bio.terra.model.ConfigGroupModel().label(label).addGroupItem(retryConfigModel);
-    setConfig(group);
+            .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
+            .parameter(new ConfigParameterModel().value(newValue));
+    setConfig(new ConfigGroupModel().label(label).addGroupItem(retryConfigModel));
   }
 
   public ConfigModel getConfig(String name) {

@@ -1,7 +1,7 @@
 package bio.terra.service.dataset;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.category.Unit;

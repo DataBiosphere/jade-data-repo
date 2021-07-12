@@ -15,6 +15,14 @@ trim_trailing_whitespace=true
 insert_final_newline=true
 indent_style=space
 indent_size=4
+max_line_length = 100
+ij_visual_guides = 100
+
+[*.java]
+indent_size = 2
+ij_continuation_indent_size = 4
+ij_java_indent_case_from_switch = true
+ij_java_wrap_comments = true
 
 [*.json]
 indent_style=space

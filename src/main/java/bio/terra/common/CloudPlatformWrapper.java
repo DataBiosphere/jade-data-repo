@@ -52,14 +52,29 @@ public abstract class CloudPlatformWrapper {
     }
   }
 
+  public abstract boolean is(CloudPlatform cloudPlatform);
+
   public abstract List<? extends StorageResource<?, ?>> createStorageResourceValues(
       DatasetRequestModel datasetRequest);
+
+  // This doesn't really do anything for now, but as we move more things into Azure,
+  // It will be helpful to use this to grab just the GCP resources we're still using.
+  public static List<? extends StorageResource<?, ?>> getGoogleResourcesForAzure(
+      DatasetRequestModel datasetRequestModel) {
+    return CloudPlatformWrapper.of(CloudPlatform.GCP)
+        .createStorageResourceValues(datasetRequestModel);
+  }
 
   public abstract GoogleRegion getGoogleRegionFromDatasetRequestModel(
       DatasetRequestModel datasetRequestModel);
 
   static class GcpPlatform extends CloudPlatformWrapper {
     static final GcpPlatform INSTANCE = new GcpPlatform();
+
+    @Override
+    public boolean is(CloudPlatform cloudPlatform) {
+      return cloudPlatform == CloudPlatform.GCP;
+    }
 
     @Override
     public boolean isGcp() {
@@ -105,6 +120,11 @@ public abstract class CloudPlatformWrapper {
     static final AzurePlatform INSTANCE = new AzurePlatform();
 
     @Override
+    public boolean is(CloudPlatform cloudPlatform) {
+      return cloudPlatform == CloudPlatform.AZURE;
+    }
+
+    @Override
     public boolean isAzure() {
       return true;
     }
@@ -120,11 +140,10 @@ public abstract class CloudPlatformWrapper {
       final AzureRegion region = AzureRegion.fromValueWithDefault(datasetRequest.getRegion());
       // TODO: once we no longer require GCP resources to back Azure datasets, stop concatenating
       return Stream.concat(
-              Arrays.stream(AzureCloudResource.values())
+              Stream.of(
+                      AzureCloudResource.APPLICATION_DEPLOYMENT, AzureCloudResource.STORAGE_ACCOUNT)
                   .map(resource -> new AzureStorageResource(null, resource, region)),
-              CloudPlatformWrapper.of(CloudPlatform.GCP)
-                  .createStorageResourceValues(datasetRequest)
-                  .stream())
+              CloudPlatformWrapper.getGoogleResourcesForAzure(datasetRequest).stream())
           .collect(Collectors.toList());
     }
 

@@ -1,7 +1,10 @@
 package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -288,6 +291,16 @@ public class DatasetDaoTest {
             region,
             equalTo(testSettingRegion));
       }
+
+      assertThat(
+          "dataset has billing profiles returned from the database",
+          fromDB.getDatasetSummary().getBillingProfiles(),
+          is(not(empty())));
+
+      assertThat(
+          "dataset default Billing Profile matches default profile id",
+          fromDB.getDatasetSummary().getDefaultBillingProfile().getId(),
+          equalTo(fromDB.getDatasetSummary().getDefaultProfileId()));
     } finally {
       datasetDao.delete(datasetId);
     }

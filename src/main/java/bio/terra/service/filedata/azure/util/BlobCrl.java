@@ -86,15 +86,13 @@ public class BlobCrl {
    * Creates a new instance of {@link BlobContainerCopier} that uses the {@link
    * BlobContainerClientFactory} specified in the constructor as the destination storage account.
    *
-   * @param clientFactory client factory of the source storage account and container.
    * @param sourceUrl source blob URL. The URL must include in the query string a SAS token with
    *     read access.
    * @param destinationBlobName destination blob name. If null or empty the source name will be
    *     used.
    * @return new instance of {@link BlobContainerClientFactory}.
    */
-  public BlobContainerCopier createBlobContainerCopier(
-      BlobContainerClientFactory clientFactory, URL sourceUrl, String destinationBlobName) {
+  public BlobContainerCopier createBlobContainerCopier(URL sourceUrl, String destinationBlobName) {
 
     return new BlobContainerCopierBuilder()
         .destinationClientFactory(this.blobContainerClientFactory)

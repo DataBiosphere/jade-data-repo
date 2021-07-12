@@ -28,12 +28,8 @@ import org.springframework.test.context.junit4.SpringRunner;
  *
  * <UL>
  *   <LI>AZURE_CREDENTIALS_APPLICATIONID
- *   <LI>AZURE_CREDENTIALS_HOMETENANTID
  *   <LI>AZURE_CREDENTIALS_SECRET
  * </UL>
- *
- * Where AZURE_CREDENTIALS_HOMETENANTID must be the tenant of the source and destination storage
- * accounts.
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -65,7 +61,7 @@ public class BlobContainerClientFactoryTest {
     tokenCredential =
         azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId());
     containerName = blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();
-    blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).stream().findFirst().get();
+    blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).iterator().next();
   }
 
   @After
@@ -112,9 +108,7 @@ public class BlobContainerClientFactoryTest {
   private BlobClient getBlobClientFromUrl(String blobUrl) {
     BlobUrlParts parts = BlobUrlParts.parse(blobUrl);
 
-    BlobClient blobClient =
-        new BlobClientBuilder().endpoint(parts.toUrl().toString()).buildClient();
-    return blobClient;
+    return new BlobClientBuilder().endpoint(parts.toUrl().toString()).buildClient();
   }
 
   private String getSourceStorageAccountPrimarySharedKey() {
@@ -129,9 +123,8 @@ public class BlobContainerClientFactoryTest {
             this.connectedTestConfiguration.getTargetResourceGroupName(),
             this.connectedTestConfiguration.getSourceStorageAccountName())
         .getKeys()
-        .stream()
-        .findFirst()
-        .get()
+        .iterator()
+        .next()
         .value();
   }
 }

@@ -133,7 +133,7 @@ public class BlobIOTestUtility {
   private InputStream createInputStream(long length) {
     return new InputStream() {
       private long dataProduced;
-      private Random rand = new Random();
+      private final Random rand = new Random();
 
       @Override
       public int read() throws IOException {

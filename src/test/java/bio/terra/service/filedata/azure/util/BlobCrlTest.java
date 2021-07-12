@@ -25,12 +25,8 @@ import org.springframework.test.context.junit4.SpringRunner;
  *
  * <UL>
  *   <LI>AZURE_CREDENTIALS_APPLICATIONID
- *   <LI>AZURE_CREDENTIALS_HOMETENANTID
  *   <LI>AZURE_CREDENTIALS_SECRET
  * </UL>
- *
- * Where AZURE_CREDENTIALS_HOMETENANTID must be the tenant of the source and destination storage
- * accounts.
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest

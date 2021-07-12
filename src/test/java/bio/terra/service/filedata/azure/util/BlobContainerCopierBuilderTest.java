@@ -58,7 +58,7 @@ public class BlobContainerCopierBuilderTest {
   @Test
   public void testBuildCopierUsingSourceBlobUrlAndDestinationFactories_CopierIsBuilt() {
 
-    String sourceBlobUrl = "http://mytest.blob.core.windows.net/mytest/test?sp=rl";
+    String sourceBlobUrl = "https://mytest.blob.core.windows.net/mytest/test?sp=rl";
     String destinationBlobName = "destBlobName";
 
     copier =

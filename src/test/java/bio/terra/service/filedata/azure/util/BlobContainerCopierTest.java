@@ -29,12 +29,8 @@ import org.springframework.test.context.junit4.SpringRunner;
  *
  * <UL>
  *   <LI>AZURE_CREDENTIALS_APPLICATIONID
- *   <LI>AZURE_CREDENTIALS_HOMETENANTID
  *   <LI>AZURE_CREDENTIALS_SECRET
  * </UL>
- *
- * Where AZURE_CREDENTIALS_HOMETENANTID must be the tenant of the source and destination storage
- * accounts.
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -93,7 +89,7 @@ public class BlobContainerCopierTest {
   }
 
   private void testCopySingleFile_FileIsCopied_Impl(BlobContainerCopier copier) {
-    String blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).stream().findFirst().get();
+    String blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).iterator().next();
 
     BlobCopySourceDestinationPair pair = new BlobCopySourceDestinationPair(blobName, "");
     copier.setSourceDestinationPairs(Collections.singletonList(pair));
@@ -164,7 +160,7 @@ public class BlobContainerCopierTest {
 
   @Test
   public void testCopySingleBlobWithSignedURl_FileIsCopied() {
-    String blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).stream().findFirst().get();
+    String blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).iterator().next();
 
     BlobContainerClientFactory sourceFactory = createSourceClientFactoryWithSharedKey();
 
@@ -181,7 +177,7 @@ public class BlobContainerCopierTest {
 
   @Test
   public void testCopySingleBLobWithSignedURlAndDestinationName_FileCopiedWithDestinationName() {
-    String blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).stream().findFirst().get();
+    String blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).iterator().next();
     String destinationBlobName = "myBlob";
     BlobContainerClientFactory sourceFactory = createSourceClientFactoryWithSharedKey();
 
@@ -211,9 +207,8 @@ public class BlobContainerCopierTest {
             this.connectedTestConfiguration.getTargetResourceGroupName(),
             this.connectedTestConfiguration.getSourceStorageAccountName())
         .getKeys()
-        .stream()
-        .findFirst()
-        .get()
+        .iterator()
+        .next()
         .value();
   }
 

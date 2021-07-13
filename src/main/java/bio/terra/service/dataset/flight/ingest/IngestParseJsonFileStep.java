@@ -5,29 +5,25 @@ import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class IngestParseJsonFileStep implements Step {
-  private Logger logger = LoggerFactory.getLogger("bio.terra.service.dataset.flight.ingest");
 
   private final GcsPdao gcsPdao;
   private final DatasetService datasetService;
@@ -51,9 +47,7 @@ public class IngestParseJsonFileStep implements Step {
         .map(Column::getName)
         .collect(Collectors.toList());
     try {
-      List <UUID> fileIds = new ArrayList<>();
-      List <BulkLoadFileModel> bulkLoadFileModels = new ArrayList<>();
-      gcsFileLines.stream()
+      Set<BulkLoadFileModel> bulkLoadFileModels = gcsFileLines.stream()
           .map(content -> {
             try {
               return objectMapper.readTree(content);
@@ -61,19 +55,19 @@ public class IngestParseJsonFileStep implements Step {
               throw new RuntimeException(e);
             }
           })
-          .forEach(node -> {
-            for (var columnName : fileRefColumnNames) {
-              JsonNode fileRefNode = node.get(columnName);
-              if (fileRefNode.isObject()) {
-                bulkLoadFileModels.add(objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
-              } else {
-                fileIds.add(UUID.fromString(fileRefNode.asText()));
-              }
-            }
-          });
+          .flatMap(node -> fileRefColumnNames.stream()
+              .map(columnName -> {
+                JsonNode fileRefNode = node.get(columnName);
+                if (fileRefNode.isObject()) {
+                  return Optional.of(objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
+                } else {
+                  return Optional.<BulkLoadFileModel>empty();
+                }
+              }).filter(Optional::isPresent)
+              .map(Optional::get))
+          .collect(Collectors.toSet());
 
       var workingMap = flightContext.getWorkingMap();
-      workingMap.put(IngestMapKeys.FILE_IDS, fileIds);
       workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, bulkLoadFileModels);
 
       return StepResult.getStepResultSuccess();
@@ -81,7 +75,6 @@ public class IngestParseJsonFileStep implements Step {
     } catch (Exception ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
-
   }
 
   @Override

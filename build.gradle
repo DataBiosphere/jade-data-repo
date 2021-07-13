@@ -42,7 +42,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.128.0-SNAPSHOT'
+    version '1.134.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -425,8 +425,7 @@ liquibase {
 spotless {
     java {
         target project.fileTree(project.rootDir) {
-            include '**/*.java'
-            exclude 'build/**/*.*'
+            include 'src/**/*.java'
         }
         googleJavaFormat()
     }
@@ -501,5 +500,13 @@ compileGeneratedJava.dependsOn swaggerSources.server.code
 compileGeneratedJava.dependsOn generateGrammarSource
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava
-compileJava.dependsOn spotlessApply
 ideaModule.dependsOn swaggerSources.server.code
+
+// Run spotless check when running in github actions, otherwise run spotless apply.
+compileJava {
+    if (System.getenv('CI')) {
+        dependsOn(spotlessCheck)
+    } else {
+        dependsOn(spotlessApply)
+    }
+}

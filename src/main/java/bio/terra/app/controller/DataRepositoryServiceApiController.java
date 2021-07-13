@@ -2,7 +2,6 @@ package bio.terra.app.controller;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
-import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
@@ -129,8 +128,9 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
   @Override
   public ResponseEntity<DRSAccessURL> getAccessURL(
       @PathVariable("object_id") String objectId, @PathVariable("access_id") String accessId) {
-    // We never give out access ids, so by definition, the input is invalid.
-    throw new ValidationException("Invalid access_id: '" + accessId + "'");
+    AuthenticatedUserRequest authUser = getAuthenticatedInfo();
+    DRSAccessURL accessURL = drsService.getAccessUrlForObjectId(authUser, objectId, accessId);
+    return new ResponseEntity<>(accessURL, HttpStatus.OK);
   }
 
   @Override

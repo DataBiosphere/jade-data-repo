@@ -70,6 +70,7 @@ public class FileIngestFlight extends Flight {
     // The flight plan:
     // 0. Make sure this user is allowed to use the billing profile and that the underlying
     //    billing information remains valid.
+    // 0a. Check to see if this is an Azure billing profile and fail until it's implemented.
     // 1. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted
     // while this
     //    flight is running.
@@ -108,6 +109,7 @@ public class FileIngestFlight extends Flight {
     // 9. Unlock the load tag
     // 10. Unlock the dataset
     addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
+    addStep(new IngestFileValidateCloudPlatformStep(dataset));
     addStep(new LockDatasetStep(datasetDao, datasetId, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
     addStep(new IngestFileIdStep(configService));

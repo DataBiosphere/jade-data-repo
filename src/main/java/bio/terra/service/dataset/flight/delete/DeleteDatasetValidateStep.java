@@ -31,7 +31,7 @@ public class DeleteDatasetValidateStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
+  public StepResult doStep(FlightContext context) throws InterruptedException {
     List<SnapshotSummary> snapshots = snapshotDao.retrieveSnapshotsForDataset(datasetId);
     Dataset dataset = datasetService.retrieve(datasetId);
 

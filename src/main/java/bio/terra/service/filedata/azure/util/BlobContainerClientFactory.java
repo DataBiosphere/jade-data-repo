@@ -27,7 +27,7 @@ public class BlobContainerClientFactory {
   private final BlobContainerClient blobContainerClient;
 
   private final SasTokenGeneratorStrategy sasTokenGeneratorStrategy;
-  private final AzureSasCredential blobContainerSASTokenCreds;
+  private final AzureSasCredential blobContainerSasTokenCreds;
   private BlobServiceClient blobServiceClient;
   private UserDelegationKey delegationKey;
 
@@ -49,7 +49,7 @@ public class BlobContainerClientFactory {
         createBlobServiceClientUsingSharedKey(accountName, accountKey)
             .getBlobContainerClient(containerName);
     sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.SharedKey;
-    blobContainerSASTokenCreds = null;
+    blobContainerSasTokenCreds = null;
   }
 
   public BlobContainerClientFactory(
@@ -70,14 +70,14 @@ public class BlobContainerClientFactory {
     blobContainerClient = blobServiceClient.getBlobContainerClient(containerName);
 
     sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.UserDelegatedKey;
-    blobContainerSASTokenCreds = null;
+    blobContainerSasTokenCreds = null;
   }
 
   public BlobContainerClientFactory(String containerURLWithSASToken) {
 
     BlobUrlParts blobUrl = BlobUrlParts.parse(containerURLWithSASToken);
 
-    blobContainerSASTokenCreds =
+    blobContainerSasTokenCreds =
         new AzureSasCredential(blobUrl.getCommonSasQueryParameters().encode());
     blobContainerClient =
         new BlobContainerClientBuilder()
@@ -88,7 +88,7 @@ public class BlobContainerClientFactory {
                     "https://%s/%s",
                     blobUrl.getHost(),
                     blobUrl.getBlobContainerName()))
-            .credential(this.blobContainerSASTokenCreds)
+            .credential(blobContainerSasTokenCreds)
             .buildClient();
 
     sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.ContainerSasToken;
@@ -136,7 +136,7 @@ public class BlobContainerClientFactory {
         "%s/%s?%s",
         blobContainerClient.getBlobContainerUrl(),
         blobName,
-        blobContainerSASTokenCreds.getSignature());
+        blobContainerSasTokenCreds.getSignature());
   }
 
   private String createReadOnlySasUrlForBlobUsingClient(String blobName) {

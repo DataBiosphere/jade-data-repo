@@ -5,6 +5,7 @@ import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.FutureUtils;
+import bio.terra.common.exception.DataRepoException;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoInvalidUriException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
@@ -17,14 +18,23 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+
+import java.io.IOException;
+import java.net.URI;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +44,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -76,6 +88,25 @@ public class GcsPdao {
 
   public Storage storageForBucket(GoogleBucketResource bucketResource) {
     return gcsProjectFactory.getStorage(bucketResource.projectIdForBucket());
+  }
+
+  public Storage applicationDefaultStorage() {
+    //TODO this should be cached
+    try {
+      return StorageOptions.newBuilder()
+          .setCredentials(ServiceAccountCredentials.getApplicationDefault())
+          .build().getService();
+    } catch (IOException ex) {
+      throw new GoogleResourceException("Could not get application default credentials", ex);
+    }
+  }
+
+  public List<String> getGcsFileLines(String path) {
+    GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
+    BlobInfo blobInfo =
+        BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
+    var contents = new String(applicationDefaultStorage().get(blobInfo.getBlobId()).getContent());
+    return Arrays.asList(contents.split("\n"));
   }
 
   public FSFileInfo copyFile(

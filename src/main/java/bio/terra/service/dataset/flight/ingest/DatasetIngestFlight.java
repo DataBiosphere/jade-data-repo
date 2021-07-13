@@ -9,6 +9,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
@@ -27,6 +28,7 @@ public class DatasetIngestFlight extends Flight {
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
+    GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
@@ -40,6 +42,7 @@ public class DatasetIngestFlight extends Flight {
 
     addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
     addStep(new IngestSetupStep(datasetService, configService));
+    addStep(new IngestParseJsonFileStep(gcsPdao, datasetService, appConfig.objectMapper()));
     addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
     addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
     addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));

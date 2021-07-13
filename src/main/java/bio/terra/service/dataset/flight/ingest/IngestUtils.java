@@ -11,6 +11,7 @@ import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import com.google.cloud.storage.Storage;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;

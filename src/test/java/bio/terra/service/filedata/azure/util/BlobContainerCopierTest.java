@@ -99,7 +99,7 @@ public class BlobContainerCopierTest {
     poller.waitForCompletion();
 
     assertThat(
-        this.blobIOTestUtility.getDestinationBlobContainerClient().getBlobClient(blobName).exists(),
+        blobIOTestUtility.getDestinationBlobContainerClient().getBlobClient(blobName).exists(),
         is(true));
   }
 
@@ -127,7 +127,7 @@ public class BlobContainerCopierTest {
     sourceDestinationPairs.forEach(
         b ->
             assertThat(
-                this.blobIOTestUtility
+                blobIOTestUtility
                     .getDestinationBlobContainerClient()
                     .getBlobClient(b.getDestinationBlobName())
                     .exists(),
@@ -151,10 +151,7 @@ public class BlobContainerCopierTest {
     blobs.forEach(
         b ->
             assertThat(
-                this.blobIOTestUtility
-                    .getDestinationBlobContainerClient()
-                    .getBlobClient(b)
-                    .exists(),
+                blobIOTestUtility.getDestinationBlobContainerClient().getBlobClient(b).exists(),
                 is(true)));
   }
 
@@ -166,12 +163,12 @@ public class BlobContainerCopierTest {
 
     BlobContainerCopier copier =
         new BlobContainerCopier(blobIOTestUtility.createDestinationClientFactory());
-    copier.setSourceBlobUrl(sourceFactory.createReadOnlySASUrlForBlob(blobName));
+    copier.setSourceBlobUrl(sourceFactory.createReadOnlySasUrlForBlob(blobName));
 
     copier.beginCopyOperation().waitForCompletion();
 
     assertThat(
-        this.blobIOTestUtility.getDestinationBlobContainerClient().getBlobClient(blobName).exists(),
+        blobIOTestUtility.getDestinationBlobContainerClient().getBlobClient(blobName).exists(),
         is(true));
   }
 
@@ -183,12 +180,12 @@ public class BlobContainerCopierTest {
 
     BlobContainerCopier copier =
         new BlobContainerCopier(blobIOTestUtility.createDestinationClientFactory());
-    copier.setSourceBlobUrl(sourceFactory.createReadOnlySASUrlForBlob(blobName));
+    copier.setSourceBlobUrl(sourceFactory.createReadOnlySasUrlForBlob(blobName));
     copier.setDestinationBlobName(destinationBlobName);
     copier.beginCopyOperation().waitForCompletion();
 
     assertThat(
-        this.blobIOTestUtility
+        blobIOTestUtility
             .getDestinationBlobContainerClient()
             .getBlobClient(destinationBlobName)
             .exists(),
@@ -197,15 +194,15 @@ public class BlobContainerCopierTest {
 
   private String getSourceStorageAccountPrimarySharedKey() {
     AzureResourceManager client =
-        this.azureResourceConfiguration.getClient(
-            this.connectedTestConfiguration.getTargetTenantId(),
-            this.connectedTestConfiguration.getTargetSubscriptionId());
+        azureResourceConfiguration.getClient(
+            connectedTestConfiguration.getTargetTenantId(),
+            connectedTestConfiguration.getTargetSubscriptionId());
 
     return client
         .storageAccounts()
         .getByResourceGroup(
-            this.connectedTestConfiguration.getTargetResourceGroupName(),
-            this.connectedTestConfiguration.getSourceStorageAccountName())
+            connectedTestConfiguration.getTargetResourceGroupName(),
+            connectedTestConfiguration.getSourceStorageAccountName())
         .getKeys()
         .iterator()
         .next()
@@ -225,9 +222,9 @@ public class BlobContainerCopierTest {
 
   private BlobContainerClientFactory createSourceClientFactoryWithSharedKey() {
     String sourceContainer =
-        this.blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();
+        blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();
     return new BlobContainerClientFactory(
-        this.connectedTestConfiguration.getSourceStorageAccountName(),
+        connectedTestConfiguration.getSourceStorageAccountName(),
         getSourceStorageAccountPrimarySharedKey(),
         sourceContainer);
   }
@@ -235,15 +232,14 @@ public class BlobContainerCopierTest {
   private BlobContainerCopier createBlobCopierWithTokenCredsInSource(Duration pollingInterval) {
 
     BlobContainerCopier copier =
-        new BlobContainerCopier(this.blobIOTestUtility.createDestinationClientFactory());
+        new BlobContainerCopier(blobIOTestUtility.createDestinationClientFactory());
     copier.setPollingInterval(pollingInterval);
     String sourceContainer =
-        this.blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();
+        blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();
     copier.setSourceClientFactory(
         new BlobContainerClientFactory(
-            this.connectedTestConfiguration.getSourceStorageAccountName(),
-            this.azureResourceConfiguration.getAppToken(
-                this.connectedTestConfiguration.getTargetTenantId()),
+            connectedTestConfiguration.getSourceStorageAccountName(),
+            azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             sourceContainer));
 
     return copier;
@@ -252,7 +248,7 @@ public class BlobContainerCopierTest {
   private BlobContainerCopier createBlobCopierWithSasCredsInSource(Duration pollingInterval) {
 
     BlobContainerCopier copier =
-        new BlobContainerCopier(this.blobIOTestUtility.createDestinationClientFactory());
+        new BlobContainerCopier(blobIOTestUtility.createDestinationClientFactory());
     copier.setPollingInterval(pollingInterval);
     copier.setSourceClientFactory(createSourceClientFactoryWithSasCreds());
 
@@ -261,7 +257,7 @@ public class BlobContainerCopierTest {
 
   private BlobContainerClientFactory createSourceClientFactoryWithSasCreds() {
     return new BlobContainerClientFactory(
-        this.blobIOTestUtility.generateSourceContainerUrlWithSasReadAndListPermissions(
+        blobIOTestUtility.generateSourceContainerUrlWithSasReadAndListPermissions(
             getSourceStorageAccountPrimarySharedKey()));
   }
 }

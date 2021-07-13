@@ -45,11 +45,11 @@ public class BlobContainerClientFactory {
       throw new IllegalArgumentException("The container name is either null or empty.");
     }
 
-    this.blobContainerClient =
+    blobContainerClient =
         createBlobServiceClientUsingSharedKey(accountName, accountKey)
             .getBlobContainerClient(containerName);
-    this.sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.SharedKey;
-    this.blobContainerSASTokenCreds = null;
+    sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.SharedKey;
+    blobContainerSASTokenCreds = null;
   }
 
   public BlobContainerClientFactory(
@@ -63,23 +63,23 @@ public class BlobContainerClientFactory {
       throw new IllegalArgumentException("The container name is either null or empty.");
     }
 
-    this.blobServiceClient =
+    blobServiceClient =
         createBlobServiceClientUsingTokenCredentials(
             accountName,
             Objects.requireNonNull(azureCredential, "Azure token credentials are null."));
-    this.blobContainerClient = this.blobServiceClient.getBlobContainerClient(containerName);
+    blobContainerClient = blobServiceClient.getBlobContainerClient(containerName);
 
-    this.sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.UserDelegatedKey;
-    this.blobContainerSASTokenCreds = null;
+    sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.UserDelegatedKey;
+    blobContainerSASTokenCreds = null;
   }
 
   public BlobContainerClientFactory(String containerURLWithSASToken) {
 
     BlobUrlParts blobUrl = BlobUrlParts.parse(containerURLWithSASToken);
 
-    this.blobContainerSASTokenCreds =
+    blobContainerSASTokenCreds =
         new AzureSasCredential(blobUrl.getCommonSasQueryParameters().encode());
-    this.blobContainerClient =
+    blobContainerClient =
         new BlobContainerClientBuilder()
             .httpClient(httpClient)
             .endpoint(
@@ -91,23 +91,23 @@ public class BlobContainerClientFactory {
             .credential(this.blobContainerSASTokenCreds)
             .buildClient();
 
-    this.sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.ContainerSasToken;
+    sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.ContainerSasToken;
   }
 
   public BlobContainerClient getBlobContainerClient() {
-    return this.blobContainerClient;
+    return blobContainerClient;
   }
 
-  public String createReadOnlySASUrlForBlob(String blobName) {
-    if (this.sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.SharedKey)) {
+  public String createReadOnlySasUrlForBlob(String blobName) {
+    if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.SharedKey)) {
       return createReadOnlySasUrlForBlobUsingClient(blobName);
     }
 
-    if (this.sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.ContainerSasToken)) {
-      return createReadOnlySasUrlForBlobUsingContainerSAS(blobName);
+    if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.ContainerSasToken)) {
+      return createReadOnlySasUrlForBlobUsingContainerSas(blobName);
     }
 
-    if (this.sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.UserDelegatedKey)) {
+    if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.UserDelegatedKey)) {
       return createReadOnlySasUrlForBlobUsingUserDelegatedSas(blobName);
     }
 
@@ -116,39 +116,38 @@ public class BlobContainerClientFactory {
 
   private synchronized String createReadOnlySasUrlForBlobUsingUserDelegatedSas(String blobName) {
 
-    if (this.delegationKey == null
-        || this.delegationKey.getSignedExpiry().isBefore(OffsetDateTime.now(ZoneOffset.UTC))) {
+    if (delegationKey == null
+        || delegationKey.getSignedExpiry().isBefore(OffsetDateTime.now(ZoneOffset.UTC))) {
       OffsetDateTime keyExpiry = OffsetDateTime.now(ZoneOffset.UTC).plusDays(EXPIRATION_DAYS);
-      this.delegationKey = this.blobServiceClient.getUserDelegationKey(null, keyExpiry);
+      delegationKey = blobServiceClient.getUserDelegationKey(null, keyExpiry);
     }
 
     BlobServiceSasSignatureValues sasSignatureValues = createSasSignatureValues();
 
     BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
-    String sasToken = blobClient.generateUserDelegationSas(sasSignatureValues, this.delegationKey);
+    String sasToken = blobClient.generateUserDelegationSas(sasSignatureValues, delegationKey);
 
     return String.format(
         "%s/%s?%s", blobContainerClient.getBlobContainerUrl(), blobClient.getBlobName(), sasToken);
   }
 
-  private String createReadOnlySasUrlForBlobUsingContainerSAS(String blobName) {
+  private String createReadOnlySasUrlForBlobUsingContainerSas(String blobName) {
     return String.format(
         "%s/%s?%s",
-        this.blobContainerClient.getBlobContainerUrl(),
+        blobContainerClient.getBlobContainerUrl(),
         blobName,
-        this.blobContainerSASTokenCreds.getSignature());
+        blobContainerSASTokenCreds.getSignature());
   }
 
   private String createReadOnlySasUrlForBlobUsingClient(String blobName) {
 
     BlobServiceSasSignatureValues sasSignatureValues = createSasSignatureValues();
 
-    BlobClient blobClient = this.blobContainerClient.getBlobClient(blobName);
+    BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
     String sasToken = blobClient.generateSas(sasSignatureValues);
 
     return String.format(
-        "%s/%s?%s",
-        this.blobContainerClient.getBlobContainerUrl(), blobClient.getBlobName(), sasToken);
+        "%s/%s?%s", blobContainerClient.getBlobContainerUrl(), blobClient.getBlobName(), sasToken);
   }
 
   private BlobServiceSasSignatureValues createSasSignatureValues() {

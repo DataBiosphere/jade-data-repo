@@ -80,7 +80,4 @@ public class BlobCrlTest {
 
     assertThat(properties.getBlobSize(), equalTo(MiB / 10));
   }
-
-  @Test
-  public void createContainerNameIfNotExists() {}
 }

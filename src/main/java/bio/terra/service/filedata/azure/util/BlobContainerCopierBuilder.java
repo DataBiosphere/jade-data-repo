@@ -33,19 +33,18 @@ public final class BlobContainerCopierBuilder {
 
   public BlobContainerCopierBuilder sourceDestinationPairs(
       List<BlobCopySourceDestinationPair> pairs) {
-    this.sourceDestinationPairs = pairs;
+    sourceDestinationPairs = pairs;
     return this;
   }
 
   public BlobContainerCopierBuilder sourceClientFactory(BlobContainerClientFactory factory) {
-    this.sourceClientFactory =
-        Objects.requireNonNull(factory, "Source client factory can't be null");
+    sourceClientFactory = Objects.requireNonNull(factory, "Source client factory can't be null");
 
     return this;
   }
 
   public BlobContainerCopierBuilder destinationClientFactory(BlobContainerClientFactory factory) {
-    this.destinationClientFactory =
+    destinationClientFactory =
         Objects.requireNonNull(factory, "Destination client factory can't be null");
 
     return this;
@@ -53,7 +52,7 @@ public final class BlobContainerCopierBuilder {
 
   public BlobContainerCopierBuilder sourceContainerPrefix(String prefix) {
 
-    this.sourceContainerPrefix = Objects.requireNonNull(prefix, "The prefix can't be null");
+    sourceContainerPrefix = Objects.requireNonNull(prefix, "The prefix can't be null");
 
     return this;
   }
@@ -78,7 +77,7 @@ public final class BlobContainerCopierBuilder {
           appendBlobGuidanceToErrorMessage("Read permission is required."));
     }
 
-    this.sourceBlobUrl = url;
+    sourceBlobUrl = url;
 
     return this;
   }
@@ -116,21 +115,21 @@ public final class BlobContainerCopierBuilder {
   }
 
   public BlobContainerCopier build() {
-    BlobContainerCopier copier = new BlobContainerCopier(this.destinationClientFactory);
+    BlobContainerCopier copier = new BlobContainerCopier(destinationClientFactory);
 
-    copier.setPollingInterval(this.pollingInterval);
-    copier.setListOperationTimeout(this.listOperationTimeout);
-    copier.setBlobSourcePrefix(this.sourceContainerPrefix);
-    copier.setSourceDestinationPairs(this.sourceDestinationPairs);
+    copier.setPollingInterval(pollingInterval);
+    copier.setListOperationTimeout(listOperationTimeout);
+    copier.setBlobSourcePrefix(sourceContainerPrefix);
+    copier.setSourceDestinationPairs(sourceDestinationPairs);
 
-    if (this.sourceClientFactory != null) {
-      copier.setSourceClientFactory(this.sourceClientFactory);
+    if (sourceClientFactory != null) {
+      copier.setSourceClientFactory(sourceClientFactory);
       return copier;
     }
 
-    if (StringUtils.isNotBlank(this.sourceBlobUrl)) {
-      copier.setSourceBlobUrl(this.sourceBlobUrl);
-      copier.setDestinationBlobName(this.destinationBlobName);
+    if (StringUtils.isNotBlank(sourceBlobUrl)) {
+      copier.setSourceBlobUrl(sourceBlobUrl);
+      copier.setDestinationBlobName(destinationBlobName);
       return copier;
     }
 

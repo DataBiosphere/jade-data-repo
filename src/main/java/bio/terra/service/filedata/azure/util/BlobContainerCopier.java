@@ -7,7 +7,6 @@ import com.azure.storage.blob.models.BlobCopyInfo;
 import com.azure.storage.blob.models.BlobListDetails;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -49,12 +48,12 @@ public class BlobContainerCopier {
    */
   public BlobContainerCopySyncPoller beginCopyOperation() {
 
-    if (this.sourceClientFactory != null) {
+    if (sourceClientFactory != null) {
       logger.info("Starting copy operation using a container as a source");
       return beginCopyOperationUsingSourceBlobContainerClient();
     }
 
-    if (StringUtils.isNotBlank(this.sourceBlobUrl)) {
+    if (StringUtils.isNotBlank(sourceBlobUrl)) {
       logger.info("Starting copy operation using a signed blob URL as the source");
       return beginCopyOperationUsingBlobSignedUrl();
     }
@@ -118,7 +117,7 @@ public class BlobContainerCopier {
   }
 
   private BlobContainerCopySyncPoller beginCopyOperationUsingBlobSignedUrl() {
-    BlobUrlParts blobUrlParts = BlobUrlParts.parse(this.sourceBlobUrl);
+    BlobUrlParts blobUrlParts = BlobUrlParts.parse(sourceBlobUrl);
 
     String sourceBlobName = blobUrlParts.getBlobName();
     String destinationBlobName = this.destinationBlobName;
@@ -127,18 +126,16 @@ public class BlobContainerCopier {
     }
 
     return new BlobContainerCopySyncPoller(
-        Collections.singletonList(
-            beginBlobCopyFromSASUrl(sourceBlobName, this.sourceBlobUrl, destinationBlobName)));
+        List.of(beginBlobCopyFromSasUrl(sourceBlobName, sourceBlobUrl, destinationBlobName)));
   }
 
   private BlobContainerCopySyncPoller beginCopyOperationUsingSourceBlobContainerClient() {
-    if (this.sourceDestinationPairs != null) {
+    if (sourceDestinationPairs != null) {
       logger.info("Copy operation using source and destination pairs.");
-      return beginCopyOperationUsingDestinationPairs(this.sourceDestinationPairs);
+      return beginCopyOperationUsingDestinationPairs(sourceDestinationPairs);
     }
 
-    return new BlobContainerCopySyncPoller(
-        beginCopyOperationFromListOfSources(this.blobSourcePrefix));
+    return new BlobContainerCopySyncPoller(beginCopyOperationFromListOfSources(blobSourcePrefix));
   }
 
   private BlobContainerCopySyncPoller beginCopyOperationUsingDestinationPairs(
@@ -159,7 +156,7 @@ public class BlobContainerCopier {
       String blobPrefix) {
 
     ListBlobsOptions options = createListBlobsOptions(blobPrefix);
-    logger.info("List operation from the source using the prefix: '{}'", this.blobSourcePrefix);
+    logger.info("List operation from the source using the prefix: '{}'", blobSourcePrefix);
 
     return this.sourceClientFactory
         .getBlobContainerClient()
@@ -192,12 +189,12 @@ public class BlobContainerCopier {
       return null;
     }
 
-    String sourceSASUrl = this.sourceClientFactory.createReadOnlySASUrlForBlob(sourceBlobName);
-    return beginBlobCopyFromSASUrl(sourceBlobName, sourceSASUrl, destinationBlobName);
+    String sourceSASUrl = this.sourceClientFactory.createReadOnlySasUrlForBlob(sourceBlobName);
+    return beginBlobCopyFromSasUrl(sourceBlobName, sourceSASUrl, destinationBlobName);
   }
 
-  private SyncPoller<BlobCopyInfo, Void> beginBlobCopyFromSASUrl(
-      String sourceName, String sourceSASUrl, String destinationBlobName) {
+  private SyncPoller<BlobCopyInfo, Void> beginBlobCopyFromSasUrl(
+      String sourceName, String sourceSasUrl, String destinationBlobName) {
     if (StringUtils.isBlank(destinationBlobName)) {
       logger.debug(
           "Destination blob name is blank. The source name: {}, will be used.", sourceName);
@@ -205,13 +202,13 @@ public class BlobContainerCopier {
     }
 
     BlobClient blobClient =
-        this.destinationClientFactory.getBlobContainerClient().getBlobClient(destinationBlobName);
+        destinationClientFactory.getBlobContainerClient().getBlobClient(destinationBlobName);
 
-    return blobClient.beginCopy(sourceSASUrl, this.pollingInterval);
+    return blobClient.beginCopy(sourceSasUrl, pollingInterval);
   }
 
   private boolean isSourceBlobEmpty(String sourceName) {
-    BlobClient client = this.sourceClientFactory.getBlobContainerClient().getBlobClient(sourceName);
+    BlobClient client = sourceClientFactory.getBlobContainerClient().getBlobClient(sourceName);
     return client.getProperties().getBlobSize() == 0;
   }
 

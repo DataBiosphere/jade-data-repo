@@ -3,7 +3,6 @@ package bio.terra.service.filedata.azure.util;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobProperties;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang.StringUtils;
@@ -33,7 +32,7 @@ public class BlobCrl {
   public BlobContainerCopier createBlobContainerCopier(
       BlobContainerClientFactory clientFactory, String blobPrefix) {
     return new BlobContainerCopierBuilder()
-        .destinationClientFactory(this.blobContainerClientFactory)
+        .destinationClientFactory(blobContainerClientFactory)
         .sourceClientFactory(clientFactory)
         .sourceContainerPrefix(blobPrefix)
         .build();
@@ -51,7 +50,7 @@ public class BlobCrl {
   public BlobContainerCopier createBlobContainerCopier(
       BlobContainerClientFactory clientFactory, List<BlobCopySourceDestinationPair> pairs) {
     return new BlobContainerCopierBuilder()
-        .destinationClientFactory(this.blobContainerClientFactory)
+        .destinationClientFactory(blobContainerClientFactory)
         .sourceClientFactory(clientFactory)
         .sourceDestinationPairs(pairs)
         .build();
@@ -75,10 +74,10 @@ public class BlobCrl {
     }
 
     return new BlobContainerCopierBuilder()
-        .destinationClientFactory(this.blobContainerClientFactory)
+        .destinationClientFactory(blobContainerClientFactory)
         .sourceClientFactory(clientFactory)
         .sourceDestinationPairs(
-            Arrays.asList(new BlobCopySourceDestinationPair(sourceBlobName, destinationBlobName)))
+            List.of(new BlobCopySourceDestinationPair(sourceBlobName, destinationBlobName)))
         .build();
   }
 
@@ -95,7 +94,7 @@ public class BlobCrl {
   public BlobContainerCopier createBlobContainerCopier(URL sourceUrl, String destinationBlobName) {
 
     return new BlobContainerCopierBuilder()
-        .destinationClientFactory(this.blobContainerClientFactory)
+        .destinationClientFactory(blobContainerClientFactory)
         .sourceBlobUrl(
             Objects.requireNonNull(
                     sourceUrl,
@@ -111,7 +110,7 @@ public class BlobCrl {
    * @param blobName blob name to delete.
    */
   public void deleteBlob(String blobName) {
-    this.blobContainerClientFactory.getBlobContainerClient().getBlobClient(blobName).delete();
+    blobContainerClientFactory.getBlobContainerClient().getBlobClient(blobName).delete();
   }
 
   /**
@@ -121,7 +120,7 @@ public class BlobCrl {
    * @return Instance of {@link BlobProperties}
    */
   public BlobProperties getBlobProperties(String blobName) {
-    return this.blobContainerClientFactory
+    return blobContainerClientFactory
         .getBlobContainerClient()
         .getBlobClient(blobName)
         .getProperties();
@@ -130,8 +129,7 @@ public class BlobCrl {
   /** Creates a the container in the storage account if it does not exist. */
   public void createContainerNameIfNotExists() {
 
-    BlobContainerClient blobContainerClient =
-        this.blobContainerClientFactory.getBlobContainerClient();
+    BlobContainerClient blobContainerClient = blobContainerClientFactory.getBlobContainerClient();
 
     if (!blobContainerClient.exists()) {
       blobContainerClient.create();

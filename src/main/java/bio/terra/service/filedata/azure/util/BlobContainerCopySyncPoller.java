@@ -30,7 +30,7 @@ public class BlobContainerCopySyncPoller implements SyncPoller<BlobContainerCopy
 
     BlobContainerCopyInfo waitResult =
         new BlobContainerCopyInfo(
-            this.blobCopyPollerList.stream()
+            blobCopyPollerList.stream()
                 .map(SyncPoller::waitForCompletion)
                 .collect(Collectors.toList()));
 
@@ -41,7 +41,7 @@ public class BlobContainerCopySyncPoller implements SyncPoller<BlobContainerCopy
   public PollResponse<BlobContainerCopyInfo> waitForCompletion(Duration timeout) {
     BlobContainerCopyInfo waitResult =
         new BlobContainerCopyInfo(
-            this.blobCopyPollerList.stream()
+            blobCopyPollerList.stream()
                 .map(p -> p.waitForCompletion(timeout))
                 .collect(Collectors.toList()));
 
@@ -52,7 +52,7 @@ public class BlobContainerCopySyncPoller implements SyncPoller<BlobContainerCopy
   public PollResponse<BlobContainerCopyInfo> waitUntil(LongRunningOperationStatus statusToWaitFor) {
     BlobContainerCopyInfo waitResult =
         new BlobContainerCopyInfo(
-            this.blobCopyPollerList.stream()
+            blobCopyPollerList.stream()
                 .map(p -> p.waitUntil(statusToWaitFor))
                 .collect(Collectors.toList()));
 
@@ -64,7 +64,7 @@ public class BlobContainerCopySyncPoller implements SyncPoller<BlobContainerCopy
       Duration timeout, LongRunningOperationStatus statusToWaitFor) {
     BlobContainerCopyInfo waitResult =
         new BlobContainerCopyInfo(
-            this.blobCopyPollerList.stream()
+            blobCopyPollerList.stream()
                 .map(p -> p.waitUntil(timeout, statusToWaitFor))
                 .collect(Collectors.toList()));
 
@@ -73,12 +73,12 @@ public class BlobContainerCopySyncPoller implements SyncPoller<BlobContainerCopy
 
   @Override
   public Void getFinalResult() {
-    this.blobCopyPollerList.forEach(SyncPoller::getFinalResult);
+    blobCopyPollerList.forEach(SyncPoller::getFinalResult);
     return null;
   }
 
   @Override
   public void cancelOperation() {
-    this.blobCopyPollerList.forEach(SyncPoller::cancelOperation);
+    blobCopyPollerList.forEach(SyncPoller::cancelOperation);
   }
 }

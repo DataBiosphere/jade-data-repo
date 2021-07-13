@@ -38,22 +38,21 @@ public class BlobIOTestUtility {
   }
 
   private final BlobContainerClient destinationBlobContainerClient;
-  private String sourceContainerName;
   private String destinationContainerName;
   private static final String STORAGE_ENDPOINT_PATTERN = "https://%s.blob.core.windows.net/%s";
   private final TokenCredential tokenCredential;
 
   public BlobIOTestUtility(
       TokenCredential tokenCredential, String sourceAccountName, String destinationAccountName) {
-    this.sourceContainerName = generateNewTempContainerName();
-    this.destinationContainerName = generateNewTempContainerName();
-    this.sourceBlobContainerClient =
-        createBlobContainerClient(tokenCredential, this.sourceContainerName, sourceAccountName);
-    this.destinationBlobContainerClient =
+    String sourceContainerName = generateNewTempContainerName();
+    destinationContainerName = generateNewTempContainerName();
+    sourceBlobContainerClient =
+        createBlobContainerClient(tokenCredential, sourceContainerName, sourceAccountName);
+    destinationBlobContainerClient =
         createBlobContainerClient(
-            tokenCredential, this.destinationContainerName, destinationAccountName);
-    this.sourceBlobContainerClient.create();
-    this.destinationBlobContainerClient.create();
+            tokenCredential, destinationContainerName, destinationAccountName);
+    sourceBlobContainerClient.create();
+    destinationBlobContainerClient.create();
     this.tokenCredential = tokenCredential;
   }
 
@@ -69,8 +68,7 @@ public class BlobIOTestUtility {
   public String generateSourceContainerUrlWithSasReadAndListPermissions(String accountKey) {
     String sasToken = generateContainerSasTokenWithReadAndListPermissions(accountKey);
 
-    return String.format(
-        "%s?%s", this.getSourceBlobContainerClient().getBlobContainerUrl(), sasToken);
+    return String.format("%s?%s", getSourceBlobContainerClient().getBlobContainerUrl(), sasToken);
   }
 
   public String generateContainerSasTokenWithReadAndListPermissions(String accountKey) {
@@ -88,8 +86,8 @@ public class BlobIOTestUtility {
         new BlobContainerClientBuilder()
             .credential(
                 new StorageSharedKeyCredential(
-                    this.sourceBlobContainerClient.getAccountName(), accountKey))
-            .endpoint(this.sourceBlobContainerClient.getBlobContainerUrl())
+                    sourceBlobContainerClient.getAccountName(), accountKey))
+            .endpoint(sourceBlobContainerClient.getBlobContainerUrl())
             .buildClient();
 
     return blobContainerClient.generateSas(sasSignatureValues);
@@ -105,8 +103,7 @@ public class BlobIOTestUtility {
         .map(
             i ->
                 uploadSourceFile(
-                    String.format("%s/%s%s", i, SOURCE_BLOB_NAME, UUID.randomUUID().toString()),
-                    length))
+                    String.format("%s/%s%s", i, SOURCE_BLOB_NAME, UUID.randomUUID()), length))
         .collect(Collectors.toList());
   }
 
@@ -145,8 +142,6 @@ public class BlobIOTestUtility {
 
   public BlobContainerClientFactory createDestinationClientFactory() {
     return new BlobContainerClientFactory(
-        this.destinationBlobContainerClient.getAccountName(),
-        this.tokenCredential,
-        this.destinationContainerName);
+        destinationBlobContainerClient.getAccountName(), tokenCredential, destinationContainerName);
   }
 }

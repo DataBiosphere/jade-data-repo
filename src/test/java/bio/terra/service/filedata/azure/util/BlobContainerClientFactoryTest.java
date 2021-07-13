@@ -70,37 +70,37 @@ public class BlobContainerClientFactoryTest {
   }
 
   @Test
-  public void testCreateReadOnlySASUrlForBlobUsingTokenCreds_URLIsGeneratedAndIsValid() {
+  public void testCreateReadOnlySasUrlForBlobUsingTokenCreds_UrlIsGeneratedAndIsValid() {
 
     BlobContainerClientFactory factory =
         new BlobContainerClientFactory(accountName, tokenCredential, containerName);
 
-    BlobClient blobClient = getBlobClientFromUrl(factory.createReadOnlySASUrlForBlob(blobName));
+    BlobClient blobClient = getBlobClientFromUrl(factory.createReadOnlySasUrlForBlob(blobName));
 
     assertThat(blobClient.exists(), is(true));
   }
 
   @Test
-  public void testCreateReadOnlySASUrlForBlobUsingContainerSasCreds_URLIsGeneratedAndIsValid() {
+  public void testCreateReadOnlySasUrlForBlobUsingContainerSasCreds_UrlIsGeneratedAndIsValid() {
 
     BlobContainerClientFactory factory =
         new BlobContainerClientFactory(
             blobIOTestUtility.generateSourceContainerUrlWithSasReadAndListPermissions(
                 getSourceStorageAccountPrimarySharedKey()));
 
-    BlobClient blobClient = getBlobClientFromUrl(factory.createReadOnlySASUrlForBlob(blobName));
+    BlobClient blobClient = getBlobClientFromUrl(factory.createReadOnlySasUrlForBlob(blobName));
 
     assertThat(blobClient.exists(), is(true));
   }
 
   @Test
-  public void testCreateReadOnlySASUrlForBlobUsingSharedKeyCreds_URLIsGeneratedAndIsValid() {
+  public void testCreateReadOnlySasUrlForBlobUsingSharedKeyCreds_UrlIsGeneratedAndIsValid() {
 
     BlobContainerClientFactory factory =
         new BlobContainerClientFactory(
             accountName, getSourceStorageAccountPrimarySharedKey(), containerName);
 
-    BlobClient blobClient = getBlobClientFromUrl(factory.createReadOnlySASUrlForBlob(blobName));
+    BlobClient blobClient = getBlobClientFromUrl(factory.createReadOnlySasUrlForBlob(blobName));
 
     assertThat(blobClient.exists(), is(true));
   }
@@ -113,15 +113,15 @@ public class BlobContainerClientFactoryTest {
 
   private String getSourceStorageAccountPrimarySharedKey() {
     AzureResourceManager client =
-        this.azureResourceConfiguration.getClient(
-            this.connectedTestConfiguration.getTargetTenantId(),
-            this.connectedTestConfiguration.getTargetSubscriptionId());
+        azureResourceConfiguration.getClient(
+            connectedTestConfiguration.getTargetTenantId(),
+            connectedTestConfiguration.getTargetSubscriptionId());
 
     return client
         .storageAccounts()
         .getByResourceGroup(
-            this.connectedTestConfiguration.getTargetResourceGroupName(),
-            this.connectedTestConfiguration.getSourceStorageAccountName())
+            connectedTestConfiguration.getTargetResourceGroupName(),
+            connectedTestConfiguration.getSourceStorageAccountName())
         .getKeys()
         .iterator()
         .next()

@@ -29,10 +29,7 @@ public class BlobContainerCopyInfo {
   public LongRunningOperationStatus getCopyStatus() {
 
     List<LongRunningOperationStatus> distinctStatuses =
-        this.pollResponses.stream()
-            .map(PollResponse::getStatus)
-            .distinct()
-            .collect(Collectors.toList());
+        pollResponses.stream().map(PollResponse::getStatus).distinct().collect(Collectors.toList());
 
     if (distinctStatuses.size() == 1
         && distinctStatuses.contains(LongRunningOperationStatus.SUCCESSFULLY_COMPLETED)) {

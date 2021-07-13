@@ -6,10 +6,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.model.PolicyModel;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,14 +24,14 @@ public class IamServiceTest {
 
   @Mock private IamProviderInterface iamProvider;
 
-  @Mock private ConfigurationService configurationService;
+  @Mock private ApplicationConfiguration applicationConfiguration;
 
   private IamService iamService;
 
   @Before
   public void setup() {
-    when(configurationService.getParameterValue(eq(ConfigEnum.AUTH_CACHE_SIZE))).thenReturn(1);
-    iamService = new IamService(iamProvider, configurationService);
+    when(applicationConfiguration.getAuthCacheSize()).thenReturn(1);
+    iamService = new IamService(iamProvider, applicationConfiguration);
   }
 
   @Test

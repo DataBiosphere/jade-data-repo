@@ -4,6 +4,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
 import com.google.api.gax.rpc.DeadlineExceededException;
@@ -297,6 +298,7 @@ public class FireStoreUtils {
         || throwable instanceof UnavailableException
         || throwable instanceof InternalException
         || throwable instanceof StatusRuntimeException
+        || throwable instanceof GoogleResourceException
         || (isBatch && throwable instanceof AbortedException)) {
       return true;
     }

@@ -73,9 +73,9 @@ public class BlobContainerClientFactory {
     blobContainerSasTokenCreds = null;
   }
 
-  public BlobContainerClientFactory(String containerURLWithSASToken) {
+  public BlobContainerClientFactory(String containerURLWithSasToken) {
 
-    BlobUrlParts blobUrl = BlobUrlParts.parse(containerURLWithSASToken);
+    BlobUrlParts blobUrl = BlobUrlParts.parse(containerURLWithSasToken);
 
     blobContainerSasTokenCreds =
         new AzureSasCredential(blobUrl.getCommonSasQueryParameters().encode());

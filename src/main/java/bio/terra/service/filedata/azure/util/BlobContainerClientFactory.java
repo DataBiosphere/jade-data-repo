@@ -28,7 +28,7 @@ public class BlobContainerClientFactory {
 
   private final SasTokenGeneratorStrategy sasTokenGeneratorStrategy;
   private final AzureSasCredential blobContainerSasTokenCreds;
-  private BlobServiceClient blobServiceClient;
+  private final BlobServiceClient blobServiceClient;
   private UserDelegationKey delegationKey;
 
   public BlobContainerClientFactory(String accountName, String accountKey, String containerName) {
@@ -48,8 +48,9 @@ public class BlobContainerClientFactory {
     blobContainerClient =
         createBlobServiceClientUsingSharedKey(accountName, accountKey)
             .getBlobContainerClient(containerName);
-    sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.SharedKey;
+    sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.SHARED_KEY;
     blobContainerSasTokenCreds = null;
+    blobServiceClient = null;
   }
 
   public BlobContainerClientFactory(
@@ -69,7 +70,7 @@ public class BlobContainerClientFactory {
             Objects.requireNonNull(azureCredential, "Azure token credentials are null."));
     blobContainerClient = blobServiceClient.getBlobContainerClient(containerName);
 
-    sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.UserDelegatedKey;
+    sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.USER_DELEGATED_KEY;
     blobContainerSasTokenCreds = null;
   }
 
@@ -91,7 +92,8 @@ public class BlobContainerClientFactory {
             .credential(blobContainerSasTokenCreds)
             .buildClient();
 
-    sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.ContainerSasToken;
+    sasTokenGeneratorStrategy = SasTokenGeneratorStrategy.CONTAINER_SAS_TOKEN;
+    blobServiceClient = null;
   }
 
   public BlobContainerClient getBlobContainerClient() {
@@ -99,36 +101,48 @@ public class BlobContainerClientFactory {
   }
 
   public String createReadOnlySasUrlForBlob(String blobName) {
-    if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.SharedKey)) {
+    if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.SHARED_KEY)) {
       return createReadOnlySasUrlForBlobUsingClient(blobName);
     }
 
-    if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.ContainerSasToken)) {
+    if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.CONTAINER_SAS_TOKEN)) {
       return createReadOnlySasUrlForBlobUsingContainerSas(blobName);
     }
 
-    if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.UserDelegatedKey)) {
+    if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.USER_DELEGATED_KEY)) {
       return createReadOnlySasUrlForBlobUsingUserDelegatedSas(blobName);
     }
 
     throw new RuntimeException("Failed to generate SAS token for blob. Invalid strategy set.");
   }
 
-  private synchronized String createReadOnlySasUrlForBlobUsingUserDelegatedSas(String blobName) {
+  private String createReadOnlySasUrlForBlobUsingUserDelegatedSas(String blobName) {
 
+    UserDelegationKey userDelegationKey = getUserDelegationKey();
+
+    BlobServiceSasSignatureValues sasSignatureValues = createSasSignatureValues();
+
+    BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
+    String sasToken = blobClient.generateUserDelegationSas(sasSignatureValues, userDelegationKey);
+
+    return String.format(
+        "%s/%s?%s", blobContainerClient.getBlobContainerUrl(), blobClient.getBlobName(), sasToken);
+  }
+
+  /**
+   * Gets a UserDelegationKey of the authenticated users. The key is cached to minimize the
+   * performance impact of multiple calls to obtain it and reduce the noise if the operation is
+   * logged for security reasons.
+   *
+   * @return User delegation key.
+   */
+  private synchronized UserDelegationKey getUserDelegationKey() {
     if (delegationKey == null
         || delegationKey.getSignedExpiry().isBefore(OffsetDateTime.now(ZoneOffset.UTC))) {
       OffsetDateTime keyExpiry = OffsetDateTime.now(ZoneOffset.UTC).plusDays(EXPIRATION_DAYS);
       delegationKey = blobServiceClient.getUserDelegationKey(null, keyExpiry);
     }
-
-    BlobServiceSasSignatureValues sasSignatureValues = createSasSignatureValues();
-
-    BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
-    String sasToken = blobClient.generateUserDelegationSas(sasSignatureValues, delegationKey);
-
-    return String.format(
-        "%s/%s?%s", blobContainerClient.getBlobContainerUrl(), blobClient.getBlobName(), sasToken);
+    return delegationKey;
   }
 
   private String createReadOnlySasUrlForBlobUsingContainerSas(String blobName) {
@@ -180,8 +194,8 @@ public class BlobContainerClientFactory {
   }
 
   public enum SasTokenGeneratorStrategy {
-    SharedKey,
-    ContainerSasToken,
-    UserDelegatedKey
+    SHARED_KEY,
+    CONTAINER_SAS_TOKEN,
+    USER_DELEGATED_KEY
   }
 }

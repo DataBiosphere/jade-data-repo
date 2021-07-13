@@ -6,6 +6,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.StringListCompare;
@@ -17,7 +18,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -27,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -44,7 +45,7 @@ public class FireStoreDirectoryDaoTest {
 
   @Autowired private FireStoreUtils fireStoreUtils;
 
-  @Autowired private ConfigurationService configurationService;
+  @MockBean private ConfigurationService configurationService;
 
   private String pretendDatasetId;
   private String collectionId;
@@ -55,11 +56,10 @@ public class FireStoreDirectoryDaoTest {
     pretendDatasetId = UUID.randomUUID().toString();
     collectionId = "directoryDaoTest_" + pretendDatasetId;
     firestore = TestFirestoreProvider.getFirestore();
-  }
-
-  @After
-  public void cleanup() {
-    configurationService.reset();
+    when(configurationService.getParameterValue(ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE))
+        .thenReturn(1);
+    when(configurationService.getParameterValue(ConfigEnum.AUTH_CACHE_SIZE))
+        .thenReturn(100);
   }
 
   @Test
@@ -147,8 +147,8 @@ public class FireStoreDirectoryDaoTest {
     assertTrue("Bad ids match", listCompare.compare());
 
     // Test FireStoreBatchQueryIterator by making the batch size small
-    configurationService.setConfigParameterValue(
-        ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE, "1", "setFirestoreQueryBatchSizeParameter");
+    when(configurationService.getParameterValue(ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE))
+        .thenReturn(1);
     // Test enumeration with adir. We should get three things back: two files (A1, A2) and a
     // directory (bdir).
     List<FireStoreDirectoryEntry> enumList =

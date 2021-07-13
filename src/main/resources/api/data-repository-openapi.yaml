@@ -2971,6 +2971,8 @@ components:
         - format
         - path
         - table
+        - load_tag
+        - profile_id
       type: object
       properties:
         table:
@@ -2985,6 +2987,8 @@ components:
             - json
         load_tag:
           $ref: '#/components/schemas/LoadTagModel'
+        profile_id:
+          $ref: '#/components/schemas/UniqueIdProperty'
         max_bad_records:
           type: integer
           description: max number of bad records to skip; applies to JSON and CSV

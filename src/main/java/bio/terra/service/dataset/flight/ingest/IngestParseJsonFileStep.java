@@ -15,8 +15,6 @@ import bio.terra.stairway.exception.RetryException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
@@ -26,20 +24,19 @@ import java.util.stream.Collectors;
 public class IngestParseJsonFileStep implements Step {
 
   private final GcsPdao gcsPdao;
-  private final DatasetService datasetService;
+  private final Dataset dataset;
   private final ObjectMapper objectMapper;
 
-  public IngestParseJsonFileStep(GcsPdao gcsPdao, DatasetService datasetService, ObjectMapper objectMapper) {
+  public IngestParseJsonFileStep(GcsPdao gcsPdao, ObjectMapper objectMapper, Dataset dataset) {
     this.gcsPdao = gcsPdao;
-    this.datasetService = datasetService;
     this.objectMapper = objectMapper;
+    this.dataset = dataset;
   }
 
   @Override
   public StepResult doStep(FlightContext flightContext) throws InterruptedException, RetryException {
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(flightContext);
     List<String> gcsFileLines = gcsPdao.getGcsFileLines(ingestRequest.getPath());
-    Dataset dataset = IngestUtils.getDataset(flightContext, datasetService);
     List<String> fileRefColumnNames = dataset.getTableByName(ingestRequest.getTable())
         .orElseThrow()
         .getColumns()

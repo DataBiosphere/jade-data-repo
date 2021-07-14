@@ -14,7 +14,7 @@ jobs:
       - name: npm install
         run: npm install
       - name: install openapi-generator cli
-        run: npm install @openapitools/openapi-generator-cli
+        run: sudo npm install @openapitools/openapi-generator-cli -g
       - name: set openapi-generator version
         run: openapi-generator-cli version-manager set 4.3.1
       - name: Generate Python client with openapi-generator

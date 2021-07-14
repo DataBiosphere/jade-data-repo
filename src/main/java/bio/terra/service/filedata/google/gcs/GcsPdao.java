@@ -20,6 +20,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -29,6 +30,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -102,6 +104,18 @@ public class GcsPdao {
         BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
     var contents = new String(applicationDefaultStorage().get(blobInfo.getBlobId()).getContent());
     return Arrays.asList(contents.split("\n"));
+  }
+
+  public void writeGcsFileLines(String path, List<String> contentsToWrite) throws IOException {
+    // new gs path:
+    // gs://{bucketname}/{flightId}Scratch.json
+    GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
+    BlobInfo blobInfo =
+        BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
+    WriteChannel writer = applicationDefaultStorage().get(blobInfo.getBlobId()).writer();
+    writer.write(
+        ByteBuffer.wrap(String.join("\n", contentsToWrite).getBytes()));
+    writer.close();
   }
 
   public FSFileInfo copyFile(

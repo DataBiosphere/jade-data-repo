@@ -3,7 +3,6 @@ package bio.terra.service.snapshot;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 
 import bio.terra.common.PdaoConstant;
@@ -276,11 +275,6 @@ public class SnapshotTest extends UsersBase {
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
     assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
-
-    assertThat(
-        "snapshot and dataset have different google projects",
-        snapshot.getDataProject(),
-        not(dataset.getDataProject()));
   }
 
   @Test

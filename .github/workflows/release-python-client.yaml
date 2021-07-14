@@ -16,6 +16,7 @@ jobs:
         # -c /github/workspace/${{ inputs.config-file }} \
         run: |
           docker run -u 1001 --rm --workdir /github/workspace -v "$GITHUB_WORKSPACE":"/github/workspace" \
+          openapi-generator-cli version-manager set 4.3.1 \
           openapitools/openapi-generator-cli generate \
           -i /github/workspace/src/main/resources/api/data-repository-openapi.yaml \
           -g python \

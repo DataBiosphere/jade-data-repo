@@ -11,17 +11,12 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: npm install
-        run: npm install
-      - name: install openapi-generator cli
-        run: sudo npm install @openapitools/openapi-generator-cli -g
-      - name: set openapi-generator version
-        run: openapi-generator-cli version-manager set 4.3.1
       - name: Generate Python client with openapi-generator
         # openapi-generator-cli generate -i src/main/resources/api/data-repository-openapi.yaml -g python -o ../data-repo-client --package-name data_repo_client
         # -c /github/workspace/${{ inputs.config-file }} \
         run: |
-          openapi-generator-cli generate \
+          docker run -u 1001 --rm --workdir /github/workspace -v "$GITHUB_WORKSPACE":"/github/workspace" \
+          openapitools/openapi-generator-cli@4.3.1 generate \
           -i /github/workspace/src/main/resources/api/data-repository-openapi.yaml \
           -g python \
           -o /github/workspace/data-repo-client \

@@ -44,4 +44,9 @@ public class OneDataLocationSelector implements DataLocationSelector {
   public String bucketForFile(String projectId) {
     return oneProject() + "-bucket";
   }
+
+  @Override
+  public String bucketForIngestScratchFile(String projectId) {
+    return oneProject() + "-ingest-scratch-bucket";
+  }
 }

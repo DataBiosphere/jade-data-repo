@@ -84,6 +84,18 @@ public class OneProjectPerResourceSelector implements DataLocationSelector {
     return bucketName;
   }
 
+  @Override
+  public String bucketForIngestScratchFile(String projectId) throws GoogleResourceNamingException {
+    String bucketName = projectId + "-ingest-scratch-bucket";
+    if (!bucketName.matches(GS_BUCKET_PATTERN)) {
+      throw new GoogleResourceNamingException(
+          "Google bucket name '"
+              + bucketName
+              + "' does not match required pattern for google buckets.");
+    }
+    return bucketName;
+  }
+
   private String getNewProjectId() throws GoogleResourceNamingException {
     String projectDatasetSuffix = "-" + generateRandomId();
 

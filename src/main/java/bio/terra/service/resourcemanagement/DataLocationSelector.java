@@ -16,4 +16,6 @@ public interface DataLocationSelector {
       throws GoogleResourceException, GoogleResourceNamingException;
 
   String bucketForFile(String projectId) throws GoogleResourceNamingException;
+
+  String bucketForIngestScratchFile(String projectId) throws GoogleResourceNamingException;
 }

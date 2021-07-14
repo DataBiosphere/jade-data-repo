@@ -24,7 +24,6 @@ import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,6 +31,7 @@ import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.util.UUID;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -48,8 +48,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-
-import java.util.UUID;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -142,16 +140,21 @@ public class RBSConnectedTest {
   private DatasetSummaryModel setupMinimalDataset() throws Exception {
     DatasetSummaryModel datasetMinimalSummary =
         connectedOperations.createDataset(billingProfile, "dataset-minimal.json");
-    loadData(datasetMinimalSummary.getId(), "participant", "dataset-minimal-participant.csv", IngestRequestModel.FormatEnum.CSV);
-    loadData(datasetMinimalSummary.getId(), "sample", "dataset-minimal-sample.csv", IngestRequestModel.FormatEnum.CSV);
+    loadData(
+        datasetMinimalSummary.getId(),
+        "participant",
+        "dataset-minimal-participant.csv",
+        IngestRequestModel.FormatEnum.CSV);
+    loadData(
+        datasetMinimalSummary.getId(),
+        "sample",
+        "dataset-minimal-sample.csv",
+        IngestRequestModel.FormatEnum.CSV);
     return datasetMinimalSummary;
   }
 
   private void loadData(
-      UUID datasetId,
-      String tableName,
-      String resourcePath,
-      IngestRequestModel.FormatEnum format)
+      UUID datasetId, String tableName, String resourcePath, IngestRequestModel.FormatEnum format)
       throws Exception {
 
     String bucket = testConfig.getIngestbucket();
@@ -176,7 +179,6 @@ public class RBSConnectedTest {
       storage.delete(stagingBlob.getBlobId());
     }
   }
-
 
   private SnapshotRequestModel makeSnapshotTestRequest(
       DatasetSummaryModel datasetSummaryModel, String resourcePath) throws Exception {

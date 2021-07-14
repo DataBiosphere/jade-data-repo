@@ -17,18 +17,17 @@ public class IngestCreateScratchFileStep implements Step {
   public IngestCreateScratchFileStep(GcsPdao gcsPdao) {
     this.gcsPdao = gcsPdao;
   }
+
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    GoogleBucketResource bucket = workingMap.get(FileMapKeys.INGEST_FILE_BUCKET_INFO,
-        GoogleBucketResource.class);
-    List<String> linesWithFileIds = workingMap.get(IngestMapKeys.LINES_WITH_FILE_IDS,
-        List.class);
+    GoogleBucketResource bucket =
+        workingMap.get(FileMapKeys.INGEST_FILE_BUCKET_INFO, GoogleBucketResource.class);
+    List<String> linesWithFileIds = workingMap.get(IngestMapKeys.LINES_WITH_FILE_IDS, List.class);
 
     // this is a hackathon
     String path = "gs://" + bucket.getName() + "/" + context.getFlightId() + "-scratch.json";
     workingMap.put(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, path);
-
 
     // new gs path:
     // gs://{bucketname}/{flightId}-scratch.json

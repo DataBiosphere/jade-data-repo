@@ -20,7 +20,6 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.auth.oauth2.ServiceAccountCredentials;
-import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -30,7 +29,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -112,8 +110,7 @@ public class GcsPdao {
     GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
     BlobInfo blobInfo =
         BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
-    applicationDefaultStorage().create(blobInfo,
-        String.join("\n", contentsToWrite).getBytes());
+    applicationDefaultStorage().create(blobInfo, String.join("\n", contentsToWrite).getBytes());
   }
 
   public FSFileInfo copyFile(

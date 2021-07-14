@@ -22,6 +22,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,8 +37,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FireStoreDirectoryDaoTest {
+  private final Logger logger =
+      LoggerFactory.getLogger(
+          "bio.terra.service.filedata.google.firestore.FireStoreDirectoryDaoTest");
 
   @Autowired private FireStoreDirectoryDao directoryDao;
+
   @Autowired private FireStoreUtils fireStoreUtils;
 
   @MockBean private ConfigurationService configurationService;
@@ -47,14 +53,13 @@ public class FireStoreDirectoryDaoTest {
 
   @Before
   public void setup() throws Exception {
-    when(configurationService.getParameterValue(ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE))
-        .thenReturn(1);
-    when(configurationService.getParameterValue(ConfigEnum.FIRESTORE_VALIDATE_BATCH_SIZE))
-        .thenReturn(500);
-
     pretendDatasetId = UUID.randomUUID().toString();
     collectionId = "directoryDaoTest_" + pretendDatasetId;
     firestore = TestFirestoreProvider.getFirestore();
+    when(configurationService.getParameterValue(ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE))
+        .thenReturn(1);
+    when(configurationService.getParameterValue(ConfigEnum.AUTH_CACHE_SIZE))
+        .thenReturn(100);
   }
 
   @Test

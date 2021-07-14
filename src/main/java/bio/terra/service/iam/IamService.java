@@ -1,8 +1,11 @@
 package bio.terra.service.iam;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
+import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_SIZE;
+import static bio.terra.service.configuration.ConfigEnum.AUTH_CACHE_TIMEOUT_SECONDS;
+
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.iam.exception.IamUnavailableException;
@@ -35,16 +38,15 @@ public class IamService {
   private final Logger logger = LoggerFactory.getLogger(IamService.class);
 
   private final IamProviderInterface iamProvider;
-  private final ApplicationConfiguration applicationConfiguration;
+  private final ConfigurationService configurationService;
   private final Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap;
   private int cacheSize;
 
   @Autowired
-  public IamService(
-      IamProviderInterface iamProvider, ApplicationConfiguration applicationConfiguration) {
+  public IamService(IamProviderInterface iamProvider, ConfigurationService configurationService) {
     this.iamProvider = iamProvider;
-    this.applicationConfiguration = applicationConfiguration;
-    cacheSize = applicationConfiguration.getAuthCacheSize();
+    this.configurationService = configurationService;
+    cacheSize = configurationService.getParameterValue(AUTH_CACHE_SIZE);
     // wrap the cache map with a synchronized map to safely share the cache across threads
     authorizedMap = Collections.synchronizedMap(new LRUMap<>(cacheSize));
   }
@@ -60,7 +62,7 @@ public class IamService {
       String resourceId,
       IamAction action) {
     try {
-      int timeoutSeconds = applicationConfiguration.getAuthCacheTimeoutSeconds();
+      int timeoutSeconds = configurationService.getParameterValue(AUTH_CACHE_TIMEOUT_SECONDS);
       AuthenticatedUserRequest userReqNoId = userReq.reqId(null);
       AuthorizedCacheKey authorizedCacheKey =
           new AuthorizedCacheKey(userReqNoId, iamResourceType, resourceId, action);

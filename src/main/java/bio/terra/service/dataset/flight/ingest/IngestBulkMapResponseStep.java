@@ -3,18 +3,16 @@ package bio.terra.service.dataset.flight.ingest;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadResultModel;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on

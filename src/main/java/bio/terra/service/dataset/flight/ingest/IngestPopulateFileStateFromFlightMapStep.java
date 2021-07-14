@@ -1,15 +1,12 @@
 package bio.terra.service.dataset.flight.ingest;
 
-import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadFileModel;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;

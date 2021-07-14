@@ -5,7 +5,6 @@ import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -15,7 +14,6 @@ import bio.terra.stairway.exception.RetryException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -34,37 +32,50 @@ public class IngestParseJsonFileStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext flightContext) throws InterruptedException, RetryException {
+  public StepResult doStep(FlightContext flightContext)
+      throws InterruptedException, RetryException {
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(flightContext);
     List<String> gcsFileLines = gcsPdao.getGcsFileLines(ingestRequest.getPath());
-    List<String> fileRefColumnNames = dataset.getTableByName(ingestRequest.getTable())
-        .orElseThrow()
-        .getColumns()
-        .stream().filter(c -> c.getType() == TableDataType.FILEREF)
-        .map(Column::getName)
-        .collect(Collectors.toList());
+    List<String> fileRefColumnNames =
+        dataset.getTableByName(ingestRequest.getTable()).orElseThrow().getColumns().stream()
+            .filter(c -> c.getType() == TableDataType.FILEREF)
+            .map(Column::getName)
+            .collect(Collectors.toList());
+    var workingMap = flightContext.getWorkingMap();
+    workingMap.put(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, fileRefColumnNames);
     try {
-      Set<BulkLoadFileModel> bulkLoadFileModels = gcsFileLines.stream()
-          .map(content -> {
-            try {
-              return objectMapper.readTree(content);
-            } catch (JsonProcessingException e) {
-              throw new RuntimeException(e);
-            }
-          })
-          .flatMap(node -> fileRefColumnNames.stream()
-              .map(columnName -> {
-                JsonNode fileRefNode = node.get(columnName);
-                if (fileRefNode.isObject()) {
-                  return Optional.of(objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
-                } else {
-                  return Optional.<BulkLoadFileModel>empty();
-                }
-              }).filter(Optional::isPresent)
-              .map(Optional::get))
-          .collect(Collectors.toSet());
+      List<JsonNode> fileLineJson =
+          gcsFileLines.stream()
+              .map(
+                  content -> {
+                    try {
+                      return objectMapper.readTree(content);
+                    } catch (JsonProcessingException e) {
+                      throw new RuntimeException(e);
+                    }
+                  })
+              .collect(Collectors.toList());
+      workingMap.put(IngestMapKeys.BULK_LOAD_JSON_LINES, fileLineJson);
+      Set<BulkLoadFileModel> bulkLoadFileModels =
+          fileLineJson.stream()
+              .flatMap(
+                  node ->
+                      fileRefColumnNames.stream()
+                          .map(
+                              columnName -> {
+                                JsonNode fileRefNode = node.get(columnName);
+                                if (fileRefNode.isObject()) {
+                                  return Optional.of(
+                                      objectMapper.convertValue(
+                                          fileRefNode, BulkLoadFileModel.class));
+                                } else {
+                                  return Optional.<BulkLoadFileModel>empty();
+                                }
+                              })
+                          .filter(Optional::isPresent)
+                          .map(Optional::get))
+              .collect(Collectors.toSet());
 
-      var workingMap = flightContext.getWorkingMap();
       workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, bulkLoadFileModels);
 
       return StepResult.getStepResultSuccess();

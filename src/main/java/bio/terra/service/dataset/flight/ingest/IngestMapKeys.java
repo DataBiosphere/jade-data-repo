@@ -7,4 +7,7 @@ public final class IngestMapKeys {
   public static final String STAGING_TABLE_NAME = "stagingTableName";
   public static final String BULK_LOAD_FILE_MODELS = "bulkLoadFileModels";
   public static final String BULK_LOAD_RESULT = "bulkLoadResult";
+  public static final String BULK_LOAD_JSON_LINES = "bulkLoadJsonLines";
+  public static final String TABLE_SCHEMA_FILE_COLUMNS = "tableSchemaFileColumns";
+  public static final String JSON_WITH_FILE_IDS = "jsonWithFileIds";
 }

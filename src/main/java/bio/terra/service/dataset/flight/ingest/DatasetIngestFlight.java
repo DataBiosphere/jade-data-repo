@@ -3,7 +3,6 @@ package bio.terra.service.dataset.flight.ingest;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -13,6 +12,7 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.flight.ingest.IngestBuildLoadFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileGetOrCreateProject;
 import bio.terra.service.filedata.flight.ingest.IngestFileMakeBucketLinkStep;
@@ -31,9 +31,8 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
-import java.util.UUID;
-
 import bio.terra.stairway.RetryRuleExponentialBackoff;
+import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
 public class DatasetIngestFlight extends Flight {
@@ -75,15 +74,14 @@ public class DatasetIngestFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
 
-    Integer driverWaitSeconds = configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
-
+    Integer driverWaitSeconds =
+        configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
 
     addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
     addStep(new IngestSetupStep(datasetService, configService));
 
-    addStep(new AuthorizeBillingProfileUseStep(profileService,
-        ingestRequest.getProfileId(),
-        userReq));
+    addStep(
+        new AuthorizeBillingProfileUseStep(profileService, ingestRequest.getProfileId(), userReq));
     addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset));
     addStep(new LoadLockStep(loadService));
     addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
@@ -103,9 +101,10 @@ public class DatasetIngestFlight extends Flight {
         driverRetry);
 
     addStep(new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag()));
+    // build the scratch file using new file ids and store in new bucket
+    addStep(new IngestBuildLoadFileStep(appConfig.objectMapper()));
 
-
-
+    // handing in the load scratch file
     addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
     addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
     addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));

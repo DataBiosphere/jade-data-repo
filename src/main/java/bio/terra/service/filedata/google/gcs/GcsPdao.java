@@ -106,16 +106,14 @@ public class GcsPdao {
     return Arrays.asList(contents.split("\n"));
   }
 
-  public void writeGcsFileLines(String path, List<String> contentsToWrite) throws IOException {
+  public void writeGcsFileLines(String path, List<String> contentsToWrite) {
     // new gs path:
     // gs://{bucketname}/{flightId}Scratch.json
     GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
     BlobInfo blobInfo =
         BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
-    WriteChannel writer = applicationDefaultStorage().get(blobInfo.getBlobId()).writer();
-    writer.write(
-        ByteBuffer.wrap(String.join("\n", contentsToWrite).getBytes()));
-    writer.close();
+    applicationDefaultStorage().create(blobInfo,
+        String.join("\n", contentsToWrite).getBytes());
   }
 
   public FSFileInfo copyFile(

@@ -9,5 +9,6 @@ public final class IngestMapKeys {
   public static final String BULK_LOAD_RESULT = "bulkLoadResult";
   public static final String BULK_LOAD_JSON_LINES = "bulkLoadJsonLines";
   public static final String TABLE_SCHEMA_FILE_COLUMNS = "tableSchemaFileColumns";
-  public static final String JSON_WITH_FILE_IDS = "jsonWithFileIds";
+  public static final String LINES_WITH_FILE_IDS = "linesWithFileIds";
+  public static final String INGEST_SCRATCH_FILE_PATH = "ingestScratchFilePath";
 }

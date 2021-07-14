@@ -13,6 +13,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.flight.ingest.IngestBuildLoadFileStep;
+import bio.terra.service.filedata.flight.ingest.IngestCreateBucketForScratchFileStep;
+import bio.terra.service.filedata.flight.ingest.IngestCreateScratchFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileGetOrCreateProject;
 import bio.terra.service.filedata.flight.ingest.IngestFileMakeBucketLinkStep;
@@ -103,6 +105,8 @@ public class DatasetIngestFlight extends Flight {
     addStep(new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag()));
     // build the scratch file using new file ids and store in new bucket
     addStep(new IngestBuildLoadFileStep(appConfig.objectMapper()));
+    addStep(new IngestCreateBucketForScratchFileStep(resourceService, dataset));
+    addStep(new IngestCreateScratchFileStep(gcsPdao));
 
     // handing in the load scratch file
     addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));

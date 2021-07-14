@@ -39,7 +39,7 @@ public class IngestBuildLoadFileStep implements Step {
                     BulkLoadFileResultModel::getFileId));
 
     // Part 2 -> Replace BulkLoadFileModels with file id
-    List<String> jsonWithFileIds =
+    List<String> linesWithFileIds =
         jsonLines.stream()
             .peek(
                 node -> {
@@ -60,7 +60,7 @@ public class IngestBuildLoadFileStep implements Step {
                 })
             .map(JsonNode::toString)
             .collect(Collectors.toList());
-    workingMap.put(IngestMapKeys.JSON_WITH_FILE_IDS, jsonWithFileIds);
+    workingMap.put(IngestMapKeys.LINES_WITH_FILE_IDS, linesWithFileIds);
 
     return StepResult.getStepResultSuccess();
   }

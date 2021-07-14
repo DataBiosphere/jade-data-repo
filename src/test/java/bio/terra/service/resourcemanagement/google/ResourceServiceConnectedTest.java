@@ -70,7 +70,7 @@ public class ResourceServiceConnectedTest {
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
     GoogleProjectResource projectResource =
-        projectService.getOrInitializeProject(
+        projectService.initializeGoogleProject(
             projectId, profile, roleToStewardMap, GoogleRegion.DEFAULT_GOOGLE_REGION);
 
     Project project = projectService.getProject(projectId);

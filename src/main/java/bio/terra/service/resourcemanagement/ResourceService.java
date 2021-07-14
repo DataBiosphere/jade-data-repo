@@ -78,7 +78,7 @@ public class ResourceService {
    *     a project
    * @return a reference to the project as a POJO GoogleProjectResource
    */
-  public GoogleProjectResource getOrCreateProjectForBucket(
+  public GoogleProjectResource initializeProjectForBucket(
       Dataset dataset, BillingProfileModel billingProfile, String projectId)
       throws GoogleResourceException, InterruptedException {
 
@@ -86,7 +86,7 @@ public class ResourceService {
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
     // Every bucket needs to live in a project, so we get or create a project first
-    return projectService.getOrInitializeProject(projectId, billingProfile, null, region);
+    return projectService.initializeGoogleProject(projectId, billingProfile, null, region);
   }
 
   /**
@@ -257,12 +257,12 @@ public class ResourceService {
    * @param region the region to create the Firestore in
    * @return project resource id
    */
-  public UUID getOrCreateSnapshotProject(
+  public UUID initializeSnapshotProject(
       BillingProfileModel billingProfile, String projectId, GoogleRegion region)
       throws InterruptedException {
 
     GoogleProjectResource googleProjectResource =
-        projectService.getOrInitializeProject(projectId, billingProfile, null, region);
+        projectService.initializeGoogleProject(projectId, billingProfile, null, region);
 
     return googleProjectResource.getId();
   }
@@ -279,7 +279,7 @@ public class ResourceService {
       throws InterruptedException {
 
     GoogleProjectResource googleProjectResource =
-        projectService.getOrInitializeProject(
+        projectService.initializeGoogleProject(
             projectId, billingProfile, getStewardPolicy(), region);
 
     return googleProjectResource.getId();

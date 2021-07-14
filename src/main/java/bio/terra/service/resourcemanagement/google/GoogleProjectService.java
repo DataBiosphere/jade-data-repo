@@ -154,7 +154,7 @@ public class GoogleProjectService {
    * @return project resource object
    * @throws InterruptedException if shutting down
    */
-  public GoogleProjectResource getOrInitializeProject(
+  public GoogleProjectResource initializeGoogleProject(
       String googleProjectId,
       BillingProfileModel billingProfile,
       Map<String, List<String>> roleIdentityMapping,

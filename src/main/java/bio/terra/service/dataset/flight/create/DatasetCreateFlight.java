@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight.create;
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -61,10 +62,10 @@ public class DatasetCreateFlight extends Flight {
             profileService, datasetRequest.getDefaultProfileId(), userReq));
 
     // Get a new google project from RBS and store it in the working map
-    addStep(new CreateDatasetGetProjectStep(bufferService));
+    addStep(new GetResourceBufferProjectStep(bufferService));
 
     // Get or initialize the project where the dataset resources will be created
-    addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
+    addStep(new CreateDatasetInitializeProjectStep(resourceService, datasetRequest));
 
     // Get or create the storage account where the dataset resources will be created for Azure
     if (platform.isAzure()) {

@@ -38,7 +38,7 @@ public class IngestFileGetOrCreateProject implements Step {
       String projectId = workingMap.get(FileMapKeys.GOOGLE_PROJECT_ID, String.class);
       try {
         GoogleProjectResource projectResource =
-            resourceService.getOrCreateProjectForBucket(dataset, billingProfile, projectId);
+            resourceService.initializeProjectForBucket(dataset, billingProfile, projectId);
         workingMap.put(FileMapKeys.PROJECT_RESOURCE, projectResource);
       } catch (BucketLockException blEx) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);

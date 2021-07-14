@@ -13,11 +13,11 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
 
-public class CreateDatasetGetOrCreateProjectStep implements Step {
+public class CreateDatasetInitializeProjectStep implements Step {
   private final ResourceService resourceService;
   private final DatasetRequestModel datasetRequestModel;
 
-  public CreateDatasetGetOrCreateProjectStep(
+  public CreateDatasetInitializeProjectStep(
       ResourceService resourceService, DatasetRequestModel datasetRequestModel) {
     this.resourceService = resourceService;
     this.datasetRequestModel = datasetRequestModel;

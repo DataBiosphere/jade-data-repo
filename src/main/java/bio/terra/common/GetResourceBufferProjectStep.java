@@ -1,19 +1,22 @@
-package bio.terra.service.dataset.flight.create;
+package bio.terra.common;
 
 import bio.terra.buffer.model.HandoutRequestBody;
 import bio.terra.buffer.model.ResourceInfo;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class CreateDatasetGetProjectStep implements Step {
+public class GetResourceBufferProjectStep implements Step {
+  private final Logger logger = LoggerFactory.getLogger(GetResourceBufferProjectStep.class);
+
   private final BufferService bufferService;
 
-  public CreateDatasetGetProjectStep(BufferService bufferService) {
+  public GetResourceBufferProjectStep(BufferService bufferService) {
     this.bufferService = bufferService;
   }
 
@@ -25,7 +28,9 @@ public class CreateDatasetGetProjectStep implements Step {
     HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
     ResourceInfo resource = bufferService.handoutResource(request);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
-    workingMap.put(DatasetWorkingMapKeys.GOOGLE_PROJECT_ID, projectId);
+    logger.info("Retrieved project from RBS with ID: {}", projectId);
+
+    workingMap.put(ProjectCreatingFlightKeys.GOOGLE_PROJECT_ID, projectId);
     return StepResult.getStepResultSuccess();
   }
 

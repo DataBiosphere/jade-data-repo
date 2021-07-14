@@ -161,7 +161,7 @@ public class ProfileServiceTest {
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
     // create project metadata
-    return googleProjectService.getOrInitializeProject(
+    return googleProjectService.initializeGoogleProject(
         resourceConfiguration.getSingleDataProjectId(),
         profile,
         roleToStewardMap,

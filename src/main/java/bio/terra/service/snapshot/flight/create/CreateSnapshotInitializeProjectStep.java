@@ -11,12 +11,11 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
 
-public class CreateSnapshotGetOrCreateProjectStep implements Step {
+public class CreateSnapshotInitializeProjectStep implements Step {
   private final ResourceService resourceService;
   private final GoogleRegion region;
 
-  public CreateSnapshotGetOrCreateProjectStep(
-      ResourceService resourceService, GoogleRegion region) {
+  public CreateSnapshotInitializeProjectStep(ResourceService resourceService, GoogleRegion region) {
     this.resourceService = resourceService;
     this.region = region;
   }
@@ -31,7 +30,7 @@ public class CreateSnapshotGetOrCreateProjectStep implements Step {
     // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
     // Either the project will have been created8and we will find it, or we will create.
     UUID projectResourceId =
-        resourceService.getOrCreateSnapshotProject(profileModel, projectId, region);
+        resourceService.initializeSnapshotProject(profileModel, projectId, region);
     workingMap.put(SnapshotWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
     return StepResult.getStepResultSuccess();
   }

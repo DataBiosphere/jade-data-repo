@@ -29,7 +29,7 @@ public class IngestFileGetProjectStep implements Step {
     // Requests a google project from RBS and puts it in the working map
     FlightMap workingMap = context.getWorkingMap();
     BillingProfileModel billingProfile =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, bio.terra.model.BillingProfileModel.class);
+        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     final GoogleProjectResource datasetProject =
         resourceService.getProjectResource(dataset.getProjectResourceId());
     String sourceDatasetGoogleProjectId = datasetProject.getGoogleProjectId();

@@ -5,6 +5,7 @@ import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -82,10 +83,10 @@ public class SnapshotCreateFlight extends Flight {
         new AuthorizeBillingProfileUseStep(profileService, snapshotReq.getProfileId(), userReq));
 
     // Get a new google project from RBS and store it in the working map
-    addStep(new CreateSnapshotGetProjectStep(bufferService));
+    addStep(new GetResourceBufferProjectStep(bufferService));
 
     // Get or initialize the project where the snapshot resources will be created
-    addStep(new CreateSnapshotGetOrCreateProjectStep(resourceService, firestoreRegion));
+    addStep(new CreateSnapshotInitializeProjectStep(resourceService, firestoreRegion));
 
     // create the snapshot metadata object in postgres and lock it
     // mint a snapshot id and put it in the working map

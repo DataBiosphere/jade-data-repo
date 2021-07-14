@@ -6,6 +6,7 @@ import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
+import bio.terra.model.TableDataType;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
@@ -13,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 public class Dataset implements FSContainerInterface {
@@ -104,6 +106,13 @@ public class Dataset implements FSContainerInterface {
 
   public Optional<DatasetTable> getTableByName(String name) {
     return getTables().stream().filter(table -> table.getName().equals(name)).findFirst();
+  }
+
+  public List<String> getTableColumnsOfType(String tableName, TableDataType dataType) {
+    return getTableByName(tableName).orElseThrow().getColumns().stream()
+            .filter(c -> c.getType() == dataType)
+            .map(Column::getName)
+            .collect(Collectors.toList());
   }
 
   public DatasetSummary getDatasetSummary() {

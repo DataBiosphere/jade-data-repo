@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
+import bio.terra.common.JsonParseUtils;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.TableDataType;
@@ -34,47 +35,26 @@ public class IngestParseJsonFileStep implements Step {
   @Override
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
-    IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(flightContext);
-    List<String> gcsFileLines = gcsPdao.getGcsFileLines(ingestRequest.getPath());
-    List<String> fileRefColumnNames =
-        dataset.getTableByName(ingestRequest.getTable()).orElseThrow().getColumns().stream()
-            .filter(c -> c.getType() == TableDataType.FILEREF)
-            .map(Column::getName)
-            .collect(Collectors.toList());
     var workingMap = flightContext.getWorkingMap();
+    IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(flightContext);
+
+    // Read ingest request from gcs into list of strings; each line representing json objects
+    List<String> gcsFileLines = gcsPdao.getGcsFileLines(ingestRequest.getPath());
+
+    // Columns in Table w/ type Fileref
+    List<String> fileRefColumnNames = dataset.getTableColumnsOfType(ingestRequest.getTable(),
+        TableDataType.FILEREF);
     workingMap.put(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, fileRefColumnNames);
+
     try {
-      List<JsonNode> fileLineJson =
-          gcsFileLines.stream()
-              .map(
-                  content -> {
-                    try {
-                      return objectMapper.readTree(content);
-                    } catch (JsonProcessingException e) {
-                      throw new RuntimeException(e);
-                    }
-                  })
-              .collect(Collectors.toList());
+      // Parse lines from ingest request file into json
+      List<JsonNode> fileLineJson = IngestUtils.parse(gcsFileLines, objectMapper);
       workingMap.put(IngestMapKeys.BULK_LOAD_JSON_LINES, fileLineJson);
-      Set<BulkLoadFileModel> bulkLoadFileModels =
-          fileLineJson.stream()
-              .flatMap(
-                  node ->
-                      fileRefColumnNames.stream()
-                          .map(
-                              columnName -> {
-                                JsonNode fileRefNode = node.get(columnName);
-                                if (fileRefNode.isObject()) {
-                                  return Optional.of(
-                                      objectMapper.convertValue(
-                                          fileRefNode, BulkLoadFileModel.class));
-                                } else {
-                                  return Optional.<BulkLoadFileModel>empty();
-                                }
-                              })
-                          .filter(Optional::isPresent)
-                          .map(Optional::get))
-              .collect(Collectors.toSet());
+
+      // Collect list of files that need to be ingested
+      Set<BulkLoadFileModel> bulkLoadFileModels = IngestUtils.collectFilesForIngest(fileLineJson,
+          fileRefColumnNames,
+          objectMapper);
 
       workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, bulkLoadFileModels);
 

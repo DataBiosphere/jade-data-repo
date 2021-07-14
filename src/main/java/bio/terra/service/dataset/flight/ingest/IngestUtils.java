@@ -2,6 +2,7 @@ package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.BulkLoadFileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
@@ -11,8 +12,14 @@ import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 
 // Common code for the ingest steps
@@ -132,5 +139,42 @@ public final class IngestUtils {
   public static PdaoLoadStatistics getIngestStatistics(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     return workingMap.get(IngestMapKeys.INGEST_STATISTICS, PdaoLoadStatistics.class);
+  }
+
+
+  public static List<JsonNode> parse(List<String> source, ObjectMapper objectMapper) {
+    return source.stream()
+        .map(
+            content -> {
+              try {
+                return objectMapper.readTree(content);
+              } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+              }
+            })
+        .collect(Collectors.toList());
+  }
+
+  public static Set<BulkLoadFileModel> collectFilesForIngest(List<JsonNode> fileLineJson,
+                                                             List<String> fileRefColumnNames,
+                                                             ObjectMapper objectMapper) {
+    return fileLineJson.stream()
+        .flatMap(
+            node ->
+                fileRefColumnNames.stream()
+                    .map(
+                        columnName -> {
+                          JsonNode fileRefNode = node.get(columnName);
+                          if (fileRefNode.isObject()) {
+                            return Optional.of(
+                                objectMapper.convertValue(
+                                    fileRefNode, bio.terra.model.BulkLoadFileModel.class));
+                          } else {
+                            return Optional.<bio.terra.model.BulkLoadFileModel>empty();
+                          }
+                        })
+                    .filter(Optional::isPresent)
+                    .map(Optional::get))
+        .collect(Collectors.toSet());
   }
 }

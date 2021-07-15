@@ -11,6 +11,8 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.7
+      - name: get current semver
+        run: git for-each-ref --sort=-v:refname --count=1 --format '%(refname)' refs/tags/[0-9]*.[0-9]*.[0-9]* refs/tags/v[0-9]*.[0-9]*.[0-9]* | cut -d / -f 3- >> $CURRENT_SEMVER
       - name: Generate Python client with openapi-generator
         # openapi-generator-cli generate -i src/main/resources/api/data-repository-openapi.yaml -g python -o ../data-repo-client --package-name data_repo_client
         # -c /github/workspace/${{ inputs.config-file }} \
@@ -20,6 +22,7 @@ jobs:
           -i /github/workspace/src/main/resources/api/data-repository-openapi.yaml \
           -g python \
           -o /github/workspace/data-repo-client \
+          --additional-properties=projectName=data-repo-client,packageName=data_repo_client,version=$CURRENT_SEMVER
           --skip-validate-spec
       - name: Install pypa/build
         working-directory: ./data-repo-client

@@ -12,9 +12,14 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
 import bio.terra.stairway.ShortUUID;
+import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.core.management.Region;
 import com.azure.core.management.exception.ManagementException;
 import com.azure.core.util.Context;
+import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.TableServiceClientBuilder;
+import com.azure.data.tables.models.TableEntity;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.Deployment;
 import com.azure.resourcemanager.resources.models.DeploymentMode;
@@ -271,6 +276,21 @@ public class AzureResourceConfigurationTest {
 
           // Perform file operations
           createFileAndSign(fileSystemClient);
+
+          // Create a table service client by authenticating using the found key
+          TableServiceClient tableServiceClient =
+              new TableServiceClientBuilder()
+                  .credential(new AzureNamedKeyCredential(storageAccountName, key))
+                  .endpoint("https://" + storageAccountName + ".table.core.windows.net")
+                  .buildClient();
+          TableClient tableClient = tableServiceClient.createTable("files");
+          String datasetId = UUID.randomUUID().toString();
+          String fileId = UUID.randomUUID().toString();
+          TableEntity entity =
+              new TableEntity(datasetId, fileId)
+                  .addProperty("fileId", fileId)
+                  .addProperty("description", "A test table entry");
+          tableClient.createEntity(entity);
         });
 
     deleteManagedApplication(client, applicationDeployment);

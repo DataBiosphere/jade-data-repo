@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
@@ -25,6 +26,10 @@ public class IngestCreateBucketForScratchFileStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     FlightMap workingMap = context.getWorkingMap();
     GoogleProjectResource googleProjectResource =
         workingMap.get(FileMapKeys.PROJECT_RESOURCE, GoogleProjectResource.class);

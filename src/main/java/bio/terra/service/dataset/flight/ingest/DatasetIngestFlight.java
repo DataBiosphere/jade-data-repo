@@ -26,6 +26,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadLockStep;
+import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -34,6 +35,7 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
@@ -82,9 +84,10 @@ public class DatasetIngestFlight extends Flight {
     addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
     addStep(new IngestSetupStep(datasetService, configService));
 
+    // Begin file + metadata load
+    addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset));
     addStep(
         new AuthorizeBillingProfileUseStep(profileService, ingestRequest.getProfileId(), userReq));
-    addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset));
     addStep(new LoadLockStep(loadService));
     addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
@@ -96,8 +99,8 @@ public class DatasetIngestFlight extends Flight {
             configurationService,
             jobService,
             datasetId.toString(),
-            ingestRequest.getLoadTag(),
-            ingestRequest.getMaxBadRecords(),
+            inputParameters.get(LoadMapKeys.LOAD_TAG, String.class),
+            Optional.ofNullable(ingestRequest.getMaxBadRecords()).orElse(0),
             driverWaitSeconds,
             ingestRequest.getProfileId()),
         driverRetry);
@@ -107,6 +110,7 @@ public class DatasetIngestFlight extends Flight {
     addStep(new IngestBuildLoadFileStep(appConfig.objectMapper()));
     addStep(new IngestCreateBucketForScratchFileStep(resourceService, dataset));
     addStep(new IngestCreateScratchFileStep(gcsPdao));
+    // End file + metadata load
 
     // handing in the load scratch file
     addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));

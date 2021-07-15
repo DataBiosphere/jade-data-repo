@@ -30,6 +30,10 @@ public class IngestBulkMapResponseStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
+    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
     UUID loadId = UUID.fromString(loadIdString);

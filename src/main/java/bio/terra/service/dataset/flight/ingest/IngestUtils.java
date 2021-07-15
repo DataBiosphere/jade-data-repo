@@ -12,8 +12,11 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // Common code for the ingest steps
 public final class IngestUtils {
@@ -132,5 +135,19 @@ public final class IngestUtils {
   public static PdaoLoadStatistics getIngestStatistics(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     return workingMap.get(IngestMapKeys.INGEST_STATISTICS, PdaoLoadStatistics.class);
+  }
+
+  public static boolean skipIfNoFilesToIngest(FlightContext flightContext) {
+    if (flightContext.getFlightClassName().equals(DatasetIngestFlight.class.getName())
+        && flightContext
+            .getWorkingMap()
+            .get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class)
+            .isEmpty()) {
+      Logger logger = LoggerFactory.getLogger(DatasetIngestFlight.class);
+      logger.info(
+          "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
+      return true;
+    }
+    return false;
   }
 }

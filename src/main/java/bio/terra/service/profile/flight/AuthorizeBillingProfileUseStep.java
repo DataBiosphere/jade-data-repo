@@ -1,6 +1,7 @@
 package bio.terra.service.profile.flight;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
@@ -32,6 +33,9 @@ public class AuthorizeBillingProfileUseStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
     BillingProfileModel profileModel = profileService.authorizeLinking(profileId, user);
     FlightMap workingMap = context.getWorkingMap();
     workingMap.put(ProfileMapKeys.PROFILE_MODEL, profileModel);

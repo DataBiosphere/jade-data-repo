@@ -28,11 +28,17 @@ public class IngestLoadTableStep implements Step {
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
 
     FlightMap workingMap = context.getWorkingMap();
-    String path = workingMap.get(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, String.class);
+
+    final String pathToIngestFile;
+    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+      pathToIngestFile = ingestRequest.getPath();
+    } else {
+      pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, String.class);
+    }
 
     PdaoLoadStatistics ingestStatistics =
         bigQueryPdao.loadToStagingTable(
-            dataset, targetTable, stagingTableName, ingestRequest, path);
+            dataset, targetTable, stagingTableName, ingestRequest, pathToIngestFile);
 
     // Save away the stats in the working map. We will use some of them later
     // when we make the annotations. Others are returned on the ingest response.

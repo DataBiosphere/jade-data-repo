@@ -26,6 +26,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
+import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -188,9 +189,11 @@ public class DatasetService {
             + ingestRequestModel.getTable()
             + " in dataset id "
             + id;
+    String computedLoadTag = loadService.computeLoadTag(ingestRequestModel.getLoadTag());
     return jobService
         .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+        .addParameter(LoadMapKeys.LOAD_TAG, computedLoadTag)
         .submit();
   }
 

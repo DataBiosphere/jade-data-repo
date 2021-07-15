@@ -1,5 +1,6 @@
 package bio.terra.service.load.flight;
 
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -19,6 +20,10 @@ public class LoadLockStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     String loadTag = loadService.getLoadTag(context);
     UUID loadId = loadService.lockLoad(loadTag, context.getFlightId());
     FlightMap workingMap = context.getWorkingMap();

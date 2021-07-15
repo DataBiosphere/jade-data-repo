@@ -2971,8 +2971,6 @@ components:
         - format
         - path
         - table
-        - load_tag
-        - profile_id
       type: object
       properties:
         table:

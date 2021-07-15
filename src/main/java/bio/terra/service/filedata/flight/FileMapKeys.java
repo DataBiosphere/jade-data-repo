@@ -13,4 +13,5 @@ public final class FileMapKeys {
   public static final String LOAD_COMPLETED = "loadCompleted";
   public static final String PROJECT_RESOURCE = "projectResource";
   public static final String INGEST_FILE_BUCKET_INFO = "ingestFileBucketInfo";
+  public static final String GOOGLE_PROJECT_ID = "googleProjectId";
 }

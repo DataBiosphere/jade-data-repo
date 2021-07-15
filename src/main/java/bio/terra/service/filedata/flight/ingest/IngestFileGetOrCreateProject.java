@@ -8,7 +8,6 @@ import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -41,14 +40,14 @@ public class IngestFileGetOrCreateProject implements Step {
       // or create a bucket in the context of that profile and the dataset.
       BillingProfileModel billingProfile =
           workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-
+      String projectId = workingMap.get(FileMapKeys.GOOGLE_PROJECT_ID, String.class);
       try {
         GoogleProjectResource projectResource =
-            resourceService.getOrCreateProjectForBucket(dataset, billingProfile);
+            resourceService.initializeProjectForBucket(dataset, billingProfile, projectId);
         workingMap.put(FileMapKeys.PROJECT_RESOURCE, projectResource);
       } catch (BucketLockException blEx) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
-      } catch (GoogleResourceException | GoogleResourceNamingException ex) {
+      } catch (GoogleResourceException ex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
       }
     }

@@ -11,6 +11,8 @@ import bio.terra.model.DRSAccessMethod;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -165,6 +167,12 @@ public final class TestUtils {
       DatasetDao datasetDao, String datasetName) throws InterruptedException {
     Dataset dataset = datasetDao.retrieveByName(datasetName);
     return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
+  }
+
+  public static BigQueryProject bigQueryProjectForSnapshotName(
+      SnapshotDao snapshotDao, String snapshotName) throws InterruptedException {
+    Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotName);
+    return BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
   }
 
   private static final String selectFromBigQueryDatasetTemplate =

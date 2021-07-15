@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight.create;
 import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -15,6 +16,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
@@ -31,6 +33,7 @@ public class DatasetCreateFlight extends Flight {
 
     // get the required daos and services to pass into the steps
     ApplicationContext appContext = (ApplicationContext) applicationContext;
+    BufferService bufferService = appContext.getBean(BufferService.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
@@ -58,8 +61,11 @@ public class DatasetCreateFlight extends Flight {
         new AuthorizeBillingProfileUseStep(
             profileService, datasetRequest.getDefaultProfileId(), userReq));
 
-    // Get or create the project where the dataset resources will be created for GCP
-    addStep(new CreateDatasetGetOrCreateProjectStep(resourceService, datasetRequest));
+    // Get a new google project from RBS and store it in the working map
+    addStep(new GetResourceBufferProjectStep(bufferService));
+
+    // Get or initialize the project where the dataset resources will be created
+    addStep(new CreateDatasetInitializeProjectStep(resourceService, datasetRequest));
 
     // Get or create the storage account where the dataset resources will be created for Azure
     if (platform.isAzure()) {

@@ -23,6 +23,7 @@ import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessMethod.TypeEnum;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.service.configuration.ConfigEnum;
@@ -92,6 +93,7 @@ public class DrsTest extends UsersBase {
   @Autowired private ConfigurationService configurationService;
 
   private String custodianToken;
+  private DatasetModel datasetModel;
   private SnapshotModel snapshotModel;
   private UUID profileId;
   private UUID datasetId;
@@ -107,6 +109,7 @@ public class DrsTest extends UsersBase {
     String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     EncodeFixture.SetupResult setupResult =
         encodeFixture.setupEncode(steward(), custodian(), reader());
+    datasetModel = dataRepoFixtures.getDataset(steward(), setupResult.getDatasetId());
     snapshotModel =
         dataRepoFixtures.getSnapshot(steward(), setupResult.getSummaryModel().getId(), null);
     profileId = setupResult.getProfileId();
@@ -170,6 +173,7 @@ public class DrsTest extends UsersBase {
         TestUtils.readDrsGCSAcls(drsObjectFile.getAccessMethods());
     validateContainsAcls(preDeleteAcls.values().iterator().next());
     validateBQJobUserRolePresent(
+        datasetModel.getDataProject(),
         Arrays.asList(
             datasetIamRoles.get(IamRole.STEWARD),
             datasetIamRoles.get(IamRole.CUSTODIAN),
@@ -177,6 +181,7 @@ public class DrsTest extends UsersBase {
     // Make sure that the snapshot BigQuery Job User permission role is present for the Steward and
     // Reader
     validateBQJobUserRolePresent(
+        snapshotModel.getDataProject(),
         Arrays.asList(snapshotIamRoles.get(IamRole.STEWARD), snapshotIamRoles.get(IamRole.READER)));
 
     Optional<DRSAccessMethod> drsAccessMethod =
@@ -232,9 +237,11 @@ public class DrsTest extends UsersBase {
     validateDoesNotContainAcls(postDeleteAcls.values().iterator().next());
     // Make sure that the snapshot BigQuery Job User roles are removed
     validateBQJobUserRoleNotPresent(
+        snapshotModel.getDataProject(),
         Arrays.asList(snapshotIamRoles.get(IamRole.STEWARD), snapshotIamRoles.get(IamRole.READER)));
     // ...and that the dataset roles are still present
     validateBQJobUserRolePresent(
+        datasetModel.getDataProject(),
         Arrays.asList(
             datasetIamRoles.get(IamRole.STEWARD),
             datasetIamRoles.get(IamRole.CUSTODIAN),
@@ -245,6 +252,7 @@ public class DrsTest extends UsersBase {
 
     // Make sure that the dataset roles are now removed
     validateBQJobUserRoleNotPresent(
+        datasetModel.getDataProject(),
         Arrays.asList(
             datasetIamRoles.get(IamRole.STEWARD),
             datasetIamRoles.get(IamRole.CUSTODIAN),
@@ -429,9 +437,9 @@ public class DrsTest extends UsersBase {
   }
 
   /** Verify that the specified member emails all have the BQ job user role in the data project */
-  private void validateBQJobUserRolePresent(Collection<String> members)
+  private void validateBQJobUserRolePresent(String dataProject, Collection<String> members)
       throws GeneralSecurityException, IOException {
-    List<Binding> bindings = TestUtils.getPolicy(snapshotModel.getDataProject()).getBindings();
+    List<Binding> bindings = TestUtils.getPolicy(dataProject).getBindings();
     bindings.forEach(
         b -> {
           if (Objects.equals(b.getRole(), BQ_JOB_USER_ROLE)) {
@@ -448,9 +456,9 @@ public class DrsTest extends UsersBase {
   /**
    * Verify that none of the specified member emails have the BQ job user role in the data project
    */
-  private void validateBQJobUserRoleNotPresent(Collection<String> members)
+  private void validateBQJobUserRoleNotPresent(String dataProject, Collection<String> members)
       throws GeneralSecurityException, IOException {
-    List<Binding> bindings = TestUtils.getPolicy(snapshotModel.getDataProject()).getBindings();
+    List<Binding> bindings = TestUtils.getPolicy(dataProject).getBindings();
     bindings.forEach(
         b -> {
           if (Objects.equals(b.getRole(), BQ_JOB_USER_ROLE)) {

@@ -23,7 +23,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.DataLocationSelector;
+import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
@@ -67,7 +67,7 @@ public class FileLoadTest {
 
   @MockBean private IamProviderInterface samService;
 
-  @SpyBean private DataLocationSelector dataLocationSelector;
+  @SpyBean private GoogleProjectService projectService;
 
   private BillingProfileModel profileModel;
   private DatasetSummaryModel datasetSummary;

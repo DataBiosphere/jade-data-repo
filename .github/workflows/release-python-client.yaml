@@ -20,6 +20,7 @@ jobs:
         # openapi-generator-cli generate -i src/main/resources/api/data-repository-openapi.yaml -g python -o ../data-repo-client --package-name data_repo_client
         # -c /github/workspace/${{ inputs.config-file }} \
         run: |
+          echo ${CURRENT_SEMVER}
           docker run -u 1001 --rm --workdir /github/workspace -v "$GITHUB_WORKSPACE":"/github/workspace" \
           openapitools/openapi-generator-cli:v4.3.1 generate \
           -i /github/workspace/src/main/resources/api/data-repository-openapi.yaml \

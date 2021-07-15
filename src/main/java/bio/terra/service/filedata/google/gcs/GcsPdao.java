@@ -29,6 +29,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -100,7 +101,10 @@ public class GcsPdao {
     GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
     BlobInfo blobInfo =
         BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
-    var contents = new String(applicationDefaultStorage().get(blobInfo.getBlobId()).getContent());
+    var contents =
+        new String(
+            applicationDefaultStorage().get(blobInfo.getBlobId()).getContent(),
+            StandardCharsets.UTF_8);
     return Arrays.asList(contents.split("\n"));
   }
 
@@ -110,7 +114,8 @@ public class GcsPdao {
     GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
     BlobInfo blobInfo =
         BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
-    applicationDefaultStorage().create(blobInfo, String.join("\n", contentsToWrite).getBytes());
+    applicationDefaultStorage()
+        .create(blobInfo, String.join("\n", contentsToWrite).getBytes(StandardCharsets.UTF_8));
   }
 
   public FSFileInfo copyFile(

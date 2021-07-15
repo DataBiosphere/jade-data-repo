@@ -83,11 +83,10 @@ public final class BlobContainerCopierBuilder {
   }
 
   public String appendBlobGuidanceToErrorMessage(String errorMsg) {
-    return new StringBuilder(errorMsg)
-        .append(" The URL format must be:")
-        .append("https://{account name}.blob.core.windows.net/{container name}/{blob name}")
-        .append("?{valid SAS with read permissions}")
-        .toString();
+    return errorMsg +
+        " The URL format must be:" +
+        "https://{account name}.blob.core.windows.net/{container name}/{blob name}" +
+        "?{valid SAS with read permissions}";
   }
 
   public BlobContainerCopierBuilder pollingInterval(Duration pollingInterval) {

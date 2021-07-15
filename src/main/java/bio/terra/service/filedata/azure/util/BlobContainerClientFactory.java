@@ -27,7 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 public class BlobContainerClientFactory {
 
   public static final int EXPIRATION_DAYS = 7;
-  private static final HttpClient httpClient = HttpClient.createDefault();
+  private final HttpClient httpClient = HttpClient.createDefault();
 
   private final BlobContainerClient blobContainerClient;
 

@@ -22,9 +22,9 @@ public class GetResourceBufferProjectStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    // Requests a google project from RBS and puts it in the working map
     FlightMap workingMap = context.getWorkingMap();
     String handoutRequestId = UUID.randomUUID().toString();
+    logger.info("Using request ID: {} to get project from RBS", handoutRequestId);
     HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
     ResourceInfo resource = bufferService.handoutResource(request);
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();

@@ -12,6 +12,10 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
+/**
+ * Requests a Google project from the Resource Buffer Service
+ * and puts it in the working map.
+ */
 public class IngestFileGetProjectStep implements Step {
   private final ResourceService resourceService;
   private final Dataset dataset;

@@ -41,7 +41,6 @@ public class ResourceService {
   private static final Logger logger = LoggerFactory.getLogger(ResourceService.class);
   public static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
 
-  private final DataLocationSelector dataLocationSelector;
   private final AzureDataLocationSelector azureDataLocationSelector;
   private final GoogleProjectService projectService;
   private final GoogleBucketService bucketService;
@@ -52,7 +51,6 @@ public class ResourceService {
 
   @Autowired
   public ResourceService(
-      DataLocationSelector dataLocationSelector,
       AzureDataLocationSelector azureDataLocationSelector,
       GoogleProjectService projectService,
       GoogleBucketService bucketService,
@@ -60,7 +58,6 @@ public class ResourceService {
       AzureStorageAccountService storageAccountService,
       SamConfiguration samConfiguration,
       DatasetStorageAccountDao datasetStorageAccountDao) {
-    this.dataLocationSelector = dataLocationSelector;
     this.azureDataLocationSelector = azureDataLocationSelector;
     this.projectService = projectService;
     this.bucketService = bucketService;
@@ -105,7 +102,7 @@ public class ResourceService {
       Dataset dataset, GoogleProjectResource projectResource, String flightId)
       throws InterruptedException, GoogleResourceNamingException {
     return bucketService.getOrCreateBucket(
-        dataLocationSelector.bucketForFile(projectResource.getGoogleProjectId()),
+        projectService.bucketForFile(projectResource.getGoogleProjectId()),
         projectResource,
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
@@ -246,7 +243,7 @@ public class ResourceService {
   public void updateBucketMetadata(
       String projectId, BillingProfileModel billingProfile, String flightId)
       throws GoogleResourceNamingException {
-    String bucketName = dataLocationSelector.bucketForFile(projectId);
+    String bucketName = projectService.bucketForFile(projectId);
     bucketService.updateBucketMetadata(bucketName, flightId);
   }
 

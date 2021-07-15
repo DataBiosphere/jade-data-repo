@@ -1,16 +1,19 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.buffer.model.HandoutRequestBody;
+import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.profile.google.GoogleBillingService;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.exception.AppengineException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.MismatchedBillingProfilesException;
 import bio.terra.service.resourcemanagement.exception.UpdatePermissionsFailedException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -25,7 +28,6 @@ import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.cloudresourcemanager.model.Policy;
 import com.google.api.services.cloudresourcemanager.model.Project;
-import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
 import com.google.api.services.serviceusage.v1.ServiceUsage;
@@ -74,73 +76,70 @@ public class GoogleProjectService {
   private final GoogleBillingService billingService;
   private final GoogleResourceDao resourceDao;
   private final GoogleResourceConfiguration resourceConfiguration;
-  private final ObjectMapper objectMapper;
-  private final ConfigurationService configService;
   private final BufferService bufferService;
+  private final DatasetBucketDao datasetBucketDao;
+  private static final String GS_BUCKET_PATTERN = "[a-z0-9\\-\\.\\_]{3,63}";
 
   @Autowired
   public GoogleProjectService(
       GoogleResourceDao resourceDao,
       GoogleResourceConfiguration resourceConfiguration,
       GoogleBillingService billingService,
-      ConfigurationService configService,
-      ObjectMapper objectMapper,
-      BufferService bufferService) {
+      BufferService bufferService,
+      DatasetBucketDao datasetBucketDao) {
     this.resourceDao = resourceDao;
     this.resourceConfiguration = resourceConfiguration;
     this.billingService = billingService;
-    this.configService = configService;
-    this.objectMapper = objectMapper;
     this.bufferService = bufferService;
+    this.datasetBucketDao = datasetBucketDao;
   }
 
   /**
-   * Note: the billing profile used here must be authorized via the profile service before
-   * attempting to use it here
-   *
-   * @param googleProjectId google's id of the project
-   * @param billingProfile previously authorized billing profile
-   * @param roleIdentityMapping permissions to set
-   * @param region region of dataset/snapshot
-   * @return project resource object
-   * @throws InterruptedException if shutting down
+   * @param dataset Dataset the file belongs to
+   * @param billingProfile
+   * @return
+   * @throws GoogleResourceException
    */
-  public GoogleProjectResource getOrCreateProject(
-      String googleProjectId,
-      BillingProfileModel billingProfile,
-      Map<String, List<String>> roleIdentityMapping,
-      GoogleRegion region)
-      throws InterruptedException {
-
-    try {
-      GoogleProjectResource projectResource =
-          resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
-      UUID resourceProfileId = projectResource.getProfileId();
-      if (resourceProfileId.equals(billingProfile.getId())) {
-        return projectResource;
-      }
-      throw new MismatchedBillingProfilesException(
-          "Cannot reuse existing project "
-              + projectResource.getGoogleProjectId()
-              + " from profile "
-              + resourceProfileId
-              + " with a different profile "
-              + billingProfile.getId());
-    } catch (GoogleResourceNotFoundException e) {
-      logger.info("no project resource found for projectId: {}", googleProjectId);
+  public String projectIdForFile(Dataset dataset, BillingProfileModel billingProfile)
+      throws GoogleResourceException {
+    // Case 1
+    // Condition: Requested billing profile matches source dataset's billing profile
+    // Action: Re-use dataset's project
+    String sourceDatasetGoogleProjectId = dataset.getProjectResource().getGoogleProjectId();
+    UUID sourceDatasetBillingProfileId = dataset.getProjectResource().getProfileId();
+    UUID requestedBillingProfileId = billingProfile.getId();
+    if (sourceDatasetBillingProfileId.equals(requestedBillingProfileId)) {
+      return sourceDatasetGoogleProjectId;
     }
 
-    // In development we are willing to reuse projects that exist already, but are not stored
-    // in the database. In that case, we reinitialize them, but do not change their associated
-    // billing account.
-    // In production, it is hazardous to use projects that exist since we do not know where they
-    // came from, what resources they contain, who is paying for them.
-    Project existingProject = getProject(googleProjectId);
-    if (existingProject != null && resourceConfiguration.getAllowReuseExistingProjects()) {
-      return initializeProject(existingProject, billingProfile, roleIdentityMapping, false, region);
+    // Case 2
+    // Condition: Ingest Billing profile != source dataset billing profile && project *already
+    // exists*
+    // Action: Re-use bucket's project
+    String bucketGoogleProjectId =
+        datasetBucketDao.getProjectResourceForBucket(dataset.getId(), billingProfile.getId());
+    if (bucketGoogleProjectId != null) {
+      return bucketGoogleProjectId;
     }
 
-    return newProject(googleProjectId, billingProfile, roleIdentityMapping, region);
+    // Case 3 -
+    // Condition: Ingest Billing profile != source dataset billing profile && project does NOT exist
+    // Action: Request a new project
+    HandoutRequestBody request =
+        new HandoutRequestBody().handoutRequestId(UUID.randomUUID().toString());
+    ResourceInfo resource = bufferService.handoutResource(request);
+    return resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+  }
+
+  public String bucketForFile(String projectId) throws GoogleResourceNamingException {
+    String bucketName = projectId + "-bucket";
+    if (!bucketName.matches(GS_BUCKET_PATTERN)) {
+      throw new GoogleResourceNamingException(
+          "Google bucket name '"
+              + bucketName
+              + "' does not match required pattern for google buckets.");
+    }
+    return bucketName;
   }
 
   /**
@@ -224,62 +223,6 @@ public class GoogleProjectService {
       return null;
     } catch (IOException | GeneralSecurityException e) {
       throw new GoogleResourceException("Could not check on project state", e);
-    }
-  }
-
-  /**
-   * Created a new google project. This process is not transactional or done in a stairway flight,
-   * so it is possible we will allocate projects and before they are recorded in our database, we
-   * will fail and they will be orphaned. We expect that the Resource Buffing Service will be
-   * performing project creation for us eventually so we will not do the work two fix those failure
-   * windows.
-   *
-   * @param requestedProjectId suggested name for the project
-   * @param billingProfile authorized billing profile that'll pay for the project
-   * @param roleIdentityMapping iam roles to be granted on the project
-   * @param region region of the dataset/snapshot
-   * @return a populated project resource object
-   * @throws InterruptedException if the flight is interrupted during execution
-   */
-  private GoogleProjectResource newProject(
-      String requestedProjectId,
-      BillingProfileModel billingProfile,
-      Map<String, List<String>> roleIdentityMapping,
-      GoogleRegion region)
-      throws InterruptedException {
-
-    ensureValidProjectId(requestedProjectId);
-
-    // projects created by service accounts must live under a parent resource (either a folder or an
-    // organization)
-    ResourceId parentResource =
-        new ResourceId()
-            .setType(resourceConfiguration.getParentResourceType())
-            .setId(resourceConfiguration.getParentResourceId());
-    Project requestBody =
-        new Project()
-            .setName(requestedProjectId)
-            .setProjectId(requestedProjectId)
-            .setParent(parentResource);
-    logger.info("creating project with request: {}", requestBody);
-    try {
-      // kick off a project create request and poll until it is done
-      CloudResourceManager resourceManager = cloudResourceManager();
-      CloudResourceManager.Projects.Create request = resourceManager.projects().create(requestBody);
-      Operation operation = request.execute();
-      long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
-      blockUntilResourceOperationComplete(resourceManager, operation, timeout);
-
-      // TODO: What happens if the requested project id is not the actual project id?
-      // it should be retrievable once the create operation is complete
-      Project project = getProject(requestedProjectId);
-      if (project == null) {
-        throw new GoogleResourceException("Could not get project after creation");
-      }
-
-      return initializeProject(project, billingProfile, roleIdentityMapping, true, region);
-    } catch (IOException | GeneralSecurityException e) {
-      throw new GoogleResourceException("Could not create project", e);
     }
   }
 

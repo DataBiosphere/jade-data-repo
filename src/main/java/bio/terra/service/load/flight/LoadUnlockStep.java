@@ -1,5 +1,6 @@
 package bio.terra.service.load.flight;
 
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -17,6 +18,10 @@ public class LoadUnlockStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
+    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     String loadTag = loadService.getLoadTag(context);
     loadService.unlockLoad(loadTag, context.getFlightId());
     return StepResult.getStepResultSuccess();

@@ -15,6 +15,8 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
@@ -47,6 +49,7 @@ public class DatasetService {
   private final ResourceService resourceService;
   private final LoadService loadService;
   private final ProfileDao profileDao;
+  private final ConfigurationService configService;
 
   @Autowired
   public DatasetService(
@@ -54,12 +57,14 @@ public class DatasetService {
       JobService jobService,
       ResourceService resourceService,
       LoadService loadService,
-      ProfileDao profileDao) {
+      ProfileDao profileDao,
+      ConfigurationService configService) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.resourceService = resourceService;
     this.loadService = loadService;
     this.profileDao = profileDao;
+    this.configService = configService;
   }
 
   public String createDataset(
@@ -194,6 +199,15 @@ public class DatasetService {
         .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(LoadMapKeys.LOAD_TAG, computedLoadTag)
+        .addParameter(
+            LoadMapKeys.DRIVER_WAIT_SECONDS,
+            configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
+        .addParameter(
+            LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE,
+            configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE))
+        .addParameter(
+            LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS,
+            configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS))
         .submit();
   }
 

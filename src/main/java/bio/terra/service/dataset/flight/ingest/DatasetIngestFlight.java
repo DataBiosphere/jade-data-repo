@@ -4,7 +4,6 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
@@ -13,6 +12,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.flight.ingest.IngestBuildLoadFileStep;
+import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
+import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
 import bio.terra.service.filedata.flight.ingest.IngestCreateBucketForScratchFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestCreateScratchFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
@@ -28,6 +29,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -81,8 +83,13 @@ public class DatasetIngestFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
 
-    Integer driverWaitSeconds =
-        configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
+    int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
+    int loadHistoryWaitSeconds =
+        inputParameters.get(LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS, Integer.class);
+    int fileChunkSize =
+        inputParameters.get(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE, Integer.class);
+
+    String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
 
     addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
     addStep(new IngestSetupStep(datasetService, configService));
@@ -103,7 +110,7 @@ public class DatasetIngestFlight extends Flight {
             configurationService,
             jobService,
             datasetId.toString(),
-            inputParameters.get(LoadMapKeys.LOAD_TAG, String.class),
+            loadTag,
             Optional.ofNullable(ingestRequest.getMaxBadRecords()).orElse(0),
             driverWaitSeconds,
             ingestRequest.getProfileId()),
@@ -114,6 +121,18 @@ public class DatasetIngestFlight extends Flight {
     addStep(new IngestBuildLoadFileStep(appConfig.objectMapper()));
     addStep(new IngestCreateBucketForScratchFileStep(resourceService, dataset));
     addStep(new IngestCreateScratchFileStep(gcsPdao));
+    addStep(
+        new IngestCopyLoadHistoryToBQStep(
+            loadService,
+            datasetService,
+            loadTag,
+            datasetId.toString(),
+            bigQueryPdao,
+            fileChunkSize,
+            loadHistoryWaitSeconds));
+    addStep(new IngestCleanFileStateStep(loadService));
+
+    addStep(new LoadUnlockStep(loadService));
     // End file + metadata load
 
     // handing in the load scratch file

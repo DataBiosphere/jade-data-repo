@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -44,6 +45,10 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
+    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
     UUID loadId = UUID.fromString(loadIdString);

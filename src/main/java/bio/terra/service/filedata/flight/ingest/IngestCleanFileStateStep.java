@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -19,6 +20,10 @@ public class IngestCleanFileStateStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
+    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
     loadService.cleanFiles(loadId);

@@ -1,9 +1,6 @@
 name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
 on: push
-env:
-  CURRENT_SEMVER: |
-    ${{ curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")' }}
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
@@ -14,6 +11,9 @@ jobs:
         uses: actions/setup-python@v1
         with:
           python-version: 3.7
+      - name: set semver
+        run: |
+          echo "CURRENT_SEMVER=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')" >> $CURRENT_SEMVER
       - name: Generate Python client with openapi-generator
         # openapi-generator-cli generate -i src/main/resources/api/data-repository-openapi.yaml -g python -o ../data-repo-client --package-name data_repo_client
         # -c /github/workspace/${{ inputs.config-file }} \

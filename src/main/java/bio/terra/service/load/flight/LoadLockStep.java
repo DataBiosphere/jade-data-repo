@@ -33,6 +33,10 @@ public class LoadLockStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
+    if (IngestUtils.noFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     String loadTag = loadService.getLoadTag(context);
     loadService.unlockLoad(loadTag, context.getFlightId());
     return StepResult.getStepResultSuccess();

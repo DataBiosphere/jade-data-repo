@@ -58,6 +58,10 @@ public class IngestFilePrimaryDataLocationStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
+    if (IngestUtils.noFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     // There is not much to undo here. It is possible that a bucket was created in the last step. We
     // could look to
     // see if there are no other files in the bucket and delete it here, but I think it is likely

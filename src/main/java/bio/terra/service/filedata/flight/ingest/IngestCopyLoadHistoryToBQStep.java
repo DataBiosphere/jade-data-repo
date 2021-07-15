@@ -89,6 +89,10 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
+    if (IngestUtils.noFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     String flightId = context.getFlightId();
     try {
       UUID datasetId = UUID.fromString(datasetIdString);

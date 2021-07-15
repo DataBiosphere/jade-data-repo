@@ -43,6 +43,10 @@ public class IngestFileMakeBucketLinkStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
+    if (IngestUtils.noFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     // Parallel threads can try create the bucket link. We do not error on a duplicate create
     // attempt.
     // Therefore, we do not delete the link during undo. Instead, we use a counter on the bucket

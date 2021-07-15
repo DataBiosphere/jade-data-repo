@@ -5,6 +5,7 @@ import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -14,6 +15,7 @@ import bio.terra.stairway.exception.RetryException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -35,7 +37,10 @@ public class IngestParseJsonFileStep implements Step {
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(flightContext);
-    List<String> gcsFileLines = gcsPdao.getGcsFileLines(ingestRequest.getPath());
+    // TODO: Is this ok? Can we charge the dataset's project?
+    List<String> gcsFileLines =
+        gcsPdao.getGcsFileLines(
+            ingestRequest.getPath(), dataset.getProjectResource().getGoogleProjectId());
     List<String> fileRefColumnNames =
         dataset.getTableByName(ingestRequest.getTable()).orElseThrow().getColumns().stream()
             .filter(c -> c.getType() == TableDataType.FILEREF)
@@ -43,46 +48,53 @@ public class IngestParseJsonFileStep implements Step {
             .collect(Collectors.toList());
     var workingMap = flightContext.getWorkingMap();
     workingMap.put(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, fileRefColumnNames);
-    try {
-      List<JsonNode> fileLineJson =
-          gcsFileLines.stream()
-              .map(
-                  content -> {
-                    try {
-                      return objectMapper.readTree(content);
-                    } catch (JsonProcessingException e) {
-                      throw new RuntimeException(e);
-                    }
-                  })
-              .collect(Collectors.toList());
-      workingMap.put(IngestMapKeys.BULK_LOAD_JSON_LINES, fileLineJson);
-      Set<BulkLoadFileModel> bulkLoadFileModels =
-          fileLineJson.stream()
-              .flatMap(
-                  node ->
-                      fileRefColumnNames.stream()
-                          .map(
-                              columnName -> {
-                                JsonNode fileRefNode = node.get(columnName);
-                                if (fileRefNode.isObject()) {
-                                  return Optional.of(
-                                      objectMapper.convertValue(
-                                          fileRefNode, BulkLoadFileModel.class));
-                                } else {
-                                  return Optional.<BulkLoadFileModel>empty();
-                                }
-                              })
-                          .filter(Optional::isPresent)
-                          .map(Optional::get))
-              .collect(Collectors.toSet());
 
-      workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, bulkLoadFileModels);
+    List<String> errors = new ArrayList<>();
+    List<JsonNode> fileLineJson =
+        gcsFileLines.stream()
+            .map(
+                content -> {
+                  try {
+                    return objectMapper.readTree(content);
+                  } catch (JsonProcessingException ex) {
+                    errors.add(ex.getMessage());
+                    return null;
+                  }
+                })
+            .collect(Collectors.toList());
 
-      return StepResult.getStepResultSuccess();
-
-    } catch (Exception ex) {
+    if (!errors.isEmpty()) {
+      IngestFailureException ex =
+          new IngestFailureException(
+              "Ingest control file at " + ingestRequest.getPath() + " could not be processed",
+              errors);
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
+
+    workingMap.put(IngestMapKeys.BULK_LOAD_JSON_LINES, fileLineJson);
+    Set<BulkLoadFileModel> bulkLoadFileModels =
+        fileLineJson.stream()
+            .flatMap(
+                node ->
+                    fileRefColumnNames.stream()
+                        .map(
+                            columnName -> {
+                              JsonNode fileRefNode = node.get(columnName);
+                              if (fileRefNode.isObject()) {
+                                return Optional.of(
+                                    objectMapper.convertValue(
+                                        fileRefNode, BulkLoadFileModel.class));
+                              } else {
+                                return Optional.<BulkLoadFileModel>empty();
+                              }
+                            })
+                        .filter(Optional::isPresent)
+                        .map(Optional::get))
+            .collect(Collectors.toSet());
+
+    workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, bulkLoadFileModels);
+
+    return StepResult.getStepResultSuccess();
   }
 
   @Override

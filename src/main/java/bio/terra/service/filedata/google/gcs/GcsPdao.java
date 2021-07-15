@@ -97,13 +97,17 @@ public class GcsPdao {
     }
   }
 
-  public List<String> getGcsFileLines(String path) {
+  public List<String> getGcsFileLines(String path, String googleProjectId) {
+    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId);
+    Storage storage = gcsProject.getStorage();
     GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
     BlobInfo blobInfo =
         BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
     var contents =
         new String(
-            applicationDefaultStorage().get(blobInfo.getBlobId()).getContent(),
+            storage
+                .get(blobInfo.getBlobId(), Storage.BlobGetOption.userProject(googleProjectId))
+                .getContent(Blob.BlobSourceOption.userProject(googleProjectId)),
             StandardCharsets.UTF_8);
     return Arrays.asList(contents.split("\n"));
   }

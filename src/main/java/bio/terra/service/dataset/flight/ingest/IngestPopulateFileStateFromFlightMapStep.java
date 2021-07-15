@@ -37,6 +37,10 @@ public class IngestPopulateFileStateFromFlightMapStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
+    if (IngestUtils.noFilesToIngest(context)) {
+      return StepResult.getStepResultSuccess();
+    }
+
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 

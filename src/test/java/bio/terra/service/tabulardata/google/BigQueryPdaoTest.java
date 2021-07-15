@@ -12,6 +12,8 @@ import static org.junit.Assert.assertEquals;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.buffer.model.HandoutRequestBody;
+import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
@@ -32,10 +34,12 @@ import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.JobInfo;
@@ -55,7 +59,6 @@ import java.util.UUID;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -84,9 +87,11 @@ public class BigQueryPdaoTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private BigQueryPdao bigQueryPdao;
   @Autowired private DatasetDao datasetDao;
+  @Autowired private SnapshotDao snapshotDao;
   @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ResourceService resourceService;
+  @Autowired private BufferService bufferService;
 
   @MockBean private IamProviderInterface samService;
 
@@ -244,8 +249,7 @@ public class BigQueryPdaoTest {
                 datasetSummaryModel, "ingest-test-snapshot.json", "");
         SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-        com.google.cloud.bigquery.Dataset bqSnapshotDataset =
-            bigQuerySnapshot(dataset, snapshot.getName());
+        com.google.cloud.bigquery.Dataset bqSnapshotDataset = bigQuerySnapshot(snapshot);
 
         assertThat(
             String.format(
@@ -256,13 +260,15 @@ public class BigQueryPdaoTest {
 
         BigQueryProject bigQueryProject =
             TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
-        Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
+        BigQueryProject bigQuerySnapshotProject =
+            TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
+        assertThat(snapshot.getTables().size(), is(equalTo(3)));
         List<String> participantIds =
-            queryForIds(snapshot.getName(), "participant", bigQueryProject);
-        List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
-        List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
+            queryForIds(snapshot.getName(), "participant", bigQuerySnapshotProject);
+        List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
+        List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQuerySnapshotProject);
 
-        Assert.assertThat(
+        assertThat(
             participantIds,
             containsInAnyOrder(
                 "participant_1",
@@ -270,8 +276,8 @@ public class BigQueryPdaoTest {
                 "participant_3",
                 "participant_4",
                 "participant_5"));
-        Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
-        Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+        assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
+        assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
 
         // Simulate soft-deleting some rows.
         // TODO: Replace this with a call to the soft-delete API once it exists?
@@ -296,21 +302,24 @@ public class BigQueryPdaoTest {
             connectedOperations.createSnapshot(
                 datasetSummaryModel, "ingest-test-snapshot.json", "");
         SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId());
-        Assert.assertThat(snapshot2.getTables().size(), is(equalTo(3)));
+        assertThat(snapshot2.getTables().size(), is(equalTo(3)));
 
-        participantIds = queryForIds(snapshot2.getName(), "participant", bigQueryProject);
-        sampleIds = queryForIds(snapshot2.getName(), "sample", bigQueryProject);
-        fileIds = queryForIds(snapshot2.getName(), "file", bigQueryProject);
-        Assert.assertThat(
+        BigQueryProject bigQuerySnapshotProject2 =
+            TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot2.getName());
+
+        participantIds = queryForIds(snapshot2.getName(), "participant", bigQuerySnapshotProject2);
+        sampleIds = queryForIds(snapshot2.getName(), "sample", bigQuerySnapshotProject2);
+        fileIds = queryForIds(snapshot2.getName(), "file", bigQuerySnapshotProject2);
+        assertThat(
             participantIds, containsInAnyOrder("participant_1", "participant_2", "participant_5"));
-        Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2"));
-        Assert.assertThat(fileIds, is(empty()));
+        assertThat(sampleIds, containsInAnyOrder("sample1", "sample2"));
+        assertThat(fileIds, is(empty()));
 
         // Make sure the old snapshot wasn't changed.
-        participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
-        sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
-        fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
-        Assert.assertThat(
+        participantIds = queryForIds(snapshot.getName(), "participant", bigQuerySnapshotProject);
+        sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
+        fileIds = queryForIds(snapshot.getName(), "file", bigQuerySnapshotProject);
+        assertThat(
             participantIds,
             containsInAnyOrder(
                 "participant_1",
@@ -318,8 +327,8 @@ public class BigQueryPdaoTest {
                 "participant_3",
                 "participant_4",
                 "participant_5"));
-        Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
-        Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+        assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
+        assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
       } finally {
         storage.delete(
             participantBlob.getBlobId(),
@@ -374,19 +383,21 @@ public class BigQueryPdaoTest {
               datasetSummaryModel, "ingest-test-snapshot-by-date.json", "");
       SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-      BigQueryProject bigQueryProject =
-          TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
-      Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
-      List<String> participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
-      List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
-      List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
+      BigQueryProject bigQuerySnapshotProject =
+          TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
 
-      Assert.assertThat(
+      assertThat(snapshot.getTables().size(), is(equalTo(3)));
+      List<String> participantIds =
+          queryForIds(snapshot.getName(), "participant", bigQuerySnapshotProject);
+      List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
+      List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQuerySnapshotProject);
+
+      assertThat(
           participantIds,
           containsInAnyOrder(
               "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
-      Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
-      Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+      assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
+      assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
     } finally {
       storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
     }
@@ -480,22 +491,24 @@ public class BigQueryPdaoTest {
               datasetSummary, "snapshot-fullviews-test-snapshot.json", "");
       SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-      BigQueryProject bigQueryProject =
-          TestUtils.bigQueryProjectForDatasetName(datasetDao, dataset.getName());
-      Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
-      List<String> participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
-      List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
-      List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
+      BigQueryProject bigQuerySnapshotProject =
+          TestUtils.bigQueryProjectForSnapshotName(snapshotDao, snapshot.getName());
 
-      Assert.assertThat(
+      assertThat(snapshot.getTables().size(), is(equalTo(3)));
+      List<String> participantIds =
+          queryForIds(snapshot.getName(), "participant", bigQuerySnapshotProject);
+      List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQuerySnapshotProject);
+      List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQuerySnapshotProject);
+
+      assertThat(
           participantIds,
           containsInAnyOrder(
               "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
-      Assert.assertThat(
+      assertThat(
           sampleIds,
           containsInAnyOrder(
               "sample1", "sample2", "sample3", "sample4", "sample5", "sample6", "sample7"));
-      Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+      assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
     } finally {
       storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
     }
@@ -552,9 +565,8 @@ public class BigQueryPdaoTest {
         .getDataset(bigQueryPdao.prefixName(dataset.getName()));
   }
 
-  public com.google.cloud.bigquery.Dataset bigQuerySnapshot(
-      Dataset dataset, String bigQueryDatasetName) {
-    return BigQueryProject.from(dataset).getBigQuery().getDataset(bigQueryDatasetName);
+  public com.google.cloud.bigquery.Dataset bigQuerySnapshot(SnapshotModel snapshot) {
+    return BigQueryProject.from(snapshot).getBigQuery().getDataset(snapshot.getName());
   }
 
   private byte[] readFile(String fileName) throws IOException {
@@ -652,7 +664,12 @@ public class BigQueryPdaoTest {
             .getGoogleRegionFromDatasetRequestModel(datasetRequest);
     Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
     dataset.id(UUID.randomUUID());
-    UUID projectId = resourceService.getOrCreateDatasetProject(profileModel, region);
+    String handoutRequestId = UUID.randomUUID().toString();
+    HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
+    ResourceInfo resource = bufferService.handoutResource(request);
+    String googleProjectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+    UUID projectId =
+        resourceService.getOrCreateDatasetProject(profileModel, googleProjectId, region);
     dataset
         .projectResourceId(projectId)
         .projectResource(resourceService.getProjectResource(projectId));

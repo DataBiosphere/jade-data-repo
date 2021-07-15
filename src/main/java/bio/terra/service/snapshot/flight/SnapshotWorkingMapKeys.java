@@ -1,6 +1,9 @@
 package bio.terra.service.snapshot.flight;
 
-public final class SnapshotWorkingMapKeys {
+import bio.terra.common.ProjectCreatingFlightKeys;
+
+public final class SnapshotWorkingMapKeys extends ProjectCreatingFlightKeys {
+
   private SnapshotWorkingMapKeys() {}
 
   public static final String SNAPSHOT_ID = "snapshotId";

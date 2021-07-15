@@ -16,7 +16,6 @@ import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
-import bio.terra.service.resourcemanagement.OneProjectPerResourceSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
@@ -47,9 +46,9 @@ public class ResourceServiceUnitTest {
 
   @Mock private AzureApplicationDeploymentService applicationDeploymentService;
 
-  @Mock private OneProjectPerResourceSelector oneProjectPerResourceSelector;
+  @Mock private GoogleProjectService googleProjectService;
 
-  @Mock private AzureDataLocationSelector dataLocationSelector;
+  @Mock private AzureDataLocationSelector azureDataLocationSelector;
 
   private final UUID billingProfileId = UUID.randomUUID();
 

@@ -42,8 +42,8 @@ import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -99,7 +99,7 @@ public class FileOperationTest {
 
   @MockBean private IamProviderInterface samService;
 
-  @SpyBean private DataLocationSelector dataLocationSelector;
+  @SpyBean private GoogleProjectService googleProjectService;
 
   private static Logger logger = LoggerFactory.getLogger(FileOperationTest.class);
   private int validFileCounter;
@@ -164,7 +164,7 @@ public class FileOperationTest {
     // NOTE: the suppressed SpotBugs complaint is from the doReturn. It decides that no one
     // uses the bucketForFile call.
     String newBucketName = UUID.randomUUID().toString();
-    doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
+    doReturn(newBucketName).when(googleProjectService).bucketForFile(any());
     connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
     fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
     assertThat(

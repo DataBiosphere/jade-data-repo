@@ -41,7 +41,6 @@ public class ResourceService {
   private static final Logger logger = LoggerFactory.getLogger(ResourceService.class);
   public static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
 
-  private final DataLocationSelector dataLocationSelector;
   private final AzureDataLocationSelector azureDataLocationSelector;
   private final GoogleProjectService projectService;
   private final GoogleBucketService bucketService;
@@ -52,7 +51,6 @@ public class ResourceService {
 
   @Autowired
   public ResourceService(
-      DataLocationSelector dataLocationSelector,
       AzureDataLocationSelector azureDataLocationSelector,
       GoogleProjectService projectService,
       GoogleBucketService bucketService,
@@ -60,7 +58,6 @@ public class ResourceService {
       AzureStorageAccountService storageAccountService,
       SamConfiguration samConfiguration,
       DatasetStorageAccountDao datasetStorageAccountDao) {
-    this.dataLocationSelector = dataLocationSelector;
     this.azureDataLocationSelector = azureDataLocationSelector;
     this.projectService = projectService;
     this.bucketService = bucketService;
@@ -78,22 +75,15 @@ public class ResourceService {
    *     a project
    * @return a reference to the project as a POJO GoogleProjectResource
    */
-  public GoogleProjectResource getOrCreateProjectForBucket(
-      Dataset dataset, BillingProfileModel billingProfile)
-      throws GoogleResourceException, GoogleResourceNamingException, InterruptedException {
+  public GoogleProjectResource initializeProjectForBucket(
+      Dataset dataset, BillingProfileModel billingProfile, String projectId)
+      throws GoogleResourceException, InterruptedException {
 
-    final GoogleProjectResource datasetProject = getProjectResource(dataset.getProjectResourceId());
-    String sourceDatasetGoogleProjectId = datasetProject.getGoogleProjectId();
     final GoogleRegion region =
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
     // Every bucket needs to live in a project, so we get or create a project first
-    return projectService.getOrCreateProject(
-        dataLocationSelector.projectIdForFile(
-            dataset, sourceDatasetGoogleProjectId, billingProfile),
-        billingProfile,
-        null,
-        region);
+    return projectService.initializeGoogleProject(projectId, billingProfile, null, region);
   }
 
   /**
@@ -112,7 +102,7 @@ public class ResourceService {
       Dataset dataset, GoogleProjectResource projectResource, String flightId)
       throws InterruptedException, GoogleResourceNamingException {
     return bucketService.getOrCreateBucket(
-        dataLocationSelector.bucketForFile(projectResource.getGoogleProjectId()),
+        projectService.bucketForFile(projectResource.getGoogleProjectId()),
         projectResource,
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
@@ -253,7 +243,7 @@ public class ResourceService {
   public void updateBucketMetadata(
       String projectId, BillingProfileModel billingProfile, String flightId)
       throws GoogleResourceNamingException {
-    String bucketName = dataLocationSelector.bucketForFile(projectId);
+    String bucketName = projectService.bucketForFile(projectId);
     bucketService.updateBucketMetadata(bucketName, flightId);
   }
 
@@ -264,12 +254,12 @@ public class ResourceService {
    * @param region the region to create the Firestore in
    * @return project resource id
    */
-  public UUID getOrCreateSnapshotProject(BillingProfileModel billingProfile, GoogleRegion region)
-      throws InterruptedException, GoogleResourceNamingException {
+  public UUID initializeSnapshotProject(
+      BillingProfileModel billingProfile, String projectId, GoogleRegion region)
+      throws InterruptedException {
 
     GoogleProjectResource googleProjectResource =
-        projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForSnapshot(), billingProfile, null, region);
+        projectService.initializeGoogleProject(projectId, billingProfile, null, region);
 
     return googleProjectResource.getId();
   }
@@ -281,12 +271,13 @@ public class ResourceService {
    * @param region the region to create the project in
    * @return project resource id
    */
-  public UUID getOrCreateDatasetProject(BillingProfileModel billingProfile, GoogleRegion region)
-      throws InterruptedException, GoogleResourceNamingException {
+  public UUID getOrCreateDatasetProject(
+      BillingProfileModel billingProfile, String projectId, GoogleRegion region)
+      throws InterruptedException {
 
     GoogleProjectResource googleProjectResource =
-        projectService.getOrCreateProject(
-            dataLocationSelector.projectIdForDataset(), billingProfile, getStewardPolicy(), region);
+        projectService.initializeGoogleProject(
+            projectId, billingProfile, getStewardPolicy(), region);
 
     return googleProjectResource.getId();
   }

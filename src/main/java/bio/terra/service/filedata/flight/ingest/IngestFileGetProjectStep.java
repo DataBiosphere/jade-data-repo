@@ -23,7 +23,7 @@ public class IngestFileGetProjectStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+    if (IngestUtils.noFilesToIngest(context)) {
       return StepResult.getStepResultSuccess();
     }
 

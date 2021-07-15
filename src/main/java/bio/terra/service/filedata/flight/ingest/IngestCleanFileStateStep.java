@@ -20,7 +20,7 @@ public class IngestCleanFileStateStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) {
-    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+    if (IngestUtils.noFilesToIngest(context)) {
       return StepResult.getStepResultSuccess();
     }
 

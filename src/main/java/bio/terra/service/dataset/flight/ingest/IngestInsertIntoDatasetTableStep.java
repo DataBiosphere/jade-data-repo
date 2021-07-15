@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.PdaoLoadStatistics;
+import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.service.dataset.Dataset;
@@ -9,6 +10,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
@@ -31,6 +33,8 @@ public class IngestInsertIntoDatasetTableStep implements Step {
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
     PdaoLoadStatistics loadStatistics = IngestUtils.getIngestStatistics(context);
 
+    FlightMap workingMap = context.getWorkingMap();
+
     IngestResponseModel ingestResponse =
         new IngestResponseModel()
             .dataset(dataset.getName())
@@ -40,7 +44,14 @@ public class IngestInsertIntoDatasetTableStep implements Step {
             .loadTag(ingestRequest.getLoadTag())
             .badRowCount(loadStatistics.getBadRecords())
             .rowCount(loadStatistics.getRowCount());
-    context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
+
+    if (!IngestUtils.noFilesToIngest(context)) {
+      BulkLoadArrayResultModel fileLoadResults =
+          workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
+      ingestResponse.fileLoadResults(fileLoadResults);
+    }
+
+    workingMap.put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 
     bigQueryPdao.insertIntoDatasetTable(dataset, targetTable, stagingTableName);
 

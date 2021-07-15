@@ -23,7 +23,7 @@ public class IngestFileMakeBucketLinkStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+    if (IngestUtils.noFilesToIngest(context)) {
       return StepResult.getStepResultSuccess();
     }
 

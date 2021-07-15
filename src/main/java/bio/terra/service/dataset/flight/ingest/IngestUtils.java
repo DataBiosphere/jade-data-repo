@@ -137,7 +137,7 @@ public final class IngestUtils {
     return workingMap.get(IngestMapKeys.INGEST_STATISTICS, PdaoLoadStatistics.class);
   }
 
-  public static boolean skipIfNoFilesToIngest(FlightContext flightContext) {
+  public static boolean noFilesToIngest(FlightContext flightContext) {
     if (flightContext.getFlightClassName().equals(DatasetIngestFlight.class.getName())
         && flightContext
             .getWorkingMap()

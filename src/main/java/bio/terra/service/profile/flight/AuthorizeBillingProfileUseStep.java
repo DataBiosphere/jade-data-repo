@@ -33,7 +33,7 @@ public class AuthorizeBillingProfileUseStep implements Step {
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    if (IngestUtils.skipIfNoFilesToIngest(context)) {
+    if (IngestUtils.noFilesToIngest(context)) {
       return StepResult.getStepResultSuccess();
     }
     BillingProfileModel profileModel = profileService.authorizeLinking(profileId, user);

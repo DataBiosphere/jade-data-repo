@@ -21,6 +21,8 @@ jobs:
           -g python \
           -o /github/workspace/data-repo-client \
           --skip-validate-spec
+      - name: check directory
+        run: ls
       - name: Install pypa/build
         run: >-
           python -m

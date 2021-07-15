@@ -28,28 +28,23 @@ public class BlobContainerCopyInfo {
    */
   public LongRunningOperationStatus getCopyStatus() {
 
-    List<LongRunningOperationStatus> distinctStatuses =
-        pollResponses.stream().map(PollResponse::getStatus).distinct().collect(Collectors.toList());
+    var distinctStatuses =
+        pollResponses.stream().map(PollResponse::getStatus).collect(Collectors.toSet());
 
     if (distinctStatuses.size() == 1
         && distinctStatuses.contains(LongRunningOperationStatus.SUCCESSFULLY_COMPLETED)) {
       return LongRunningOperationStatus.SUCCESSFULLY_COMPLETED;
     }
 
-    if (distinctStatuses.contains(LongRunningOperationStatus.FAILED)) {
-      return LongRunningOperationStatus.FAILED;
-    }
-
-    if (distinctStatuses.contains(LongRunningOperationStatus.USER_CANCELLED)) {
-      return LongRunningOperationStatus.USER_CANCELLED;
-    }
-
-    if (distinctStatuses.contains(LongRunningOperationStatus.IN_PROGRESS)) {
-      return LongRunningOperationStatus.IN_PROGRESS;
-    }
-
-    if (distinctStatuses.contains(LongRunningOperationStatus.NOT_STARTED)) {
-      return LongRunningOperationStatus.NOT_STARTED;
+    for (var status :
+        List.of(
+            LongRunningOperationStatus.FAILED,
+            LongRunningOperationStatus.USER_CANCELLED,
+            LongRunningOperationStatus.IN_PROGRESS,
+            LongRunningOperationStatus.NOT_STARTED)) {
+      if (distinctStatuses.contains(status)) {
+        return status;
+      }
     }
 
     throw new RuntimeException("Invalid operation status returned");

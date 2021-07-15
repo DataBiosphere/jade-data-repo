@@ -1,7 +1,9 @@
 package bio.terra.service.filedata.azure.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasProperty;
 
 import bio.terra.common.category.Unit;
 import java.util.List;

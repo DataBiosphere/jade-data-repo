@@ -4,7 +4,7 @@ import com.azure.storage.blob.BlobUrlParts;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.util.Strings;
 
 /** Builder for the {@link BlobContainerCopier} */
@@ -83,10 +83,10 @@ public final class BlobContainerCopierBuilder {
   }
 
   public String appendBlobGuidanceToErrorMessage(String errorMsg) {
-    return errorMsg +
-        " The URL format must be:" +
-        "https://{account name}.blob.core.windows.net/{container name}/{blob name}" +
-        "?{valid SAS with read permissions}";
+    return errorMsg
+        + " The URL format must be:"
+        + "https://{account name}.blob.core.windows.net/{container name}/{blob name}"
+        + "?{valid SAS with read permissions}";
   }
 
   public BlobContainerCopierBuilder pollingInterval(Duration pollingInterval) {

@@ -5,7 +5,7 @@ import com.azure.storage.blob.models.BlobProperties;
 import java.net.URL;
 import java.util.List;
 import java.util.Objects;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * High-level API that enables copy, delete, and get blob properties operations on Azure Blob

@@ -17,6 +17,7 @@ import bio.terra.service.filedata.flight.ingest.IngestCreateBucketForScratchFile
 import bio.terra.service.filedata.flight.ingest.IngestCreateScratchFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileGetOrCreateProject;
+import bio.terra.service.filedata.flight.ingest.IngestFileGetProjectStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileMakeBucketLinkStep;
 import bio.terra.service.filedata.flight.ingest.IngestFilePrimaryDataLocationStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
@@ -30,6 +31,7 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -59,6 +61,7 @@ public class DatasetIngestFlight extends Flight {
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     ConfigurationService configurationService = appContext.getBean(ConfigurationService.class);
     JobService jobService = appContext.getBean(JobService.class);
+    GoogleProjectService projectService = appContext.getBean(GoogleProjectService.class);
 
     // get data from inputs that steps need
     UUID datasetId =
@@ -89,6 +92,7 @@ public class DatasetIngestFlight extends Flight {
     addStep(
         new AuthorizeBillingProfileUseStep(profileService, ingestRequest.getProfileId(), userReq));
     addStep(new LoadLockStep(loadService));
+    addStep(new IngestFileGetProjectStep(dataset, projectService));
     addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);

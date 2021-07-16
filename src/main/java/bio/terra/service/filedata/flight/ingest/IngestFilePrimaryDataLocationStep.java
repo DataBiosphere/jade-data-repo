@@ -2,7 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -12,16 +12,23 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IngestFilePrimaryDataLocationStep implements Step {
+public class IngestFilePrimaryDataLocationStep extends SkippableStep {
   private final Logger logger = LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
   private final ResourceService resourceService;
   private final Dataset dataset;
+
+  public IngestFilePrimaryDataLocationStep(
+      ResourceService resourceService, Dataset dataset, Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
+    this.resourceService = resourceService;
+    this.dataset = dataset;
+  }
 
   public IngestFilePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {
     this.resourceService = resourceService;
@@ -29,11 +36,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
-    if (IngestUtils.noFilesToIngest(context)) {
-      return StepResult.getStepResultSuccess();
-    }
-
+  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
@@ -57,11 +60,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
-    if (IngestUtils.noFilesToIngest(context)) {
-      return StepResult.getStepResultSuccess();
-    }
-
+  public StepResult undoSkippableStep(FlightContext context) {
     // There is not much to undo here. It is possible that a bucket was created in the last step. We
     // could look to
     // see if there are no other files in the bucket and delete it here, but I think it is likely

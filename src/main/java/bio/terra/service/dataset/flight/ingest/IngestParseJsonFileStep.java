@@ -37,9 +37,8 @@ public class IngestParseJsonFileStep implements Step {
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(flightContext);
-    // TODO: Is this ok? Can we charge the dataset's project?
     List<String> gcsFileLines =
-        gcsPdao.getGcsFileLines(
+        gcsPdao.getGcsFilesLines(
             ingestRequest.getPath(), dataset.getProjectResource().getGoogleProjectId());
     List<String> fileRefColumnNames =
         dataset.getTableByName(ingestRequest.getTable()).orElseThrow().getColumns().stream()

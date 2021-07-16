@@ -45,7 +45,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
             .badRowCount(loadStatistics.getBadRecords())
             .rowCount(loadStatistics.getRowCount());
 
-    if (!IngestUtils.noFilesToIngest(context)) {
+    if (!IngestUtils.noFilesToIngestPredicate().test(context)) {
       BulkLoadArrayResultModel fileLoadResults =
           workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
       ingestResponse.fileLoadResults(fileLoadResults);

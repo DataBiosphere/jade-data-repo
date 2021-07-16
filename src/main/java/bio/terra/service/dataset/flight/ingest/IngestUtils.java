@@ -14,6 +14,7 @@ import bio.terra.stairway.FlightMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,17 +138,19 @@ public final class IngestUtils {
     return workingMap.get(IngestMapKeys.INGEST_STATISTICS, PdaoLoadStatistics.class);
   }
 
-  public static boolean noFilesToIngest(FlightContext flightContext) {
-    if (flightContext.getFlightClassName().equals(DatasetIngestFlight.class.getName())
-        && Optional.ofNullable(
-                flightContext.getWorkingMap().get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class))
-            .map(Set::isEmpty)
-            .orElse(true)) {
-      Logger logger = LoggerFactory.getLogger(DatasetIngestFlight.class);
-      logger.info(
-          "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
-      return true;
-    }
-    return false;
+  public static Predicate<FlightContext> noFilesToIngestPredicate() {
+    return flightContext -> {
+      if (flightContext.getFlightClassName().equals(DatasetIngestFlight.class.getName())
+          && Optional.ofNullable(
+                  flightContext.getWorkingMap().get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class))
+              .map(Set::isEmpty)
+              .orElse(true)) {
+        Logger logger = LoggerFactory.getLogger(DatasetIngestFlight.class);
+        logger.info(
+            "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
+        return true;
+      }
+      return false;
+    };
   }
 }

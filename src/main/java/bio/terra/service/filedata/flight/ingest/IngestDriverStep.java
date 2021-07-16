@@ -3,7 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -18,7 +18,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.DatabaseOperationException;
@@ -29,6 +28,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
 //
-public class IngestDriverStep implements Step {
+public class IngestDriverStep extends SkippableStep {
   private final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
   private final LoadService loadService;
@@ -54,6 +54,27 @@ public class IngestDriverStep implements Step {
   private final int maxFailedFileLoads;
   private final int driverWaitSeconds;
   private final UUID profileId;
+
+  public IngestDriverStep(
+      LoadService loadService,
+      ConfigurationService configurationService,
+      JobService jobService,
+      String datasetId,
+      String loadTag,
+      int maxFailedFileLoads,
+      int driverWaitSeconds,
+      UUID profileId,
+      Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
+    this.loadService = loadService;
+    this.configurationService = configurationService;
+    this.jobService = jobService;
+    this.datasetId = datasetId;
+    this.loadTag = loadTag;
+    this.maxFailedFileLoads = maxFailedFileLoads;
+    this.driverWaitSeconds = driverWaitSeconds;
+    this.profileId = profileId;
+  }
 
   public IngestDriverStep(
       LoadService loadService,
@@ -75,11 +96,7 @@ public class IngestDriverStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
-    if (IngestUtils.noFilesToIngest(context)) {
-      return StepResult.getStepResultSuccess();
-    }
-
+  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     // Gather inputs
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
@@ -146,7 +163,7 @@ public class IngestDriverStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
+  public StepResult undoSkippableStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 

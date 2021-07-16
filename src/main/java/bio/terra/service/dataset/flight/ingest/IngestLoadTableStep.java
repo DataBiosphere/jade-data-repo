@@ -30,7 +30,7 @@ public class IngestLoadTableStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
 
     final String pathToIngestFile;
-    if (IngestUtils.noFilesToIngest(context)) {
+    if (IngestUtils.noFilesToIngestPredicate().test(context)) {
       pathToIngestFile = ingestRequest.getPath();
     } else {
       pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, String.class);

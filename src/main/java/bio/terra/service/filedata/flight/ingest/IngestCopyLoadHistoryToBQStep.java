@@ -3,7 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -12,10 +12,11 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IngestCopyLoadHistoryToBQStep implements Step {
+public class IngestCopyLoadHistoryToBQStep extends SkippableStep {
   private final Logger logger = LoggerFactory.getLogger(IngestBulkFileResponseStep.class);
 
   private final LoadService loadService;
@@ -25,6 +26,25 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
   private final BigQueryPdao bigQueryPdao;
   private final int fileChunkSize;
   private final int waitSeconds;
+
+  public IngestCopyLoadHistoryToBQStep(
+      LoadService loadService,
+      DatasetService datasetService,
+      String loadTag,
+      String datasetId,
+      BigQueryPdao bigQueryPdao,
+      int fileChunkSize,
+      int waitSeconds,
+      Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
+    this.loadService = loadService;
+    this.loadTag = loadTag;
+    this.datasetIdString = datasetId;
+    this.bigQueryPdao = bigQueryPdao;
+    this.datasetService = datasetService;
+    this.fileChunkSize = fileChunkSize;
+    this.waitSeconds = waitSeconds;
+  }
 
   public IngestCopyLoadHistoryToBQStep(
       LoadService loadService,
@@ -44,11 +64,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
-    if (IngestUtils.noFilesToIngest(context)) {
-      return StepResult.getStepResultSuccess();
-    }
-
+  public StepResult doSkippableStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
     UUID loadId = UUID.fromString(loadIdString);
@@ -88,11 +104,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
-    if (IngestUtils.noFilesToIngest(context)) {
-      return StepResult.getStepResultSuccess();
-    }
-
+  public StepResult undoSkippableStep(FlightContext context) {
     String flightId = context.getFlightId();
     try {
       UUID datasetId = UUID.fromString(datasetIdString);

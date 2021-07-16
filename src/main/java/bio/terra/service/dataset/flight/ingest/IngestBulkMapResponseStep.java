@@ -7,21 +7,28 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
 //
-public class IngestBulkMapResponseStep implements Step {
+public class IngestBulkMapResponseStep extends SkippableStep {
   private final Logger logger = LoggerFactory.getLogger(IngestBulkMapResponseStep.class);
 
   private final LoadService loadService;
   private final String loadTag;
+
+  public IngestBulkMapResponseStep(
+      LoadService loadService, String loadTag, Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
+    this.loadService = loadService;
+    this.loadTag = loadTag;
+  }
 
   public IngestBulkMapResponseStep(LoadService loadService, String loadTag) {
     this.loadService = loadService;
@@ -29,11 +36,7 @@ public class IngestBulkMapResponseStep implements Step {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
-    if (IngestUtils.noFilesToIngest(context)) {
-      return StepResult.getStepResultSuccess();
-    }
-
+  public StepResult doSkippableStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
     UUID loadId = UUID.fromString(loadIdString);
@@ -45,7 +48,7 @@ public class IngestBulkMapResponseStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
+  public StepResult undoSkippableStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 

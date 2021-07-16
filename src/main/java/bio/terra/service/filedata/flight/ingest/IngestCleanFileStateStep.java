@@ -1,29 +1,30 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 // Populate the files to be loaded from the incoming array
-public class IngestCleanFileStateStep implements Step {
+public class IngestCleanFileStateStep extends SkippableStep {
 
   private final LoadService loadService;
+
+  public IngestCleanFileStateStep(LoadService loadService, Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
+    this.loadService = loadService;
+  }
 
   public IngestCleanFileStateStep(LoadService loadService) {
     this.loadService = loadService;
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
-    if (IngestUtils.noFilesToIngest(context)) {
-      return StepResult.getStepResultSuccess();
-    }
-
+  public StepResult doSkippableStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
     loadService.cleanFiles(loadId);
@@ -31,7 +32,7 @@ public class IngestCleanFileStateStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
+  public StepResult undoSkippableStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

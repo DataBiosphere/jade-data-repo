@@ -1,29 +1,30 @@
 package bio.terra.service.load.flight;
 
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 // This step is meant to be shared by dataset and filesystem flights for locking the load tag.
 // It expects to find LoadMapKeys.LOAD_TAG in the parameters or working map.
 
-public class LoadLockStep implements Step {
+public class LoadLockStep extends SkippableStep {
   private final LoadService loadService;
+
+  public LoadLockStep(LoadService loadService, Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
+    this.loadService = loadService;
+  }
 
   public LoadLockStep(LoadService loadService) {
     this.loadService = loadService;
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
-    if (IngestUtils.noFilesToIngest(context)) {
-      return StepResult.getStepResultSuccess();
-    }
-
+  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     String loadTag = loadService.getLoadTag(context);
     UUID loadId = loadService.lockLoad(loadTag, context.getFlightId());
     FlightMap workingMap = context.getWorkingMap();
@@ -32,11 +33,7 @@ public class LoadLockStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
-    if (IngestUtils.noFilesToIngest(context)) {
-      return StepResult.getStepResultSuccess();
-    }
-
+  public StepResult undoSkippableStep(FlightContext context) {
     String loadTag = loadService.getLoadTag(context);
     loadService.unlockLoad(loadTag, context.getFlightId());
     return StepResult.getStepResultSuccess();

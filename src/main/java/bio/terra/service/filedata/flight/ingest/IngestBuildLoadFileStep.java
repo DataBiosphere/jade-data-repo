@@ -4,9 +4,8 @@ import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,21 +13,24 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class IngestBuildLoadFileStep implements Step {
+public class IngestBuildLoadFileStep extends SkippableStep {
   private final ObjectMapper objectMapper;
+
+  public IngestBuildLoadFileStep(
+      ObjectMapper objectMapper, Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
+    this.objectMapper = objectMapper;
+  }
 
   public IngestBuildLoadFileStep(ObjectMapper objectMapper) {
     this.objectMapper = objectMapper;
   }
 
   @Override
-  public StepResult doStep(FlightContext context) {
-    if (IngestUtils.noFilesToIngest(context)) {
-      return StepResult.getStepResultSuccess();
-    }
-
+  public StepResult doSkippableStep(FlightContext context) {
     var workingMap = context.getWorkingMap();
     List<JsonNode> jsonLines = workingMap.get(IngestMapKeys.BULK_LOAD_JSON_LINES, List.class);
     List<String> fileColumns = workingMap.get(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, List.class);
@@ -71,7 +73,7 @@ public class IngestBuildLoadFileStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
+  public StepResult undoSkippableStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

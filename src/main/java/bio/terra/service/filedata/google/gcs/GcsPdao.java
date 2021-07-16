@@ -17,9 +17,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -27,8 +25,6 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import com.google.cloud.storage.StorageOptions;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Arrays;
@@ -41,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -85,41 +82,50 @@ public class GcsPdao {
     return gcsProjectFactory.getStorage(bucketResource.projectIdForBucket());
   }
 
-  public Storage applicationDefaultStorage() {
-    // TODO this should be cached
-    try {
-      return StorageOptions.newBuilder()
-          .setCredentials(ServiceAccountCredentials.getApplicationDefault())
-          .build()
-          .getService();
-    } catch (IOException ex) {
-      throw new GoogleResourceException("Could not get application default credentials", ex);
-    }
-  }
-
-  public List<String> getGcsFileLines(String path, String googleProjectId) {
-    GcsProject gcsProject = gcsProjectFactory.get(googleProjectId);
-    Storage storage = gcsProject.getStorage();
+  /**
+   * Get all of the lines from any files matching the path, including wildcarded paths
+   *
+   * @param path path to files, or path including wildcard referring to many files
+   * @param googleProjectId Project ID to use for storage service in case of requester pays bucket
+   * @return All of the lines from all of the files matching the path
+   */
+  public List<String> getGcsFilesLines(String path, String googleProjectId) {
+    Storage storage = gcsProjectFactory.getStorage(googleProjectId);
     GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
     BlobInfo blobInfo =
         BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
+    Iterable<Blob> blobs =
+        storage
+            .list(
+                blobInfo.getBucket(),
+                Storage.BlobListOption.prefix(blobInfo.getName()),
+                Storage.BlobListOption.userProject(googleProjectId))
+            .iterateAll();
+    return StreamSupport.stream(blobs.spliterator(), false)
+        .flatMap(blob -> getGcsBlobLines(blob, googleProjectId, storage).stream())
+        .collect(Collectors.toList());
+  }
+
+  private List<String> getGcsBlobLines(BlobInfo blobInfo, String projectId, Storage storage) {
+    logger.info("Getting ");
     var contents =
         new String(
             storage
-                .get(blobInfo.getBlobId(), Storage.BlobGetOption.userProject(googleProjectId))
-                .getContent(Blob.BlobSourceOption.userProject(googleProjectId)),
+                .get(blobInfo.getBlobId(), Storage.BlobGetOption.userProject(projectId))
+                .getContent(Blob.BlobSourceOption.userProject(projectId)),
             StandardCharsets.UTF_8);
     return Arrays.asList(contents.split("\n"));
   }
 
-  public void writeGcsFileLines(String path, List<String> contentsToWrite) {
+  public void writeGcsFileLines(
+      String path, List<String> contentsToWrite, GoogleBucketResource bucket) {
     // new gs path:
     // gs://{bucketname}/{flightId}Scratch.json
+    Storage storage = storageForBucket(bucket);
     GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
     BlobInfo blobInfo =
         BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
-    applicationDefaultStorage()
-        .create(blobInfo, String.join("\n", contentsToWrite).getBytes(StandardCharsets.UTF_8));
+    storage.create(blobInfo, String.join("\n", contentsToWrite).getBytes(StandardCharsets.UTF_8));
   }
 
   public FSFileInfo copyFile(

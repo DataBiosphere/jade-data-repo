@@ -83,6 +83,9 @@ public class DatasetIngestFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
 
+    var profileId =
+        Optional.ofNullable(ingestRequest.getProfileId()).orElse(dataset.getDefaultProfileId());
+
     int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
     int loadHistoryWaitSeconds =
         inputParameters.get(LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS, Integer.class);
@@ -100,13 +103,26 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset));
       addStep(
           new AuthorizeBillingProfileUseStep(
-              profileService, ingestRequest.getProfileId(), userReq));
-      addStep(new LoadLockStep(loadService));
-      addStep(new IngestFileGetProjectStep(dataset, projectService));
-      addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
-      addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
-      addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
-      addStep(new IngestPopulateFileStateFromFlightMapStep(loadService));
+              profileService, profileId, userReq, IngestUtils.noFilesToIngestPredicate()));
+      addStep(new LoadLockStep(loadService, IngestUtils.noFilesToIngestPredicate()));
+      addStep(
+          new IngestFileGetProjectStep(
+              dataset, projectService, IngestUtils.noFilesToIngestPredicate()));
+      addStep(
+          new IngestFileGetOrCreateProject(
+              resourceService, dataset, IngestUtils.noFilesToIngestPredicate()),
+          randomBackoffRetry);
+      addStep(
+          new IngestFilePrimaryDataLocationStep(
+              resourceService, dataset, IngestUtils.noFilesToIngestPredicate()),
+          randomBackoffRetry);
+      addStep(
+          new IngestFileMakeBucketLinkStep(
+              datasetBucketDao, dataset, IngestUtils.noFilesToIngestPredicate()),
+          randomBackoffRetry);
+      addStep(
+          new IngestPopulateFileStateFromFlightMapStep(
+              loadService, IngestUtils.noFilesToIngestPredicate()));
       addStep(
           new IngestDriverStep(
               loadService,
@@ -116,14 +132,21 @@ public class DatasetIngestFlight extends Flight {
               loadTag,
               Optional.ofNullable(ingestRequest.getMaxBadRecords()).orElse(0),
               driverWaitSeconds,
-              ingestRequest.getProfileId()),
+              profileId,
+              IngestUtils.noFilesToIngestPredicate()),
           driverRetry);
 
-      addStep(new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag()));
+      addStep(
+          new IngestBulkMapResponseStep(
+              loadService, ingestRequest.getLoadTag(), IngestUtils.noFilesToIngestPredicate()));
       // build the scratch file using new file ids and store in new bucket
-      addStep(new IngestBuildLoadFileStep(appConfig.objectMapper()));
-      addStep(new IngestCreateBucketForScratchFileStep(resourceService, dataset));
-      addStep(new IngestCreateScratchFileStep(gcsPdao));
+      addStep(
+          new IngestBuildLoadFileStep(
+              appConfig.objectMapper(), IngestUtils.noFilesToIngestPredicate()));
+      addStep(
+          new IngestCreateBucketForScratchFileStep(
+              resourceService, dataset, IngestUtils.noFilesToIngestPredicate()));
+      addStep(new IngestCreateScratchFileStep(gcsPdao, IngestUtils.noFilesToIngestPredicate()));
       addStep(
           new IngestCopyLoadHistoryToBQStep(
               loadService,
@@ -132,10 +155,11 @@ public class DatasetIngestFlight extends Flight {
               datasetId.toString(),
               bigQueryPdao,
               fileChunkSize,
-              loadHistoryWaitSeconds));
-      addStep(new IngestCleanFileStateStep(loadService));
+              loadHistoryWaitSeconds,
+              IngestUtils.noFilesToIngestPredicate()));
+      addStep(new IngestCleanFileStateStep(loadService, IngestUtils.noFilesToIngestPredicate()));
 
-      addStep(new LoadUnlockStep(loadService));
+      addStep(new LoadUnlockStep(loadService, IngestUtils.noFilesToIngestPredicate()));
       // End file + metadata load
     }
 

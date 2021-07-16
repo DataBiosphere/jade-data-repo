@@ -2,6 +2,7 @@ package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.model.SnapshotModel;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.snapshot.Snapshot;
 import com.google.cloud.bigquery.Acl;
@@ -56,6 +57,10 @@ public final class BigQueryProject {
 
   public static BigQueryProject from(Snapshot snapshot) {
     return get(snapshot.getProjectResource().getGoogleProjectId());
+  }
+
+  public static BigQueryProject from(SnapshotModel snapshotModel) {
+    return get(snapshotModel.getDataProject());
   }
 
   public String getProjectId() {

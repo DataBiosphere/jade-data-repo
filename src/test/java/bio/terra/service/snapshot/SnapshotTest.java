@@ -360,7 +360,7 @@ public class SnapshotTest extends UsersBase {
     BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
 
     // Fetch BQ Dataset
-    String bqDatasetName = bigQueryPdao.prefixName(datasetName);
+    String bqDatasetName = BigQueryPdao.prefixName(datasetName);
     Dataset bqDataset = bigQuery.getDataset(bqDatasetName);
 
     // fetch Acls

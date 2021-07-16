@@ -1,6 +1,8 @@
 package bio.terra.service.dataset.flight;
 
-public final class DatasetWorkingMapKeys {
+import bio.terra.common.ProjectCreatingFlightKeys;
+
+public final class DatasetWorkingMapKeys extends ProjectCreatingFlightKeys {
   private DatasetWorkingMapKeys() {}
 
   public static final String DATASET_ID = "datasetId";

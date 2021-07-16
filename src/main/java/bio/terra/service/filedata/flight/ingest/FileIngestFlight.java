@@ -23,6 +23,7 @@ import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
@@ -50,6 +51,7 @@ public class FileIngestFlight extends Flight {
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
+    GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -113,6 +115,7 @@ public class FileIngestFlight extends Flight {
     addStep(new IngestFileIdStep(configService));
     addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
     addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), randomBackoffRetry);
+    addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
     addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
     addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);

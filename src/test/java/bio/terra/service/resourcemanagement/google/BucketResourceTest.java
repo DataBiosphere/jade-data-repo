@@ -388,7 +388,7 @@ public class BucketResourceTest {
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
     // create project metadata
-    return projectService.getOrCreateProject(
+    return projectService.initializeGoogleProject(
         resourceConfiguration.getSingleDataProjectId(),
         profile,
         roleToStewardMap,

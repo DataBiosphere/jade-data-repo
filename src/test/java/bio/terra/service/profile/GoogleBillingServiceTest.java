@@ -139,7 +139,7 @@ public class GoogleBillingServiceTest {
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
     // create project metadata
-    return projectService.getOrCreateProject(
+    return projectService.initializeGoogleProject(
         resourceConfiguration.getSingleDataProjectId(),
         profile,
         roleToStewardMap,

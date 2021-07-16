@@ -94,46 +94,50 @@ public class DatasetIngestFlight extends Flight {
     addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
     addStep(new IngestSetupStep(datasetService, configService));
 
-    // Begin file + metadata load
-    addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset));
-    addStep(
-        new AuthorizeBillingProfileUseStep(profileService, ingestRequest.getProfileId(), userReq));
-    addStep(new LoadLockStep(loadService));
-    addStep(new IngestFileGetProjectStep(dataset, projectService));
-    addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
-    addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
-    addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
-    addStep(new IngestPopulateFileStateFromFlightMapStep(loadService));
-    addStep(
-        new IngestDriverStep(
-            loadService,
-            configurationService,
-            jobService,
-            datasetId.toString(),
-            loadTag,
-            Optional.ofNullable(ingestRequest.getMaxBadRecords()).orElse(0),
-            driverWaitSeconds,
-            ingestRequest.getProfileId()),
-        driverRetry);
+    if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.JSON) {
 
-    addStep(new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag()));
-    // build the scratch file using new file ids and store in new bucket
-    addStep(new IngestBuildLoadFileStep(appConfig.objectMapper()));
-    addStep(new IngestCreateBucketForScratchFileStep(resourceService, dataset));
-    addStep(new IngestCreateScratchFileStep(gcsPdao));
-    addStep(
-        new IngestCopyLoadHistoryToBQStep(
-            loadService,
-            datasetService,
-            loadTag,
-            datasetId.toString(),
-            bigQueryPdao,
-            fileChunkSize,
-            loadHistoryWaitSeconds));
-    addStep(new IngestCleanFileStateStep(loadService));
+      // Begin file + metadata load
+      addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset));
+      addStep(
+          new AuthorizeBillingProfileUseStep(
+              profileService, ingestRequest.getProfileId(), userReq));
+      addStep(new LoadLockStep(loadService));
+      addStep(new IngestFileGetProjectStep(dataset, projectService));
+      addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
+      addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
+      addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+      addStep(new IngestPopulateFileStateFromFlightMapStep(loadService));
+      addStep(
+          new IngestDriverStep(
+              loadService,
+              configurationService,
+              jobService,
+              datasetId.toString(),
+              loadTag,
+              Optional.ofNullable(ingestRequest.getMaxBadRecords()).orElse(0),
+              driverWaitSeconds,
+              ingestRequest.getProfileId()),
+          driverRetry);
 
-    addStep(new LoadUnlockStep(loadService));
-    // End file + metadata load
+      addStep(new IngestBulkMapResponseStep(loadService, ingestRequest.getLoadTag()));
+      // build the scratch file using new file ids and store in new bucket
+      addStep(new IngestBuildLoadFileStep(appConfig.objectMapper()));
+      addStep(new IngestCreateBucketForScratchFileStep(resourceService, dataset));
+      addStep(new IngestCreateScratchFileStep(gcsPdao));
+      addStep(
+          new IngestCopyLoadHistoryToBQStep(
+              loadService,
+              datasetService,
+              loadTag,
+              datasetId.toString(),
+              bigQueryPdao,
+              fileChunkSize,
+              loadHistoryWaitSeconds));
+      addStep(new IngestCleanFileStateStep(loadService));
+
+      addStep(new LoadUnlockStep(loadService));
+      // End file + metadata load
+    }
 
     // handing in the load scratch file
     addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));

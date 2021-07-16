@@ -139,10 +139,10 @@ public final class IngestUtils {
 
   public static boolean noFilesToIngest(FlightContext flightContext) {
     if (flightContext.getFlightClassName().equals(DatasetIngestFlight.class.getName())
-        && flightContext
-            .getWorkingMap()
-            .get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class)
-            .isEmpty()) {
+        && Optional.ofNullable(
+                flightContext.getWorkingMap().get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class))
+            .map(Set::isEmpty)
+            .orElse(true)) {
       Logger logger = LoggerFactory.getLogger(DatasetIngestFlight.class);
       logger.info(
           "Skipping {} because there are no files to ingest", flightContext.getStepClassName());

@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
+import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsBufferedReader;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
@@ -54,7 +55,8 @@ public class IngestPopulateFileStateFromFileStep implements Step {
 
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
-    GoogleBucketResource bucketResource = IngestUtils.getBucketInfo(context);
+    GoogleBucketResource bucketResource =
+        IngestUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
     Storage storage = gcsPdao.storageForBucket(bucketResource);
     String projectId = bucketResource.projectIdForBucket();
     List<String> errorDetails = new ArrayList<>();

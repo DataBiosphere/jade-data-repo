@@ -39,7 +39,8 @@ public class IngestFilePrimaryDataStep implements Step {
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
-      GoogleBucketResource bucketResource = IngestUtils.getBucketInfo(context);
+      GoogleBucketResource bucketResource =
+          IngestUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
       FSFileInfo fsFileInfo;
       if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
         fsFileInfo =
@@ -66,7 +67,8 @@ public class IngestFilePrimaryDataStep implements Step {
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
     FlightMap workingMap = context.getWorkingMap();
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
-    GoogleBucketResource bucketResource = IngestUtils.getBucketInfo(context);
+    GoogleBucketResource bucketResource =
+        IngestUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
     String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
     gcsPdao.deleteFileById(dataset, fileId, fileName, bucketResource);
 

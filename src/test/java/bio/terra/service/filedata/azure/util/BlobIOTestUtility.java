@@ -27,7 +27,7 @@ import org.apache.commons.lang3.RandomStringUtils;
  * copy operations.
  */
 public class BlobIOTestUtility {
-  public static final long MiB = 1024 * 1024;
+  public static final long MIB = 1024 * 1024;
   private static final String SOURCE_BLOB_NAME = "myTestBlob";
   private final BlobContainerClient sourceBlobContainerClient;
 
@@ -51,9 +51,9 @@ public class BlobIOTestUtility {
     sourceBlobContainerClient =
         createBlobContainerClient(tokenCredential, sourceContainerName, sourceAccountName);
     sourceBlobContainerClient.create();
-    this.destinationBlobContainerClient =
+    destinationBlobContainerClient =
         Optional.ofNullable(destinationAccountName)
-            .map(a -> createBlobContainerClient(tokenCredential, this.destinationContainerName, a));
+            .map(a -> createBlobContainerClient(tokenCredential, destinationContainerName, a));
     this.tokenCredential = tokenCredential;
   }
 
@@ -108,8 +108,8 @@ public class BlobIOTestUtility {
         new BlobContainerClientBuilder()
             .credential(
                 new StorageSharedKeyCredential(
-                    this.sourceBlobContainerClient.getAccountName(), accountKey))
-            .endpoint(this.sourceBlobContainerClient.getBlobContainerUrl())
+                    sourceBlobContainerClient.getAccountName(), accountKey))
+            .endpoint(sourceBlobContainerClient.getBlobContainerUrl())
             .buildClient()
             .getBlobClient(blobName);
 

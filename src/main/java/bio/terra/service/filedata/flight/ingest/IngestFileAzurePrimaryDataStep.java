@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -43,7 +44,7 @@ public class IngestFileAzurePrimaryDataStep implements Step {
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       AzureStorageAccountResource azureStorageAccountResource =
-          IngestUtils.getContextValue(
+          FlightUtils.getContextValue(
               context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
 
       FSFileInfo fsFileInfo;
@@ -74,7 +75,7 @@ public class IngestFileAzurePrimaryDataStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     AzureStorageAccountResource storageAccountResource =
-        IngestUtils.getContextValue(
+        FlightUtils.getContextValue(
             context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
     String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
     if (!azureBlobStorePdao.deleteDataFileById(fileId, fileName, storageAccountResource)) {

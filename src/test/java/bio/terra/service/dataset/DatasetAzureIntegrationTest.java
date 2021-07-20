@@ -1,6 +1,6 @@
 package bio.terra.service.dataset;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MiB;
+import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -208,7 +208,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Test
   public void datasetIngestFileHappyPath() throws Exception {
     String blobName = "myBlob";
-    long fileSize = MiB / 10;
+    long fileSize = MIB / 10;
     String sourceFile = blobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(

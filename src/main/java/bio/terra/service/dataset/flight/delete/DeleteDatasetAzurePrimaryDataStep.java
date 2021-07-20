@@ -44,12 +44,7 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = datasetService.retrieve(datasetId);
-    if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
-      // If we didn't load files, don't try to delete them
-      fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> {});
-    } else {
-      fileDao.deleteFilesFromDataset(dataset, azureBlobStorePdao::deleteFile);
-    }
+    fileDao.deleteFilesFromDataset(dataset, azureBlobStorePdao::deleteFile);
 
     // this fault is used by the DatasetConnectedTest > testOverlappingDeletes
     if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT)) {

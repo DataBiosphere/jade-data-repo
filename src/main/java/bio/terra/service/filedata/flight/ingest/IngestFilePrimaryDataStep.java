@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -40,7 +41,7 @@ public class IngestFilePrimaryDataStep implements Step {
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       GoogleBucketResource bucketResource =
-          IngestUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+          FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
       FSFileInfo fsFileInfo;
       if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
         fsFileInfo =
@@ -68,7 +69,7 @@ public class IngestFilePrimaryDataStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     GoogleBucketResource bucketResource =
-        IngestUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+        FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
     String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
     gcsPdao.deleteFileById(dataset, fileId, fileName, bucketResource);
 

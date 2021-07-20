@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MiB;
+import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -89,7 +89,7 @@ public class BlobContainerCopierTest {
   }
 
   private void testCopySingleFile_FileIsCopied_Impl(BlobContainerCopier copier) {
-    String blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).iterator().next();
+    String blobName = blobIOTestUtility.uploadSourceFiles(1, MIB / 10).iterator().next();
 
     BlobCopySourceDestinationPair pair = new BlobCopySourceDestinationPair(blobName, "");
     copier.setSourceDestinationPairs(Collections.singletonList(pair));
@@ -111,7 +111,7 @@ public class BlobContainerCopierTest {
 
   private void testCopy2FilesWithDestinationNames_FilesAreCopiedWithDestinationNames_Impl(
       BlobContainerCopier copier) {
-    List<String> blobs = blobIOTestUtility.uploadSourceFiles(2, MiB / 10);
+    List<String> blobs = blobIOTestUtility.uploadSourceFiles(2, MIB / 10);
 
     List<BlobCopySourceDestinationPair> sourceDestinationPairs =
         blobs.stream()
@@ -140,7 +140,7 @@ public class BlobContainerCopierTest {
   }
 
   private void testCopy5FilesUsingEmptyPrefix_AllFilesAreCopied_Impl(BlobContainerCopier copier) {
-    List<String> blobs = blobIOTestUtility.uploadSourceFiles(5, MiB / 10);
+    List<String> blobs = blobIOTestUtility.uploadSourceFiles(5, MIB / 10);
 
     copier.setBlobSourcePrefix("");
 
@@ -157,7 +157,7 @@ public class BlobContainerCopierTest {
 
   @Test
   public void testCopySingleBlobWithSignedURl_FileIsCopied() {
-    String blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).iterator().next();
+    String blobName = blobIOTestUtility.uploadSourceFiles(1, MIB / 10).iterator().next();
 
     BlobContainerClientFactory sourceFactory = createSourceClientFactoryWithSharedKey();
 
@@ -174,7 +174,7 @@ public class BlobContainerCopierTest {
 
   @Test
   public void testCopySingleBLobWithSignedURlAndDestinationName_FileCopiedWithDestinationName() {
-    String blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).iterator().next();
+    String blobName = blobIOTestUtility.uploadSourceFiles(1, MIB / 10).iterator().next();
     String destinationBlobName = "myBlob";
     BlobContainerClientFactory sourceFactory = createSourceClientFactoryWithSharedKey();
 

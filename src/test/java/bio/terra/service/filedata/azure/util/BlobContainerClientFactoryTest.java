@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MiB;
+import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -61,7 +61,7 @@ public class BlobContainerClientFactoryTest {
     tokenCredential =
         azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId());
     containerName = blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();
-    blobName = blobIOTestUtility.uploadSourceFiles(1, MiB / 10).iterator().next();
+    blobName = blobIOTestUtility.uploadSourceFiles(1, MIB / 10).iterator().next();
   }
 
   @After

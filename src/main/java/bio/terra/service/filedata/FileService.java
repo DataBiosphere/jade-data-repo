@@ -76,9 +76,13 @@ public class FileService {
     String loadTag = loadService.computeLoadTag(fileLoad.getLoadTag());
     fileLoad.setLoadTag(loadTag);
     String description = "Ingest file " + fileLoad.getTargetPath();
+    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
     return jobService
         .newJob(description, FileIngestFlight.class, fileLoad, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+        .addParameter(
+            JobMapKeys.CLOUD_PLATFORM.getKeyName(),
+            dataset.getDatasetSummary().getStorageCloudPlatform())
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
         .submit();
   }
@@ -93,11 +97,15 @@ public class FileService {
             + "  LoadTag: "
             + loadTag;
 
+    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
     return jobService
         .newJob(description, FileIngestBulkFlight.class, loadModel, userReq)
         .addParameter(LoadMapKeys.IS_ARRAY, false)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
+        .addParameter(
+            JobMapKeys.CLOUD_PLATFORM.getKeyName(),
+            dataset.getDatasetSummary().getStorageCloudPlatform())
         .addParameter(
             LoadMapKeys.DRIVER_WAIT_SECONDS,
             configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
@@ -129,11 +137,15 @@ public class FileService {
               + "; request array contains "
               + inArraySize);
     }
+    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
     return jobService
         .newJob(description, FileIngestBulkFlight.class, loadArray, userReq)
         .addParameter(LoadMapKeys.IS_ARRAY, true)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
+        .addParameter(
+            JobMapKeys.CLOUD_PLATFORM.getKeyName(),
+            dataset.getDatasetSummary().getStorageCloudPlatform())
         .addParameter(
             LoadMapKeys.DRIVER_WAIT_SECONDS,
             configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))

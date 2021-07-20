@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 @Component
 public class FireStoreDependencyDao {
@@ -85,7 +86,7 @@ public class FireStoreDependencyDao {
 
     List<String> fileIds = new ArrayList<>();
     for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
-        !CollectionUtils.isEmpty(batch)
+        !CollectionUtils.isEmpty(batch);
         batch = queryIterator.getBatch()) {
 
       for (DocumentSnapshot docSnap : batch) {
@@ -191,8 +192,8 @@ public class FireStoreDependencyDao {
         new FireStoreBatchQueryIterator(query, batchSize, fireStoreUtils);
 
     for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
-        batch != null && !batch.isEmpty();
-        batch = queryIterator.getBatch()) {
+         !CollectionUtils.isEmpty(batch);
+         batch = queryIterator.getBatch()) {
 
       fireStoreUtils.batchOperation(
           batch,

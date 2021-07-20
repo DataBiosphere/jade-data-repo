@@ -20,17 +20,11 @@ import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.google.common.annotations.VisibleForTesting;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -39,9 +33,6 @@ import org.springframework.stereotype.Component;
 public class AzureBlobStorePdao {
   private static final Set<String> VALID_TLDS =
       Set.of("blob.core.windows.net", "dfs.core.windows.net");
-  // Required properties as defined in:
-  // https://docs.microsoft.com/en-us/rest/api/storageservices/create-service-sas
-  private static final Set<String> SAS_PROPS = Set.of("sv", "se", "sr", "sp", "spr", "sig");
 
   private final ProfileDao profileDao;
   private final AzureContainerPdao azureContainerPdao;
@@ -196,20 +187,12 @@ public class AzureBlobStorePdao {
   /** Detects if a URL is a signed URL */
   @VisibleForTesting
   static boolean isSignedUrl(String url) {
-    try {
-      URI parsed = new URI(url);
-      if (VALID_TLDS.stream().noneMatch(h -> parsed.getHost().toLowerCase().endsWith(h))) {
-        return false;
-      }
-      Set<String> parameterKeys =
-          URLEncodedUtils.parse(parsed, StandardCharsets.UTF_8).stream()
-              .map(NameValuePair::getName)
-              .map(String::toLowerCase)
-              .collect(Collectors.toSet());
-      return parameterKeys.containsAll(SAS_PROPS);
-    } catch (URISyntaxException e) {
-      throw new IllegalArgumentException("Invalid URL", e);
+    BlobUrlParts blobUrlParts = BlobUrlParts.parse(url);
+
+    if (VALID_TLDS.stream().noneMatch(h -> blobUrlParts.getHost().toLowerCase().endsWith(h))) {
+      return false;
     }
+    return !StringUtils.isEmpty(blobUrlParts.getCommonSasQueryParameters().getSignature());
   }
 
   private String getBlobName(String fileId, String fileName) {

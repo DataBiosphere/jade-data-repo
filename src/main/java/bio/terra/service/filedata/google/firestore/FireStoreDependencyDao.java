@@ -192,8 +192,8 @@ public class FireStoreDependencyDao {
         new FireStoreBatchQueryIterator(query, batchSize, fireStoreUtils);
 
     for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
-         !CollectionUtils.isEmpty(batch);
-         batch = queryIterator.getBatch()) {
+        !CollectionUtils.isEmpty(batch);
+        batch = queryIterator.getBatch()) {
 
       fireStoreUtils.batchOperation(
           batch,

@@ -85,7 +85,7 @@ public class FireStoreDependencyDao {
 
     List<String> fileIds = new ArrayList<>();
     for (List<QueryDocumentSnapshot> batch = queryIterator.getBatch();
-        batch != null && !batch.isEmpty();
+        !CollectionUtils.isEmpty(batch)
         batch = queryIterator.getBatch()) {
 
       for (DocumentSnapshot docSnap : batch) {

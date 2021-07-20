@@ -4,6 +4,7 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.buffer.model.HandoutRequestBody;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.profile.google.GoogleBillingService;
@@ -167,7 +168,8 @@ public class GoogleProjectService {
       GoogleProjectResource projectResource =
           resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
       UUID resourceProfileId = projectResource.getProfileId();
-      if (resourceProfileId.equals(billingProfile.getId())) {
+      if (resourceProfileId.equals(billingProfile.getId())
+          || billingProfile.getCloudPlatform() == CloudPlatform.AZURE) {
         return projectResource;
       }
       throw new MismatchedBillingProfilesException(

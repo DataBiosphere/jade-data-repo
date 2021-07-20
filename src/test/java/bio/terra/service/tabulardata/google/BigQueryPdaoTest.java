@@ -672,7 +672,7 @@ public class BigQueryPdaoTest {
     projectService.addLabelsToProject(googleProjectId, Map.of("test-name", "bigquery-pdao-test"));
     UUID projectId =
         resourceService.getOrCreateDatasetProject(
-            profileModel, googleProjectId, region, dataset.getName(), dataset.getId());
+            profileModel, googleProjectId, region, dataset.getName(), dataset.getId(), false);
     dataset
         .projectResourceId(projectId)
         .projectResource(resourceService.getProjectResource(projectId));

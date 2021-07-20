@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.buffer.model.HandoutRequestBody;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
@@ -31,6 +30,7 @@ import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.util.Map;
 import java.util.UUID;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
@@ -86,11 +86,10 @@ public class RBSConnectedTest {
 
   @Test
   public void testProjectHandout() {
-    String handoutRequestId = UUID.randomUUID().toString();
-    HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
-    ResourceInfo resource = bufferService.handoutResource(request);
+    ResourceInfo resource = bufferService.handoutResource();
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
     Project project = projectService.getProject(projectId);
+    projectService.addLabelsToProject(projectId, Map.of("test-name", "rbs-connected-test"));
     assertThat(
         "The project requested from RBS is active", project.getLifecycleState(), equalTo("ACTIVE"));
   }

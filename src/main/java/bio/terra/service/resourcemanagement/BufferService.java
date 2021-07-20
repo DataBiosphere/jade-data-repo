@@ -15,6 +15,7 @@ import bio.terra.service.resourcemanagement.exception.BufferServiceAPIException;
 import bio.terra.service.resourcemanagement.exception.BufferServiceAuthorizationException;
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,10 +85,12 @@ public class BufferService {
    * Retrieve a single resource from the Buffer Service. The instance and pool are already
    * configured.
    *
-   * @param requestBody
    * @return ResourceInfo
    */
-  public ResourceInfo handoutResource(HandoutRequestBody requestBody) {
+  public ResourceInfo handoutResource() {
+    String handoutRequestId = UUID.randomUUID().toString();
+    logger.info("Using request ID: {} to get project from RBS", handoutRequestId);
+    HandoutRequestBody requestBody = new HandoutRequestBody().handoutRequestId(handoutRequestId);
     try {
       BufferApi bufferApi = bufferApi(bufferServiceConfiguration.getInstanceUrl());
       ResourceInfo info =

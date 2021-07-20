@@ -6,6 +6,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
@@ -14,9 +15,9 @@ import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.profile.google.GoogleBillingService;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import com.google.api.client.util.Lists;
 import java.util.HashMap;
@@ -52,8 +53,8 @@ public class ProfileServiceTest {
   @Autowired private ProfileDao profileDao;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private GoogleProjectService googleProjectService;
-  @Autowired private GoogleResourceConfiguration resourceConfiguration;
   @Autowired private ProfileService profileService;
+  @Autowired private BufferService bufferService;
   @MockBean private IamProviderInterface samService;
 
   private BillingProfileModel profile;
@@ -160,11 +161,14 @@ public class ProfileServiceTest {
     Map<String, List<String>> roleToStewardMap = new HashMap<>();
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
+    ResourceInfo resourceInfo = bufferService.handoutResource();
+
     // create project metadata
     return googleProjectService.initializeGoogleProject(
-        resourceConfiguration.getSingleDataProjectId(),
+        resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),
         profile,
         roleToStewardMap,
-        GoogleRegion.DEFAULT_GOOGLE_REGION);
+        GoogleRegion.DEFAULT_GOOGLE_REGION,
+        Map.of("test-name", "profile-service-test"));
   }
 }

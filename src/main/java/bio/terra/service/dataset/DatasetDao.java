@@ -78,7 +78,7 @@ public class DatasetDao {
           + "'biller', biller, "
           + "'billingAccountId', billing_account_id, "
           + "'description', description, "
-          + "'cloudPlatform', cloud_platform, "
+          + "'cloudPlatform', lower(cloud_platform), "
           + "'tenantId', tenant_id, "
           + "'subscriptionId', subscription_id, "
           + "'resourceGroupName', resource_group_name, "

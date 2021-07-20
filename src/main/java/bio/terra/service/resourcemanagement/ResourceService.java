@@ -23,9 +23,6 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -312,9 +309,9 @@ public class ResourceService {
       throws InterruptedException {
 
     Map<String, String> labels = new HashMap<>();
-        labels.put("dataset-name", datasetName);
-        labels.put("dataset-id", datasetId.toString());
-        labels.put("project-usage","dataset");
+    labels.put("dataset-name", datasetName);
+    labels.put("dataset-id", datasetId.toString());
+    labels.put("project-usage", "dataset");
 
     if (isAzure) {
       labels.put("is-azure", "true");

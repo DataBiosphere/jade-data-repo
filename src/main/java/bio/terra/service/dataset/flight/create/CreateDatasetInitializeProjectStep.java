@@ -31,8 +31,8 @@ public class CreateDatasetInitializeProjectStep implements Step {
     String projectId = workingMap.get(DatasetWorkingMapKeys.GOOGLE_PROJECT_ID, String.class);
     CloudPlatformWrapper platformWrapper =
         CloudPlatformWrapper.of(datasetRequestModel.getCloudPlatform());
-    GoogleRegion region = platformWrapper
-        .getGoogleRegionFromDatasetRequestModel(datasetRequestModel);
+    GoogleRegion region =
+        platformWrapper.getGoogleRegionFromDatasetRequestModel(datasetRequestModel);
     Boolean isAzure = platformWrapper.isAzure();
 
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);

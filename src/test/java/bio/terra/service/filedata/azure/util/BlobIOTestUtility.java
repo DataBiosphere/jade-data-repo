@@ -54,6 +54,7 @@ public class BlobIOTestUtility {
     destinationBlobContainerClient =
         Optional.ofNullable(destinationAccountName)
             .map(a -> createBlobContainerClient(tokenCredential, destinationContainerName, a));
+    destinationBlobContainerClient.ifPresent(BlobContainerClient::create);
     this.tokenCredential = tokenCredential;
   }
 

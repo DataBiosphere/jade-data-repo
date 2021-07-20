@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MiB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -14,13 +15,20 @@ import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import com.azure.resourcemanager.AzureResourceManager;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -54,10 +62,13 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
+  @Autowired private TestConfiguration testConfig;
+  @Autowired private AzureResourceConfiguration azureResourceConfiguration;
 
   private String stewardToken;
   private UUID datasetId;
   private UUID profileId;
+  private BlobIOTestUtility blobIOTestUtility;
 
   @Before
   public void setup() throws Exception {
@@ -66,6 +77,11 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createAzureBillingProfile(steward()).getId();
     datasetId = null;
+    blobIOTestUtility =
+        new BlobIOTestUtility(
+            azureResourceConfiguration.getAppToken(testConfig.getTargetTenantId()),
+            testConfig.getSourceStorageAccountName(),
+            null);
   }
 
   @After
@@ -189,6 +205,59 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     clearEnvironment();
   }
 
+  @Test
+  public void datasetIngestFileHappyPath() throws Exception {
+    String blobName = "myBlob";
+    long fileSize = MiB / 10;
+    String sourceFile = blobIOTestUtility.uploadSourceFile(blobName, fileSize);
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward(), profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+    datasetId = summaryModel.getId();
+
+    BulkLoadFileModel fileLoadModel =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(
+                String.format("%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+            .targetPath("/test/target.txt");
+    BulkLoadFileModel fileLoadModelSas =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(
+                String.format(
+                    "%s/%s?%s",
+                    blobIOTestUtility.getSourceContainerEndpoint(),
+                    sourceFile,
+                    blobIOTestUtility.generateBlobSasTokenWithReadPermissions(
+                        getSourceStorageAccountPrimarySharedKey(), sourceFile)))
+            .targetPath("/test/targetSas.txt");
+    BulkLoadArrayResultModel result =
+        dataRepoFixtures.bulkLoadArray(
+            steward(),
+            datasetId,
+            new BulkLoadArrayRequestModel()
+                .profileId(summaryModel.getDefaultProfileId())
+                .loadTag("loadTag")
+                .addLoadArrayItem(fileLoadModel)
+                .addLoadArrayItem(fileLoadModelSas));
+
+    assertThat(result.getLoadSummary().getSucceededFiles(), equalTo(2));
+
+    assertThat(
+        "file size matches",
+        dataRepoFixtures.getFileByName(steward(), datasetId, "/test/target.txt").getSize(),
+        equalTo(fileSize));
+
+    assertThat(
+        "file with Sas size matches",
+        dataRepoFixtures.getFileByName(steward(), datasetId, "/test/targetSas.txt").getSize(),
+        equalTo(fileSize));
+    // Make sure that any failure in tearing down is presented as a test failure
+    blobIOTestUtility.deleteContainers();
+    clearEnvironment();
+  }
+
   private void clearEnvironment() throws Exception {
     if (datasetId != null) {
       dataRepoFixtures.deleteDataset(steward(), datasetId);
@@ -199,5 +268,20 @@ public class DatasetAzureIntegrationTest extends UsersBase {
       dataRepoFixtures.deleteProfile(steward(), profileId);
       profileId = null;
     }
+  }
+
+  private String getSourceStorageAccountPrimarySharedKey() {
+    AzureResourceManager client =
+        this.azureResourceConfiguration.getClient(
+            testConfig.getTargetTenantId(), testConfig.getTargetSubscriptionId());
+
+    return client
+        .storageAccounts()
+        .getByResourceGroup(
+            testConfig.getTargetResourceGroupName(), testConfig.getSourceStorageAccountName())
+        .getKeys()
+        .iterator()
+        .next()
+        .value();
   }
 }

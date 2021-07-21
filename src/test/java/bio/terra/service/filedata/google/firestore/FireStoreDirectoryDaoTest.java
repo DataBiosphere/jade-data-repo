@@ -7,8 +7,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.StringListCompare;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import com.google.cloud.firestore.Firestore;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,8 +22,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,13 +34,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FireStoreDirectoryDaoTest {
-  private final Logger logger =
-      LoggerFactory.getLogger(
-          "bio.terra.service.filedata.google.firestore.FireStoreDirectoryDaoTest");
 
   @Autowired private FireStoreDirectoryDao directoryDao;
 
   @Autowired private FireStoreUtils fireStoreUtils;
+
+  @Autowired private ConfigurationService configurationService;
 
   private String pretendDatasetId;
   private String collectionId;
@@ -136,6 +136,9 @@ public class FireStoreDirectoryDaoTest {
     StringListCompare listCompare = new StringListCompare(mismatches, badids);
     assertTrue("Bad ids match", listCompare.compare());
 
+    // Test FireStoreBatchQueryIterator by making the batch size small
+    TestUtils.setConfigParameterValue(
+        configurationService, ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE, "1", "setFirestoreBatch");
     // Test enumeration with adir. We should get three things back: two files (A1, A2) and a
     // directory (bdir).
     List<FireStoreDirectoryEntry> enumList =

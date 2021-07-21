@@ -7,13 +7,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.StringListCompare;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
-import bio.terra.model.ConfigParameterModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import com.google.cloud.firestore.Firestore;
@@ -126,7 +126,8 @@ public class FireStoreFileDaoTest {
   public void faultRetrieveRetryFail() throws Exception {
     configurationService.setFault(ConfigEnum.FIRESTORE_RETRIEVE_FAULT.name(), true);
 
-    setConfigParameterValue(ConfigEnum.FIRESTORE_RETRIES, "1", "setRetryParameter");
+    TestUtils.setConfigParameterValue(
+        configurationService, ConfigEnum.FIRESTORE_RETRIES, "1", "setRetryParameter");
 
     FireStoreFile file1 = makeFile();
     String objectId = file1.getFileId();
@@ -176,15 +177,5 @@ public class FireStoreFileDaoTest {
         .bucketResourceId("BostonBucket")
         .gspath("gs://server.example.com/" + fileId)
         .size(FILE_SIZE);
-  }
-
-  private void setConfigParameterValue(ConfigEnum config, String newValue, String label) {
-    ConfigModel retryConfigModel =
-        new ConfigModel()
-            .name(config.name())
-            .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
-            .parameter(new ConfigParameterModel().value(newValue));
-    ConfigGroupModel group = new ConfigGroupModel().label(label).addGroupItem(retryConfigModel);
-    configurationService.setConfig(group);
   }
 }

@@ -20,12 +20,15 @@ import bio.terra.datarepo.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.OAuth2Credentials;
+import com.google.auth.oauth2.OAuth2Credentials.CredentialsChangedListener;
 import common.utils.AuthenticationUtils;
 import common.utils.FileUtils;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -94,11 +97,34 @@ public final class DataRepoUtils {
    *
    * @param repositoryApi the api object to use
    * @param job the job model to poll
+   * @param testUser a TestUserSpecification to refresh the token for long-running jobs
+   */
+  public static JobModel waitForJobToFinish(
+      RepositoryApi repositoryApi, JobModel job, TestUserSpecification testUser) throws Exception {
+    logger.debug("Waiting for Data Repo job to finish");
+    GoogleCredentials googleCredentials = AuthenticationUtils.getDelegatedUserCredential(testUser);
+    job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob, googleCredentials);
+
+    if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
+      throw new RuntimeException(
+          "Timed out waiting for job to finish. (jobid=" + job.getId() + ")");
+    }
+
+    return job;
+  }
+
+  /**
+   * Wait until the job finishes, either successfully or not. Times out after {@link
+   * DataRepoUtils#maximumSecondsToWaitForJob} seconds. Polls in intervals of {@link
+   * DataRepoUtils#secondsIntervalToPollJob} seconds.
+   *
+   * @param repositoryApi the api object to use
+   * @param job the job model to poll
    */
   public static JobModel waitForJobToFinish(RepositoryApi repositoryApi, JobModel job)
       throws Exception {
     logger.debug("Waiting for Data Repo job to finish");
-    job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob);
+    job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob, null);
 
     if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       throw new RuntimeException(
@@ -117,18 +143,49 @@ public final class DataRepoUtils {
    */
   public static JobModel pollForRunningJob(RepositoryApi repositoryApi, JobModel job, int pollTime)
       throws Exception {
+    return pollForRunningJob(repositoryApi, job, pollTime, null);
+  }
+
+  /**
+   * Poll for running job. Polls for designated time.
+   *
+   * @param repositoryApi the api object to use
+   * @param job the job model to poll
+   * @param pollTime time in seconds for the job to poll before returning
+   * @param credentials a GoogleCredentials to refresh the token for long-running jobs, if provided
+   */
+  public static JobModel pollForRunningJob(
+      RepositoryApi repositoryApi, JobModel job, int pollTime, GoogleCredentials credentials)
+      throws Exception {
     int pollCtr = Math.floorDiv(pollTime, secondsIntervalToPollJob);
     job = repositoryApi.retrieveJob(job.getId());
     int tryCount = 1;
 
+    var maybeCredentials = Optional.ofNullable(credentials);
+    var credentialsChangedListener =
+        new CredentialsChangedListener() {
+          @Override
+          public void onChanged(OAuth2Credentials credentials) {
+            logger.info("Refreshed access token because old token expired.");
+          }
+        };
+    maybeCredentials.ifPresent(creds -> creds.addChangeListener(credentialsChangedListener));
+
     while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
       logger.debug("Sleeping. try #" + tryCount + " For Job: " + job.getDescription());
+
       TimeUnit.SECONDS.sleep(secondsIntervalToPollJob);
+      maybeCredentials.ifPresent(
+          creds ->
+              repositoryApi
+                  .getApiClient()
+                  .setAccessToken(AuthenticationUtils.getAccessToken(creds).getTokenValue()));
       job = repositoryApi.retrieveJob(job.getId());
       tryCount++;
       pollCtr--;
     }
     logger.debug("Status at end of polling: {}", job.getJobStatus());
+    maybeCredentials.ifPresent(creds -> creds.removeChangeListener(credentialsChangedListener));
 
     return job;
   }

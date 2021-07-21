@@ -132,7 +132,7 @@ public class AzureBlobStorePdao {
         getTargetDataClientFactory(profileModel, storageAccountResource, true);
 
     BlobUrlParts blobParts = BlobUrlParts.parse(fireStoreFile.getGspath());
-    if (!StringUtils.equals(blobParts.getAccountName(), storageAccountResource.getName())) {
+    if (!blobParts.getAccountName().equals(storageAccountResource.getName())) {
       throw new PdaoException(
           String.format(
               "Resource groups between metadata storage and request do not match: %s != %s",

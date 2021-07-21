@@ -310,7 +310,7 @@ public class IngestDriverStep implements Step {
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
       inputParameters.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
-      inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform);
+      inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
 
       logger.debug("~~set running load - flight: " + flightId);
       loadService.setLoadFileRunning(loadId, loadFile.getTargetPath(), flightId);

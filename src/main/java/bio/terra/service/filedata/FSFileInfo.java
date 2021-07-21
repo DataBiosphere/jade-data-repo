@@ -90,7 +90,7 @@ public class FSFileInfo {
         .toString();
   }
 
-  public static FSFileInfo getBaseInstance(String fileId, String resourceId) {
+  public static FSFileInfo getTestInstance(String fileId, String resourceId) {
     return new FSFileInfo()
         .fileId(fileId)
         .bucketResourceId(resourceId)

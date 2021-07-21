@@ -43,7 +43,7 @@ public class IngestFilePrimaryDataStep implements Step {
           FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
       FSFileInfo fsFileInfo;
       if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
-        fsFileInfo = FSFileInfo.getBaseInstance(fileId, bucketResource.getResourceId().toString());
+        fsFileInfo = FSFileInfo.getTestInstance(fileId, bucketResource.getResourceId().toString());
       } else {
         fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
       }

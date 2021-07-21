@@ -47,7 +47,7 @@ public class IngestFileAzurePrimaryDataStep implements Step {
       FSFileInfo fsFileInfo;
       if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
         fsFileInfo =
-            FSFileInfo.getBaseInstance(fileId, storageAccountResource.getResourceId().toString());
+            FSFileInfo.getTestInstance(fileId, storageAccountResource.getResourceId().toString());
       } else {
         fsFileInfo = azureBlobStorePdao.copyFile(fileLoadModel, fileId, storageAccountResource);
       }

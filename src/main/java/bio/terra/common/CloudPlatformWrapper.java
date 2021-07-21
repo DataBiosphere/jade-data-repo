@@ -11,6 +11,7 @@ import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.dataset.StorageResource;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.validation.Errors;
@@ -18,6 +19,21 @@ import org.springframework.validation.Errors;
 public abstract class CloudPlatformWrapper {
 
   public static final CloudPlatform DEFAULT = CloudPlatform.GCP;
+
+  public static CloudPlatformWrapper of(String cloudPlatformValue) {
+    CloudPlatform cloudPlatform;
+    if (cloudPlatformValue != null) {
+      cloudPlatform =
+          Optional.ofNullable(CloudPlatform.fromValue(cloudPlatformValue.toLowerCase()))
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          String.format("Invalid cloud platform %s", cloudPlatformValue)));
+    } else {
+      cloudPlatform = null;
+    }
+    return of(cloudPlatform);
+  }
 
   public static CloudPlatformWrapper of(CloudPlatform cloudPlatform) {
     if (cloudPlatform == null) {

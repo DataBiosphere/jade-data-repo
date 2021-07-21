@@ -15,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IngestCopyLoadHistoryToBQStep implements Step {
-  private final Logger logger = LoggerFactory.getLogger(IngestBulkFileResponseStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(IngestBulkFileResponseStep.class);
 
   private final LoadService loadService;
   private final DatasetService datasetService;

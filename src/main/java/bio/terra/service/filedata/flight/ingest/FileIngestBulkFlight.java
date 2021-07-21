@@ -7,7 +7,6 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
@@ -73,9 +72,7 @@ public class FileIngestBulkFlight extends Flight {
     UUID datasetUuid = UUID.fromString(datasetId);
     Dataset dataset = datasetService.retrieve(datasetUuid);
 
-    var platform =
-        CloudPlatformWrapper.of(
-            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), CloudPlatform.class));
+    var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
     int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
@@ -149,7 +146,7 @@ public class FileIngestBulkFlight extends Flight {
     if (platform.isGcp()) {
       addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
       addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
-    } else {
+    } else if (platform.isAzure()) {
       addStep(
           new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
       addStep(
@@ -181,7 +178,8 @@ public class FileIngestBulkFlight extends Flight {
             loadTag,
             maxFailedFileLoads,
             driverWaitSeconds,
-            profileId),
+            profileId,
+            platform.getCloudPlatform()),
         driverRetry);
 
     if (isArray) {

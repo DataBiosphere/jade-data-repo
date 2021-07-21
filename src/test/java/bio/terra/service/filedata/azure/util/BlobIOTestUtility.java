@@ -174,7 +174,7 @@ public class BlobIOTestUtility {
 
   public BlobContainerClientFactory createDestinationClientFactory() {
     return new BlobContainerClientFactory(
-        destinationBlobContainerClient.orElseThrow().getAccountName(),
+        getDestinationBlobContainerClient().getAccountName(),
         tokenCredential,
         destinationContainerName);
   }

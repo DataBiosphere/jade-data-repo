@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IngestFileGetOrCreateProject implements Step {
-  private final Logger logger = LoggerFactory.getLogger(IngestFileGetOrCreateProject.class);
+  private static final Logger logger = LoggerFactory.getLogger(IngestFileGetOrCreateProject.class);
   private final ResourceService resourceService;
   private final Dataset dataset;
 

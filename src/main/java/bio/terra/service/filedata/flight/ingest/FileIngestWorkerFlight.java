@@ -82,7 +82,7 @@ public class FileIngestWorkerFlight extends Flight {
     if (platform.isGcp()) {
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
     } else if (platform.isAzure()) {
-      addStep(new IngestFileAzurePrimaryDataStep(dataset, azureBlobStorePdao, configService));
+      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
     }
     addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
   }

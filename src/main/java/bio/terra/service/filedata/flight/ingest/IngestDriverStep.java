@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 // - STORAGE_ACCOUNT_INFO is a AzureStorageAccountResource
 //
 public class IngestDriverStep implements Step {
-  private final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
   private final LoadService loadService;
   private final ConfigurationService configurationService;
@@ -59,6 +59,7 @@ public class IngestDriverStep implements Step {
   private final int maxFailedFileLoads;
   private final int driverWaitSeconds;
   private final UUID profileId;
+  private final CloudPlatform platform;
 
   public IngestDriverStep(
       LoadService loadService,
@@ -68,7 +69,8 @@ public class IngestDriverStep implements Step {
       String loadTag,
       int maxFailedFileLoads,
       int driverWaitSeconds,
-      UUID profileId) {
+      UUID profileId,
+      CloudPlatform platform) {
     this.loadService = loadService;
     this.configurationService = configurationService;
     this.jobService = jobService;
@@ -77,6 +79,7 @@ public class IngestDriverStep implements Step {
     this.maxFailedFileLoads = maxFailedFileLoads;
     this.driverWaitSeconds = driverWaitSeconds;
     this.profileId = profileId;
+    this.platform = platform;
   }
 
   @Override
@@ -91,11 +94,6 @@ public class IngestDriverStep implements Step {
 
     AzureStorageAccountResource storageAccountResource =
         workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
-
-    var platform =
-        context
-            .getInputParameters()
-            .get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), CloudPlatform.class);
 
     try {
       // Check for launch orphans - these are loads in the RUNNING state that never

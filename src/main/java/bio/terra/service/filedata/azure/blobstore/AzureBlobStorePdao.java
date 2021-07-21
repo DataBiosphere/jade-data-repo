@@ -135,7 +135,7 @@ public class AzureBlobStorePdao {
     if (!StringUtils.equals(blobParts.getAccountName(), storageAccountResource.getName())) {
       throw new PdaoException(
           String.format(
-              "Resource groups between metadata storage and " + "request do not match: %s != %s",
+              "Resource groups between metadata storage and request do not match: %s != %s",
               blobParts.getAccountName(), storageAccountResource.getName()));
     }
     String blobName = blobParts.getBlobName();

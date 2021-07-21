@@ -137,15 +137,11 @@ public class FileService {
               + "; request array contains "
               + inArraySize);
     }
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
     return jobService
         .newJob(description, FileIngestBulkFlight.class, loadArray, userReq)
         .addParameter(LoadMapKeys.IS_ARRAY, true)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
-        .addParameter(
-            JobMapKeys.CLOUD_PLATFORM.getKeyName(),
-            dataset.getDatasetSummary().getStorageCloudPlatform())
         .addParameter(
             LoadMapKeys.DRIVER_WAIT_SECONDS,
             configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))

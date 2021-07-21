@@ -16,7 +16,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import java.time.Instant;
 
 public class IngestFilePrimaryDataStep implements Step {
   private final ConfigurationService configService;
@@ -44,15 +43,7 @@ public class IngestFilePrimaryDataStep implements Step {
           FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
       FSFileInfo fsFileInfo;
       if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
-        fsFileInfo =
-            new FSFileInfo()
-                .fileId(fileId)
-                .bucketResourceId(bucketResource.getResourceId().toString())
-                .checksumCrc32c(null)
-                .checksumMd5("baaaaaad")
-                .createdDate(Instant.now().toString())
-                .gspath("gs://path")
-                .size(100L);
+        fsFileInfo = FSFileInfo.getBaseInstance(fileId, bucketResource.getResourceId().toString());
       } else {
         fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
       }

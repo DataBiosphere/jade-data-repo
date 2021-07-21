@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import java.time.Instant;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
@@ -87,5 +88,16 @@ public class FSFileInfo {
         .append("size", size)
         .append("bucketResourceId", bucketResourceId)
         .toString();
+  }
+
+  public static FSFileInfo getBaseInstance(String fileId, String resourceId) {
+    return new FSFileInfo()
+        .fileId(fileId)
+        .bucketResourceId(resourceId)
+        .checksumCrc32c(null)
+        .checksumMd5("baaaaaad")
+        .createdDate(Instant.now().toString())
+        .gspath("https://path")
+        .size(100L);
   }
 }

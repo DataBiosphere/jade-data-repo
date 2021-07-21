@@ -138,7 +138,7 @@ public class FileIngestFlight extends Flight {
       addStep(
           new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
           randomBackoffRetry);
-      addStep(new IngestFileAzurePrimaryDataStep(dataset, azureBlobStorePdao, configService));
+      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
     }
     addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     addStep(new LoadUnlockStep(loadService));

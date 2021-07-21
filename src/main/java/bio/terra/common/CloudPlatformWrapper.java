@@ -52,7 +52,11 @@ public abstract class CloudPlatformWrapper {
     }
   }
 
-  public abstract boolean is(CloudPlatform cloudPlatform);
+  public boolean is(CloudPlatform cloudPlatform) {
+    return cloudPlatform == getCloudPlatform();
+  }
+
+  public abstract CloudPlatform getCloudPlatform();
 
   public abstract List<? extends StorageResource<?, ?>> createStorageResourceValues(
       DatasetRequestModel datasetRequest);
@@ -72,8 +76,8 @@ public abstract class CloudPlatformWrapper {
     static final GcpPlatform INSTANCE = new GcpPlatform();
 
     @Override
-    public boolean is(CloudPlatform cloudPlatform) {
-      return cloudPlatform == CloudPlatform.GCP;
+    public CloudPlatform getCloudPlatform() {
+      return CloudPlatform.GCP;
     }
 
     @Override
@@ -120,8 +124,8 @@ public abstract class CloudPlatformWrapper {
     static final AzurePlatform INSTANCE = new AzurePlatform();
 
     @Override
-    public boolean is(CloudPlatform cloudPlatform) {
-      return cloudPlatform == CloudPlatform.AZURE;
+    public CloudPlatform getCloudPlatform() {
+      return CloudPlatform.AZURE;
     }
 
     @Override

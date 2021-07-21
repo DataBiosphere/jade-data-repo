@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IngestFileAzurePrimaryDataLocationStep implements Step {
-  private final Logger logger =
+  private static final Logger logger =
       LoggerFactory.getLogger(IngestFileAzurePrimaryDataLocationStep.class);
   private final ResourceService resourceService;
   private final Dataset dataset;

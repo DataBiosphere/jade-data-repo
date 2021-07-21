@@ -3,7 +3,9 @@ package bio.terra.service.filedata.azure.blobstore;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.samePropertyValuesAs;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -217,37 +219,32 @@ public class AzureBlobStorePdaoTest {
 
   @Test
   public void testSasValidation() {
-    assertThat(
+    assertTrue(
         "is valid",
         AzureBlobStorePdao.isSignedUrl(
             "https://src.blob.core.windows.net/srcdata/src.txt"
                 + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
-                + "sr=b&sig=mysig"),
-        equalTo(true));
-    assertThat(
+                + "sr=b&sig=mysig"));
+    assertFalse(
         "no sas token",
-        AzureBlobStorePdao.isSignedUrl("https://src.blob.core.windows.net/srcdata/src.txt"),
-        equalTo(false));
-    assertThat(
+        AzureBlobStorePdao.isSignedUrl("https://src.blob.core.windows.net/srcdata/src.txt"));
+    assertFalse(
         "tld is wrong",
         AzureBlobStorePdao.isSignedUrl(
             "https://src.foo.core.windows.net/srcdata/src.txt"
                 + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"
-                + "&sr=b&sig=mysig"),
-        equalTo(false));
-    assertThat(
+                + "&sr=b&sig=mysig"));
+    assertFalse(
         "missing fields (sr and sig are removed)",
         AzureBlobStorePdao.isSignedUrl(
             "https://src.foo.core.windows.net/srcdata/src.txt"
-                + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"),
-        equalTo(false));
-    assertThat(
+                + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"));
+    assertTrue(
         "extra fields don't hurt",
         AzureBlobStorePdao.isSignedUrl(
             "https://src.blob.core.windows.net/srcdata/src.txt"
                 + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
-                + "sr=b&sig=mysig"),
-        equalTo(true));
+                + "sr=b&sig=mysig"));
   }
 
   private FSFileInfo mockFileCopy(UUID fileId) {

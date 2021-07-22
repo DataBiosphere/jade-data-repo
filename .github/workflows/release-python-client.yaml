@@ -1,10 +1,13 @@
 name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
-on: push
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 3 * * *' # Nightly 10:00 pm EST; 3AM UTC
 jobs:
   build-n-publish:
     name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
       - name: Set up Python 3.7
@@ -14,7 +17,7 @@ jobs:
       - name: set semver
         run: |
           CURRENT_SEMVER=$(curl -s -X GET "https://jade.datarepo-dev.broadinstitute.org/configuration" -H "accept: application/json" | jq -r '.semVer|rtrimstr("-SNAPSHOT")')
-          echo "CURRENT_SEMVER=$(echo ${CURRENT_SEMVER})" >> $GITHUB_ENV
+          echo "CURRENT_SEMVER=${CURRENT_SEMVER}" >> "$GITHUB_ENV"
       - name: Generate Python client with openapi-generator
         # openapi-generator-cli generate -i src/main/resources/api/data-repository-openapi.yaml -g python -o ../data-repo-client --package-name data_repo_client
         # -c /github/workspace/${{ inputs.config-file }} \
@@ -29,19 +32,11 @@ jobs:
       - name: Install pypa/build
         working-directory: ./data-repo-client
         run: >-
-          python -m
-          pip install
-          build
-          --user
+          python -m pip install build --user
       - name: Build a binary wheel and a source tarball
         working-directory: ./data-repo-client
         run: >-
-          python -m
-          build
-          --sdist
-          --wheel
-          --outdir dist/
-          .
+          python -m build --sdist --wheel --outdir dist/ .
       - name: Publish distribution 📦 to Test PyPI
         uses: broadinstitute/gh-action-pypi-publish@master
         with:

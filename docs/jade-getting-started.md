@@ -62,8 +62,8 @@ team.
 ## 4. Create Terra Accounts
 
 The Data Repo uses [Sam](https://github.com/broadinstitute/sam) for identity and access management. To register
-as a new user, create an account through Terra. Use a non-Broad email address specifically created for development
-purposes in the non-prod environments:
+as a new user, create an account through Terra. *Use a non-Broad email address specifically created for development
+purposes in the non-prod environments*:
 - [Dev](https://bvdp-saturn-dev.appspot.com/)
 - [Alpha](https://bvdp-saturn-alpha.appspot.com/)
 - [Staging](https://bvdp-saturn-staging.appspot.com/)
@@ -72,6 +72,9 @@ For [production](https://app.terra.bio/), you will need to register using a fire
 account, follow these [steps](https://docs.google.com/document/d/1DRftlTe-9Q4H-R0jxanVojvyNn1IzbdIOhNKiIj9IpI/edit).
 
 Ask a member of the team to add you to the admins group for each of these environments.
+- [Dev](https://bvdp-saturn-dev.appspot.com/#groups/DataRepoAdmins)
+- [Alpha](https://bvdp-saturn-alpha.appspot.com/#groups/DataRepoAdmins)
+- [Staging](https://bvdp-saturn-staging.appspot.com/#groups/DataRepoAdmins)
 
 ## 5. Install Homebrew
 
@@ -271,6 +274,21 @@ create extension pgcrypto;
 5. Ask a colleague from DevOps to create a google project for you with the following details:
   * Google Project Name: `broad-jade-ZZ` (replacing `ZZ` with your initials)
   * Google Organization: broadinstitute.org
+
+6. `ctrl-d` out of the psql shell and run the following to connect to your personal instance database:
+
+```
+cd jade-data-repo/ops
+DB=datarepo-ZZ SUFFIX=ZZ ENVIRONMENT=dev ./db-connect.sh
+```
+
+When in the psql shell again, run:
+
+```
+insert into billing_profile
+values ('390e7a85-d47f-4531-b612-165fc977d3bd', 'default', 'direct', '<BILLING_PROFILE>', null, '11/6/2020 8:29:59 AM', null);
+```
+replacing `<BILLING_PROFILE>` with the value at `vault read -field=billing_account secret/dsde/datarepo/dev/billing_account`
 
 ## 9. Google Cloud Platform setup
 

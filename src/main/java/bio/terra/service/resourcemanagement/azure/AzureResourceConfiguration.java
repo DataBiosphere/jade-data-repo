@@ -103,6 +103,8 @@ public class AzureResourceConfiguration {
     return getClient(credentials.getHomeTenantId(), subscriptionId);
   }
 
+
+
   /** Information for authenticating the TDR service against user Azure tenants */
   public static class Credentials {
     // The unique UUID of the TDR application

@@ -72,7 +72,7 @@ public class AzureSynapsePdao {
         GoogleBucketResource bucketResource,
         Dataset dataset) {
 
-      SQLServerDataSource ds = getDatasource(dataset.getProjectResource(), DB_NAME);
+      SQLServerDataSource ds = getDatasource();
 
       // TODO move the following to the drs service? we only have the google option now
       String path =
@@ -542,44 +542,21 @@ public class AzureSynapsePdao {
   //    }
   //  }
   //
-    private SQLServerDataSource getDatasource(GoogleProjectResource resource, String databaseName)
-   {
+  public String runAQuery(String query) throws SQLException {
+    SQLServerDataSource ds = getDatasource();
+    Connection connection = ds.getConnection();
+    Statement statement = connection.createStatement();
+    boolean execute = statement.execute(query);
+    return execute;
+  }
+
+    private SQLServerDataSource getDatasource() {
       SQLServerDataSource ds = new SQLServerDataSource();
-      ds.setServerName("azureSynapseDbName");
-      if (databaseName != null) {
-        ds.setDatabaseName(databaseName);
-      }
-      // TODO - removed user name and password for now
+      ds.setServerName(azureResourceConfiguration.getSynapse().getWorkpaceName());
+      ds.setUser(azureResourceConfiguration.getSynapse().getSqlAdminUser());
+      ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
+      ds.setDatabaseName(DB_NAME);
       return ds;
-    }
-
-    private void createDatabase(GoogleProjectResource resource) {
-      final SQLServerDataSource ds = getDatasource(resource, null);
-      final Connection connection;
-      try {
-        connection = ds.getConnection();
-      } catch (SQLServerException e) {
-        throw new IllegalArgumentException("Invalid connection parameters", e);
-      }
-
-      try (Statement statement = connection.createStatement()) {
-        statement.execute("CREATE DATABASE " + DB_NAME);
-      } catch (SQLException e) {
-        logger.warn("Didn't create database: {}", e.getMessage());
-      }
-
-      final Connection dbConnection;
-      try {
-        dbConnection = getDatasource(resource, DB_NAME).getConnection();
-      } catch (SQLServerException e) {
-        throw new IllegalArgumentException("Invalid connection parameters", e);
-      }
-      try (Statement statement = dbConnection.createStatement()) {
-        //TODO - create master key
-        logger.info("should create a new master key.");
-      } catch (SQLException e) {
-        logger.warn("Didn't create master password: {}", e.getMessage());
-      }
     }
   //
   //  public Map<String, Long> getSnapshotTableRowCounts(Snapshot snapshot) {

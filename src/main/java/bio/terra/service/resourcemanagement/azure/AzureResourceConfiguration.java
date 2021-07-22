@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "azure")
 public class AzureResourceConfiguration {
   private Credentials credentials;
+  private Synapse synapse;
 
   public Credentials getCredentials() {
     return credentials;
@@ -23,6 +24,14 @@ public class AzureResourceConfiguration {
 
   public void setCredentials(Credentials credentials) {
     this.credentials = credentials;
+  }
+
+  public Synapse getSynapse() {
+    return synapse;
+  }
+
+  public void setSynapse(Synapse synapse) {
+    this.synapse = synapse;
   }
 
   /**
@@ -76,6 +85,8 @@ public class AzureResourceConfiguration {
     return getClient(credentials.getHomeTenantId(), subscriptionId);
   }
 
+
+
   /** Information for authenticating the TDR service against user Azure tenants */
   public static class Credentials {
     // The unique UUID of the TDR application
@@ -107,6 +118,37 @@ public class AzureResourceConfiguration {
 
     public void setHomeTenantId(UUID homeTenantId) {
       this.homeTenantId = homeTenantId;
+    }
+  }
+
+  public static class Synapse {
+
+    private String workpaceName;
+    private String sqlAdminUser;
+    private String sqlAdminPassword;
+
+    public String getWorkpaceName() {
+      return workpaceName;
+    }
+
+    public void setWorkpaceName(String workpaceName) {
+      this.workpaceName = workpaceName;
+    }
+
+    public String getSqlAdminUser() {
+      return sqlAdminUser;
+    }
+
+    public void setSqlAdminUser(String sqlAdminUser) {
+      this.sqlAdminUser = sqlAdminUser;
+    }
+
+    public String getSqlAdminPassword() {
+      return sqlAdminPassword;
+    }
+
+    public void setSqlAdminPassword(String sqlAdminPassword) {
+      this.sqlAdminPassword = sqlAdminPassword;
     }
   }
 }

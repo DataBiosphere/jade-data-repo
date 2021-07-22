@@ -1,7 +1,7 @@
 {
   "name": "CreateSnapshot",
   "description": "Create a snapshot with a lot of files",
-  "serverSpecificationFile": "tldev.json",
+  "serverSpecificationFile": "nmlocalhost.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {
     "numberOfInitialPods" : 1
@@ -10,7 +10,7 @@
   "testScripts": [
     {
       "name": "CreateSnapshot",
-      "parameters": [100000],
+      "parameters": [10000],
       "numberOfUserJourneyThreadsToRun": 1,
       "userJourneyThreadPoolSize": 1,
       "expectedTimeForEach": 2,

@@ -102,8 +102,7 @@ public final class DataRepoUtils {
   public static JobModel waitForJobToFinish(
       RepositoryApi repositoryApi, JobModel job, TestUserSpecification testUser) throws Exception {
     logger.debug("Waiting for Data Repo job to finish");
-    GoogleCredentials googleCredentials = AuthenticationUtils.getDelegatedUserCredential(testUser);
-    job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob, googleCredentials);
+    job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob, testUser);
 
     if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       throw new RuntimeException(
@@ -152,16 +151,23 @@ public final class DataRepoUtils {
    * @param repositoryApi the api object to use
    * @param job the job model to poll
    * @param pollTime time in seconds for the job to poll before returning
-   * @param credentials a GoogleCredentials to refresh the token for long-running jobs, if provided
+   * @param testUser a TestUserSpecification to refresh the token for long-running jobs, if provided
    */
   public static JobModel pollForRunningJob(
-      RepositoryApi repositoryApi, JobModel job, int pollTime, GoogleCredentials credentials)
+      RepositoryApi repositoryApi, JobModel job, int pollTime, TestUserSpecification testUser)
       throws Exception {
     int pollCtr = Math.floorDiv(pollTime, secondsIntervalToPollJob);
     job = repositoryApi.retrieveJob(job.getId());
     int tryCount = 1;
 
-    var maybeCredentials = Optional.ofNullable(credentials);
+    var maybeCredentials = Optional.ofNullable(testUser)
+        .map(user -> {
+          try {
+            return AuthenticationUtils.getDelegatedUserCredential(user);
+          } catch (IOException ex) {
+            throw new RuntimeException(ex);
+          }
+        });
     var credentialsChangedListener =
         new CredentialsChangedListener() {
           @Override

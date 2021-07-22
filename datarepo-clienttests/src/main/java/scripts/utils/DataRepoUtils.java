@@ -160,14 +160,16 @@ public final class DataRepoUtils {
     job = repositoryApi.retrieveJob(job.getId());
     int tryCount = 1;
 
-    var maybeCredentials = Optional.ofNullable(testUser)
-        .map(user -> {
-          try {
-            return AuthenticationUtils.getDelegatedUserCredential(user);
-          } catch (IOException ex) {
-            throw new RuntimeException(ex);
-          }
-        });
+    var maybeCredentials =
+        Optional.ofNullable(testUser)
+            .map(
+                user -> {
+                  try {
+                    return AuthenticationUtils.getDelegatedUserCredential(user);
+                  } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                  }
+                });
     var credentialsChangedListener =
         new CredentialsChangedListener() {
           @Override

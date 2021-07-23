@@ -255,7 +255,6 @@ public class AzureBlobStorePdaoTest {
     when(blobProperties.getBlobSize()).thenReturn(BLOB_SIZE);
     when(blobProperties.getContentMd5()).thenReturn(BLOB_CONTENT_MD5);
     when(copier.beginCopyOperation()).thenReturn(poller);
-    //    when(blobCrl.createBlobContainerCopier(any(), eq(SOURCE_BLOB_NAME), anyString()))
     when(blobCrl.createBlobContainerCopier(any(), anyString(), anyString())).thenReturn(copier);
     String targetBlobName = fileId + "/" + SOURCE_FILE_NAME;
     when(blobCrl.getBlobProperties(targetBlobName)).thenReturn(blobProperties);

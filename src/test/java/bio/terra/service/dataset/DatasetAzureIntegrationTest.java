@@ -16,6 +16,7 @@ import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -66,6 +67,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
 
   private String stewardToken;
+  private User steward;
   private UUID datasetId;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
@@ -73,9 +75,11 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Before
   public void setup() throws Exception {
     super.setup(false);
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
-    dataRepoFixtures.resetConfig(steward());
-    profileId = dataRepoFixtures.createAzureBillingProfile(steward()).getId();
+    // Voldemort is required by this test since the application is deployed with his user authz'ed
+    steward = steward("voldemort");
+    stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
+    dataRepoFixtures.resetConfig(steward);
+    profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
     datasetId = null;
     blobIOTestUtility =
         new BlobIOTestUtility(
@@ -86,14 +90,14 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
   @After
   public void teardown() throws Exception {
-    dataRepoFixtures.resetConfig(steward());
+    dataRepoFixtures.resetConfig(steward);
     if (datasetId != null) {
-      dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
+      dataRepoFixtures.deleteDatasetLog(steward, datasetId);
       datasetId = null;
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfileLog(steward(), profileId);
+      dataRepoFixtures.deleteProfileLog(steward, profileId);
       profileId = null;
     }
   }
@@ -102,14 +106,14 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   public void datasetsHappyPath() throws Exception {
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward(), profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
 
     logger.info("dataset id is " + summaryModel.getId());
     assertThat(summaryModel.getName(), startsWith(omopDatasetName));
     assertThat(summaryModel.getDescription(), equalTo(omopDatasetDesc));
 
-    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
+    DatasetModel datasetModel = dataRepoFixtures.getDataset(steward, summaryModel.getId());
 
     assertThat(datasetModel.getName(), startsWith(omopDatasetName));
     assertThat(datasetModel.getDescription(), equalTo(omopDatasetDesc));
@@ -123,7 +127,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             true,
             () -> {
               EnumerateDatasetModel enumerateDatasetModel =
-                  dataRepoFixtures.enumerateDatasets(steward());
+                  dataRepoFixtures.enumerateDatasets(steward);
               boolean found = false;
               for (DatasetSummaryModel oneDataset : enumerateDatasetModel.getItems()) {
                 if (oneDataset.getId().equals(datasetModel.getId())) {
@@ -181,25 +185,25 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     assertTrue("dataset was found in enumeration", metExpectation);
 
     // This should fail since it currently has dataset storage account within
-    assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward(), profileId));
+    assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
 
     // Create and delete a dataset and make sure that the profile still can't be deleted
     DatasetSummaryModel summaryModel2 =
-        dataRepoFixtures.createDataset(steward(), profileId, "it-dataset-omop.json");
-    dataRepoFixtures.deleteDataset(steward(), summaryModel2.getId());
+        dataRepoFixtures.createDataset(steward, profileId, "it-dataset-omop.json");
+    dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     assertThat(
         "Original dataset is still there",
         dataRepoFixtures
-            .getDatasetRaw(steward(), summaryModel.getId())
+            .getDatasetRaw(steward, summaryModel.getId())
             .getStatusCode()
             .is2xxSuccessful(),
         equalTo(true));
     assertThat(
         "New dataset was deleted",
-        dataRepoFixtures.getDatasetRaw(steward(), summaryModel2.getId()).getStatusCode().value(),
+        dataRepoFixtures.getDatasetRaw(steward, summaryModel2.getId()).getStatusCode().value(),
         // TODO: fix bug where this shows up as a 401 and not a 404 since it's not longer in Sam
         equalTo(401));
-    assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward(), profileId));
+    assertThrows(AssertionError.class, () -> dataRepoFixtures.deleteProfile(steward, profileId));
 
     // Make sure that any failure in tearing down is presented as a test failure
     clearEnvironment();
@@ -212,7 +216,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     String sourceFile = blobIOTestUtility.uploadSourceFile(blobName, fileSize);
     DatasetSummaryModel summaryModel =
         dataRepoFixtures.createDataset(
-            steward(), profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
 
     BulkLoadFileModel fileLoadModel =
@@ -234,7 +238,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .targetPath("/test/targetSas.txt");
     BulkLoadArrayResultModel result =
         dataRepoFixtures.bulkLoadArray(
-            steward(),
+            steward,
             datasetId,
             new BulkLoadArrayRequestModel()
                 .profileId(summaryModel.getDefaultProfileId())
@@ -246,12 +250,12 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     assertThat(
         "file size matches",
-        dataRepoFixtures.getFileByName(steward(), datasetId, "/test/target.txt").getSize(),
+        dataRepoFixtures.getFileByName(steward, datasetId, "/test/target.txt").getSize(),
         equalTo(fileSize));
 
     assertThat(
         "file with Sas size matches",
-        dataRepoFixtures.getFileByName(steward(), datasetId, "/test/targetSas.txt").getSize(),
+        dataRepoFixtures.getFileByName(steward, datasetId, "/test/targetSas.txt").getSize(),
         equalTo(fileSize));
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
@@ -260,12 +264,12 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
   private void clearEnvironment() throws Exception {
     if (datasetId != null) {
-      dataRepoFixtures.deleteDataset(steward(), datasetId);
+      dataRepoFixtures.deleteDataset(steward, datasetId);
       datasetId = null;
     }
 
     if (profileId != null) {
-      dataRepoFixtures.deleteProfile(steward(), profileId);
+      dataRepoFixtures.deleteProfile(steward, profileId);
       profileId = null;
     }
   }

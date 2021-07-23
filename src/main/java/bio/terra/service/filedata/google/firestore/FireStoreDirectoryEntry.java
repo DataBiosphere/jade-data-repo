@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
+import com.azure.data.tables.models.TableEntity;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -155,5 +156,31 @@ public class FireStoreDirectoryEntry {
         .append("checksumMd5", checksumMd5)
         .append("size", size)
         .toString();
+  }
+
+  public static FireStoreDirectoryEntry fromTableEntity(TableEntity entity) {
+    return new FireStoreDirectoryEntry()
+        .fileId(entity.getProperty("fileId").toString())
+        .isFileRef((Boolean) entity.getProperty("isFileRef"))
+        .path(entity.getProperty("path").toString())
+        .name(entity.getProperty("name").toString())
+        .datasetId(entity.getProperty("datasetId").toString())
+        .fileCreatedDate(entity.getProperty("fileCreatedDate").toString())
+        .checksumCrc32c(entity.getProperty("checksumCrc32c").toString())
+        .checksumMd5(entity.getProperty("checksumMd5").toString())
+        .size((Long) entity.getProperty("size"));
+  }
+
+  public static TableEntity toTableEntity(String partitionKey, FireStoreDirectoryEntry f) {
+    return new TableEntity(partitionKey, "")
+        .addProperty("fileId", f.getFileId())
+        .addProperty("isFileRef", f.getIsFileRef())
+        .addProperty("path", f.getPath())
+        .addProperty("name", f.getName())
+        .addProperty("datasetId", f.getDatasetId())
+        .addProperty("fileCreatedDate", f.getFileCreatedDate())
+        .addProperty("checksumCrc32c", f.getChecksumCrc32c())
+        .addProperty("checksumMd5", f.getChecksumMd5())
+        .addProperty("size", f.getSize());
   }
 }

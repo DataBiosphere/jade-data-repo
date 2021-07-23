@@ -40,6 +40,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import java.security.InvalidParameterException;
+import java.util.Optional;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest

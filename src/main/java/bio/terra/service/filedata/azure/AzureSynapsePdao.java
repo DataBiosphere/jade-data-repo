@@ -3,6 +3,7 @@ package bio.terra.service.filedata.azure;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
@@ -117,6 +118,13 @@ public class AzureSynapsePdao {
                 + blobUrl.getBlobContainerName()
                 + "',\n"
                 + "CREDENTIAL = [sasToken8]);");
+  }
+
+  public void createParquetFiles(DatasetTable datasetId,
+                                 String ingestFileLocation,
+                                 String ingestFileName) {
+    // build the ingest request
+
   }
 
   public boolean runAQuery(String query) throws SQLException {

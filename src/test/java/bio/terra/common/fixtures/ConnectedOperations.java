@@ -44,6 +44,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -193,6 +194,17 @@ public class ConnectedOperations {
   public BillingProfileModel createProfileForAccount(String billingAccountId) throws Exception {
     BillingProfileRequestModel profileRequestModel =
         ProfileFixtures.randomBillingProfileRequest().billingAccountId(billingAccountId);
+    return createProfile(profileRequestModel);
+  }
+
+  public BillingProfileModel createProfileForAccount(String billingAccountId,
+                                                     CloudPlatform cloudPlatform)
+      throws Exception {
+    BillingProfileRequestModel profileRequestModel =
+        ProfileFixtures
+            .randomBillingProfileRequest()
+            .billingAccountId(billingAccountId)
+            .cloudPlatform(cloudPlatform);
     return createProfile(profileRequestModel);
   }
 

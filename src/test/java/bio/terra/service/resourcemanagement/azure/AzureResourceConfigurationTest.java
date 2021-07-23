@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
@@ -20,6 +21,9 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
+import com.azure.data.tables.models.TableTransactionAction;
+import com.azure.data.tables.models.TableTransactionActionType;
+import com.azure.data.tables.models.TableTransactionResult;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.Deployment;
 import com.azure.resourcemanager.resources.models.DeploymentMode;
@@ -39,6 +43,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -290,7 +295,11 @@ public class AzureResourceConfigurationTest {
               new TableEntity(datasetId, fileId)
                   .addProperty("fileId", fileId)
                   .addProperty("description", "A test table entry");
-          tableClient.createEntity(entity);
+          List<TableTransactionAction> batch =
+              List.of(new TableTransactionAction(TableTransactionActionType.CREATE,
+           entity));
+          TableTransactionResult batchResult = tableClient.submitTransaction(batch);
+          assertNotNull(batchResult.getTableTransactionActionResponseByRowKey(fileId));
         });
 
     deleteManagedApplication(client, applicationDeployment);

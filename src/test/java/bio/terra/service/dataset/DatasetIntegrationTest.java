@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
 
@@ -454,6 +455,31 @@ public class DatasetIntegrationTest extends UsersBase {
     // make sure the new counts make sense
     assertSnapshotTableCount(bigQueryLess, snapshotLess, "participant", 2L);
     assertSnapshotTableCount(bigQueryLess, snapshotLess, "sample", 5L);
+  }
+
+  @Test
+  public void testCombinedMetadataDataIngest() throws Exception {
+    DatasetSummaryModel datasetSummaryModel =
+        dataRepoFixtures.createDataset(steward(), profileId, "dataset-ingest-combined.json");
+    UUID datasetId = datasetSummaryModel.getId();
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path("gs://jade-testdata-useastregion/dataset-ingest-combined-control.json");
+
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+
+    assertThat(
+        "file_load_results are in the response",
+        ingestResponse.getFileLoadResults(),
+        notNullValue());
+
+    // TODO write more checks
   }
 
   private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)

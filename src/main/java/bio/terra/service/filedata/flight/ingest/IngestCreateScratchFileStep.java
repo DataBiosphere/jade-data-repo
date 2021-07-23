@@ -20,10 +20,6 @@ public class IngestCreateScratchFileStep extends SkippableStep {
     this.gcsPdao = gcsPdao;
   }
 
-  public IngestCreateScratchFileStep(GcsPdao gcsPdao) {
-    this.gcsPdao = gcsPdao;
-  }
-
   @Override
   public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
@@ -31,13 +27,13 @@ public class IngestCreateScratchFileStep extends SkippableStep {
         workingMap.get(FileMapKeys.INGEST_FILE_BUCKET_INFO, GoogleBucketResource.class);
     List<String> linesWithFileIds = workingMap.get(IngestMapKeys.LINES_WITH_FILE_IDS, List.class);
 
-    // this is a hackathon
-    String path = "gs://" + bucket.getName() + "/" + context.getFlightId() + "-scratch.json";
+    String path =
+        GcsPdao.getGsPathFromComponents(bucket.getName(), context.getFlightId() + "-scratch.json");
+
     workingMap.put(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, path);
 
-    // new gs path:
-    // gs://{bucketname}/{flightId}-scratch.json
-    gcsPdao.writeGcsFileLines(path, linesWithFileIds, bucket);
+    gcsPdao.createGcsFile(path, bucket.projectIdForBucket());
+    gcsPdao.writeGcsFileLines(path, linesWithFileIds, bucket.projectIdForBucket());
 
     return StepResult.getStepResultSuccess();
   }

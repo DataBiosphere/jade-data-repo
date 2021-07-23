@@ -8,12 +8,18 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import bio.terra.service.resourcemanagement.exception.AzureResourceException;
+import com.azure.core.credential.AzureSasCredential;
+import com.azure.storage.blob.BlobUrlParts;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +30,7 @@ import org.springframework.stereotype.Component;
 public class AzureSynapsePdao {
   private static final Logger logger = LoggerFactory.getLogger(AzureSynapsePdao.class);
 
-  //TODO - Move these into app properties
+  // TODO - Move these into app properties
   private static final String DB_NAME = "datarepo";
   private static final String PARQUET_FILE_FORMAT_NAME = "ParquetFileFormat";
 
@@ -63,7 +69,58 @@ public class AzureSynapsePdao {
     this.drsService = drsService;
   }
 
+  // -----TODO - Remove. Copied over from Muscle's PR----
+  private static final Set<String> VALID_TLDS =
+      Set.of("blob.core.windows.net", "dfs.core.windows.net");
+
+  static boolean isSignedUrl(String url) {
+    BlobUrlParts blobUrlParts = BlobUrlParts.parse(url);
+
+    if (VALID_TLDS.stream().noneMatch(h -> blobUrlParts.getHost().toLowerCase().endsWith(h))) {
+      return false;
+    }
+    return !StringUtils.isEmpty(blobUrlParts.getCommonSasQueryParameters().getSignature());
+  }
+  // --- end of copied code ---
+
+  public void createExternalDataSource(String ingestControlFilePath)
+      throws NotImplementedException, SQLException {
+    BlobUrlParts blobUrl = BlobUrlParts.parse(ingestControlFilePath);
+    AzureSasCredential blobContainerSasTokenCreds;
+    if (isSignedUrl(ingestControlFilePath)) {
+      blobContainerSasTokenCreds =
+          new AzureSasCredential(blobUrl.getCommonSasQueryParameters().encode());
+    } else {
+      throw new NotImplementedException("Add implementation to handle urls without signature");
+    }
+
+    //TODO - we'll need to name these token something meaningful so that we're not overwriting
+    // concurrent runs
+    runAQuery("DROP DATABASE SCOPED CREDENTIAL [sasToken];");
+    runAQuery(
+        "CREATE DATABASE SCOPED CREDENTIAL [sasToken]\n"
+            + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
+            + "SECRET = '"
+            + blobContainerSasTokenCreds.getSignature()
+            + "';");
+
+    runAQuery("DROP EXTERNAL DATA SOURCE [controlFileDatasource];");
+    runAQuery(
+            "CREATE EXTERNAL DATA SOURCE "
+                + "[controlFileDatasource]\n"
+                + "WITH (\n"
+                + "LOCATION = '"
+                + blobUrl.getScheme()
+                + "//"
+                + blobUrl.getHost()
+                + "/"
+                + blobUrl.getBlobContainerName()
+                + "',\n"
+                + "CREDENTIAL = [sasToken8]);");
+  }
+
   public boolean runAQuery(String query) throws SQLException {
+    logger.info("query: {}", query);
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection()) {
       // Update or create the credential

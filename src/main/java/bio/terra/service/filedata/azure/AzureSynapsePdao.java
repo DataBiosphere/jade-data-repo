@@ -3,21 +3,17 @@ package bio.terra.service.filedata.azure;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.ExecutorService;
-import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
-import com.microsoft.sqlserver.jdbc.SQLServerException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,130 +63,148 @@ public class AzureSynapsePdao {
     this.drsService = drsService;
   }
 
-    public void createDatasetExternalTables(
-        bio.terra.model.BillingProfileModel billingProfileModel,
-        GoogleBucketResource bucketResource,
-        Dataset dataset) {
-
-      SQLServerDataSource ds = getDatasource();
-
-      // TODO move the following to the drs service? we only have the google option now
-      String path =
-          AzureStoragePdao.generateAdfsBasePath(bucketResource)
-              + AzureStoragePdao.generateAdfsDsPath(dataset);
-      String sasToken =
-          storagePdao.signUrl(
-              path,
-              billingProfileModel.getAzureSubscription(),
-              dataset.getProjectResource().getAzureResourceGroupName(),
-              true);
-      // drsService.getAccessUrlForObjectId();
-      String id =
-          dataset
-              .getId()
-              .toString()
-              .replaceAll("-", ""); // Long.toString(Instant.now().toEpochMilli());
-      String credentialName = "cred" + id;
-      String datasourceName = "ds" + id;
-      String formatName = "fmt" + id;
-      String tableName = "tab" + id;
-      String datasourceLocation =
-          "https://"
-              + bucketResource.getAccountName()
-              + ".blob.core.windows.net/"
-              + dataset.getProjectResource().getAzureStorageAccountName()
-              + "/";
-
-      logger.info("Cred: {}\nDatasource: {}\nFormat: {}", credentialName, datasourceName,
-   formatName);
-      // Create the DB if it doesn't exist
-      createDatabase(dataset.getProjectResource());
-
-      try (Connection connection = ds.getConnection()) {
-        // Update or create the credential
-        try (Statement statement = connection.createStatement()) {
-          statement.execute(
-              ""
-                  + "CREATE DATABASE SCOPED CREDENTIAL "
-                  + credentialName
-                  + " \n"
-                  + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE', \n"
-                  + "SECRET = '"
-                  + sasToken
-                  + "'");
-        }
-
-        try (Statement statement = connection.createStatement()) {
-          statement.execute(
-              ""
-                  + "CREATE EXTERNAL DATA SOURCE "
-                  + datasourceName
-                  + "\n"
-                  + "WITH\n"
-                  + "    (\n"
-                  + "        LOCATION = '"
-                  + datasourceLocation
-                  + "' ,\n"
-                  + "        CREDENTIAL = "
-                  + credentialName
-                  + "\n"
-                  + "    )");
-        }
-
-        try (Statement statement = connection.createStatement()) {
-          statement.execute(
-              ""
-                  + "CREATE EXTERNAL FILE FORMAT "
-                  + formatName
-                  + "\n"
-                  + "WITH (  \n"
-                  + "    FORMAT_TYPE = PARQUET,\n"
-                  + "    DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec'\n"
-                  + ")");
-        }
-
-        for (DatasetTable datasetTable : dataset.getTables()) {
-          String tableLocation =
-              AzureStoragePdao.generateAdfsDsTableFlightPath(dataset, datasetTable, "*") +
-   "/PART-*";
-          try (Statement statement = connection.createStatement()) {
-            statement.execute(
-                ""
-                    + "CREATE EXTERNAL TABLE "
-                    + tableName
-                    + " (\n"
-                    + "    datarepo_row_id VARCHAR(250),\n"
-                    + "    name VARCHAR(250),\n"
-                    + "    file_ref VARCHAR(250))\n"
-                    + "WITH\n"
-                    + "(\n"
-                    + "    LOCATION = '"
-                    + tableLocation
-                    + "',\n"
-                    + "    DATA_SOURCE = "
-                    + datasourceName
-                    + ",\n"
-                    + "    FILE_FORMAT = "
-                    + formatName
-                    + "\n"
-                    + ")");
-          }
-        }
-
-      } catch (Exception exception) {
-        throw new RuntimeException("Error running SQL", exception);
+  public boolean runAQuery(String query) throws SQLException {
+    SQLServerDataSource ds = getDatasource();
+    try (Connection connection = ds.getConnection()) {
+      // Update or create the credential
+      try (Statement statement = connection.createStatement()) {
+        return statement.execute(query);
       }
-      //        // Connect to Synapse
-      //        new ArtifactsClientBuilder()
-      //            .endpoint("https://" + bucketResource.getAccountName() +
-   ".dev.azuresynapse.net")
-      //            .credential(azureResourceConfiguration.getAppToken(tenantId))
-
-      //        sqlScriptClient.getSqlScript("get")
-
-      //        sqlPoolsClient.get(bucketResource.getAccountName());
-
     }
+  }
+
+  private SQLServerDataSource getDatasource() {
+    SQLServerDataSource ds = new SQLServerDataSource();
+    ds.setServerName(azureResourceConfiguration.getSynapse().getWorkspaceName());
+    ds.setUser(azureResourceConfiguration.getSynapse().getSqlAdminUser());
+    ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
+    ds.setDatabaseName(DB_NAME);
+    return ds;
+  }
+  //    public void createDatasetExternalTables(
+  //        bio.terra.model.BillingProfileModel billingProfileModel,
+  //        GoogleBucketResource bucketResource,
+  //        Dataset dataset) {
+  //
+  //      SQLServerDataSource ds = getDatasource();
+  //
+  //      // TODO move the following to the drs service? we only have the google option now
+  //      String path =
+  //          AzureStoragePdao.generateAdfsBasePath(bucketResource)
+  //              + AzureStoragePdao.generateAdfsDsPath(dataset);
+  //      String sasToken =
+  //          storagePdao.signUrl(
+  //              path,
+  //              billingProfileModel.getAzureSubscription(),
+  //              dataset.getProjectResource().getAzureResourceGroupName(),
+  //              true);
+  //      // drsService.getAccessUrlForObjectId();
+  //      String id =
+  //          dataset
+  //              .getId()
+  //              .toString()
+  //              .replaceAll("-", ""); // Long.toString(Instant.now().toEpochMilli());
+  //      String credentialName = "cred" + id;
+  //      String datasourceName = "ds" + id;
+  //      String formatName = "fmt" + id;
+  //      String tableName = "tab" + id;
+  //      String datasourceLocation =
+  //          "https://"
+  //              + bucketResource.getAccountName()
+  //              + ".blob.core.windows.net/"
+  //              + dataset.getProjectResource().getAzureStorageAccountName()
+  //              + "/";
+  //
+  //      logger.info("Cred: {}\nDatasource: {}\nFormat: {}", credentialName, datasourceName,
+  //   formatName);
+  //      // Create the DB if it doesn't exist
+  //      createDatabase(dataset.getProjectResource());
+  //
+  //      try (Connection connection = ds.getConnection()) {
+  //        // Update or create the credential
+  //        try (Statement statement = connection.createStatement()) {
+  //          statement.execute(
+  //              ""
+  //                  + "CREATE DATABASE SCOPED CREDENTIAL "
+  //                  + credentialName
+  //                  + " \n"
+  //                  + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE', \n"
+  //                  + "SECRET = '"
+  //                  + sasToken
+  //                  + "'");
+  //        }
+  //
+  //        try (Statement statement = connection.createStatement()) {
+  //          statement.execute(
+  //              ""
+  //                  + "CREATE EXTERNAL DATA SOURCE "
+  //                  + datasourceName
+  //                  + "\n"
+  //                  + "WITH\n"
+  //                  + "    (\n"
+  //                  + "        LOCATION = '"
+  //                  + datasourceLocation
+  //                  + "' ,\n"
+  //                  + "        CREDENTIAL = "
+  //                  + credentialName
+  //                  + "\n"
+  //                  + "    )");
+  //        }
+  //
+  //        try (Statement statement = connection.createStatement()) {
+  //          statement.execute(
+  //              ""
+  //                  + "CREATE EXTERNAL FILE FORMAT "
+  //                  + formatName
+  //                  + "\n"
+  //                  + "WITH (  \n"
+  //                  + "    FORMAT_TYPE = PARQUET,\n"
+  //                  + "    DATA_COMPRESSION = 'org.apache.hadoop.io.compress.SnappyCodec'\n"
+  //                  + ")");
+  //        }
+  //
+  //        for (DatasetTable datasetTable : dataset.getTables()) {
+  //          String tableLocation =
+  //              AzureStoragePdao.generateAdfsDsTableFlightPath(dataset, datasetTable, "*") +
+  //   "/PART-*";
+  //          try (Statement statement = connection.createStatement()) {
+  //            statement.execute(
+  //                ""
+  //                    + "CREATE EXTERNAL TABLE "
+  //                    + tableName
+  //                    + " (\n"
+  //                    + "    datarepo_row_id VARCHAR(250),\n"
+  //                    + "    name VARCHAR(250),\n"
+  //                    + "    file_ref VARCHAR(250))\n"
+  //                    + "WITH\n"
+  //                    + "(\n"
+  //                    + "    LOCATION = '"
+  //                    + tableLocation
+  //                    + "',\n"
+  //                    + "    DATA_SOURCE = "
+  //                    + datasourceName
+  //                    + ",\n"
+  //                    + "    FILE_FORMAT = "
+  //                    + formatName
+  //                    + "\n"
+  //                    + ")");
+  //          }
+  //        }
+  //
+  //      } catch (Exception exception) {
+  //        throw new RuntimeException("Error running SQL", exception);
+  //      }
+  //      //        // Connect to Synapse
+  //      //        new ArtifactsClientBuilder()
+  //      //            .endpoint("https://" + bucketResource.getAccountName() +
+  //   ".dev.azuresynapse.net")
+  //      //            .credential(azureResourceConfiguration.getAppToken(tenantId))
+  //
+  //      //        sqlScriptClient.getSqlScript("get")
+  //
+  //      //        sqlPoolsClient.get(bucketResource.getAccountName());
+  //
+  //    }
 
   //  public void createSnapshotFiles(
   //      BillingProfileModel billingProfileModel,
@@ -542,22 +556,7 @@ public class AzureSynapsePdao {
   //    }
   //  }
   //
-  public String runAQuery(String query) throws SQLException {
-    SQLServerDataSource ds = getDatasource();
-    Connection connection = ds.getConnection();
-    Statement statement = connection.createStatement();
-    boolean execute = statement.execute(query);
-    return execute;
-  }
 
-    private SQLServerDataSource getDatasource() {
-      SQLServerDataSource ds = new SQLServerDataSource();
-      ds.setServerName(azureResourceConfiguration.getSynapse().getWorkpaceName());
-      ds.setUser(azureResourceConfiguration.getSynapse().getSqlAdminUser());
-      ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
-      ds.setDatabaseName(DB_NAME);
-      return ds;
-    }
   //
   //  public Map<String, Long> getSnapshotTableRowCounts(Snapshot snapshot) {
   //    SQLServerDataSource ds = getDatasource(snapshot.getProjectResource(), DB_NAME);

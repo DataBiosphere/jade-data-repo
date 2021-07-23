@@ -85,8 +85,6 @@ public class AzureResourceConfiguration {
     return getClient(credentials.getHomeTenantId(), subscriptionId);
   }
 
-
-
   /** Information for authenticating the TDR service against user Azure tenants */
   public static class Credentials {
     // The unique UUID of the TDR application
@@ -123,16 +121,16 @@ public class AzureResourceConfiguration {
 
   public static class Synapse {
 
-    private String workpaceName;
+    private String workspaceName;
     private String sqlAdminUser;
     private String sqlAdminPassword;
 
-    public String getWorkpaceName() {
-      return workpaceName;
+    public String getWorkspaceName() {
+      return workspaceName;
     }
 
-    public void setWorkpaceName(String workpaceName) {
-      this.workpaceName = workpaceName;
+    public void setWorkspaceName(String workspaceName) {
+      this.workspaceName = workspaceName;
     }
 
     public String getSqlAdminUser() {

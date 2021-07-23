@@ -4,8 +4,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
@@ -296,8 +296,7 @@ public class AzureResourceConfigurationTest {
                   .addProperty("fileId", fileId)
                   .addProperty("description", "A test table entry");
           List<TableTransactionAction> batch =
-              List.of(new TableTransactionAction(TableTransactionActionType.CREATE,
-           entity));
+              List.of(new TableTransactionAction(TableTransactionActionType.CREATE, entity));
           TableTransactionResult batchResult = tableClient.submitTransaction(batch);
           assertNotNull(batchResult.getTableTransactionActionResponseByRowKey(fileId));
         });

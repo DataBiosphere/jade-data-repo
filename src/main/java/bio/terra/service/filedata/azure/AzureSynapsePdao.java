@@ -24,9 +24,9 @@ import org.springframework.stereotype.Component;
 public class AzureSynapsePdao {
   private static final Logger logger = LoggerFactory.getLogger(AzureSynapsePdao.class);
 
+  //TODO - Move these into app properties
   private static final String DB_NAME = "datarepo";
-  private static final String GS_PROTOCOL = "abfs://";
-  private static final String GS_BUCKET_PATTERN = "[a-z0-9_.\\-]{3,222}";
+  private static final String PARQUET_FILE_FORMAT_NAME = "ParquetFileFormat";
 
   private final GcsProjectFactory gcsProjectFactory;
   private final ResourceService resourceService;

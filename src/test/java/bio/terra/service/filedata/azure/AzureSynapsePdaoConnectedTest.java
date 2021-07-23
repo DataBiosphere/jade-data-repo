@@ -24,6 +24,16 @@ public class AzureSynapsePdaoConnectedTest {
 
   @Test
   public void testSynapseQuery() throws SQLException {
+    String ingestFileLocation = "https://tdrsynapse1.blob.core.windows.net/shelbycontainerexample";
+    String ingestFileName = "example.csv";
+
+    // 1 - Create Sas token for ingest control file
+
+    // 2 - Create external data source for the ingest control file
+
+    // 3 - Build schema for dataset table
+    
+    // 4 - Create parquet files via external table
     boolean success = azureSynapsePdao.runAQuery("Select * FROM ourCoolTable;");
     logger.info("After query. {}", success);
   }

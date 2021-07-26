@@ -2,7 +2,9 @@ package bio.terra.service.filedata.azure;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.common.Column;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.DrsService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
@@ -13,12 +15,15 @@ import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -26,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+import bio.terra.model.TableDataType;
 
 @Component
 public class AzureSynapsePdao {
@@ -34,6 +40,7 @@ public class AzureSynapsePdao {
   // TODO - Move these into app properties
   private static final String DB_NAME = "datarepo";
   private static final String PARQUET_FILE_FORMAT_NAME = "ParquetFileFormat";
+  private static final String DATA_SOURCE_PREFIX = "ds_";
 
   private final GcsProjectFactory gcsProjectFactory;
   private final ResourceService resourceService;
@@ -53,6 +60,7 @@ public class AzureSynapsePdao {
       FireStoreDao fileDao,
       ConfigurationService configurationService,
       AzureResourceConfiguration azureResourceConfiguration,
+      DatasetService datasetService,
       @Qualifier("performanceThreadpool") ExecutorService executor,
       PerformanceLogger performanceLogger,
       ObjectMapper objectMapper,
@@ -84,7 +92,7 @@ public class AzureSynapsePdao {
   }
   // --- end of copied code ---
 
-  public void createExternalDataSource(String ingestControlFilePath)
+  public void createExternalDataSource(String ingestControlFilePath, String flightId)
       throws NotImplementedException, SQLException {
     BlobUrlParts blobUrl = BlobUrlParts.parse(ingestControlFilePath);
     AzureSasCredential blobContainerSasTokenCreds;
@@ -95,20 +103,18 @@ public class AzureSynapsePdao {
       throw new NotImplementedException("Add implementation to handle urls without signature");
     }
 
-    //TODO - we'll need to name these token something meaningful so that we're not overwriting
-    // concurrent runs
-    runAQuery("DROP DATABASE SCOPED CREDENTIAL [sasToken];");
+    runAQuery("DROP DATABASE SCOPED CREDENTIAL [sasToken" + flightId + "];");
     runAQuery(
-        "CREATE DATABASE SCOPED CREDENTIAL [sasToken]\n"
+        "CREATE DATABASE SCOPED CREDENTIAL [sasToken" + flightId + "]\n"
             + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
             + "SECRET = '"
             + blobContainerSasTokenCreds.getSignature()
             + "';");
 
-    runAQuery("DROP EXTERNAL DATA SOURCE [controlFileDatasource];");
+    runAQuery("DROP EXTERNAL DATA SOURCE [" + DATA_SOURCE_PREFIX + flightId + "];");
     runAQuery(
             "CREATE EXTERNAL DATA SOURCE "
-                + "[controlFileDatasource]\n"
+                + "[" + DATA_SOURCE_PREFIX + flightId + "]\n"
                 + "WITH (\n"
                 + "LOCATION = '"
                 + blobUrl.getScheme()
@@ -117,14 +123,37 @@ public class AzureSynapsePdao {
                 + "/"
                 + blobUrl.getBlobContainerName()
                 + "',\n"
-                + "CREDENTIAL = [sasToken8]);");
+                + "CREDENTIAL = [sasToken" + flightId + "]);");
   }
 
-  public void createParquetFiles(DatasetTable datasetId,
-                                 String ingestFileLocation,
-                                 String ingestFileName) {
+  public void createParquetFiles(DatasetTable datasetTable,
+                                 String ingestFileName,
+                                 String destinationParquetFile,
+                                 String flightId) throws SQLException {
     // build the ingest request
+    runAQuery("DROP EXTERNAL TABLE [ourCoolTable];");
+    runAQuery("CREATE EXTERNAL TABLE [ourCoolTable]\n" +
+        "WITH (\n" +
+        "    LOCATION = '" + destinationParquetFile + "',\n" +
+        "    DATA_SOURCE = [" + DATA_SOURCE_PREFIX + flightId + "],\n" +
+        "    FILE_FORMAT = [" + PARQUET_FILE_FORMAT_NAME + "]\n" +
+        ") AS SELECT * FROM OPENROWSET(BULK '" + ingestFileName + "',\n" +
+        "                                DATA_SOURCE = '" + DATA_SOURCE_PREFIX + flightId + "',\n" +
+        "                                FORMAT='CSV',\n" + //TODO - switch on control file type
+        "                                PARSER_VERSION = '2.0',\n" +
+        "                                FIRSTROW = 1)\n" +
+        "WITH (\n" +
+        buildTableSchema(datasetTable) +
+        ") AS rows;");
 
+
+  }
+
+  public String buildTableSchema(DatasetTable datasetTable) {
+    List<Column> columns = datasetTable.getColumns();
+    return String.join(",", columns.stream().map(c ->
+        c.getName() + " " + translateTypeToDdl(c.getType(), c.isArrayOf())
+            + " COLLATE Latin1_General_100_CI_AI_SC_UTF8").collect(Collectors.toList()));
   }
 
   public boolean runAQuery(String query) throws SQLException {
@@ -146,6 +175,45 @@ public class AzureSynapsePdao {
     ds.setDatabaseName(DB_NAME);
     return ds;
   }
+
+  private String translateTypeToDdl(TableDataType datatype, boolean isArrayOf) {
+    if (isArrayOf) {
+      return "varchar(8000)";
+    }
+    switch (datatype) {
+      case BOOLEAN:
+        return "bit";
+      case BYTES:
+        return "varbinary";
+      case DATE:
+        return "date";
+      case DATETIME:
+      case TIMESTAMP:
+        return "datetime2";
+      case DIRREF:
+      case FILEREF:
+        return "varchar(250)";
+      case FLOAT:
+      case FLOAT64:
+        return "real";
+      case INTEGER:
+        return "int";
+      case INT64:
+        return "bigint";
+      case NUMERIC:
+        return "decimal";
+      // case "RECORD":    return LegacySQLTypeName.RECORD;
+      case STRING:
+        return "varchar(8000)";
+      case TEXT:
+        return "varchar(8000)"; // match the Postgres type
+      case TIME:
+        return "time";
+      default:
+        throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
+    }
+  }
+
   //    public void createDatasetExternalTables(
   //        bio.terra.model.BillingProfileModel billingProfileModel,
   //        GoogleBucketResource bucketResource,
@@ -691,47 +759,6 @@ public class AzureSynapsePdao {
   //    return refIdArray;
   //  }
   //
-  //  // TODO: Make an enum for the datatypes in swagger
-  //  private String translateTypeToDdl(String datatype, boolean isArrayOf) {
-  //    // TODO: test this
-  //    if (isArrayOf) {
-  //      return "varchar(8000)";
-  //    }
-  //    String uptype = StringUtils.upperCase(datatype);
-  //    switch (uptype) {
-  //      case "BOOLEAN":
-  //        return "bit";
-  //      case "BYTES":
-  //        return "varbinary";
-  //      case "DATE":
-  //        return "date";
-  //      case "DATETIME":
-  //        return "datetime2";
-  //      case "DIRREF":
-  //        return "varchar(250)";
-  //      case "FILEREF":
-  //        return "varchar(250)";
-  //      case "FLOAT":
-  //        return "real";
-  //      case "FLOAT64":
-  //        return "real";
-  //      case "INTEGER":
-  //        return "int";
-  //      case "INT64":
-  //        return "bigint";
-  //      case "NUMERIC":
-  //        return "decimal";
-  //        // case "RECORD":    return LegacySQLTypeName.RECORD;
-  //      case "STRING":
-  //        return "varchar(8000)";
-  //      case "TEXT":
-  //        return "varchar(8000)"; // match the Postgres type
-  //      case "TIME":
-  //        return "time";
-  //      case "TIMESTAMP":
-  //        return "datetime2";
-  //      default:
-  //        throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
-  //    }
-  //  }
+
+
 }

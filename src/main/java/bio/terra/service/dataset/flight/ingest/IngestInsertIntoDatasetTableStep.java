@@ -48,7 +48,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
     if (!IngestUtils.noFilesToIngestPredicate().test(context)) {
       BulkLoadArrayResultModel fileLoadResults =
           workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
-      ingestResponse.fileLoadResults(fileLoadResults);
+      ingestResponse.loadResult(fileLoadResults);
     }
 
     workingMap.put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);

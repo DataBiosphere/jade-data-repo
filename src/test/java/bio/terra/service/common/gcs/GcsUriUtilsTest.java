@@ -1,5 +1,9 @@
 package bio.terra.service.common.gcs;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.exception.InvalidUriException;
 import com.google.cloud.storage.Blob;
@@ -9,10 +13,6 @@ import org.assertj.core.api.Assertions;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
 
 @Category(Unit.class)
 public class GcsUriUtilsTest {

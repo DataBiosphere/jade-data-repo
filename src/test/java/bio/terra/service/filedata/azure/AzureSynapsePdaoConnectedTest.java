@@ -171,6 +171,8 @@ public class AzureSynapsePdaoConnectedTest {
     // A - Collect user input and validate
     IngestUtils.validateBlobAzureBlobFileURL(ingestFileLocation);
     String destinationTableName = "participant";
+    String destinationParquetFile = "parquet/flightId.parquet";
+    String randomFlightId = ShortUUID.get();
 
     // B - Build parameters based on user input
     destinationParquetFile = "parquet/" + destinationTableName + "/" + randomFlightId + ".parquet";

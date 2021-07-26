@@ -40,8 +40,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-import java.security.InvalidParameterException;
-import java.util.Optional;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -154,6 +152,16 @@ public class AzureSynapsePdaoConnectedTest {
     testSynapseQuery(ingestRequestModel, ingestFileLocation);
   }
 
+  @Before
+  public void setup() {
+    randomFlightId = ShortUUID.get();
+  }
+
+  @After
+  public void cleanup() {
+    azureSynapsePdao.cleanSynapseEntries(randomFlightId);
+  }
+
   @Test
   public void testSynapseQueryJSON() throws Exception {
     IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
@@ -172,7 +180,6 @@ public class AzureSynapsePdaoConnectedTest {
     IngestUtils.validateBlobAzureBlobFileURL(ingestFileLocation);
     String destinationTableName = "participant";
     String destinationParquetFile = "parquet/flightId.parquet";
-    String randomFlightId = ShortUUID.get();
 
     // B - Build parameters based on user input
     destinationParquetFile = "parquet/" + destinationTableName + "/" + randomFlightId + ".parquet";

@@ -2,6 +2,7 @@ package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;

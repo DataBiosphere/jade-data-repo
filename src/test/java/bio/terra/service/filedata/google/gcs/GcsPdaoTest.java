@@ -8,6 +8,7 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.exception.PdaoInvalidUriException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
+import bio.terra.service.common.gcs.GcsUriUtils;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -97,7 +98,7 @@ public class GcsPdaoTest {
             BlobInfo.newBuilder(blobId).build(), fileContents.getBytes(StandardCharsets.UTF_8));
         contents.add(fileContents);
       }
-      var listPath = GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/");
+      var listPath = GcsUriUtils.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/");
       var listLines = getGcsFilesLines(listPath, projectId);
       assertThat(
           "The listed file contents match concatenated contents of individual files",
@@ -105,7 +106,7 @@ public class GcsPdaoTest {
           equalTo(contents));
 
       var wildcardMiddlePath =
-          GcsPdao.getGsPathFromComponents(
+          GcsUriUtils.getGsPathFromComponents(
               testConfig.getIngestbucket(), uuid + "/" + uuid + "-*.txt");
       var wildcardMiddleLines = getGcsFilesLines(wildcardMiddlePath, projectId);
       assertThat(
@@ -114,7 +115,7 @@ public class GcsPdaoTest {
           equalTo(contents));
 
       var wildcardEndPath =
-          GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/" + uuid + "-*");
+          GcsUriUtils.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/" + uuid + "-*");
       var wildcardEndLines = getGcsFilesLines(wildcardEndPath, projectId);
       assertThat(
           "The end-wildcard-matched file contents match concatenated contents of individual files",
@@ -122,7 +123,7 @@ public class GcsPdaoTest {
           equalTo(contents));
 
       var wildcardMultiplePath =
-          GcsPdao.getGsPathFromComponents(
+          GcsUriUtils.getGsPathFromComponents(
               testConfig.getIngestbucket(), uuid + "/*" + uuid + "-*.txt");
       var wildcardMutlipleLines = getGcsFilesLines(wildcardMultiplePath, projectId);
       assertThat(

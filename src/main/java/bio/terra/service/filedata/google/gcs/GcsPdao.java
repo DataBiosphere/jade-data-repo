@@ -6,9 +6,9 @@ import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.common.FutureUtils;
 import bio.terra.common.exception.PdaoFileCopyException;
-import bio.terra.common.exception.PdaoInvalidUriException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFile;
@@ -45,8 +45,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,9 +54,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class GcsPdao {
   private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
-
-  private static final String GS_PROTOCOL = "gs://";
-  private static final String GS_BUCKET_PATTERN = "[a-z0-9_.\\-]{3,222}";
 
   private final GcsProjectFactory gcsProjectFactory;
   private final ResourceService resourceService;
@@ -108,7 +103,7 @@ public class GcsPdao {
 
   @SuppressFBWarnings("OS_OPEN_STREAM")
   private static Stream<String> getBlobLinesStream(Blob blob, String projectId, Storage storage) {
-    logger.info(String.format("Reading lines from %s", getGsPathFromBlob(blob)));
+    logger.info(String.format("Reading lines from %s", GcsUriUtils.getGsPathFromBlob(blob)));
     var reader = storage.reader(blob.getBlobId(), Storage.BlobSourceOption.userProject(projectId));
     var channelReader = Channels.newReader(reader, StandardCharsets.UTF_8);
     var bufferedReader = new BufferedReader(channelReader);
@@ -116,7 +111,7 @@ public class GcsPdao {
   }
 
   private Stream<Blob> listGcsFiles(String path, String projectId, Storage storage) {
-    GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
+    GcsUriUtils.GsUrlParts locator = GcsUriUtils.parseBlobUri(path);
     Iterable<Blob> blobs =
         storage
             .list(
@@ -166,7 +161,7 @@ public class GcsPdao {
   public Blob createGcsFile(String path, String projectId) {
     Storage storage = gcsProjectFactory.getStorage(projectId);
     logger.info("Creating GCS file at {}", path);
-    GcsLocator locator = getGcsLocatorFromGsPath(path);
+    GcsUriUtils.GsUrlParts locator = GcsUriUtils.parseBlobUri(path);
     return storage.create(
         Blob.newBuilder(locator.getBucket(), locator.getPath()).build(),
         Storage.BlobTargetOption.userProject(projectId));
@@ -298,7 +293,7 @@ public class GcsPdao {
   }
 
   public static Blob getBlobFromGsPath(Storage storage, String gspath, String targetProjectId) {
-    GcsLocator locator = getGcsLocatorFromGsPath(gspath);
+    GcsUriUtils.GsUrlParts locator = GcsUriUtils.parseBlobUri(gspath);
 
     // Provide the project of the destination of the file copy to pay if the
     // source bucket is requester pays.
@@ -313,46 +308,27 @@ public class GcsPdao {
     return sourceBlob;
   }
 
-  public static GcsLocator getGcsLocatorFromGsPath(String gspath) {
-    if (!StringUtils.startsWith(gspath, GS_PROTOCOL)) {
-      throw new PdaoInvalidUriException("Path is not a gs path: '" + gspath + "'");
-    }
-
-    String noGsUri = StringUtils.substring(gspath, GS_PROTOCOL.length());
-    String sourceBucket = StringUtils.substringBefore(noGsUri, "/");
-    String sourcePath = StringUtils.substringAfter(noGsUri, "/");
-
-    /*
-     * GCS bucket names must:
-     *   1. Match the regex '[a-z0-9_.\-]{3,222}
-     *   2. With a max of 63 characters between each '.'
-     *
-     * https://cloud.google.com/storage/docs/naming-buckets#requirements
-     */
-    if (!sourceBucket.matches(GS_BUCKET_PATTERN)) {
-      throw new PdaoInvalidUriException("Invalid bucket name in gs path: '" + gspath + "'");
-    }
-    String[] bucketComponents = sourceBucket.split("\\.");
-    for (String component : bucketComponents) {
-      if (component.length() > 63) {
-        throw new PdaoInvalidUriException(
-            "Component name '" + component + "' too long in gs path: '" + gspath + "'");
-      }
-    }
-
-    if (sourcePath.isEmpty()) {
-      throw new PdaoInvalidUriException("Missing object name in gs path: '" + gspath + "'");
-    }
-
-    return new GcsLocator(sourceBucket, sourcePath);
+  public static String getBlobContents(Storage storage, String projectId, BlobInfo blobInfo) {
+    var blob = storage.get(blobInfo.getBlobId(), Storage.BlobGetOption.userProject(projectId));
+    var contents = blob.getContent(Blob.BlobSourceOption.userProject(projectId));
+    return new String(contents, StandardCharsets.UTF_8);
   }
 
-  public static String getGsPathFromBlob(BlobInfo blob) {
-    return getGsPathFromComponents(blob.getBucket(), blob.getName());
+  public static int writeBlobContents(
+      Storage storage, String projectId, BlobInfo blobInfo, String contents) {
+    var blob = storage.get(blobInfo.getBlobId(), Storage.BlobGetOption.userProject(projectId));
+    try (var writer = blob.writer(Storage.BlobWriteOption.userProject(projectId))) {
+      return writer.write(ByteBuffer.wrap(contents.getBytes(StandardCharsets.UTF_8)));
+    } catch (IOException ex) {
+      throw new GoogleResourceException(
+          String.format("Could not write to GCS file at %s", GcsUriUtils.getGsPathFromBlob(blobInfo)), ex);
+    }
   }
 
-  public static String getGsPathFromComponents(String bucket, String name) {
-    return "gs://" + bucket + "/" + name;
+  public static int writeBlobContents(
+      Storage storage, String projectId, String gsPath, String contents) {
+    return writeBlobContents(
+        storage, projectId, getBlobFromGsPath(storage, gsPath, projectId), contents);
   }
 
   private void fileAclOp(
@@ -457,47 +433,5 @@ public class GcsPdao {
    */
   private static String extractFilePathInBucket(final String path, final String bucketName) {
     return StringUtils.removeStart(path, String.format("gs://%s/", bucketName));
-  }
-
-  /** Represents a way to access objects in GCS buckets. */
-  public static class GcsLocator {
-    private final String bucket;
-    private final String path;
-
-    public GcsLocator(final String bucket, final String path) {
-      this.bucket = bucket;
-      this.path = path;
-    }
-
-    public String getBucket() {
-      return bucket;
-    }
-
-    public String getPath() {
-      return path;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-
-      GcsLocator locator = (GcsLocator) o;
-
-      return new EqualsBuilder()
-          .append(bucket, locator.bucket)
-          .append(path, locator.path)
-          .isEquals();
-    }
-
-    @Override
-    public int hashCode() {
-      return new HashCodeBuilder(17, 37).append(bucket).append(path).toHashCode();
-    }
   }
 }

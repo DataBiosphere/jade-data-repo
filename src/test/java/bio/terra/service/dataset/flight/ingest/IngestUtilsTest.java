@@ -25,47 +25,6 @@ public class IngestUtilsTest {
   @Mock ConfigurationService configurationService;
 
   @Test
-  public void testParseValidSingleFile() {
-    IngestUtils.GsUrlParts parsed = IngestUtils.parseBlobUri("gs://some-bucket/some/file.json");
-    assertThat("bucket is extracted", parsed.getBucket(), equalTo("some-bucket"));
-    assertThat("path is extracted", parsed.getPath(), equalTo("some/file.json"));
-    assertThat("not a wildcard", parsed.getIsWildcard(), equalTo(false));
-  }
-
-  @Test
-  public void testParseValidPatternAtEnd() {
-    IngestUtils.GsUrlParts parsed = IngestUtils.parseBlobUri("gs://some-bucket/some/prefix*");
-    assertThat("bucket is extracted", parsed.getBucket(), equalTo("some-bucket"));
-    assertThat("path is extracted", parsed.getPath(), equalTo("some/prefix*"));
-    assertThat("not a wildcard", parsed.getIsWildcard(), equalTo(true));
-  }
-
-  @Test
-  public void testParseValidPatternInMiddle() {
-    IngestUtils.GsUrlParts parsed = IngestUtils.parseBlobUri("gs://some-bucket/some*pattern");
-    assertThat("bucket is extracted", parsed.getBucket(), equalTo("some-bucket"));
-    assertThat("path is extracted", parsed.getPath(), equalTo("some*pattern"));
-    assertThat("not a wildcard", parsed.getIsWildcard(), equalTo(true));
-  }
-
-  @Test(expected = InvalidUriException.class)
-  public void testNotAGsUri() {
-    IngestUtils.parseBlobUri("https://foo.com/bar");
-  }
-
-  @Test(expected = InvalidUriException.class)
-  public void testInvalidBucketWildcard() {
-    IngestUtils.parseBlobUri("gs://some-bucket-*/some/file/path");
-  }
-
-  @Test(expected = InvalidUriException.class)
-  public void testInvalidMultiWildcard() {
-    IngestUtils.parseBlobUri("gs://some-bucket/some/prefix*/some*pattern");
-  }
-
-  // ------- Azure Blob URL validation-----------
-
-  @Test
   public void testParseValidBlobURL() {
     BlobUrlParts blobUrlParts =
         IngestUtils.validateBlobAzureBlobFileURL(

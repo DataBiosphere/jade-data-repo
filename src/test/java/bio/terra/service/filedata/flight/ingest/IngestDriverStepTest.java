@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.job.JobService;
@@ -53,7 +54,15 @@ public class IngestDriverStepTest extends TestCase {
 
     IngestDriverStep step =
         new IngestDriverStep(
-            loadService, configurationService, jobService, null, null, maxFailedFileLoads, 0, null);
+            loadService,
+            configurationService,
+            jobService,
+            null,
+            null,
+            maxFailedFileLoads,
+            0,
+            null,
+            CloudPlatform.GCP);
 
     FlightContext flightContext = new FlightContext(new FlightMap(), "", Collections.emptyList());
     flightContext.getWorkingMap().put(LoadMapKeys.LOAD_ID, loadUuid.toString());

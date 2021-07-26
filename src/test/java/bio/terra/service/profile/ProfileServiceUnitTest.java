@@ -127,7 +127,8 @@ public class ProfileServiceUnitTest {
     UUID deleteId = UUID.fromString("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
     when(jobBuilder.addParameter(eq(ProfileMapKeys.PROFILE_ID), eq(deleteId)))
         .thenReturn(jobBuilder);
-    when(jobBuilder.addParameter(eq(JobMapKeys.CLOUD_PLATFORM.getKeyName()), eq(CloudPlatform.GCP)))
+    when(jobBuilder.addParameter(
+            eq(JobMapKeys.CLOUD_PLATFORM.getKeyName()), eq(CloudPlatform.GCP.name())))
         .thenReturn(jobBuilder);
 
     var billingProfileModel = new BillingProfileModel();

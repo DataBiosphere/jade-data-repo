@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MiB;
+import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -62,7 +62,7 @@ public class BlobCrlTest {
   @Test
   public void testDeleteBlob_BlobDoesNotExists() {
     String blobName = "myBlob";
-    blobIOTestUtility.uploadDestinationFile(blobName, MiB / 10);
+    blobIOTestUtility.uploadDestinationFile(blobName, MIB / 10);
 
     blobCrl.deleteBlob(blobName);
 
@@ -74,10 +74,10 @@ public class BlobCrlTest {
   @Test
   public void testGetBlobProperties_SizeInPropertiesMatches() {
     String blobName = "myBlob";
-    blobIOTestUtility.uploadDestinationFile(blobName, MiB / 10);
+    blobIOTestUtility.uploadDestinationFile(blobName, MIB / 10);
 
     BlobProperties properties = blobCrl.getBlobProperties(blobName);
 
-    assertThat(properties.getBlobSize(), equalTo(MiB / 10));
+    assertThat(properties.getBlobSize(), equalTo(MIB / 10));
   }
 }

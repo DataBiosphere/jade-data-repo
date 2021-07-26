@@ -89,7 +89,7 @@ public class GcsPdao {
       String targetProjectId = bucketResource.projectIdForBucket();
       Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath(), targetProjectId);
 
-      // Read the leaf node of the source file to use as a way to sname the file we store
+      // Read the leaf node of the source file to use as a way to name the file we store
       String sourceFileName = getLastNameFromPath(sourceBlob.getName());
       // Our path is /<dataset-id>/<file-id>/<source-file-name>
       String targetPath = dataset.getId().toString() + "/" + fileId + "/" + sourceFileName;

@@ -96,6 +96,15 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
+      - name: "Import Vault dev secrets"
+        uses: hashicorp/vault-action@v2.1.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
+          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/dev/azure-test applicationsecret | AZURE_CREDENTIALS_SECRET
       - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions/actions/main@0.60.0
         with:

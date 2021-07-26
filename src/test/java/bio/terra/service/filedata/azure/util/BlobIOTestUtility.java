@@ -3,6 +3,7 @@ package bio.terra.service.filedata.azure.util;
 import static bio.terra.service.resourcemanagement.AzureDataLocationSelector.armUniqueString;
 
 import com.azure.core.credential.TokenCredential;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.blob.sas.BlobSasPermission;
@@ -14,6 +15,7 @@ import java.io.InputStream;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,8 +27,8 @@ import org.apache.commons.lang3.RandomStringUtils;
  * copy operations.
  */
 public class BlobIOTestUtility {
+  public static final long MIB = 1024 * 1024;
   private static final String SOURCE_BLOB_NAME = "myTestBlob";
-  static final long MiB = 1024 * 1024;
   private final BlobContainerClient sourceBlobContainerClient;
 
   public BlobContainerClient getSourceBlobContainerClient() {
@@ -34,10 +36,10 @@ public class BlobIOTestUtility {
   }
 
   public BlobContainerClient getDestinationBlobContainerClient() {
-    return destinationBlobContainerClient;
+    return destinationBlobContainerClient.orElseThrow();
   }
 
-  private final BlobContainerClient destinationBlobContainerClient;
+  private final Optional<BlobContainerClient> destinationBlobContainerClient;
   private String destinationContainerName;
   private static final String STORAGE_ENDPOINT_PATTERN = "https://%s.blob.core.windows.net/%s";
   private final TokenCredential tokenCredential;
@@ -48,11 +50,11 @@ public class BlobIOTestUtility {
     destinationContainerName = generateNewTempContainerName();
     sourceBlobContainerClient =
         createBlobContainerClient(tokenCredential, sourceContainerName, sourceAccountName);
-    destinationBlobContainerClient =
-        createBlobContainerClient(
-            tokenCredential, destinationContainerName, destinationAccountName);
     sourceBlobContainerClient.create();
-    destinationBlobContainerClient.create();
+    destinationBlobContainerClient =
+        Optional.ofNullable(destinationAccountName)
+            .map(a -> createBlobContainerClient(tokenCredential, destinationContainerName, a));
+    destinationBlobContainerClient.ifPresent(BlobContainerClient::create);
     this.tokenCredential = tokenCredential;
   }
 
@@ -93,6 +95,28 @@ public class BlobIOTestUtility {
     return blobContainerClient.generateSas(sasSignatureValues);
   }
 
+  public String generateBlobSasTokenWithReadPermissions(String accountKey, String blobName) {
+    BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
+
+    OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
+    SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
+
+    // build the token
+    BlobServiceSasSignatureValues sasSignatureValues =
+        new BlobServiceSasSignatureValues(expiryTime, permissions).setProtocol(sasProtocol);
+
+    BlobClient blobContainerClient =
+        new BlobContainerClientBuilder()
+            .credential(
+                new StorageSharedKeyCredential(
+                    sourceBlobContainerClient.getAccountName(), accountKey))
+            .endpoint(sourceBlobContainerClient.getBlobContainerUrl())
+            .buildClient()
+            .getBlobClient(blobName);
+
+    return blobContainerClient.generateSas(sasSignatureValues);
+  }
+
   private String generateNewTempContainerName() {
     return armUniqueString(RandomStringUtils.random(10), 30);
   }
@@ -113,10 +137,18 @@ public class BlobIOTestUtility {
   }
 
   public String uploadDestinationFile(String blobName, long length) {
-    destinationBlobContainerClient
+    getDestinationBlobContainerClient()
         .getBlobClient(blobName)
         .upload(createInputStream(length), length);
     return blobName;
+  }
+
+  public String getSourceContainerEndpoint() {
+    return sourceBlobContainerClient.getBlobContainerUrl();
+  }
+
+  public String getDestinationContainerEndpoint() {
+    return getDestinationBlobContainerClient().getBlobContainerUrl();
   }
 
   private InputStream createInputStream(long length) {
@@ -136,12 +168,14 @@ public class BlobIOTestUtility {
   }
 
   public void deleteContainers() {
-    destinationBlobContainerClient.delete();
+    destinationBlobContainerClient.ifPresent(BlobContainerClient::delete);
     sourceBlobContainerClient.delete();
   }
 
   public BlobContainerClientFactory createDestinationClientFactory() {
     return new BlobContainerClientFactory(
-        destinationBlobContainerClient.getAccountName(), tokenCredential, destinationContainerName);
+        getDestinationBlobContainerClient().getAccountName(),
+        tokenCredential,
+        destinationContainerName);
   }
 }

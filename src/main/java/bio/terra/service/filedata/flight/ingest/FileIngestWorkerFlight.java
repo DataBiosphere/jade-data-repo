@@ -3,10 +3,12 @@ package bio.terra.service.filedata.flight.ingest;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FileService;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -35,12 +37,17 @@ public class FileIngestWorkerFlight extends Flight {
     FireStoreUtils fireStoreUtils = appContext.getBean(FireStoreUtils.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
+
+    var platform =
+        CloudPlatformWrapper.of(
+            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
     Dataset dataset = datasetService.retrieve(datasetId);
 
     RetryRuleRandomBackoff fileSystemRetry =
@@ -71,7 +78,11 @@ public class FileIngestWorkerFlight extends Flight {
     addStep(new IngestFileIdStep(configService));
     addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
     addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
-    addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
+    if (platform.isGcp()) {
+      addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
+    } else if (platform.isAzure()) {
+      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
+    }
     addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
   }
 }

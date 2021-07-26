@@ -6,46 +6,50 @@ import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class IngestFilePrimaryDataStep implements Step {
+public class IngestFileAzurePrimaryDataStep implements Step {
+  private static final Logger logger =
+      LoggerFactory.getLogger(IngestFileAzurePrimaryDataStep.class);
+
   private final ConfigurationService configService;
-  private final GcsPdao gcsPdao;
-  private final Dataset dataset;
+  private final AzureBlobStorePdao azureBlobStorePdao;
 
-  public IngestFilePrimaryDataStep(
-      Dataset dataset, GcsPdao gcsPdao, ConfigurationService configService) {
+  public IngestFileAzurePrimaryDataStep(
+      AzureBlobStorePdao azureBlobStorePdao, ConfigurationService configService) {
     this.configService = configService;
-    this.gcsPdao = gcsPdao;
-    this.dataset = dataset;
+    this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
   @Override
   public StepResult doStep(FlightContext context) {
-    FlightMap inputParameters = context.getInputParameters();
     FileLoadModel fileLoadModel =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+        context.getInputParameters().get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
 
     FlightMap workingMap = context.getWorkingMap();
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
-      GoogleBucketResource bucketResource =
-          FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+      AzureStorageAccountResource storageAccountResource =
+          FlightUtils.getContextValue(
+              context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+
       FSFileInfo fsFileInfo;
       if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
-        fsFileInfo = FSFileInfo.getTestInstance(fileId, bucketResource.getResourceId().toString());
+        fsFileInfo =
+            FSFileInfo.getTestInstance(fileId, storageAccountResource.getResourceId().toString());
       } else {
-        fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
+        fsFileInfo = azureBlobStorePdao.copyFile(fileLoadModel, fileId, storageAccountResource);
       }
       workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
     }
@@ -59,10 +63,17 @@ public class IngestFilePrimaryDataStep implements Step {
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
     FlightMap workingMap = context.getWorkingMap();
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
-    GoogleBucketResource bucketResource =
-        FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+    AzureStorageAccountResource storageAccountResource =
+        FlightUtils.getContextValue(
+            context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
     String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
-    gcsPdao.deleteFileById(dataset, fileId, fileName, bucketResource);
+    if (!azureBlobStorePdao.deleteDataFileById(fileId, fileName, storageAccountResource)) {
+      logger.warn(
+          "File {} {} in storage account {} was not deleted.  It could ne non-existent",
+          fileId,
+          fileName,
+          storageAccountResource.getName());
+    }
 
     return StepResult.getStepResultSuccess();
   }

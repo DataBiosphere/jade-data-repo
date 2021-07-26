@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.exception.IngestFailureException;
@@ -27,17 +26,6 @@ public class IngestFileValidateCloudPlatformStep implements Step {
     var profileModel = dataset.getDatasetSummary().getDefaultBillingProfile();
     var profileCloudPlatform = profileModel.getCloudPlatform();
     var profileWrapper = CloudPlatformWrapper.of(profileCloudPlatform);
-
-    if (profileWrapper.isAzure()) {
-      logger.warn(
-          "Attempted to ingest file into Azure. Tenant: {}, Subscription: {}, Resource Group: {}",
-          profileModel.getTenantId(),
-          profileModel.getSubscriptionId(),
-          profileModel.getResourceGroupName());
-      NotImplementedException ex =
-          new NotImplementedException("Can't ingest files into an Azure dataset yet.");
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
-    }
 
     CloudPlatform fileStorageCloudPlatform = dataset.getDatasetSummary().getStorageCloudPlatform();
     if (!profileWrapper.is(fileStorageCloudPlatform)) {

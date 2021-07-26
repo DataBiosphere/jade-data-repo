@@ -4,10 +4,9 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -18,26 +17,24 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
-public class DeleteDatasetPrimaryDataStep implements Step {
+public class DeleteDatasetAzurePrimaryDataStep implements Step {
 
-  private static Logger logger = LoggerFactory.getLogger(DeleteDatasetPrimaryDataStep.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(DeleteDatasetAzurePrimaryDataStep.class);
 
-  private BigQueryPdao bigQueryPdao;
-  private GcsPdao gcsPdao;
-  private FireStoreDao fileDao;
-  private DatasetService datasetService;
-  private UUID datasetId;
-  private ConfigurationService configService;
+  private final AzureBlobStorePdao azureBlobStorePdao;
+  private final FireStoreDao fileDao;
+  private final DatasetService datasetService;
+  private final UUID datasetId;
+  private final ConfigurationService configService;
 
-  public DeleteDatasetPrimaryDataStep(
-      BigQueryPdao bigQueryPdao,
-      GcsPdao gcsPdao,
+  public DeleteDatasetAzurePrimaryDataStep(
+      AzureBlobStorePdao azureBlobStorePdao,
       FireStoreDao fileDao,
       DatasetService datasetService,
       UUID datasetId,
       ConfigurationService configService) {
-    this.bigQueryPdao = bigQueryPdao;
-    this.gcsPdao = gcsPdao;
+    this.azureBlobStorePdao = azureBlobStorePdao;
     this.fileDao = fileDao;
     this.datasetService = datasetService;
     this.datasetId = datasetId;
@@ -47,8 +44,7 @@ public class DeleteDatasetPrimaryDataStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     Dataset dataset = datasetService.retrieve(datasetId);
-    bigQueryPdao.deleteDataset(dataset);
-    fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> gcsPdao.deleteFile(fireStoreFile));
+    fileDao.deleteFilesFromDataset(dataset, azureBlobStorePdao::deleteFile);
 
     // this fault is used by the DatasetConnectedTest > testOverlappingDeletes
     if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT)) {

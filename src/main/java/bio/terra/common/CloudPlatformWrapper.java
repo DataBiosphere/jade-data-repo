@@ -11,6 +11,7 @@ import bio.terra.service.dataset.GoogleStorageResource;
 import bio.terra.service.dataset.StorageResource;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.validation.Errors;
@@ -18,6 +19,21 @@ import org.springframework.validation.Errors;
 public abstract class CloudPlatformWrapper {
 
   public static final CloudPlatform DEFAULT = CloudPlatform.GCP;
+
+  public static CloudPlatformWrapper of(String cloudPlatformValue) {
+    CloudPlatform cloudPlatform;
+    if (cloudPlatformValue != null) {
+      cloudPlatform =
+          Optional.ofNullable(CloudPlatform.fromValue(cloudPlatformValue.toLowerCase()))
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          String.format("Invalid cloud platform %s", cloudPlatformValue)));
+    } else {
+      cloudPlatform = null;
+    }
+    return of(cloudPlatform);
+  }
 
   public static CloudPlatformWrapper of(CloudPlatform cloudPlatform) {
     if (cloudPlatform == null) {
@@ -52,7 +68,11 @@ public abstract class CloudPlatformWrapper {
     }
   }
 
-  public abstract boolean is(CloudPlatform cloudPlatform);
+  public boolean is(CloudPlatform cloudPlatform) {
+    return cloudPlatform == getCloudPlatform();
+  }
+
+  public abstract CloudPlatform getCloudPlatform();
 
   public abstract List<? extends StorageResource<?, ?>> createStorageResourceValues(
       DatasetRequestModel datasetRequest);
@@ -72,8 +92,8 @@ public abstract class CloudPlatformWrapper {
     static final GcpPlatform INSTANCE = new GcpPlatform();
 
     @Override
-    public boolean is(CloudPlatform cloudPlatform) {
-      return cloudPlatform == CloudPlatform.GCP;
+    public CloudPlatform getCloudPlatform() {
+      return CloudPlatform.GCP;
     }
 
     @Override
@@ -120,8 +140,8 @@ public abstract class CloudPlatformWrapper {
     static final AzurePlatform INSTANCE = new AzurePlatform();
 
     @Override
-    public boolean is(CloudPlatform cloudPlatform) {
-      return cloudPlatform == CloudPlatform.AZURE;
+    public CloudPlatform getCloudPlatform() {
+      return CloudPlatform.AZURE;
     }
 
     @Override

@@ -5,9 +5,8 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
-import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -16,12 +15,13 @@ import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IngestFileGetOrCreateProject implements Step {
-  private static final Logger logger = LoggerFactory.getLogger(IngestFileGetOrCreateProject.class);
+public class IngestFileAzurePrimaryDataLocationStep implements Step {
+  private static final Logger logger =
+      LoggerFactory.getLogger(IngestFileAzurePrimaryDataLocationStep.class);
   private final ResourceService resourceService;
   private final Dataset dataset;
 
-  public IngestFileGetOrCreateProject(ResourceService resourceService, Dataset dataset) {
+  public IngestFileAzurePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {
     this.resourceService = resourceService;
     this.dataset = dataset;
   }
@@ -32,18 +32,17 @@ public class IngestFileGetOrCreateProject implements Step {
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       // Retrieve the already authorized billing profile from the working map and retrieve
-      // or create a bucket in the context of that profile and the dataset.
+      // or create a storage account in the context of that profile and the dataset.
       BillingProfileModel billingProfile =
           workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-      String projectId = workingMap.get(FileMapKeys.GOOGLE_PROJECT_ID, String.class);
+
       try {
-        GoogleProjectResource projectResource =
-            resourceService.initializeProjectForBucket(dataset, billingProfile, projectId);
-        workingMap.put(FileMapKeys.PROJECT_RESOURCE, projectResource);
+        AzureStorageAccountResource storageAccountResource =
+            resourceService.getOrCreateStorageAccount(
+                dataset, billingProfile, context.getFlightId());
+        workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
       } catch (BucketLockException blEx) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
-      } catch (GoogleResourceException ex) {
-        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
       }
     }
     return StepResult.getStepResultSuccess();
@@ -51,7 +50,9 @@ public class IngestFileGetOrCreateProject implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) {
-    // At this time we do not delete projects, so no undo
+    // There is not much to undo here. It is possible that a storage account was created in the last
+    // step. We could look to see if there are no other files in the storage account and delete it
+    // here, but I think it is likely the storage account will be used again.
     return StepResult.getStepResultSuccess();
   }
 }

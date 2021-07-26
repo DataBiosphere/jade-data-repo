@@ -6,9 +6,7 @@ import static org.hamcrest.Matchers.not;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.buffer.model.HandoutRequestBody;
 import bio.terra.buffer.model.ResourceInfo;
-import bio.terra.common.category.OnDemand;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.BufferService;
@@ -17,11 +15,9 @@ import com.google.api.services.cloudresourcemanager.model.Project;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -33,7 +29,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @SpringBootTest
 @ActiveProfiles({"google", "connectedtest"})
-@Category(OnDemand.class)
 public class ResourceServiceConnectedTest {
 
   @Autowired private GoogleResourceConfiguration resourceConfiguration;
@@ -56,10 +51,7 @@ public class ResourceServiceConnectedTest {
 
   @Test
   public void createAndDeleteProjectTest() throws Exception {
-    // the project id can't be more than 30 characters
-    HandoutRequestBody request =
-        new HandoutRequestBody().handoutRequestId(UUID.randomUUID().toString());
-    ResourceInfo resource = bufferService.handoutResource(request);
+    ResourceInfo resource = bufferService.handoutResource();
     String projectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
 
     String role = "roles/bigquery.jobUser";
@@ -71,7 +63,11 @@ public class ResourceServiceConnectedTest {
 
     GoogleProjectResource projectResource =
         projectService.initializeGoogleProject(
-            projectId, profile, roleToStewardMap, GoogleRegion.DEFAULT_GOOGLE_REGION);
+            projectId,
+            profile,
+            roleToStewardMap,
+            GoogleRegion.DEFAULT_GOOGLE_REGION,
+            Map.of("test-name", "resource-service-connected-test"));
 
     Project project = projectService.getProject(projectId);
     assertThat("the project is active", project.getLifecycleState(), equalTo("ACTIVE"));

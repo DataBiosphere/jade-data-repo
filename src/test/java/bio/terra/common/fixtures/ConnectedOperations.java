@@ -898,6 +898,8 @@ public class ConnectedOperations {
     this.deleteOnTeardown = deleteOnTeardown;
   }
 
+  public void addLabelsToGoogleProject(String googleProjectId, Map<String, String> labels) {}
+
   public void teardown() throws Exception {
     // call the reset configuration endpoint to disable all faults
     resetConfiguration();

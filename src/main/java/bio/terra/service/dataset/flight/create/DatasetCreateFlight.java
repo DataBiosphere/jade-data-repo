@@ -64,6 +64,9 @@ public class DatasetCreateFlight extends Flight {
     // Get a new google project from RBS and store it in the working map
     addStep(new GetResourceBufferProjectStep(bufferService));
 
+    // Generate the dateset id and store it in the working map
+    addStep(new CreateDatasetIdStep());
+
     // Get or initialize the project where the dataset resources will be created
     addStep(new CreateDatasetInitializeProjectStep(resourceService, datasetRequest));
 
@@ -83,9 +86,6 @@ public class DatasetCreateFlight extends Flight {
           new CreateDatasetGetOrCreateContainerStep(
               resourceService, datasetRequest, azureContainerPdao, ContainerType.DATA));
     }
-
-    // Generate the dateset id and stored it in the working map
-    addStep(new CreateDatasetIdStep());
 
     // Create dataset metadata objects in postgres and lock the dataset
     addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));

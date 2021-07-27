@@ -134,16 +134,15 @@ public class FireStoreFile {
 
   public static FireStoreFile fromTableEntity(TableEntity entity) {
     return new FireStoreFile()
-            .fileId(entity.getProperty("fileId").toString())
-            .mimeType(entity.getProperty("mimeType").toString())
-            .description(entity.getProperty("description").toString())
-            .bucketResourceId(entity.getProperty("bucketResourceId").toString())
-            .loadTag(entity.getProperty("loadTag").toString())
-            .fileCreatedDate(entity.getProperty("fileCreatedDate").toString())
-            .gspath(entity.getProperty("gspath").toString())
-            .checksumCrc32c(entity.getProperty("checksumCrc32c").toString())
-            .checksumMd5(entity.getProperty("checksumMd5").toString())
-            .size((Long) entity.getProperty("size"));
+        .fileId(entity.getProperty("fileId").toString())
+        .mimeType(entity.getProperty("mimeType").toString())
+        .description(entity.getProperty("description").toString())
+        .bucketResourceId(entity.getProperty("bucketResourceId").toString())
+        .loadTag(entity.getProperty("loadTag").toString())
+        .fileCreatedDate(entity.getProperty("fileCreatedDate").toString())
+        .gspath(entity.getProperty("gspath").toString())
+        .checksumCrc32c(entity.getProperty("checksumCrc32c").toString())
+        .checksumMd5(entity.getProperty("checksumMd5").toString())
+        .size((Long) entity.getProperty("size"));
   }
-
 }

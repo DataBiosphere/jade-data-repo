@@ -75,16 +75,15 @@ public class AzureAuthService {
    * @return an authenticated {@link TableServiceClient}
    */
   public TableServiceClient getTableServiceClient(
-          BillingProfileModel profileModel,
-          AzureStorageAccountResource storageAccountResource) {
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
     // Obtain a secret key for the associated storage account
     String key = getStorageAccountKey(profileModel, storageAccountResource);
 
     // Create a data lake client by authenticating using the found key
     return new TableServiceClientBuilder()
-            .credential(new AzureNamedKeyCredential(storageAccountResource.getName(), key))
-            .endpoint("https://" + storageAccountResource.getName() + ".table.core.windows.net")
-            .buildClient();
+        .credential(new AzureNamedKeyCredential(storageAccountResource.getName(), key))
+        .endpoint("https://" + storageAccountResource.getName() + ".table.core.windows.net")
+        .buildClient();
   }
 
   /**

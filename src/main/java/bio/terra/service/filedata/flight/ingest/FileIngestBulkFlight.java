@@ -189,12 +189,13 @@ public class FileIngestBulkFlight extends Flight {
     }
 
     addStep(
-        new IngestCopyLoadHistoryToBQStep(
+        new IngestCopyLoadHistoryStep(
             loadService,
             datasetService,
             loadTag,
             datasetId,
             bigQueryPdao,
+            platform,
             fileChunkSize,
             loadHistoryWaitSeconds));
     addStep(new IngestCleanFileStateStep(loadService));

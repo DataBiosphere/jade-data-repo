@@ -24,9 +24,10 @@ import org.springframework.stereotype.Component;
 public class AzureSynapsePdao {
   private static final Logger logger = LoggerFactory.getLogger(AzureSynapsePdao.class);
 
-  // TODO - Move these into app properties
+  // TODO - Move db_name & parquet format name into app properties
   private static final String DB_NAME = "datarepo";
   private static final String PARQUET_FILE_FORMAT_NAME = "ParquetFileFormat";
+  // Static prefixes for temp variables in synapse
   private static final String SAS_TOKEN_PREFIX = "sas_";
   private static final String DATA_SOURCE_PREFIX = "ds_";
   private static final String TABLE_NAME_PREFIX = "ingest_";
@@ -60,6 +61,7 @@ public class AzureSynapsePdao {
       blobContainerSasTokenCreds =
           new AzureSasCredential(blobUrl.getCommonSasQueryParameters().encode());
     } else {
+      // TODO - sign urls if not already provided
       throw new NotImplementedException("Add implementation to handle urls without signature");
     }
 
@@ -107,28 +109,28 @@ public class AzureSynapsePdao {
         "CREATE EXTERNAL TABLE ["
             + ingestTableName
             + "]\n"
-            + "WITH (\n"
-            + "    LOCATION = '"
+            + "WITH (\n    "
+            + "LOCATION = '"
             + destinationParquetFile
-            + "',\n"
-            + "    DATA_SOURCE = ["
+            + "',\n    "
+            + "DATA_SOURCE = ["
             + dataSourceName
-            + "],\n"
-            + "    FILE_FORMAT = ["
+            + "],\n    "
+            + "FILE_FORMAT = ["
             + PARQUET_FILE_FORMAT_NAME
             + "]\n"
             + ") AS SELECT * FROM OPENROWSET(BULK '"
             + ingestFileName
-            + "',\n"
-            + "                                DATA_SOURCE = '"
+            + "',\n                                "
+            + "DATA_SOURCE = '"
             + dataSourceName
-            + "',\n"
-            + "                                FORMAT='CSV',\n" // TODO - switch on control file
-            // type
-            + "                                PARSER_VERSION = '2.0',\n"
-            + "                                FIRSTROW = 2)\n" //TODO - allow this as input
-            + "WITH (\n"
-            + "      "
+            + "',\n                                "
+            + "FORMAT='CSV'" // TODO - switch on control file
+            +",\n                                "
+            + "PARSER_VERSION = '2.0'"
+            + ",\n                                "
+            + "FIRSTROW = 2)\n" //TODO - allow this as input
+            + "WITH (\n      "
             + buildTableSchema(datasetTable)
             + ") AS rows;");
   }
@@ -143,7 +145,6 @@ public class AzureSynapsePdao {
   }
 
   public boolean runAQuery(String query) throws SQLException {
-    logger.info("query: {}", query);
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection()) {
       // Update or create the credential
@@ -187,6 +188,7 @@ public class AzureSynapsePdao {
     return ds;
   }
 
+  // TODO - test all data types
   private String translateTypeToDdl(TableDataType datatype, boolean isArrayOf) {
     if (isArrayOf) {
       return "varchar(8000) COLLATE Latin1_General_100_CI_AI_SC_UTF8";

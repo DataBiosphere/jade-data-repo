@@ -47,7 +47,10 @@ public class AzureSynapsePdaoConnectedTest {
     connectedOperations.stubOutSamCalls(samService);
     billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
-    datasetSummary = connectedOperations.createDataset(billingProfile, "azure-simple-dataset.json");
+    //TODO - we don't really need a full dataset
+    // Replace this with just an entry in the db w/ the table schema
+    datasetSummary = connectedOperations.createDataset(
+        billingProfile, "azure-simple-dataset.json");
   }
 
   @After
@@ -55,12 +58,14 @@ public class AzureSynapsePdaoConnectedTest {
     azureSynapsePdao.cleanSynapseEntries(randomFlightId);
 
     //TODO - Clean out test parquet files
+
     connectedOperations.teardown();
   }
 
   @Test
   public void testSynapseQuery() throws Exception {
     // ----- ingest Input parameters----
+    // TODO - Once we add ability to sign urls, remove the signature from this test url
     String ingestFileLocation =
         "https://tdrsynapse1.blob.core.windows.net/shelbycontainerexample"
             + "?sp=racwdlmeop&st=2021-07-27T11:13:48Z&se=2021-07-27T19:13:48Z"
@@ -73,7 +78,10 @@ public class AzureSynapsePdaoConnectedTest {
     // 1 - Create external data source for the ingest control file
     azureSynapsePdao.createExternalDataSource(ingestFileLocation, randomFlightId);
 
-    // 2 - Create a test dataset so that we have a schema to build the query with
+    // TODO - Add basic check to make sure the data source is created succesfully
+    // Maybe a basic query?
+
+    // 2 - Retrieve info about database schema so that we can populate the parquet create query
 
     DatasetTable destinationTable =
         datasetService
@@ -86,8 +94,12 @@ public class AzureSynapsePdaoConnectedTest {
     azureSynapsePdao.createParquetFiles(
         destinationTable, ingestFileName, destinationParquetFile, randomFlightId);
 
+    //TODO - Add check that the parquet files were successfully created.
+    // How do we query the parquet files?
+
     // 4 - clean out synapse
       // we'll do this in the test cleanup method, but it will be a step in the normal flight
+      //azureSynapsePdao.cleanSynapseEntries(randomFlightId);
 
   }
 }

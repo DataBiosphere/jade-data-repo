@@ -83,7 +83,7 @@ public class AzureSynapsePdao {
             + "WITH (\n"
             + "LOCATION = '"
             + blobUrl.getScheme()
-            + "//"
+            + "://"
             + blobUrl.getHost()
             + "/"
             + blobUrl.getBlobContainerName()
@@ -126,8 +126,9 @@ public class AzureSynapsePdao {
             + "                                FORMAT='CSV',\n" // TODO - switch on control file
             // type
             + "                                PARSER_VERSION = '2.0',\n"
-            + "                                FIRSTROW = 1)\n"
+            + "                                FIRSTROW = 2)\n" //TODO - allow this as input
             + "WITH (\n"
+            + "      "
             + buildTableSchema(datasetTable)
             + ") AS rows;");
   }
@@ -135,14 +136,9 @@ public class AzureSynapsePdao {
   public String buildTableSchema(DatasetTable datasetTable) {
     List<Column> columns = datasetTable.getColumns();
     return String.join(
-        ",",
+        ",\n      ",
         columns.stream()
-            .map(
-                c ->
-                    c.getName()
-                        + " "
-                        + translateTypeToDdl(c.getType(), c.isArrayOf())
-                        + " COLLATE Latin1_General_100_CI_AI_SC_UTF8")
+            .map(c -> c.getName() + " " + translateTypeToDdl(c.getType(), c.isArrayOf()))
             .collect(Collectors.toList()));
   }
 
@@ -162,19 +158,23 @@ public class AzureSynapsePdao {
     String dataSourceName = getDataSourceName(flightId);
     String ingestTableName = getTableName(flightId);
     try {
-      runAQuery("DROP DATABASE SCOPED CREDENTIAL [" + sasTokenName + "];");
+      runAQuery("DROP EXTERNAL TABLE [" + ingestTableName + "];");
     } catch (Exception ex) {
-      logger.warn("Unable to clean up scoped credential for flight {}", flightId);
+      logger.warn("Unable to clean up table for flight {}, ex: {}", flightId, ex.getMessage());
     }
     try {
       runAQuery("DROP EXTERNAL DATA SOURCE [" + dataSourceName + "];");
     } catch (Exception ex) {
-      logger.warn("Unable to clean up external data source for flight {}", flightId);
+      logger.warn(
+          "Unable to clean up external data source for flight {}, ex: {}",
+          flightId,
+          ex.getMessage());
     }
     try {
-      runAQuery("DROP EXTERNAL TABLE [" + ingestTableName + "];");
+      runAQuery("DROP DATABASE SCOPED CREDENTIAL [" + sasTokenName + "];");
     } catch (Exception ex) {
-      logger.warn("Unable to clean up external data source for flight {}", flightId);
+      logger.warn(
+          "Unable to clean up scoped credential for flight {}, ex: {}", flightId, ex.getMessage());
     }
   }
 
@@ -189,7 +189,7 @@ public class AzureSynapsePdao {
 
   private String translateTypeToDdl(TableDataType datatype, boolean isArrayOf) {
     if (isArrayOf) {
-      return "varchar(8000)";
+      return "varchar(8000) COLLATE Latin1_General_100_CI_AI_SC_UTF8";
     }
     switch (datatype) {
       case BOOLEAN:
@@ -203,7 +203,7 @@ public class AzureSynapsePdao {
         return "datetime2";
       case DIRREF:
       case FILEREF:
-        return "varchar(250)";
+        return "varchar(250) COLLATE Latin1_General_100_CI_AI_SC_UTF8";
       case FLOAT:
       case FLOAT64:
         return "real";
@@ -214,10 +214,9 @@ public class AzureSynapsePdao {
       case NUMERIC:
         return "decimal";
         // case "RECORD":    return LegacySQLTypeName.RECORD;
-      case STRING:
-        return "varchar(8000)";
       case TEXT:
-        return "varchar(8000)"; // match the Postgres type
+      case STRING:
+        return "varchar(8000) COLLATE Latin1_General_100_CI_AI_SC_UTF8";
       case TIME:
         return "time";
       default:

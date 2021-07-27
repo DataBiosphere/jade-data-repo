@@ -153,13 +153,20 @@ public class AzureSynapsePdaoConnectedTest {
   }
 
   @Before
-  public void setup() {
+  public void setup() throws Exception {
     randomFlightId = ShortUUID.get();
+    connectedOperations.stubOutSamCalls(samService);
+    billingProfile =
+        connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
+    datasetSummary = connectedOperations.createDataset(billingProfile, "azure-simple-dataset.json");
   }
 
   @After
-  public void cleanup() {
+  public void cleanup() throws Exception {
     azureSynapsePdao.cleanSynapseEntries(randomFlightId);
+
+    //TODO - Clean out test parquet files
+    connectedOperations.teardown();
   }
 
   @Test
@@ -179,7 +186,7 @@ public class AzureSynapsePdaoConnectedTest {
     // A - Collect user input and validate
     IngestUtils.validateBlobAzureBlobFileURL(ingestFileLocation);
     String destinationTableName = "participant";
-    String destinationParquetFile = "parquet/flightId.parquet";
+    String destinationParquetFile = "parquet/" + randomFlightId + ".parquet";
 
     // B - Build parameters based on user input
     destinationParquetFile = "parquet/" + destinationTableName + "/" + randomFlightId + ".parquet";

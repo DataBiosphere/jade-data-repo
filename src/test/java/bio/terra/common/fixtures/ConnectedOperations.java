@@ -200,9 +200,8 @@ public class ConnectedOperations {
   public BillingProfileModel createProfileForAccount(
       String billingAccountId, CloudPlatform cloudPlatform) throws Exception {
     BillingProfileRequestModel profileRequestModel =
-        ProfileFixtures.randomBillingProfileRequest()
-            .billingAccountId(billingAccountId)
-            .cloudPlatform(cloudPlatform);
+        ProfileFixtures.randomBillingProfileRequest().billingAccountId(billingAccountId);
+    // .cloudPlatform(cloudPlatform);
     return createProfile(profileRequestModel);
   }
 

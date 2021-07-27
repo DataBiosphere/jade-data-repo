@@ -80,7 +80,7 @@ public class GcsPdaoTest {
 
   @Test
   public void testGetBlobContentsMatchingPath() {
-    String uuid = UUID.randomUUID().toString();
+    UUID uuid = UUID.randomUUID();
     List<BlobId> blobIds =
         List.of(
             BlobId.of(testConfig.getIngestbucket(), uuid + "/" + uuid + "-1.txt"),

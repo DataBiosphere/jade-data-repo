@@ -501,6 +501,7 @@ compileGeneratedJava.dependsOn generateGrammarSource
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava
 ideaModule.dependsOn swaggerSources.server.code
+idea.module.sourceDirs += file("$buildDir/generated-src/swagger/src/main/java")
 
 // Run spotless check when running in github actions, otherwise run spotless apply.
 compileJava {

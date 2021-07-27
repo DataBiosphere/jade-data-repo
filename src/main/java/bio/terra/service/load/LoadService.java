@@ -111,9 +111,9 @@ public class LoadService {
   }
 
   /**
-   * A convenience class wrapping the getting of load history table rows in an Iterator.
-   * The Iterator's elements are a list of BulkLoadHistoryModel chunk of the full results
-   * retrieved from the database.
+   * A convenience class wrapping the getting of load history table rows in an Iterator. The
+   * Iterator's elements are a list of BulkLoadHistoryModel chunk of the full results retrieved from
+   * the database.
    */
   public class LoadHistoryIterator implements Iterator<List<BulkLoadHistoryModel>> {
 

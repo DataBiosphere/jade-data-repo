@@ -15,7 +15,7 @@ public abstract class SkippableStep implements Step {
   private final Predicate<FlightContext> skipCondition;
 
   public SkippableStep() {
-    this.skipCondition = x -> false;
+    this(x -> false);
   }
 
   public SkippableStep(Predicate<FlightContext> skipCondition) {

@@ -11,14 +11,11 @@ import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Predicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
 //
 public class IngestBulkMapResponseStep extends SkippableStep {
-  private final Logger logger = LoggerFactory.getLogger(IngestBulkMapResponseStep.class);
 
   private final LoadService loadService;
   private final String loadTag;
@@ -26,11 +23,6 @@ public class IngestBulkMapResponseStep extends SkippableStep {
   public IngestBulkMapResponseStep(
       LoadService loadService, String loadTag, Predicate<FlightContext> skipCondition) {
     super(skipCondition);
-    this.loadService = loadService;
-    this.loadTag = loadTag;
-  }
-
-  public IngestBulkMapResponseStep(LoadService loadService, String loadTag) {
     this.loadService = loadService;
     this.loadTag = loadTag;
   }

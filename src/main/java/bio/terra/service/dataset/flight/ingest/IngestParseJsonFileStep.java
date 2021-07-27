@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -80,15 +80,13 @@ public class IngestParseJsonFileStep implements Step {
                             columnName -> {
                               JsonNode fileRefNode = node.get(columnName);
                               if (fileRefNode.isObject()) {
-                                return Optional.of(
-                                    objectMapper.convertValue(
-                                        fileRefNode, BulkLoadFileModel.class));
+                                return objectMapper.convertValue(
+                                    fileRefNode, BulkLoadFileModel.class);
                               } else {
-                                return Optional.<BulkLoadFileModel>empty();
+                                return null;
                               }
                             })
-                        .filter(Optional::isPresent)
-                        .map(Optional::get))
+                        .filter(Objects::nonNull))
             .collect(Collectors.toSet());
 
     workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, bulkLoadFileModels);

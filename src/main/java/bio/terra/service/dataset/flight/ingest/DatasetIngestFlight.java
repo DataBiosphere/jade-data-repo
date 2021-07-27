@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight.ingest;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -83,6 +84,8 @@ public class DatasetIngestFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
 
+    var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+
     var profileId =
         Optional.ofNullable(ingestRequest.getProfileId()).orElse(dataset.getDefaultProfileId());
 
@@ -133,6 +136,7 @@ public class DatasetIngestFlight extends Flight {
               Optional.ofNullable(ingestRequest.getMaxBadRecords()).orElse(0),
               driverWaitSeconds,
               profileId,
+              platform.getCloudPlatform(),
               IngestUtils.noFilesToIngestPredicate()),
           driverRetry);
 

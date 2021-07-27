@@ -16,11 +16,9 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import com.google.common.collect.ImmutableMap;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,18 +46,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.StrictStubs.class)
 @Category(Unit.class)
 public class SearchServiceTest {
-  private static final String sqlQuery =
-      "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() AS example_now"
-          + " FROM UNNEST(GENERATE_ARRAY(1, 3));";
-
   private static final String timPropertyName = "example:identifier.now";
   private static final String timEncodedName = TimUtils.encode(timPropertyName);
 
+  private static final String sqlQuery =
+      String.format(
+          "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() AS [%s]"
+              + " FROM UNNEST(GENERATE_ARRAY(1, 3));",
+          timPropertyName);
+
   private static final String searchQuery =
       String.format("{\"query_string\": {\"query\": \"([%s]:0)\"}}", timPropertyName);
-
-  private static final Map<String, String> columnReplacements =
-      new ImmutableMap.Builder<String, String>().put("example_now", timPropertyName).build();
 
   private static final String indexName = "idx-mock";
 
@@ -93,7 +90,7 @@ public class SearchServiceTest {
             "SELECT GENERATE_UUID() uuid, CURRENT_TIMESTAMP() AS %s"
                 + " FROM UNNEST(GENERATE_ARRAY(1, 3));",
             timEncodedName);
-    String actualSql = TimUtils.encodeSqlColumns(sqlQuery, columnReplacements);
+    String actualSql = TimUtils.encodeSqlColumns(sqlQuery);
     assertEquals(expectedSql, actualSql);
   }
 
@@ -101,8 +98,7 @@ public class SearchServiceTest {
   public void timFieldEncodingTest() {
     String expectedQuery =
         String.format("{\"query_string\": {\"query\": \"(%s:0)\"}}", timEncodedName);
-    String actualQuery =
-        TimUtils.encodeQueryFields(searchQuery, new HashSet<>(columnReplacements.values()));
+    String actualQuery = TimUtils.encodeQueryFields(searchQuery);
     assertEquals(expectedQuery, actualQuery);
   }
 

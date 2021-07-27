@@ -178,7 +178,7 @@ public class DatasetService {
     return jobService
         .newJob(description, DatasetDeleteFlight.class, null, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
-        .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform)
+        .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
         .submit();
   }
 

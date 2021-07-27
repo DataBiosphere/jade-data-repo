@@ -144,7 +144,7 @@ public class ProfileService {
     return jobService
         .newJob(description, ProfileDeleteFlight.class, null, user)
         .addParameter(ProfileMapKeys.PROFILE_ID, id)
-        .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform)
+        .addParameter(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name())
         .submit();
   }
 

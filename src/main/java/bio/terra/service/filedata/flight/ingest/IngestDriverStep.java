@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -7,11 +8,13 @@ import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
@@ -39,12 +42,15 @@ import org.slf4j.LoggerFactory;
 // - DATASET_ID dataset we are loading into
 // - LOAD_TAG is the load tag for this ingest
 // - REQUEST is a BulkLoadArrayRequestModel
+// - CLOUD_PLATFORM is a CloudPlatform
 //
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
+// - BUCKET_INFO is a GoogleBucketResource
+// - STORAGE_ACCOUNT_INFO is a AzureStorageAccountResource
 //
 public class IngestDriverStep extends SkippableStep {
-  private final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
   private final LoadService loadService;
   private final ConfigurationService configurationService;
@@ -54,6 +60,7 @@ public class IngestDriverStep extends SkippableStep {
   private final int maxFailedFileLoads;
   private final int driverWaitSeconds;
   private final UUID profileId;
+  private final CloudPlatform platform;
 
   public IngestDriverStep(
       LoadService loadService,
@@ -64,6 +71,7 @@ public class IngestDriverStep extends SkippableStep {
       int maxFailedFileLoads,
       int driverWaitSeconds,
       UUID profileId,
+      CloudPlatform platform,
       Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.loadService = loadService;
@@ -74,6 +82,7 @@ public class IngestDriverStep extends SkippableStep {
     this.maxFailedFileLoads = maxFailedFileLoads;
     this.driverWaitSeconds = driverWaitSeconds;
     this.profileId = profileId;
+    this.platform = platform;
   }
 
   public IngestDriverStep(
@@ -84,7 +93,8 @@ public class IngestDriverStep extends SkippableStep {
       String loadTag,
       int maxFailedFileLoads,
       int driverWaitSeconds,
-      UUID profileId) {
+      UUID profileId,
+      CloudPlatform platform) {
     this.loadService = loadService;
     this.configurationService = configurationService;
     this.jobService = jobService;
@@ -93,6 +103,7 @@ public class IngestDriverStep extends SkippableStep {
     this.maxFailedFileLoads = maxFailedFileLoads;
     this.driverWaitSeconds = driverWaitSeconds;
     this.profileId = profileId;
+    this.platform = platform;
   }
 
   @Override
@@ -104,6 +115,9 @@ public class IngestDriverStep extends SkippableStep {
 
     GoogleBucketResource bucketResource =
         workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+
+    AzureStorageAccountResource storageAccountResource =
+        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
 
     try {
       // Check for launch orphans - these are loads in the RUNNING state that never
@@ -146,7 +160,9 @@ public class IngestDriverStep extends SkippableStep {
               candidates.getCandidateFiles(),
               profileId,
               loadId,
-              bucketResource);
+              bucketResource,
+              storageAccountResource,
+              platform);
 
           currentRunning += launchCount;
         }
@@ -292,7 +308,9 @@ public class IngestDriverStep extends SkippableStep {
       List<LoadFile> loadFiles,
       UUID profileId,
       UUID loadId,
-      GoogleBucketResource bucketInfo)
+      GoogleBucketResource bucketInfo,
+      AzureStorageAccountResource storageAccountResource,
+      CloudPlatform platform)
       throws DatabaseOperationException, StairwayExecutionException, InterruptedException,
           DuplicateFlightIdSubmittedException {
 
@@ -315,6 +333,8 @@ public class IngestDriverStep extends SkippableStep {
       inputParameters.put(FileMapKeys.DATASET_ID, datasetId);
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
+      inputParameters.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
+      inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
 
       logger.debug("~~set running load - flight: " + flightId);
       loadService.setLoadFileRunning(loadId, loadFile.getTargetPath(), flightId);

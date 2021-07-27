@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
@@ -37,6 +38,8 @@ import org.springframework.stereotype.Component;
 public class IamService {
   private final Logger logger = LoggerFactory.getLogger(IamService.class);
 
+  private final int AUTH_CACHE_SIZE_DEFAULT = 100;
+
   private final IamProviderInterface iamProvider;
   private final ConfigurationService configurationService;
   private final Map<AuthorizedCacheKey, AuthorizedCacheValue> authorizedMap;
@@ -46,7 +49,9 @@ public class IamService {
   public IamService(IamProviderInterface iamProvider, ConfigurationService configurationService) {
     this.iamProvider = iamProvider;
     this.configurationService = configurationService;
-    cacheSize = configurationService.getParameterValue(AUTH_CACHE_SIZE);
+    cacheSize =
+        Optional.<Integer>ofNullable(configurationService.getParameterValue(AUTH_CACHE_SIZE))
+            .orElse(AUTH_CACHE_SIZE_DEFAULT);
     // wrap the cache map with a synchronized map to safely share the cache across threads
     authorizedMap = Collections.synchronizedMap(new LRUMap<>(cacheSize));
   }

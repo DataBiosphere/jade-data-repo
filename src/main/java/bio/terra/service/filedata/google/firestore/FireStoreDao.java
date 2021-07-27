@@ -3,6 +3,7 @@ package bio.terra.service.filedata.google.firestore;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSContainerInterface;
@@ -105,7 +106,12 @@ public class FireStoreDao {
     Firestore firestore =
         FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
     String datasetId = dataset.getId().toString();
-    fileDao.deleteFilesFromDataset(firestore, datasetId, func);
+    if (configurationService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
+      // If we didn't load files, don't try to delete them
+      fileDao.deleteFilesFromDataset(firestore, datasetId, f -> {});
+    } else {
+      fileDao.deleteFilesFromDataset(firestore, datasetId, func);
+    }
     directoryDao.deleteDirectoryEntriesFromCollection(firestore, datasetId);
   }
 

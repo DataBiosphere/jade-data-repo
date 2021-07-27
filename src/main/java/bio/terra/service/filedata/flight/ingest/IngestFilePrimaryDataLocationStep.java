@@ -19,7 +19,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IngestFilePrimaryDataLocationStep extends SkippableStep {
-  private final Logger logger = LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(IngestFilePrimaryDataLocationStep.class);
   private final ResourceService resourceService;
   private final Dataset dataset;
 

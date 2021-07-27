@@ -9,6 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
@@ -23,7 +24,7 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.load.LoadDao;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.BucketResourceLockTester;
-import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.api.client.util.Lists;
@@ -62,14 +63,14 @@ public class BucketResourceTest {
   @Autowired private ConfigurationService configService;
   @Autowired private DatasetBucketDao datasetBucketDao;
   @Autowired private JsonLoader jsonLoader;
-  @Autowired private GoogleResourceConfiguration resourceConfiguration;
   @Autowired private GoogleBucketService bucketService;
   @Autowired private GoogleProjectService projectService;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private GoogleResourceDao resourceDao;
-  @Autowired private ResourceService resourceService;
   @Autowired private ProfileService profileService;
   @Autowired private ConnectedTestConfiguration testConfig;
+  @Autowired private BufferService bufferService;
+
   @MockBean private IamProviderInterface samService;
 
   private BucketResourceUtils bucketResourceUtils = new BucketResourceUtils();
@@ -387,11 +388,14 @@ public class BucketResourceTest {
     Map<String, List<String>> roleToStewardMap = new HashMap<>();
     roleToStewardMap.put(role, stewardsGroupEmailList);
 
+    ResourceInfo resourceInfo = bufferService.handoutResource();
+
     // create project metadata
     return projectService.initializeGoogleProject(
-        resourceConfiguration.getSingleDataProjectId(),
+        resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId(),
         profile,
         roleToStewardMap,
-        GoogleRegion.DEFAULT_GOOGLE_REGION);
+        GoogleRegion.DEFAULT_GOOGLE_REGION,
+        Map.of("test-name", "bucket-resource-test"));
   }
 }

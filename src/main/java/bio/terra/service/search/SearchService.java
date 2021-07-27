@@ -8,12 +8,10 @@ import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.search.exception.SearchException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import com.google.common.collect.ImmutableMap;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -49,22 +47,6 @@ public class SearchService {
 
   private final BigQueryPdao bigQueryPdao;
   private final RestHighLevelClient client;
-
-  private static final Map<String, String> columnReplacements =
-      new ImmutableMap.Builder<String, String>()
-          .put("biosample_id", "dct:identifier")
-          .put("donor_id", "prov:wasDerivedFrom")
-          .put("disease", "TerraCore:hasDisease")
-          .put("genus_species", "TerraCore:hasOrganismType")
-          .put("organ", "TerraCore:hasAnatomicalSite")
-          .put("library_construction_method_text", "TerraCore:hasLibraryPrep")
-          .put("sex", "TerraCore:hasSex")
-          .put("project_title", "dct:title")
-          .put("project_description", "dct:description")
-          .put("project_short_name", "rdfs:label")
-          .put("cell_type", "TerraCore:hasSelectedCellType")
-          .put("organism_age_unit", "TerraCore:hasAgeUnit")
-          .build();
 
   @Value("${elasticsearch.numShards}")
   private int NUM_SHARDS;
@@ -148,7 +130,7 @@ public class SearchService {
   public SearchIndexModel indexSnapshot(Snapshot snapshot, SearchIndexRequest searchIndexRequest)
       throws InterruptedException {
 
-    String sql = TimUtils.encodeSqlColumns(searchIndexRequest.getSql(), columnReplacements);
+    String sql = TimUtils.encodeSqlColumns(searchIndexRequest.getSql());
     List<Map<String, Object>> values = bigQueryPdao.getSnapshotTableData(snapshot, sql);
     validateSnapshotDataNotEmpty(values);
     String indexName = createEmptyIndex(snapshot);
@@ -177,9 +159,7 @@ public class SearchService {
     searchSourceBuilder.size(limit);
     // see
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-wrapper-query.html
-    String query =
-        TimUtils.encodeQueryFields(
-            searchQueryRequest.getQuery(), new HashSet<>(columnReplacements.values()));
+    String query = TimUtils.encodeQueryFields(searchQueryRequest.getQuery());
     WrapperQueryBuilder wrapperQuery = QueryBuilders.wrapperQuery(query);
     searchSourceBuilder.query(wrapperQuery);
 

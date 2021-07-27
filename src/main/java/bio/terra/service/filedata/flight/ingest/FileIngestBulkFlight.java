@@ -3,6 +3,8 @@ package bio.terra.service.filedata.flight.ingest;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
@@ -10,6 +12,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -59,6 +62,8 @@ public class FileIngestBulkFlight extends Flight {
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
+    DatasetStorageAccountDao datasetStorageAccountDao =
+        appContext.getBean(DatasetStorageAccountDao.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
 
@@ -66,6 +71,8 @@ public class FileIngestBulkFlight extends Flight {
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
     UUID datasetUuid = UUID.fromString(datasetId);
     Dataset dataset = datasetService.retrieve(datasetUuid);
+
+    var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
     int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
@@ -131,18 +138,31 @@ public class FileIngestBulkFlight extends Flight {
     addStep(new LoadLockStep(loadService));
     addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
     addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
-    addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
-    addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+    if (platform.isGcp()) {
+      addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
+      addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+    } else if (platform.isAzure()) {
+      addStep(
+          new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
+      addStep(
+          new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
+          randomBackoffRetry);
+    }
 
     if (isArray) {
       addStep(new IngestPopulateFileStateFromArrayStep(loadService));
     } else {
-      addStep(
-          new IngestPopulateFileStateFromFileStep(
-              loadService,
-              appConfig.getMaxBadLoadFileLineErrorsReported(),
-              appConfig.getLoadFilePopulateBatchSize(),
-              gcsPdao));
+      if (platform.isGcp()) {
+        addStep(
+            new IngestPopulateFileStateFromFileStep(
+                loadService,
+                appConfig.getMaxBadLoadFileLineErrorsReported(),
+                appConfig.getLoadFilePopulateBatchSize(),
+                gcsPdao));
+      } else {
+        throw new NotImplementedException(
+            String.format("Ingesting from control file not supported on platform: %s", platform));
+      }
     }
     addStep(
         new IngestDriverStep(
@@ -153,7 +173,8 @@ public class FileIngestBulkFlight extends Flight {
             loadTag,
             maxFailedFileLoads,
             driverWaitSeconds,
-            profileId),
+            profileId,
+            platform.getCloudPlatform()),
         driverRetry);
 
     if (isArray) {

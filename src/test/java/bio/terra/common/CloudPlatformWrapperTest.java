@@ -2,11 +2,15 @@ package bio.terra.common;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.CloudResource;
 import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.common.CloudPlatformWrapper.AzurePlatform;
+import bio.terra.common.CloudPlatformWrapper.GcpPlatform;
 import bio.terra.common.category.Unit;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetRequestModel;
@@ -47,5 +51,12 @@ public class CloudPlatformWrapperTest {
             GoogleCloudResource.BIGQUERY,
             GoogleCloudResource.FIRESTORE,
             GoogleCloudResource.BUCKET));
+  }
+
+  @Test
+  public void testOfString() {
+    assertThat(CloudPlatformWrapper.of("gcp"), equalTo(GcpPlatform.INSTANCE));
+    assertThat(CloudPlatformWrapper.of("AZURE"), equalTo(AzurePlatform.INSTANCE));
+    assertThrows(IllegalArgumentException.class, () -> CloudPlatformWrapper.of("foo"));
   }
 }

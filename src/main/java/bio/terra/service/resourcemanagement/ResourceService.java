@@ -79,11 +79,17 @@ public class ResourceService {
       Dataset dataset, BillingProfileModel billingProfile, String projectId)
       throws GoogleResourceException, InterruptedException {
 
+    Map<String, String> labels =
+        Map.of(
+            "dataset-name", dataset.getName(),
+            "dataset-id", dataset.getId().toString(),
+            "project-usage", "bucket");
+
     final GoogleRegion region =
         (GoogleRegion)
             dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
     // Every bucket needs to live in a project, so we get or create a project first
-    return projectService.initializeGoogleProject(projectId, billingProfile, null, region);
+    return projectService.initializeGoogleProject(projectId, billingProfile, null, region, labels);
   }
 
   /**
@@ -278,11 +284,33 @@ public class ResourceService {
    * @return project resource id
    */
   public UUID initializeSnapshotProject(
-      BillingProfileModel billingProfile, String projectId, GoogleRegion region)
+      BillingProfileModel billingProfile,
+      String projectId,
+      GoogleRegion region,
+      List<Dataset> sourceDatasets,
+      String snapshotName,
+      UUID snapshotId)
       throws InterruptedException {
 
+    String datasetNames =
+        sourceDatasets.stream().map(Dataset::getName).collect(Collectors.joining(","));
+
+    String datasetIds =
+        sourceDatasets.stream()
+            .map(Dataset::getId)
+            .map(UUID::toString)
+            .collect(Collectors.joining(","));
+
+    Map<String, String> labels =
+        Map.of(
+            "dataset-names", datasetNames,
+            "dataset-ids", datasetIds,
+            "snapshot-name", snapshotName,
+            "snapshot-id", snapshotId.toString(),
+            "project-usage", "snapshot");
+
     GoogleProjectResource googleProjectResource =
-        projectService.initializeGoogleProject(projectId, billingProfile, null, region);
+        projectService.initializeGoogleProject(projectId, billingProfile, null, region, labels);
 
     return googleProjectResource.getId();
   }
@@ -295,12 +323,26 @@ public class ResourceService {
    * @return project resource id
    */
   public UUID getOrCreateDatasetProject(
-      BillingProfileModel billingProfile, String projectId, GoogleRegion region)
+      BillingProfileModel billingProfile,
+      String projectId,
+      GoogleRegion region,
+      String datasetName,
+      UUID datasetId,
+      Boolean isAzure)
       throws InterruptedException {
+
+    Map<String, String> labels = new HashMap<>();
+    labels.put("dataset-name", datasetName);
+    labels.put("dataset-id", datasetId.toString());
+    labels.put("project-usage", "dataset");
+
+    if (isAzure) {
+      labels.put("is-azure", "true");
+    }
 
     GoogleProjectResource googleProjectResource =
         projectService.initializeGoogleProject(
-            projectId, billingProfile, getStewardPolicy(), region);
+            projectId, billingProfile, getStewardPolicy(), region, labels);
 
     return googleProjectResource.getId();
   }

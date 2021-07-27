@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 // - LOAD_ID - load id we are working on
 //
 public class IngestBulkFileResponseStep implements Step {
-  private final Logger logger = LoggerFactory.getLogger(IngestBulkFileResponseStep.class);
+  private static final Logger logger = LoggerFactory.getLogger(IngestBulkFileResponseStep.class);
 
   private final LoadService loadService;
   private final String loadTag;

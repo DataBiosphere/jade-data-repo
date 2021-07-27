@@ -22,6 +22,7 @@ public class TestConfiguration {
   private UUID targetSubscriptionId;
   private String targetResourceGroupName;
   private String targetApplicationName;
+  private String sourceStorageAccountName;
 
   public static class User {
     private String role;
@@ -148,5 +149,13 @@ public class TestConfiguration {
 
   public void setTargetApplicationName(String targetApplicationName) {
     this.targetApplicationName = targetApplicationName;
+  }
+
+  public String getSourceStorageAccountName() {
+    return sourceStorageAccountName;
+  }
+
+  public void setSourceStorageAccountName(String sourceStorageAccountName) {
+    this.sourceStorageAccountName = sourceStorageAccountName;
   }
 }

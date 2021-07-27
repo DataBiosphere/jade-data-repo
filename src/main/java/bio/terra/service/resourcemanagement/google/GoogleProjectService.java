@@ -1,7 +1,6 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.buffer.model.HandoutRequestBody;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
@@ -41,6 +40,7 @@ import java.security.GeneralSecurityException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -48,11 +48,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -78,6 +80,8 @@ public class GoogleProjectService {
   private final GoogleResourceConfiguration resourceConfiguration;
   private final BufferService bufferService;
   private final DatasetBucketDao datasetBucketDao;
+  private final Environment environment;
+
   private static final String GS_BUCKET_PATTERN = "[a-z0-9\\-\\.\\_]{3,63}";
 
   @Autowired
@@ -86,12 +90,14 @@ public class GoogleProjectService {
       GoogleResourceConfiguration resourceConfiguration,
       GoogleBillingService billingService,
       BufferService bufferService,
-      DatasetBucketDao datasetBucketDao) {
+      DatasetBucketDao datasetBucketDao,
+      Environment environment) {
     this.resourceDao = resourceDao;
     this.resourceConfiguration = resourceConfiguration;
     this.billingService = billingService;
     this.bufferService = bufferService;
     this.datasetBucketDao = datasetBucketDao;
+    this.environment = environment;
   }
 
   public String bucketForIngestScratchFile(String googleProjectId) {
@@ -129,9 +135,7 @@ public class GoogleProjectService {
     // Case 3 -
     // Condition: Ingest Billing profile != source dataset billing profile && project does NOT exist
     // Action: Request a new project
-    HandoutRequestBody request =
-        new HandoutRequestBody().handoutRequestId(UUID.randomUUID().toString());
-    ResourceInfo resource = bufferService.handoutResource(request);
+    ResourceInfo resource = bufferService.handoutResource();
     return resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
   }
 
@@ -154,6 +158,7 @@ public class GoogleProjectService {
    * @param billingProfile previously authorized billing profile
    * @param roleIdentityMapping permissions to set
    * @param region region of dataset/snapshot
+   * @param labels labels to add to the project
    * @return project resource object
    * @throws InterruptedException if shutting down
    */
@@ -161,7 +166,8 @@ public class GoogleProjectService {
       String googleProjectId,
       BillingProfileModel billingProfile,
       Map<String, List<String>> roleIdentityMapping,
-      GoogleRegion region)
+      GoogleRegion region,
+      Map<String, String> labels)
       throws InterruptedException {
 
     try {
@@ -190,7 +196,7 @@ public class GoogleProjectService {
     if (project == null) {
       throw new GoogleResourceException("Could not get project after handout");
     }
-    return initializeProject(project, billingProfile, roleIdentityMapping, false, region);
+    return initializeProject(project, billingProfile, roleIdentityMapping, false, region, labels);
   }
 
   public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -237,7 +243,8 @@ public class GoogleProjectService {
       BillingProfileModel billingProfile,
       Map<String, List<String>> roleIdentityMapping,
       boolean setBilling,
-      GoogleRegion region)
+      GoogleRegion region,
+      Map<String, String> labels)
       throws InterruptedException {
 
     String googleProjectNumber = project.getProjectNumber().toString();
@@ -256,6 +263,7 @@ public class GoogleProjectService {
     }
     enableServices(googleProjectResource, region);
     updateIamPermissions(roleIdentityMapping, googleProjectId, PermissionOp.ENABLE_PERMISSIONS);
+    addLabelsToProject(googleProjectResource.getGoogleProjectId(), labels);
 
     UUID id = resourceDao.createProject(googleProjectResource);
     googleProjectResource.id(id);
@@ -283,6 +291,43 @@ public class GoogleProjectService {
   void deleteGoogleProject(UUID resourceId) {
     GoogleProjectResource projectResource = resourceDao.retrieveProjectByIdForDelete(resourceId);
     deleteGoogleProject(projectResource.getGoogleProjectId());
+  }
+
+  /**
+   * Google requires labels to consist of only lowercase, alphanumeric, "_", and "-" characters.
+   *
+   * @param string String to clean
+   * @return The cleaned String
+   */
+  private String cleanForLabels(String string) {
+    return string.toLowerCase(Locale.ROOT).trim().replaceAll("[^a-z0-9_-]", "-");
+  }
+
+  public void addLabelsToProject(String googleProjectId, Map<String, String> labels) {
+    final Stream<Map.Entry<String, String>> additionalLabels;
+    if (Arrays.stream(environment.getActiveProfiles())
+        .anyMatch(env -> env.contains("test") || env.contains("int"))) {
+      additionalLabels = Stream.of(Map.entry("project-for-test", "true"));
+    } else {
+      additionalLabels = Stream.empty();
+    }
+
+    try {
+      CloudResourceManager resourceManager = cloudResourceManager();
+      Project project = resourceManager.projects().get(googleProjectId).execute();
+      Map<String, String> cleanedLabels =
+          Stream.concat(
+                  Stream.concat(project.getLabels().entrySet().stream(), additionalLabels),
+                  labels.entrySet().stream()
+                      .map(
+                          e -> Map.entry(cleanForLabels(e.getKey()), cleanForLabels(e.getValue()))))
+              .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1));
+      project.setLabels(cleanedLabels);
+      logger.info("Adding labels to project {}", googleProjectId);
+      resourceManager.projects().update(googleProjectId, project).execute();
+    } catch (IOException | GeneralSecurityException ex) {
+      throw new GoogleResourceException("Encountered error while updating project labels", ex);
+    }
   }
 
   @VisibleForTesting
@@ -327,12 +372,7 @@ public class GoogleProjectService {
       enableFirestore(appengine(), projectResource.getGoogleProjectId(), region, timeout);
 
     } catch (IOException | GeneralSecurityException e) {
-      // In development we are reusing projects. The TDR service account may not have permission to
-      // properly enable the services on a developer's project. In those cases, we do not want to
-      // error on failure. That result in issues down the line if we require enabling new services.
-      if (!resourceConfiguration.getAllowReuseExistingProjects()) {
-        throw new GoogleResourceException("Could not enable services", e);
-      }
+      throw new GoogleResourceException("Could not enable services", e);
     }
   }
 

@@ -57,7 +57,7 @@ public class CreateSnapshot extends SimpleDataset {
 
     // wait for the job to complete
     bulkLoadArrayJobResponse =
-        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse);
+        DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse, datasetCreator);
     BulkLoadArrayResultModel result =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);

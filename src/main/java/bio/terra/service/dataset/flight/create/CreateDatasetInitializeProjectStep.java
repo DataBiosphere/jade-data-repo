@@ -29,13 +29,19 @@ public class CreateDatasetInitializeProjectStep implements Step {
     BillingProfileModel profileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     String projectId = workingMap.get(DatasetWorkingMapKeys.GOOGLE_PROJECT_ID, String.class);
+    CloudPlatformWrapper platformWrapper =
+        CloudPlatformWrapper.of(datasetRequestModel.getCloudPlatform());
     GoogleRegion region =
-        CloudPlatformWrapper.of(datasetRequestModel.getCloudPlatform())
-            .getGoogleRegionFromDatasetRequestModel(datasetRequestModel);
+        platformWrapper.getGoogleRegionFromDatasetRequestModel(datasetRequestModel);
+    boolean isAzure = platformWrapper.isAzure();
+
+    UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
+
     // Since we find projects by their names, this is idempotent. If this step fails and is rerun,
     // Either the project record will have been created and we will find it, or we will create it.
     UUID projectResourceId =
-        resourceService.getOrCreateDatasetProject(profileModel, projectId, region);
+        resourceService.getOrCreateDatasetProject(
+            profileModel, projectId, region, datasetRequestModel.getName(), datasetId, isAzure);
     workingMap.put(DatasetWorkingMapKeys.PROJECT_RESOURCE_ID, projectResourceId);
     return StepResult.getStepResultSuccess();
   }

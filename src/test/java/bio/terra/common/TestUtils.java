@@ -7,7 +7,12 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import bio.terra.model.ConfigGroupModel;
+import bio.terra.model.ConfigModel;
+import bio.terra.model.ConfigParameterModel;
 import bio.terra.model.DRSAccessMethod;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -231,5 +236,16 @@ public final class TestUtils {
       logger.error("unable to map value to JSON. Value is: " + value, ex);
     }
     return null;
+  }
+
+  public static void setConfigParameterValue(
+      ConfigurationService configurationService, ConfigEnum config, String newValue, String label) {
+    ConfigModel retryConfigModel =
+        new ConfigModel()
+            .name(config.name())
+            .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
+            .parameter(new ConfigParameterModel().value(newValue));
+    configurationService.setConfig(
+        new ConfigGroupModel().label(label).addGroupItem(retryConfigModel));
   }
 }

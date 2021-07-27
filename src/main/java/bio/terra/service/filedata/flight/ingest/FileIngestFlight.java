@@ -3,15 +3,18 @@ package bio.terra.service.filedata.flight.ingest;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.FileService;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -43,6 +46,7 @@ public class FileIngestFlight extends Flight {
     FireStoreUtils fireStoreUtils = appContext.getBean(FireStoreUtils.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
@@ -52,10 +56,14 @@ public class FileIngestFlight extends Flight {
     ProfileService profileService = appContext.getBean(ProfileService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
+    DatasetStorageAccountDao datasetStorageAccountDao =
+        appContext.getBean(DatasetStorageAccountDao.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     Dataset dataset = datasetService.retrieve(datasetId);
+
+    var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 
     FileLoadModel fileLoadModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
@@ -117,9 +125,18 @@ public class FileIngestFlight extends Flight {
     addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), randomBackoffRetry);
     addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
     addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
-    addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
-    addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
-    addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
+    if (platform.isGcp()) {
+      addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
+      addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
+      addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
+    } else if (platform.isAzure()) {
+      addStep(
+          new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
+      addStep(
+          new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
+          randomBackoffRetry);
+      addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
+    }
     addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     addStep(new LoadUnlockStep(loadService));
     addStep(new UnlockDatasetStep(datasetDao, datasetId, true), randomBackoffRetry);

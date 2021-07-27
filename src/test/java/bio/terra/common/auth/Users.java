@@ -1,11 +1,13 @@
 package bio.terra.common.auth;
 
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.common.configuration.TestConfiguration.User;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -21,17 +23,16 @@ public class Users {
   }
 
   private void buildUsersByRole(List<TestConfiguration.User> users) {
-    users.stream()
-        .forEach(
-            user -> {
-              String role = user.getRole();
-              List<TestConfiguration.User> newList = new ArrayList<>();
+    users.forEach(
+        user -> {
+          String role = user.getRole();
+          List<TestConfiguration.User> newList = new ArrayList<>();
 
-              if (usersByRole.containsKey(role)) newList = usersByRole.get(role);
-              newList.add(user);
-              usersByRole.put(role, newList);
-              userByName.put(user.getName(), user);
-            });
+          if (usersByRole.containsKey(role)) newList = usersByRole.get(role);
+          newList.add(user);
+          usersByRole.put(role, newList);
+          userByName.put(user.getName(), user);
+        });
   }
 
   public TestConfiguration.User getUserForRole(String role) {
@@ -40,6 +41,23 @@ public class Users {
 
   public TestConfiguration.User getUserForRole(String role, boolean shuffle) {
     return getUsersForRole(role, 1, shuffle).get(0);
+  }
+
+  public TestConfiguration.User getUserForRole(String name, String role) {
+    List<User> usersForRole = getUsersForRole(role, -1, false);
+    return usersForRole.stream()
+        .filter(u -> u.getName().equals(name))
+        .findFirst()
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    String.format(
+                        "User %s with role %s was not found.  Available are: [%s]",
+                        name,
+                        role,
+                        usersForRole.stream()
+                            .map(User::getName)
+                            .collect(Collectors.joining(", ")))));
   }
 
   public TestConfiguration.User getUser(String name) {
@@ -51,12 +69,15 @@ public class Users {
       throw new RuntimeException("Role not specified");
     }
     List<TestConfiguration.User> usersList = usersByRole.get(role);
-    if (usersList.size() < numUsers) {
+    if (numUsers != -1 && usersList.size() < numUsers) {
       throw new RuntimeException("not enough users for " + role);
     }
     if (shuffle) {
       Collections.shuffle(usersList);
     }
-    return usersList.subList(0, numUsers);
+    if (numUsers != -1) {
+      return usersList.subList(0, numUsers);
+    }
+    return usersList;
   }
 }

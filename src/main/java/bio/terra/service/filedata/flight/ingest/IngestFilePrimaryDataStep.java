@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -15,7 +16,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import java.time.Instant;
 
 public class IngestFilePrimaryDataStep implements Step {
   private final ConfigurationService configService;
@@ -39,18 +39,11 @@ public class IngestFilePrimaryDataStep implements Step {
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
-      GoogleBucketResource bucketResource = IngestUtils.getBucketInfo(context);
+      GoogleBucketResource bucketResource =
+          FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
       FSFileInfo fsFileInfo;
       if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
-        fsFileInfo =
-            new FSFileInfo()
-                .fileId(fileId)
-                .bucketResourceId(bucketResource.getResourceId().toString())
-                .checksumCrc32c(null)
-                .checksumMd5("baaaaaad")
-                .createdDate(Instant.now().toString())
-                .gspath("gs://path")
-                .size(100L);
+        fsFileInfo = FSFileInfo.getTestInstance(fileId, bucketResource.getResourceId().toString());
       } else {
         fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
       }
@@ -66,7 +59,8 @@ public class IngestFilePrimaryDataStep implements Step {
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
     FlightMap workingMap = context.getWorkingMap();
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
-    GoogleBucketResource bucketResource = IngestUtils.getBucketInfo(context);
+    GoogleBucketResource bucketResource =
+        FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
     String fileName = getLastNameFromPath(fileLoadModel.getSourcePath());
     gcsPdao.deleteFileById(dataset, fileId, fileName, bucketResource);
 

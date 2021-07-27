@@ -12,7 +12,6 @@ import static org.junit.Assert.assertEquals;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.buffer.model.HandoutRequestBody;
 import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.PdaoConstant;
@@ -37,7 +36,7 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
@@ -88,9 +87,9 @@ public class BigQueryPdaoTest {
   @Autowired private BigQueryPdao bigQueryPdao;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
-  @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ResourceService resourceService;
+  @Autowired private GoogleProjectService projectService;
   @Autowired private BufferService bufferService;
 
   @MockBean private IamProviderInterface samService;
@@ -539,7 +538,11 @@ public class BigQueryPdaoTest {
   @Test
   public void testGetSnapshotTableData() throws Exception {
     UUID profileId = profileModel.getId();
-    String dataProjectId = googleResourceConfiguration.getSingleDataProjectId();
+    ResourceInfo resourceInfo = bufferService.handoutResource();
+
+    String dataProjectId = resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+    projectService.addLabelsToProject(dataProjectId, Map.of("test-name", "bigquery-pdao-test"));
+
     Snapshot snapshot =
         new Snapshot()
             .projectResource(
@@ -664,12 +667,12 @@ public class BigQueryPdaoTest {
             .getGoogleRegionFromDatasetRequestModel(datasetRequest);
     Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
     dataset.id(UUID.randomUUID());
-    String handoutRequestId = UUID.randomUUID().toString();
-    HandoutRequestBody request = new HandoutRequestBody().handoutRequestId(handoutRequestId);
-    ResourceInfo resource = bufferService.handoutResource(request);
+    ResourceInfo resource = bufferService.handoutResource();
     String googleProjectId = resource.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+    projectService.addLabelsToProject(googleProjectId, Map.of("test-name", "bigquery-pdao-test"));
     UUID projectId =
-        resourceService.getOrCreateDatasetProject(profileModel, googleProjectId, region);
+        resourceService.getOrCreateDatasetProject(
+            profileModel, googleProjectId, region, dataset.getName(), dataset.getId(), false);
     dataset
         .projectResourceId(projectId)
         .projectResource(resourceService.getProjectResource(projectId));

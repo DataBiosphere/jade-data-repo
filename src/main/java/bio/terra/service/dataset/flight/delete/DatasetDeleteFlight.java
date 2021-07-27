@@ -5,12 +5,12 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -37,6 +37,7 @@ public class DatasetDeleteFlight extends Flight {
     SnapshotDao snapshotDao = appContext.getBean(SnapshotDao.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
@@ -52,17 +53,24 @@ public class DatasetDeleteFlight extends Flight {
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
     var platform =
         CloudPlatformWrapper.of(
-            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), CloudPlatform.class));
+            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule primaryDataDeleteRetry = getDefaultExponentialBackoffRetryRule();
 
     addStep(new LockDatasetStep(datasetDao, datasetId, false, true), lockDatasetRetry);
     addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
-    addStep(
-        new DeleteDatasetPrimaryDataStep(
-            bigQueryPdao, gcsPdao, fileDao, datasetService, datasetId, configService),
-        primaryDataDeleteRetry);
+    if (platform.isGcp()) {
+      addStep(
+          new DeleteDatasetPrimaryDataStep(
+              bigQueryPdao, gcsPdao, fileDao, datasetService, datasetId, configService),
+          primaryDataDeleteRetry);
+    } else if (platform.isAzure()) {
+      addStep(
+          new DeleteDatasetAzurePrimaryDataStep(
+              azureBlobStorePdao, fileDao, datasetService, datasetId, configService),
+          primaryDataDeleteRetry);
+    }
     // Delete access control on objects that were explicitly added by data repo operations.  Do this
     // before delete
     // resource from SAM to ensure we can get the metadata needed to perform the operation.  Also

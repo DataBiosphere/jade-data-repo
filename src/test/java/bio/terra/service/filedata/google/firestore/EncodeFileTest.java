@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.buffer.model.ResourceInfo;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.exception.PdaoException;
@@ -30,8 +31,9 @@ import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
@@ -89,11 +91,12 @@ public class EncodeFileTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private ResourceService dataLocationService;
   @Autowired private SnapshotDao snapshotDao;
-  @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
   @Autowired private GcsProjectFactory gcsProjectFactory;
   @Autowired private ConnectedOperations connectedOperations;
+  @Autowired private GoogleProjectService googleProjectService;
   @Autowired private DrsIdService drsIdService;
   @Autowired private FireStoreUtils fireStoreUtils;
+  @Autowired private BufferService bufferService;
 
   private static final String ID_GARBAGE = "GARBAGE";
 
@@ -113,8 +116,10 @@ public class EncodeFileTest {
     profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
     loadTag = "encodeLoadTag" + UUID.randomUUID();
     datasetSummary = connectedOperations.createDataset(profileModel, "encodefiletest-dataset.json");
-    targetProjectId =
-        googleResourceConfiguration.getSingleDataProjectId(); // we rely on using single project
+    ResourceInfo resourceInfo = bufferService.handoutResource();
+    targetProjectId = resourceInfo.getCloudResourceUid().getGoogleProjectUid().getProjectId();
+    googleProjectService.addLabelsToProject(
+        targetProjectId, Map.of("test-name", "encode-file-test"));
     // Build a storage object for the data project of the dataset.
     StorageOptions storageOptions =
         StorageOptions.newBuilder().setProjectId(targetProjectId).build();

@@ -96,6 +96,15 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
+      - name: "Import Vault dev secrets"
+        uses: hashicorp/vault-action@v2.1.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: approle
+          roleId: ${{ secrets.INTEGRATION_ROLE_ID }}
+          secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
+          secrets: |
+            secret/dsde/datarepo/dev/azure-test applicationsecret | AZURE_CREDENTIALS_SECRET
       - name: "Whitelist Runner IP"
         uses: broadinstitute/datarepo-actions/actions/main@0.60.0
         with:
@@ -116,8 +125,8 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_create_secret_manager_secret_version: '0.0.6'
-          helm_datarepo_api_chart_version: 0.0.145
-          helm_datarepo_ui_chart_version: 0.0.79
+          helm_datarepo_api_chart_version: 0.0.148
+          helm_datarepo_ui_chart_version: 0.0.92
           helm_gcloud_sqlproxy_chart_version: 0.19.7
           helm_oidc_proxy_chart_version: 0.0.22
       - name: "Fetch gitHash for deployed integration version"

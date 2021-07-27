@@ -212,7 +212,7 @@ public class FireStoreUtils {
    *     Note: the order of the list matches with the order of the input list objects
    * @throws InterruptedException If a call to Firestore is interrupted
    */
-  <T, V> List<T> batchOperation(List<V> inputs, ApiFutureGenerator<T, V> generator)
+  public <T, V> List<T> batchOperation(List<V> inputs, ApiFutureGenerator<T, V> generator)
       throws InterruptedException {
     int inputSize = inputs.size();
     // We drive the retry processing by which outputs have not been filled in,

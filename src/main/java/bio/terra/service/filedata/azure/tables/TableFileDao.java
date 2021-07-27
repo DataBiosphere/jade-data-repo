@@ -1,17 +1,22 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
-import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
-import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.filedata.google.firestore.*;
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 
+import com.google.api.core.SettableApiFuture;
+import com.google.common.collect.ImmutableList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,11 +30,19 @@ import org.springframework.stereotype.Component;
 @Component
 class TableFileDao {
     private final Logger logger = LoggerFactory.getLogger(TableFileDao.class);
+    private final FireStoreUtils fireStoreUtils;
+    private final ExecutorService executor;
     private final String TABLE_NAME = "files";
     private final String PARTITION_KEY = "partitionKey";
+    private static final int DELETE_BATCH_SIZE = 500;
 
     @Autowired
-    TableFileDao() {
+    TableFileDao(
+            FireStoreUtils fireStoreUtils,
+            @Qualifier("performanceThreadpool") ExecutorService executor) {
+        this.fireStoreUtils = fireStoreUtils;
+        this.executor = executor;
+
     }
 
     void createFileMetadata(TableServiceClient tableServiceClient, FireStoreFile newFile) {
@@ -50,10 +63,15 @@ class TableFileDao {
         tableClient.createEntity(entity);
     }
 
-    void deleteFileMetadata(TableServiceClient tableServiceClient, String fileId) {
+    boolean deleteFileMetadata(TableServiceClient tableServiceClient, String fileId) {
         TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+        TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
+        if (entity == null) {
+            return false;
+        }
         logger.info("deleting file metadata for fileId " + fileId);
         tableClient.deleteEntity(PARTITION_KEY, fileId);
+        return true;
     }
 
     FireStoreFile retrieveFileMetadata(TableServiceClient tableServiceClient, String fileId) {
@@ -83,11 +101,46 @@ class TableFileDao {
         return files;
     }
 
-//    void deleteFilesFromDataset(Firestore firestore, String datasetId, InterruptibleConsumer<FireStoreFile> func)
-//      throws InterruptedException {
-//            // Query "files" table for DELETE_BATCH_SIZE (500) entries
-//            // Delete the actual file from Azure
-//            // Delete the entry
-//    }
+    <V> void scanTableObjects(
+            TableClient tableClient,
+            int batchSize,
+            ApiFutureGenerator<V, TableEntity> generator)
+            throws InterruptedException {
+        int batchCount = 0;
+        PagedIterable<TableEntity> entities;
+        do {
+            ListEntitiesOptions options = new ListEntitiesOptions().setTop(batchSize);
+            entities = tableClient.listEntities(options, null, null);
+            batchCount++;
+            if (entities.iterator().hasNext()) {
+                logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
+            }
+            List<TableEntity> entityList = ImmutableList.copyOf(entities);
+            fireStoreUtils.batchOperation(entityList, generator);
+
+        } while (entities.spliterator().getExactSizeIfKnown() > 0);
+    }
+
+    void deleteFilesFromDataset(TableServiceClient tableServiceClient, InterruptibleConsumer<FireStoreFile> func)
+      throws InterruptedException {
+        TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+        scanTableObjects(
+                tableClient,
+                DELETE_BATCH_SIZE,
+                entity -> {
+                    SettableApiFuture<Boolean> future = SettableApiFuture.create();
+                    executor.execute(
+                            () -> {
+                                try {
+                                    FireStoreFile fireStoreFile = FireStoreFile.fromTableEntity(entity);
+                                    func.accept(fireStoreFile);
+                                    future.set(deleteFileMetadata(tableServiceClient, fireStoreFile.getFileId()));
+                                } catch (final Exception e) {
+                                    future.setException(e);
+                                }
+                            });
+                    return future;
+                });
+    }
 
 }

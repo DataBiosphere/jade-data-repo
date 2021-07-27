@@ -158,7 +158,10 @@ public class AzureSynapsePdaoConnectedTest {
     connectedOperations.stubOutSamCalls(samService);
     billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
-    datasetSummary = connectedOperations.createDataset(billingProfile, "azure-simple-dataset.json");
+    //TODO - we don't really need a full dataset
+    // Replace this with just an entry in the db w/ the table schema
+    datasetSummary = connectedOperations.createDataset(
+        billingProfile, "azure-simple-dataset.json");
   }
 
   @After
@@ -166,6 +169,7 @@ public class AzureSynapsePdaoConnectedTest {
     azureSynapsePdao.cleanSynapseEntries(randomFlightId);
 
     //TODO - Clean out test parquet files
+
     connectedOperations.teardown();
   }
 
@@ -230,6 +234,9 @@ public class AzureSynapsePdaoConnectedTest {
             destinationParquetFile, destinationDataSourceName, "first_name", true);
     assertThat(
         "List of names should equal the input", firstNames, equalTo(Arrays.asList("Bob", "Sally")));
+
+    //TODO - Add check that the parquet files were successfully created.
+    // How do we query the parquet files?
 
     // 4 - clean out synapse
     // we'll do this in the test cleanup method, but it will be a step in the normal flight

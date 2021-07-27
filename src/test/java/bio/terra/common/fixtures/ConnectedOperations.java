@@ -26,7 +26,6 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DataDeletionRequest;
@@ -194,14 +193,6 @@ public class ConnectedOperations {
   public BillingProfileModel createProfileForAccount(String billingAccountId) throws Exception {
     BillingProfileRequestModel profileRequestModel =
         ProfileFixtures.randomBillingProfileRequest().billingAccountId(billingAccountId);
-    return createProfile(profileRequestModel);
-  }
-
-  public BillingProfileModel createProfileForAccount(
-      String billingAccountId, CloudPlatform cloudPlatform) throws Exception {
-    BillingProfileRequestModel profileRequestModel =
-        ProfileFixtures.randomBillingProfileRequest().billingAccountId(billingAccountId);
-    // .cloudPlatform(cloudPlatform);
     return createProfile(profileRequestModel);
   }
 

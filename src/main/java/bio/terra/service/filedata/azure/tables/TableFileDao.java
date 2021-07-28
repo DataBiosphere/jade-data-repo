@@ -41,8 +41,9 @@ public class TableFileDao {
     this.executor = executor;
   }
 
-  void createFileMetadata(TableServiceClient tableServiceClient, FireStoreFile newFile) {
-    TableClient tableClient = tableServiceClient.createTableIfNotExists(TABLE_NAME);
+  public void createFileMetadata(TableServiceClient tableServiceClient, FireStoreFile newFile) {
+    tableServiceClient.createTableIfNotExists(TABLE_NAME);
+    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     TableEntity entity =
         new TableEntity(PARTITION_KEY, newFile.getFileId())
             .addProperty("fileId", newFile.getFileId())
@@ -51,7 +52,7 @@ public class TableFileDao {
             .addProperty("bucketResourceId", newFile.getBucketResourceId())
             .addProperty("loadTag", newFile.getLoadTag())
             .addProperty("fileCreatedDate", newFile.getFileCreatedDate())
-            .addProperty("gsPath", newFile.getGspath())
+            .addProperty("gspath", newFile.getGspath())
             .addProperty("checksumCrc32c", newFile.getChecksumCrc32c())
             .addProperty("checksumMd5", newFile.getChecksumMd5())
             .addProperty("size", newFile.getSize());
@@ -59,7 +60,7 @@ public class TableFileDao {
     tableClient.createEntity(entity);
   }
 
-  boolean deleteFileMetadata(TableServiceClient tableServiceClient, String fileId) {
+  public boolean deleteFileMetadata(TableServiceClient tableServiceClient, String fileId) {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
     if (entity == null) {
@@ -70,7 +71,7 @@ public class TableFileDao {
     return true;
   }
 
-  FireStoreFile retrieveFileMetadata(TableServiceClient tableServiceClient, String fileId) {
+  public FireStoreFile retrieveFileMetadata(TableServiceClient tableServiceClient, String fileId) {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
     return FireStoreFile.fromTableEntity(entity);

@@ -33,11 +33,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class TableFileDaoTest {
-  private final String partitionKey = "partitionKey";
-  private final String fileId = UUID.randomUUID().toString();
+  private static final String PARTITION_KEY = "partitionKey";
+  private static final String FILE_ID = UUID.randomUUID().toString();
   private final TableEntity entity =
-      new TableEntity(partitionKey, fileId)
-          .addProperty("fileId", fileId)
+      new TableEntity(PARTITION_KEY, FILE_ID)
+          .addProperty("fileId", FILE_ID)
           .addProperty("mimeType", "application/json")
           .addProperty("description", "A test entity")
           .addProperty("bucketResourceId", "bucketResourceId")
@@ -60,20 +60,20 @@ public class TableFileDaoTest {
     dao = spy(dao);
     when(authService.getTableServiceClient(any(), any())).thenReturn(tableServiceClient);
     when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
-    when(tableClient.getEntity(partitionKey, fileId)).thenReturn(entity);
-    when(tableClient.getEntity(partitionKey, "nonexistentFile")).thenReturn(null);
+    when(tableClient.getEntity(PARTITION_KEY, FILE_ID)).thenReturn(entity);
+    when(tableClient.getEntity(PARTITION_KEY, "nonexistentFile")).thenReturn(null);
   }
 
   @Test
   public void testRetrieveFileMetadata() {
-    FireStoreFile fileMetadata = dao.retrieveFileMetadata(tableServiceClient, fileId);
+    FireStoreFile fileMetadata = dao.retrieveFileMetadata(tableServiceClient, FILE_ID);
     FireStoreFile expected = FireStoreFile.fromTableEntity(entity);
     assertEquals("The same object is returned", fileMetadata, expected);
   }
 
   @Test
   public void testDeleteFileMetadata() {
-    boolean exists = dao.deleteFileMetadata(tableServiceClient, fileId);
+    boolean exists = dao.deleteFileMetadata(tableServiceClient, FILE_ID);
     assertTrue("Existing row is deleted", exists);
     boolean result = dao.deleteFileMetadata(tableServiceClient, "nonexistentFile");
     assertFalse("Non-existent row is not deleted", result);
@@ -81,7 +81,7 @@ public class TableFileDaoTest {
 
   @Test
   public void testBatchRetrieveFileMetadata() {
-    FireStoreDirectoryEntry fsDirectoryEntry = new FireStoreDirectoryEntry().fileId(fileId);
+    FireStoreDirectoryEntry fsDirectoryEntry = new FireStoreDirectoryEntry().fileId(FILE_ID);
     List<FireStoreDirectoryEntry> directoryEntries = List.of(fsDirectoryEntry);
     List<FireStoreFile> expectedFiles = List.of(FireStoreFile.fromTableEntity(entity));
     List<FireStoreFile> files = dao.batchRetrieveFileMetadata(tableServiceClient, directoryEntries);

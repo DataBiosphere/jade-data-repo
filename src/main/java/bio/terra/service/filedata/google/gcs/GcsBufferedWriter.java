@@ -5,7 +5,7 @@ import java.io.BufferedWriter;
 import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 
-/** Given a gs path and a storage object, return a buffered reader for the blob */
+/** Given a gs path and a storage object, return a buffered writer for the blob */
 public class GcsBufferedWriter extends BufferedWriter {
   public GcsBufferedWriter(Storage storage, String projectId, String gsPath) {
     super(

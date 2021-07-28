@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -37,12 +38,12 @@ public class IngestBuildLoadFileStep extends SkippableStep {
     BulkLoadArrayResultModel result =
         workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
 
-    // Part 1 -> Build the src-target to file id Map
-    Map<String, String> pathToFileIdMap =
+    // Part 1 -> Build the src-target hash to file id Map
+    Map<Integer, String> pathToFileIdMap =
         result.getLoadFileResults().stream()
             .collect(
                 Collectors.toMap(
-                    model -> model.getSourcePath() + "-" + model.getTargetPath(),
+                    model -> Objects.hash(model.getSourcePath(), model.getTargetPath()),
                     BulkLoadFileResultModel::getFileId));
 
     // Part 2 -> Replace BulkLoadFileModels with file id
@@ -57,9 +58,10 @@ public class IngestBuildLoadFileStep extends SkippableStep {
                       BulkLoadFileModel fileModel =
                           Optional.of(
                                   objectMapper.convertValue(
-                                      fileRefNode, bio.terra.model.BulkLoadFileModel.class))
+                                      fileRefNode, BulkLoadFileModel.class))
                               .orElseThrow();
-                      String fileKey = fileModel.getSourcePath() + "-" + fileModel.getTargetPath();
+                      int fileKey = Objects.hash(fileModel.getSourcePath(),
+                          fileModel.getTargetPath());
                       String fileId = pathToFileIdMap.get(fileKey);
                       ((ObjectNode) node).put(columnName, fileId);
                     }

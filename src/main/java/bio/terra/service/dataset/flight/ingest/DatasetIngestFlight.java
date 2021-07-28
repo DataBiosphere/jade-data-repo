@@ -5,6 +5,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetBucketDao;
@@ -89,11 +90,10 @@ public class DatasetIngestFlight extends Flight {
     var profileId =
         Optional.ofNullable(ingestRequest.getProfileId()).orElse(dataset.getDefaultProfileId());
 
-    int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
+    int driverWaitSeconds = configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
     int loadHistoryWaitSeconds =
-        inputParameters.get(LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS, Integer.class);
-    int fileChunkSize =
-        inputParameters.get(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE, Integer.class);
+        configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS);
+    int fileChunkSize = configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE);
 
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
 

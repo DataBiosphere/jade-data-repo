@@ -15,8 +15,6 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
@@ -31,7 +29,6 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,25 +43,19 @@ import org.springframework.stereotype.Component;
 public class DatasetService {
   private final DatasetDao datasetDao;
   private final JobService jobService; // for handling flight response
-  private final ResourceService resourceService;
   private final LoadService loadService;
   private final ProfileDao profileDao;
-  private final ConfigurationService configService;
 
   @Autowired
   public DatasetService(
       DatasetDao datasetDao,
       JobService jobService,
-      ResourceService resourceService,
       LoadService loadService,
-      ProfileDao profileDao,
-      ConfigurationService configService) {
+      ProfileDao profileDao) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
-    this.resourceService = resourceService;
     this.loadService = loadService;
     this.profileDao = profileDao;
-    this.configService = configService;
   }
 
   public String createDataset(
@@ -199,15 +190,6 @@ public class DatasetService {
         .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(LoadMapKeys.LOAD_TAG, computedLoadTag)
-        .addParameter(
-            LoadMapKeys.DRIVER_WAIT_SECONDS,
-            configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
-        .addParameter(
-            LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE,
-            configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE))
-        .addParameter(
-            LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS,
-            configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS))
         .submit();
   }
 

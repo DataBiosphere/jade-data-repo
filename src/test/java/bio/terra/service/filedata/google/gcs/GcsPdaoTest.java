@@ -148,7 +148,7 @@ public class GcsPdaoTest {
         contents.add(fileContents);
       }
 
-      gcsPdao.writeGcsFileLines(path, contents, projectId);
+      gcsPdao.writeGcsFileLines(path, String.join("\n", contents), projectId);
       List<String> writtenContents = gcsPdao.getGcsFilesLines(path, projectId);
 
       assertThat("Lines are correctly written to file", contents, equalTo(writtenContents));

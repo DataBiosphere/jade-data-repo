@@ -47,7 +47,7 @@ public class IngestBuildLoadFileStep extends SkippableStep {
                     BulkLoadFileResultModel::getFileId));
 
     // Part 2 -> Replace BulkLoadFileModels with file id
-    List<String> linesWithFileIds =
+    String linesWithFileIds =
         jsonLines.stream()
             .peek(
                 node -> {
@@ -67,7 +67,7 @@ public class IngestBuildLoadFileStep extends SkippableStep {
                   }
                 })
             .map(JsonNode::toString)
-            .collect(Collectors.toList());
+            .collect(Collectors.joining("\n"));
     workingMap.put(IngestMapKeys.LINES_WITH_FILE_IDS, linesWithFileIds);
 
     return StepResult.getStepResultSuccess();

@@ -17,7 +17,6 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
@@ -26,8 +25,8 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import java.io.IOException;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -112,12 +111,8 @@ public class GcsPdao {
   private List<String> getGcsFileLines(Blob blob, String projectId, Storage storage) {
     String gsPath = GcsPdao.getGsPathFromBlob(blob);
     logger.info("Getting lines from {}", gsPath);
-    try (var reader = new GcsBufferedReader(storage, projectId, blob)) {
-      return reader.lines().collect(Collectors.toList());
-    } catch (IOException ex) {
-      throw new GoogleResourceException(
-          String.format("Failure reading lines from GCS file at %s", gsPath), ex);
-    }
+    String blobContents = GcsIO.getBlobContents(storage, projectId, blob);
+    return Arrays.stream(blobContents.split("\n")).collect(Collectors.toList());
   }
 
   /**
@@ -127,15 +122,10 @@ public class GcsPdao {
    * @param contentsToWrite contents to write to file
    * @param projectId project for billing
    */
-  public void writeGcsFileLines(String path, List<String> contentsToWrite, String projectId) {
+  public void writeGcsFileLines(String path, String contentsToWrite, String projectId) {
     Storage storage = gcsProjectFactory.getStorage(projectId);
-    String linesToWrite = String.join("\n", contentsToWrite);
     logger.info("Writing lines to {}", path);
-    try (var writer = new GcsBufferedWriter(storage, projectId, path)) {
-      writer.write(linesToWrite);
-    } catch (IOException ex) {
-      throw new GoogleResourceException(String.format("Failure writing GCS file at %s", path), ex);
-    }
+    GcsIO.writeBlobContents(storage, projectId, path, contentsToWrite);
   }
 
   /**

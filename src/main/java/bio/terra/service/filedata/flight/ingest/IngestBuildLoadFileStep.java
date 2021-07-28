@@ -57,11 +57,10 @@ public class IngestBuildLoadFileStep extends SkippableStep {
                       // replace
                       BulkLoadFileModel fileModel =
                           Optional.of(
-                                  objectMapper.convertValue(
-                                      fileRefNode, BulkLoadFileModel.class))
+                                  objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class))
                               .orElseThrow();
-                      int fileKey = Objects.hash(fileModel.getSourcePath(),
-                          fileModel.getTargetPath());
+                      int fileKey =
+                          Objects.hash(fileModel.getSourcePath(), fileModel.getTargetPath());
                       String fileId = pathToFileIdMap.get(fileKey);
                       ((ObjectNode) node).put(columnName, fileId);
                     }

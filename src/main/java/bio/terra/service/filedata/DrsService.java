@@ -3,6 +3,8 @@ package bio.terra.service.filedata;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessMethod.TypeEnum;
 import bio.terra.model.DRSAccessURL;
@@ -11,6 +13,7 @@ import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
@@ -21,13 +24,16 @@ import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
+import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import com.azure.storage.blob.BlobUrlParts;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -71,6 +77,8 @@ public class DrsService {
   private final ConfigurationService configurationService;
   private final JobService jobService;
   private final PerformanceLogger performanceLogger;
+  private final ProfileService profileService;
+  private final AzureResourceConfiguration resourceConfiguration;
 
   @Autowired
   public DrsService(
@@ -81,7 +89,9 @@ public class DrsService {
       ResourceService resourceService,
       ConfigurationService configurationService,
       JobService jobService,
-      PerformanceLogger performanceLogger) {
+      PerformanceLogger performanceLogger,
+      ProfileService profileService,
+      AzureResourceConfiguration resourceConfiguration) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -90,6 +100,8 @@ public class DrsService {
     this.configurationService = configurationService;
     this.jobService = jobService;
     this.performanceLogger = performanceLogger;
+    this.profileService = profileService;
+    this.resourceConfiguration = resourceConfiguration;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -196,7 +208,11 @@ public class DrsService {
 
     DrsId drsId = drsIdService.fromObjectId(objectId);
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()));
-    GoogleProjectResource projectResource = snapshot.getProjectResource();
+
+    BillingProfileModel billingProfileModel =
+        profileService.getProfileById(snapshot.getProfileId(), authUser);
+
+    CloudPlatformWrapper wrapper = CloudPlatformWrapper.of(billingProfileModel.getCloudPlatform());
 
     DRSAccessMethod matchingAccessMethod =
         getAccessMethodMatchingAccessId(accessId, drsObject)
@@ -205,22 +221,11 @@ public class DrsService {
                     new IllegalArgumentException(
                         "No matching access ID " + accessId + " was found on object " + objectId));
 
-    Storage storage =
-        StorageOptions.newBuilder()
-            .setProjectId(projectResource.getGoogleProjectId())
-            .build()
-            .getService();
-    String gsPath = matchingAccessMethod.getAccessUrl().getUrl();
-    GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(gsPath);
-
-    BlobInfo blobInfo =
-        BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
-
-    URL url =
-        storage.signUrl(
-            blobInfo, URL_TTL, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
-
-    return new DRSAccessURL().url(url.toString());
+    if (wrapper.isGcp()) {
+      return signGoogleUrl(snapshot, matchingAccessMethod);
+    } else {
+      return signAzureUrl(billingProfileModel, snapshot, drsId);
+    }
   }
 
   private Optional<DRSAccessMethod> getAccessMethodMatchingAccessId(
@@ -231,6 +236,46 @@ public class DrsService {
                 drsAccessMethod.getType().equals(TypeEnum.GS)
                     && drsAccessMethod.getAccessId().equals(accessId))
         .findFirst();
+  }
+
+  private DRSAccessURL signAzureUrl(BillingProfileModel profileModel, Snapshot snapshot, DrsId drsId) {
+    FSItem fsObject = null;
+    try {
+      fsObject = fileService.lookupSnapshotFSItem(
+          snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()), drsId.getFsObjectId(), 1);
+
+      BlobUrlParts blobUrl = BlobUrlParts.parse(fsObject.getPath());
+      BlobContainerClientFactory sourceClientFactory =
+          new BlobContainerClientFactory(
+              blobUrl.getAccountName(),
+              resourceConfiguration.getAppToken(UUID.fromString(profileModel.getTenantId())),
+              blobUrl.getBlobContainerName());
+
+      return new DRSAccessURL().url(sourceClientFactory.createReadOnlySasUrlForBlob(blobUrl.getBlobName()));
+    } catch (InterruptedException e) {
+      throw new FileSystemExecutionException(
+          "Unexpected interruption during file system processing", e);
+    }
+  }
+
+  private DRSAccessURL signGoogleUrl(Snapshot snapshot, DRSAccessMethod accessMethod) {
+    GoogleProjectResource projectResource = snapshot.getProjectResource();
+    Storage storage =
+        StorageOptions.newBuilder()
+            .setProjectId(projectResource.getGoogleProjectId())
+            .build()
+            .getService();
+    String gsPath = accessMethod.getAccessUrl().getUrl();
+    GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(gsPath);
+
+    BlobInfo blobInfo =
+        BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
+
+    URL url =
+        storage.signUrl(
+            blobInfo, URL_TTL, TimeUnit.MINUTES, Storage.SignUrlOption.withV4Signature());
+
+    return new DRSAccessURL().url(url.toString());
   }
 
   private DRSObject drsObjectFromFSFile(

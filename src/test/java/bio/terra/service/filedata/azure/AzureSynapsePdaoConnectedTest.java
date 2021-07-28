@@ -10,6 +10,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.stairway.ShortUUID;
 import java.security.InvalidParameterException;
+import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,17 +48,16 @@ public class AzureSynapsePdaoConnectedTest {
     connectedOperations.stubOutSamCalls(samService);
     billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
-    //TODO - we don't really need a full dataset
+    // TODO - we don't really need a full dataset
     // Replace this with just an entry in the db w/ the table schema
-    datasetSummary = connectedOperations.createDataset(
-        billingProfile, "azure-simple-dataset.json");
+    datasetSummary = connectedOperations.createDataset(billingProfile, "azure-simple-dataset.json");
   }
 
   @After
   public void cleanup() throws Exception {
     azureSynapsePdao.cleanSynapseEntries(randomFlightId);
 
-    //TODO - Clean out test parquet files
+    // TODO - Clean out test parquet files
 
     connectedOperations.teardown();
   }
@@ -74,11 +74,13 @@ public class AzureSynapsePdaoConnectedTest {
     String destinationTableName = "participant";
     String destinationParquetFile = "parquet/" + randomFlightId + ".parquet";
 
+    UUID tenantId = UUID.fromString(billingProfile.getTenantId());
+
     // ---- ingest steps ---
     // 1 - Create external data source for the ingest control file
-    azureSynapsePdao.createExternalDataSource(ingestFileLocation, randomFlightId);
+    azureSynapsePdao.createExternalDataSource(ingestFileLocation, tenantId, randomFlightId);
 
-    // TODO - Add basic check to make sure the data source is created succesfully
+    // TODO - Add basic check to make sure the data source is created successfully
     // Maybe a basic query?
 
     // 2 - Retrieve info about database schema so that we can populate the parquet create query
@@ -94,12 +96,12 @@ public class AzureSynapsePdaoConnectedTest {
     azureSynapsePdao.createParquetFiles(
         destinationTable, ingestFileName, destinationParquetFile, randomFlightId);
 
-    //TODO - Add check that the parquet files were successfully created.
+    // TODO - Add check that the parquet files were successfully created.
     // How do we query the parquet files?
 
     // 4 - clean out synapse
-      // we'll do this in the test cleanup method, but it will be a step in the normal flight
-      //azureSynapsePdao.cleanSynapseEntries(randomFlightId);
+    // we'll do this in the test cleanup method, but it will be a step in the normal flight
+    // azureSynapsePdao.cleanSynapseEntries(randomFlightId);
 
   }
 }

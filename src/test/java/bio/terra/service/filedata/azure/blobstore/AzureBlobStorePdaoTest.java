@@ -33,6 +33,7 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
 import java.nio.charset.StandardCharsets;
@@ -92,7 +93,7 @@ public class AzureBlobStorePdaoTest {
   private FileLoadModel fileLoadModel;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     dao = spy(dao);
 
     TokenCredential targetCredential = mock(TokenCredential.class);
@@ -115,7 +116,7 @@ public class AzureBlobStorePdaoTest {
     doReturn(sourceBlobContainerFactory)
         .when(dao)
         .getSourceClientFactory(anyString(), any(), anyString());
-    doReturn(sourceBlobContainerFactory).when(dao).getSourceClientFactory(anyString());
+    doReturn(sourceBlobContainerFactory).when(dao).getSourceClientFactory(any());
     doReturn(blobCrl).when(dao).getBlobCrl(any());
   }
 
@@ -222,29 +223,34 @@ public class AzureBlobStorePdaoTest {
     assertTrue(
         "is valid",
         AzureBlobStorePdao.isSignedUrl(
-            "https://src.blob.core.windows.net/srcdata/src.txt"
-                + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
-                + "sr=b&sig=mysig"));
+            BlobUrlParts.parse(
+                "https://src.blob.core.windows.net/srcdata/src.txt"
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
+                    + "sr=b&sig=mysig")));
     assertFalse(
         "no sas token",
-        AzureBlobStorePdao.isSignedUrl("https://src.blob.core.windows.net/srcdata/src.txt"));
+        AzureBlobStorePdao.isSignedUrl(
+            BlobUrlParts.parse("https://src.blob.core.windows.net/srcdata/src.txt")));
     assertFalse(
         "tld is wrong",
         AzureBlobStorePdao.isSignedUrl(
-            "https://src.foo.core.windows.net/srcdata/src.txt"
-                + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"
-                + "&sr=b&sig=mysig"));
+            BlobUrlParts.parse(
+                "https://src.foo.core.windows.net/srcdata/src.txt"
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"
+                    + "&sr=b&sig=mysig")));
     assertFalse(
         "missing fields (sr and sig are removed)",
         AzureBlobStorePdao.isSignedUrl(
-            "https://src.foo.core.windows.net/srcdata/src.txt"
-                + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"));
+            BlobUrlParts.parse(
+                "https://src.foo.core.windows.net/srcdata/src.txt"
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04")));
     assertTrue(
         "extra fields don't hurt",
         AzureBlobStorePdao.isSignedUrl(
-            "https://src.blob.core.windows.net/srcdata/src.txt"
-                + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
-                + "sr=b&sig=mysig"));
+            BlobUrlParts.parse(
+                "https://src.blob.core.windows.net/srcdata/src.txt"
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
+                    + "sr=b&sig=mysig")));
   }
 
   private FSFileInfo mockFileCopy(UUID fileId) {

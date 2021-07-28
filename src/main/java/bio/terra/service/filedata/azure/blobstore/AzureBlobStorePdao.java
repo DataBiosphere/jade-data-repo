@@ -75,17 +75,8 @@ public class AzureBlobStorePdao {
         getTargetDataClientFactory(profileModel, storageAccountResource, false);
 
     BlobUrlParts blobUrl = BlobUrlParts.parse(fileLoadModel.getSourcePath());
-    BlobContainerClientFactory sourceClientFactory;
-    if (isSignedUrl(fileLoadModel.getSourcePath())) {
-      sourceClientFactory = getSourceClientFactory(fileLoadModel.getSourcePath());
-    } else {
-      // Use application level authentication
-      sourceClientFactory =
-          getSourceClientFactory(
-              blobUrl.getAccountName(),
-              resourceConfiguration.getAppToken(profileModel.getTenantId()),
-              blobUrl.getBlobContainerName());
-    }
+    BlobContainerClientFactory sourceClientFactory =
+        getOrBuildClientFactory(UUID.fromString(profileModel.getTenantId()), blobUrl);
 
     BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
 
@@ -110,6 +101,18 @@ public class AzureBlobStorePdao {
         .checksumMd5(Base64.getEncoder().encodeToString((blobProperties.getContentMd5())))
         .size(blobProperties.getBlobSize())
         .bucketResourceId(storageAccountResource.getResourceId().toString());
+  }
+
+  public BlobContainerClientFactory getOrBuildClientFactory(UUID tenantId, BlobUrlParts blobUrl) {
+    if (isSignedUrl(fileLoadModel.getSourcePath())) {
+      return getSourceClientFactory(fileLoadModel.getSourcePath());
+    } else {
+      // Use application level authentication
+      return getSourceClientFactory(
+              blobUrl.getAccountName(),
+              resourceConfiguration.getAppToken(profileModel.getTenantId()),
+              blobUrl.getBlobContainerName());
+    }
   }
 
   public boolean deleteDataFileById(
@@ -222,8 +225,8 @@ public class AzureBlobStorePdao {
   }
 
   @VisibleForTesting
-  BlobContainerClientFactory getSourceClientFactory(String sourceUrl) {
-    return new BlobContainerClientFactory(sourceUrl);
+  BlobContainerClientFactory getSourceClientFactory(BlobUrlParts blobUrl) {
+    return new BlobContainerClientFactory(blobUrl);
   }
 
   @VisibleForTesting
@@ -234,9 +237,7 @@ public class AzureBlobStorePdao {
 
   /** Detects if a URL is a signed URL */
   @VisibleForTesting
-  static boolean isSignedUrl(String url) {
-    BlobUrlParts blobUrlParts = BlobUrlParts.parse(url);
-
+  static boolean isSignedUrl(BlobUrlParts blobUrlParts) {
     if (VALID_TLDS.stream().noneMatch(h -> blobUrlParts.getHost().toLowerCase().endsWith(h))) {
       return false;
     }

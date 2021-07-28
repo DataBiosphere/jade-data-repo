@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.model.BillingProfileModel;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.sas.BlobContainerSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.sas.SasProtocol;
@@ -44,7 +45,7 @@ public class AzureContainerPdao {
     return blobContainerClient;
   }
 
-  public String getDestinationContainerSignedUrl(
+  public BlobUrlParts getDestinationContainerSignedUrl(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
       AzureStorageAccountResource.ContainerType containerType,
@@ -73,8 +74,10 @@ public class AzureContainerPdao {
 
     BlobContainerClient containerClient =
         getOrCreateContainer(profileModel, storageAccountResource, containerType);
-    return String.format(
-        "%s?%s",
-        containerClient.getBlobContainerUrl(), containerClient.generateSas(sasSignatureValues));
+    return BlobUrlParts.parse(
+        String.format(
+            "%s?%s",
+            containerClient.getBlobContainerUrl(),
+            containerClient.generateSas(sasSignatureValues)));
   }
 }

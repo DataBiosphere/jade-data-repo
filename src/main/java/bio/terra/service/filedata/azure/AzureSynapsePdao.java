@@ -3,6 +3,8 @@ package bio.terra.service.filedata.azure;
 import bio.terra.common.Column;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
@@ -11,10 +13,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
-import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,37 +34,28 @@ public class AzureSynapsePdao {
   private static final String TABLE_NAME_PREFIX = "ingest_";
 
   private final AzureResourceConfiguration azureResourceConfiguration;
+  private final AzureBlobStorePdao azureBlobStorePdao;
 
   @Autowired
-  public AzureSynapsePdao(AzureResourceConfiguration azureResourceConfiguration) {
+  public AzureSynapsePdao(
+      AzureResourceConfiguration azureResourceConfiguration,
+      AzureBlobStorePdao azureBlobStorePdao) {
     this.azureResourceConfiguration = azureResourceConfiguration;
+    this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
-  // -----TODO - Remove. Copied over from Muscle's PR----
-  private static final Set<String> VALID_TLDS =
-      Set.of("blob.core.windows.net", "dfs.core.windows.net");
-
-  static boolean isSignedUrl(String url) {
-    BlobUrlParts blobUrlParts = BlobUrlParts.parse(url);
-
-    if (VALID_TLDS.stream().noneMatch(h -> blobUrlParts.getHost().toLowerCase().endsWith(h))) {
-      return false;
-    }
-    return !StringUtils.isEmpty(blobUrlParts.getCommonSasQueryParameters().getSignature());
-  }
-  // --- end of copied code ---
-
-  public void createExternalDataSource(String ingestControlFilePath, String flightId)
+  public void createExternalDataSource(String ingestControlFilePath, UUID tenantId, String flightId)
       throws NotImplementedException, SQLException {
-    BlobUrlParts blobUrl = BlobUrlParts.parse(ingestControlFilePath);
-    AzureSasCredential blobContainerSasTokenCreds;
-    if (isSignedUrl(ingestControlFilePath)) {
-      blobContainerSasTokenCreds =
-          new AzureSasCredential(blobUrl.getCommonSasQueryParameters().encode());
-    } else {
-      // TODO - sign urls if not already provided
-      throw new NotImplementedException("Add implementation to handle urls without signature");
-    }
+
+    BlobUrlParts original_blobUrlParts = BlobUrlParts.parse(ingestControlFilePath);
+    String blobName = original_blobUrlParts.getBlobName();
+    BlobContainerClientFactory sourceClientFactory =
+        azureBlobStorePdao.getOrBuildClientFactory(tenantId, original_blobUrlParts);
+
+    String signedURL = sourceClientFactory.createReadOnlySasUrlForBlob(blobName);
+    BlobUrlParts blobUrl = BlobUrlParts.parse(signedURL);
+    AzureSasCredential blobContainerSasTokenCreds =
+        new AzureSasCredential(blobUrl.getCommonSasQueryParameters().encode());
 
     String sasTokenName = getSasTokenName(flightId);
     String dataSourceName = getDataSourceName(flightId);
@@ -126,10 +118,10 @@ public class AzureSynapsePdao {
             + dataSourceName
             + "',\n                                "
             + "FORMAT='CSV'" // TODO - switch on control file
-            +",\n                                "
+            + ",\n                                "
             + "PARSER_VERSION = '2.0'"
             + ",\n                                "
-            + "FIRSTROW = 2)\n" //TODO - allow this as input
+            + "FIRSTROW = 2)\n" // TODO - allow this as input
             + "WITH (\n      "
             + buildTableSchema(datasetTable)
             + ") AS rows;");

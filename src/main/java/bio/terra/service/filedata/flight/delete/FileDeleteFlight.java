@@ -3,12 +3,14 @@ package bio.terra.service.filedata.flight.delete;
 import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -29,6 +31,7 @@ public class FileDeleteFlight extends Flight {
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
+    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
@@ -44,6 +47,8 @@ public class FileDeleteFlight extends Flight {
     //  We should NOT put code like that in the flight constructor.
     //  ** Well, what we really should do is fix Stairway to throw the contained exception **
     Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+
+    var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 
     RetryRule fileSystemRetry = getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule lockDatasetRetry =
@@ -68,7 +73,11 @@ public class FileDeleteFlight extends Flight {
         new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao, configService),
         fileSystemRetry);
     addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset), fileSystemRetry);
-    addStep(new DeleteFilePrimaryDataStep(gcsPdao, resourceService));
+    if (platform.isGcp()) {
+      addStep(new DeleteFilePrimaryDataStep(gcsPdao, resourceService));
+    } else if (platform.isAzure()) {
+      addStep(new DeleteFileAzurePrimaryDataStep(azureBlobStorePdao));
+    }
     addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset), fileSystemRetry);
     addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
   }

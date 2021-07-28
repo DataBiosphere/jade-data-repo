@@ -26,7 +26,7 @@ import org.springframework.stereotype.Component;
  * have dependencies or creating files with duplicate paths.
  */
 @Component
-class TableFileDao {
+public class TableFileDao {
   private final Logger logger = LoggerFactory.getLogger(TableFileDao.class);
   private final FireStoreUtils fireStoreUtils;
   private final ExecutorService executor;

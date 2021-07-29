@@ -12,6 +12,7 @@ import bio.terra.service.dataset.StorageResource;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.springframework.validation.Errors;
@@ -88,6 +89,8 @@ public abstract class CloudPlatformWrapper {
   public abstract GoogleRegion getGoogleRegionFromDatasetRequestModel(
       DatasetRequestModel datasetRequestModel);
 
+  public abstract <T> T doForPlatform(Supplier<T> gcpFunc, Supplier<T> azureFunc);
+
   static class GcpPlatform extends CloudPlatformWrapper {
     static final GcpPlatform INSTANCE = new GcpPlatform();
 
@@ -134,6 +137,11 @@ public abstract class CloudPlatformWrapper {
         DatasetRequestModel datasetRequestModel) {
       return GoogleRegion.fromValueWithDefault(datasetRequestModel.getRegion());
     }
+
+    @Override
+    public <T> T doForPlatform(Supplier<T> gcpFunc, Supplier<T> azureFunc) {
+      return gcpFunc.get();
+    }
   }
 
   static class AzurePlatform extends CloudPlatformWrapper {
@@ -171,6 +179,11 @@ public abstract class CloudPlatformWrapper {
     public GoogleRegion getGoogleRegionFromDatasetRequestModel(
         DatasetRequestModel datasetRequestModel) {
       return GoogleRegion.fromValueWithDefault(datasetRequestModel.getGcpRegion());
+    }
+
+    @Override
+    public <T> T doForPlatform(Supplier<T> gcpFunc, Supplier<T> azureFunc) {
+      return azureFunc.get();
     }
   }
 }

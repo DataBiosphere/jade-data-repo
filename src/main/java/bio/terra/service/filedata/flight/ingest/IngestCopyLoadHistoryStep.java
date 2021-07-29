@@ -1,125 +1,49 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.exception.NotImplementedException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.LoadService.LoadHistoryIterator;
 import bio.terra.service.load.flight.LoadMapKeys;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.*;
+import bio.terra.stairway.exception.DatabaseOperationException;
 import java.time.Instant;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class IngestCopyLoadHistoryStep implements Step {
-  private static final Logger logger = LoggerFactory.getLogger(IngestBulkFileResponseStep.class);
+public abstract class IngestCopyLoadHistoryStep {
 
-  private final LoadService loadService;
-  private final DatasetService datasetService;
-  private final String loadTag;
-  private final String datasetIdString;
-  private final BigQueryPdao bigQueryPdao;
-  private final CloudPlatformWrapper platform;
-  private final int fileChunkSize;
-  private final int waitSeconds;
-
-  public IngestCopyLoadHistoryStep(
+  public IngestCopyLoadHistoryResources getResources(
+      FlightContext context,
       LoadService loadService,
       DatasetService datasetService,
-      String loadTag,
-      String datasetId,
-      BigQueryPdao bigQueryPdao,
-      CloudPlatformWrapper platform,
-      int fileChunkSize,
-      int waitSeconds) {
-    this.loadService = loadService;
-    this.loadTag = loadTag;
-    this.datasetIdString = datasetId;
-    this.bigQueryPdao = bigQueryPdao;
-    this.datasetService = datasetService;
-    this.platform = platform;
-    this.fileChunkSize = fileChunkSize;
-    this.waitSeconds = waitSeconds;
-  }
-
-  @Override
-  public StepResult doStep(FlightContext context) {
-    FlightMap workingMap = context.getWorkingMap();
-    String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
-    UUID loadId = UUID.fromString(loadIdString);
-    UUID datasetId = UUID.fromString(datasetIdString);
-    Dataset dataset = datasetService.retrieve(datasetId);
-
-    String flightId = context.getFlightId();
-    String tableName_FlightId = flightId.replaceAll("[^a-zA-Z0-9]", "_");
+      UUID datasetId,
+      int loadHistoryChunkSize)
+      throws InterruptedException {
     try {
-      Instant loadTime = context.getStairway().getFlightState(flightId).getSubmitted();
-      LoadHistoryIterator historyIterator = loadService.loadHistoryIterator(loadId, fileChunkSize);
+      FlightMap workingMap = context.getWorkingMap();
+      String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
 
-      if (platform.isGcp()) {
-        doGcpStep(dataset, tableName_FlightId, loadTime, historyIterator);
-      } else {
-        doAzureStep();
-      }
-    } catch (Exception ex) {
-      logger.error("Failed during copy of load history to BQ for flight: " + flightId, ex);
-    }
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    String flightId = context.getFlightId();
-    if (platform.isGcp()) {
-      undoGcpStep(flightId);
-    } else {
-      undoAzureStep();
-    }
-    return StepResult.getStepResultSuccess();
-  }
-
-  private void doGcpStep(
-      Dataset dataset,
-      String tableName,
-      Instant loadTime,
-      LoadService.LoadHistoryIterator loadHistoryIterator)
-      throws Exception {
-    bigQueryPdao.createStagingLoadHistoryTable(dataset, tableName);
-    TimeUnit.SECONDS.sleep(waitSeconds);
-    while (loadHistoryIterator.hasNext()) {
-      var array = loadHistoryIterator.next();
-      // send list plus load_tag, load_time to BQ to be put in a staging table
-      bigQueryPdao.loadHistoryToStagingTable(dataset, tableName, loadTag, loadTime, array);
-
-      // Sleep to avoid BQ rate limit error
-      // From quick survey of logs, longest time to complete load query: 3 seconds
-      TimeUnit.SECONDS.sleep(waitSeconds);
-    }
-
-    // copy from staging to actual BQ table
-    bigQueryPdao.mergeStagingLoadHistoryTable(dataset, tableName);
-    bigQueryPdao.deleteStagingLoadHistoryTable(dataset, tableName);
-  }
-
-  private void doAzureStep() {
-    throw new NotImplementedException("Azure load history not yet implemented");
-  }
-
-  private void undoGcpStep(String flightId) {
-    try {
-      UUID datasetId = UUID.fromString(datasetIdString);
+      UUID loadId = UUID.fromString(loadIdString);
       Dataset dataset = datasetService.retrieve(datasetId);
-      bigQueryPdao.deleteStagingLoadHistoryTable(dataset, flightId);
-    } catch (Exception ex) {
-      logger.error("Failure deleting load history staging table for flight: " + flightId, ex);
+      Instant loadTime = context.getStairway().getFlightState(context.getFlightId()).getSubmitted();
+      LoadHistoryIterator loadHistoryIterator =
+          loadService.loadHistoryIterator(loadId, loadHistoryChunkSize);
+
+      IngestCopyLoadHistoryResources resources = new IngestCopyLoadHistoryResources();
+      resources.loadId = loadId;
+      resources.dataset = dataset;
+      resources.loadTime = loadTime;
+      resources.loadHistoryIterator = loadHistoryIterator;
+      return resources;
+    } catch (DatabaseOperationException ex) {
+      throw new RuntimeException("Failed to get stairway flight state", ex);
     }
   }
 
-  private void undoAzureStep() {
-    logger.error("Should never be an azure step");
+  class IngestCopyLoadHistoryResources {
+    UUID loadId;
+    Dataset dataset;
+    Instant loadTime;
+    LoadHistoryIterator loadHistoryIterator;
   }
 }

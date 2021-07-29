@@ -90,7 +90,7 @@ jobs:
         uses: broadinstitute/workflow-dispatch@v1
         with:
           workflow: Update API Helm Image Tags
-          token: ${{ secrets.WORKFLOW_DISPATCH }}
+          token: ${{ secrets.BROADBOT_TOKEN }}
       - name: Slack job status
         if: always()
         uses: broadinstitute/action-slack@v3.8.0

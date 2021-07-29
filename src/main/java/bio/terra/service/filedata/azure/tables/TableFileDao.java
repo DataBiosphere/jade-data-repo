@@ -87,7 +87,11 @@ public class TableFileDao {
    */
   List<FireStoreFile> batchRetrieveFileMetadata(
       TableServiceClient tableServiceClient, List<FireStoreDirectoryEntry> directoryEntries) {
-    List<FireStoreFile> files = new ArrayList<>();
+    return directoryEntries.stream()
+      .map(f ->
+          Optional.ofNullable(retrieveFileMetadata(tableServiceClient, f.getFileId())).orElseThrow(() ->
+              new FileSystemCorruptException("Directory entry refers to non-existent file"))))
+      .collect(Collectors.toList());
     for (FireStoreDirectoryEntry f : directoryEntries) {
       FireStoreFile fsFile = retrieveFileMetadata(tableServiceClient, f.getFileId());
       if (fsFile == null) {

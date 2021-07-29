@@ -75,7 +75,7 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
             .filter(Objects::nonNull)
             .distinct()
             .collect(Collectors.toList());
-    if (!maybeExceptions.isEmpty() ) {
+    if (!maybeExceptions.isEmpty()) {
       for (var iex : maybeExceptions) {
         logger.error("Encountered error while loading history into storage table", iex);
       }

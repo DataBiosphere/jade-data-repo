@@ -9,9 +9,10 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.google.api.core.SettableApiFuture;
 import com.google.common.collect.ImmutableList;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,18 +45,7 @@ public class TableFileDao {
   public void createFileMetadata(TableServiceClient tableServiceClient, FireStoreFile newFile) {
     tableServiceClient.createTableIfNotExists(TABLE_NAME);
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    TableEntity entity =
-        new TableEntity(PARTITION_KEY, newFile.getFileId())
-            .addProperty("fileId", newFile.getFileId())
-            .addProperty("mimeType", newFile.getMimeType())
-            .addProperty("description", newFile.getDescription())
-            .addProperty("bucketResourceId", newFile.getBucketResourceId())
-            .addProperty("loadTag", newFile.getLoadTag())
-            .addProperty("fileCreatedDate", newFile.getFileCreatedDate())
-            .addProperty("gspath", newFile.getGspath())
-            .addProperty("checksumCrc32c", newFile.getChecksumCrc32c())
-            .addProperty("checksumMd5", newFile.getChecksumMd5())
-            .addProperty("size", newFile.getSize());
+    TableEntity entity = FireStoreFile.toTableEntity(PARTITION_KEY, newFile);
     logger.info("creating file metadata for fileId: " + newFile.getFileId());
     tableClient.createEntity(entity);
   }
@@ -88,18 +78,14 @@ public class TableFileDao {
   List<FireStoreFile> batchRetrieveFileMetadata(
       TableServiceClient tableServiceClient, List<FireStoreDirectoryEntry> directoryEntries) {
     return directoryEntries.stream()
-      .map(f ->
-          Optional.ofNullable(retrieveFileMetadata(tableServiceClient, f.getFileId())).orElseThrow(() ->
-              new FileSystemCorruptException("Directory entry refers to non-existent file"))))
-      .collect(Collectors.toList());
-    for (FireStoreDirectoryEntry f : directoryEntries) {
-      FireStoreFile fsFile = retrieveFileMetadata(tableServiceClient, f.getFileId());
-      if (fsFile == null) {
-        throw new FileSystemCorruptException("Directory entry refers to non-existent file");
-      }
-      files.add(fsFile);
-    }
-    return files;
+        .map(
+            f ->
+                Optional.ofNullable(retrieveFileMetadata(tableServiceClient, f.getFileId()))
+                    .orElseThrow(
+                        () ->
+                            new FileSystemCorruptException(
+                                "Directory entry refers to non-existent file")))
+        .collect(Collectors.toList());
   }
 
   <V> void scanTableObjects(

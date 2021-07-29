@@ -182,4 +182,18 @@ public class FireStoreFile {
         .checksumMd5(entity.getProperty("checksumMd5").toString())
         .size((Long) entity.getProperty("size"));
   }
+
+  public static TableEntity toTableEntity(String partitionKey, FireStoreFile f) {
+    return new TableEntity(partitionKey, f.getFileId())
+        .addProperty("fileId", f.getFileId())
+        .addProperty("mimeType", f.getMimeType())
+        .addProperty("description", f.getDescription())
+        .addProperty("bucketResourceId", f.getBucketResourceId())
+        .addProperty("loadTag", f.getLoadTag())
+        .addProperty("fileCreatedDate", f.getFileCreatedDate())
+        .addProperty("gspath", f.getGspath())
+        .addProperty("checksumCrc32c", f.getChecksumCrc32c())
+        .addProperty("checksumMd5", f.getChecksumMd5())
+        .addProperty("size", f.getSize());
+  }
 }

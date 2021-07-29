@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.util;
 
+import static bio.terra.service.filedata.azure.util.BlobContainerClientFactory.SASPermission;
 import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;

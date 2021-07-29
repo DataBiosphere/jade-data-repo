@@ -31,7 +31,7 @@ public class TableFileDao {
   private final FireStoreUtils fireStoreUtils;
   private final ExecutorService executor;
   private static final String TABLE_NAME = "files";
-  private final String PARTITION_KEY = "partitionKey";
+  private static final String PARTITION_KEY = "partitionKey";
   private static final int DELETE_BATCH_SIZE = 500;
 
   @Autowired

@@ -30,7 +30,7 @@ public class TableFileDao {
   private final Logger logger = LoggerFactory.getLogger(TableFileDao.class);
   private final FireStoreUtils fireStoreUtils;
   private final ExecutorService executor;
-  private final String TABLE_NAME = "files";
+  private static final String TABLE_NAME = "files";
   private final String PARTITION_KEY = "partitionKey";
   private static final int DELETE_BATCH_SIZE = 500;
 

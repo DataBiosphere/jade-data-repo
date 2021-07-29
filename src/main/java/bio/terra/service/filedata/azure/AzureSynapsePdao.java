@@ -27,10 +27,6 @@ import org.springframework.stereotype.Component;
 public class AzureSynapsePdao {
   private static final Logger logger = LoggerFactory.getLogger(AzureSynapsePdao.class);
 
-  // TODO - Move db_name & parquet format name into app properties
-  private static final String DB_NAME = "datarepo";
-  private static final String PARQUET_FILE_FORMAT_NAME = "ParquetFileFormat";
-
   private final AzureResourceConfiguration azureResourceConfiguration;
   private final AzureBlobStorePdao azureBlobStorePdao;
 
@@ -109,7 +105,7 @@ public class AzureSynapsePdao {
             + destinationDataSourceName
             + "],\n    "
             + "FILE_FORMAT = ["
-            + PARQUET_FILE_FORMAT_NAME
+            + azureResourceConfiguration.getSynapse().getParquetFileFormatName()
             + "]\n"
             + ") AS SELECT * FROM OPENROWSET(BULK '"
             + ingestFileName
@@ -186,7 +182,7 @@ public class AzureSynapsePdao {
     ds.setServerName(azureResourceConfiguration.getSynapse().getWorkspaceName());
     ds.setUser(azureResourceConfiguration.getSynapse().getSqlAdminUser());
     ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
-    ds.setDatabaseName(DB_NAME);
+    ds.setDatabaseName(azureResourceConfiguration.getSynapse().getDatabaseName());
     return ds;
   }
 

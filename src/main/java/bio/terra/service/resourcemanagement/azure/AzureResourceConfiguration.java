@@ -124,6 +124,8 @@ public class AzureResourceConfiguration {
     private String workspaceName;
     private String sqlAdminUser;
     private String sqlAdminPassword;
+    private String databaseName;
+    private String parquetFileFormatName;
 
     public String getWorkspaceName() {
       return workspaceName;
@@ -147,6 +149,22 @@ public class AzureResourceConfiguration {
 
     public void setSqlAdminPassword(String sqlAdminPassword) {
       this.sqlAdminPassword = sqlAdminPassword;
+    }
+
+    public String getDatabaseName() {
+      return databaseName;
+    }
+
+    public void setDatabaseName(String databaseName) {
+      this.databaseName = databaseName;
+    }
+
+    public String getParquetFileFormatName() {
+      return parquetFileFormatName;
+    }
+
+    public void setParquetFileFormatName(String parquetFileFormatName) {
+      this.parquetFileFormatName = parquetFileFormatName;
     }
   }
 }

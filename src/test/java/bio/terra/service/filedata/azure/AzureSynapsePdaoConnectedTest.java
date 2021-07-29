@@ -7,6 +7,8 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.iam.IamProviderInterface;
@@ -88,8 +90,9 @@ public class AzureSynapsePdaoConnectedTest {
 
   @Test
   public void testSynapseQuery() throws Exception {
-    // ----- ingest Input parameters----
-    // TODO - Once we add ability to sign urls, remove the signature from this test url
+    // Let's build a fake ingest dataset request
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
 
     // Currently, the parquet files will live in the same location as the ingest control file
     String destinationTableName = "participant";
@@ -133,12 +136,14 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 4 - Create parquet files via external table
     azureSynapsePdao.createParquetFiles(
+        ingestRequest.getFormat(),
         destinationTable,
         ingestFileName,
         destinationParquetFile,
         destinationDataSourceName,
         controlFileDataSourceName,
-        tableName);
+        tableName,
+        ingestRequest.getCsvSkipLeadingRows());
 
     // TODO - Add check that the parquet files were successfully created.
     // How do we query the parquet files?

@@ -76,7 +76,7 @@ public class AzureBlobStorePdao {
 
     BlobUrlParts blobUrl = BlobUrlParts.parse(fileLoadModel.getSourcePath());
     BlobContainerClientFactory sourceClientFactory =
-        getOrBuildClientFactory(UUID.fromString(profileModel.getTenantId()), blobUrl);
+        buildSourceClientFactory(profileModel.getTenantId(), blobUrl);
 
     BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
 
@@ -103,15 +103,15 @@ public class AzureBlobStorePdao {
         .bucketResourceId(storageAccountResource.getResourceId().toString());
   }
 
-  public BlobContainerClientFactory getOrBuildClientFactory(UUID tenantId, BlobUrlParts blobUrl) {
-    if (isSignedUrl(fileLoadModel.getSourcePath())) {
-      return getSourceClientFactory(fileLoadModel.getSourcePath());
+  public BlobContainerClientFactory buildSourceClientFactory(UUID tenantId, BlobUrlParts blobUrl) {
+    if (isSignedUrl(blobUrl)) {
+      return getSourceClientFactory(blobUrl);
     } else {
       // Use application level authentication
       return getSourceClientFactory(
-              blobUrl.getAccountName(),
-              resourceConfiguration.getAppToken(profileModel.getTenantId()),
-              blobUrl.getBlobContainerName());
+          blobUrl.getAccountName(),
+          resourceConfiguration.getAppToken(tenantId),
+          blobUrl.getBlobContainerName());
     }
   }
 

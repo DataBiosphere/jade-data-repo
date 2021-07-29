@@ -3,6 +3,7 @@ package bio.terra.service.filedata.azure;
 import static bio.terra.service.filedata.azure.util.BlobContainerClientFactory.SASPermission;
 
 import bio.terra.common.Column;
+import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -39,23 +40,29 @@ public class AzureSynapsePdao {
   }
 
   public void createExternalDataSource(
-      String ingestControlFilePath,
+      String dataSourceUrl,
       UUID tenantId,
       String scopedCredentialName,
       String dataSourceName,
       SASPermission permissionType)
       throws NotImplementedException, SQLException {
 
-    BlobUrlParts original_blobUrlParts = BlobUrlParts.parse(ingestControlFilePath);
-    String blobName = original_blobUrlParts.getBlobName();
+    // parse user provided url to Azure container - can be signed or unsigned
+    BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
+    String blobName = ingestControlFileBlobUrl.getBlobName();
+
+    // during factory build, we check if url is signed
+    // if not signed, we generate the sas token
+    // when signing, 'tdr' (the Azure app), must be granted permission on the storage account
+    // associated with the provided tenant ID
     BlobContainerClientFactory sourceClientFactory =
-        azureBlobStorePdao.getOrBuildClientFactory(tenantId, original_blobUrlParts);
+        azureBlobStorePdao.buildSourceClientFactory(tenantId, ingestControlFileBlobUrl);
 
+    // Given the sas token, rebuild a signed url
     String signedURL = sourceClientFactory.createSasUrlForBlob(blobName, permissionType);
-
-    BlobUrlParts blobUrl = BlobUrlParts.parse(signedURL);
+    BlobUrlParts signedBlobUrl = BlobUrlParts.parse(signedURL);
     AzureSasCredential blobContainerSasTokenCreds =
-        new AzureSasCredential(blobUrl.getCommonSasQueryParameters().encode());
+        new AzureSasCredential(signedBlobUrl.getCommonSasQueryParameters().encode());
 
     runAQuery(
         "CREATE DATABASE SCOPED CREDENTIAL ["
@@ -73,11 +80,11 @@ public class AzureSynapsePdao {
             + "]\n"
             + "WITH (\n"
             + "LOCATION = '"
-            + blobUrl.getScheme()
+            + signedBlobUrl.getScheme()
             + "://"
-            + blobUrl.getHost()
+            + signedBlobUrl.getHost()
             + "/"
-            + blobUrl.getBlobContainerName()
+            + signedBlobUrl.getBlobContainerName()
             + "',\n"
             + "CREDENTIAL = ["
             + scopedCredentialName
@@ -85,12 +92,14 @@ public class AzureSynapsePdao {
   }
 
   public void createParquetFiles(
+      FormatEnum ingestRequestFormat,
       DatasetTable datasetTable,
       String ingestFileName,
       String destinationParquetFile,
       String destinationDataSourceName,
       String controlFileDataSourceName,
-      String ingestTableName)
+      String ingestTableName,
+      int csvSkipLeadingRows)
       throws SQLException {
     // build the ingest request
     runAQuery(
@@ -113,17 +122,21 @@ public class AzureSynapsePdao {
             + "DATA_SOURCE = '"
             + controlFileDataSourceName
             + "',\n                                "
-            + "FORMAT='CSV'" // TODO - switch on control file
+            + "FORMAT='"
+            + ingestRequestFormat.toString().toUpperCase()
+            + "'"
             + ",\n                                "
             + "PARSER_VERSION = '2.0'"
             + ",\n                                "
-            + "FIRSTROW = 2)\n" // TODO - allow this as input
+            + "FIRSTROW = "
+            + csvSkipLeadingRows
+            + ")\n"
             + "WITH (\n      "
             + buildTableSchema(datasetTable)
             + ") AS rows;");
   }
 
-  public String buildTableSchema(DatasetTable datasetTable) {
+  private String buildTableSchema(DatasetTable datasetTable) {
     List<Column> columns = datasetTable.getColumns();
     return String.join(
         ",\n      ",

@@ -279,36 +279,6 @@ public class AzureResourceConfigurationTest {
 
           // Perform file operations
           createFileAndSign(fileSystemClient);
-
-          // Create a table service client by authenticating using the found key
-          TableServiceClient tableServiceClient =
-              new TableServiceClientBuilder()
-                  .credential(new AzureNamedKeyCredential(storageAccountName, key))
-                  .endpoint("https://" + storageAccountName + ".table.core.windows.net")
-                  .buildClient();
-
-          // Add an entry
-          String fileId = UUID.randomUUID().toString();
-          TableEntity entity =
-              new TableEntity("PARTITION_KEY", fileId)
-                  .addProperty("fileId", fileId)
-                  .addProperty("mimeType", "application/json")
-                  .addProperty("description", "A test entity")
-                  .addProperty("bucketResourceId", "bucketResourceId")
-                  .addProperty("loadTag", "loadTag")
-                  .addProperty("fileCreatedDate", "fileCreatedDate")
-                  .addProperty("gspath", "gspath")
-                  .addProperty("checksumCrc32c", "checksumCrc32c")
-                  .addProperty("checksumMd5", "checksumMd5")
-                  .addProperty("size", 1L);
-          FireStoreFile fireStoreFile = FireStoreFile.fromTableEntity(entity);
-          tableFileDao.createFileMetadata(tableServiceClient, fireStoreFile);
-          FireStoreFile result = tableFileDao.retrieveFileMetadata(tableServiceClient, fileId);
-          assertEquals("The same file is retrieved", result, fireStoreFile);
-
-          // Delete an entry
-          boolean isDeleted = tableFileDao.deleteFileMetadata(tableServiceClient, fileId);
-          assertTrue("File record is deleted", isDeleted);
         });
 
     deleteManagedApplication(client, applicationDeployment);

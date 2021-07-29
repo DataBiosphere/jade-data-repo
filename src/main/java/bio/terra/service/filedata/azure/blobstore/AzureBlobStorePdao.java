@@ -20,8 +20,10 @@ import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.google.common.annotations.VisibleForTesting;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
@@ -146,14 +148,18 @@ public class AzureBlobStorePdao {
     BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
     try {
       blobCrl.deleteBlob(blobName);
-      String folderPath = blobName.split("/")[0];
-      try {
-        // Attempt to delete the file's folder
-        blobCrl.deleteBlob(folderPath);
-      } catch (BlobStorageException e) {
-        // Attempt to delete the parent but this should not cause the overall failure of the file
-        logger.warn("Could not delete the blob folder {}", folderPath, e);
-      }
+      Optional.ofNullable(Paths.get(blobName).getParent())
+          .ifPresent(
+              p -> {
+                try {
+                  // Attempt to delete the file's folder
+                  blobCrl.deleteBlob(p.toString());
+                } catch (BlobStorageException e) {
+                  // Attempt to delete the parent but this should not cause the overall failure of
+                  // the file
+                  logger.warn("Could not delete the blob folder {}", p, e);
+                }
+              });
       return true;
     } catch (BlobStorageException e) {
       if (e.getStatusCode() == HttpStatus.NOT_FOUND.value()) {

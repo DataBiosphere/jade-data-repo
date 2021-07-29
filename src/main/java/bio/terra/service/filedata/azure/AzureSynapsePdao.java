@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.azure;
 
+import static bio.terra.service.filedata.azure.util.BlobContainerClientFactory.SASPermission;
+
 import bio.terra.common.Column;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
@@ -28,10 +30,6 @@ public class AzureSynapsePdao {
   // TODO - Move db_name & parquet format name into app properties
   private static final String DB_NAME = "datarepo";
   private static final String PARQUET_FILE_FORMAT_NAME = "ParquetFileFormat";
-  // Static prefixes for temp variables in synapse
-  private static final String SAS_TOKEN_PREFIX = "sas_";
-  private static final String DATA_SOURCE_PREFIX = "ds_";
-  private static final String TABLE_NAME_PREFIX = "ingest_";
 
   private final AzureResourceConfiguration azureResourceConfiguration;
   private final AzureBlobStorePdao azureBlobStorePdao;
@@ -44,7 +42,12 @@ public class AzureSynapsePdao {
     this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
-  public void createExternalDataSource(String ingestControlFilePath, UUID tenantId, String flightId)
+  public void createExternalDataSource(
+      String ingestControlFilePath,
+      UUID tenantId,
+      String scopedCredentialName,
+      String dataSourceName,
+      SASPermission permissionType)
       throws NotImplementedException, SQLException {
 
     BlobUrlParts original_blobUrlParts = BlobUrlParts.parse(ingestControlFilePath);
@@ -52,17 +55,15 @@ public class AzureSynapsePdao {
     BlobContainerClientFactory sourceClientFactory =
         azureBlobStorePdao.getOrBuildClientFactory(tenantId, original_blobUrlParts);
 
-    String signedURL = sourceClientFactory.createReadOnlySasUrlForBlob(blobName);
+    String signedURL = sourceClientFactory.createSasUrlForBlob(blobName, permissionType);
+
     BlobUrlParts blobUrl = BlobUrlParts.parse(signedURL);
     AzureSasCredential blobContainerSasTokenCreds =
         new AzureSasCredential(blobUrl.getCommonSasQueryParameters().encode());
 
-    String sasTokenName = getSasTokenName(flightId);
-    String dataSourceName = getDataSourceName(flightId);
-
     runAQuery(
         "CREATE DATABASE SCOPED CREDENTIAL ["
-            + sasTokenName
+            + scopedCredentialName
             + "]\n"
             + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
             + "SECRET = '"
@@ -83,7 +84,7 @@ public class AzureSynapsePdao {
             + blobUrl.getBlobContainerName()
             + "',\n"
             + "CREDENTIAL = ["
-            + sasTokenName
+            + scopedCredentialName
             + "]);");
   }
 
@@ -91,11 +92,10 @@ public class AzureSynapsePdao {
       DatasetTable datasetTable,
       String ingestFileName,
       String destinationParquetFile,
-      String flightId)
+      String destinationDataSourceName,
+      String controlFileDataSourceName,
+      String ingestTableName)
       throws SQLException {
-    String dataSourceName = getDataSourceName(flightId);
-    String ingestTableName = getTableName(flightId);
-
     // build the ingest request
     runAQuery(
         "CREATE EXTERNAL TABLE ["
@@ -106,7 +106,7 @@ public class AzureSynapsePdao {
             + destinationParquetFile
             + "',\n    "
             + "DATA_SOURCE = ["
-            + dataSourceName
+            + destinationDataSourceName
             + "],\n    "
             + "FILE_FORMAT = ["
             + PARQUET_FILE_FORMAT_NAME
@@ -115,7 +115,7 @@ public class AzureSynapsePdao {
             + ingestFileName
             + "',\n                                "
             + "DATA_SOURCE = '"
-            + dataSourceName
+            + controlFileDataSourceName
             + "',\n                                "
             + "FORMAT='CSV'" // TODO - switch on control file
             + ",\n                                "
@@ -146,29 +146,39 @@ public class AzureSynapsePdao {
     }
   }
 
-  public void cleanSynapseEntries(String flightId) {
-    String sasTokenName = getSasTokenName(flightId);
-    String dataSourceName = getDataSourceName(flightId);
-    String ingestTableName = getTableName(flightId);
-    try {
-      runAQuery("DROP EXTERNAL TABLE [" + ingestTableName + "];");
-    } catch (Exception ex) {
-      logger.warn("Unable to clean up table for flight {}, ex: {}", flightId, ex.getMessage());
-    }
-    try {
-      runAQuery("DROP EXTERNAL DATA SOURCE [" + dataSourceName + "];");
-    } catch (Exception ex) {
-      logger.warn(
-          "Unable to clean up external data source for flight {}, ex: {}",
-          flightId,
-          ex.getMessage());
-    }
-    try {
-      runAQuery("DROP DATABASE SCOPED CREDENTIAL [" + sasTokenName + "];");
-    } catch (Exception ex) {
-      logger.warn(
-          "Unable to clean up scoped credential for flight {}, ex: {}", flightId, ex.getMessage());
-    }
+  public void cleanSynapseEntries(
+      List<String> tableNames, List<String> dataSourceNames, List<String> credentialNames) {
+    tableNames.stream()
+        .forEach(
+            tableName -> {
+              try {
+                runAQuery("DROP EXTERNAL TABLE [" + tableName + "];");
+              } catch (Exception ex) {
+                logger.warn("Unable to clean up table {}, ex: {}", tableName, ex.getMessage());
+              }
+            });
+    dataSourceNames.stream()
+        .forEach(
+            dataSource -> {
+              try {
+                runAQuery("DROP EXTERNAL DATA SOURCE [" + dataSource + "];");
+              } catch (Exception ex) {
+                logger.warn(
+                    "Unable to clean up the external data source {}, ex: {}",
+                    dataSource,
+                    ex.getMessage());
+              }
+            });
+    credentialNames.stream()
+        .forEach(
+            credential -> {
+              try {
+                runAQuery("DROP DATABASE SCOPED CREDENTIAL [" + credential + "];");
+              } catch (Exception ex) {
+                logger.warn(
+                    "Unable to clean up scoped credential {}, ex: {}", credential, ex.getMessage());
+              }
+            });
   }
 
   private SQLServerDataSource getDatasource() {
@@ -216,17 +226,5 @@ public class AzureSynapsePdao {
       default:
         throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
     }
-  }
-
-  private String getSasTokenName(String flightId) {
-    return SAS_TOKEN_PREFIX + flightId;
-  }
-
-  private String getDataSourceName(String flightId) {
-    return DATA_SOURCE_PREFIX + flightId;
-  }
-
-  private String getTableName(String flightId) {
-    return TABLE_NAME_PREFIX + flightId;
   }
 }

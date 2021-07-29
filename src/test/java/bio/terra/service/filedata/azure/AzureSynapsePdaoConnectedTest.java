@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.azure;
 
+import static bio.terra.service.filedata.azure.util.BlobContainerClientFactory.SASPermission;
+
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -10,6 +12,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.stairway.ShortUUID;
 import java.security.InvalidParameterException;
+import java.util.Arrays;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -36,6 +39,18 @@ public class AzureSynapsePdaoConnectedTest {
   private BillingProfileModel billingProfile;
   private DatasetSummaryModel datasetSummary;
 
+  private static final String CONTROL_FILE_SCOPED_CREDENTIAL_PREFIX = "cfsas_";
+  private static final String DESTINATION_SCOPED_CREDENTIAL_PREFIX = "dsas_";
+  private static final String CONTROL_FILE_DATA_SOURCE_PREFIX = "cfds_";
+  private static final String DESTINATION_DATA_SOURCE_PREFIX = "dds_";
+  private static final String TABLE_NAME_PREFIX = "ingest_";
+
+  private String controlFileScopedCredentialName;
+  private String destinationScopedCredentialName;
+  private String controlFileDataSourceName;
+  private String destinationDataSourceName;
+  private String tableName;
+
   @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
@@ -45,6 +60,12 @@ public class AzureSynapsePdaoConnectedTest {
   @Before
   public void setup() throws Exception {
     randomFlightId = ShortUUID.get();
+    controlFileScopedCredentialName = CONTROL_FILE_SCOPED_CREDENTIAL_PREFIX + randomFlightId;
+    destinationScopedCredentialName = DESTINATION_SCOPED_CREDENTIAL_PREFIX + randomFlightId;
+    controlFileDataSourceName = CONTROL_FILE_DATA_SOURCE_PREFIX + randomFlightId;
+    destinationDataSourceName = DESTINATION_DATA_SOURCE_PREFIX + randomFlightId;
+    tableName = TABLE_NAME_PREFIX + randomFlightId;
+
     connectedOperations.stubOutSamCalls(samService);
     billingProfile =
         connectedOperations.createProfileForAccount(testConfig.getGoogleBillingAccountId());
@@ -55,7 +76,10 @@ public class AzureSynapsePdaoConnectedTest {
 
   @After
   public void cleanup() throws Exception {
-    azureSynapsePdao.cleanSynapseEntries(randomFlightId);
+    azureSynapsePdao.cleanSynapseEntries(
+        Arrays.asList(tableName),
+        Arrays.asList(destinationDataSourceName, controlFileDataSourceName),
+        Arrays.asList(destinationScopedCredentialName, controlFileScopedCredentialName));
 
     // TODO - Clean out test parquet files
 
@@ -66,24 +90,39 @@ public class AzureSynapsePdaoConnectedTest {
   public void testSynapseQuery() throws Exception {
     // ----- ingest Input parameters----
     // TODO - Once we add ability to sign urls, remove the signature from this test url
-    String ingestFileLocation =
-        "https://tdrsynapse1.blob.core.windows.net/shelbycontainerexample"
-            + "?sp=racwdlmeop&st=2021-07-27T11:13:48Z&se=2021-07-27T19:13:48Z"
-            + "&spr=https&sv=2020-08-04&sr=c&sig=i5f%2FlB2snH0CjgDfYjNzLTKSq1tkAniBszOlyiXT3t0%3D";
-    String ingestFileName = "azure-simple-dataset-ingest-request.csv";
+
+    // Currently, the parquet files will live in the same location as the ingest control file
     String destinationTableName = "participant";
     String destinationParquetFile = "parquet/" + randomFlightId + ".parquet";
 
-    UUID tenantId = UUID.fromString(billingProfile.getTenantId());
+    UUID tenantId = testConfig.getTargetTenantId();
 
     // ---- ingest steps ---
     // 1 - Create external data source for the ingest control file
-    azureSynapsePdao.createExternalDataSource(ingestFileLocation, tenantId, randomFlightId);
+    String ingestFileLocation = "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata";
+    String ingestFileName = "azure-simple-dataset-ingest-request.csv";
+    azureSynapsePdao.createExternalDataSource(
+        ingestFileLocation,
+        tenantId,
+        controlFileScopedCredentialName,
+        controlFileDataSourceName,
+        SASPermission.READ_ONLY);
+
+    // 2 - Create the external data source for the destination
+    // where we'll write the resulting parquet files
+    String parquetDestinationLocation =
+        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata";
+    azureSynapsePdao.createExternalDataSource(
+        parquetDestinationLocation,
+        tenantId,
+        destinationScopedCredentialName,
+        destinationDataSourceName,
+        SASPermission.WRITE_PARQUET);
 
     // TODO - Add basic check to make sure the data source is created successfully
     // Maybe a basic query?
 
-    // 2 - Retrieve info about database schema so that we can populate the parquet create query
+    // 3 - Retrieve info about database schema so that we can populate the parquet create query
 
     DatasetTable destinationTable =
         datasetService
@@ -92,9 +131,14 @@ public class AzureSynapsePdaoConnectedTest {
             .orElseThrow(
                 () -> new InvalidParameterException("Destination table project not valid"));
 
-    // 3 - Create parquet files via external table
+    // 4 - Create parquet files via external table
     azureSynapsePdao.createParquetFiles(
-        destinationTable, ingestFileName, destinationParquetFile, randomFlightId);
+        destinationTable,
+        ingestFileName,
+        destinationParquetFile,
+        destinationDataSourceName,
+        controlFileDataSourceName,
+        tableName);
 
     // TODO - Add check that the parquet files were successfully created.
     // How do we query the parquet files?

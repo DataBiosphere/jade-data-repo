@@ -10,6 +10,7 @@ import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
@@ -37,6 +38,8 @@ import org.springframework.stereotype.Component;
 public class AzureBlobStorePdao {
   private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
 
+  private static final int LOG_RETENTION_DAYS = 90;
+
   private static final Set<String> VALID_TLDS =
       Set.of("blob.core.windows.net", "dfs.core.windows.net");
 
@@ -44,17 +47,20 @@ public class AzureBlobStorePdao {
   private final AzureContainerPdao azureContainerPdao;
   private final AzureResourceConfiguration resourceConfiguration;
   private final AzureResourceDao azureResourceDao;
+  private final AzureAuthService azureAuthService;
 
   @Autowired
   public AzureBlobStorePdao(
       ProfileDao profileDao,
       AzureContainerPdao azureContainerPdao,
       AzureResourceConfiguration resourceConfiguration,
-      AzureResourceDao azureResourceDao) {
+      AzureResourceDao azureResourceDao,
+      AzureAuthService azureAuthService) {
     this.profileDao = profileDao;
     this.azureContainerPdao = azureContainerPdao;
     this.resourceConfiguration = resourceConfiguration;
     this.azureResourceDao = azureResourceDao;
+    this.azureAuthService = azureAuthService;
   }
 
   public FSFileInfo copyFile(
@@ -168,6 +174,30 @@ public class AzureBlobStorePdao {
         throw new PdaoException("Error deleting file", e);
       }
     }
+  }
+
+  /**
+   * Enable logging for file access. This creates a container named $logs to which access logs for
+   * our files are loaded
+   *
+   * @param profileModel The model to authorize the connection to the storage account
+   * @param storageAccountResource The storage account information to log access for
+   */
+  public void enableFileLogging(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    var client = azureAuthService.getBlobServiceClient(profileModel, storageAccountResource);
+    var props = client.getProperties();
+    props
+        .getLogging()
+        .setVersion("2.0")
+        .setRead(true)
+        .setWrite(true)
+        .setDelete(true)
+        .getRetentionPolicy()
+        .setEnabled(true)
+        .setDays(LOG_RETENTION_DAYS);
+
+    client.setProperties(props);
   }
 
   @VisibleForTesting

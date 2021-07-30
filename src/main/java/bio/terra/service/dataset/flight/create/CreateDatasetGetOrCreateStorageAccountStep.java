@@ -4,8 +4,8 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
@@ -20,15 +20,15 @@ public class CreateDatasetGetOrCreateStorageAccountStep implements Step {
       LoggerFactory.getLogger(CreateDatasetGetOrCreateStorageAccountStep.class);
   private final ResourceService resourceService;
   private final DatasetRequestModel datasetRequestModel;
-  private final AzureDataLocationSelector dataLocationSelector;
+  private final AzureBlobStorePdao azureBlobStorePdao;
 
   public CreateDatasetGetOrCreateStorageAccountStep(
       ResourceService resourceService,
       DatasetRequestModel datasetRequestModel,
-      AzureDataLocationSelector dataLocationSelector) {
+      AzureBlobStorePdao azureBlobStorePdao) {
     this.resourceService = resourceService;
     this.datasetRequestModel = datasetRequestModel;
-    this.dataLocationSelector = dataLocationSelector;
+    this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
   @Override
@@ -43,6 +43,11 @@ public class CreateDatasetGetOrCreateStorageAccountStep implements Step {
             DatasetJsonConversion.datasetRequestToDataset(datasetRequestModel),
             profileModel,
             context.getFlightId());
+
+    logger.info("Enabling Azure storage account logging");
+    // Log files will reside in the storage account's $logs container
+    azureBlobStorePdao.enableFileLogging(profileModel, storageAccount);
+
     workingMap.put(
         DatasetWorkingMapKeys.APPLICATION_DEPLOYMENT_RESOURCE_ID,
         storageAccount.getApplicationResource().getId());

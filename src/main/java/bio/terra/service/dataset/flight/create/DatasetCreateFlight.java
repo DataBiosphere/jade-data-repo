@@ -10,12 +10,12 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
-import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
@@ -41,11 +41,10 @@ public class DatasetCreateFlight extends Flight {
     IamProviderInterface iamClient = appContext.getBean("iamProvider", IamProviderInterface.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
-    AzureDataLocationSelector azureDataLocationSelector =
-        appContext.getBean(AzureDataLocationSelector.class);
     AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
     DatasetStorageAccountDao datasetStorageAccountDao =
         appContext.getBean(DatasetStorageAccountDao.class);
+    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
 
     DatasetRequestModel datasetRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
@@ -74,7 +73,7 @@ public class DatasetCreateFlight extends Flight {
     if (platform.isAzure()) {
       addStep(
           new CreateDatasetGetOrCreateStorageAccountStep(
-              resourceService, datasetRequest, azureDataLocationSelector));
+              resourceService, datasetRequest, azureBlobStorePdao));
 
       // Create the metadata container
       addStep(

@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -102,8 +103,12 @@ public class ProfileDaoTest {
     assertThat(
         "GCP billing profile does not have tenant, subscription, resourceGroup, or applicationName",
         Arrays.asList(
-            retrievedGoogleBillingProfile.getTenantId().toString(),
-            retrievedGoogleBillingProfile.getSubscriptionId().toString(),
+            Optional.ofNullable(retrievedGoogleBillingProfile.getTenantId())
+                .map(UUID::toString)
+                .orElse(""),
+            Optional.ofNullable(retrievedGoogleBillingProfile.getSubscriptionId())
+                .map(UUID::toString)
+                .orElse(""),
             retrievedGoogleBillingProfile.getResourceGroupName(),
             retrievedGoogleBillingProfile.getApplicationDeploymentName()),
         everyItem(is(emptyOrNullString())));

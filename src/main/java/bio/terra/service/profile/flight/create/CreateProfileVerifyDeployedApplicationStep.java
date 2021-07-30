@@ -6,7 +6,6 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,7 @@ public class CreateProfileVerifyDeployedApplicationStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     profileService.verifyDeployedApplication(
-        UUID.fromString(request.getSubscriptionId()),
+        request.getSubscriptionId(),
         request.getResourceGroupName(),
         request.getApplicationDeploymentName(),
         user);

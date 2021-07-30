@@ -9,7 +9,6 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -87,8 +86,7 @@ public class AzureAuthService {
   /** Obtain a secret key for the associated storage account */
   private String getStorageAccountKey(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
-    AzureResourceManager client =
-        configuration.getClient(UUID.fromString(profileModel.getSubscriptionId()));
+    AzureResourceManager client = configuration.getClient(profileModel.getSubscriptionId());
 
     return client
         .storageAccounts()

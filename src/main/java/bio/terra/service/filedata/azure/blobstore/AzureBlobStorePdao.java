@@ -83,7 +83,7 @@ public class AzureBlobStorePdao {
       sourceClientFactory =
           getSourceClientFactory(
               blobUrl.getAccountName(),
-              resourceConfiguration.getAppToken(UUID.fromString(profileModel.getTenantId())),
+              resourceConfiguration.getAppToken(profileModel.getTenantId()),
               blobUrl.getBlobContainerName());
     }
 

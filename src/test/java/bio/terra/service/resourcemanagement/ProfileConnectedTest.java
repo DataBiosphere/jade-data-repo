@@ -90,8 +90,8 @@ public class ProfileConnectedTest {
         ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(testConfig.getGoogleBillingAccountId())
             .cloudPlatform(CloudPlatform.AZURE)
-            .tenantId(tenant.toString())
-            .subscriptionId(subscription.toString())
+            .tenantId(tenant)
+            .subscriptionId(subscription)
             .resourceGroupName(resourceGroup)
             .applicationDeploymentName(applicationName);
 
@@ -119,14 +119,14 @@ public class ProfileConnectedTest {
     var gcpRequestModel =
         ProfileFixtures.randomBillingProfileRequest()
             .cloudPlatform(CloudPlatform.GCP)
-            .tenantId(UUID.randomUUID().toString())
-            .subscriptionId(UUID.randomUUID().toString())
+            .tenantId(UUID.randomUUID())
+            .subscriptionId(UUID.randomUUID())
             .resourceGroupName("resourceGroupName");
 
     var defaultRequestModel =
         ProfileFixtures.randomBillingProfileRequest()
-            .tenantId(UUID.randomUUID().toString())
-            .subscriptionId(UUID.randomUUID().toString())
+            .tenantId(UUID.randomUUID())
+            .subscriptionId(UUID.randomUUID())
             .resourceGroupName("resourceGroupName");
 
     for (var requestModel : List.of(gcpRequestModel, defaultRequestModel)) {
@@ -151,7 +151,7 @@ public class ProfileConnectedTest {
   }
 
   @Test
-  public void testAzureInvalidMissingParams() throws Exception {
+  public void testAzureMissingParams() throws Exception {
     var azureRequestModel =
         ProfileFixtures.randomBillingProfileRequest().cloudPlatform(CloudPlatform.AZURE);
     var missingParams =
@@ -170,30 +170,6 @@ public class ProfileConnectedTest {
     assertThat(
         "Azure request returns resourceGroupName error if not supplied",
         missingParams.getErrorDetail(),
-        hasItems(containsString("non-empty resourceGroupName")));
-
-    var invalidUuidRequest =
-        ProfileFixtures.randomBillingProfileRequest()
-            .cloudPlatform(CloudPlatform.AZURE)
-            .tenantId("not-a-valid-uuid")
-            .subscriptionId("not-a-valid-uuid")
-            .resourceGroupName("");
-
-    var invalidUuid =
-        connectedOperations.createProfileExpectError(invalidUuidRequest, HttpStatus.BAD_REQUEST);
-
-    assertThat("There are 3 errors returned", invalidUuid.getErrorDetail(), iterableWithSize(3));
-    assertThat(
-        "The server rejects invalid UUID for tenantId",
-        invalidUuid.getErrorDetail(),
-        hasItems(containsString("tenantId: 'Pattern'")));
-    assertThat(
-        "The server rejects invalid UUID for subscriptionId",
-        invalidUuid.getErrorDetail(),
-        hasItems(containsString("subscriptionId: 'Pattern'")));
-    assertThat(
-        "The server rejects an empty string for resourceGroupName",
-        invalidUuid.getErrorDetail(),
         hasItems(containsString("non-empty resourceGroupName")));
   }
 }

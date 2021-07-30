@@ -21,7 +21,6 @@ import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.resources.models.GenericResource;
 import com.azure.resourcemanager.resources.models.GenericResources;
 import java.util.Map;
-import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -78,7 +77,7 @@ public class AzureApplicationDeploymentServiceTest {
     when(resourceDao.retrieveApplicationDeploymentByName(
             billingProfileModel.getApplicationDeploymentName()))
         .thenThrow(AzureResourceNotFoundException.class);
-    when(resourceConfiguration.getClient(UUID.fromString(billingProfileModel.getSubscriptionId())))
+    when(resourceConfiguration.getClient(billingProfileModel.getSubscriptionId()))
         .thenReturn(client);
 
     AzureApplicationDeploymentResource appResource =

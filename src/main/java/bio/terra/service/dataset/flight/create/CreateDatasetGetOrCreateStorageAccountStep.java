@@ -44,7 +44,8 @@ public class CreateDatasetGetOrCreateStorageAccountStep implements Step {
             profileModel,
             context.getFlightId());
 
-    logger.info("Enable logging");
+    logger.info("Enabling Azure storage account logging");
+    // Log files will reside in the storage account's $logs container
     azureBlobStorePdao.enableFileLogging(profileModel, storageAccount);
 
     workingMap.put(

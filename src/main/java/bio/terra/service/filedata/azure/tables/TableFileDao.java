@@ -2,29 +2,22 @@ package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.filedata.google.firestore.*;
+import bio.terra.service.filedata.google.firestore.ApiFutureGenerator;
+import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
-import com.google.api.core.ApiFuture;
 import com.google.api.core.SettableApiFuture;
-import com.google.api.gax.rpc.AbortedException;
-import com.google.api.gax.rpc.DeadlineExceededException;
-import com.google.api.gax.rpc.InternalException;
-import com.google.api.gax.rpc.UnavailableException;
-import com.google.common.collect.ImmutableList;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-
-import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +39,6 @@ public class TableFileDao {
   private static final String PARTITION_KEY = "partitionKey";
   private static final int SLEEP_BASE_SECONDS = 1;
   private static final int AZURE_STORAGE_RETRIES = 1;
-
 
   @Autowired
   TableFileDao(@Qualifier("performanceThreadpool") ExecutorService executor) {
@@ -99,56 +91,47 @@ public class TableFileDao {
         .collect(Collectors.toList());
   }
 
-  <V> void scanTableObjects(
-      TableClient tableClient, ApiFutureGenerator<V, TableEntity> generator) {
+  <V> void scanTableObjects(TableClient tableClient, ApiFutureGenerator<V, TableEntity> generator) {
     ListEntitiesOptions options = new ListEntitiesOptions();
     PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-    entities.stream().forEach(entity -> {
-      try {
-        retryOperation(entity, generator);
-      } catch (InterruptedException e) {
-        throw new FileSystemExecutionException("operation failed", e);
-      }
-    });
+    entities.stream()
+        .forEach(
+            entity -> {
+              try {
+                retryOperation(entity, generator);
+              } catch (InterruptedException e) {
+                throw new FileSystemExecutionException("operation failed", e);
+              }
+            });
   }
 
-  <T, V> void retryOperation(V input, ApiFutureGenerator<T, V> generator) throws InterruptedException {
-      int retry = 0;
-      while(true) {
-        try {
-          generator.accept(input).get();
-          break;
-        } catch (DeadlineExceededException
-                | UnavailableException
-                | AbortedException
-                | InternalException
-                | StatusRuntimeException
-                | ExecutionException ex) {
-          if (FireStoreUtils.shouldRetry(ex, false)) {
-            logger.warn(
-                    "Retry-able error in Azure storage table future get - input: "
-                            + input.toString()
-                            + " message: "
-                            + ex.getMessage());
-          } else throw new FileSystemExecutionException("operation failed", ex);
-        }
-
+  <T, V> void retryOperation(V input, ApiFutureGenerator<T, V> generator)
+      throws InterruptedException {
+    int retry = 0;
+    while (true) {
+      try {
+        generator.accept(input).get();
+        break;
+      } catch (ExecutionException ex) {
         final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry));
         retry++;
         if (retry > AZURE_STORAGE_RETRIES) {
           throw new FileSystemExecutionException(
-                  "operation failed. " + AZURE_STORAGE_RETRIES + " tries with no progress.");
+              "Operation failed after " + AZURE_STORAGE_RETRIES + " tries.");
         } else {
+          logger.warn(
+              "Error in Azure storage table future get - input: "
+                  + input.toString()
+                  + " message: "
+                  + ex.getMessage());
           logger.info(
-                  "[Operation] will attempt retry #{} after {} millisecond pause.",
-                  retry,
-                  retryWait);
+              "Operation will attempt retry #{} after {} millisecond pause.", retry, retryWait);
         }
-
         // Exponential backoff
         TimeUnit.SECONDS.sleep(retryWait);
       }
-  };
+    }
+  }
 
   void deleteFilesFromDataset(
       TableServiceClient tableServiceClient, InterruptibleConsumer<FireStoreFile> func)

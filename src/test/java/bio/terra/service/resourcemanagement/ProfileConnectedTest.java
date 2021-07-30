@@ -111,7 +111,7 @@ public class ProfileConnectedTest {
             retrievedProfile.getSubscriptionId(),
             retrievedProfile.getResourceGroupName(),
             retrievedProfile.getApplicationDeploymentName()),
-        contains(tenant.toString(), subscription.toString(), resourceGroup, applicationName));
+        contains(tenant, subscription, resourceGroup, applicationName));
   }
 
   @Test

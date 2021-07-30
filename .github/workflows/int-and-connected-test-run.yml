@@ -61,6 +61,8 @@ jobs:
           secretId: ${{ secrets.INTEGRATION_SECRET_ID }}
           secrets: |
             secret/dsde/datarepo/dev/azure-test applicationsecret | AZURE_CREDENTIALS_SECRET ;
+            secret/dsde/datarepo/dev/azure-test synapse-us-east-sql-admin-user | AZURE_SYNAPSE_SQLADMINUSER ;
+            secret/dsde/datarepo/dev/azure-test synapse-us-east-sql-admin-password | AZURE_SYNAPSE_SQLADMINPASSWORD ;
             secret/dsde/terra/kernel/integration/tools/buffer/client-sa key | B64_RBS_APPLICATION_CREDENTIALS ;
       - name: "Write RBS SA to a file"
         run: |

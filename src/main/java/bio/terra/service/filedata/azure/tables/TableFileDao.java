@@ -59,7 +59,7 @@ public class TableFileDao {
     if (entity == null) {
       return false;
     }
-    logger.info("deleting file metadata for fileId " + fileId);
+    logger.info("deleting file metadata for fileId {}", fileId);
     tableClient.deleteEntity(PARTITION_KEY, fileId);
     return true;
   }

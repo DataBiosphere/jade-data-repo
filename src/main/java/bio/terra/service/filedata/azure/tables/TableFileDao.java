@@ -11,6 +11,7 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
+import com.azure.data.tables.models.TableServiceException;
 import com.google.api.core.SettableApiFuture;
 import java.util.List;
 import java.util.Optional;
@@ -56,13 +57,14 @@ public class TableFileDao {
 
   public boolean deleteFileMetadata(TableServiceClient tableServiceClient, String fileId) {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
-    if (entity == null) {
+    try {
+      logger.info("deleting file metadata for fileId {}", fileId);
+      TableEntity entity = tableClient.getEntity(PARTITION_KEY, fileId);
+      tableClient.deleteEntity(entity);
+      return true;
+    } catch (TableServiceException ex) {
       return false;
     }
-    logger.info("deleting file metadata for fileId {}", fileId);
-    tableClient.deleteEntity(PARTITION_KEY, fileId);
-    return true;
   }
 
   public FireStoreFile retrieveFileMetadata(TableServiceClient tableServiceClient, String fileId) {
@@ -114,7 +116,8 @@ public class TableFileDao {
         generator.accept(input).get();
         break;
       } catch (ExecutionException ex) {
-        final long retryWait = (long) Math.min(SLEEP_BASE_SECONDS * Math.pow(2.5, retry), MAX_SLEEP_SECONDS);
+        final long retryWait =
+            (long) Math.min(SLEEP_BASE_SECONDS * Math.pow(2.5, retry), MAX_SLEEP_SECONDS);
         retry++;
         if (retry > AZURE_STORAGE_RETRIES) {
           throw new FileSystemExecutionException(

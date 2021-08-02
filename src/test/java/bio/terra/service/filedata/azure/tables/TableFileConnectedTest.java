@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
@@ -77,6 +78,10 @@ public class TableFileConnectedTest {
     // Delete an entry
     boolean isDeleted = tableFileDao.deleteFileMetadata(tableServiceClient, FILE_ID);
     assertTrue("File record is deleted", isDeleted);
+
+    // Try to delete the entry again
+    boolean isNotDeleted = tableFileDao.deleteFileMetadata(tableServiceClient, FILE_ID);
+    assertFalse("File record was already deleted", isNotDeleted);
   }
 
   private String getSourceStorageAccountPrimarySharedKey() {

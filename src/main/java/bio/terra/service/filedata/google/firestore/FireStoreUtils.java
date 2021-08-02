@@ -260,11 +260,12 @@ public class FireStoreUtils {
                       + inputs.get(i)
                       + " message: "
                       + ex.getMessage());
-            } else
+            } else {
               throw new FileSystemExecutionException(
                   "[batchOperation] Parent exception caught but neither parent nor nested "
                       + "exceptions were designated for retry.",
                   ex);
+            }
           }
         }
       }

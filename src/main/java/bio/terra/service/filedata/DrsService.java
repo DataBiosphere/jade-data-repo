@@ -4,6 +4,7 @@ import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessMethod.TypeEnum;
@@ -210,39 +211,59 @@ public class DrsService {
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()));
 
     BillingProfileModel billingProfileModel =
-        profileService.getProfileById(snapshot.getProfileId(), authUser);
+        snapshot
+            .getFirstSnapshotSource()
+            .getDataset()
+            .getDatasetSummary()
+            .getDefaultBillingProfile();
 
     CloudPlatformWrapper wrapper = CloudPlatformWrapper.of(billingProfileModel.getCloudPlatform());
-
-    DRSAccessMethod matchingAccessMethod =
-        getAccessMethodMatchingAccessId(accessId, drsObject)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "No matching access ID " + accessId + " was found on object " + objectId));
-
     if (wrapper.isGcp()) {
+      DRSAccessMethod matchingAccessMethod =
+          getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.GS)
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "No matching access ID "
+                              + accessId
+                              + " was found on object "
+                              + objectId));
       return signGoogleUrl(snapshot, matchingAccessMethod);
-    } else {
+    } else if (wrapper.isAzure()) {
+      DRSAccessMethod matchingAccessMethod =
+          getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.HTTPS)
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException(
+                          "No matching access ID "
+                              + accessId
+                              + " was found on object "
+                              + objectId));
       return signAzureUrl(billingProfileModel, snapshot, drsId);
+    } else {
+      throw new NotImplementedException("Cloud platform not implemented");
     }
   }
 
   private Optional<DRSAccessMethod> getAccessMethodMatchingAccessId(
-      String accessId, DRSObject object) {
+      String accessId, DRSObject object, TypeEnum methodType) {
     return object.getAccessMethods().stream()
         .filter(
             drsAccessMethod ->
-                drsAccessMethod.getType().equals(TypeEnum.GS)
+                drsAccessMethod.getType().equals(methodType)
                     && drsAccessMethod.getAccessId().equals(accessId))
         .findFirst();
   }
 
-  private DRSAccessURL signAzureUrl(BillingProfileModel profileModel, Snapshot snapshot, DrsId drsId) {
+  private DRSAccessURL signAzureUrl(
+      BillingProfileModel profileModel, Snapshot snapshot, DrsId drsId) {
     FSItem fsObject = null;
     try {
-      fsObject = fileService.lookupSnapshotFSItem(
-          snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()), drsId.getFsObjectId(), 1);
+      fsObject =
+          fileService.lookupSnapshotFSItem(
+              snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
+              drsId.getFsObjectId(),
+              1);
 
       BlobUrlParts blobUrl = BlobUrlParts.parse(fsObject.getPath());
       BlobContainerClientFactory sourceClientFactory =
@@ -251,7 +272,8 @@ public class DrsService {
               resourceConfiguration.getAppToken(UUID.fromString(profileModel.getTenantId())),
               blobUrl.getBlobContainerName());
 
-      return new DRSAccessURL().url(sourceClientFactory.createReadOnlySasUrlForBlob(blobUrl.getBlobName()));
+      return new DRSAccessURL()
+          .url(sourceClientFactory.createReadOnlySasUrlForBlob(blobUrl.getBlobName()));
     } catch (InterruptedException e) {
       throw new FileSystemExecutionException(
           "Unexpected interruption during file system processing", e);
@@ -285,6 +307,8 @@ public class DrsService {
     GoogleBucketResource bucketResource =
         resourceService.lookupBucketMetadata(fsFile.getBucketResourceId());
 
+    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+
     DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getGspath());
 
     GoogleRegion region = bucketResource.getRegion();
@@ -305,6 +329,7 @@ public class DrsService {
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessUrl(httpsAccessURL)
+            .accessId("azure-")
             .region(bucketResource.getRegion().toString());
 
     List<DRSAccessMethod> accessMethods = new ArrayList<>();

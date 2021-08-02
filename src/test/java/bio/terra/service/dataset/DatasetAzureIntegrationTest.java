@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -257,6 +258,15 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         "file with Sas size matches",
         dataRepoFixtures.getFileByName(steward, datasetId, "/test/targetSas.txt").getSize(),
         equalTo(fileSize));
+    // Delete the file we just ingested
+    String fileId = result.getLoadFileResults().get(0).getFileId();
+    dataRepoFixtures.deleteFile(steward, datasetId, fileId);
+
+    assertThat(
+        "file is gone",
+        dataRepoFixtures.getFileByIdRaw(steward, datasetId, fileId).getStatusCode(),
+        equalTo(HttpStatus.NOT_FOUND));
+
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
     clearEnvironment();

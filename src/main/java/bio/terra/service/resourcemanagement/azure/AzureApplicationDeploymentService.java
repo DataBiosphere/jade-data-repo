@@ -110,7 +110,7 @@ public class AzureApplicationDeploymentService {
    */
   public GenericResource retrieveApplicationDeployment(BillingProfileModel billingProfile) {
     AzureResourceManager client =
-        resourceConfiguration.getClient(UUID.fromString(billingProfile.getSubscriptionId()));
+        resourceConfiguration.getClient(billingProfile.getSubscriptionId());
 
     logger.info("Looking up application");
     String applicationResourceId =

@@ -10,6 +10,7 @@ import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
@@ -20,17 +21,25 @@ import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.google.common.annotations.VisibleForTesting;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AzureBlobStorePdao {
+  private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
+
+  private static final int LOG_RETENTION_DAYS = 90;
+
   private static final Set<String> VALID_TLDS =
       Set.of("blob.core.windows.net", "dfs.core.windows.net");
 
@@ -38,17 +47,20 @@ public class AzureBlobStorePdao {
   private final AzureContainerPdao azureContainerPdao;
   private final AzureResourceConfiguration resourceConfiguration;
   private final AzureResourceDao azureResourceDao;
+  private final AzureAuthService azureAuthService;
 
   @Autowired
   public AzureBlobStorePdao(
       ProfileDao profileDao,
       AzureContainerPdao azureContainerPdao,
       AzureResourceConfiguration resourceConfiguration,
-      AzureResourceDao azureResourceDao) {
+      AzureResourceDao azureResourceDao,
+      AzureAuthService azureAuthService) {
     this.profileDao = profileDao;
     this.azureContainerPdao = azureContainerPdao;
     this.resourceConfiguration = resourceConfiguration;
     this.azureResourceDao = azureResourceDao;
+    this.azureAuthService = azureAuthService;
   }
 
   public FSFileInfo copyFile(
@@ -71,7 +83,7 @@ public class AzureBlobStorePdao {
       sourceClientFactory =
           getSourceClientFactory(
               blobUrl.getAccountName(),
-              resourceConfiguration.getAppToken(UUID.fromString(profileModel.getTenantId())),
+              resourceConfiguration.getAppToken(profileModel.getTenantId()),
               blobUrl.getBlobContainerName());
     }
 
@@ -142,6 +154,18 @@ public class AzureBlobStorePdao {
     BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
     try {
       blobCrl.deleteBlob(blobName);
+      Optional.ofNullable(Paths.get(blobName).getParent())
+          .ifPresent(
+              p -> {
+                try {
+                  // Attempt to delete the file's folder
+                  blobCrl.deleteBlob(p.toString());
+                } catch (BlobStorageException e) {
+                  // Attempt to delete the parent but this should not cause the overall failure of
+                  // the file
+                  logger.warn("Could not delete the blob folder {}", p, e);
+                }
+              });
       return true;
     } catch (BlobStorageException e) {
       if (e.getStatusCode() == HttpStatus.NOT_FOUND.value()) {
@@ -150,6 +174,30 @@ public class AzureBlobStorePdao {
         throw new PdaoException("Error deleting file", e);
       }
     }
+  }
+
+  /**
+   * Enable logging for file access. This creates a container named $logs to which access logs for
+   * our files are loaded
+   *
+   * @param profileModel The model to authorize the connection to the storage account
+   * @param storageAccountResource The storage account information to log access for
+   */
+  public void enableFileLogging(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    var client = azureAuthService.getBlobServiceClient(profileModel, storageAccountResource);
+    var props = client.getProperties();
+    props
+        .getLogging()
+        .setVersion("2.0")
+        .setRead(true)
+        .setWrite(true)
+        .setDelete(true)
+        .getRetentionPolicy()
+        .setEnabled(true)
+        .setDays(LOG_RETENTION_DAYS);
+
+    client.setProperties(props);
   }
 
   @VisibleForTesting

@@ -125,7 +125,7 @@ public final class MetadataDataAccessUtils {
    */
   public static String getApplicationDeploymentId(BillingProfileModel profileModel) {
     return getApplicationDeploymentId(
-        UUID.fromString(profileModel.getSubscriptionId()),
+        profileModel.getSubscriptionId(),
         profileModel.getResourceGroupName(),
         profileModel.getApplicationDeploymentName());
   }

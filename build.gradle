@@ -42,7 +42,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.143.0-SNAPSHOT'
+    version '1.148.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -242,6 +242,7 @@ dependencies {
     implementation 'com.azure.resourcemanager:azure-resourcemanager:2.4.0'
     implementation 'com.azure:azure-storage-common:12.11.1'
     implementation 'com.azure:azure-storage-file-datalake:12.5.1'
+    implementation 'com.azure:azure-data-tables:12.1.0'
 
     antlr "org.antlr:antlr4:4.8"
     spotbugs 'com.github.spotbugs:spotbugs:4.2.2'

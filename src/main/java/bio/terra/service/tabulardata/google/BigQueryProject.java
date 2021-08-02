@@ -153,6 +153,9 @@ public final class BigQueryProject {
 
   public void addDatasetAcls(String datasetId, List<Acl> acls) {
     Dataset dataset = bigQuery.getDataset(datasetId);
+    if (dataset == null) {
+      throw new PdaoException(String.format("Dataset %s was not found", datasetId));
+    }
     List<Acl> beforeAcls = dataset.getAcl();
     logger.debug("Before acl: " + StringUtils.join(beforeAcls, ", "));
     ArrayList<Acl> newAcls = new ArrayList<>(beforeAcls);

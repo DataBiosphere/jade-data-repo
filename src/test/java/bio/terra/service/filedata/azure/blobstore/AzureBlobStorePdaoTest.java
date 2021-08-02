@@ -59,7 +59,7 @@ public class AzureBlobStorePdaoTest {
   private static final UUID TENANT_ID = UUID.randomUUID();
   private static final String STORAGE_ACCOUNT_NAME = "sa";
   private static final BillingProfileModel BILLING_PROFILE =
-      new BillingProfileModel().id(PROFILE_ID).tenantId(TENANT_ID.toString());
+      new BillingProfileModel().id(PROFILE_ID).tenantId(TENANT_ID);
   private static final AzureStorageAccountResource AZURE_STORAGE_ACCOUNT_RESOURCE =
       new AzureStorageAccountResource()
           .resourceId(RESOURCE_ID)

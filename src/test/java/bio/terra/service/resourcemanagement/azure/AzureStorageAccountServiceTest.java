@@ -77,7 +77,7 @@ public class AzureStorageAccountServiceTest {
 
     // Mock Azure client calls
     when(client.storageAccounts()).thenReturn(storageAccounts);
-    when(resourceConfiguration.getClient(UUID.fromString(billingProfileModel.getSubscriptionId())))
+    when(resourceConfiguration.getClient(billingProfileModel.getSubscriptionId()))
         .thenReturn(client);
   }
 

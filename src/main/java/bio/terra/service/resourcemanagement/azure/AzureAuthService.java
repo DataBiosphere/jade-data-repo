@@ -4,10 +4,11 @@ import bio.terra.model.BillingProfileModel;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.blob.BlobServiceClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
-import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -55,7 +56,7 @@ public class AzureAuthService {
     // Obtain a secret key for the associated storage account
     String key = getStorageAccountKey(profileModel, storageAccountResource);
 
-    // Create a data lake client by authenticating using the found key
+    // Create a blob client by authenticating using the found key
     return new BlobContainerClientBuilder()
         .credential(new StorageSharedKeyCredential(storageAccountResource.getName(), key))
         .endpoint("https://" + storageAccountResource.getName() + ".blob.core.windows.net")
@@ -63,11 +64,29 @@ public class AzureAuthService {
         .buildClient();
   }
 
+  /**
+   * Return an authenticated {@link BlobServiceClient} client using key-based authentication
+   *
+   * @param profileModel The object containing user tenant information
+   * @param storageAccountResource The sa that BlobServiceClient client should be built from
+   * @return an authenticated {@link BlobServiceClient}
+   */
+  public BlobServiceClient getBlobServiceClient(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    // Obtain a secret key for the associated storage account
+    String key = getStorageAccountKey(profileModel, storageAccountResource);
+
+    // Create a data lake client by authenticating using the found key
+    return new BlobServiceClientBuilder()
+        .credential(new StorageSharedKeyCredential(storageAccountResource.getName(), key))
+        .endpoint("https://" + storageAccountResource.getName() + ".blob.core.windows.net")
+        .buildClient();
+  }
+
   /** Obtain a secret key for the associated storage account */
   private String getStorageAccountKey(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
-    AzureResourceManager client =
-        configuration.getClient(UUID.fromString(profileModel.getSubscriptionId()));
+    AzureResourceManager client = configuration.getClient(profileModel.getSubscriptionId());
 
     return client
         .storageAccounts()

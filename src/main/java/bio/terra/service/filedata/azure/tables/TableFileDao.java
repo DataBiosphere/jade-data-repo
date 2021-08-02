@@ -49,7 +49,7 @@ public class TableFileDao {
     tableServiceClient.createTableIfNotExists(TABLE_NAME);
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     TableEntity entity = FireStoreFile.toTableEntity(PARTITION_KEY, newFile);
-    logger.info("creating file metadata for fileId: " + newFile.getFileId());
+    logger.info("creating file metadata for fileId {}", newFile.getFileId());
     tableClient.createEntity(entity);
   }
 
@@ -120,10 +120,9 @@ public class TableFileDao {
               "Operation failed after " + AZURE_STORAGE_RETRIES + " tries.");
         } else {
           logger.warn(
-              "Error in Azure storage table future get - input: "
-                  + input.toString()
-                  + " message: "
-                  + ex.getMessage());
+              "Error in Azure storage table future get - input: {} message: {}",
+              input.toString(),
+              ex.getMessage());
           logger.info(
               "Operation will attempt retry #{} after {} millisecond pause.", retry, retryWait);
         }

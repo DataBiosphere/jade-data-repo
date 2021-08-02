@@ -38,6 +38,7 @@ public class TableFileDao {
   private static final String TABLE_NAME = "files";
   private static final String PARTITION_KEY = "partitionKey";
   private static final int SLEEP_BASE_SECONDS = 1;
+  private static final int MAX_SLEEP_SECONDS = 300;
   private static final int AZURE_STORAGE_RETRIES = 1;
 
   @Autowired
@@ -113,7 +114,7 @@ public class TableFileDao {
         generator.accept(input).get();
         break;
       } catch (ExecutionException ex) {
-        final long retryWait = (long) (SLEEP_BASE_SECONDS * Math.pow(2.5, retry));
+        final long retryWait = (long) Math.min(SLEEP_BASE_SECONDS * Math.pow(2.5, retry), MAX_SLEEP_SECONDS);
         retry++;
         if (retry > AZURE_STORAGE_RETRIES) {
           throw new FileSystemExecutionException(

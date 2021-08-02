@@ -101,7 +101,6 @@ public class AzureSynapsePdao {
       String ingestTableName,
       int csvSkipLeadingRows)
       throws SQLException {
-    // build the ingest request
     runAQuery(
         "CREATE EXTERNAL TABLE ["
             + ingestTableName
@@ -116,42 +115,71 @@ public class AzureSynapsePdao {
             + "FILE_FORMAT = ["
             + azureResourceConfiguration.getSynapse().getParquetFileFormatName()
             + "]\n"
-            + ") AS SELECT * FROM OPENROWSET(BULK '"
+            + ") AS SELECT "
+            + buildSelectStatement(ingestRequestFormat, datasetTable)
+            + " FROM OPENROWSET("
+            + "\n                                "
+            + "BULK '"
             + ingestFileName
             + "',\n                                "
             + "DATA_SOURCE = '"
             + controlFileDataSourceName
             + "',\n                                "
-            + "FORMAT='"
-            + ingestRequestFormat.toString().toUpperCase()
-            + "'"
+            + "FORMAT = 'CSV'"
             + ",\n                                "
-            + "PARSER_VERSION = '2.0'"
-            + ",\n                                "
-            + "FIRSTROW = "
-            + csvSkipLeadingRows
+            + addArguments(ingestRequestFormat, csvSkipLeadingRows)
             + ")\n"
             + "WITH (\n      "
-            + buildTableSchema(datasetTable)
+            + buildWithStatement(ingestRequestFormat, datasetTable)
             + ") AS rows;");
   }
 
-  private String buildTableSchema(DatasetTable datasetTable) {
-    List<Column> columns = datasetTable.getColumns();
-    return String.join(
-        ",\n      ",
-        columns.stream()
-            .map(c -> c.getName() + " " + translateTypeToDdl(c.getType(), c.isArrayOf()))
-            .collect(Collectors.toList()));
+  private String buildSelectStatement(FormatEnum formatType, DatasetTable datasetTable) {
+    switch (formatType) {
+      case CSV:
+        return "*";
+      case JSON:
+        List<Column> columns = datasetTable.getColumns();
+        return String.join(
+                ",\n      ",
+                columns.stream()
+                    .map(c -> translateToJsonConvert(c.getName(), c.getType(), c.isArrayOf()))
+                    .collect(Collectors.toList()))
+            + "\n";
+      default:
+        throw new EnumConstantNotPresentException(FormatEnum.class, formatType.name());
+    }
   }
 
-  public boolean runAQuery(String query) throws SQLException {
-    SQLServerDataSource ds = getDatasource();
-    try (Connection connection = ds.getConnection()) {
-      // Update or create the credential
-      try (Statement statement = connection.createStatement()) {
-        return statement.execute(query);
-      }
+  private String buildWithStatement(FormatEnum formatType, DatasetTable datasetTable) {
+    switch (formatType) {
+      case CSV:
+        List<Column> columns = datasetTable.getColumns();
+        return String.join(
+            ",\n      ",
+            columns.stream()
+                .map(c -> c.getName() + " " + translateTypeToDdl(c.getType(), c.isArrayOf()))
+                .collect(Collectors.toList()));
+      case JSON:
+        return "doc nvarchar(max)";
+      default:
+        throw new EnumConstantNotPresentException(FormatEnum.class, formatType.name());
+    }
+  }
+
+  private String addArguments(FormatEnum formatType, int csvSkipLeadingRows) {
+    switch (formatType) {
+      case CSV:
+        return "PARSER_VERSION = '2.0'"
+            + ",\n                                "
+            + "FIRSTROW = "
+            + csvSkipLeadingRows;
+      case JSON:
+        return "fieldterminator ='0x0b'"
+            + ",\n                                "
+            + "fieldquote = '0x0b'";
+      default:
+        throw new EnumConstantNotPresentException(FormatEnum.class, formatType.name());
     }
   }
 
@@ -188,6 +216,16 @@ public class AzureSynapsePdao {
                     "Unable to clean up scoped credential {}, ex: {}", credential, ex.getMessage());
               }
             });
+  }
+
+  public boolean runAQuery(String query) throws SQLException {
+    SQLServerDataSource ds = getDatasource();
+    try (Connection connection = ds.getConnection()) {
+      // Update or create the credential
+      try (Statement statement = connection.createStatement()) {
+        return statement.execute(query);
+      }
+    }
   }
 
   private SQLServerDataSource getDatasource() {
@@ -234,6 +272,26 @@ public class AzureSynapsePdao {
         return "time";
       default:
         throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
+    }
+  }
+
+  private String translateToJsonConvert(String name, TableDataType dataType, boolean isArrayOf) {
+    if (isArrayOf) {
+      return "JSON_VALUE(doc, '$." + name + "') " + name;
+    }
+    switch (dataType) {
+      case TEXT:
+      case STRING:
+      case DIRREF:
+      case FILEREF:
+        return "JSON_VALUE(doc, '$." + name + "') " + name;
+      default:
+        return "cast(JSON_VALUE(doc, '$."
+            + name
+            + "') as "
+            + translateTypeToDdl(dataType, false)
+            + ") "
+            + name;
     }
   }
 }

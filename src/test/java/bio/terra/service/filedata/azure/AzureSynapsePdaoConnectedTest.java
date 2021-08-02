@@ -89,11 +89,22 @@ public class AzureSynapsePdaoConnectedTest {
   }
 
   @Test
-  public void testSynapseQuery() throws Exception {
-    // Let's build a fake ingest dataset request
-    IngestRequestModel ingestRequest =
+  public void testSynapseQueryCSV() throws Exception {
+    IngestRequestModel ingestRequestModel =
         new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
+    String ingestFileName = "azure-simple-dataset-ingest-request.csv";
+    testSynapseQuery(ingestRequestModel, ingestFileName);
+  }
 
+  @Test
+  public void testSynapseQueryJSON() throws Exception {
+    IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
+    String ingestFileName = "azure-simple-dataset-ingest-request.json";
+    testSynapseQuery(ingestRequestModel, ingestFileName);
+  }
+
+  private void testSynapseQuery(IngestRequestModel ingestRequestModel, String ingestFileName)
+      throws Exception {
     // Currently, the parquet files will live in the same location as the ingest control file
     String destinationTableName = "participant";
     String destinationParquetFile = "parquet/" + randomFlightId + ".parquet";
@@ -103,7 +114,7 @@ public class AzureSynapsePdaoConnectedTest {
     // ---- ingest steps ---
     // 1 - Create external data source for the ingest control file
     String ingestFileLocation = "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata";
-    String ingestFileName = "azure-simple-dataset-ingest-request.csv";
+
     azureSynapsePdao.createExternalDataSource(
         ingestFileLocation,
         tenantId,
@@ -136,14 +147,14 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 4 - Create parquet files via external table
     azureSynapsePdao.createParquetFiles(
-        ingestRequest.getFormat(),
+        ingestRequestModel.getFormat(),
         destinationTable,
         ingestFileName,
         destinationParquetFile,
         destinationDataSourceName,
         controlFileDataSourceName,
         tableName,
-        ingestRequest.getCsvSkipLeadingRows());
+        ingestRequestModel.getCsvSkipLeadingRows());
 
     // TODO - Add check that the parquet files were successfully created.
     // How do we query the parquet files?

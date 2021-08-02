@@ -2998,6 +2998,7 @@ components:
         csv_skip_leading_rows:
           type: integer
           description: number of header rows to skip
+          default: 2
         csv_allow_quoted_newlines:
           type: boolean
           default: true

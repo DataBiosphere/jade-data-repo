@@ -116,15 +116,15 @@ public class AzureSynapsePdao {
             + "FILE_FORMAT = ["
             + azureResourceConfiguration.getSynapse().getParquetFileFormatName()
             + "]\n"
-            + ") AS SELECT * FROM OPENROWSET(BULK '"
+            + ") AS SELECT "
+            + buildSelectStatement(ingestRequestFormat, datasetTable)
+            + " FROM OPENROWSET(BULK '"
             + ingestFileName
             + "',\n                                "
             + "DATA_SOURCE = '"
             + controlFileDataSourceName
             + "',\n                                "
-            + "FORMAT='"
-            + ingestRequestFormat.toString().toUpperCase()
-            + "'"
+            + "FORMAT='CSV'" // Format is set to CSV for both json & csv files
             + ",\n                                "
             + "PARSER_VERSION = '2.0'"
             + ",\n                                "
@@ -132,11 +132,26 @@ public class AzureSynapsePdao {
             + csvSkipLeadingRows
             + ")\n"
             + "WITH (\n      "
-            + buildTableSchema(datasetTable)
+            + buildWithStatement(ingestRequestFormat, datasetTable)
             + ") AS rows;");
   }
 
-  private String buildTableSchema(DatasetTable datasetTable) {
+  private String buildSelectStatement(FormatEnum formatType, DatasetTable datasetTable) {
+    if (formatType == FormatEnum.CSV) {
+      return "*";
+    }
+    List<Column> columns = datasetTable.getColumns();
+    return String.join(
+        ",\n      ",
+        columns.stream()
+            .map(c -> translateToJsonConvert(c.getName(), c.getType(), c.isArrayOf()))
+            .collect(Collectors.toList()));
+  }
+
+  private String buildWithStatement(FormatEnum formatType, DatasetTable datasetTable) {
+    if (formatType == FormatEnum.JSON) {
+      return "doc nvarchar(max)";
+    }
     List<Column> columns = datasetTable.getColumns();
     return String.join(
         ",\n      ",
@@ -234,6 +249,26 @@ public class AzureSynapsePdao {
         return "time";
       default:
         throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
+    }
+  }
+
+  private String translateToJsonConvert(String name, TableDataType dataType, boolean isArrayOf) {
+    if (isArrayOf) {
+      return "JSON_VALUE(doc, '%$." + name + "') " + name;
+    }
+    switch (dataType) {
+      case TEXT:
+      case STRING:
+      case DIRREF:
+      case FILEREF:
+        return "JSON_VALUE(doc, '%$." + name + "') " + name;
+      default:
+        return "cast(JSON_VALUE(doc, '%$."
+            + name
+            + "') as "
+            + translateTypeToDdl(dataType, false)
+            + ") "
+            + name;
     }
   }
 }

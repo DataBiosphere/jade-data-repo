@@ -14,6 +14,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.stairway.ShortUUID;
 import java.security.InvalidParameterException;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.UUID;
 import org.junit.After;
@@ -89,11 +90,24 @@ public class AzureSynapsePdaoConnectedTest {
   }
 
   @Test
-  public void testSynapseQuery() throws Exception {
+  public void testSynapseQueryCSV() throws Exception {
     // Let's build a fake ingest dataset request
     IngestRequestModel ingestRequest =
         new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
+    String ingestFileName = "azure-simple-dataset-ingest-request.csv";
+    testIngestWithSynapse(ingestRequest, ingestFileName);
+  }
 
+  @Test
+  public void testSynapseQueryJSON() throws Exception {
+    // Let's build a fake ingest dataset request
+    IngestRequestModel ingestRequest = new IngestRequestModel().format(FormatEnum.JSON);
+    String ingestFileName = "azure-simple-dataset-ingest-request.json";
+    testIngestWithSynapse(ingestRequest, ingestFileName);
+  }
+
+  private void testIngestWithSynapse(IngestRequestModel ingestRequest, String ingestFileName)
+      throws SQLException {
     // Currently, the parquet files will live in the same location as the ingest control file
     String destinationTableName = "participant";
     String destinationParquetFile = "parquet/" + randomFlightId + ".parquet";
@@ -103,7 +117,6 @@ public class AzureSynapsePdaoConnectedTest {
     // ---- ingest steps ---
     // 1 - Create external data source for the ingest control file
     String ingestFileLocation = "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata";
-    String ingestFileName = "azure-simple-dataset-ingest-request.csv";
     azureSynapsePdao.createExternalDataSource(
         ingestFileLocation,
         tenantId,

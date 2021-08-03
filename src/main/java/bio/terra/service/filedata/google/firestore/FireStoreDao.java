@@ -561,8 +561,10 @@ public class FireStoreDao {
 
     for (FireStoreDirectoryEntry dirItem : enumComputed) {
       totalSize = totalSize + dirItem.getSize();
-      crc32cCollection.add(StringUtils.lowerCase(dirItem.getChecksumCrc32c()));
-      if (dirItem.getChecksumMd5() != null) {
+      if (!StringUtils.isEmpty(dirItem.getChecksumCrc32c())) {
+        crc32cCollection.add(StringUtils.lowerCase(dirItem.getChecksumCrc32c()));
+      }
+      if (!StringUtils.isEmpty(dirItem.getChecksumMd5())) {
         md5Collection.add(StringUtils.lowerCase(dirItem.getChecksumMd5()));
       }
     }

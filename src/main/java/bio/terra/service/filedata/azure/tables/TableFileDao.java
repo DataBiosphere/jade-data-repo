@@ -63,6 +63,8 @@ public class TableFileDao {
       tableClient.deleteEntity(entity);
       return true;
     } catch (TableServiceException ex) {
+      logger.warn(
+          "Error deleting file metadata for fileId {}, message: {}", fileId, ex.getMessage());
       return false;
     }
   }

@@ -9,15 +9,11 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
 //
 public class IngestBulkFileResponseStep implements Step {
-  private static final Logger logger = LoggerFactory.getLogger(IngestBulkFileResponseStep.class);
-
   private final LoadService loadService;
   private final String loadTag;
 

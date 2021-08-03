@@ -8,15 +8,10 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DeleteProfileDeleteUnusedProjects implements Step {
 
   private final ResourceService resourceService;
-
-  private static final Logger logger =
-      LoggerFactory.getLogger(DeleteProfileDeleteUnusedProjects.class);
 
   public DeleteProfileDeleteUnusedProjects(ResourceService resourceService) {
     this.resourceService = resourceService;

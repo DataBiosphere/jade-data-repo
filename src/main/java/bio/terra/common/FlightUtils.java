@@ -18,13 +18,7 @@ public final class FlightUtils {
 
   private FlightUtils() {}
 
-  /**
-   * Build an error model and set it as the response
-   *
-   * @param context
-   * @param message
-   * @param responseStatus
-   */
+  /** Build an error model and set it as the response */
   public static void setErrorResponse(
       FlightContext context, String message, HttpStatus responseStatus) {
     ErrorModel errorModel = new ErrorModel().message(message);

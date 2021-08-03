@@ -91,8 +91,7 @@ public class DatasetCreateFlight extends Flight {
 
     // For azure backed datasets, add a link co connect the storage account to the dataset
     if (platform.isAzure()) {
-      addStep(
-          new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao, datasetRequest));
+      addStep(new CreateDatasetCreateStorageAccountLinkStep(datasetStorageAccountDao));
     }
 
     addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao));

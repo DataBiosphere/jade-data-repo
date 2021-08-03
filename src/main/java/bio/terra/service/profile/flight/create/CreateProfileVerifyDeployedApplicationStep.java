@@ -6,13 +6,8 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CreateProfileVerifyDeployedApplicationStep implements Step {
-  private static final Logger logger =
-      LoggerFactory.getLogger(CreateProfileVerifyDeployedApplicationStep.class);
-
   private final ProfileService profileService;
   private final BillingProfileRequestModel request;
   private final AuthenticatedUserRequest user;

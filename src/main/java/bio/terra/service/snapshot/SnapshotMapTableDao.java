@@ -5,7 +5,6 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Table;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -69,17 +68,16 @@ public class SnapshotMapTableDao {
             sql,
             new MapSqlParameterSource().addValue("source_id", source.getId()),
             (rs, rowNum) -> {
-              List<SnapshotMapTable> mapTables = new ArrayList<>();
               UUID fromTableId = rs.getObject("from_table_id", UUID.class);
               Optional<DatasetTable> datasetTable = source.getDataset().getTableById(fromTableId);
-              if (!datasetTable.isPresent()) {
+              if (datasetTable.isEmpty()) {
                 throw new CorruptMetadataException(
                     "Dataset table referenced by snapshot source map table was not found!");
               }
 
               UUID toTableId = UUID.fromString(rs.getString("to_table_id"));
               Optional<SnapshotTable> snapshotTable = snapshot.getTableById(toTableId);
-              if (!snapshotTable.isPresent()) {
+              if (snapshotTable.isEmpty()) {
                 throw new CorruptMetadataException(
                     "Snapshot table referenced by snapshot source map table was not found!");
               }

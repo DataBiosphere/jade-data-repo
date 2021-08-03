@@ -105,7 +105,7 @@ public class CreateResourceCorrectRequest {
     if (this == o) {
       return true;
     }
-    if (o == null || getClass() != o.getClass()) {
+    if (!(o instanceof CreateResourceCorrectRequest)) {
       return false;
     }
     CreateResourceCorrectRequest createResourceRequest = (CreateResourceCorrectRequest) o;

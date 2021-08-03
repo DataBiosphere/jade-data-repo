@@ -12,15 +12,11 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DropExternalTablesStep implements Step {
 
   private final BigQueryPdao bigQueryPdao;
   private final DatasetService datasetService;
-
-  private static Logger logger = LoggerFactory.getLogger(DropExternalTablesStep.class);
 
   public DropExternalTablesStep(BigQueryPdao bigQueryPdao, DatasetService datasetService) {
     this.bigQueryPdao = bigQueryPdao;

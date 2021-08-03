@@ -7,12 +7,8 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class UpdateProfileUpdateGCloudProject implements Step {
-  private static final Logger logger =
-      LoggerFactory.getLogger(UpdateProfileUpdateGCloudProject.class);
   private final GoogleProjectService googleProjectService;
 
   public UpdateProfileUpdateGCloudProject(GoogleProjectService projectService) {

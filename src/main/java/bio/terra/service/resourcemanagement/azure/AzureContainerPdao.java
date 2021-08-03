@@ -5,7 +5,9 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.sas.BlobContainerSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.sas.SasProtocol;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -60,7 +62,7 @@ public class AzureContainerPdao {
             .setListPermission(enableList)
             .setDeletePermission(enableDelete);
 
-    OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
+    OffsetDateTime expiryTime = Instant.now().atZone(ZoneOffset.UTC).plusDays(1).toOffsetDateTime();
     SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
 
     // build the token

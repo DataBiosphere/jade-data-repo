@@ -13,12 +13,8 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ValidateIngestFileDirectoryStep implements Step {
-  private static final Logger logger =
-      LoggerFactory.getLogger(ValidateIngestFileDirectoryStep.class);
   public static final String CREATE_ENTRY_ACTION = "createEntry";
   public static final String CHECK_ENTRY_ACTION = "checkEntry";
 

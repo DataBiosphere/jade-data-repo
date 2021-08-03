@@ -107,7 +107,7 @@ public class AzureBlobStorePdao {
             String.format(
                 "%s/%s",
                 destinationClientFactory.getBlobContainerClient().getBlobContainerUrl(), blobName))
-        .checksumMd5(Base64.getEncoder().encodeToString((blobProperties.getContentMd5())))
+        .checksumMd5(Base64.getEncoder().encodeToString(blobProperties.getContentMd5()))
         .size(blobProperties.getBlobSize())
         .bucketResourceId(storageAccountResource.getResourceId().toString());
   }

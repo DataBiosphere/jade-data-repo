@@ -67,11 +67,12 @@ public class StorageResourceDao {
       return jdbcTemplate.query(SQL_GET_LIST, params, new StorageResourceMapper());
     } catch (EmptyResultDataAccessException ex) {
       throw new StorageResourceNotFoundException(
-          "Storage resources not found for dataset enumerate query");
+          "Storage resources not found for dataset enumerate query", ex);
     }
   }
 
   private static class StorageResourceMapper implements RowMapper<StorageResource<?, ?>> {
+    @Override
     public StorageResource<?, ?> mapRow(ResultSet rs, int rowNum) throws SQLException {
       final CloudPlatform cloudPlatform = CloudPlatform.valueOf(rs.getString("cloud_platform"));
       switch (cloudPlatform) {

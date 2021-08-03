@@ -23,6 +23,7 @@ public class DatasetTable implements Table {
   private BigQueryPartitionConfigV1 bqPartitionConfig;
   private Long rowCount;
 
+  @Override
   public UUID getId() {
     return id;
   }
@@ -32,6 +33,7 @@ public class DatasetTable implements Table {
     return this;
   }
 
+  @Override
   public String getName() {
     return name;
   }
@@ -59,6 +61,7 @@ public class DatasetTable implements Table {
     return this;
   }
 
+  @Override
   public List<Column> getColumns() {
     return columns;
   }

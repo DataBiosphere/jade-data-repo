@@ -1,6 +1,5 @@
 package bio.terra.app.controller;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.common.exception.BadRequestException;
 import bio.terra.common.exception.NotFoundException;
@@ -34,26 +33,21 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Api(tags = {"DataRepositoryService"})
 public class DataRepositoryServiceApiController implements DataRepositoryServiceApi {
 
-  private Logger logger = LoggerFactory.getLogger(DataRepositoryServiceApiController.class);
+  private final Logger logger = LoggerFactory.getLogger(DataRepositoryServiceApiController.class);
 
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;
   private final DrsService drsService;
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
-  // needed for local testing w/o proxy
-  private final ApplicationConfiguration appConfig;
-
   @Autowired
   public DataRepositoryServiceApiController(
       ObjectMapper objectMapper,
       HttpServletRequest request,
       DrsService drsService,
-      ApplicationConfiguration appConfig,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory) {
     this.objectMapper = objectMapper;
     this.request = request;
-    this.appConfig = appConfig;
     this.drsService = drsService;
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
   }

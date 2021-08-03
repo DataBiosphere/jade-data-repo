@@ -162,12 +162,13 @@ public class DatasetStorageAccountDao {
   }
 
   private static class UuidMapper implements RowMapper<UUID> {
-    private String columnLabel;
+    private final String columnLabel;
 
     UuidMapper(String columnLabel) {
       this.columnLabel = columnLabel;
     }
 
+    @Override
     public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
       return rs.getObject(this.columnLabel, UUID.class);
     }

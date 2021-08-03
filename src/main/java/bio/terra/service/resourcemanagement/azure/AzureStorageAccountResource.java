@@ -155,11 +155,13 @@ public class AzureStorageAccountResource {
 
   public enum ContainerType {
     DATA() {
+      @Override
       String getContainer(AzureStorageAccountResource account) {
         return account.getDataContainer();
       }
     },
     METADATA() {
+      @Override
       String getContainer(AzureStorageAccountResource account) {
         return account.getMetadataContainer();
       }

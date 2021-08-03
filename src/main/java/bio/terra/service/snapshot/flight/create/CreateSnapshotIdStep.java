@@ -9,13 +9,9 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CreateSnapshotIdStep implements Step {
   private final SnapshotRequestModel snapshotReq;
-
-  private static Logger logger = LoggerFactory.getLogger(CreateSnapshotIdStep.class);
 
   public CreateSnapshotIdStep(SnapshotRequestModel snapshotReq) {
     this.snapshotReq = snapshotReq;

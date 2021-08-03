@@ -19,8 +19,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -36,7 +34,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 class FireStoreFileDao {
-  private final Logger logger = LoggerFactory.getLogger(FireStoreFileDao.class);
 
   private final FireStoreUtils fireStoreUtils;
   private final ConfigurationService configurationService;

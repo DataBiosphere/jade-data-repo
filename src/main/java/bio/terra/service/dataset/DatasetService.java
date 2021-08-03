@@ -28,7 +28,6 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,7 +42,6 @@ import org.springframework.stereotype.Component;
 public class DatasetService {
   private final DatasetDao datasetDao;
   private final JobService jobService; // for handling flight response
-  private final ResourceService resourceService;
   private final LoadService loadService;
   private final ProfileDao profileDao;
 
@@ -51,12 +49,10 @@ public class DatasetService {
   public DatasetService(
       DatasetDao datasetDao,
       JobService jobService,
-      ResourceService resourceService,
       LoadService loadService,
       ProfileDao profileDao) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
-    this.resourceService = resourceService;
     this.loadService = loadService;
     this.profileDao = profileDao;
   }
@@ -92,7 +88,6 @@ public class DatasetService {
   /**
    * Fetch existing Dataset object using the name.
    *
-   * @param name
    * @return a Dataset object
    */
   public Dataset retrieveByName(String name) {

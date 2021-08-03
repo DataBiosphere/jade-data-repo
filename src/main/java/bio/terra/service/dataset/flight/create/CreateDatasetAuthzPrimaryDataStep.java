@@ -21,13 +21,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CreateDatasetAuthzPrimaryDataStep implements Step {
-  private static final Logger logger =
-      LoggerFactory.getLogger(CreateDatasetAuthzPrimaryDataStep.class);
-
   private final BigQueryPdao bigQueryPdao;
   private final DatasetService datasetService;
   private final ConfigurationService configService;

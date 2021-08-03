@@ -24,11 +24,9 @@ import com.google.api.services.appengine.v1.model.Application;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
-import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.cloudresourcemanager.model.Policy;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
-import com.google.api.services.cloudresourcemanager.model.Status;
 import com.google.api.services.serviceusage.v1.ServiceUsage;
 import com.google.api.services.serviceusage.v1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1.model.GoogleApiServiceusageV1Service;
@@ -100,12 +98,6 @@ public class GoogleProjectService {
     this.environment = environment;
   }
 
-  /**
-   * @param dataset Dataset the file belongs to
-   * @param billingProfile
-   * @return
-   * @throws GoogleResourceException
-   */
   public String projectIdForFile(Dataset dataset, BillingProfileModel billingProfile)
       throws GoogleResourceException {
     // Case 1
@@ -578,40 +570,6 @@ public class GoogleProjectService {
           String.format("Operation Name does not look as expected: %s", opName));
     }
     return matcher.group(1);
-  }
-
-  /**
-   * Poll the resource manager api until an operation completes. It is possible to hit quota issues
-   * here, so the timeout is set to 10 seconds.
-   *
-   * @param resourceManager service instance
-   * @param operation has an id for us to use in the check
-   * @param timeoutSeconds how many seconds before we give up
-   * @return a completed operation
-   */
-  private static Operation blockUntilResourceOperationComplete(
-      CloudResourceManager resourceManager, Operation operation, long timeoutSeconds)
-      throws IOException, InterruptedException {
-    long start = System.currentTimeMillis();
-    final long pollInterval = TimeUnit.SECONDS.toMillis(10);
-    String opId = operation.getName();
-
-    while (operation != null && (operation.getDone() == null || !operation.getDone())) {
-      Status error = operation.getError();
-      if (error != null) {
-        throw new GoogleResourceException(
-            "Error while waiting for operation to complete" + error.getMessage());
-      }
-      Thread.sleep(pollInterval);
-      long elapsed = System.currentTimeMillis() - start;
-      if (elapsed >= TimeUnit.SECONDS.toMillis(timeoutSeconds)) {
-        throw new GoogleResourceException("Timed out waiting for operation to complete");
-      }
-      logger.info("checking operation: {}", opId);
-      CloudResourceManager.Operations.Get request = resourceManager.operations().get(opId);
-      operation = request.execute();
-    }
-    return operation;
   }
 
   private ServiceUsage serviceUsage() throws IOException, GeneralSecurityException {

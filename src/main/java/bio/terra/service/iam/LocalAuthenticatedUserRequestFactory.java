@@ -3,15 +3,11 @@ package bio.terra.service.iam;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {
-  private Logger logger = LoggerFactory.getLogger(LocalAuthenticatedUserRequestFactory.class);
-
   // in testing scenarios and when running the server without the proxy not all the
   // header information will be available. default values will be used in these cases.
 
@@ -23,6 +19,7 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
   }
 
   // Static method to build an AuthenticatedUserRequest from data available to the controller
+  @Override
   public AuthenticatedUserRequest from(HttpServletRequest servletRequest) {
     HttpServletRequest req = servletRequest;
 

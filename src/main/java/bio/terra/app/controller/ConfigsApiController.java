@@ -19,8 +19,6 @@ import io.swagger.annotations.Api;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,8 +31,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 @Controller
 @Api(tags = {"configs"})
 public class ConfigsApiController implements ConfigsApi {
-
-  private static final Logger logger = LoggerFactory.getLogger(ConfigsApiController.class);
 
   private final ObjectMapper objectMapper;
   private final HttpServletRequest request;

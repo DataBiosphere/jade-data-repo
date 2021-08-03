@@ -28,6 +28,7 @@ public class Snapshot implements FSContainerInterface {
   private GoogleProjectResource projectResource;
   private List<Relationship> relationships = Collections.emptyList();
 
+  @Override
   public UUID getId() {
     return id;
   }
@@ -118,6 +119,7 @@ public class Snapshot implements FSContainerInterface {
     return this;
   }
 
+  @Override
   public GoogleProjectResource getProjectResource() {
     return projectResource;
   }

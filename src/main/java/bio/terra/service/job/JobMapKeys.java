@@ -17,7 +17,7 @@ public enum JobMapKeys {
   FILE_ID("fileId"),
   ASSET_ID("assetId");
 
-  private String keyName;
+  private final String keyName;
 
   JobMapKeys(String keyName) {
     this.keyName = keyName;

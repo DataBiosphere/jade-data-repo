@@ -38,8 +38,7 @@ public class BatchOperationTest {
     GoogleResourceConfiguration resourceConfiguration = new GoogleResourceConfiguration();
     resourceConfiguration.setFirestoreRetries(4);
     ConfigurationService configurationService =
-        new ConfigurationService(
-            samConfiguration, gcsConfiguration, resourceConfiguration, appConfiguration);
+        new ConfigurationService(samConfiguration, resourceConfiguration, appConfiguration);
 
     fireStoreUtils = new FireStoreUtils(configurationService);
   }

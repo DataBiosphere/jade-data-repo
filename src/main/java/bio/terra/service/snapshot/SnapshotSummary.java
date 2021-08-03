@@ -11,7 +11,7 @@ public class SnapshotSummary {
   private String description;
   private Instant createdDate;
   private UUID profileId;
-  private List<StorageResource> storage;
+  private List<StorageResource<?, ?>> storage;
 
   public UUID getId() {
     return id;
@@ -58,11 +58,11 @@ public class SnapshotSummary {
     return this;
   }
 
-  public List<StorageResource> getStorage() {
+  public List<StorageResource<?, ?>> getStorage() {
     return storage;
   }
 
-  public SnapshotSummary storage(List<StorageResource> storage) {
+  public SnapshotSummary storage(List<StorageResource<?, ?>> storage) {
     this.storage = storage;
     return this;
   }

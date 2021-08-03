@@ -6,7 +6,6 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATC
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
-import bio.terra.service.resourcemanagement.ResourceService;
 import com.google.api.client.util.Lists;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
@@ -36,16 +35,12 @@ public class FireStoreDependencyDao {
   private static final String DEPENDENCY_COLLECTION_NAME = "-dependencies";
 
   private final FireStoreUtils fireStoreUtils;
-  private final ResourceService resourceService;
   private final ConfigurationService configurationService;
 
   @Autowired
   public FireStoreDependencyDao(
-      FireStoreUtils fireStoreUtils,
-      ResourceService resourceService,
-      ConfigurationService configurationService) {
+      FireStoreUtils fireStoreUtils, ConfigurationService configurationService) {
     this.fireStoreUtils = fireStoreUtils;
-    this.resourceService = resourceService;
     this.configurationService = configurationService;
   }
 

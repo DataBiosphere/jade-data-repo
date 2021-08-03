@@ -75,6 +75,7 @@ public enum GoogleRegion implements CloudRegion {
     return value;
   }
 
+  @Override
   public String toString() {
     return value;
   }

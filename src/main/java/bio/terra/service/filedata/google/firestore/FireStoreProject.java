@@ -3,16 +3,13 @@ package bio.terra.service.filedata.google.firestore;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
 import java.util.concurrent.ConcurrentHashMap;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class FireStoreProject {
-  private static final Logger logger = LoggerFactory.getLogger(FireStoreProject.class);
   private static final ConcurrentHashMap<String, FireStoreProject> fireStoreProjectCache =
       new ConcurrentHashMap<>();
 
-  private String projectId;
-  private Firestore firestore;
+  private final String projectId;
+  private final Firestore firestore;
 
   private FireStoreProject(String projectId) {
     this.projectId = projectId;

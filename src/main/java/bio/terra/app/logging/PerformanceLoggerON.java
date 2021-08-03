@@ -35,9 +35,9 @@ import org.springframework.stereotype.Component;
 @Primary
 public class PerformanceLoggerON implements PerformanceLogger {
 
-  private ObjectMapper objectMapper;
+  private final ObjectMapper objectMapper;
 
-  private static Logger logger = LoggerFactory.getLogger(PerformanceLoggerON.class);
+  private static final Logger logger = LoggerFactory.getLogger(PerformanceLoggerON.class);
   private static final String PerformanceLogFormat =
       "TimestampUTC: {}, JobId: {}, Class: {}, Operation: {}, "
           + "ElapsedTime: {}, IntegerCount: {}, AdditionalInfo: {}";
@@ -60,10 +60,12 @@ public class PerformanceLoggerON implements PerformanceLogger {
     this.objectMapper = new ObjectMapper();
   }
 
+  @Override
   public boolean isEnabled() {
     return true;
   }
 
+  @Override
   public void log(
       String jobId,
       String className,
@@ -80,7 +82,7 @@ public class PerformanceLoggerON implements PerformanceLogger {
         // if we hit a serialization error with the additional information object, log the string
         // anyway
         // and log the error separately for debugging
-        logger.info("Failure serializing additionalInfo to JSON. " + additionalInfo.toString());
+        logger.info("Failure serializing additionalInfo to JSON. " + additionalInfo);
         additionalInfoStr = additionalInfo.toString();
       }
     }
@@ -101,6 +103,7 @@ public class PerformanceLoggerON implements PerformanceLogger {
     return Instant.now().atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
   }
 
+  @Override
   public String timerStart() {
     // generate a timer reference id to use for tracking
     long logCounterVal = logCounter.get();
@@ -113,6 +116,7 @@ public class PerformanceLoggerON implements PerformanceLogger {
     return timerId;
   }
 
+  @Override
   public void timerStart(String timerId) {
     // if the timer reference id already exists, overwrite it and log the error separately for
     // debugging
@@ -126,6 +130,7 @@ public class PerformanceLoggerON implements PerformanceLogger {
     startTimeMap.get().put(timerId, startTime);
   }
 
+  @Override
   public void timerEndAndLog(
       String timerId,
       String jobId,

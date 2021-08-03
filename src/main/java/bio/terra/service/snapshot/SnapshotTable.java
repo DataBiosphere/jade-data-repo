@@ -12,6 +12,7 @@ public class SnapshotTable implements Table {
   private List<Column> columns = Collections.emptyList();
   private Long rowCount;
 
+  @Override
   public UUID getId() {
     return id;
   }
@@ -21,6 +22,7 @@ public class SnapshotTable implements Table {
     return this;
   }
 
+  @Override
   public String getName() {
     return name;
   }
@@ -30,6 +32,7 @@ public class SnapshotTable implements Table {
     return this;
   }
 
+  @Override
   public List<Column> getColumns() {
     return columns;
   }

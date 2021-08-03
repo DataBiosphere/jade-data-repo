@@ -15,12 +15,8 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class IngestFileDirectoryStep implements Step {
-  private static final Logger logger = LoggerFactory.getLogger(IngestFileDirectoryStep.class);
-
   private final FireStoreDao fileDao;
   private final FireStoreUtils fireStoreUtils;
   private final Dataset dataset;

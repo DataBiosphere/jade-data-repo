@@ -7,13 +7,8 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DeleteFileAzurePrimaryDataStep implements Step {
-  private static final Logger logger =
-      LoggerFactory.getLogger(DeleteFileAzurePrimaryDataStep.class);
-
   private final AzureBlobStorePdao azureBlobStorePdao;
 
   public DeleteFileAzurePrimaryDataStep(AzureBlobStorePdao azureBlobStorePdao) {

@@ -56,12 +56,12 @@ import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import bio.terra.service.configuration.exception.DuplicateConfigNameException;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,20 +73,17 @@ public class ConfigurationService {
 
   private final ApplicationConfiguration appConfiguration;
   private final SamConfiguration samConfiguration;
-  private final GcsConfiguration gcsConfiguration;
   private final GoogleResourceConfiguration googleResourceConfiguration;
 
-  private Map<ConfigEnum, ConfigBase> configuration = new HashMap<>();
+  private final Map<ConfigEnum, ConfigBase> configuration = new HashMap<>();
 
   @Autowired
   public ConfigurationService(
       SamConfiguration samConfiguration,
-      GcsConfiguration gcsConfiguration,
       GoogleResourceConfiguration googleResourceConfiguration,
       ApplicationConfiguration appConfiguration) {
     this.appConfiguration = appConfiguration;
     this.samConfiguration = samConfiguration;
-    this.gcsConfiguration = gcsConfiguration;
     this.googleResourceConfiguration = googleResourceConfiguration;
     setConfiguration();
   }
@@ -102,7 +99,7 @@ public class ConfigurationService {
       config.validate(configModel);
     }
 
-    List<ConfigModel> priorConfigList = new LinkedList<>();
+    List<ConfigModel> priorConfigList = new ArrayList<>(groupModel.getGroup().size());
     for (ConfigModel configModel : groupModel.getGroup()) {
       ConfigEnum configEnum = ConfigEnum.lookupByApiName(configModel.getName());
       ConfigBase config = configuration.get(configEnum);
@@ -119,10 +116,10 @@ public class ConfigurationService {
   }
 
   public ConfigListModel getConfigList() {
-    List<ConfigModel> configList = new LinkedList<>();
-    for (ConfigBase config : configuration.values()) {
-      configList.add(config.get());
-    }
+    List<ConfigModel> configList =
+        configuration.values().stream()
+            .map(ConfigBase::get)
+            .collect(Collectors.toUnmodifiableList());
     return new ConfigListModel().items(configList).total(configList.size());
   }
 

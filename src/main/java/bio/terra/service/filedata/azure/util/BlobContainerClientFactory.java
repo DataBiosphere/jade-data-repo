@@ -14,6 +14,7 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.sas.SasProtocol;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Locale;
@@ -173,7 +174,7 @@ public class BlobContainerClientFactory {
 
     BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
 
-    OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
+    OffsetDateTime expiryTime = Instant.now().atZone(ZoneOffset.UTC).plusDays(1).toOffsetDateTime();
     SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
 
     // build the token

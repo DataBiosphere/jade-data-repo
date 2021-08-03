@@ -257,8 +257,7 @@ public class SamIam implements IamProviderInterface {
     SamRetry.retry(
         configurationService, () -> createSnapshotResourceInner(userReq, snapshotId, readersList));
     return SamRetry.retry(
-        configurationService,
-        () -> syncSnapshotResourcePoliciesInner(userReq, snapshotId, readersList));
+        configurationService, () -> syncSnapshotResourcePoliciesInner(userReq, snapshotId));
   }
 
   private void createSnapshotResourceInner(
@@ -284,8 +283,7 @@ public class SamIam implements IamProviderInterface {
   }
 
   private Map<IamRole, String> syncSnapshotResourcePoliciesInner(
-      AuthenticatedUserRequest userReq, UUID snapshotId, List<String> readersList)
-      throws ApiException {
+      AuthenticatedUserRequest userReq, UUID snapshotId) throws ApiException {
     // sync the policies for all roles that have read data action
     Map<IamRole, String> policies = new HashMap<>();
     String policy =

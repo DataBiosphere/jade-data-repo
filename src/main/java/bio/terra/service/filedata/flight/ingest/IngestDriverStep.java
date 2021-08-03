@@ -27,7 +27,7 @@ import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DuplicateFlightIdSubmittedException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayExecutionException;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -222,7 +222,7 @@ public class IngestDriverStep implements Step {
         candidates.getCandidateFiles().size());
 
     int failureCount = candidates.getFailedLoads();
-    List<LoadFile> realRunningLoads = new LinkedList<>();
+    List<LoadFile> realRunningLoads = new ArrayList<>();
 
     for (LoadFile loadFile : candidates.getRunningLoads()) {
       FlightState flightState = context.getStairway().getFlightState(loadFile.getFlightId());

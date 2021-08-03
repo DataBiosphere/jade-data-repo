@@ -2,13 +2,8 @@ package bio.terra.service.configuration;
 
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigModel;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ConfigFaultSimple extends ConfigFault {
-  private final Logger logger = LoggerFactory.getLogger(ConfigFaultSimple.class);
-
-  // -- Instance methods --
   ConfigFaultSimple(
       ConfigEnum configEnum, ConfigFaultModel.FaultTypeEnum faultType, boolean enabled) {
     super(configEnum, faultType, enabled);

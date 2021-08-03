@@ -102,6 +102,7 @@ public class DatasetBucketDao {
   }
 
   private static class DatasetBucketMapper implements RowMapper<String> {
+    @Override
     public String mapRow(ResultSet rs, int rowNum) throws SQLException {
       return rs.getObject("google_project_id", String.class);
     }
@@ -180,12 +181,13 @@ public class DatasetBucketDao {
   }
 
   private static class UuidMapper implements RowMapper<UUID> {
-    private String columnLabel;
+    private final String columnLabel;
 
     UuidMapper(String columnLabel) {
       this.columnLabel = columnLabel;
     }
 
+    @Override
     public UUID mapRow(ResultSet rs, int rowNum) throws SQLException {
       return rs.getObject(this.columnLabel, UUID.class);
     }

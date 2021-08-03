@@ -11,13 +11,8 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.Map;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CreateDatasetAuthzBqJobUserStep implements Step {
-  private static final Logger logger =
-      LoggerFactory.getLogger(CreateDatasetAuthzBqJobUserStep.class);
-
   private final DatasetService datasetService;
   private final ResourceService resourceService;
 

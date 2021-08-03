@@ -86,8 +86,7 @@ public class SnapshotService {
    * Kick-off snapshot creation Pre-condition: the snapshot request has been syntax checked by the
    * validator
    *
-   * @param snapshotRequestModel
-   * @returns jobId (flightId) of the job
+   * @return jobId (flightId) of the job
    */
   public String createSnapshot(
       SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
@@ -112,7 +111,7 @@ public class SnapshotService {
    * Kick-off snapshot deletion
    *
    * @param id snapshot id to delete
-   * @returns jobId (flightId) of the job
+   * @return jobId (flightId) of the job
    */
   public String deleteSnapshot(UUID id, AuthenticatedUserRequest userReq) {
     String description = "Delete snapshot " + id;
@@ -125,8 +124,6 @@ public class SnapshotService {
   /**
    * Enumerate a range of snapshots ordered by created date for consistent offset processing
    *
-   * @param offset
-   * @param limit
    * @return list of summary models of snapshot
    */
   public EnumerateSnapshotModel enumerateSnapshots(
@@ -158,7 +155,6 @@ public class SnapshotService {
    * Return a single snapshot summary given the snapshot id. This is used in the create snapshot
    * flight to build the model response of the asynchronous job.
    *
-   * @param id
    * @return summary model of the snapshot
    */
   public SnapshotSummaryModel retrieveSnapshotSummary(UUID id) {
@@ -236,7 +232,6 @@ public class SnapshotService {
   /**
    * Fetch existing Snapshot object using the name.
    *
-   * @param name
    * @return a Snapshot object
    */
   public Snapshot retrieveByName(String name) {
@@ -248,7 +243,6 @@ public class SnapshotService {
    * the structure does not have UUIDs or created dates filled in. Those are updated by the DAO when
    * it stores the snapshot in the repository metadata.
    *
-   * @param snapshotRequestModel
    * @return Snapshot
    */
   public Snapshot makeSnapshotFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {

@@ -50,41 +50,49 @@ public class FSFile extends FSItem {
   }
 
   // setters for super object, so fluent style works without ordering dependency
+  @Override
   public FSFile fileId(UUID fileId) {
     super.fileId(fileId);
     return this;
   }
 
+  @Override
   public FSFile collectionId(UUID collectionId) {
     super.collectionId(collectionId);
     return this;
   }
 
+  @Override
   public FSFile createdDate(Instant createdDate) {
     super.createdDate(createdDate);
     return this;
   }
 
+  @Override
   public FSFile path(String path) {
     super.path(path);
     return this;
   }
 
+  @Override
   public FSFile checksumCrc32c(String checksumCrc32c) {
     super.checksumCrc32c(checksumCrc32c);
     return this;
   }
 
+  @Override
   public FSFile checksumMd5(String checksumMd5) {
     super.checksumMd5(checksumMd5);
     return this;
   }
 
+  @Override
   public FSFile size(Long size) {
     super.size(size); // Super size it!
     return this;
   }
 
+  @Override
   public FSFile description(String description) {
     super.description(description);
     return this;

@@ -25,7 +25,7 @@ import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import java.time.Instant;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -258,13 +258,14 @@ public class GcsPdao {
       throws InterruptedException {
 
     // Build all the groups that need to get read access to the files
-    List<Acl.Group> groups = new LinkedList<>();
-    groups.add(new Acl.Group(policies.get(IamRole.READER)));
-    groups.add(new Acl.Group(policies.get(IamRole.CUSTODIAN)));
-    groups.add(new Acl.Group(policies.get(IamRole.STEWARD)));
+    List<Acl.Group> groups =
+        List.of(
+            new Acl.Group(policies.get(IamRole.READER)),
+            new Acl.Group(policies.get(IamRole.CUSTODIAN)),
+            new Acl.Group(policies.get(IamRole.STEWARD)));
 
     // build acls if necessary
-    List<Acl> acls = new LinkedList<>();
+    List<Acl> acls = new ArrayList<>();
     if (op == AclOp.ACL_OP_CREATE) {
       for (Acl.Group group : groups) {
         acls.add(Acl.newBuilder(group, Acl.Role.READER).build());

@@ -11,7 +11,7 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -50,13 +50,15 @@ public class LoadService {
   }
 
   /**
+   * If inputTag is missing, create a load tag.
+   *
    * @param inputTag may be null or blank
    * @return either valid inputTag or generated date-time tag.
    */
   public String computeLoadTag(String inputTag) {
     if (StringUtils.isEmpty(inputTag)) {
       return "load-at-"
-          + Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT);
+          + Instant.now().atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
     }
     return inputTag;
   }

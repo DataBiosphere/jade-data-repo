@@ -258,7 +258,7 @@ public final class DatasetJsonConversion {
         .to(relationshipTermModelFromColumn(datasetRel.getToTable(), datasetRel.getToColumn()));
   }
 
-  protected static RelationshipTermModel relationshipTermModelFromColumn(Table table, Column col) {
+  private static RelationshipTermModel relationshipTermModelFromColumn(Table table, Column col) {
     return new RelationshipTermModel().table(table.getName()).column(col.getName());
   }
 

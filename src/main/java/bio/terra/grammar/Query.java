@@ -11,11 +11,9 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 public class Query {
 
-  private final SQLParser parser;
   private final SQLParser.Query_statementContext queryStatement;
 
-  private Query(SQLParser parser, SQLParser.Query_statementContext queryStatement) {
-    this.parser = parser;
+  private Query(SQLParser.Query_statementContext queryStatement) {
     this.queryStatement = queryStatement;
   }
 
@@ -25,7 +23,7 @@ public class Query {
     SQLParser parser = new SQLParser(new CommonTokenStream(lexer));
     parser.setErrorHandler(new BailErrorStrategy());
     try {
-      return new Query(parser, parser.query_statement());
+      return new Query(parser.query_statement());
     } catch (ParseCancellationException ex) {
       throw new InvalidQueryException("Could not parse query: " + sql, ex);
     }

@@ -21,14 +21,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SnapshotAuthzTabularAclStep implements Step {
   private final BigQueryPdao bigQueryPdao;
   private final SnapshotService snapshotService;
   private final ConfigurationService configService;
-  private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzTabularAclStep.class);
 
   public SnapshotAuthzTabularAclStep(
       BigQueryPdao bigQueryPdao,

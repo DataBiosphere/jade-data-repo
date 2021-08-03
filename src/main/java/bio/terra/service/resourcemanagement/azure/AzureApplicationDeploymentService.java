@@ -60,7 +60,6 @@ public class AzureApplicationDeploymentService {
    *
    * @param billingProfile previously authorized billing profile
    * @return application deployment resource object
-   * @throws InterruptedException if shutting down
    */
   public AzureApplicationDeploymentResource getOrRegisterApplicationDeployment(
       BillingProfileModel billingProfile) {
@@ -145,7 +144,6 @@ public class AzureApplicationDeploymentService {
    *
    * @param billingProfile authorized billing profile that'll pay for the application deployment
    * @return a populated application deployment resource object
-   * @throws InterruptedException if the flight is interrupted during execution
    */
   private AzureApplicationDeploymentResource newApplicationDeployment(
       BillingProfileModel billingProfile) {

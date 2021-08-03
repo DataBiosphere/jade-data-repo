@@ -110,6 +110,7 @@ public class Dataset implements FSContainerInterface {
     return datasetSummary;
   }
 
+  @Override
   public UUID getId() {
     return datasetSummary.getId();
   }
@@ -182,6 +183,7 @@ public class Dataset implements FSContainerInterface {
     return this;
   }
 
+  @Override
   public GoogleProjectResource getProjectResource() {
     return projectResource;
   }

@@ -18,10 +18,12 @@ public class PerformanceLoggerOFF implements PerformanceLogger {
 
   public PerformanceLoggerOFF() {}
 
+  @Override
   public boolean isEnabled() {
     return false;
   }
 
+  @Override
   public void log(
       String jobId,
       String className,
@@ -30,12 +32,15 @@ public class PerformanceLoggerOFF implements PerformanceLogger {
       long integerCount,
       Object additionalInfo) {}
 
+  @Override
   public String timerStart() {
     return "";
   }
 
+  @Override
   public void timerStart(String timerId) {}
 
+  @Override
   public void timerEndAndLog(
       String timerId,
       String jobId,

@@ -98,8 +98,6 @@ public class GoogleBillingService {
    * <p>The second permission is specific to projects, so we will check for the first permission
    * here.
    *
-   * @param user
-   * @param billingAccountId
    * @return true if a user can act as a billing account *user* (viewer is not enough), false
    *     otherwise
    */
@@ -115,7 +113,7 @@ public class GoogleBillingService {
       logger.info("Testing IAM permission on billing account: {}", billingAccountId);
       TestIamPermissionsResponse response = client.testIamPermissions(permissionsRequest);
       List<String> actualPermissions = response.getPermissionsList();
-      return actualPermissions != null && actualPermissions.equals(permissions);
+      return actualPermissions.equals(permissions);
     } catch (ApiException e) {
       int status = e.getStatusCode().getCode().getHttpStatusCode();
       if (status == 400 || status == 404) {

@@ -8,15 +8,10 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.List;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DeleteProfileApplicationDeploymentMetadata implements Step {
 
   private final ResourceService resourceService;
-
-  private static final Logger logger =
-      LoggerFactory.getLogger(DeleteProfileApplicationDeploymentMetadata.class);
 
   public DeleteProfileApplicationDeploymentMetadata(ResourceService resourceService) {
     this.resourceService = resourceService;

@@ -1031,113 +1031,6 @@ public class BigQueryPdao {
     return Schema.of(fieldList);
   }
 
-  // Load row ids
-  // We load row ids by building a SQL INSERT statement with the row ids as data.
-  // This is more expensive than streaming the input, but does not introduce visibility
-  // issues with the new data. It has the same number of values limitation as the
-  // validate row ids.
-  private String loadRowIdsSql(
-      String snapshotName,
-      String tableId,
-      List<String> rowIds,
-      String projectId,
-      String softDeletesTableName,
-      String bqDatasetName) {
-    if (rowIds.size() == 0) {
-      return null;
-    }
-
-    /*
-    INSERT INTO `projectId.snapshotName.PDAO_ROW_ID_TABLE` (PDAO_TABLE_ID_COLUMN, PDAO_ROW_ID_COLUMN)
-        SELECT 'tableId' AS table_id, T.PDAO_TABLE_ID_COLUMN AS row_id
-        FROM (
-            SELECT rowid
-            FROM UNNEST ([row_id1,row_id2,..,row_idn]) AS rowid
-            EXCEPT DISTINCT (
-                SELECT PDAO_ROW_ID_COLUMN FROM softDeletesTableName
-            )
-        ) AS T
-    */
-
-    StringBuilder builder = new StringBuilder();
-    builder
-        .append("INSERT INTO `")
-        .append(projectId)
-        .append('.')
-        .append(snapshotName)
-        .append('.')
-        .append(PDAO_ROW_ID_TABLE)
-        .append("` (")
-        .append(PDAO_TABLE_ID_COLUMN)
-        .append(",")
-        .append(PDAO_ROW_ID_COLUMN)
-        .append(") SELECT ")
-        .append("'")
-        .append(tableId)
-        .append("' AS ")
-        .append(PDAO_TABLE_ID_COLUMN)
-        .append(", T.rowid AS ")
-        .append(PDAO_ROW_ID_COLUMN)
-        .append(" FROM (SELECT rowid FROM UNNEST([");
-
-    // Put all of the rowids into an array that is unnested into a table
-    String prefix = "";
-    for (String rowId : rowIds) {
-      builder.append(prefix).append("'").append(rowId).append("'");
-      prefix = ",";
-    }
-
-    builder
-        .append("]) AS rowid EXCEPT DISTINCT ( SELECT ")
-        .append(PDAO_ROW_ID_COLUMN)
-        .append(" FROM `")
-        .append(projectId)
-        .append(".")
-        .append(bqDatasetName)
-        .append(".")
-        .append(softDeletesTableName)
-        .append("`)) AS T");
-    return builder.toString();
-  }
-
-  /**
-   * Check that the incoming row ids actually exist in the root table.
-   *
-   * <p>Even though these are currently generated within the create snapshot flight, they may be
-   * exposed externally in the future, so validating seemed like a good idea. At this point, the
-   * only thing we have stored into the row id table are the incoming row ids. We make the equi-join
-   * of row id table and root table over row id. We should get one root table row for each row id
-   * table row. So we validate by comparing the count of the joined rows against the count of
-   * incoming row ids. This will catch duplicate and mismatched row ids.
-   *
-   * @param datasetBqDatasetName
-   * @param snapshotName
-   * @param rootTableName
-   * @param projectId
-   */
-  private String validateRowIdsForRootSql(
-      String datasetBqDatasetName, String snapshotName, String rootTableName, String projectId) {
-    StringBuilder builder = new StringBuilder();
-    builder
-        .append("SELECT COUNT(*) FROM `")
-        .append(projectId)
-        .append('.')
-        .append(datasetBqDatasetName)
-        .append('.')
-        .append(rootTableName)
-        .append("` AS T, `")
-        .append(projectId)
-        .append('.')
-        .append(snapshotName)
-        .append('.')
-        .append(PDAO_ROW_ID_TABLE)
-        .append("` AS R WHERE R.")
-        .append(PDAO_ROW_ID_COLUMN)
-        .append(" = T.")
-        .append(PDAO_ROW_ID_COLUMN);
-    return builder.toString();
-  }
-
   /**
    * Recursive walk of the relationships. Note that we only follow what is connected. If there are
    * relationships in the asset that are not connected to the root, they will simply be ignored. See
@@ -1150,17 +1043,14 @@ public class BigQueryPdao {
    *
    * <p>TODO: REVIEWERS: should this code detect circular references?
    *
-   * @param datasetBqDatasetName
-   * @param snapshotName
    * @param walkRelationships - list of relationships to consider walking
-   * @param startTableId
    */
   private void walkRelationships(
       String datasetProjectId,
       String datasetBqDatasetName,
       String snapshotProjectId,
       String snapshotName,
-      List<WalkRelationship> walkRelationships,
+      List<? extends WalkRelationship> walkRelationships,
       String startTableId,
       BigQuery snapshotBigQuery)
       throws InterruptedException {
@@ -1268,7 +1158,7 @@ public class BigQueryPdao {
 
       TableResult result = snapshotBigQueryProject.query(sqlTemplate.render());
       FieldValueList mismatchedCount = result.getValues().iterator().next();
-      Long mismatchedCountLong = mismatchedCount.get(0).getLongValue();
+      long mismatchedCountLong = mismatchedCount.get(0).getLongValue();
       if (mismatchedCountLong > 0) {
         throw new MismatchedValueException("Query results did not match dataset root row ids");
       }

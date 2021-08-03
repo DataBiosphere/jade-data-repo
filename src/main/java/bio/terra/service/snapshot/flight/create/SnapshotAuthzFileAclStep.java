@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +82,8 @@ public class SnapshotAuthzFileAclStep implements Step {
               + "Message: {}, Reason: {}",
           ex.getMessage(),
           ex.getReason());
-      if (ex.getCode() == 400 && (StringUtils.equals(ex.getReason(), "badRequest"))) {
+      if (ex.getCode() == HttpStatus.SC_BAD_REQUEST
+          && StringUtils.equals(ex.getReason(), "badRequest")) {
         logger.error("[SnapshotACLException] Retrying! Bad Request.");
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
       }

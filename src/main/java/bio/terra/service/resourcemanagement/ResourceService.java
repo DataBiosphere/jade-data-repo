@@ -70,7 +70,6 @@ public class ResourceService {
   /**
    * Fetch/create a project
    *
-   * @param dataset
    * @param billingProfile authorized profile for billing account information case we need to create
    *     a project
    * @return a reference to the project as a POJO GoogleProjectResource

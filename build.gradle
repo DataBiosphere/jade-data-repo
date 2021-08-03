@@ -38,6 +38,7 @@ plugins {
     id "io.spring.dependency-management" version "1.0.11.RELEASE"
     id "jacoco"
     id "com.diffplug.spotless" version "5.14.0"
+    id "net.ltgt.errorprone" version "2.0.2"
 }
 
 allprojects {
@@ -166,6 +167,7 @@ configurations {
 }
 
 dependencies {
+    errorprone("com.google.errorprone:error_prone_core:2.8.0")
     // TODO: Unpack the "starter" and include just what we use
     compile 'com.google.cloud:google-cloud-billing:1.1.6'
     compile 'com.google.cloud:google-cloud-resourcemanager:0.118.2-alpha'
@@ -503,6 +505,14 @@ classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava
 ideaModule.dependsOn swaggerSources.server.code
 idea.module.sourceDirs += file("$buildDir/generated-src/swagger/src/main/java")
+
+tasks.withType(JavaCompile).configureEach {
+  options.errorprone {
+    disableWarningsInGeneratedCode = true
+    excludedPaths = ".*/build/.*"
+//    checks = [ MissingBrace : net.ltgt.gradle.errorprone.CheckSeverity.DEFAULT ]
+  }
+}
 
 // Run spotless check when running in github actions, otherwise run spotless apply.
 compileJava {

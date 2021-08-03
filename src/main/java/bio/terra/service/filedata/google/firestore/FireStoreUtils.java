@@ -346,11 +346,11 @@ public class FireStoreUtils {
     int docCount =
         runTransactionWithRetry(
             firestore,
-            (xn -> {
+            xn -> {
               Query limitedQuery = collectionQuery.limit(1);
               ApiFuture<QuerySnapshot> querySnapshot = xn.get(limitedQuery);
               return querySnapshot.get().getDocuments().size();
-            }),
+            },
             "collectionHasDocuments",
             "Querying firestore and checking if collection is empty");
     return docCount > 0;

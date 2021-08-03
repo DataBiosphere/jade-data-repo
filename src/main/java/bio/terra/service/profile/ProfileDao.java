@@ -201,6 +201,7 @@ public class ProfileDao {
   }
 
   private static class BillingProfileMapper implements RowMapper<BillingProfileModel> {
+    @Override
     public BillingProfileModel mapRow(ResultSet rs, int rowNum) throws SQLException {
       return new BillingProfileModel()
           .id(rs.getObject("id", UUID.class))

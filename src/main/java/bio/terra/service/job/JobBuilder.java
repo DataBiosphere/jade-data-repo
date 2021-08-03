@@ -7,9 +7,9 @@ import bio.terra.stairway.FlightMap;
 
 public class JobBuilder {
 
-  private JobService jobServiceRef;
-  private Class<? extends Flight> flightClass;
-  private FlightMap jobParameterMap;
+  private final JobService jobServiceRef;
+  private final Class<? extends Flight> flightClass;
+  private final FlightMap jobParameterMap;
 
   // constructor only takes required parameters
   public JobBuilder(
@@ -41,7 +41,7 @@ public class JobBuilder {
     if (keyName.equals(JobMapKeys.DESCRIPTION.getKeyName())
         || keyName.equals(JobMapKeys.REQUEST.getKeyName())
         || keyName.equals(JobMapKeys.AUTH_USER_INFO.getKeyName())
-        || keyName.equals((JobMapKeys.SUBJECT_ID.getKeyName()))) {
+        || keyName.equals(JobMapKeys.SUBJECT_ID.getKeyName())) {
       throw new InvalidJobParameterException(
           "Required parameters can only be set by the constructor. (" + keyName + ")");
     }

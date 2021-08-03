@@ -1,6 +1,5 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -12,15 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CreateDatasetCreateStorageAccountLinkStep implements Step {
-  private static Logger logger =
+  private static final Logger logger =
       LoggerFactory.getLogger(CreateDatasetCreateStorageAccountLinkStep.class);
   private final DatasetStorageAccountDao datasetStorageAccountDao;
-  private final DatasetRequestModel datasetRequestModel;
 
   public CreateDatasetCreateStorageAccountLinkStep(
-      DatasetStorageAccountDao datasetStorageAccountDao, DatasetRequestModel datasetRequestModel) {
+      DatasetStorageAccountDao datasetStorageAccountDao) {
     this.datasetStorageAccountDao = datasetStorageAccountDao;
-    this.datasetRequestModel = datasetRequestModel;
   }
 
   @Override

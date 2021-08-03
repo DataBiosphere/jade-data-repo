@@ -25,11 +25,12 @@ public class DeleteFileDirectoryStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     try {
-      boolean found = fileDao.deleteDirectoryEntry(dataset, fileId);
-      DeleteResponseModel.ObjectStateEnum stateEnum =
-          (found)
-              ? DeleteResponseModel.ObjectStateEnum.DELETED
-              : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
+      final DeleteResponseModel.ObjectStateEnum stateEnum;
+      if (fileDao.deleteDirectoryEntry(dataset, fileId)) {
+        stateEnum = DeleteResponseModel.ObjectStateEnum.DELETED;
+      } else {
+        stateEnum = DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
+      }
       DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
       FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
     } catch (FileSystemAbortTransactionException rex) {

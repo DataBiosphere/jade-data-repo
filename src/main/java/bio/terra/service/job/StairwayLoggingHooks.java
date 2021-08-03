@@ -5,7 +5,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.HookAction;
 import bio.terra.stairway.StairwayHook;
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +54,7 @@ public class StairwayLoggingHooks implements StairwayHook {
         FLIGHT_OPERATION_START,
         context.getFlightClassName(),
         context.getFlightId(),
-        Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
+        Instant.now().atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT));
     performanceLogger.log(
         context.getFlightId(), context.getFlightClassName(), FLIGHT_OPERATION_START);
     return HookAction.CONTINUE;
@@ -76,7 +76,7 @@ public class StairwayLoggingHooks implements StairwayHook {
         context.getStepClassName(),
         context.getStepIndex(),
         context.getDirection().name(),
-        Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
+        Instant.now().atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT));
     performanceLogger.timerStart(getStepTimerName(context.getFlightId()));
     return HookAction.CONTINUE;
   }
@@ -89,7 +89,7 @@ public class StairwayLoggingHooks implements StairwayHook {
         FLIGHT_OPERATION_END,
         context.getFlightClassName(),
         context.getFlightId(),
-        Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
+        Instant.now().atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT));
     performanceLogger.log(
         context.getFlightId(), context.getFlightClassName(), FLIGHT_OPERATION_END);
     clearMdcKeys();
@@ -107,7 +107,7 @@ public class StairwayLoggingHooks implements StairwayHook {
         context.getStepClassName(),
         context.getStepIndex(),
         context.getDirection().name(),
-        Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
+        Instant.now().atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT));
     performanceLogger.timerEndAndLog(
         getStepTimerName(context.getFlightId()),
         context.getFlightId(),

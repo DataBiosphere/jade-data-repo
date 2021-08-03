@@ -355,9 +355,6 @@ public class DatasetDao {
    * unlock.
    *
    * @param dataset the dataset object to create
-   * @return the id of the new dataset
-   * @throws SQLException
-   * @throws IOException
    * @throws InvalidDatasetException if a row already exists with this dataset name
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
@@ -635,6 +632,7 @@ public class DatasetDao {
   }
 
   private class DatasetSummaryMapper implements RowMapper<DatasetSummary> {
+    @Override
     public DatasetSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
       UUID datasetId = rs.getObject("id", UUID.class);
       List<? extends StorageResource<?, ?>> storageResources;

@@ -145,7 +145,6 @@ public class SnapshotDao {
    * createAndLock, unlock.
    *
    * @param snapshot the snapshot object to create
-   * @return the id of the new snapshot
    * @throws InvalidSnapshotException if a row already exists with this snapshot name
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
@@ -181,7 +180,6 @@ public class SnapshotDao {
    * This method is protected because it's for use in tests only. Currently, we don't expose the
    * lock state of a snapshot outside of the DAO for other API code to consume.
    *
-   * @param id
    * @return the flightid that holds an exclusive lock. null if none.
    */
   protected String getExclusiveLockState(UUID id) {
@@ -190,7 +188,7 @@ public class SnapshotDao {
       MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
       return jdbcTemplate.queryForObject(sql, params, String.class);
     } catch (EmptyResultDataAccessException ex) {
-      throw new SnapshotNotFoundException("Snapshot not found for id " + id);
+      throw new SnapshotNotFoundException("Snapshot not found for id " + id, ex);
     }
   }
 
@@ -617,14 +615,15 @@ public class SnapshotDao {
   }
 
   private class SnapshotSummaryMapper implements RowMapper<SnapshotSummary> {
+    @Override
     public SnapshotSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
-      List<StorageResource> storageResources;
+      List<StorageResource<?, ?>> storageResources;
       try {
         storageResources =
             objectMapper.readValue(rs.getString("storage"), new TypeReference<>() {});
       } catch (JsonProcessingException e) {
         throw new CorruptMetadataException(
-            String.format("Invalid storage for snapshot - id: %s", rs.getString("id")));
+            String.format("Invalid storage for snapshot - id: %s", rs.getString("id")), e);
       }
 
       return new SnapshotSummary()

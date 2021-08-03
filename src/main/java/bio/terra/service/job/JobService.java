@@ -34,11 +34,12 @@ import bio.terra.stairway.exception.StairwayException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -145,14 +146,11 @@ public class JobService {
 
       // Lookup all of the stairway instances we know about
       Set<String> existingStairways = kubeService.getPodSet();
-      List<String> obsoleteStairways = new LinkedList<>();
-
-      // Any instances that stairway knows about, but we cannot see are obsolete.
-      for (String recordedStairway : recordedStairways) {
-        if (!existingStairways.contains(recordedStairway)) {
-          obsoleteStairways.add(recordedStairway);
-        }
-      }
+      List<String> obsoleteStairways =
+          recordedStairways.stream()
+              // Any instances that stairway knows about, but we cannot see are obsolete.
+              .filter(Predicate.not(existingStairways::contains))
+              .collect(Collectors.toList());
 
       // Add our own pod name to the list of obsolete stairways. Sometimes Kubernetes will
       // restart the container without redeploying the pod. In that case we must ask
@@ -352,10 +350,13 @@ public class JobService {
   private JobModel.JobStatusEnum getJobStatus(FlightStatus flightStatus) {
     switch (flightStatus) {
       case ERROR:
-        return JobModel.JobStatusEnum.FAILED;
       case FATAL:
         return JobModel.JobStatusEnum.FAILED;
+      case QUEUED:
+      case READY:
+      case READY_TO_RESTART:
       case RUNNING:
+      case WAITING:
         return JobModel.JobStatusEnum.RUNNING;
       case SUCCESS:
         return JobModel.JobStatusEnum.SUCCEEDED;

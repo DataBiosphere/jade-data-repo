@@ -352,7 +352,6 @@ public class FireStoreDao {
    * @param context provides either the file id or the file path, for use in error messages.
    * @return An {@link FSItem} representation of the passed in fireStoreDirectoryEntry with nested
    *     FSItems
-   * @throws InterruptedException
    */
   private FSItem retrieveWorker(
       Firestore fsItemFirestore,
@@ -394,7 +393,6 @@ public class FireStoreDao {
    * @param fireStoreDirectoryEntry The object to enumerate entries within
    * @return An {@link FSItem} representation of the passed in fireStoreDirectoryEntry with nested
    *     FSItems
-   * @throws InterruptedException
    */
   private FSItem makeFSDir(
       Firestore fsItemFirestore,

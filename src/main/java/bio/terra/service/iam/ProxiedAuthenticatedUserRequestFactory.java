@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 public class ProxiedAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {
 
   // Method to build an AuthenticatedUserRequest from data available to the controller
+  @Override
   public AuthenticatedUserRequest from(HttpServletRequest servletRequest) {
     String token =
         Optional.ofNullable(servletRequest.getHeader("oidc_access_token"))

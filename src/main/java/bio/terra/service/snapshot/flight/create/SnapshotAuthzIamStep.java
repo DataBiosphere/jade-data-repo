@@ -6,7 +6,6 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -19,18 +18,13 @@ import org.slf4j.LoggerFactory;
 
 public class SnapshotAuthzIamStep implements Step {
   private final IamService sam;
-  private final SnapshotService snapshotService;
   private final SnapshotRequestModel snapshotRequestModel;
   private final AuthenticatedUserRequest userReq;
   private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzIamStep.class);
 
   public SnapshotAuthzIamStep(
-      IamService sam,
-      SnapshotService snapshotService,
-      SnapshotRequestModel snapshotRequestModel,
-      AuthenticatedUserRequest userReq) {
+      IamService sam, SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
     this.sam = sam;
-    this.snapshotService = snapshotService;
     this.snapshotRequestModel = snapshotRequestModel;
     this.userReq = userReq;
   }

@@ -8,13 +8,6 @@ import org.springframework.validation.Validator;
 
 @Component
 public class ProfileUpdateRequestValidator implements Validator {
-
-  // This is specific to Google's billing account id representation. This will likely need to be
-  // split into cloud
-  // specific subclasses tagged with profiles.
-  private static final String VALID_BILLING_ACCOUNT_ID_REGEX =
-      "[A-Z0-9]{6}-[A-Z0-9]{6}-[A-Z0-9]{6}";
-
   @Override
   public boolean supports(Class<?> clazz) {
     return true;

@@ -2,6 +2,9 @@ package bio.terra.service.resourcemanagement.google;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.resourcemanagement.exception.AppengineException;
@@ -84,5 +87,22 @@ public class GoogleProjectServiceTest {
         .as("handles bad uuid")
         .isInstanceOf(AppengineException.class)
         .hasMessageStartingWith("Operation Name does not look as expected");
+  }
+
+  @Test
+  public void testProjectLabelClean() {
+    String tooLongName = "workflow_launcher_testing_dataset5243fe12db16406789e76e98dcf3aebd";
+    assertEquals("Project label original length should be 65", tooLongName.length(), 65);
+    String trimmedName = GoogleProjectService.cleanForLabels(tooLongName);
+    assertEquals("Project label should be trimmed down when too long", trimmedName.length(), 63);
+
+    String nameWithCharacters = "workflow!_launcher+TESTING_dataset5243fe12db1640";
+    assertTrue(
+        "Original Project label should contain non-valid characters",
+        nameWithCharacters.contains("!"));
+    String cleanedName = GoogleProjectService.cleanForLabels(nameWithCharacters);
+    assertFalse(
+        "Original Project label should no longer contain non-valid characters",
+        cleanedName.contains("!"));
   }
 }

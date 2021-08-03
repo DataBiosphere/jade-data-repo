@@ -17,6 +17,7 @@ import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.Transaction;
+import com.google.cloud.storage.StorageException;
 import io.grpc.StatusRuntimeException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -259,7 +260,12 @@ public class FireStoreUtils {
                       + inputs.get(i)
                       + " message: "
                       + ex.getMessage());
-            } else throw new FileSystemExecutionException("batch operation failed", ex);
+            } else {
+              throw new FileSystemExecutionException(
+                  "[batchOperation] Parent exception caught but neither parent nor nested "
+                      + "exceptions were designated for retry.",
+                  ex);
+            }
           }
         }
       }
@@ -274,7 +280,9 @@ public class FireStoreUtils {
         noProgressCount++;
         if (noProgressCount > getFirestoreRetries()) {
           throw new FileSystemExecutionException(
-              "batch operation failed. " + getFirestoreRetries() + " tries with no progress.");
+              "[batchOperation] Operation failed - "
+                  + getFirestoreRetries()
+                  + " tries with no progress.");
         } else {
           logger.info(
               "[batchOperation] will attempt retry #{} after {} millisecond pause.",
@@ -299,6 +307,7 @@ public class FireStoreUtils {
         || throwable instanceof InternalException
         || throwable instanceof StatusRuntimeException
         || throwable instanceof GoogleResourceException
+        || throwable instanceof StorageException
         || (isBatch && throwable instanceof AbortedException)) {
       return true;
     }

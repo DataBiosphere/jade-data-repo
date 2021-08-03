@@ -5,7 +5,9 @@ import com.azure.core.management.AzureEnvironment;
 import com.azure.core.management.profile.AzureProfile;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.google.common.base.Preconditions;
 import java.util.UUID;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +34,10 @@ public class AzureResourceConfiguration {
    * @return A credential object that can be used to interact with Azure apis
    */
   public TokenCredential getAppToken(final UUID tenantId) {
+    Preconditions.checkNotNull(tenantId, "No tenant was specified");
+    Preconditions.checkNotNull(credentials.applicationId, "No application id is configured");
+    Preconditions.checkArgument(
+        !StringUtils.isBlank(credentials.secret), "No application secret is configured");
     return new ClientSecretCredentialBuilder()
         .clientId(credentials.applicationId.toString())
         .clientSecret(credentials.secret)

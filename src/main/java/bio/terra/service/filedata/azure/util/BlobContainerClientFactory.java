@@ -14,10 +14,12 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.sas.SasProtocol;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -26,7 +28,8 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class BlobContainerClientFactory {
 
-  public static final int EXPIRATION_DAYS = 7;
+  public static final Duration USER_DELEGATION_KEY_EXPIRATION = Duration.ofDays(7);
+  public static final Duration READONLY_SAS_EXPIRATION = Duration.ofDays(1);
   private final HttpClient httpClient = HttpClient.createDefault();
 
   private final BlobContainerClient blobContainerClient;
@@ -105,9 +108,10 @@ public class BlobContainerClientFactory {
     return blobContainerClient;
   }
 
-  public String createReadOnlySasUrlForBlob(String blobName) {
+  public String createReadOnlySasUrlForBlob(
+      String blobName, String identifier, Duration expiration) {
     if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.SHARED_KEY)) {
-      return createReadOnlySasUrlForBlobUsingClient(blobName);
+      return createReadOnlySasUrlForBlobUsingClient(blobName, identifier, expiration);
     }
 
     if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.CONTAINER_SAS_TOKEN)) {
@@ -115,17 +119,19 @@ public class BlobContainerClientFactory {
     }
 
     if (sasTokenGeneratorStrategy.equals(SasTokenGeneratorStrategy.USER_DELEGATED_KEY)) {
-      return createReadOnlySasUrlForBlobUsingUserDelegatedSas(blobName);
+      return createReadOnlySasUrlForBlobUsingUserDelegatedSas(blobName, identifier, expiration);
     }
 
     throw new RuntimeException("Failed to generate SAS token for blob. Invalid strategy set.");
   }
 
-  private String createReadOnlySasUrlForBlobUsingUserDelegatedSas(String blobName) {
+  private String createReadOnlySasUrlForBlobUsingUserDelegatedSas(
+      String blobName, String identifier, Duration expiration) {
 
     UserDelegationKey userDelegationKey = getUserDelegationKey();
 
-    BlobServiceSasSignatureValues sasSignatureValues = createSasSignatureValues();
+    BlobServiceSasSignatureValues sasSignatureValues =
+        createSasSignatureValues(identifier, expiration);
 
     BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
     String sasToken = blobClient.generateUserDelegationSas(sasSignatureValues, userDelegationKey);
@@ -144,7 +150,8 @@ public class BlobContainerClientFactory {
   private synchronized UserDelegationKey getUserDelegationKey() {
     if (delegationKey == null
         || delegationKey.getSignedExpiry().isBefore(OffsetDateTime.now(ZoneOffset.UTC))) {
-      OffsetDateTime keyExpiry = OffsetDateTime.now(ZoneOffset.UTC).plusDays(EXPIRATION_DAYS);
+      OffsetDateTime keyExpiry =
+          OffsetDateTime.now(ZoneOffset.UTC).plus(USER_DELEGATION_KEY_EXPIRATION);
       delegationKey = blobServiceClient.getUserDelegationKey(null, keyExpiry);
     }
     return delegationKey;
@@ -158,9 +165,11 @@ public class BlobContainerClientFactory {
         blobContainerSasTokenCreds.getSignature());
   }
 
-  private String createReadOnlySasUrlForBlobUsingClient(String blobName) {
+  private String createReadOnlySasUrlForBlobUsingClient(
+      String blobName, String identifier, Duration expiration) {
 
-    BlobServiceSasSignatureValues sasSignatureValues = createSasSignatureValues();
+    BlobServiceSasSignatureValues sasSignatureValues =
+        createSasSignatureValues(identifier, expiration);
 
     BlobClient blobClient = blobContainerClient.getBlobClient(blobName);
     String sasToken = blobClient.generateSas(sasSignatureValues);
@@ -169,15 +178,22 @@ public class BlobContainerClientFactory {
         "%s/%s?%s", blobContainerClient.getBlobContainerUrl(), blobClient.getBlobName(), sasToken);
   }
 
-  private BlobServiceSasSignatureValues createSasSignatureValues() {
+  private BlobServiceSasSignatureValues createSasSignatureValues(
+      String identifier, Duration expiration) {
 
     BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
 
-    OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
+    OffsetDateTime expiryTime =
+        OffsetDateTime.now().plus(Optional.ofNullable(expiration).orElse(READONLY_SAS_EXPIRATION));
     SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
 
     // build the token
-    return new BlobServiceSasSignatureValues(expiryTime, permissions).setProtocol(sasProtocol);
+    BlobServiceSasSignatureValues blobServiceSasSignatureValues =
+        new BlobServiceSasSignatureValues(expiryTime, permissions).setProtocol(sasProtocol);
+    if (identifier != null) {
+      blobServiceSasSignatureValues.setContentDisposition(identifier);
+    }
+    return blobServiceSasSignatureValues;
   }
 
   private BlobServiceClient createBlobServiceClientUsingSharedKey(

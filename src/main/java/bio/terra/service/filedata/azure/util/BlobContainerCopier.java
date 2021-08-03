@@ -189,7 +189,8 @@ public class BlobContainerCopier {
       return null;
     }
 
-    String sourceSASUrl = this.sourceClientFactory.createReadOnlySasUrlForBlob(sourceBlobName);
+    String sourceSASUrl =
+        this.sourceClientFactory.createReadOnlySasUrlForBlob(sourceBlobName, null, null);
     return beginBlobCopyFromSasUrl(sourceBlobName, sourceSASUrl, destinationBlobName);
   }
 

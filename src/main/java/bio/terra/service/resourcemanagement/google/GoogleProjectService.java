@@ -327,8 +327,12 @@ public class GoogleProjectService {
       project.setLabels(cleanedLabels);
       logger.info("Adding labels to project {}", googleProjectId);
       resourceManager.projects().update(googleProjectId, project).execute();
-    } catch (IOException | GeneralSecurityException ex) {
-      throw new GoogleResourceException("Encountered error while updating project labels", ex);
+    } catch (Exception ex) {
+      // only a soft failure - we do not want to fail project create just on adding project labels
+      logger.warn(
+          "Encountered error while updating project labels. ex: {}, stacktrace: {}",
+          ex.getMessage(),
+          ex.getStackTrace());
     }
   }
 

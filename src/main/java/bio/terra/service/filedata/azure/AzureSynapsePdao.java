@@ -78,7 +78,7 @@ public class AzureSynapsePdao {
     //            .addValue("secret", blobContainerSasTokenCreds.getSignature());
     //    int numrows = template.update(scopedCredentialCreateSQL, params);
 
-    runAQuery(
+    executeSynapseQuery(
         "CREATE DATABASE SCOPED CREDENTIAL ["
             + scopedCredentialName
             + "]\n"
@@ -87,7 +87,7 @@ public class AzureSynapsePdao {
             + blobContainerSasTokenCreds.getSignature()
             + "';");
 
-    runAQuery(
+    executeSynapseQuery(
         "CREATE EXTERNAL DATA SOURCE "
             + "["
             + dataSourceName
@@ -115,7 +115,7 @@ public class AzureSynapsePdao {
       String ingestTableName,
       int csvSkipLeadingRows)
       throws SQLException {
-    runAQuery(
+    executeSynapseQuery(
         "CREATE EXTERNAL TABLE ["
             + ingestTableName
             + "]\n"
@@ -204,7 +204,7 @@ public class AzureSynapsePdao {
         .forEach(
             tableName -> {
               try {
-                runAQuery("DROP EXTERNAL TABLE [" + tableName + "];");
+                executeSynapseQuery("DROP EXTERNAL TABLE [" + tableName + "];");
               } catch (Exception ex) {
                 logger.warn("Unable to clean up table {}, ex: {}", tableName, ex.getMessage());
               }
@@ -216,7 +216,7 @@ public class AzureSynapsePdao {
         .forEach(
             dataSource -> {
               try {
-                runAQuery("DROP EXTERNAL DATA SOURCE [" + dataSource + "];");
+                executeSynapseQuery("DROP EXTERNAL DATA SOURCE [" + dataSource + "];");
               } catch (Exception ex) {
                 logger.warn(
                     "Unable to clean up the external data source {}, ex: {}",
@@ -231,7 +231,7 @@ public class AzureSynapsePdao {
         .forEach(
             credential -> {
               try {
-                runAQuery("DROP DATABASE SCOPED CREDENTIAL [" + credential + "];");
+                executeSynapseQuery("DROP DATABASE SCOPED CREDENTIAL [" + credential + "];");
               } catch (Exception ex) {
                 logger.warn(
                     "Unable to clean up scoped credential {}, ex: {}", credential, ex.getMessage());
@@ -239,13 +239,14 @@ public class AzureSynapsePdao {
             });
   }
 
-  public boolean runAQuery(String query) throws SQLException {
+  public boolean executeSynapseQuery(String query) throws SQLException {
     SQLServerDataSource ds = getDatasource();
-    try (Connection connection = ds.getConnection()) {
-      // Update or create the credential
-      try (Statement statement = connection.createStatement()) {
-        return statement.execute(query);
-      }
+    try {
+      Connection connection = ds.getConnection();
+      Statement statement = connection.createStatement();
+      return statement.execute(query);
+    } catch (SQLException throwables) {
+      throw new SQLException("Synapse Query Failed.", throwables);
     }
   }
 

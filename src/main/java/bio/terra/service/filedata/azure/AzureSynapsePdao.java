@@ -151,8 +151,7 @@ public class AzureSynapsePdao {
       sqlCreateTableCSVTemplate.add("withArgument", tableDefinition);
       sqlCreateTableCSVTemplate.add(
           "dataSourceParameter1", "PARSER_VERSION = '" + PARSER_VERSION + "'");
-      sqlCreateTableCSVTemplate.add(
-          "dataSourceParameter2", "FIRSTROW = '" + csvSkipLeadingRows + "'");
+      sqlCreateTableCSVTemplate.add("dataSourceParameter2", "FIRSTROW = " + csvSkipLeadingRows);
     } else if (ingestType == FormatEnum.JSON) {
       sqlCreateTableCSVTemplate.add("selectArgument", tableDefinition);
       sqlCreateTableCSVTemplate.add("withArgument", "doc nvarchar(max)");
@@ -206,7 +205,7 @@ public class AzureSynapsePdao {
   public boolean executeSynapseQuery(String query) throws SQLException {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
-        Statement statement = connection.createStatement(); ) {
+        Statement statement = connection.createStatement()) {
       return statement.execute(query);
     }
   }

@@ -64,6 +64,19 @@ public class AzureSynapsePdao {
     AzureSasCredential blobContainerSasTokenCreds =
         new AzureSasCredential(signedBlobUrl.getCommonSasQueryParameters().encode());
 
+    //    //Failed attempt to use a SQL template. Uphappy with [] and single quotes around secret
+    //    SQLServerDataSource ds = getDatasource();
+    //    NamedParameterJdbcTemplate template = new NamedParameterJdbcTemplate(ds);
+    //    String scopedCredentialCreateSQL =
+    //        "CREATE DATABASE SCOPED CREDENTIAL [[:scopedCredentialName]\n"
+    //            + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
+    //            + "SECRET = \':secret\';";
+    //    MapSqlParameterSource params =
+    //        new MapSqlParameterSource()
+    //            .addValue("scopedCredentialName", scopedCredentialName)
+    //            .addValue("secret", blobContainerSasTokenCreds.getSignature());
+    //    int numrows = template.update(scopedCredentialCreateSQL, params);
+
     runAQuery(
         "CREATE DATABASE SCOPED CREDENTIAL ["
             + scopedCredentialName

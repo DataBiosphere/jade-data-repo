@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure;
 
-import static bio.terra.service.filedata.azure.util.BlobContainerClientFactory.SASPermission;
+import static bio.terra.service.filedata.azure.util.BlobContainerClientFactory.SasPermission;
 
 import bio.terra.common.Column;
 import bio.terra.model.IngestRequestModel.FormatEnum;
@@ -44,7 +44,7 @@ public class AzureSynapsePdao {
       UUID tenantId,
       String scopedCredentialName,
       String dataSourceName,
-      SASPermission permissionType)
+      SasPermission permissionType)
       throws NotImplementedException, SQLException {
 
     // parse user provided url to Azure container - can be signed or unsigned

@@ -78,9 +78,10 @@ public class AzureSynapsePdaoConnectedTest {
 
   @After
   public void cleanup() throws Exception {
-    azureSynapsePdao.cleanSynapseEntries(
-        Arrays.asList(tableName),
-        Arrays.asList(destinationDataSourceName, controlFileDataSourceName),
+    azureSynapsePdao.dropTables(Arrays.asList(tableName));
+    azureSynapsePdao.dropDataSources(
+        Arrays.asList(destinationDataSourceName, controlFileDataSourceName));
+    azureSynapsePdao.dropScopedCredentials(
         Arrays.asList(destinationScopedCredentialName, controlFileScopedCredentialName));
 
     // TODO - Clean out test parquet files

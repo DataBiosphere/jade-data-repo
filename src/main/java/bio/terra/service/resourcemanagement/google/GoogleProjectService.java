@@ -291,12 +291,18 @@ public class GoogleProjectService {
 
   /**
    * Google requires labels to consist of only lowercase, alphanumeric, "_", and "-" characters.
+   * This value can be at most 63 characters long.
    *
    * @param string String to clean
    * @return The cleaned String
    */
-  private String cleanForLabels(String string) {
-    return string.toLowerCase(Locale.ROOT).trim().replaceAll("[^a-z0-9_-]", "-");
+  @VisibleForTesting
+  static String cleanForLabels(String string) {
+    return string
+        .toLowerCase(Locale.ROOT)
+        .trim()
+        .replaceAll("[^a-z0-9_-]", "-")
+        .substring(0, Math.min(string.length(), 63));
   }
 
   public void addLabelsToProject(String googleProjectId, Map<String, String> labels) {
@@ -321,8 +327,9 @@ public class GoogleProjectService {
       project.setLabels(cleanedLabels);
       logger.info("Adding labels to project {}", googleProjectId);
       resourceManager.projects().update(googleProjectId, project).execute();
-    } catch (IOException | GeneralSecurityException ex) {
-      throw new GoogleResourceException("Encountered error while updating project labels", ex);
+    } catch (Exception ex) {
+      // only a soft failure - we do not want to fail project create just on adding project labels
+      logger.warn("Encountered error while updating project labels. ex: {}, stacktrace: {}", ex);
     }
   }
 

@@ -2,6 +2,7 @@ package bio.terra.service.filedata;
 
 import bio.terra.app.controller.exception.TooManyRequestsException;
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.exception.NotImplementedException;
@@ -27,6 +28,7 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -304,12 +306,30 @@ public class DrsService {
       FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
     DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
+    List<DRSAccessMethod> accessMethods;
+    CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(fsFile.getCloudPlatform());
+    if (platformWrapper.isGcp()) {
+      accessMethods = getDrsAccessMethodsOnGcp(fsFile, authUser);
+    } else if (platformWrapper.isAzure()) {
+      accessMethods = getDrsAccessMethodsOnAzure(fsFile);
+    } else {
+      throw new IllegalArgumentException("Unrecognized cloud platform");
+    }
+
+    fileObject
+        .mimeType(fsFile.getMimeType())
+        .checksums(fileService.makeChecksums(fsFile))
+        .accessMethods(accessMethods);
+
+    return fileObject;
+  }
+
+  private List<DRSAccessMethod> getDrsAccessMethodsOnGcp(
+      FSFile fsFile, AuthenticatedUserRequest authUser) {
+    DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getGspath());
+
     GoogleBucketResource bucketResource =
         resourceService.lookupBucketMetadata(fsFile.getBucketResourceId());
-
-    Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
-
-    DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getGspath());
 
     GoogleRegion region = bucketResource.getRegion();
     String accessId = "gcp-" + region.getValue();
@@ -329,19 +349,27 @@ public class DrsService {
         new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessUrl(httpsAccessURL)
-            .accessId("azure-")
             .region(bucketResource.getRegion().toString());
 
-    List<DRSAccessMethod> accessMethods = new ArrayList<>();
-    accessMethods.add(gsAccessMethod);
-    accessMethods.add(httpsAccessMethod);
+    return List.of(gsAccessMethod, httpsAccessMethod);
+  }
 
-    fileObject
-        .mimeType(fsFile.getMimeType())
-        .checksums(fileService.makeChecksums(fsFile))
-        .accessMethods(accessMethods);
+  private List<DRSAccessMethod> getDrsAccessMethodsOnAzure(FSFile fsFile) {
+    DRSAccessURL accessURL = new DRSAccessURL().url(fsFile.getGspath());
 
-    return fileObject;
+    AzureStorageAccountResource storageAccountResource =
+        resourceService.lookupStorageAccountMetadata(fsFile.getBucketResourceId());
+
+    AzureRegion region = storageAccountResource.getRegion();
+    String accessId = "az-" + region.getValue();
+    DRSAccessMethod httpsAccessMethod =
+        new DRSAccessMethod()
+            .type(DRSAccessMethod.TypeEnum.HTTPS)
+            .accessUrl(accessURL)
+            .accessId(accessId)
+            .region(region.toString());
+
+    return List.of(httpsAccessMethod);
   }
 
   private DRSObject drsObjectFromFSDir(FSDir fsDir, String snapshotId) {

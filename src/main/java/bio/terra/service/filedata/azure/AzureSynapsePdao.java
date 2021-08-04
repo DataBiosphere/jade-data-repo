@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.stringtemplate.v4.ST;
 
 @Component
 public class AzureSynapsePdao {
@@ -31,6 +32,34 @@ public class AzureSynapsePdao {
   private final AzureResourceConfiguration azureResourceConfiguration;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private static final String PARSER_VERSION = "2.0";
+  private static final String scopedCredentialCreateTemplate =
+      "CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]\n"
+          + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
+          + "SECRET = '<secret>';";
+
+  private static final String dataSourceCreateTemplate =
+      "CREATE EXTERNAL DATA SOURCE [<dataSourceName>]\n"
+          + "WITH (\n"
+          + "    LOCATION = '<scheme>://<host>/<container>',\n"
+          + "    CREDENTIAL = [<credential>]\n"
+          + ");";
+
+  private static final String createTableTemplate =
+      "CREATE EXTERNAL TABLE [<tableName>]\n"
+          + "WITH (\n"
+          + "    LOCATION = '<destinationParquetFile>',\n"
+          + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
+          + "    FILE_FORMAT = [<fileFormat>]\n"
+          + ") AS SELECT <selectArgument> FROM\n"
+          + "    OPENROWSET(\n"
+          + "       BULK '<ingestFileName>',\n"
+          + "       DATA_SOURCE = '<controlFileDataSourceName>',\n"
+          + "       FORMAT = 'CSV',\n"
+          + "       <dataSourceParameter1>,\n"
+          + "       <dataSourceParameter2>\n"
+          + "    ) WITH (\n"
+          + "      <withArgument>\n"
+          + ") AS rows;";
 
   @Autowired
   public AzureSynapsePdao(
@@ -65,48 +94,22 @@ public class AzureSynapsePdao {
     AzureSasCredential blobContainerSasTokenCreds =
         new AzureSasCredential(signedBlobUrl.getCommonSasQueryParameters().encode());
 
-    //    //Failed attempt to use a SQL template. Uphappy with [] and single quotes around secret
-    //    SQLServerDataSource ds = getDatasource();
-    //    NamedParameterJdbcTemplate template = new NamedParameterJdbcTemplate(ds);
-    //    String scopedCredentialCreateSQL =
-    //        "CREATE DATABASE SCOPED CREDENTIAL [[:scopedCredentialName]\n"
-    //            + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
-    //            + "SECRET = \':secret\';";
-    //    MapSqlParameterSource params =
-    //        new MapSqlParameterSource()
-    //            .addValue("scopedCredentialName", scopedCredentialName)
-    //            .addValue("secret", blobContainerSasTokenCreds.getSignature());
-    //    int numrows = template.update(scopedCredentialCreateSQL, params);
+    ST sqlScopedCredentialCreateTemplate = new ST(scopedCredentialCreateTemplate);
+    sqlScopedCredentialCreateTemplate.add("scopedCredentialName", scopedCredentialName);
+    sqlScopedCredentialCreateTemplate.add("secret", blobContainerSasTokenCreds.getSignature());
+    executeSynapseQuery(sqlScopedCredentialCreateTemplate.render());
 
-    executeSynapseQuery(
-        "CREATE DATABASE SCOPED CREDENTIAL ["
-            + scopedCredentialName
-            + "]\n"
-            + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
-            + "SECRET = '"
-            + blobContainerSasTokenCreds.getSignature()
-            + "';");
-
-    executeSynapseQuery(
-        "CREATE EXTERNAL DATA SOURCE "
-            + "["
-            + dataSourceName
-            + "]\n"
-            + "WITH (\n"
-            + "LOCATION = '"
-            + signedBlobUrl.getScheme()
-            + "://"
-            + signedBlobUrl.getHost()
-            + "/"
-            + signedBlobUrl.getBlobContainerName()
-            + "',\n"
-            + "CREDENTIAL = ["
-            + scopedCredentialName
-            + "]);");
+    ST sqlDataSourceCreateTemplate = new ST(dataSourceCreateTemplate);
+    sqlDataSourceCreateTemplate.add("dataSourceName", dataSourceName);
+    sqlDataSourceCreateTemplate.add("scheme", signedBlobUrl.getScheme());
+    sqlDataSourceCreateTemplate.add("host", signedBlobUrl.getHost());
+    sqlDataSourceCreateTemplate.add("container", signedBlobUrl.getBlobContainerName());
+    sqlDataSourceCreateTemplate.add("credential", scopedCredentialName);
+    executeSynapseQuery(sqlDataSourceCreateTemplate.render());
   }
 
   public void createParquetFiles(
-      FormatEnum ingestRequestFormat,
+      FormatEnum ingestType,
       DatasetTable datasetTable,
       String ingestFileName,
       String destinationParquetFile,
@@ -115,88 +118,49 @@ public class AzureSynapsePdao {
       String ingestTableName,
       int csvSkipLeadingRows)
       throws SQLException {
-    executeSynapseQuery(
-        "CREATE EXTERNAL TABLE ["
-            + ingestTableName
-            + "]\n"
-            + "WITH (\n    "
-            + "LOCATION = '"
-            + destinationParquetFile
-            + "',\n    "
-            + "DATA_SOURCE = ["
-            + destinationDataSourceName
-            + "],\n    "
-            + "FILE_FORMAT = ["
-            + azureResourceConfiguration.getSynapse().getParquetFileFormatName()
-            + "]\n"
-            + ") AS SELECT "
-            + buildSelectStatement(ingestRequestFormat, datasetTable)
-            + " FROM OPENROWSET("
-            + "\n                                "
-            + "BULK '"
-            + ingestFileName
-            + "',\n                                "
-            + "DATA_SOURCE = '"
-            + controlFileDataSourceName
-            + "',\n                                "
-            + "FORMAT = 'CSV'"
-            + ",\n                                "
-            + addArguments(ingestRequestFormat, csvSkipLeadingRows)
-            + ")\n"
-            + "WITH (\n      "
-            + buildWithStatement(ingestRequestFormat, datasetTable)
-            + ") AS rows;");
-  }
 
-  private String buildSelectStatement(FormatEnum formatType, DatasetTable datasetTable) {
-    switch (formatType) {
-      case CSV:
-        return "*";
-      case JSON:
-        List<Column> columns = datasetTable.getColumns();
-        return String.join(
-                ",\n      ",
-                columns.stream()
-                    .map(c -> translateToJsonConvert(c.getName(), c.getType(), c.isArrayOf()))
-                    .collect(Collectors.toList()))
-            + "\n";
-      default:
-        throw new EnumConstantNotPresentException(FormatEnum.class, formatType.name());
-    }
-  }
-
-  private String buildWithStatement(FormatEnum formatType, DatasetTable datasetTable) {
-    switch (formatType) {
-      case CSV:
-        List<Column> columns = datasetTable.getColumns();
-        return String.join(
+    List<Column> columns = datasetTable.getColumns();
+    String tableDefinition =
+        String.join(
             ",\n      ",
             columns.stream()
-                .map(c -> c.getName() + " " + translateTypeToDdl(c.getType(), c.isArrayOf()))
+                .map(
+                    c -> {
+                      if (ingestType == FormatEnum.CSV) {
+                        return c.getName() + " " + translateTypeToDdl(c.getType(), c.isArrayOf());
+                      } else if (ingestType == FormatEnum.JSON) {
+                        return translateToJsonConvert(c.getName(), c.getType(), c.isArrayOf());
+                      } else {
+                        throw new EnumConstantNotPresentException(
+                            FormatEnum.class, ingestType.toString());
+                      }
+                    })
                 .collect(Collectors.toList()));
-      case JSON:
-        return "doc nvarchar(max)";
-      default:
-        throw new EnumConstantNotPresentException(FormatEnum.class, formatType.name());
-    }
-  }
 
-  private String addArguments(FormatEnum formatType, int csvSkipLeadingRows) {
-    switch (formatType) {
-      case CSV:
-        return "PARSER_VERSION = '"
-            + PARSER_VERSION
-            + "'"
-            + ",\n                                "
-            + "FIRSTROW = "
-            + csvSkipLeadingRows;
-      case JSON:
-        return "fieldterminator ='0x0b'"
-            + ",\n                                "
-            + "fieldquote = '0x0b'";
-      default:
-        throw new EnumConstantNotPresentException(FormatEnum.class, formatType.name());
+    ST sqlCreateTableCSVTemplate = new ST(createTableTemplate);
+    sqlCreateTableCSVTemplate.add("tableName", ingestTableName);
+    sqlCreateTableCSVTemplate.add("destinationParquetFile", destinationParquetFile);
+    sqlCreateTableCSVTemplate.add("destinationDataSourceName", destinationDataSourceName);
+    sqlCreateTableCSVTemplate.add(
+        "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
+    sqlCreateTableCSVTemplate.add("ingestFileName", ingestFileName);
+    sqlCreateTableCSVTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
+
+    if (ingestType == FormatEnum.CSV) {
+      sqlCreateTableCSVTemplate.add("selectArgument", "*");
+      sqlCreateTableCSVTemplate.add("withArgument", tableDefinition);
+      sqlCreateTableCSVTemplate.add(
+          "dataSourceParameter1", "PARSER_VERSION = '" + PARSER_VERSION + "'");
+      sqlCreateTableCSVTemplate.add(
+          "dataSourceParameter2", "FIRSTROW = '" + csvSkipLeadingRows + "'");
+    } else if (ingestType == FormatEnum.JSON) {
+      sqlCreateTableCSVTemplate.add("selectArgument", tableDefinition);
+      sqlCreateTableCSVTemplate.add("withArgument", "doc nvarchar(max)");
+      sqlCreateTableCSVTemplate.add("dataSourceParameter1", "fieldterminator ='0x0b'");
+      sqlCreateTableCSVTemplate.add("dataSourceParameter2", "fieldquote = '0x0b'");
     }
+
+    executeSynapseQuery(sqlCreateTableCSVTemplate.render());
   }
 
   public void dropTables(List<String> tableNames) {
@@ -241,12 +205,9 @@ public class AzureSynapsePdao {
 
   public boolean executeSynapseQuery(String query) throws SQLException {
     SQLServerDataSource ds = getDatasource();
-    try {
-      Connection connection = ds.getConnection();
-      Statement statement = connection.createStatement();
+    try (Connection connection = ds.getConnection();
+        Statement statement = connection.createStatement(); ) {
       return statement.execute(query);
-    } catch (SQLException throwables) {
-      throw new SQLException("Synapse Query Failed.", throwables);
     }
   }
 

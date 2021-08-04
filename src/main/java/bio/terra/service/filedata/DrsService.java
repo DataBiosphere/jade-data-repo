@@ -28,8 +28,10 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -82,6 +84,7 @@ public class DrsService {
   private final PerformanceLogger performanceLogger;
   private final ProfileService profileService;
   private final AzureResourceConfiguration resourceConfiguration;
+  private final AzureContainerPdao azureContainerPdao;
 
   @Autowired
   public DrsService(
@@ -94,7 +97,8 @@ public class DrsService {
       JobService jobService,
       PerformanceLogger performanceLogger,
       ProfileService profileService,
-      AzureResourceConfiguration resourceConfiguration) {
+      AzureResourceConfiguration resourceConfiguration,
+      AzureContainerPdao azureContainerPdao) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -105,6 +109,7 @@ public class DrsService {
     this.performanceLogger = performanceLogger;
     this.profileService = profileService;
     this.resourceConfiguration = resourceConfiguration;
+    this.azureContainerPdao = azureContainerPdao;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -241,7 +246,14 @@ public class DrsService {
                               + accessId
                               + " was found on object "
                               + objectId));
-      return signAzureUrl(billingProfileModel, snapshot, drsId);
+      try {
+        FSItem fsItem = fileService
+            .lookupSnapshotFSItem(snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
+                drsId.getFsObjectId(), 1);
+        return signAzureUrl(billingProfileModel, fsItem);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
     } else {
       throw new NotImplementedException("Cloud platform not implemented");
     }
@@ -258,28 +270,34 @@ public class DrsService {
   }
 
   private DRSAccessURL signAzureUrl(
-      BillingProfileModel profileModel, Snapshot snapshot, DrsId drsId) {
-    FSItem fsObject = null;
-    try {
-      fsObject =
-          fileService.lookupSnapshotFSItem(
-              snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
-              drsId.getFsObjectId(),
-              1);
-
-      BlobUrlParts blobUrl = BlobUrlParts.parse(fsObject.getPath());
-      BlobContainerClientFactory sourceClientFactory =
-          new BlobContainerClientFactory(
-              blobUrl.getAccountName(),
-              resourceConfiguration.getAppToken(profileModel.getTenantId()),
-              blobUrl.getBlobContainerName());
-
-      return new DRSAccessURL()
-          .url(sourceClientFactory.createReadOnlySasUrlForBlob(blobUrl.getBlobName()));
-    } catch (InterruptedException e) {
-      throw new FileSystemExecutionException(
-          "Unexpected interruption during file system processing", e);
-    }
+      BillingProfileModel profileModel,
+      FSItem fsItem) {
+    AzureStorageAccountResource storageAccountResource =
+        resourceService.lookupStorageAccountMetadata(((FSFile) fsItem).getBucketResourceId());
+    azureContainerPdao
+        .getDestinationContainerSignedUrl(profileModel, storageAccountResource, ContainerType.DATA,
+            true, false, false, false);
+//    FSItem fsObject = null;
+//    try {
+//      fsObject =
+//          fileService.lookupSnapshotFSItem(
+//              snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
+//              drsId.getFsObjectId(),
+//              1);
+//
+//      BlobUrlParts blobUrl = BlobUrlParts.parse(accessMethod.getAccessUrl().getUrl());
+//      BlobContainerClientFactory sourceClientFactory =
+//          new BlobContainerClientFactory(
+//              blobUrl.getAccountName(),
+//              resourceConfiguration.getAppToken(profileModel.getTenantId()),
+//              blobUrl.getBlobContainerName());
+//
+//      return new DRSAccessURL()
+//          .url(sourceClientFactory.createReadOnlySasUrlForBlob(blobUrl.getBlobName()));
+//    } catch (InterruptedException e) {
+//      throw new FileSystemExecutionException(
+//          "Unexpected interruption during file system processing", e);
+//    }
   }
 
   private DRSAccessURL signGoogleUrl(Snapshot snapshot, DRSAccessMethod accessMethod) {

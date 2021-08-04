@@ -298,7 +298,7 @@ public class FireStoreUtils {
   }
 
   // For batch operations, we want to also include the AbortedException as retryable
-  static boolean shouldRetry(Throwable throwable, boolean isBatch) {
+  public static boolean shouldRetry(Throwable throwable, boolean isBatch) {
     if (throwable == null) {
       return false; // Did not find a retry-able exception
     }

@@ -30,6 +30,7 @@ public class AzureSynapsePdao {
 
   private final AzureResourceConfiguration azureResourceConfiguration;
   private final AzureBlobStorePdao azureBlobStorePdao;
+  private static final String PARSER_VERSION = "2.0";
 
   @Autowired
   public AzureSynapsePdao(
@@ -183,7 +184,9 @@ public class AzureSynapsePdao {
   private String addArguments(FormatEnum formatType, int csvSkipLeadingRows) {
     switch (formatType) {
       case CSV:
-        return "PARSER_VERSION = '2.0'"
+        return "PARSER_VERSION = '"
+            + PARSER_VERSION
+            + "'"
             + ",\n                                "
             + "FIRSTROW = "
             + csvSkipLeadingRows;

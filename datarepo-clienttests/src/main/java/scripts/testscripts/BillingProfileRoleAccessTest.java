@@ -40,7 +40,8 @@ public class BillingProfileRoleAccessTest extends BillingProfileUsers {
   public void userJourney(TestUserSpecification testUser) throws Exception {
     DataRepoWrap ownerUser1Api = DataRepoWrap.wrapFactory(ownerUser1, server); // dumbledore
     DataRepoWrap ownerUser2Api = DataRepoWrap.wrapFactory(ownerUser2, server); // voldemort
-
+    logger.info("User 1: {}", ownerUser1.userEmail);
+    logger.info("User 2: {}", ownerUser2.userEmail);
     try {
       profile = ownerUser1Api.createProfile(billingAccount, "profile_permission_test", true);
       UUID profileId = profile.getId();

@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.service.filedata.azure.util.BlobContainerClientFactory.SASPermission;
+import static bio.terra.service.filedata.azure.util.BlobContainerClientFactory.SasPermission;
 
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobClient;

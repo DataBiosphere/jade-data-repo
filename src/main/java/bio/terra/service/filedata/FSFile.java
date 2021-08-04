@@ -106,7 +106,7 @@ public class FSFile extends FSItem {
   // explicitly
   public CloudPlatform getCloudPlatform() {
     try {
-      URI url = new URI(getGspath());
+      URI url = new URI(getGspath().replaceAll("[^A-Za-z0-9/\\-.:]", ""));
       if (url.getScheme().equalsIgnoreCase("gs")) {
         return CloudPlatform.GCP;
       } else if (url.getScheme().equalsIgnoreCase("https")

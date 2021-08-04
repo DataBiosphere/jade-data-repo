@@ -19,6 +19,11 @@ public class FSFileTest {
         new FSFile().gspath("gs://mybucket/test.txt").getCloudPlatform(),
         equalTo(CloudPlatform.GCP));
     assertThat(
+        new FSFile()
+            .gspath("gs://mybucket/dsid/fid/file with space and #hash%percent+plus.txt")
+            .getCloudPlatform(),
+        equalTo(CloudPlatform.GCP));
+    assertThat(
         new FSFile().gspath("https://myacct.blob.core.windows.net/fs/test.txt").getCloudPlatform(),
         equalTo(CloudPlatform.AZURE));
     assertThrows(

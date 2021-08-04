@@ -110,24 +110,6 @@ public class FireStoreUtils {
         op + " - execution exception wrapping: " + throwable, throwable);
   }
 
-  public String getName(String path) {
-    String[] pathParts = StringUtils.split(path, '/');
-    if (pathParts.length == 0) {
-      return StringUtils.EMPTY;
-    }
-    return pathParts[pathParts.length - 1];
-  }
-
-  public String getDirectoryPath(String path) {
-    String[] pathParts = StringUtils.split(path, '/');
-    if (pathParts.length <= 1) {
-      // We are at the root; no containing directory
-      return StringUtils.EMPTY;
-    }
-    int endIndex = pathParts.length - 1;
-    return '/' + StringUtils.join(pathParts, '/', 0, endIndex);
-  }
-
   String getFullPath(String dirPath, String name) {
     // Originally, this was a method in FireStoreDirectoryEntry, but the Firestore client complained
     // about it,

@@ -1,7 +1,6 @@
 package bio.terra.service.filedata;
 
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
-import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,13 +13,10 @@ import java.util.UUID;
 @Component
 public class FileMetadataUtils {
   private final Logger logger = LoggerFactory.getLogger(FileMetadataUtils.class);
-  private final FireStoreUtils fireStoreUtils;
   public static final String ROOT_DIR_NAME = "/_dr_";
 
   @Autowired
-  public FileMetadataUtils(FireStoreUtils fireStoreUtils) {
-    this.fireStoreUtils = fireStoreUtils;
-  }
+  public FileMetadataUtils() { }
 
   // As mentioned at the top of the module, we can't use forward slash in a FireStore document
   // name, so we do this encoding.
@@ -30,11 +26,29 @@ public class FileMetadataUtils {
     return StringUtils.replaceChars(path, '/', DOCNAME_SEPARATOR);
   }
 
+  public String getDirectoryPath(String path) {
+    String[] pathParts = StringUtils.split(path, '/');
+    if (pathParts.length <= 1) {
+      // We are at the root; no containing directory
+      return StringUtils.EMPTY;
+    }
+    int endIndex = pathParts.length - 1;
+    return '/' + StringUtils.join(pathParts, '/', 0, endIndex);
+  }
+
+  public String getName(String path) {
+    String[] pathParts = StringUtils.split(path, '/');
+    if (pathParts.length == 0) {
+      return StringUtils.EMPTY;
+    }
+    return pathParts[pathParts.length - 1];
+  }
+
   public FireStoreDirectoryEntry makeDirectoryEntry(String lookupDirPath) {
     // We have some special cases to deal with at the top of the directory tree.
     String fullPath = makePathFromLookupPath(lookupDirPath);
-    String dirPath = fireStoreUtils.getDirectoryPath(fullPath);
-    String objName = fireStoreUtils.getName(fullPath);
+    String dirPath = getDirectoryPath(fullPath);
+    String objName = getName(fullPath);
     if (StringUtils.isEmpty(fullPath)) {
       // This is the root directory - it doesn't have a path or a name
       dirPath = StringUtils.EMPTY;

@@ -5,16 +5,13 @@ import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
-import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.azure.data.tables.models.ListEntitiesOptions;
@@ -22,7 +19,6 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import com.azure.data.tables.models.TableTransactionAction;
 import com.azure.data.tables.models.TableTransactionActionType;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,21 +57,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class TableDirectoryDao {
   private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
-
-  private static final String ROOT_DIR_NAME = "/_dr_";
   private static final String TABLE_NAME = "dataset";
   private static final String PARTITION_KEY = "partitionKey";
-
-  private final AzureTableUtils azureTableUtils;
-  private final FireStoreUtils fireStoreUtils;
   private final FileMetadataUtils fileMetadataUtils;
 
   @Autowired
-  public TableDirectoryDao(AzureTableUtils azureTableUtils,
-                           FireStoreUtils fireStoreUtils,
-                           FileMetadataUtils fileMetadataUtils) {
-    this.azureTableUtils = azureTableUtils;
-    this.fireStoreUtils = fireStoreUtils;
+  public TableDirectoryDao(FileMetadataUtils fileMetadataUtils) {
     this.fileMetadataUtils = fileMetadataUtils;
   }
 
@@ -95,7 +82,7 @@ public class TableDirectoryDao {
     String lookupDirPath = fileMetadataUtils.makeLookupPath(createEntry.getPath());
     for (String testPath = lookupDirPath;
         !testPath.isEmpty();
-        testPath = fireStoreUtils.getDirectoryPath(testPath)) {
+        testPath = fileMetadataUtils.getDirectoryPath(testPath)) {
 
       // !!! In this case we are using a lookup path
       if (lookupByFilePath(tableServiceClient, testPath) != null) {
@@ -152,7 +139,7 @@ public class TableDirectoryDao {
           lookupByFilePath(tableServiceClient,
                   fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
       deleteList.add(new TableTransactionAction(TableTransactionActionType.DELETE, entity));
-      lookupPath = fireStoreUtils.getDirectoryPath(lookupPath);
+      lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
     }
     tableClient.submitTransaction(deleteList);
     return true;
@@ -244,5 +231,7 @@ public class TableDirectoryDao {
       throw new FileSystemExecutionException("lookupByFileId operation failed");
     }
   }
+
+  // TODO: Implement snapshot-specific methods
 
 }

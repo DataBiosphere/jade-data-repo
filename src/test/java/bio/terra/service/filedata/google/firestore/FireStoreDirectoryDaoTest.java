@@ -12,6 +12,7 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.StringListCompare;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.FileMetadataUtils;
 import com.google.cloud.firestore.Firestore;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,7 +38,7 @@ public class FireStoreDirectoryDaoTest {
 
   @Autowired private FireStoreDirectoryDao directoryDao;
 
-  @Autowired private FireStoreUtils fireStoreUtils;
+  @Autowired private FileMetadataUtils fileMetadataUtils;
 
   @Autowired private ConfigurationService configurationService;
 
@@ -177,8 +178,8 @@ public class FireStoreDirectoryDaoTest {
     return new FireStoreDirectoryEntry()
         .fileId(UUID.randomUUID().toString())
         .isFileRef(true)
-        .path(fireStoreUtils.getDirectoryPath(fullPath))
-        .name(fireStoreUtils.getName(fullPath))
+        .path(fileMetadataUtils.getDirectoryPath(fullPath))
+        .name(fileMetadataUtils.getName(fullPath))
         .datasetId(pretendDatasetId);
   }
 }

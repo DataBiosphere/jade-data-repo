@@ -13,10 +13,10 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
@@ -30,6 +30,8 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
+
+import java.io.File;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
@@ -43,7 +45,7 @@ public class FileIngestFlight extends Flight {
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
-    FireStoreUtils fireStoreUtils = appContext.getBean(FireStoreUtils.class);
+    FileMetadataUtils fileMetadataUtils = appContext.getBean(FileMetadataUtils.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
@@ -122,7 +124,7 @@ public class FileIngestFlight extends Flight {
     addStep(new LoadLockStep(loadService));
     addStep(new IngestFileIdStep(configService));
     addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-    addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), randomBackoffRetry);
+    addStep(new IngestFileDirectoryStep(fileDao, fileMetadataUtils, dataset), randomBackoffRetry);
     addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
     addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
     if (platform.isGcp()) {

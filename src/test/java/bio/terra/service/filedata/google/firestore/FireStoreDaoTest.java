@@ -10,6 +10,7 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.category.Connected;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import com.google.cloud.firestore.Firestore;
 import java.time.Instant;
@@ -45,6 +46,8 @@ public class FireStoreDaoTest {
   @Autowired private FireStoreDao dao;
 
   @Autowired private FireStoreUtils fireStoreUtils;
+
+  @Autowired private FileMetadataUtils fileMetadataUtils;
 
   @Autowired private FireStoreDependencyDao fireStoreDependencyDao;
 
@@ -183,8 +186,8 @@ public class FireStoreDaoTest {
     return new FireStoreDirectoryEntry()
         .fileId(fileId)
         .isFileRef(true)
-        .path(fireStoreUtils.getDirectoryPath(fullPath))
-        .name(fireStoreUtils.getName(fullPath))
+        .path(fileMetadataUtils.getDirectoryPath(fullPath))
+        .name(fileMetadataUtils.getName(fullPath))
         .datasetId(collectionId)
         .size(size)
         .checksumCrc32c(fireStoreUtils.computeCrc32c(fullPath))

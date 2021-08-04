@@ -112,7 +112,7 @@ public class FireStoreDirectoryDao {
         xn -> {
           for (String testPath = lookupDirPath;
               !testPath.isEmpty();
-              testPath = fireStoreUtils.getDirectoryPath(testPath)) {
+              testPath = fileMetadataUtils.getDirectoryPath(testPath)) {
 
             // !!! In this case we are using a lookup path
             DocumentSnapshot docSnap = lookupByFilePath(firestore, collectionId, testPath, xn);
@@ -172,7 +172,7 @@ public class FireStoreDirectoryDao {
                 DocumentReference docRef =
                     datasetCollection.document(fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
                 deleteList.add(docRef);
-                lookupPath = fireStoreUtils.getDirectoryPath(lookupPath);
+                lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
               }
 
               for (DocumentReference docRef : deleteList) {
@@ -477,7 +477,7 @@ public class FireStoreDirectoryDao {
       String lookupDirPath = fileMetadataUtils.makeLookupPath(entry.getPath());
       for (String testPath = lookupDirPath;
           !testPath.isEmpty() && !StringUtils.equals(testPath, FileMetadataUtils.ROOT_DIR_NAME);
-          testPath = fireStoreUtils.getDirectoryPath(testPath)) {
+          testPath = fileMetadataUtils.getDirectoryPath(testPath)) {
 
         // check the cache
         if (pathMap.get(testPath) == null) {

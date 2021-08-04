@@ -578,12 +578,12 @@ public class FireStoreDao {
     String md5Concat = StringUtils.join(md5Collection, StringUtils.EMPTY);
     String md5Checksum = fireStoreUtils.computeMd5(md5Concat);
 
-    Collections.sort(crc32cCollection);
-    String crc32cConcat = StringUtils.join(crc32cCollection, StringUtils.EMPTY);
-    String crc32cChecksum = fireStoreUtils.computeCrc32c(crc32cConcat);
+    //    Collections.sort(crc32cCollection);
+    //    String crc32cConcat = StringUtils.join(crc32cCollection, StringUtils.EMPTY);
+    //    String crc32cChecksum = fireStoreUtils.computeCrc32c(crc32cConcat);
 
     // Update the directory in place
-    dirEntry.checksumCrc32c(crc32cChecksum).checksumMd5(md5Checksum).size(totalSize);
+    dirEntry.checksumCrc32c("").checksumMd5(md5Checksum).size(totalSize);
     updateEntry(snapshotFirestore, snapshotId, dirEntry, updateBatch);
 
     return dirEntry;

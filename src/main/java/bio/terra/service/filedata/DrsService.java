@@ -269,7 +269,7 @@ public class DrsService {
       BlobContainerClientFactory sourceClientFactory =
           new BlobContainerClientFactory(
               blobUrl.getAccountName(),
-              resourceConfiguration.getAppToken(UUID.fromString(profileModel.getTenantId())),
+              resourceConfiguration.getAppToken(profileModel.getTenantId()),
               blobUrl.getBlobContainerName());
 
       return new DRSAccessURL()

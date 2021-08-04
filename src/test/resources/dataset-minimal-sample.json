@@ -1,5 +1,5 @@
-{"id":"sample1","participant_id":"participant_1","date_collected":"2019-02-27"}
-{"id":"sample2","participant_id":"participant_1","date_collected":"2019-02-27"}
-{"id":"sample3","participant_id":"participant_1","date_collected":"2019-02-27"}
-{"id":"sample4","participant_id":"participant_2","date_collected":"2019-02-27"}
-{"id":"sample5","participant_id":"participant_2","date_collected":"2019-02-27"}
+{"id":"sample1","participant_id":"participant_1","date_collected":"2019-02-27", "file": "8b28cf94-d624-4ce2-bb7f-a5cf122943fc"}
+{"id":"sample2","participant_id":"participant_1","date_collected":"2019-02-27", "file": "8b28cf94-d624-4ce2-bb7f-a5cf122943fc"}
+{"id":"sample3","participant_id":"participant_1","date_collected":"2019-02-27", "file": "8b28cf94-d624-4ce2-bb7f-a5cf122943fc"}
+{"id":"sample4","participant_id":"participant_2","date_collected":"2019-02-27", "file": "71566e38-78d5-4966-a932-7ed312d24c42"}
+{"id":"sample5","participant_id":"participant_2","date_collected":"2019-02-27", "file": "71566e38-78d5-4966-a932-7ed312d24c42"}

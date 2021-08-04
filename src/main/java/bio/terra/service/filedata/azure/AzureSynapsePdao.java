@@ -276,7 +276,7 @@ public class AzureSynapsePdao {
         return "datetime2";
       case DIRREF:
       case FILEREF:
-        return "varchar(250) COLLATE Latin1_General_100_CI_AI_SC_UTF8";
+        return "varchar(36) COLLATE Latin1_General_100_CI_AI_SC_UTF8";
       case FLOAT:
       case FLOAT64:
         return "real";
@@ -286,7 +286,6 @@ public class AzureSynapsePdao {
         return "bigint";
       case NUMERIC:
         return "decimal";
-        // case "RECORD":    return LegacySQLTypeName.RECORD;
       case TEXT:
       case STRING:
         return "varchar(8000) COLLATE Latin1_General_100_CI_AI_SC_UTF8";

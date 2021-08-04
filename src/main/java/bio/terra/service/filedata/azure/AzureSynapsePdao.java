@@ -199,8 +199,7 @@ public class AzureSynapsePdao {
     }
   }
 
-  public void cleanSynapseEntries(
-      List<String> tableNames, List<String> dataSourceNames, List<String> credentialNames) {
+  public void dropTables(List<String> tableNames) {
     tableNames.stream()
         .forEach(
             tableName -> {
@@ -210,6 +209,9 @@ public class AzureSynapsePdao {
                 logger.warn("Unable to clean up table {}, ex: {}", tableName, ex.getMessage());
               }
             });
+  }
+
+  public void dropDataSources(List<String> dataSourceNames) {
     dataSourceNames.stream()
         .forEach(
             dataSource -> {
@@ -222,6 +224,9 @@ public class AzureSynapsePdao {
                     ex.getMessage());
               }
             });
+  }
+
+  public void dropScopedCredentials(List<String> credentialNames) {
     credentialNames.stream()
         .forEach(
             credential -> {

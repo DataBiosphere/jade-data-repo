@@ -15,6 +15,7 @@ import bio.terra.service.resourcemanagement.azure.*;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.TableEntity;
+import com.azure.data.tables.models.TableServiceException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -61,7 +62,8 @@ public class TableFileDaoTest {
     when(authService.getTableServiceClient(any(), any())).thenReturn(tableServiceClient);
     when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
     when(tableClient.getEntity(PARTITION_KEY, FILE_ID)).thenReturn(entity);
-    when(tableClient.getEntity(PARTITION_KEY, "nonexistentFile")).thenReturn(null);
+    when(tableClient.getEntity(PARTITION_KEY, "nonexistentFile"))
+        .thenThrow(TableServiceException.class);
   }
 
   @Test

@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
+import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryDao;
@@ -67,11 +68,15 @@ public class TableDirectoryDao {
 
   private final AzureTableUtils azureTableUtils;
   private final FireStoreUtils fireStoreUtils;
+  private final FileMetadataUtils fileMetadataUtils;
 
   @Autowired
-  public TableDirectoryDao(AzureTableUtils azureTableUtils, FireStoreUtils fireStoreUtils) {
+  public TableDirectoryDao(AzureTableUtils azureTableUtils,
+                           FireStoreUtils fireStoreUtils,
+                           FileMetadataUtils fileMetadataUtils) {
     this.azureTableUtils = azureTableUtils;
     this.fireStoreUtils = fireStoreUtils;
+    this.fileMetadataUtils = fileMetadataUtils;
   }
 
   // Note that this does not test for duplicates. If invoked on an existing path it will overwrite
@@ -87,7 +92,7 @@ public class TableDirectoryDao {
     // Walk up the lookup directory path, finding missing directories we get to an
     // existing one
     // We will create the ROOT_DIR_NAME directory here if it does not exist.
-    String lookupDirPath = makeLookupPath(createEntry.getPath());
+    String lookupDirPath = fileMetadataUtils.makeLookupPath(createEntry.getPath());
     for (String testPath = lookupDirPath;
         !testPath.isEmpty();
         testPath = fireStoreUtils.getDirectoryPath(testPath)) {
@@ -97,7 +102,7 @@ public class TableDirectoryDao {
         break;
       }
 
-      FireStoreDirectoryEntry dirToCreate = makeDirectoryEntry(testPath);
+      FireStoreDirectoryEntry dirToCreate = fileMetadataUtils.makeDirectoryEntry(testPath);
       TableEntity entity = FireStoreDirectoryEntry.toTableEntity(PARTITION_KEY, dirToCreate);
       TableTransactionAction t =
           new TableTransactionAction(TableTransactionActionType.CREATE, entity);
@@ -130,21 +135,22 @@ public class TableDirectoryDao {
     deleteList.add(t);
 
     FireStoreDirectoryEntry leafEntry = FireStoreDirectoryEntry.fromTableEntity(leafEntity);
-    String lookupPath = makeLookupPath(leafEntry.getPath());
+    String lookupPath = fileMetadataUtils.makeLookupPath(leafEntry.getPath());
     while (!lookupPath.isEmpty()) {
       // Count the number of entries with this path as their directory path
       // A value of 1 means that the directory will be empty after its child is
       // deleted, so we should delete it also.
       ListEntitiesOptions options =
           new ListEntitiesOptions()
-              .setFilter(String.format("path eq '%s'", makePathFromLookupPath(lookupPath)));
+              .setFilter(String.format("path eq '%s'", fileMetadataUtils.makePathFromLookupPath(lookupPath)));
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
       int size = List.of(entities).size();
       if (size > 1) {
         break;
       }
       TableEntity entity =
-          lookupByFilePath(tableServiceClient, encodePathAsFirestoreDocumentName(lookupPath));
+          lookupByFilePath(tableServiceClient,
+                  fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
       deleteList.add(new TableTransactionAction(TableTransactionActionType.DELETE, entity));
       lookupPath = fireStoreUtils.getDirectoryPath(lookupPath);
     }
@@ -170,7 +176,7 @@ public class TableDirectoryDao {
   // Returns null if not found - upper layers do any throwing
   public FireStoreDirectoryEntry retrieveByPath(
       TableServiceClient tableServiceClient, String fullPath) {
-    String lookupPath = makeLookupPath(fullPath);
+    String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
     TableEntity entity = lookupByFilePath(tableServiceClient, lookupPath);
     return Optional.ofNullable(entity)
         .map(d -> FireStoreDirectoryEntry.fromTableEntity(entity))
@@ -204,17 +210,9 @@ public class TableDirectoryDao {
         .collect(Collectors.toList());
   }
 
-  // As mentioned at the top of the module, we can't use forward slash in a FireStore document
-  // name, so we do this encoding.
-  private static final char DOCNAME_SEPARATOR = '\u001c';
-
-  private String encodePathAsFirestoreDocumentName(String path) {
-    return StringUtils.replaceChars(path, '/', DOCNAME_SEPARATOR);
-  }
-
   private TableEntity lookupByFilePath(TableServiceClient tableServiceClient, String lookupPath) {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    String rowKey = encodePathAsFirestoreDocumentName(lookupPath);
+    String rowKey = fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath);
     try {
       return tableClient.getEntity(PARTITION_KEY, rowKey);
     } catch (TableServiceException ex) {
@@ -247,37 +245,4 @@ public class TableDirectoryDao {
     }
   }
 
-  private FireStoreDirectoryEntry makeDirectoryEntry(String lookupDirPath) {
-    // We have some special cases to deal with at the top of the directory tree.
-    String fullPath = makePathFromLookupPath(lookupDirPath);
-    String dirPath = fireStoreUtils.getDirectoryPath(fullPath);
-    String objName = fireStoreUtils.getName(fullPath);
-    if (StringUtils.isEmpty(fullPath)) {
-      // This is the root directory - it doesn't have a path or a name
-      dirPath = StringUtils.EMPTY;
-      objName = StringUtils.EMPTY;
-    } else if (StringUtils.isEmpty(dirPath)) {
-      // This is an entry in the root directory - it needs to have the root path.
-      dirPath = "/";
-    }
-
-    return new FireStoreDirectoryEntry()
-        .fileId(UUID.randomUUID().toString())
-        .isFileRef(false)
-        .path(dirPath)
-        .name(objName)
-        .fileCreatedDate(Instant.now().toString());
-  }
-
-  // Do some tidying of the full path: slash on front - no slash trailing
-  // and prepend the root directory name
-  private String makeLookupPath(String fullPath) {
-    String temp = StringUtils.prependIfMissing(fullPath, "/");
-    temp = StringUtils.removeEnd(temp, "/");
-    return ROOT_DIR_NAME + temp;
-  }
-
-  private String makePathFromLookupPath(String lookupPath) {
-    return StringUtils.removeStart(lookupPath, ROOT_DIR_NAME);
-  }
 }

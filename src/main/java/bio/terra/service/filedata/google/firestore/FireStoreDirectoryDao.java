@@ -7,6 +7,7 @@ import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_VALIDATE_BATC
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
@@ -75,18 +76,20 @@ public class FireStoreDirectoryDao {
 
   private static final int LOOKUP_RETRIES = 30; // up to 5 minutes
   private static final int LOOKUP_WAIT_SECONDS = 10;
-  private static final String ROOT_DIR_NAME = "/_dr_";
 
   private final FireStoreUtils fireStoreUtils;
+  private final FileMetadataUtils fileMetadataUtils;
   private final PerformanceLogger performanceLogger;
   private final ConfigurationService configurationService;
 
   @Autowired
   public FireStoreDirectoryDao(
       FireStoreUtils fireStoreUtils,
+      FileMetadataUtils fileMetadataUtils,
       PerformanceLogger performanceLogger,
       ConfigurationService configurationService) {
     this.fireStoreUtils = fireStoreUtils;
+    this.fileMetadataUtils = fileMetadataUtils;
     this.performanceLogger = performanceLogger;
     this.configurationService = configurationService;
   }
@@ -102,7 +105,7 @@ public class FireStoreDirectoryDao {
     // Walk up the lookup directory path, finding missing directories we get to an
     // existing one
     // We will create the ROOT_DIR_NAME directory here if it does not exist.
-    String lookupDirPath = makeLookupPath(createEntry.getPath());
+    String lookupDirPath = fileMetadataUtils.makeLookupPath(createEntry.getPath());
 
     fireStoreUtils.runTransactionWithRetry(
         firestore,
@@ -117,7 +120,7 @@ public class FireStoreDirectoryDao {
               break;
             }
 
-            FireStoreDirectoryEntry dirToCreate = makeDirectoryEntry(testPath);
+            FireStoreDirectoryEntry dirToCreate = fileMetadataUtils.makeDirectoryEntry(testPath);
             createList.add(dirToCreate);
           }
 
@@ -152,13 +155,14 @@ public class FireStoreDirectoryDao {
               deleteList.add(leafSnap.getReference());
 
               FireStoreDirectoryEntry leafEntry = leafSnap.toObject(FireStoreDirectoryEntry.class);
-              String lookupPath = makeLookupPath(leafEntry.getPath());
+              String lookupPath = fileMetadataUtils.makeLookupPath(leafEntry.getPath());
               while (!lookupPath.isEmpty()) {
                 // Count the number of entries with this path as their directory path
                 // A value of 1 means that the directory will be empty after its child is
                 // deleted, so we should delete it also.
                 Query query =
-                    datasetCollection.whereEqualTo("path", makePathFromLookupPath(lookupPath));
+                    datasetCollection.whereEqualTo("path",
+                            fileMetadataUtils.makePathFromLookupPath(lookupPath));
                 ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
 
                 List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
@@ -166,7 +170,7 @@ public class FireStoreDirectoryDao {
                   break;
                 }
                 DocumentReference docRef =
-                    datasetCollection.document(encodePathAsFirestoreDocumentName(lookupPath));
+                    datasetCollection.document(fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
                 deleteList.add(docRef);
                 lookupPath = fireStoreUtils.getDirectoryPath(lookupPath);
               }
@@ -213,7 +217,7 @@ public class FireStoreDirectoryDao {
   public FireStoreDirectoryEntry retrieveByPath(
       Firestore firestore, String collectionId, String fullPath) throws InterruptedException {
 
-    String lookupPath = makeLookupPath(fullPath);
+    String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
 
     DocumentSnapshot docSnap =
         fireStoreUtils.runTransactionWithRetry(
@@ -272,14 +276,6 @@ public class FireStoreDirectoryDao {
     return entryList;
   }
 
-  // As mentioned at the top of the module, we can't use forward slash in a FireStore document
-  // name, so we do this encoding.
-  private static final char DOCNAME_SEPARATOR = '\u001c';
-
-  private String encodePathAsFirestoreDocumentName(String path) {
-    return StringUtils.replaceChars(path, '/', DOCNAME_SEPARATOR);
-  }
-
   private DocumentReference getDocRef(
       Firestore firestore, String collectionId, FireStoreDirectoryEntry entry) {
     return getDocRef(firestore, collectionId, entry.getPath(), entry.getName());
@@ -288,10 +284,10 @@ public class FireStoreDirectoryDao {
   private DocumentReference getDocRef(
       Firestore firestore, String collectionId, String path, String name) {
     String fullPath = fireStoreUtils.getFullPath(path, name);
-    String lookupPath = makeLookupPath(fullPath);
+    String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
     return firestore
         .collection(collectionId)
-        .document(encodePathAsFirestoreDocumentName(lookupPath));
+        .document(fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
   }
 
   private DocumentSnapshot lookupByFilePath(
@@ -301,7 +297,7 @@ public class FireStoreDirectoryDao {
       DocumentReference docRef =
           firestore
               .collection(collectionId)
-              .document(encodePathAsFirestoreDocumentName(lookupPath));
+              .document(fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
       ApiFuture<DocumentSnapshot> docSnapFuture = xn.get(docRef);
       return docSnapFuture.get();
     } catch (AbortedException | ExecutionException ex) {
@@ -344,40 +340,6 @@ public class FireStoreDirectoryDao {
     } catch (AbortedException | ExecutionException ex) {
       throw fireStoreUtils.handleExecutionException(ex, "lookupByFileId");
     }
-  }
-
-  private FireStoreDirectoryEntry makeDirectoryEntry(String lookupDirPath) {
-    // We have some special cases to deal with at the top of the directory tree.
-    String fullPath = makePathFromLookupPath(lookupDirPath);
-    String dirPath = fireStoreUtils.getDirectoryPath(fullPath);
-    String objName = fireStoreUtils.getName(fullPath);
-    if (StringUtils.isEmpty(fullPath)) {
-      // This is the root directory - it doesn't have a path or a name
-      dirPath = StringUtils.EMPTY;
-      objName = StringUtils.EMPTY;
-    } else if (StringUtils.isEmpty(dirPath)) {
-      // This is an entry in the root directory - it needs to have the root path.
-      dirPath = "/";
-    }
-
-    return new FireStoreDirectoryEntry()
-        .fileId(UUID.randomUUID().toString())
-        .isFileRef(false)
-        .path(dirPath)
-        .name(objName)
-        .fileCreatedDate(Instant.now().toString());
-  }
-
-  // Do some tidying of the full path: slash on front - no slash trailing
-  // and prepend the root directory name
-  private String makeLookupPath(String fullPath) {
-    String temp = StringUtils.prependIfMissing(fullPath, "/");
-    temp = StringUtils.removeEnd(temp, "/");
-    return ROOT_DIR_NAME + temp;
-  }
-
-  private String makePathFromLookupPath(String lookupPath) {
-    return StringUtils.removeStart(lookupPath, ROOT_DIR_NAME);
   }
 
   // -- Snapshot filesystem methods --
@@ -512,9 +474,9 @@ public class FireStoreDirectoryDao {
     List<String> pathsToCheck = new ArrayList<>();
     for (FireStoreDirectoryEntry entry : datasetEntries) {
       // Only probe the real directories - not leaf file reference or the root
-      String lookupDirPath = makeLookupPath(entry.getPath());
+      String lookupDirPath = fileMetadataUtils.makeLookupPath(entry.getPath());
       for (String testPath = lookupDirPath;
-          !testPath.isEmpty() && !StringUtils.equals(testPath, ROOT_DIR_NAME);
+          !testPath.isEmpty() && !StringUtils.equals(testPath, FileMetadataUtils.ROOT_DIR_NAME);
           testPath = fireStoreUtils.getDirectoryPath(testPath)) {
 
         // check the cache
@@ -539,7 +501,8 @@ public class FireStoreDirectoryDao {
             paths,
             path -> {
               DocumentReference docRef =
-                  datasetCollection.document(encodePathAsFirestoreDocumentName((String) path));
+                  datasetCollection.document(
+                          fileMetadataUtils.encodePathAsFirestoreDocumentName((String) path));
               return docRef.get();
             });
 
@@ -564,7 +527,9 @@ public class FireStoreDirectoryDao {
         entries,
         entry -> {
           String fullPath = fireStoreUtils.getFullPath(entry.getPath(), entry.getName());
-          String lookupPath = encodePathAsFirestoreDocumentName(makeLookupPath(fullPath));
+          String lookupPath =
+                  fileMetadataUtils.encodePathAsFirestoreDocumentName(
+                          fileMetadataUtils.makeLookupPath(fullPath));
           DocumentReference newRef = snapshotCollection.document(lookupPath);
           return newRef.set(entry);
         });
@@ -614,7 +579,8 @@ public class FireStoreDirectoryDao {
   private DocumentSnapshot lookupByPathNoXn(
       Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {
     DocumentReference docRef =
-        firestore.collection(collectionId).document(encodePathAsFirestoreDocumentName(lookupPath));
+        firestore.collection(collectionId).document(
+                fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
 
     RuntimeException lastException = null;
     for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {

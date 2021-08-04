@@ -303,7 +303,7 @@ public class DrsService {
             .accessId(accessId)
             .region(region.toString());
 
-    return Collections.singletonList(httpsAccessMethod);
+    return List.of(httpsAccessMethod);
   }
 
   private DRSObject drsObjectFromFSDir(FSDir fsDir, String snapshotId) {

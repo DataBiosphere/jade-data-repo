@@ -557,15 +557,15 @@ public class FireStoreDao {
     // Collect the ingredients for computing this directory's checksums and size
     List<String> md5Collection = new ArrayList<>();
     List<String> crc32cCollection = new ArrayList<>();
-    Long totalSize = 0L;
+    long totalSize = 0L;
 
     for (FireStoreDirectoryEntry dirItem : enumComputed) {
       totalSize = totalSize + dirItem.getSize();
       if (!StringUtils.isEmpty(dirItem.getChecksumCrc32c())) {
-        crc32cCollection.add(StringUtils.lowerCase(dirItem.getChecksumCrc32c()));
+        crc32cCollection.add(dirItem.getChecksumCrc32c().toLowerCase());
       }
       if (!StringUtils.isEmpty(dirItem.getChecksumMd5())) {
-        md5Collection.add(StringUtils.lowerCase(dirItem.getChecksumMd5()));
+        md5Collection.add(dirItem.getChecksumMd5().toLowerCase());
       }
     }
 

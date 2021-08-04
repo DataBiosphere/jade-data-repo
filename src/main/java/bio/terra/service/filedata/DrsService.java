@@ -285,10 +285,9 @@ public class DrsService {
             .build()
             .getService();
     String gsPath = accessMethod.getAccessUrl().getUrl();
-    GcsUriUtils.GsUrlParts locator = GcsUriUtils.parseBlobUri(gsPath);
+    BlobId locator = GcsUriUtils.parseBlobUri(gsPath);
 
-    BlobInfo blobInfo =
-        BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
+    BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();
 
     URL url =
         storage.signUrl(
@@ -428,9 +427,9 @@ public class DrsService {
 
   private String makeHttpsFromGs(String gspath) {
     try {
-      GcsUriUtils.GsUrlParts locator = GcsUriUtils.parseBlobUri(gspath);
+      BlobId locator = GcsUriUtils.parseBlobUri(gspath);
       String gsBucket = locator.getBucket();
-      String gsPath = locator.getPath();
+      String gsPath = locator.getName();
       String encodedPath =
           URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString())
               // Google does not recognize the + characters that are produced from spaces by the

@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.equalTo;
 import bio.terra.common.category.Unit;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.InvalidBlobURLException;
-import bio.terra.service.dataset.exception.InvalidUriException;
 import com.azure.storage.blob.BlobUrlParts;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

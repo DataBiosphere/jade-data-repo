@@ -4,7 +4,6 @@ import bio.terra.model.DataDeletionGcsFileModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.service.common.gcs.GcsUriUtils;
-import bio.terra.service.dataset.exception.InvalidUriException;
 import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
@@ -30,8 +29,8 @@ public class DataDeletionRequestValidator implements Validator {
       errors.rejectValue("tables.gcsFileSpec", "FileSpecMissing", "Requires a file spec");
     } else {
       try {
-        GcsUriUtils.parseBlobUri(gcsFileSpec.getPath());
-      } catch (InvalidUriException ex) {
+        GcsUriUtils.validateBlobUri(gcsFileSpec.getPath());
+      } catch (IllegalArgumentException ex) {
         errors.rejectValue("tables.gcsFileSpec.path", "InvalidGsUri", ex.getMessage());
       }
     }

@@ -115,7 +115,8 @@ public class GcsPdaoTest {
           equalTo(contents));
 
       var wildcardEndPath =
-          GcsUriUtils.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/" + uuid + "-*");
+          GcsUriUtils.getGsPathFromComponents(
+              testConfig.getIngestbucket(), uuid + "/" + uuid + "-*");
       var wildcardEndLines = getGcsFilesLines(wildcardEndPath, projectId);
       assertThat(
           "The end-wildcard-matched file contents match concatenated contents of individual files",

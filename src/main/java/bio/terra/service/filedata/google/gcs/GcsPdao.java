@@ -111,12 +111,12 @@ public class GcsPdao {
   }
 
   private Stream<Blob> listGcsFiles(String path, String projectId, Storage storage) {
-    GcsUriUtils.GsUrlParts locator = GcsUriUtils.parseBlobUri(path);
+    BlobId locator = GcsUriUtils.parseBlobUri(path);
     Iterable<Blob> blobs =
         storage
             .list(
                 locator.getBucket(),
-                Storage.BlobListOption.prefix(locator.getPath()),
+                Storage.BlobListOption.prefix(locator.getName()),
                 Storage.BlobListOption.userProject(projectId))
             .iterateAll();
     return StreamSupport.stream(blobs.spliterator(), false);
@@ -161,9 +161,9 @@ public class GcsPdao {
   public Blob createGcsFile(String path, String projectId) {
     Storage storage = gcsProjectFactory.getStorage(projectId);
     logger.info("Creating GCS file at {}", path);
-    GcsUriUtils.GsUrlParts locator = GcsUriUtils.parseBlobUri(path);
+    BlobId locator = GcsUriUtils.parseBlobUri(path);
     return storage.create(
-        Blob.newBuilder(locator.getBucket(), locator.getPath()).build(),
+        BlobInfo.newBuilder(locator).build(),
         Storage.BlobTargetOption.userProject(projectId));
   }
 
@@ -293,14 +293,11 @@ public class GcsPdao {
   }
 
   public static Blob getBlobFromGsPath(Storage storage, String gspath, String targetProjectId) {
-    GcsUriUtils.GsUrlParts locator = GcsUriUtils.parseBlobUri(gspath);
+    BlobId locator = GcsUriUtils.parseBlobUri(gspath);
 
     // Provide the project of the destination of the file copy to pay if the
     // source bucket is requester pays.
-    Blob sourceBlob =
-        storage.get(
-            BlobId.of(locator.getBucket(), locator.getPath()),
-            Storage.BlobGetOption.userProject(targetProjectId));
+    Blob sourceBlob = storage.get(locator, Storage.BlobGetOption.userProject(targetProjectId));
     if (sourceBlob == null) {
       throw new PdaoSourceFileNotFoundException("Source file not found: '" + gspath + "'");
     }
@@ -321,7 +318,9 @@ public class GcsPdao {
       return writer.write(ByteBuffer.wrap(contents.getBytes(StandardCharsets.UTF_8)));
     } catch (IOException ex) {
       throw new GoogleResourceException(
-          String.format("Could not write to GCS file at %s", GcsUriUtils.getGsPathFromBlob(blobInfo)), ex);
+          String.format(
+              "Could not write to GCS file at %s", GcsUriUtils.getGsPathFromBlob(blobInfo)),
+          ex);
     }
   }
 

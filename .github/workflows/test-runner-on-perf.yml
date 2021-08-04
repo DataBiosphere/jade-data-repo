@@ -74,7 +74,7 @@ jobs:
             gcloud container clusters get-credentials ${K8_CLUSTER} --zone ${GOOGLE_ZONE}
           fi
       - name: "Whitelist Runner IP"
-        uses: broadinstitute/datarepo-actions/actions/main@0.60.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:
@@ -172,7 +172,7 @@ jobs:
           cd ${GITHUB_WORKSPACE}/${workingDir}
       - name: "Clean whitelisted Runner IP"
         if: always()
-        uses: broadinstitute/datarepo-actions/actions/main@0.60.0
+        uses: broadinstitute/datarepo-actions/actions/main@0.61.0
         env:
           GOOGLE_SA_CERT: 'jade-dev-account.pem'
         with:

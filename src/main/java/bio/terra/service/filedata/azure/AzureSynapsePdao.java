@@ -1,7 +1,5 @@
 package bio.terra.service.filedata.azure;
 
-import static bio.terra.service.filedata.azure.util.BlobContainerClientFactory.SasPermission;
-
 import bio.terra.common.Column;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.TableDataType;
@@ -74,7 +72,7 @@ public class AzureSynapsePdao {
       UUID tenantId,
       String scopedCredentialName,
       String dataSourceName,
-      SasPermission permissionType)
+      SynapseSasPermission permissionType)
       throws NotImplementedException, SQLException {
 
     // parse user provided url to Azure container - can be signed or unsigned
@@ -89,7 +87,8 @@ public class AzureSynapsePdao {
         azureBlobStorePdao.buildSourceClientFactory(tenantId, ingestControlFileBlobUrl);
 
     // Given the sas token, rebuild a signed url
-    String signedURL = sourceClientFactory.createSasUrlForBlob(blobName, permissionType);
+    String signedURL =
+        sourceClientFactory.createSasUrlForBlob(blobName, getPermissionString(permissionType));
     BlobUrlParts signedBlobUrl = BlobUrlParts.parse(signedURL);
     AzureSasCredential blobContainerSasTokenCreds =
         new AzureSasCredential(signedBlobUrl.getCommonSasQueryParameters().encode());
@@ -273,6 +272,21 @@ public class AzureSynapsePdao {
             + translateTypeToDdl(dataType, false)
             + ") "
             + name;
+    }
+  }
+
+  enum SynapseSasPermission {
+    READ_ONLY,
+    WRITE_PARQUET
+  }
+
+  private String getPermissionString(SynapseSasPermission permissionType) {
+    switch (permissionType) {
+      case WRITE_PARQUET:
+        return "racwdxltme";
+      case READ_ONLY:
+      default:
+        return "r";
     }
   }
 }

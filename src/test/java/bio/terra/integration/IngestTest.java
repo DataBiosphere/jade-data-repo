@@ -7,7 +7,6 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
@@ -42,13 +41,12 @@ public class IngestTest extends UsersBase {
 
   @Autowired private DataRepoClient dataRepoClient;
 
-  @Autowired private TestConfiguration testConfig;
-
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
   private UUID profileId;
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
 
+  @Override
   @Before
   public void setup() throws Exception {
     super.setup();

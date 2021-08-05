@@ -15,7 +15,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -30,6 +29,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Policy;
+import com.google.cloud.ServiceOptions;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
@@ -38,8 +38,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -56,16 +55,16 @@ import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
 public final class TestUtils {
-  private static Logger logger = LoggerFactory.getLogger(TestUtils.class);
-  private static ObjectMapper objectMapper = new ObjectMapper();
+  private static final Logger logger = LoggerFactory.getLogger(TestUtils.class);
+  private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private TestUtils() {}
 
   public static <T> boolean eventualExpect(
       int secInterval, int secTimeout, T expected, Callable<T> callable) throws Exception {
-    LocalDateTime end = LocalDateTime.now().plus(Duration.ofSeconds(secTimeout));
+    Instant end = Instant.now().plusSeconds(secTimeout);
     int tries = 0;
-    while (LocalDateTime.now().isBefore(end)) {
+    while (Instant.now().isBefore(end)) {
       String logging =
           String.format(
               "Time elapsed: %03d seconds, Tried: %03d times", secInterval * tries, tries);
@@ -97,7 +96,7 @@ public final class TestUtils {
 
         // Make sure we can actually read the file
         final Storage storage = StorageOptions.getDefaultInstance().getService();
-        final String projectId = StorageOptions.getDefaultProjectId();
+        final String projectId = ServiceOptions.getDefaultProjectId();
         getBlobFromGsPath(storage, gsuri, projectId);
         gotGs = true;
       } else if (accessMethod.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
@@ -106,7 +105,7 @@ public final class TestUtils {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
           HttpUriRequest request = new HttpHead(accessMethod.getAccessUrl().getUrl());
           request.setHeader("Authorization", String.format("Bearer %s", token));
-          try (CloseableHttpResponse response = client.execute(request); ) {
+          try (CloseableHttpResponse response = client.execute(request)) {
             assertThat(
                 "Drs Https Uri is accessible",
                 response.getStatusLine().getStatusCode(),
@@ -142,7 +141,7 @@ public final class TestUtils {
 
   public static List<Acl> readGCSAcls(String gsPath) {
     final Storage storage = StorageOptions.getDefaultInstance().getService();
-    final String projectId = StorageOptions.getDefaultProjectId();
+    final String projectId = ServiceOptions.getDefaultProjectId();
     return getBlobFromGsPath(storage, gsPath, projectId).getAcl();
   }
 
@@ -169,13 +168,13 @@ public final class TestUtils {
   }
 
   public static BigQueryProject bigQueryProjectForDatasetName(
-      DatasetDao datasetDao, String datasetName) throws InterruptedException {
+      DatasetDao datasetDao, String datasetName) {
     Dataset dataset = datasetDao.retrieveByName(datasetName);
     return BigQueryProject.get(dataset.getProjectResource().getGoogleProjectId());
   }
 
   public static BigQueryProject bigQueryProjectForSnapshotName(
-      SnapshotDao snapshotDao, String snapshotName) throws InterruptedException {
+      SnapshotDao snapshotDao, String snapshotName) {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotName);
     return BigQueryProject.get(snapshot.getProjectResource().getGoogleProjectId());
   }
@@ -188,7 +187,6 @@ public final class TestUtils {
    *
    * @param bigQueryPdao pass in from the calling test class
    * @param datasetDao pass in from the calling test class
-   * @param dataLocationService pass in from the calling test class
    * @param datasetName the name of the Data Repo dataset
    * @param tableName the name of Data Repo table
    * @param columns a comma-separated string of the columns to select (e.g. "name", "name, fileref")
@@ -197,13 +195,12 @@ public final class TestUtils {
   public static TableResult selectFromBigQueryDataset(
       BigQueryPdao bigQueryPdao,
       DatasetDao datasetDao,
-      ResourceService dataLocationService,
       String datasetName,
       String tableName,
       String columns)
       throws Exception {
 
-    String bqDatasetName = bigQueryPdao.prefixName(datasetName);
+    String bqDatasetName = BigQueryPdao.prefixName(datasetName);
     BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetDao, datasetName);
     String bigQueryProjectId = bigQueryProject.getProjectId();
     BigQuery bigQuery = bigQueryProject.getBigQuery();
@@ -229,13 +226,8 @@ public final class TestUtils {
     }
   }
 
-  public static String mapToJson(Object value) {
-    try {
-      return objectMapper.writeValueAsString(value);
-    } catch (JsonProcessingException ex) {
-      logger.error("unable to map value to JSON. Value is: " + value, ex);
-    }
-    return null;
+  public static String mapToJson(Object value) throws JsonProcessingException {
+    return objectMapper.writeValueAsString(value);
   }
 
   public static void setConfigParameterValue(

@@ -12,11 +12,11 @@ import java.util.UUID;
 public final class ProfileFixtures {
   private ProfileFixtures() {}
 
-  private static SecureRandom randomGenerator = new SecureRandom();
+  private static final SecureRandom RANDOM_GENERATOR = new SecureRandom();
 
   public static String randomHex(int n) {
     Random r = new Random();
-    StringBuffer sb = new StringBuffer();
+    StringBuilder sb = new StringBuilder();
     while (sb.length() < n) {
       sb.append(Integer.toHexString(r.nextInt(16)));
     }
@@ -98,7 +98,7 @@ public final class ProfileFixtures {
   }
 
   public static String randomizeName(String baseName) {
-    long suffix = randomGenerator.nextLong();
+    long suffix = RANDOM_GENERATOR.nextLong();
     return baseName + Long.toUnsignedString(suffix);
   }
 }

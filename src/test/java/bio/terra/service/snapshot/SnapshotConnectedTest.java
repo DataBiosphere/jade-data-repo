@@ -45,9 +45,6 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
@@ -105,9 +102,6 @@ public class SnapshotConnectedTest {
   @Autowired private JsonLoader jsonLoader;
   @Autowired private DatasetDao datasetDao;
   @Autowired private SnapshotDao snapshotDao;
-  @Autowired private ProfileDao profileDao;
-  @Autowired private ResourceService dataLocationService;
-  @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private ConfigurationService configService;
@@ -117,7 +111,7 @@ public class SnapshotConnectedTest {
 
   private String snapshotOriginalName;
   private BillingProfileModel billingProfile;
-  private Storage storage = StorageOptions.getDefaultInstance().getService();
+  private final Storage storage = StorageOptions.getDefaultInstance().getService();
   private DatasetSummaryModel datasetSummary;
 
   @Before
@@ -298,7 +292,7 @@ public class SnapshotConnectedTest {
     }
 
     List<UUID> snapshotIds =
-        snapshotList.stream().map(snapshot -> snapshot.getId()).collect(Collectors.toList());
+        snapshotList.stream().map(SnapshotSummaryModel::getId).collect(Collectors.toList());
 
     when(samService.listAuthorizedResources(any(), any())).thenReturn(snapshotIds);
     EnumerateSnapshotModel enumResponse = enumerateTestSnapshots();
@@ -472,8 +466,7 @@ public class SnapshotConnectedTest {
         "Lookup unlocked snapshot succeeds", snapshotSummary.getName(), snapshotModel.getName());
 
     // enumerate snapshots and check that this snapshot is included in the set
-    EnumerateSnapshotModel enumerateSnapshotModelModel =
-        connectedOperations.enumerateSnapshots(snapshotSummary.getName());
+    EnumerateSnapshotModel enumerateSnapshotModelModel = connectedOperations.enumerateSnapshots();
     List<SnapshotSummaryModel> enumeratedSnapshots = enumerateSnapshotModelModel.getItems();
     boolean foundSnapshotWithMatchingId = false;
     for (SnapshotSummaryModel enumeratedSnapshot : enumeratedSnapshots) {
@@ -506,8 +499,7 @@ public class SnapshotConnectedTest {
 
     // enumerate snapshots and check that this snapshot is not included in the set
     // note: asserts are below outside the hang block
-    MvcResult enumerateResult =
-        connectedOperations.enumerateSnapshotsRaw(snapshotSummary.getName());
+    MvcResult enumerateResult = connectedOperations.enumerateSnapshotsRaw();
 
     // disable hang in DeleteSnapshotPrimaryDataStep
     configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);

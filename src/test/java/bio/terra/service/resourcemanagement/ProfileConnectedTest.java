@@ -17,7 +17,6 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.profile.ProfileDao;
 import java.util.List;
 import java.util.UUID;
 import org.junit.After;
@@ -43,7 +42,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class ProfileConnectedTest {
   private static final Logger logger = LoggerFactory.getLogger(ProfileConnectedTest.class);
 
-  @Autowired private ProfileDao profileDao;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private ConfigurationService configService;

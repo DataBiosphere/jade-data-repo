@@ -1,7 +1,6 @@
 package bio.terra.service.iam.sam;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.auth.AuthService;
@@ -44,7 +43,6 @@ public class SamRetryIntegrationTest extends UsersBase {
   @Autowired private IamProviderInterface iam;
   @Autowired private SamConfiguration samConfig;
 
-  private String stewardToken;
   private UUID fakeDatasetId;
   private AuthenticatedUserRequest userRequest;
   private GoogleApi samGoogleApi;
@@ -56,10 +54,11 @@ public class SamRetryIntegrationTest extends UsersBase {
     return apiClient.setBasePath(samConfig.getBasePath());
   }
 
+  @Override
   @Before
   public void setup() throws Exception {
     super.setup();
-    stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
+    String stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     dataRepoFixtures.resetConfig(steward());
     userRequest =
         new AuthenticatedUserRequest()
@@ -82,39 +81,38 @@ public class SamRetryIntegrationTest extends UsersBase {
 
     // Should be able to re-run syncDatasetResourcePolicies without an error being thrown
     // Otherwise, need to break up each "SamIam.syncOnePolicy" into own retry loop
-    String policyEmail = SyncPolicy(IamResourceType.DATASET, fakeDatasetId, IamRole.STEWARD);
+    String policyEmail = syncPolicy(fakeDatasetId);
     logger.info("[TEST INFO] Policy email on first sync: {}", policyEmail);
-    List<PolicyModel> firstSync_policyList =
+    List<PolicyModel> firstSyncPolicyList =
         iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
 
-    String second_policyEmail = SyncPolicy(IamResourceType.DATASET, fakeDatasetId, IamRole.STEWARD);
+    String secondPolicyEmail = syncPolicy(fakeDatasetId);
     logger.info("[TEST INFO] Policy email on second sync: {}", policyEmail);
-    List<PolicyModel> secondSync_policyList =
+    List<PolicyModel> secondSyncPolicyList =
         iam.retrievePolicies(userRequest, IamResourceType.DATASET, fakeDatasetId);
 
-    assertEquals("Policy Emails should be the same", policyEmail, second_policyEmail);
+    assertEquals("Policy Emails should be the same", policyEmail, secondPolicyEmail);
 
     // Let's make sure the policy model didn't change between the first and second sync
-    for (int i = 0; i < firstSync_policyList.size(); i++) {
-      PolicyModel firstSync_policy = firstSync_policyList.get(i);
-      PolicyModel secondSync_policy = secondSync_policyList.get(i);
+    for (int i = 0; i < firstSyncPolicyList.size(); i++) {
+      PolicyModel firstSyncPolicy = firstSyncPolicyList.get(i);
+      PolicyModel secondSyncPolicy = secondSyncPolicyList.get(i);
 
       logger.info(
           "[TEST INFO] Checking Role {} - {} of {} SAM policies synced",
-          firstSync_policy.getName(),
+          firstSyncPolicy.getName(),
           (i + 1),
-          firstSync_policyList.size());
-      assertTrue(
-          "Policy should not have changed after second sync",
-          firstSync_policy.equals(secondSync_policy));
+          firstSyncPolicyList.size());
+      assertEquals(
+          "Policy should not have changed after second sync", firstSyncPolicy, secondSyncPolicy);
     }
   }
 
-  private String SyncPolicy(IamResourceType resourceType, UUID resourceId, IamRole role)
-      throws ApiException {
+  private String syncPolicy(UUID resourceId) throws ApiException {
 
     Map<String, List<Object>> results =
-        samGoogleApi.syncPolicy(resourceType.toString(), resourceId.toString(), role.toString());
+        samGoogleApi.syncPolicy(
+            IamResourceType.DATASET.toString(), resourceId.toString(), IamRole.STEWARD.toString());
     return results.keySet().iterator().next();
   }
 }

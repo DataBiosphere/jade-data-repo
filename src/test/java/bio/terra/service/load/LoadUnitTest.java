@@ -30,7 +30,7 @@ public class LoadUnitTest {
   private enum LoadTagsUsedByTest {
     LOADTAG_1("myLoadTag1"),
     LOADTAG_2("myLoadTag2");
-    private String tag;
+    private final String tag;
 
     public String getTag() {
       return tag;
@@ -44,7 +44,7 @@ public class LoadUnitTest {
   private enum FlightIdsUsedByTest {
     FLIGHT_1("myFlightId1"),
     FLIGHT_2("myFlightId2");
-    private String id;
+    private final String id;
 
     public String getId() {
       return id;

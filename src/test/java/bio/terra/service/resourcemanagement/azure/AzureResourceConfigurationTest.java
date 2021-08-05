@@ -43,6 +43,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -406,8 +407,6 @@ public class AzureResourceConfigurationTest {
 
       String storageEndpoint = outputs.get("storageEndpoint").get("value");
 
-      String storageAccountName = outputs.get("storageAccountName").get("value");
-
       String fileSystemName = outputs.get("fileSystemName").get("value");
 
       logger.info(
@@ -417,12 +416,7 @@ public class AzureResourceConfigurationTest {
           fileSystemName);
 
       return new ManagedApplicationDeployment(
-          resourceReference.id(),
-          deploymentName,
-          deploymentName,
-          storageEndpoint,
-          storageAccountName,
-          fileSystemName);
+          resourceReference.id(), deploymentName, deploymentName, storageEndpoint);
     } catch (IOException e) {
       throw new RuntimeException("Failed to parse template", e);
     }
@@ -447,29 +441,21 @@ public class AzureResourceConfigurationTest {
     private final String applicationResourceGroup;
     // The endpoint to use to connect to the storage account created when deploying the application
     private final String storageEndpoint;
-    // The name of the storage account
-    private final String storageAccountName;
-    // The name of the filesystem created when deploying the application
-    private final String fileSystemName;
 
     ManagedApplicationDeployment(
         String applicationDeploymentId,
         String applicationDeploymentName,
         String applicationResourceGroup,
-        String storageEndpoint,
-        String storageAccountName,
-        String fileSystemName) {
+        String storageEndpoint) {
       this.applicationDeploymentId = applicationDeploymentId;
       this.applicationDeploymentName = applicationDeploymentName;
       this.applicationResourceGroup = applicationResourceGroup;
       this.storageEndpoint = storageEndpoint;
-      this.storageAccountName = storageAccountName;
-      this.fileSystemName = fileSystemName;
     }
   }
 
   private String generateSas(DataLakeFileClient client) {
-    OffsetDateTime expiryTime = OffsetDateTime.now().plusHours(1);
+    OffsetDateTime expiryTime = OffsetDateTime.now(ZoneId.systemDefault()).plusHours(1);
     FileSystemSasPermission permission =
         new FileSystemSasPermission().setReadPermission(true).setWritePermission(false);
 

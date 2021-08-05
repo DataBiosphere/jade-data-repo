@@ -85,7 +85,6 @@ public class ConnectedOperations {
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
   private final ConnectedTestConfiguration testConfig;
 
-  private boolean deleteOnTeardown;
   private List<UUID> createdSnapshotIds;
   private List<UUID> createdDatasetIds;
   private List<UUID> createdProfileIds;
@@ -104,7 +103,6 @@ public class ConnectedOperations {
     createdDatasetIds = new ArrayList<>();
     createdFileIds = new ArrayList<>();
     createdProfileIds = new ArrayList<>();
-    deleteOnTeardown = true;
     createdBuckets = new ArrayList<>();
     createdScratchFiles = new ArrayList<>();
   }
@@ -149,7 +147,6 @@ public class ConnectedOperations {
    *
    * @param resourcePath path to json used for a dataset create request
    * @return summary of the dataset created
-   * @throws Exception
    */
   public DatasetSummaryModel createDataset(BillingProfileModel profileModel, String resourcePath)
       throws Exception {
@@ -186,8 +183,7 @@ public class ConnectedOperations {
                     .content(TestUtils.mapToJson(datasetRequest)))
             .andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    ErrorModel errorModel = handleFailureCase(response, expectedStatus);
-    return errorModel;
+    return handleFailureCase(response, expectedStatus);
   }
 
   public BillingProfileModel createProfileForAccount(String billingAccountId) throws Exception {
@@ -265,21 +261,8 @@ public class ConnectedOperations {
 
     MockHttpServletResponse response =
         launchCreateSnapshot(datasetSummaryModel, resourcePath, infix);
-    SnapshotSummaryModel snapshotSummary = handleCreateSnapshotSuccessCase(response);
 
-    return snapshotSummary;
-  }
-
-  public ErrorModel createSnapshotExpectError(
-      DatasetSummaryModel datasetSummaryModel,
-      String resourcePath,
-      String infix,
-      HttpStatus expectedStatus)
-      throws Exception {
-
-    MockHttpServletResponse response =
-        launchCreateSnapshot(datasetSummaryModel, resourcePath, infix);
-    return handleFailureCase(response, expectedStatus);
+    return handleCreateSnapshotSuccessCase(response);
   }
 
   public MockHttpServletResponse launchCreateSnapshot(
@@ -307,8 +290,7 @@ public class ConnectedOperations {
                     .content(TestUtils.mapToJson(snapshotRequest)))
             .andReturn();
 
-    MockHttpServletResponse response = validateJobModelAndWait(result);
-    return response;
+    return validateJobModelAndWait(result);
   }
 
   public SnapshotModel getSnapshot(UUID snapshotId) throws Exception {
@@ -317,10 +299,9 @@ public class ConnectedOperations {
     return TestUtils.mapFromJson(response.getContentAsString(), SnapshotModel.class);
   }
 
-  public ErrorModel getSnapshotExpectError(UUID snapshotId, HttpStatus expectedStatus)
-      throws Exception {
+  public void getSnapshotExpectError(UUID snapshotId, HttpStatus expectedStatus) throws Exception {
     MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + snapshotId)).andReturn();
-    return handleFailureCase(result.getResponse(), expectedStatus);
+    handleFailureCase(result.getResponse(), expectedStatus);
   }
 
   public DatasetModel getDataset(UUID datasetId) throws Exception {
@@ -328,13 +309,12 @@ public class ConnectedOperations {
     return handleSuccessCase(result.getResponse(), DatasetModel.class);
   }
 
-  public ErrorModel getDatasetExpectError(UUID datasetId, HttpStatus expectedStatus)
-      throws Exception {
+  public void getDatasetExpectError(UUID datasetId, HttpStatus expectedStatus) throws Exception {
     MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + datasetId)).andReturn();
-    return handleFailureCase(result.getResponse(), expectedStatus);
+    handleFailureCase(result.getResponse(), expectedStatus);
   }
 
-  public MvcResult enumerateDatasetsRaw(String filter) throws Exception {
+  public MvcResult enumerateDatasetsRaw() throws Exception {
     String direction = "desc"; // options: asc, desc
     int limit = 10;
     int offset = 0;
@@ -352,12 +332,12 @@ public class ConnectedOperations {
     return mvc.perform(get("/api/repository/v1/datasets?" + args)).andReturn();
   }
 
-  public EnumerateDatasetModel enumerateDatasets(String filter) throws Exception {
-    MvcResult result = enumerateDatasetsRaw(filter);
+  public EnumerateDatasetModel enumerateDatasets() throws Exception {
+    MvcResult result = enumerateDatasetsRaw();
     return handleSuccessCase(result.getResponse(), EnumerateDatasetModel.class);
   }
 
-  public MvcResult enumerateSnapshotsRaw(String filter) throws Exception {
+  public MvcResult enumerateSnapshotsRaw() throws Exception {
     String direction = "desc"; // options: asc, desc
     int limit = 10;
     int offset = 0;
@@ -375,8 +355,8 @@ public class ConnectedOperations {
     return mvc.perform(get("/api/repository/v1/snapshots?" + args)).andReturn();
   }
 
-  public EnumerateSnapshotModel enumerateSnapshots(String filter) throws Exception {
-    MvcResult result = enumerateSnapshotsRaw(filter);
+  public EnumerateSnapshotModel enumerateSnapshots() throws Exception {
+    MvcResult result = enumerateSnapshotsRaw();
     return handleSuccessCase(result.getResponse(), EnumerateSnapshotModel.class);
   }
 
@@ -393,7 +373,7 @@ public class ConnectedOperations {
     HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
     if (!responseStatus.is2xxSuccessful()) {
       String failMessage =
-          "Request for " + returnClass.getName() + " failed: status=" + responseStatus.toString();
+          "Request for " + returnClass.getName() + " failed: status=" + responseStatus;
       if (StringUtils.contains(responseBody, "message")) {
         // If the responseBody contains the word 'message', then we try to decode it as an
         // ErrorModel
@@ -437,33 +417,33 @@ public class ConnectedOperations {
     removeDatasetFromTracking(id);
   }
 
-  public boolean deleteTestDataset(UUID id) throws Exception {
+  public void deleteTestDataset(UUID id) throws Exception {
     MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    return checkDeleteResponse(response);
+    checkDeleteResponse(response);
   }
 
-  public boolean deleteTestProfile(UUID id) throws Exception {
+  public void deleteTestProfile(UUID id) throws Exception {
     MvcResult result = mvc.perform(delete("/api/resources/v1/profiles/" + id)).andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    return checkDeleteResponse(response);
+    checkDeleteResponse(response);
   }
 
-  public boolean deleteTestSnapshot(UUID id) throws Exception {
+  public void deleteTestSnapshot(UUID id) throws Exception {
     MvcResult result = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
     MockHttpServletResponse response = validateJobModelAndWait(result);
     assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-    return checkDeleteResponse(response);
+    checkDeleteResponse(response);
   }
 
-  public boolean deleteTestFile(UUID datasetId, String fileId) throws Exception {
+  public void deleteTestFile(UUID datasetId, String fileId) throws Exception {
     MvcResult result =
         mvc.perform(delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
             .andReturn();
     logger.info("deleting test file -  datasetId:{} objectId:{}", datasetId, fileId);
     MockHttpServletResponse response = validateJobModelAndWait(result);
     assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-    return checkDeleteResponse(response);
+    checkDeleteResponse(response);
   }
 
   public void deleteTestBucket(String bucketName) {
@@ -502,13 +482,11 @@ public class ConnectedOperations {
         .andReturn();
   }
 
-  public IngestResponseModel ingestTableSuccess(
-      UUID datasetId, IngestRequestModel ingestRequestModel) throws Exception {
+  public void ingestTableSuccess(UUID datasetId, IngestRequestModel ingestRequestModel)
+      throws Exception {
     MvcResult result = ingestTableRaw(datasetId, ingestRequestModel);
     MockHttpServletResponse response = validateJobModelAndWait(result);
-
-    IngestResponseModel ingestResponse = checkIngestTableResponse(response);
-    return ingestResponse;
+    checkIngestTableResponse(response);
   }
 
   public IngestResponseModel checkIngestTableResponse(MockHttpServletResponse response)
@@ -519,11 +497,11 @@ public class ConnectedOperations {
     return ingestResponse;
   }
 
-  public ErrorModel ingestTableFailure(UUID datasetId, IngestRequestModel ingestRequestModel)
+  public void ingestTableFailure(UUID datasetId, IngestRequestModel ingestRequestModel)
       throws Exception {
     MvcResult result = ingestTableRaw(datasetId, ingestRequestModel);
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    return handleFailureCase(response);
+    handleFailureCase(response);
   }
 
   public FileModel ingestFileSuccess(UUID datasetId, FileLoadModel fileLoadModel) throws Exception {
@@ -651,11 +629,11 @@ public class ConnectedOperations {
         .andReturn();
   }
 
-  public DeleteResponseModel softDeleteSuccess(
-      UUID datasetId, DataDeletionRequest softDeleteRequest) throws Exception {
+  public void softDeleteSuccess(UUID datasetId, DataDeletionRequest softDeleteRequest)
+      throws Exception {
     MvcResult result = softDeleteRaw(datasetId, softDeleteRequest);
     MockHttpServletResponse response = validateJobModelAndWait(result);
-    return handleSuccessCase(response, DeleteResponseModel.class);
+    handleSuccessCase(response, DeleteResponseModel.class);
   }
 
   public BulkLoadArrayResultModel ingestArraySuccess(
@@ -663,13 +641,6 @@ public class ConnectedOperations {
     MvcResult result = ingestArrayRaw(datasetId, loadModel);
     MockHttpServletResponse response = validateJobModelAndWait(result);
     return handleSuccessCase(response, BulkLoadArrayResultModel.class);
-  }
-
-  public ErrorModel ingestArrayFailure(UUID datasetId, BulkLoadArrayRequestModel loadModel)
-      throws Exception {
-    MvcResult result = ingestArrayRaw(datasetId, loadModel);
-    MockHttpServletResponse response = validateJobModelAndWait(result);
-    return handleFailureCase(response);
   }
 
   public MvcResult ingestArrayRaw(UUID datasetId, BulkLoadArrayRequestModel loadModel)
@@ -810,11 +781,11 @@ public class ConnectedOperations {
       MockHttpServletResponse response = result.getResponse();
       HttpStatus status = HttpStatus.valueOf(response.getStatus());
       assertTrue(
-          "expected jobs polling status, got " + status.toString(),
+          "expected jobs polling status, got " + status,
           (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));
 
       JobModel jobModel = TestUtils.mapFromJson(response.getContentAsString(), JobModel.class);
-      String jobId = jobModel.getId().toString();
+      String jobId = jobModel.getId();
       String locationUrl = response.getHeader("Location");
       assertNotNull("location URL was specified", locationUrl);
 
@@ -894,68 +865,60 @@ public class ConnectedOperations {
     createdScratchFiles.add(path);
   }
 
-  public void setDeleteOnTeardown(boolean deleteOnTeardown) {
-    this.deleteOnTeardown = deleteOnTeardown;
-  }
-
-  public void addLabelsToGoogleProject(String googleProjectId, Map<String, String> labels) {}
-
   public void teardown() throws Exception {
     // call the reset configuration endpoint to disable all faults
     resetConfiguration();
 
-    if (deleteOnTeardown) {
-      // Order is important: delete all the snapshots first so we eliminate dependencies
-      // Then delete the files before the datasets
-      for (UUID snapshotId : createdSnapshotIds) {
-        try {
-          deleteTestSnapshot(snapshotId);
-        } catch (Exception ex) {
-          logger.info(
-              "CLEANUP ERROR! Error deleting snapshot. SnapshotId: {}", snapshotId.toString());
-        }
+    // Order is important: delete all the snapshots first so we eliminate dependencies
+    // Then delete the files before the datasets
+    for (UUID snapshotId : createdSnapshotIds) {
+      try {
+        deleteTestSnapshot(snapshotId);
+      } catch (Exception ex) {
+        logger.info(
+            "CLEANUP ERROR! Error deleting snapshot. SnapshotId: {}", snapshotId.toString());
       }
+    }
 
-      for (String[] fileInfo : createdFileIds) {
-        try {
-          deleteTestFile(UUID.fromString(fileInfo[0]), fileInfo[1]);
-        } catch (Exception ex) {
-          logger.info("CLEANUP ERROR! Error deleting file. FileId: {}", fileInfo[0]);
-        }
+    for (String[] fileInfo : createdFileIds) {
+      try {
+        deleteTestFile(UUID.fromString(fileInfo[0]), fileInfo[1]);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting file. FileId: {}", fileInfo[0]);
       }
+    }
 
-      logger.info("Cleanup Tracking: {} datasets to be removed.", createdDatasetIds.size());
-      for (UUID datasetId : createdDatasetIds) {
-        logger.info("Cleanup Tracking: Dataset to be deleted {}", datasetId);
-        try {
-          deleteTestDataset(datasetId);
-        } catch (Exception ex) {
-          logger.info("CLEANUP ERROR! Error deleting dataset. DatasetId: {}", datasetId.toString());
-        }
+    logger.info("Cleanup Tracking: {} datasets to be removed.", createdDatasetIds.size());
+    for (UUID datasetId : createdDatasetIds) {
+      logger.info("Cleanup Tracking: Dataset to be deleted {}", datasetId);
+      try {
+        deleteTestDataset(datasetId);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting dataset. DatasetId: {}", datasetId.toString());
       }
+    }
 
-      for (UUID profileId : createdProfileIds) {
-        try {
-          deleteTestProfile(profileId);
-        } catch (Exception ex) {
-          logger.info("CLEANUP ERROR! Error deleting profile. ProfileId: {}", profileId.toString());
-        }
+    for (UUID profileId : createdProfileIds) {
+      try {
+        deleteTestProfile(profileId);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting profile. ProfileId: {}", profileId.toString());
       }
+    }
 
-      for (String bucketName : createdBuckets) {
-        try {
-          deleteTestBucket(bucketName);
-        } catch (Exception ex) {
-          logger.info("CLEANUP ERROR! Error deleting bucket. BucketName: {}", bucketName);
-        }
+    for (String bucketName : createdBuckets) {
+      try {
+        deleteTestBucket(bucketName);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting bucket. BucketName: {}", bucketName);
       }
+    }
 
-      for (String path : createdScratchFiles) {
-        try {
-          deleteTestScratchFile(path);
-        } catch (Exception ex) {
-          logger.info("CLEANUP ERROR! Error deleting scratch file. Path: {}", path);
-        }
+    for (String path : createdScratchFiles) {
+      try {
+        deleteTestScratchFile(path);
+      } catch (Exception ex) {
+        logger.info("CLEANUP ERROR! Error deleting scratch file. Path: {}", path);
       }
     }
 

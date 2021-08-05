@@ -11,7 +11,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
@@ -43,8 +42,6 @@ public class ProfileTest {
   @Autowired private MockMvc mvc;
 
   @Autowired private ObjectMapper objectMapper;
-
-  @Autowired private JsonLoader jsonLoader;
 
   @Test
   public void testCreateReadDelete() throws Exception {

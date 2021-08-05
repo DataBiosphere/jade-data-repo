@@ -99,9 +99,8 @@ public class DrsTest extends UsersBase {
   private UUID datasetId;
   private Map<IamRole, String> datasetIamRoles;
   private Map<IamRole, String> snapshotIamRoles;
-  private AuthenticatedUserRequest authenticatedStewardRequest;
-  private AuthenticatedUserRequest authenticatedCustodianRequest;
 
+  @Override
   @Before
   public void setup() throws Exception {
     super.setup();
@@ -114,18 +113,17 @@ public class DrsTest extends UsersBase {
         dataRepoFixtures.getSnapshot(steward(), setupResult.getSummaryModel().getId(), null);
     profileId = setupResult.getProfileId();
     datasetId = setupResult.getDatasetId();
-    authenticatedStewardRequest =
+    AuthenticatedUserRequest stewardRequest =
         new AuthenticatedUserRequest().email(steward().getEmail()).token(Optional.of(stewardToken));
-    authenticatedCustodianRequest =
+    AuthenticatedUserRequest custodianRequest =
         new AuthenticatedUserRequest()
             .email(custodian().getEmail())
             .token(Optional.of(custodianToken));
     datasetIamRoles =
-        iamService.retrievePolicyEmails(
-            authenticatedStewardRequest, IamResourceType.DATASET, datasetId);
+        iamService.retrievePolicyEmails(stewardRequest, IamResourceType.DATASET, datasetId);
     snapshotIamRoles =
         iamService.retrievePolicyEmails(
-            authenticatedCustodianRequest, IamResourceType.DATASNAPSHOT, snapshotModel.getId());
+            custodianRequest, IamResourceType.DATASNAPSHOT, snapshotModel.getId());
     logger.info("setup complete");
   }
 
@@ -203,7 +201,7 @@ public class DrsTest extends UsersBase {
 
     try (CloseableHttpClient client = HttpClients.createDefault()) {
       HttpUriRequest request = new HttpHead(drsAccessURL.getUrl());
-      try (CloseableHttpResponse response = client.execute(request); ) {
+      try (CloseableHttpResponse response = client.execute(request)) {
         assertThat(
             "Drs signed URL is accessible",
             response.getStatusLine().getStatusCode(),

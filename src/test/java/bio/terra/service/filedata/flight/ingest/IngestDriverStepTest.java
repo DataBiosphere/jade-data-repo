@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -21,7 +22,6 @@ import bio.terra.stairway.Stairway;
 import bio.terra.stairway.StepResult;
 import java.util.Collections;
 import java.util.UUID;
-import junit.framework.TestCase;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -30,7 +30,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @Category(Unit.class)
-public class IngestDriverStepTest extends TestCase {
+public class IngestDriverStepTest {
 
   @MockBean private LoadService loadService;
 

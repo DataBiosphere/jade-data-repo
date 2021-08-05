@@ -1,6 +1,10 @@
 package bio.terra.service.filedata.azure.util;
 
-import static com.azure.core.util.polling.LongRunningOperationStatus.*;
+import static com.azure.core.util.polling.LongRunningOperationStatus.FAILED;
+import static com.azure.core.util.polling.LongRunningOperationStatus.IN_PROGRESS;
+import static com.azure.core.util.polling.LongRunningOperationStatus.NOT_STARTED;
+import static com.azure.core.util.polling.LongRunningOperationStatus.SUCCESSFULLY_COMPLETED;
+import static com.azure.core.util.polling.LongRunningOperationStatus.USER_CANCELLED;
 import static com.azure.storage.blob.models.CopyStatusType.PENDING;
 import static com.azure.storage.blob.models.CopyStatusType.SUCCESS;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -8,7 +12,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.azure.core.util.polling.LongRunningOperationStatus;
 import com.azure.core.util.polling.PollResponse;
-import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.models.BlobCopyInfo;
 import com.azure.storage.blob.models.CopyStatusType;
 import java.util.Arrays;
@@ -19,14 +22,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class BlobContainerCopyInfoTest {
-  private BlobContainerCopyInfo blobContainerCopyInfo;
-
-  @Mock private SyncPoller<BlobCopyInfo, Void> poller;
 
   private static Stream<Arguments> getCopyStatusScenario() {
     return Stream.of(
@@ -45,13 +44,13 @@ class BlobContainerCopyInfoTest {
   @MethodSource("getCopyStatusScenario")
   void getCopyStatus_ScenarioIsProvided_ExpectedStatusIsReturned(
       LongRunningOperationStatus expectedStatus, CopyStatusType... statuses) {
-    blobContainerCopyInfo = new BlobContainerCopyInfo(createPollResponses(statuses));
+    BlobContainerCopyInfo blobContainerCopyInfo =
+        new BlobContainerCopyInfo(createPollResponses(statuses));
 
     assertThat(blobContainerCopyInfo.getCopyStatus(), equalTo(expectedStatus));
   }
 
   private List<PollResponse<BlobCopyInfo>> createPollResponses(CopyStatusType... statuses) {
-
     return Arrays.stream(statuses)
         .map(
             s ->

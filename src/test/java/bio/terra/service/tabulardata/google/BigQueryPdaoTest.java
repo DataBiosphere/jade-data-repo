@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.app.model.GoogleCloudResource;
@@ -59,13 +60,9 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -80,7 +77,6 @@ import org.stringtemplate.v4.ST;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class BigQueryPdaoTest {
-  private static final Logger logger = LoggerFactory.getLogger(BigQueryPdaoTest.class);
 
   @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedTestConfiguration testConfig;
@@ -98,8 +94,6 @@ public class BigQueryPdaoTest {
 
   private final Storage storage = StorageOptions.getDefaultInstance().getService();
 
-  @Rule public ExpectedException exceptionGrabber = ExpectedException.none();
-
   @Before
   public void setup() throws Exception {
     // Setup mock sam service
@@ -114,7 +108,7 @@ public class BigQueryPdaoTest {
     connectedOperations.teardown();
   }
 
-  private String insertExample =
+  private static final String INSERT_EXAMPLE =
       "INSERT INTO `broad-jade-dev.datarepo_hca_ebi.datarepo_load_history_staging_x` "
           + "(load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c, checksum_md5, error) "
           + "VALUES ('ebi_2020_08_15-0', '2020-08-16T01:27:54.733370Z', 'gs://broad-dsp-storage/blahblah.fastq.gz', "
@@ -133,7 +127,7 @@ public class BigQueryPdaoTest {
             + "Source file not found: 'gs://broad-dsp-storage/blahblah.fastq.gz'");
     loadHistoryArray.add(loadHistoryModel);
 
-    ST sqlTemplate = new ST(bigQueryPdao.insertLoadHistoryToStagingTableTemplate);
+    ST sqlTemplate = new ST(BigQueryPdao.insertLoadHistoryToStagingTableTemplate);
     sqlTemplate.add("project", "broad-jade-dev");
     sqlTemplate.add("dataset", "datarepo_hca_ebi");
     sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + "x");
@@ -142,7 +136,7 @@ public class BigQueryPdaoTest {
     sqlTemplate.add("load_tag", "ebi_2020_08_15-0");
     sqlTemplate.add("load_time", "2020-08-16T01:27:54.733370Z");
 
-    assertEquals(insertExample, sqlTemplate.render());
+    assertEquals(INSERT_EXAMPLE, sqlTemplate.render());
   }
 
   @Test
@@ -282,17 +276,17 @@ public class BigQueryPdaoTest {
         // TODO: Replace this with a call to the soft-delete API once it exists?
         softDeleteRows(
             bigQueryProject,
-            bigQueryPdao.prefixName(dataset.getName()),
+            BigQueryPdao.prefixName(dataset.getName()),
             getTable(dataset, "participant"),
             Arrays.asList("participant_3", "participant_4"));
         softDeleteRows(
             bigQueryProject,
-            bigQueryPdao.prefixName(dataset.getName()),
+            BigQueryPdao.prefixName(dataset.getName()),
             getTable(dataset, "sample"),
             Collections.singletonList("sample5"));
         softDeleteRows(
             bigQueryProject,
-            bigQueryPdao.prefixName(dataset.getName()),
+            BigQueryPdao.prefixName(dataset.getName()),
             getTable(dataset, "file"),
             Collections.singletonList("file1"));
 
@@ -405,7 +399,7 @@ public class BigQueryPdaoTest {
   @Test
   public void partitionTest() throws Exception {
     Dataset dataset = readDataset("ingest-test-partitioned-dataset.json");
-    String bqDatasetName = bigQueryPdao.prefixName(dataset.getName());
+    String bqDatasetName = BigQueryPdao.prefixName(dataset.getName());
 
     try {
       bigQueryPdao.createDataset(dataset);
@@ -522,8 +516,10 @@ public class BigQueryPdaoTest {
 
     try {
       bigQueryPdao.createDataset(dataset);
-      exceptionGrabber.expect(BadExternalFileException.class);
-      bigQueryPdao.createSoftDeleteExternalTable(dataset, badGsUri, "participant", suffix);
+      assertThrows(
+          BadExternalFileException.class,
+          () ->
+              bigQueryPdao.createSoftDeleteExternalTable(dataset, badGsUri, "participant", suffix));
     } finally {
       bigQueryPdao.deleteDataset(dataset);
       // Need to manually clean up the DAO because `readDataset` bypasses the
@@ -565,7 +561,7 @@ public class BigQueryPdaoTest {
   public com.google.cloud.bigquery.Dataset bigQueryDataset(Dataset dataset) {
     return BigQueryProject.from(dataset)
         .getBigQuery()
-        .getDataset(bigQueryPdao.prefixName(dataset.getName()));
+        .getDataset(BigQueryPdao.prefixName(dataset.getName()));
   }
 
   public com.google.cloud.bigquery.Dataset bigQuerySnapshot(SnapshotModel snapshot) {

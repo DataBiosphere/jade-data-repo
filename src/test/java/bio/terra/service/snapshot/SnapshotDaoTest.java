@@ -129,15 +129,15 @@ public class SnapshotDaoTest {
   }
 
   @Test(expected = MissingRowCountsException.class)
-  public void testMissingRowCounts() throws Exception {
+  public void testMissingRowCounts() {
     Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
     snapshot.projectResourceId(projectId);
     snapshotDao.updateSnapshotTableRowCounts(snapshot, Collections.emptyMap());
   }
 
   @Test
-  public void happyInOutTest() throws Exception {
-    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID().toString());
+  public void happyInOutTest() {
+    snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID());
 
     String flightId = "happyInOutTest_flightId";
     Snapshot snapshot =
@@ -244,9 +244,9 @@ public class SnapshotDaoTest {
   }
 
   @Test
-  public void snapshotEnumerateTest() throws Exception {
+  public void snapshotEnumerateTest() {
     snapshotIdList = new ArrayList<>();
-    String snapshotName = snapshotRequest.getName() + UUID.randomUUID().toString();
+    String snapshotName = snapshotRequest.getName() + UUID.randomUUID();
 
     for (int i = 0; i < 6; i++) {
       snapshotRequest
@@ -254,7 +254,7 @@ public class SnapshotDaoTest {
           // set the description to a random string so we can verify the sorting is working
           // independently of the
           // dataset name or created_date. add a suffix to filter on for the even snapshots
-          .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
+          .description(UUID.randomUUID() + ((i % 2 == 0) ? "==foo==" : ""));
       String flightId = "snapshotEnumerateTest_flightId";
       UUID tempSnapshotId = UUID.randomUUID();
       Snapshot snapshot =
@@ -435,11 +435,11 @@ public class SnapshotDaoTest {
             datasetIds,
             snapshotIds);
     List<SnapshotSummary> summaryList = summaryEnum.getItems();
-    int index = (direction.equals(SqlSortDirection.ASC)) ? offset : snapshotIds.size() - offset - 1;
+    int index = direction.equals(SqlSortDirection.ASC) ? offset : snapshotIds.size() - offset - 1;
     for (SnapshotSummary summary : summaryList) {
       assertThat("correct id", snapshotIds.get(index), equalTo(summary.getId()));
       assertThat("correct name", makeName(snapshotName, index), equalTo(summary.getName()));
-      index += (direction.equals(SqlSortDirection.ASC)) ? 1 : -1;
+      index += direction.equals(SqlSortDirection.ASC) ? 1 : -1;
     }
   }
 
@@ -481,7 +481,7 @@ public class SnapshotDaoTest {
       assertThat(
           "correct snapshot name", makeName(snapshotName, index), equalTo(summary.getName()));
 
-      Map<CloudResource, StorageResource> storageMap =
+      Map<CloudResource, StorageResource<?, ?>> storageMap =
           summary.getStorage().stream()
               .collect(Collectors.toMap(StorageResource::getCloudResource, Function.identity()));
 

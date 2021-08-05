@@ -8,7 +8,6 @@ import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.filedata.google.gcs.GcsConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class BatchOperationTest {
 
   @Autowired private SamConfiguration samConfiguration;
-  @Autowired private GcsConfiguration gcsConfiguration;
   @Autowired private ApplicationConfiguration appConfiguration;
 
   private FireStoreUtils fireStoreUtils;

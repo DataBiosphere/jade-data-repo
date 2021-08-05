@@ -44,7 +44,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
@@ -71,15 +70,13 @@ public class DatasetServiceTest {
 
   @Autowired private GoogleResourceDao resourceDao;
 
-  @Autowired private NamedParameterJdbcTemplate jdbcTemplate;
-
   private BillingProfileModel billingProfile;
   private UUID projectId;
   private ArrayList<String> flightIdsList;
   private ArrayList<UUID> datasetIdList;
 
   private UUID createDataset(DatasetRequestModel datasetRequest, String newName)
-      throws IOException, SQLException {
+      throws IOException {
     datasetRequest
         .name(newName)
         .defaultProfileId(billingProfile.getId())

@@ -35,17 +35,14 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.net.URI;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -78,10 +75,8 @@ import org.springframework.test.web.servlet.MvcResult;
 public class DatasetConnectedTest {
   @Autowired private MockMvc mvc;
   @Autowired private JsonLoader jsonLoader;
-  @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private BigQueryPdao bigQueryPdao;
-  @Autowired private ResourceService dataLocationService;
   @Autowired private DatasetDao datasetDao;
   @Autowired private ConfigurationService configService;
   @Autowired private ConnectedTestConfiguration testConfig;
@@ -90,7 +85,7 @@ public class DatasetConnectedTest {
   private BillingProfileModel billingProfile;
   private DatasetRequestModel datasetRequest;
   private DatasetSummaryModel summaryModel;
-  private static Logger logger = LoggerFactory.getLogger(DatasetConnectedTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(DatasetConnectedTest.class);
 
   @Before
   public void setup() throws Exception {
@@ -414,7 +409,7 @@ public class DatasetConnectedTest {
   public void testSharedLockTableIngest() throws Exception {
     // load a JSON file that contains the table rows to load into the test bucket
     String resourceFileName = "snapshot-test-dataset-data-without-rowids.json";
-    String dirInCloud = "scratch/testSharedLockTableIngest/" + UUID.randomUUID().toString();
+    String dirInCloud = "scratch/testSharedLockTableIngest/" + UUID.randomUUID();
     BlobInfo ingestTableBlob =
         BlobInfo.newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
             .build();
@@ -511,7 +506,7 @@ public class DatasetConnectedTest {
   public void testRepeatedSoftDelete() throws Exception {
     // load a CSV file that contains the table rows to load into the test bucket
     String resourceFileName = "snapshot-test-dataset-data.csv";
-    String dirInCloud = "scratch/testRepeatedSoftDelete/" + UUID.randomUUID().toString();
+    String dirInCloud = "scratch/testRepeatedSoftDelete/" + UUID.randomUUID();
     BlobInfo ingestTableBlob =
         BlobInfo.newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
             .build();
@@ -596,7 +591,7 @@ public class DatasetConnectedTest {
   public void testConcurrentSoftDeletes() throws Exception {
     // load a CSV file that contains the table rows to load into the test bucket
     String resourceFileName = "snapshot-test-dataset-data.csv";
-    String dirInCloud = "scratch/testConcurrentSoftDeletes/" + UUID.randomUUID().toString();
+    String dirInCloud = "scratch/testConcurrentSoftDeletes/" + UUID.randomUUID();
     BlobInfo ingestTableBlob =
         BlobInfo.newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
             .build();
@@ -728,7 +723,7 @@ public class DatasetConnectedTest {
   public void testBadSoftDelete() throws Exception {
     // load a CSV file that contains the table rows to load into the test bucket
     String resourceFileName = "snapshot-test-dataset-data.csv";
-    String dirInCloud = "scratch/testBadSoftDelete/" + UUID.randomUUID().toString();
+    String dirInCloud = "scratch/testBadSoftDelete/" + UUID.randomUUID();
     BlobInfo ingestTableBlob =
         BlobInfo.newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
             .build();
@@ -818,8 +813,7 @@ public class DatasetConnectedTest {
         "Lookup unlocked dataset succeeds", summaryModel.getName(), datasetModel.getName());
 
     // enumerate datasets and check that this dataset is included in the set
-    EnumerateDatasetModel enumerateDatasetModel =
-        connectedOperations.enumerateDatasets(summaryModel.getName());
+    EnumerateDatasetModel enumerateDatasetModel = connectedOperations.enumerateDatasets();
     List<DatasetSummaryModel> enumeratedDatasets = enumerateDatasetModel.getItems();
     boolean foundDatasetWithMatchingId = false;
     for (DatasetSummaryModel enumeratedDataset : enumeratedDatasets) {
@@ -854,7 +848,7 @@ public class DatasetConnectedTest {
 
     // enumerate datasets, this dataset should not be included in the set
     // note: asserts are below outside the hang block
-    MvcResult enumerateResult = connectedOperations.enumerateDatasetsRaw(summaryModel.getName());
+    MvcResult enumerateResult = connectedOperations.enumerateDatasetsRaw();
 
     // disable hang in DeleteDatasetPrimaryDataStep
     configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
@@ -1003,26 +997,25 @@ public class DatasetConnectedTest {
     String rowIdColumn = PdaoConstant.PDAO_ROW_ID_COLUMN;
     TableResult bqQueryResult =
         TestUtils.selectFromBigQueryDataset(
-            bigQueryPdao, datasetDao, dataLocationService, datasetName, tableName, rowIdColumn);
+            bigQueryPdao, datasetDao, datasetName, tableName, rowIdColumn);
     List<String> rowIds = new ArrayList<>();
     bqQueryResult.iterateAll().forEach(r -> rowIds.add(r.get(rowIdColumn).getStringValue()));
     return rowIds;
   }
 
   private DataDeletionRequest uploadInputFileAndBuildSoftDeleteRequest(
-      String dirInCloud, String filenameInCloud, String tableName, List<String> softDeleteRowIds)
-      throws Exception {
+      String dirInCloud, String filenameInCloud, String tableName, List<String> softDeleteRowIds) {
     Storage storage = StorageOptions.getDefaultInstance().getService();
 
     // load a CSV file that contains the table rows to soft delete into the test bucket
     StringBuilder csvLines = new StringBuilder();
     for (String softDeleteRowId : softDeleteRowIds) {
-      csvLines.append(softDeleteRowId + "\n");
+      csvLines.append(softDeleteRowId).append("\n");
     }
     BlobInfo softDeleteBlob =
         BlobInfo.newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + filenameInCloud)
             .build();
-    storage.create(softDeleteBlob, csvLines.toString().getBytes(Charset.forName("UTF-8")));
+    storage.create(softDeleteBlob, csvLines.toString().getBytes(StandardCharsets.UTF_8));
     String softDeleteInputFilePath =
         "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + filenameInCloud;
 
@@ -1041,7 +1034,7 @@ public class DatasetConnectedTest {
         new DataDeletionRequest()
             .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)
             .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE)
-            .tables(Arrays.asList(softDeleteTableModel));
+            .tables(List.of(softDeleteTableModel));
 
     return softDeleteRequest;
   }

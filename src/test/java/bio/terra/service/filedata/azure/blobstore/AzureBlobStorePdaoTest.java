@@ -27,7 +27,6 @@ import bio.terra.service.filedata.azure.util.BlobContainerCopySyncPoller;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -35,9 +34,10 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
-import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
+import org.jose4j.base64url.Base64;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -72,19 +72,17 @@ public class AzureBlobStorePdaoTest {
   private static final String SOURCE_BLOB_NAME = SOURCE_CONTAINER_NAME + "/" + SOURCE_FILE_NAME;
   private static final String SOURCE_PATH = "https://src.blob.core.windows.net/" + SOURCE_BLOB_NAME;
   private static final String TARGET_PATH = "/foo/bar.txt";
-  private static final OffsetDateTime BLOB_CREATION_TIME = OffsetDateTime.now();
+  private static final OffsetDateTime BLOB_CREATION_TIME =
+      OffsetDateTime.now(ZoneId.systemDefault());
   private static final long BLOB_SIZE = 1234567890L;
-  private static final byte[] BLOB_CONTENT_MD5 = "FOOBAR".getBytes(StandardCharsets.UTF_8);
-  // This is the base64 encoding of FOOBAR
-  private static final String BLOB_CONTENT_MD5_B64 = "Rk9PQkFS";
+  private static final byte[] BLOB_CONTENT_MD5 = "FOOBAR".getBytes();
+  private static final String BLOB_CONTENT_MD5_B64 = Base64.encode(BLOB_CONTENT_MD5);
   private static final String LOAD_TAG = "tag";
   private static final String MIME_TYPE = "txt/plain";
 
-  private BlobContainerClientFactory sourceBlobContainerFactory;
   private BlobContainerClientFactory targetBlobContainerFactory;
   private BlobCrl blobCrl;
   @MockBean private ProfileDao profileDao;
-  @MockBean private AzureContainerPdao azureContainerPdao;
   @MockBean private AzureResourceConfiguration resourceConfiguration;
   @MockBean private AzureResourceDao azureResourceDao;
   @Autowired private AzureBlobStorePdao dao;
@@ -107,7 +105,7 @@ public class AzureBlobStorePdaoTest {
     when(azureResourceDao.retrieveStorageAccountById(RESOURCE_ID))
         .thenReturn(AZURE_STORAGE_ACCOUNT_RESOURCE);
     targetBlobContainerFactory = mock(BlobContainerClientFactory.class);
-    sourceBlobContainerFactory = mock(BlobContainerClientFactory.class);
+    BlobContainerClientFactory sourceBlobContainerFactory = mock(BlobContainerClientFactory.class);
     blobCrl = mock(BlobCrl.class);
     doReturn(targetBlobContainerFactory)
         .when(dao)

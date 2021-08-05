@@ -3,8 +3,6 @@ package bio.terra.service.filedata.google.firestore;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
-import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
@@ -18,7 +16,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
@@ -41,9 +38,6 @@ import org.springframework.test.context.ActiveProfiles;
 public class EncodeFixture {
   private static final Logger logger = LoggerFactory.getLogger(EncodeFixture.class);
 
-  @Autowired private JsonLoader jsonLoader;
-  @Autowired private ObjectMapper objectMapper;
-  @Autowired private DataRepoClient dataRepoClient;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfiguration;

@@ -13,7 +13,6 @@ import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.TestUtils;
-import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
@@ -60,25 +59,23 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   private static final String omopDatasetRegionName = AzureRegion.DEFAULT_AZURE_REGION.toString();
   private static final String omopDatasetGcpRegionName =
       GoogleRegion.DEFAULT_GOOGLE_REGION.toString();
-  private static Logger logger = LoggerFactory.getLogger(DatasetAzureIntegrationTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(DatasetAzureIntegrationTest.class);
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
-  @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
 
-  private String stewardToken;
   private User steward;
   private UUID datasetId;
   private UUID profileId;
   private BlobIOTestUtility blobIOTestUtility;
 
+  @Override
   @Before
   public void setup() throws Exception {
     super.setup(false);
     // Voldemort is required by this test since the application is deployed with his user authz'ed
     steward = steward("voldemort");
-    stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
     datasetId = null;

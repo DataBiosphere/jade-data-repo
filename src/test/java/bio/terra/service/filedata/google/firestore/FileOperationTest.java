@@ -5,10 +5,10 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -18,7 +18,6 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -38,13 +37,9 @@ import bio.terra.model.FileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetDaoUtils;
-import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.FieldValueList;
@@ -87,27 +82,20 @@ import org.springframework.test.web.servlet.MvcResult;
 public class FileOperationTest {
   @Autowired private MockMvc mvc;
   @Autowired private ObjectMapper objectMapper;
-  @Autowired private JsonLoader jsonLoader;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private DrsIdService drsService;
-  @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConfigurationService configService;
   @Autowired private DatasetDao datasetDao;
-  @Autowired private ResourceService dataLocationService;
   @Autowired private BigQueryPdao bigQueryPdao;
 
   @MockBean private IamProviderInterface samService;
 
   @SpyBean private GoogleProjectService googleProjectService;
 
-  private static Logger logger = LoggerFactory.getLogger(FileOperationTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(FileOperationTest.class);
   private int validFileCounter;
-  private String coreBillingAccountId;
   private BillingProfileModel profileModel;
   private DatasetSummaryModel datasetSummary;
-  private DatasetDaoUtils datasetDaoUtils;
-  private ResourceService resourceService;
 
   @Before
   public void setup() throws Exception {
@@ -118,7 +106,7 @@ public class FileOperationTest {
     validFileCounter = 0;
 
     // Retrieve billing info
-    coreBillingAccountId = testConfig.getGoogleBillingAccountId();
+    String coreBillingAccountId = testConfig.getGoogleBillingAccountId();
     profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
 
     datasetSummary = connectedOperations.createDataset(profileModel, "snapshot-test-dataset.json");
@@ -147,9 +135,9 @@ public class FileOperationTest {
     connectedOperations.teardown();
   }
 
-  private static String testDescription = "test file description";
-  private static String testMimeType = "application/pdf";
-  private static String testPdfFile = "File Design Notes.pdf";
+  private static final String TEST_DESCRIPTION = "test file description";
+  private static final String TEST_MIME_TYPE = "application/pdf";
+  private static final String TEST_PDF_FILE = "File Design Notes.pdf";
 
   @Test
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -186,7 +174,7 @@ public class FileOperationTest {
         "Lookup file succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
 
     FileModel lookupModel = TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
-    assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
+    assertEquals("Ingest file equals lookup file", lookupModel, fileModel);
 
     // Error: Duplicate target file
     ErrorModel errorModel =
@@ -205,7 +193,7 @@ public class FileOperationTest {
         HttpStatus.valueOf(response.getStatus()),
         equalTo(HttpStatus.OK));
     lookupModel = TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
-    assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
+    assertEquals("Ingest file equals lookup file", lookupModel, fileModel);
 
     // Delete the file and we should be able to create it successfully again
     connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
@@ -221,8 +209,8 @@ public class FileOperationTest {
         new FileLoadModel()
             .profileId(profileModel.getId())
             .sourcePath(uribadfile)
-            .description(testDescription)
-            .mimeType(testMimeType)
+            .description(TEST_DESCRIPTION)
+            .mimeType(TEST_MIME_TYPE)
             .targetPath(badPath);
 
     errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
@@ -234,8 +222,8 @@ public class FileOperationTest {
         new FileLoadModel()
             .profileId(profileModel.getId())
             .sourcePath("http://jade_notabucket/foo/bar.txt")
-            .description(testDescription)
-            .mimeType(testMimeType)
+            .description(TEST_DESCRIPTION)
+            .mimeType(TEST_MIME_TYPE)
             .targetPath(makeValidUniqueFilePath());
 
     errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
@@ -246,8 +234,8 @@ public class FileOperationTest {
         new FileLoadModel()
             .profileId(profileModel.getId())
             .sourcePath("gs://jade_notabucket:1234/foo/bar.txt")
-            .description(testDescription)
-            .mimeType(testMimeType)
+            .description(TEST_DESCRIPTION)
+            .mimeType(TEST_MIME_TYPE)
             .targetPath(makeValidUniqueFilePath());
 
     errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
@@ -259,8 +247,8 @@ public class FileOperationTest {
         new FileLoadModel()
             .profileId(profileModel.getId())
             .sourcePath("gs:///")
-            .description(testDescription)
-            .mimeType(testMimeType)
+            .description(TEST_DESCRIPTION)
+            .mimeType(TEST_MIME_TYPE)
             .targetPath(makeValidUniqueFilePath());
 
     errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
@@ -392,10 +380,10 @@ public class FileOperationTest {
         "Number of files in datarepo_load_history table match load summary",
         ids.size(),
         equalTo(fileCount));
-    for (String bq_file_id : ids) {
-      assertNotNull(
+    for (String bqFileId : ids) {
+      assertTrue(
           "fileIdMap should contain File_id from datarepo_load_history",
-          fileIdMap.containsValue(bq_file_id));
+          fileIdMap.containsValue(bqFileId));
     }
 
     // retry successful load to make sure it still succeeds and does nothing
@@ -415,12 +403,7 @@ public class FileOperationTest {
   // Get the count of rows in a table or view
   private TableResult queryLoadHistoryTable(String columns) throws Exception {
     return TestUtils.selectFromBigQueryDataset(
-        bigQueryPdao,
-        datasetDao,
-        dataLocationService,
-        datasetSummary.getName(),
-        PDAO_LOAD_HISTORY_TABLE,
-        columns);
+        bigQueryPdao, datasetDao, datasetSummary.getName(), PDAO_LOAD_HISTORY_TABLE, columns);
   }
 
   @Test
@@ -463,19 +446,19 @@ public class FileOperationTest {
     // Query Big Query datarepo_load_history table - should reflect all files loaded above
     String columnToQuery = "file_id";
     TableResult queryLoadHistoryTableResult = queryLoadHistoryTable(columnToQuery);
-    ArrayList<String> bq_fileIds = new ArrayList<>();
+    ArrayList<String> bqFileIds = new ArrayList<>();
     queryLoadHistoryTableResult
         .iterateAll()
-        .forEach(r -> bq_fileIds.add(r.get(columnToQuery).getStringValue()));
+        .forEach(r -> bqFileIds.add(r.get(columnToQuery).getStringValue()));
 
     assertThat(
         "Number of files in datarepo_load_history table match load summary",
         totalfileCount,
-        equalTo(bq_fileIds.size()));
-    for (String bq_file_id : bq_fileIds) {
-      assertNotNull(
+        equalTo(bqFileIds.size()));
+    for (String bqFileId : bqFileIds) {
+      assertTrue(
           "fileIdMap should contain File_id from datarepo_load_history",
-          fileIds.contains(bq_file_id));
+          fileIds.contains(bqFileId));
     }
   }
 
@@ -512,13 +495,12 @@ public class FileOperationTest {
               || state.equals(BulkLoadFileState.FAILED.toString()));
       if (state.equals(BulkLoadFileState.SUCCEEDED.toString())) {
         assertTrue("file_id should have value", item.get(1).getStringValue().length() > 0);
-        assertTrue("Error column should be empty", item.get(2).getStringValue().length() == 0);
+        assertTrue("Error column should be empty", item.get(2).getStringValue().isEmpty());
       } else if (state.equals(BulkLoadFileState.FAILED.toString())) {
-        assertTrue("file_id should NOT have value", item.get(1).getStringValue().length() == 0);
+        assertTrue("file_id should NOT have value", item.get(1).getStringValue().isEmpty());
         assertTrue("Error column should have value", item.get(2).getStringValue().length() > 0);
       }
     }
-    FieldValueList curr_result;
 
     List<BulkLoadFileModel> loadArray = arrayLoad.getLoadArray();
     BulkLoadFileResultModel fileResult = resultMap.get(loadArray.get(0).getTargetPath());
@@ -685,11 +667,12 @@ public class FileOperationTest {
   }
 
   private BulkLoadRequestModel makeBulkFileLoad(
-      String tagBase, int startIndex, int badLines, boolean addExtraKeys, boolean[] validPattern) {
+      String tagBase, int startIndex, int badLines, boolean addExtraKeys, boolean[] validPattern)
+      throws IOException {
     int fileCount = validPattern.length;
     String testId = Names.randomizeName("test");
     String loadTag = tagBase + testId;
-    String targetPath = "scratch/controlfile" + UUID.randomUUID().toString() + ".json";
+    String targetPath = "scratch/controlfile" + UUID.randomUUID() + ".json";
     connectedOperations.addScratchFile(targetPath); // track the file so it gets cleaned up
 
     String gspath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
@@ -712,28 +695,19 @@ public class FileOperationTest {
         }
         writer.write(fileLine);
       }
-    } catch (IOException ex) {
-      fail(
-          "Failed to write load file '"
-              + targetPath
-              + "' to bucket '"
-              + testConfig.getIngestbucket()
-              + "'");
     }
 
-    BulkLoadRequestModel loadRequest =
-        new BulkLoadRequestModel()
-            .profileId(profileModel.getId())
-            .loadTag(loadTag)
-            .maxFailedFileLoads(0)
-            .loadControlFile(gspath);
-    return loadRequest;
+    return new BulkLoadRequestModel()
+        .profileId(profileModel.getId())
+        .loadTag(loadTag)
+        .maxFailedFileLoads(0)
+        .loadControlFile(gspath);
   }
 
   // We have a static array of good paths and bad paths with their associated
   // target. That lets us build arrays with various numbers of failures and
   // adjust arrays to "fix" broken loads.
-  private static String[] goodFileSource =
+  private static final String[] goodFileSource =
       new String[] {
         "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.bam",
         "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.bam.bai",
@@ -754,7 +728,7 @@ public class FileOperationTest {
         "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.bam",
         "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.bam.bai"
       };
-  private static String[] badFileSource =
+  private static final String[] badFileSource =
       new String[] {
         "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.x",
         "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.i",
@@ -775,7 +749,7 @@ public class FileOperationTest {
         "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.x",
         "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.i"
       };
-  private static String[] fileTarget =
+  private static final String[] fileTarget =
       new String[] {
         "/encodefiles/20160707/ENCFF580QIE.bam",
         "/encodefiles/20160707/ENCFF580QIE.bam.bai",
@@ -817,13 +791,13 @@ public class FileOperationTest {
 
   private FileLoadModel makeFileLoad(UUID profileId) {
     String targetDir = Names.randomizeName("dir");
-    String uri = "gs://" + testConfig.getIngestbucket() + "/files/" + testPdfFile;
-    String targetPath = "/dd/files/" + targetDir + "/" + testPdfFile;
+    String uri = "gs://" + testConfig.getIngestbucket() + "/files/" + TEST_PDF_FILE;
+    String targetPath = "/dd/files/" + targetDir + "/" + TEST_PDF_FILE;
 
     return new FileLoadModel()
         .sourcePath(uri)
-        .description(testDescription)
-        .mimeType(testMimeType)
+        .description(TEST_DESCRIPTION)
+        .mimeType(TEST_MIME_TYPE)
         .targetPath(targetPath)
         .profileId(profileId);
   }

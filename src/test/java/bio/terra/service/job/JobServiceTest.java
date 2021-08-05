@@ -2,8 +2,8 @@ package bio.terra.service.job;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -11,14 +11,11 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,17 +27,14 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @Category(Unit.class)
 public class JobServiceTest {
-  private static final Logger logger = LoggerFactory.getLogger(JobServiceTest.class);
 
-  private AuthenticatedUserRequest testUser =
+  private final AuthenticatedUserRequest testUser =
       new AuthenticatedUserRequest()
           .subjectId("StairwayUnit")
           .email("stairway@unit.com")
           .token(Optional.empty());
 
   @Autowired private JobService jobService;
-
-  @Autowired private ApplicationConfiguration appConfig;
 
   // This test is unreliable. See https://broadworkbench.atlassian.net/browse/DR-1248
   // todo - fix w/ DR-1255
@@ -52,11 +46,9 @@ public class JobServiceTest {
 
     List<String> jobIds = new ArrayList<>();
     try {
-      List<ResourceAndAccessPolicy> allowedIds = new ArrayList<>();
       for (int i = 0; i < 7; i++) {
         String jobId = runFlight(makeDescription(i));
         jobIds.add(jobId);
-        allowedIds.add(new ResourceAndAccessPolicy().resourceId(jobId));
       }
 
       // Test single retrieval
@@ -66,16 +58,16 @@ public class JobServiceTest {
       testResultRetrieval(jobIds);
 
       // Retrieve everything
-      testEnumRange(jobIds, 0, 100, allowedIds);
+      testEnumRange(jobIds, 0, 100);
 
       // Retrieve the middle 3; offset means skip 2 rows
-      testEnumRange(jobIds, 2, 3, allowedIds);
+      testEnumRange(jobIds, 2, 3);
 
       // Retrieve from the end; should only get the last one back
-      testEnumCount(1, 6, 3, allowedIds);
+      testEnumCount(1, 6, 3);
 
       // Retrieve past the end; should get nothing
-      testEnumCount(0, 22, 3, allowedIds);
+      testEnumCount(0, 22, 3);
     } finally {
       for (String jobId : jobIds) {
         jobService.releaseJob(jobId, null);
@@ -83,23 +75,21 @@ public class JobServiceTest {
     }
   }
 
-  private void testSingleRetrieval(List<String> fids) throws InterruptedException {
+  private void testSingleRetrieval(List<String> fids) {
     JobModel response = jobService.retrieveJob(fids.get(2), null);
     Assert.assertNotNull(response);
     validateJobModel(response, 2, fids);
   }
 
-  private void testResultRetrieval(List<String> fids) throws InterruptedException {
+  private void testResultRetrieval(List<String> fids) {
     JobService.JobResultWithStatus<String> resultHolder =
         jobService.retrieveJobResult(fids.get(2), String.class, null);
-    Assert.assertThat(resultHolder.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
-    Assert.assertThat(resultHolder.getResult(), is(equalTo(makeDescription(2))));
+    assertThat(resultHolder.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
+    assertThat(resultHolder.getResult(), is(equalTo(makeDescription(2))));
   }
 
   // Get some range and compare it with the fids
-  private void testEnumRange(
-      List<String> fids, int offset, int limit, List<ResourceAndAccessPolicy> resourceIds)
-      throws InterruptedException {
+  private void testEnumRange(List<String> fids, int offset, int limit) {
 
     List<JobModel> jobList = jobService.enumerateJobs(offset, limit, null);
     Assert.assertNotNull(jobList);
@@ -111,13 +101,11 @@ public class JobServiceTest {
   }
 
   // Get some range and make sure we got the number we expected
-  private void testEnumCount(
-      int count, int offset, int length, List<ResourceAndAccessPolicy> resourceIds)
-      throws InterruptedException {
+  private void testEnumCount(int count, int offset, int length) {
 
     List<JobModel> jobList = jobService.enumerateJobs(offset, length, null);
     Assert.assertNotNull(jobList);
-    Assert.assertThat(jobList.size(), is(count));
+    assertThat(jobList.size(), is(count));
   }
 
   @Test(expected = FlightNotFoundException.class)
@@ -131,14 +119,14 @@ public class JobServiceTest {
   }
 
   private void validateJobModel(JobModel jm, int index, List<String> fids) {
-    Assert.assertThat(jm.getDescription(), is(equalTo(makeDescription(index))));
-    Assert.assertThat(jm.getId(), is(equalTo(fids.get(index))));
-    Assert.assertThat(jm.getJobStatus(), is(JobModel.JobStatusEnum.SUCCEEDED));
-    Assert.assertThat(jm.getStatusCode(), is(HttpStatus.I_AM_A_TEAPOT.value()));
+    assertThat(jm.getDescription(), is(equalTo(makeDescription(index))));
+    assertThat(jm.getId(), is(equalTo(fids.get(index))));
+    assertThat(jm.getJobStatus(), is(JobModel.JobStatusEnum.SUCCEEDED));
+    assertThat(jm.getStatusCode(), is(HttpStatus.I_AM_A_TEAPOT.value()));
   }
 
   // Submit a flight; wait for it to finish; return the flight id
-  private String runFlight(String description) throws InterruptedException {
+  private String runFlight(String description) {
     String jobId =
         jobService.newJob(description, JobServiceTestFlight.class, null, testUser).submit();
     jobService.waitForJob(jobId);

@@ -1,6 +1,5 @@
 package bio.terra.integration;
 
-import bio.terra.common.auth.AuthService;
 import bio.terra.common.auth.Users;
 import bio.terra.common.configuration.TestConfiguration;
 import org.slf4j.Logger;
@@ -16,9 +15,7 @@ public class UsersBase {
 
   @Autowired private Users users;
 
-  @Autowired private AuthService authService;
-
-  private static Logger logger = LoggerFactory.getLogger(UsersBase.class);
+  private static final Logger logger = LoggerFactory.getLogger(UsersBase.class);
   private TestConfiguration.User admin;
   private TestConfiguration.User steward;
   private TestConfiguration.User custodian;
@@ -27,10 +24,6 @@ public class UsersBase {
 
   public TestConfiguration.User admin() {
     return admin;
-  }
-
-  public TestConfiguration.User admin(String name) {
-    return users.getUserForRole(name, ADMIN_ROLE);
   }
 
   public TestConfiguration.User steward() {
@@ -59,10 +52,6 @@ public class UsersBase {
 
   public TestConfiguration.User discoverer() {
     return discoverer;
-  }
-
-  public TestConfiguration.User discoverer(String name) {
-    return users.getUserForRole(name, DISCOVERER_ROLE);
   }
 
   protected void setup() throws Exception {

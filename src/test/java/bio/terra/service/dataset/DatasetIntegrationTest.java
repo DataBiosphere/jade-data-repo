@@ -15,7 +15,6 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.BigQueryFixtures;
-import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
@@ -45,11 +44,12 @@ import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -79,9 +79,8 @@ public class DatasetIntegrationTest extends UsersBase {
   private static final String omopDatasetDesc =
       "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
   private static final String omopDatasetRegion = GoogleRegion.US_CENTRAL1.toString();
-  private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 
-  @Autowired private DataRepoClient dataRepoClient;
   @Autowired private JsonLoader jsonLoader;
   @Autowired private DataRepoFixtures dataRepoFixtures;
   @Autowired private AuthService authService;
@@ -92,6 +91,7 @@ public class DatasetIntegrationTest extends UsersBase {
   private UUID profileId;
   private List<UUID> snapshotIds;
 
+  @Override
   @Before
   public void setup() throws Exception {
     super.setup();
@@ -99,7 +99,7 @@ public class DatasetIntegrationTest extends UsersBase {
     dataRepoFixtures.resetConfig(steward());
     profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     datasetId = null;
-    snapshotIds = new LinkedList<>();
+    snapshotIds = new ArrayList<>();
   }
 
   @After
@@ -155,14 +155,12 @@ public class DatasetIntegrationTest extends UsersBase {
                                   StorageResourceModel::getCloudResource, Function.identity()));
 
                   GoogleRegion omopDatasetGoogleRegion = GoogleRegion.fromValue(omopDatasetRegion);
-                  assert omopDatasetGoogleRegion != null;
                   for (GoogleCloudResource cloudResource : GoogleCloudResource.values()) {
                     StorageResourceModel storage = storageMap.get(cloudResource.toString());
                     GoogleCloudResource resource =
                         GoogleCloudResource.fromValue(storage.getCloudResource());
-                    assert resource != null;
                     GoogleRegion expectedRegion;
-                    switch (resource) {
+                    switch (Objects.requireNonNull(resource)) {
                       case BUCKET:
                         expectedRegion = omopDatasetGoogleRegion.getRegionOrFallbackBucketRegion();
                         break;
@@ -221,7 +219,7 @@ public class DatasetIntegrationTest extends UsersBase {
     }
     assertThat("Reader does not have access to datasets", enumDatasetsResp.getTotal(), equalTo(0));
 
-    DatasetSummaryModel summaryModel = null;
+    DatasetSummaryModel summaryModel;
 
     summaryModel = dataRepoFixtures.createDataset(steward(), profileId, "dataset-minimal.json");
     datasetId = summaryModel.getId();
@@ -363,7 +361,7 @@ public class DatasetIntegrationTest extends UsersBase {
   @Test
   public void wildcardSoftDelete() throws Exception {
     datasetId = ingestedDataset();
-    String pathPrefix = "softDelWildcard" + UUID.randomUUID().toString();
+    String pathPrefix = "softDelWildcard" + UUID.randomUUID();
 
     // get 5 row ids, we'll write them out to 5 separate files
     DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
@@ -472,7 +470,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
   private String writeListToScratch(String prefix, List<String> contents) throws IOException {
     Storage storage = StorageOptions.getDefaultInstance().getService();
-    String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID().toString() + ".csv";
+    String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID() + ".csv";
     BlobInfo blob = BlobInfo.newBuilder(testConfiguration.getIngestbucket(), targetPath).build();
     try (WriteChannel writer = storage.writer(blob)) {
       for (String line : contents) {

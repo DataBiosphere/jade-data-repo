@@ -11,6 +11,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -29,7 +30,6 @@ import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -57,8 +57,6 @@ public class DatasetValidationsTest {
 
   @Autowired private MockMvc mvc;
 
-  @Autowired private ObjectMapper objectMapper;
-
   private ErrorModel expectBadDatasetCreateRequest(DatasetRequestModel datasetRequest)
       throws Exception {
     MvcResult result =
@@ -75,8 +73,7 @@ public class DatasetValidationsTest {
     assertTrue(
         "Error model was returned on failure", StringUtils.contains(responseBody, "message"));
 
-    ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
-    return errorModel;
+    return TestUtils.mapFromJson(responseBody, ErrorModel.class);
   }
 
   private void expectBadDatasetEnumerateRequest(
@@ -111,7 +108,7 @@ public class DatasetValidationsTest {
     if (errors == null || errors.isEmpty()) {
       assertTrue("No details expected", (responseErrors == null || responseErrors.size() == 0));
     } else {
-      assertTrue("Same number of errors", responseErrors.size() == errors.size());
+      assertEquals("Same number of errors", responseErrors.size(), errors.size());
       assertArrayEquals("Error details match", responseErrors.toArray(), errors.toArray());
     }
   }

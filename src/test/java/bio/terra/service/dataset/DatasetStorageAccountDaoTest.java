@@ -27,8 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -39,7 +37,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class DatasetStorageAccountDaoTest {
-  private static final Logger logger = LoggerFactory.getLogger(DatasetStorageAccountDaoTest.class);
   @Autowired private JsonLoader jsonLoader;
 
   @Autowired private DatasetDao datasetDao;
@@ -52,13 +49,11 @@ public class DatasetStorageAccountDaoTest {
 
   @Autowired private AzureResourceDao azureResourceDao;
 
-  private List<UUID> billingProfileIds = new ArrayList<>();
-  private List<UUID> datasetIds = new ArrayList<>();
-  private List<UUID> storageAccountResourceIds = new ArrayList<>();
+  private final List<UUID> datasetIds = new ArrayList<>();
+  private final List<UUID> storageAccountResourceIds = new ArrayList<>();
 
   private UUID applicationId;
   private UUID projectId;
-  private Dataset dataset;
   private BillingProfileModel billingProfile;
   private AzureApplicationDeploymentResource applicationResource;
 
@@ -67,7 +62,6 @@ public class DatasetStorageAccountDaoTest {
     BillingProfileRequestModel profileRequest =
         ProfileFixtures.randomizeAzureBillingProfileRequest();
     billingProfile = profileDao.createBillingProfile(profileRequest, "testUser");
-    billingProfileIds.add(billingProfile.getId());
 
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
     projectId = resourceDao.createProject(projectResource);
@@ -91,7 +85,7 @@ public class DatasetStorageAccountDaoTest {
 
   @Test
   public void testCreateEntry() throws Exception {
-    UUID datasetId = createDataset("dataset-minimal.json");
+    UUID datasetId = createDataset();
     datasetIds.add(datasetId);
 
     AzureStorageAccountResource storageAccount =
@@ -107,15 +101,15 @@ public class DatasetStorageAccountDaoTest {
         equalTo(List.of(storageAccount.getResourceId())));
   }
 
-  private UUID createDataset(String datasetFile) throws Exception {
+  private UUID createDataset() throws Exception {
     DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
+        jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
     String newName = datasetRequest.getName() + UUID.randomUUID();
     datasetRequest
         .name(newName)
         .defaultProfileId(billingProfile.getId())
         .cloudPlatform(CloudPlatform.AZURE);
-    dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+    Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
     dataset.projectResourceId(projectId);
     dataset.applicationDeploymentResourceId(applicationId);
     String createFlightId = UUID.randomUUID().toString();

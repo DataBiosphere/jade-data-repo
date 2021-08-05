@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Integration;
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
@@ -46,14 +45,11 @@ public class SimpleScenarioFaultTests extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
-  @Autowired private DataRepoClient dataRepoClient;
-
-  @Autowired private TestConfiguration testConfig;
-
   private UUID profileId;
   private UUID datasetId;
   private UUID snapshotId;
 
+  @Override
   @Before
   public void setup() throws Exception {
     super.setup();

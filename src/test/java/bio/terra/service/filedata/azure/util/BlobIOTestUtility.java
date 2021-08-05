@@ -10,9 +10,9 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.sas.SasProtocol;
-import java.io.IOException;
 import java.io.InputStream;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -40,8 +40,7 @@ public class BlobIOTestUtility {
   }
 
   private final Optional<BlobContainerClient> destinationBlobContainerClient;
-  private String destinationContainerName;
-  private static final String STORAGE_ENDPOINT_PATTERN = "https://%s.blob.core.windows.net/%s";
+  private final String destinationContainerName;
   private final TokenCredential tokenCredential;
 
   public BlobIOTestUtility(
@@ -63,7 +62,9 @@ public class BlobIOTestUtility {
 
     return new BlobContainerClientBuilder()
         .credential(credential)
-        .endpoint(String.format(Locale.ROOT, STORAGE_ENDPOINT_PATTERN, accountName, containerName))
+        .endpoint(
+            String.format(
+                Locale.ROOT, "https://%s.blob.core.windows.net/%s", accountName, containerName))
         .buildClient();
   }
 
@@ -77,7 +78,7 @@ public class BlobIOTestUtility {
     BlobSasPermission permissions =
         new BlobSasPermission().setReadPermission(true).setListPermission(true);
 
-    OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
+    OffsetDateTime expiryTime = OffsetDateTime.now(ZoneId.systemDefault()).plusDays(1);
     SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
 
     // build the token
@@ -98,7 +99,7 @@ public class BlobIOTestUtility {
   public String generateBlobSasTokenWithReadPermissions(String accountKey, String blobName) {
     BlobSasPermission permissions = new BlobSasPermission().setReadPermission(true);
 
-    OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
+    OffsetDateTime expiryTime = OffsetDateTime.now(ZoneId.systemDefault()).plusDays(1);
     SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
 
     // build the token
@@ -136,19 +137,14 @@ public class BlobIOTestUtility {
     return blobName;
   }
 
-  public String uploadDestinationFile(String blobName, long length) {
+  public void uploadDestinationFile(String blobName, long length) {
     getDestinationBlobContainerClient()
         .getBlobClient(blobName)
         .upload(createInputStream(length), length);
-    return blobName;
   }
 
   public String getSourceContainerEndpoint() {
     return sourceBlobContainerClient.getBlobContainerUrl();
-  }
-
-  public String getDestinationContainerEndpoint() {
-    return getDestinationBlobContainerClient().getBlobContainerUrl();
   }
 
   private InputStream createInputStream(long length) {
@@ -157,7 +153,7 @@ public class BlobIOTestUtility {
       private final Random rand = new Random();
 
       @Override
-      public int read() throws IOException {
+      public int read() {
         if (dataProduced == length) {
           return -1;
         }

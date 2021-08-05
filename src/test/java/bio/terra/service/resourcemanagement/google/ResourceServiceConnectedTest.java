@@ -31,7 +31,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 public class ResourceServiceConnectedTest {
 
-  @Autowired private GoogleResourceConfiguration resourceConfiguration;
   @Autowired private GoogleProjectService projectService;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;

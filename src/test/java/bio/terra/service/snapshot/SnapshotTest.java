@@ -64,7 +64,6 @@ public class SnapshotTest extends UsersBase {
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
   @Autowired private AuthService authService;
-  @Autowired private BigQueryPdao bigQueryPdao;
 
   private static final Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
   private UUID profileId;
@@ -73,6 +72,7 @@ public class SnapshotTest extends UsersBase {
   private final List<UUID> createdSnapshotIds = new ArrayList<>();
   private String stewardToken;
 
+  @Override
   @Before
   public void setup() throws Exception {
     super.setup();
@@ -273,8 +273,8 @@ public class SnapshotTest extends UsersBase {
     TimeUnit.SECONDS.sleep(10);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
-    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-    assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
+    assertEquals("new snapshot has been created", requestModel.getName(), snapshot.getName());
+    assertEquals("all 5 relationships come through", 5, snapshot.getRelationships().size());
   }
 
   @Test
@@ -332,8 +332,8 @@ public class SnapshotTest extends UsersBase {
         dataRepoFixtures.createSnapshotWithRequest(steward(), datasetName, profileId, requestModel);
     createdSnapshotIds.add(snapshotSummary.getId());
     SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId(), null);
-    assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
-    assertEquals("There should be 5 snapshot relationships", snapshot.getRelationships().size(), 5);
+    assertEquals("new snapshot has been created", requestModel.getName(), snapshot.getName());
+    assertEquals("There should be 5 snapshot relationships", 5, snapshot.getRelationships().size());
 
     // fetch Acls
     logger.info("---- Dataset Acls after snapshot create-----");
@@ -372,11 +372,13 @@ public class SnapshotTest extends UsersBase {
 
   enum AclCheck {
     GREATERTHAN {
+      @Override
       boolean compare(int snapshotCount, int aclCount) {
         return snapshotCount > aclCount;
       }
     },
     EQUALTO {
+      @Override
       boolean compare(int snapshotCount, int aclCount) {
         return snapshotCount == aclCount;
       }

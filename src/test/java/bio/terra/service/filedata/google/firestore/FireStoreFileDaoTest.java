@@ -27,8 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,14 +39,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FireStoreFileDaoTest {
-  private final Logger logger =
-      LoggerFactory.getLogger("bio.terra.service.filedata.google.firestore.FireStoreFileDaoTest");
-  private final Long FILE_SIZE = 42L;
-  private final Long CHANGED_FILE_SIZE = 22L;
+  private static final long FILE_SIZE = 42;
+  private static final long CHANGED_FILE_SIZE = 22;
 
   @Autowired private FireStoreFileDao fileDao;
-
-  @Autowired private FireStoreUtils fireStoreUtils;
 
   @Autowired private ConfigurationService configurationService;
 
@@ -105,7 +99,7 @@ public class FireStoreFileDaoTest {
     }
 
     List<String> fileIds =
-        fileList.stream().map(fsf -> fsf.getFileId()).collect(Collectors.toList());
+        fileList.stream().map(FireStoreFile::getFileId).collect(Collectors.toList());
 
     List<String> deleteIds = new ArrayList<>();
 

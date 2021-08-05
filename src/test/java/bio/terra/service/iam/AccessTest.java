@@ -85,6 +85,7 @@ public class AccessTest extends UsersBase {
   private UUID profileId;
   private List<UUID> snapshotIds;
 
+  @Override
   @Before
   public void setup() throws Exception {
     super.setup();
@@ -232,7 +233,7 @@ public class AccessTest extends UsersBase {
 
     // Ingest one row into the study 'file' table with a reference to that ingested file
     String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileModel.getFileId());
-    String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
+    String targetPath = "scratch/file" + UUID.randomUUID() + ".json";
     BlobInfo targetBlobInfo =
         BlobInfo.newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath)).build();
 
@@ -364,7 +365,7 @@ public class AccessTest extends UsersBase {
     Assert.assertEquals(7, results.getTotalRows());
   }
 
-  private boolean canReadBlob(Storage storage, BlobId blobId) throws Exception {
+  private boolean canReadBlob(Storage storage, BlobId blobId) {
     try (ReadChannel reader = storage.reader(blobId)) {
       ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
       int bytesRead = reader.read(bytes);

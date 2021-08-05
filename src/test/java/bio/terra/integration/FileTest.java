@@ -58,7 +58,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Integration.class)
 public class FileTest extends UsersBase {
 
-  private static Logger logger = LoggerFactory.getLogger(FileTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(FileTest.class);
 
   @Autowired private AuthService authService;
 
@@ -71,9 +71,9 @@ public class FileTest extends UsersBase {
   private DatasetSummaryModel datasetSummaryModel;
   private UUID datasetId;
   private UUID snapshotId;
-  private List<String> fileIds;
   private UUID profileId;
 
+  @Override
   @Before
   public void setup() throws Exception {
     super.setup();
@@ -85,7 +85,6 @@ public class FileTest extends UsersBase {
         dataRepoFixtures.createDataset(steward(), profileId, "file-acl-test-dataset.json");
     datasetId = datasetSummaryModel.getId();
     snapshotId = null;
-    fileIds = new ArrayList<>();
     logger.info("created dataset " + datasetId);
     dataRepoFixtures.addDatasetPolicyMember(
         steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
@@ -97,14 +96,6 @@ public class FileTest extends UsersBase {
       dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
     }
     if (datasetId != null) {
-      fileIds.forEach(
-          f -> {
-            try {
-              dataRepoFixtures.deleteFile(steward(), datasetId, f);
-            } catch (Exception e) {
-              e.printStackTrace();
-            }
-          });
       dataRepoFixtures.deleteDataset(steward(), datasetId);
     }
     if (profileId != null) {
@@ -162,7 +153,7 @@ public class FileTest extends UsersBase {
   public void fileParallelFailedLoadTest() throws Exception {
     List<DataRepoResponse<JobModel>> responseList = new ArrayList<>();
     String gsPath = "gs://" + testConfiguration.getIngestbucket() + "/nonexistentfile";
-    String filePath = "/foo" + UUID.randomUUID().toString() + "/bar";
+    String filePath = "/foo" + UUID.randomUUID() + "/bar";
 
     for (int i = 0; i < 20; i++) {
       DataRepoResponse<JobModel> launchResp =
@@ -205,7 +196,7 @@ public class FileTest extends UsersBase {
 
     String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId);
 
-    String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
+    String targetPath = "scratch/file" + UUID.randomUUID() + ".json";
     BlobInfo targetBlobInfo =
         BlobInfo.newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath)).build();
 
@@ -286,7 +277,7 @@ public class FileTest extends UsersBase {
             .mapToObj(i -> String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId))
             .collect(Collectors.joining("\n"));
 
-    String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
+    String targetPath = "scratch/file" + UUID.randomUUID() + ".json";
     BlobInfo targetBlobInfo =
         BlobInfo.newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath)).build();
 

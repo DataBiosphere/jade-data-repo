@@ -21,8 +21,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetBucketDao;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.load.LoadDao;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.BucketResourceLockTester;
 import bio.terra.service.resourcemanagement.BufferService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
@@ -59,7 +57,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class BucketResourceTest {
   private final Logger logger = LoggerFactory.getLogger(BucketResourceTest.class);
 
-  @Autowired private LoadDao loadDao;
   @Autowired private ConfigurationService configService;
   @Autowired private DatasetBucketDao datasetBucketDao;
   @Autowired private JsonLoader jsonLoader;
@@ -67,17 +64,15 @@ public class BucketResourceTest {
   @Autowired private GoogleProjectService projectService;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private GoogleResourceDao resourceDao;
-  @Autowired private ProfileService profileService;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired private BufferService bufferService;
 
   @MockBean private IamProviderInterface samService;
 
-  private BucketResourceUtils bucketResourceUtils = new BucketResourceUtils();
+  private final BucketResourceUtils bucketResourceUtils = new BucketResourceUtils();
   private BillingProfileModel profile;
   private Storage storage;
   private List<GoogleBucketResource> bucketResources;
-  private boolean allowReuseExistingBuckets;
   private GoogleProjectResource projectResource;
   private UUID datasetId;
 
@@ -142,8 +137,7 @@ public class BucketResourceTest {
       String flightId = "bucketRegionsTest_" + region;
 
       // create the bucket and metadata
-      GoogleBucketResource bucketResource =
-          createBucket(bucketName, projectResource, region, flightId);
+      createBucket(bucketName, projectResource, region, flightId);
 
       // Get the Bucket
       Bucket cloudBucket = bucketService.getCloudBucket(bucketName);

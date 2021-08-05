@@ -16,7 +16,6 @@ import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,8 +41,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class ProfileDaoTest {
 
   @Autowired private ProfileDao profileDao;
-
-  @Autowired private ProfileService profileService;
 
   private ArrayList<UUID> profileIds;
 
@@ -71,7 +68,7 @@ public class ProfileDaoTest {
   }
 
   @Test
-  public void profileCloudProvidersTest() throws Exception {
+  public void profileCloudProvidersTest() {
     var googleBillingProfile = makeProfile();
     var tenant = UUID.randomUUID();
     var subscription = UUID.randomUUID();
@@ -175,7 +172,7 @@ public class ProfileDaoTest {
   }
 
   @Test
-  public void profileEnumerateTest() throws Exception {
+  public void profileEnumerateTest() {
     Map<UUID, String> profileIdToAccountId = new HashMap<>();
     List<UUID> accessibleProfileId = new ArrayList<>();
     for (int i = 0; i < 6; i++) {

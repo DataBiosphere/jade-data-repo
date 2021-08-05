@@ -34,6 +34,7 @@ public class RepositoryApiControllerAccessTest extends UsersBase {
 
   @Autowired private DataRepoFixtures dataRepoFixtures;
 
+  @Override
   @Before
   public void setup() throws Exception {
     super.setup();

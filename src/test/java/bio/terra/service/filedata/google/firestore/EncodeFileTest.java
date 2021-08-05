@@ -27,15 +27,12 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
-import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
@@ -50,7 +47,7 @@ import java.io.BufferedReader;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,11 +81,8 @@ public class EncodeFileTest {
   private static final Logger logger = LoggerFactory.getLogger(EncodeFileTest.class);
 
   @Autowired private MockMvc mvc;
-  @Autowired private ObjectMapper objectMapper;
   @Autowired private ConnectedTestConfiguration testConfig;
-  @Autowired private ResourceService dataLocationService;
   @Autowired private SnapshotDao snapshotDao;
-  @Autowired private GcsProjectFactory gcsProjectFactory;
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private GoogleProjectService googleProjectService;
   @Autowired private DrsIdService drsIdService;
@@ -236,40 +230,39 @@ public class EncodeFileTest {
   //
   // /ENCFF823AJQ.bam.bai
 
-  private static int MAX_DIRECTORY_DEPTH = 6;
+  private static final int MAX_DIRECTORY_DEPTH = 6;
 
   private Map<String, List<String>> makeDirectoryMap(String datasetPath) {
     Map<String, List<String>> dirmap = new HashMap<>();
-    dirmap.put(datasetPath, Arrays.asList("encodetest"));
-    dirmap.put(datasetPath + "/encodetest", Arrays.asList("files"));
-    dirmap.put(datasetPath + "/encodetest/files", Arrays.asList("2017", "2018"));
-    dirmap.put(datasetPath + "/encodetest/files/2017", Arrays.asList("08"));
-    dirmap.put(datasetPath + "/encodetest/files/2017/08", Arrays.asList("24"));
+    dirmap.put(datasetPath, List.of("encodetest"));
+    dirmap.put(datasetPath + "/encodetest", List.of("files"));
+    dirmap.put(datasetPath + "/encodetest/files", List.of("2017", "2018"));
+    dirmap.put(datasetPath + "/encodetest/files/2017", List.of("08"));
+    dirmap.put(datasetPath + "/encodetest/files/2017/08", List.of("24"));
     dirmap.put(
         datasetPath + "/encodetest/files/2017/08/24",
-        Arrays.asList(
-            "80317b07-7e78-4223-a3a2-84991c3104be", "cd3df621-4696-4fae-a2fc-2c666cafa5e2"));
+        List.of("80317b07-7e78-4223-a3a2-84991c3104be", "cd3df621-4696-4fae-a2fc-2c666cafa5e2"));
     dirmap.put(
         datasetPath + "/encodetest/files/2017/08/24/80317b07-7e78-4223-a3a2-84991c3104be",
-        Arrays.asList("ENCFF180PCI.bam", "ENCFF180PCI.bam.bai"));
+        List.of("ENCFF180PCI.bam", "ENCFF180PCI.bam.bai"));
     dirmap.put(
         datasetPath + "/encodetest/files/2017/08/24/cd3df621-4696-4fae-a2fc-2c666cafa5e2",
-        Arrays.asList("ENCFF912JKA.bam", "ENCFF912JKA.bam.bai"));
-    dirmap.put(datasetPath + "/encodetest/files/2018", Arrays.asList("01", "05"));
-    dirmap.put(datasetPath + "/encodetest/files/2018/01", Arrays.asList("18"));
+        List.of("ENCFF912JKA.bam", "ENCFF912JKA.bam.bai"));
+    dirmap.put(datasetPath + "/encodetest/files/2018", List.of("01", "05"));
+    dirmap.put(datasetPath + "/encodetest/files/2018/01", List.of("18"));
     dirmap.put(
         datasetPath + "/encodetest/files/2018/01/18",
-        Arrays.asList("82aab61a-1e9b-43d3-8836-d9c54cf37dd6"));
+        List.of("82aab61a-1e9b-43d3-8836-d9c54cf37dd6"));
     dirmap.put(
         datasetPath + "/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6",
-        Arrays.asList("ENCFF538GKX.bam", "ENCFF538GKX.bam.bai"));
-    dirmap.put(datasetPath + "/encodetest/files/2018/05", Arrays.asList("04"));
+        List.of("ENCFF538GKX.bam", "ENCFF538GKX.bam.bai"));
+    dirmap.put(datasetPath + "/encodetest/files/2018/05", List.of("04"));
     dirmap.put(
         datasetPath + "/encodetest/files/2018/05/04",
-        Arrays.asList("289b5fd2-ea5e-4275-a56d-2185738737e0"));
+        List.of("289b5fd2-ea5e-4275-a56d-2185738737e0"));
     dirmap.put(
         datasetPath + "/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0",
-        Arrays.asList("ENCFF823AJQ.bam", "ENCFF823AJQ.bam.bai"));
+        List.of("ENCFF823AJQ.bam", "ENCFF823AJQ.bam.bai"));
     return dirmap;
   }
 
@@ -423,7 +416,7 @@ public class EncodeFileTest {
     // Read one line at a time - unpack into pojo
     // Ingest the files, substituting the file ids
     // Generate JSON and write the line to scratch
-    String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
+    String targetPath = "scratch/file" + UUID.randomUUID() + ".json";
 
     // For a bigger test use encodetest/file.json (1000+ files)
     // For normal testing encodetest/file_small.json (10 files)
@@ -441,11 +434,11 @@ public class EncodeFileTest {
             new BufferedReader(
                 Channels.newReader(
                     sourceBlob.reader(Blob.BlobSourceOption.userProject(targetProjectId)),
-                    "UTF-8"))) {
+                    StandardCharsets.UTF_8))) {
 
       boolean badIdInserted = false;
       boolean badRowInserted = false;
-      String line = null;
+      String line;
       while ((line = reader.readLine()) != null) {
         EncodeFileIn encodeFileIn = TestUtils.mapFromJson(line, EncodeFileIn.class);
 
@@ -474,55 +467,49 @@ public class EncodeFileTest {
         String fileLine;
         if (insertBadRow && !badRowInserted) {
           fileLine = "{\"fribbitz\";\"ABCDEFG\"}\n";
+          badRowInserted = true;
         } else {
           fileLine = TestUtils.mapToJson(encodeFileOut) + "\n";
         }
-        writer.write(ByteBuffer.wrap(fileLine.getBytes("UTF-8")));
+        writer.write(ByteBuffer.wrap(fileLine.getBytes(StandardCharsets.UTF_8)));
       }
     }
 
     return targetPath;
   }
 
-  private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary)
-      throws InterruptedException {
+  private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) {
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
     String googleProjectId = snapshot.getProjectResource().getGoogleProjectId();
     BigQueryProject bigQueryProject = BigQueryProject.get(googleProjectId);
 
-    StringBuilder builder =
-        new StringBuilder()
-            .append("SELECT file_ref FROM `")
-            .append(googleProjectId)
-            .append('.')
-            .append(snapshot.getName())
-            .append(".file` AS T")
-            .append(" WHERE T.file_ref IS NOT NULL LIMIT 1");
-
-    String sql = builder.toString();
+    String sql =
+        "SELECT file_ref FROM `"
+            + googleProjectId
+            + '.'
+            + snapshot.getName()
+            + ".file` AS T"
+            + " WHERE T.file_ref IS NOT NULL LIMIT 1";
     try {
       QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
       TableResult result = bigQueryProject.getBigQuery().query(queryConfig);
       FieldValueList row = result.iterateAll().iterator().next();
       FieldValue idValue = row.get(0);
-      String drsUri = idValue.getStringValue();
-      return drsUri;
+      return idValue.getStringValue();
     } catch (InterruptedException ie) {
       throw new PdaoException("get file ref id from snapshot unexpectedly interrupted", ie);
     }
   }
 
-  private FileLoadModel makeFileLoadModel(String gspath) throws Exception {
+  private FileLoadModel makeFileLoadModel(String gspath) {
     URI uri = URI.create(gspath);
-    FileLoadModel fileLoadModel =
-        new FileLoadModel()
-            .sourcePath(gspath)
-            .profileId(profileModel.getId())
-            .description(null)
-            .mimeType("application/octet-string")
-            .targetPath(uri.getPath())
-            .loadTag(loadTag);
 
-    return fileLoadModel;
+    return new FileLoadModel()
+        .sourcePath(gspath)
+        .profileId(profileModel.getId())
+        .description(null)
+        .mimeType("application/octet-string")
+        .targetPath(uri.getPath())
+        .loadTag(loadTag);
   }
 }

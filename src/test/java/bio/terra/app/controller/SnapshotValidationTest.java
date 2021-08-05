@@ -16,7 +16,6 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -47,8 +46,6 @@ public class SnapshotValidationTest {
 
   @Autowired private MockMvc mvc;
 
-  @Autowired private ObjectMapper objectMapper;
-
   private SnapshotRequestModel snapshotByAssetRequest;
 
   private SnapshotRequestModel snapshotByRowIdsRequestModel;
@@ -78,8 +75,7 @@ public class SnapshotValidationTest {
     assertTrue(
         "Error model was returned on failure", StringUtils.contains(responseBody, "message"));
 
-    ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
-    return errorModel;
+    return TestUtils.mapFromJson(responseBody, ErrorModel.class);
   }
 
   // Generate a valid snapshot-by-asset request, we will tweak individual pieces to test validation

@@ -15,7 +15,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.DatasetSummary;
 import bio.terra.service.dataset.GoogleStorageResource;
-import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
@@ -29,7 +28,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @Category(Unit.class)
@@ -45,10 +43,6 @@ public class ResourceServiceUnitTest {
   @Mock private DatasetStorageAccountDao datasetStorageAccountDao;
 
   @Mock private AzureApplicationDeploymentService applicationDeploymentService;
-
-  @Mock private GoogleProjectService googleProjectService;
-
-  @Mock private AzureDataLocationSelector azureDataLocationSelector;
 
   private final UUID billingProfileId = UUID.randomUUID();
 
@@ -96,10 +90,6 @@ public class ResourceServiceUnitTest {
           .resourceId(storageAccountId)
           .name(STORAGE_ACCOUNT_NAME)
           .applicationResource(applicationResource);
-
-  public void setup() throws InterruptedException {
-    MockitoAnnotations.initMocks(this);
-  }
 
   @Test
   public void testGrabBucket() throws Exception {

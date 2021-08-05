@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -16,7 +17,6 @@ import bio.terra.stairway.Stairway;
 import bio.terra.stairway.StepResult;
 import java.util.Collections;
 import java.util.UUID;
-import junit.framework.TestCase;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -25,7 +25,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
 @Category(Unit.class)
-public class IngestFileDirectoryStepTest extends TestCase {
+public class IngestFileDirectoryStepTest {
 
   @MockBean private FireStoreDao fireStoreDaoService;
 

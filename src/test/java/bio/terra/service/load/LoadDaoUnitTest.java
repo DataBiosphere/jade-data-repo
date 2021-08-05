@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.BulkLoadFileModel;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockedException;
 import java.util.ArrayList;
@@ -34,14 +33,12 @@ public class LoadDaoUnitTest {
 
   @Autowired private LoadDao loadDao;
 
-  @Autowired private ConfigurationService configService;
-
   private enum LoadTagsUsedByTest {
     LOADTAG_MY("myLoadTag"),
     LOADTAG_SERIAL("serialLoadTag"),
     LOADTAG_CONCURRENT("concurrentLoadTag"),
     LOADTAG_CONFLICT("conflictLoadTag");
-    private String tag;
+    private final String tag;
 
     public String getTag() {
       return tag;
@@ -65,7 +62,7 @@ public class LoadDaoUnitTest {
     FLIGHT_H("flightIdH"),
     FLIGHT_X("flightIdX"),
     FLIGHT_Y("flightIdY");
-    private String id;
+    private final String id;
 
     public String getId() {
       return id;

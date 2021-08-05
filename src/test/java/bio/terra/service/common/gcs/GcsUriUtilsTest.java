@@ -9,7 +9,6 @@ import bio.terra.common.category.Unit;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -39,7 +38,7 @@ public class GcsUriUtilsTest {
 
   @Test
   public void testGsPathExtractionBucketTooLong() {
-    final String bucketName = StringUtils.rightPad("abc", 250, 'x');
+    final String bucketName = "x".repeat(250);
     final String pathName = String.format("gs://%s/path", bucketName);
     Exception exception =
         assertThrows(IllegalArgumentException.class, () -> GcsUriUtils.parseBlobUri(pathName));
@@ -49,7 +48,7 @@ public class GcsUriUtilsTest {
 
   @Test
   public void testGsPathExtractionBucketComponentTooLong() {
-    final String bucketComponent = StringUtils.rightPad("a", 64, 'x');
+    final String bucketComponent = "x".repeat(64);
     final String pathName = String.format("gs://abc.%s/path", bucketComponent);
     Exception exception =
         assertThrows(IllegalArgumentException.class, () -> GcsUriUtils.parseBlobUri(pathName));

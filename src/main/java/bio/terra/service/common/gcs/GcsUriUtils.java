@@ -2,9 +2,10 @@ package bio.terra.service.common.gcs;
 
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
+import java.util.regex.Pattern;
 
 public final class GcsUriUtils {
-  private static final String GS_BUCKET_PATTERN = "[a-z0-9_.\\-]{3,222}";
+  private static final Pattern GS_BUCKET_PATTERN = Pattern.compile("[a-z0-9_.\\-]{3,222}");
 
   /**
    * Parse a Google Cloud Storage URI into its component pieces
@@ -12,7 +13,7 @@ public final class GcsUriUtils {
    * @param uri of type gs://<bucket_name>/<file_path_inside_bucket>
    * @return Object representing uri pieces
    */
-  public static BlobId parseBlobUri(String uri) {
+  public static BlobId parseBlobUri(String uri) throws IllegalArgumentException {
     BlobId blobId = BlobId.fromGsUtilUri(uri);
     validateBlobUri(blobId, uri);
     return blobId;
@@ -30,7 +31,7 @@ public final class GcsUriUtils {
       throw new IllegalArgumentException("Bucket wildcards are not supported: URI: '" + uri + "'");
     }
 
-    if (!bucket.matches(GS_BUCKET_PATTERN)) {
+    if (!GS_BUCKET_PATTERN.matcher(bucket).matches()) {
       throw new IllegalArgumentException("Invalid bucket name in gs path: '" + uri + "'");
     }
     String[] bucketComponents = bucket.split("\\.");

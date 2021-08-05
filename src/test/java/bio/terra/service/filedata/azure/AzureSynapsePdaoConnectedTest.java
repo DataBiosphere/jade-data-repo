@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure;
 
-import static bio.terra.service.filedata.azure.util.BlobContainerClientFactory.SasPermission;
+import static bio.terra.service.filedata.azure.AzureSynapsePdao.SynapseSasPermission;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
@@ -121,7 +121,7 @@ public class AzureSynapsePdaoConnectedTest {
         tenantId,
         controlFileScopedCredentialName,
         controlFileDataSourceName,
-        SasPermission.READ_ONLY);
+        SynapseSasPermission.READ_ONLY);
 
     // 2 - Create the external data source for the destination
     // where we'll write the resulting parquet files
@@ -132,7 +132,7 @@ public class AzureSynapsePdaoConnectedTest {
         tenantId,
         destinationScopedCredentialName,
         destinationDataSourceName,
-        SasPermission.WRITE_PARQUET);
+        SynapseSasPermission.WRITE_PARQUET);
 
     // TODO - Add basic check to make sure the data source is created successfully
     // Maybe a basic query?

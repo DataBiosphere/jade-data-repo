@@ -126,6 +126,16 @@ public class BlobCrl {
         .getProperties();
   }
 
+  /**
+   * Creates a URLs with SAS tokens for a given blob.
+   * @param blobName blob name.
+   * @param options sas token creation options.
+   * @return Blob URL with a SAS token
+   */
+  public String createSasTokenUrlForBlob(String blobName, BlobSasTokenOptions options) {
+    return blobContainerClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
+  }
+
   /** Creates a the container in the storage account if it does not exist. */
   public void createContainerNameIfNotExists() {
 

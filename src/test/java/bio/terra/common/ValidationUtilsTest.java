@@ -1,11 +1,14 @@
 package bio.terra.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import bio.terra.common.category.Unit;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import liquibase.util.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -55,5 +58,31 @@ public class ValidationUtilsTest {
     assertThat(ValidationUtils.convertToUuid("2c297e7c-b303-4243-af6a-76cd9d3b0ca8")).isPresent();
     assertThat(ValidationUtils.isValidUuid("not a uuid")).isFalse();
     assertThat(ValidationUtils.convertToUuid("not a uuid")).isEmpty();
+  }
+
+  @Test
+  public void testValidationOfEmptyBlankAndNullStringsList() {
+
+    assertThatExceptionOfType(IllegalArgumentException.class)
+        .isThrownBy(
+            () ->
+                ValidationUtils.requiresNotBlankInList(List.of(new ImmutablePair<>("", "param"))));
+    assertThatExceptionOfType(IllegalArgumentException.class)
+        .isThrownBy(
+            () ->
+                ValidationUtils.requiresNotBlankInList(
+                    List.of(new ImmutablePair<>(null, "param"))));
+    assertThatExceptionOfType(IllegalArgumentException.class)
+        .isThrownBy(
+            () ->
+                ValidationUtils.requiresNotBlankInList(
+                    List.of(new ImmutablePair<>("  ", "param"))));
+  }
+
+  @Test
+  public void testValidationOfValidInputStringlist() {
+    // no exception is thrown
+    ValidationUtils.requiresNotBlankInList(
+        List.of(new ImmutablePair<>("abc", "param"), new ImmutablePair<>("123", "param")));
   }
 }

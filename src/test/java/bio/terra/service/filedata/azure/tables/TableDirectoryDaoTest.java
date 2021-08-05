@@ -1,0 +1,131 @@
+package bio.terra.service.filedata.azure.tables;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
+import bio.terra.common.category.Unit;
+import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import com.azure.core.http.rest.PagedIterable;
+import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.models.TableEntity;
+import com.azure.data.tables.models.TableServiceException;
+import java.util.Iterator;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Stream;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit4.SpringRunner;
+
+@RunWith(SpringRunner.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+@Category(Unit.class)
+public class TableDirectoryDaoTest {
+  private static final String PARTITION_KEY = "partitionKey";
+  private static final String NONEXISTENT_PATH = "nonexistentPath";
+  private static final String FULL_PATH = "/adir/A";
+  private static final String FILE_ID = UUID.randomUUID().toString();
+  private final TableEntity entity =
+      new TableEntity(PARTITION_KEY, FULL_PATH)
+          .addProperty("fileId", FILE_ID)
+          .addProperty("isFileRef", false)
+          .addProperty("path", FULL_PATH)
+          .addProperty("name", "directory")
+          .addProperty("datasetId", UUID.randomUUID().toString())
+          .addProperty("fileCreatedDate", "fileCreatedDate")
+          .addProperty("checksumCrc32c", "checksumCrc32c")
+          .addProperty("checksumMd5", "checksumMd5")
+          .addProperty("size", 1L);
+  FireStoreDirectoryEntry directoryEntry = FireStoreDirectoryEntry.fromTableEntity(entity);
+
+  @MockBean private AzureAuthService authService;
+  @MockBean private TableServiceClient tableServiceClient;
+  @MockBean private TableClient tableClient;
+  @Autowired private FileMetadataUtils fileMetadataUtils;
+  @Autowired private TableDirectoryDao dao;
+
+  @Before
+  public void setUp() {
+    dao = spy(dao);
+    when(authService.getTableServiceClient(any(), any())).thenReturn(tableServiceClient);
+    when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+  }
+
+  @Test
+  public void testRetrieveByPath() {
+    String lookUp = fileMetadataUtils.makeLookupPath(FULL_PATH);
+    String rowKey = fileMetadataUtils.encodePathAsFirestoreDocumentName(lookUp);
+    when(tableClient.getEntity(PARTITION_KEY, rowKey)).thenReturn(entity);
+    FireStoreDirectoryEntry response = dao.retrieveByPath(tableServiceClient, FULL_PATH);
+    assertEquals("The same entry is returned", response, directoryEntry);
+
+    when(tableClient.getEntity(PARTITION_KEY, NONEXISTENT_PATH))
+        .thenThrow(TableServiceException.class);
+    FireStoreDirectoryEntry nonExistentEntry =
+        dao.retrieveByPath(tableServiceClient, NONEXISTENT_PATH);
+    assertNull("The entry does not exist", nonExistentEntry);
+  }
+
+  @Test
+  public void testRetrieveByFileId() {
+    PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
+    Iterator<TableEntity> mockIterator = mock(Iterator.class);
+    when(mockIterator.hasNext()).thenReturn(true, false);
+    when(mockIterator.next()).thenReturn(entity);
+    when(mockPagedIterable.iterator()).thenReturn(mockIterator);
+    when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
+
+    FireStoreDirectoryEntry response = dao.retrieveById(tableServiceClient, FILE_ID);
+    assertEquals(response, directoryEntry);
+  }
+
+  @Test
+  public void testRetrieveByFileIdNotFound() {
+    PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
+    Iterator<TableEntity> mockIterator = mock(Iterator.class);
+    when(mockIterator.hasNext()).thenReturn(false);
+    when(mockPagedIterable.iterator()).thenReturn(mockIterator);
+    when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
+
+    FireStoreDirectoryEntry response = dao.retrieveById(tableServiceClient, NONEXISTENT_PATH);
+    assertNull("The entry does not exist", response);
+  }
+
+  @Test
+  public void validateRefIdsFindsMissingRecords() {
+    PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
+    Iterator<TableEntity> mockIterator = mock(Iterator.class);
+    when(mockIterator.hasNext()).thenReturn(false);
+    when(mockPagedIterable.iterator()).thenReturn(mockIterator);
+    when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
+
+    List<String> refIds = List.of("missingId");
+    List<String> response = dao.validateRefIds(tableServiceClient, refIds);
+    assertEquals(response.get(0), "missingId");
+  }
+
+  @Test
+  public void testEnumerateDirectory() {
+    PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
+    Stream<TableEntity> mockStream = List.of(entity).stream();
+    when(mockPagedIterable.stream()).thenReturn(mockStream);
+    when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
+
+    List<FireStoreDirectoryEntry> response = dao.enumerateDirectory(tableServiceClient, FILE_ID);
+    assertEquals(response.get(0), directoryEntry);
+  }
+}

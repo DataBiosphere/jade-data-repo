@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
 import com.azure.data.tables.models.TableEntity;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -156,6 +157,40 @@ public class FireStoreDirectoryEntry {
         .append("checksumMd5", checksumMd5)
         .append("size", size)
         .toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    FireStoreDirectoryEntry that = (FireStoreDirectoryEntry) o;
+    return Objects.equals(fileId, that.fileId)
+        && Objects.equals(isFileRef, that.isFileRef)
+        && Objects.equals(path, that.path)
+        && Objects.equals(name, that.name)
+        && Objects.equals(datasetId, that.datasetId)
+        && Objects.equals(fileCreatedDate, that.fileCreatedDate)
+        && Objects.equals(checksumCrc32c, that.checksumCrc32c)
+        && Objects.equals(checksumMd5, that.checksumMd5)
+        && Objects.equals(size, that.size);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        fileId,
+        isFileRef,
+        path,
+        name,
+        datasetId,
+        fileCreatedDate,
+        checksumCrc32c,
+        checksumMd5,
+        size);
   }
 
   public static FireStoreDirectoryEntry fromTableEntity(TableEntity entity) {

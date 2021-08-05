@@ -33,9 +33,6 @@ public class TableFileDao {
   private final ExecutorService executor;
   private static final String TABLE_NAME = "files";
   private static final String PARTITION_KEY = "partitionKey";
-  private static final int SLEEP_BASE_SECONDS = 1;
-  private static final int MAX_SLEEP_SECONDS = 300;
-  private static final int AZURE_STORAGE_RETRIES = 1;
 
   @Autowired
   TableFileDao(

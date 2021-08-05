@@ -1,14 +1,13 @@
 package bio.terra.service.filedata;
 
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
+import java.time.Instant;
+import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.time.Instant;
-import java.util.UUID;
 
 @Component
 public class FileMetadataUtils {
@@ -16,7 +15,7 @@ public class FileMetadataUtils {
   public static final String ROOT_DIR_NAME = "/_dr_";
 
   @Autowired
-  public FileMetadataUtils() { }
+  public FileMetadataUtils() {}
 
   // As mentioned at the top of the module, we can't use forward slash in a FireStore document
   // name, so we do this encoding.
@@ -59,11 +58,11 @@ public class FileMetadataUtils {
     }
 
     return new FireStoreDirectoryEntry()
-            .fileId(UUID.randomUUID().toString())
-            .isFileRef(false)
-            .path(dirPath)
-            .name(objName)
-            .fileCreatedDate(Instant.now().toString());
+        .fileId(UUID.randomUUID().toString())
+        .isFileRef(false)
+        .path(dirPath)
+        .name(objName)
+        .fileCreatedDate(Instant.now().toString());
   }
 
   // Do some tidying of the full path: slash on front - no slash trailing
@@ -77,5 +76,4 @@ public class FileMetadataUtils {
   public String makePathFromLookupPath(String lookupPath) {
     return StringUtils.removeStart(lookupPath, ROOT_DIR_NAME);
   }
-
 }

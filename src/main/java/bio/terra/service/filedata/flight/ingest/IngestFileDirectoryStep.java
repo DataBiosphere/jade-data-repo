@@ -26,9 +26,7 @@ public class IngestFileDirectoryStep implements Step {
   private final Dataset dataset;
 
   public IngestFileDirectoryStep(
-      FireStoreDao fileDao,
-      FileMetadataUtils fileMetadataUtils,
-      Dataset dataset) {
+      FireStoreDao fileDao, FileMetadataUtils fileMetadataUtils, Dataset dataset) {
     this.fileDao = fileDao;
     this.fileMetadataUtils = fileMetadataUtils;
     this.dataset = dataset;

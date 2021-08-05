@@ -8,17 +8,15 @@ import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import com.azure.data.tables.models.TableTransactionAction;
 import com.azure.data.tables.models.TableTransactionActionType;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -129,15 +127,17 @@ public class TableDirectoryDao {
       // deleted, so we should delete it also.
       ListEntitiesOptions options =
           new ListEntitiesOptions()
-              .setFilter(String.format("path eq '%s'", fileMetadataUtils.makePathFromLookupPath(lookupPath)));
+              .setFilter(
+                  String.format(
+                      "path eq '%s'", fileMetadataUtils.makePathFromLookupPath(lookupPath)));
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
       int size = List.of(entities).size();
       if (size > 1) {
         break;
       }
       TableEntity entity =
-          lookupByFilePath(tableServiceClient,
-                  fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
+          lookupByFilePath(
+              tableServiceClient, fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
       deleteList.add(new TableTransactionAction(TableTransactionActionType.DELETE, entity));
       lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
     }

@@ -30,8 +30,6 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
-
-import java.io.File;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 

@@ -11,7 +11,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.FireStoreUtils;
-import bio.terra.service.resourcemanagement.azure.*;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.TableEntity;

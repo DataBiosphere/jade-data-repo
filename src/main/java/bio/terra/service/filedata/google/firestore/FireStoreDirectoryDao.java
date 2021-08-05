@@ -161,8 +161,8 @@ public class FireStoreDirectoryDao {
                 // A value of 1 means that the directory will be empty after its child is
                 // deleted, so we should delete it also.
                 Query query =
-                    datasetCollection.whereEqualTo("path",
-                            fileMetadataUtils.makePathFromLookupPath(lookupPath));
+                    datasetCollection.whereEqualTo(
+                        "path", fileMetadataUtils.makePathFromLookupPath(lookupPath));
                 ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
 
                 List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
@@ -170,7 +170,8 @@ public class FireStoreDirectoryDao {
                   break;
                 }
                 DocumentReference docRef =
-                    datasetCollection.document(fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
+                    datasetCollection.document(
+                        fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
                 deleteList.add(docRef);
                 lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
               }
@@ -502,7 +503,7 @@ public class FireStoreDirectoryDao {
             path -> {
               DocumentReference docRef =
                   datasetCollection.document(
-                          fileMetadataUtils.encodePathAsFirestoreDocumentName((String) path));
+                      fileMetadataUtils.encodePathAsFirestoreDocumentName((String) path));
               return docRef.get();
             });
 
@@ -528,8 +529,8 @@ public class FireStoreDirectoryDao {
         entry -> {
           String fullPath = fireStoreUtils.getFullPath(entry.getPath(), entry.getName());
           String lookupPath =
-                  fileMetadataUtils.encodePathAsFirestoreDocumentName(
-                          fileMetadataUtils.makeLookupPath(fullPath));
+              fileMetadataUtils.encodePathAsFirestoreDocumentName(
+                  fileMetadataUtils.makeLookupPath(fullPath));
           DocumentReference newRef = snapshotCollection.document(lookupPath);
           return newRef.set(entry);
         });
@@ -579,8 +580,9 @@ public class FireStoreDirectoryDao {
   private DocumentSnapshot lookupByPathNoXn(
       Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {
     DocumentReference docRef =
-        firestore.collection(collectionId).document(
-                fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
+        firestore
+            .collection(collectionId)
+            .document(fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
 
     RuntimeException lastException = null;
     for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {

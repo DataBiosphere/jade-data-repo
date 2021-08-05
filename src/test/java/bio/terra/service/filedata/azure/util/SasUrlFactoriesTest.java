@@ -14,7 +14,6 @@ import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
-import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import java.time.Duration;
@@ -150,8 +149,7 @@ public class SasUrlFactoriesTest {
   }
 
   private BlobClient createBlobClientUsingSasToken(String sasUrl) {
-    String sasToken = BlobUrlParts.parse(sasUrl).getCommonSasQueryParameters().encode();
-    return new BlobClientBuilder().endpoint(getBlobEndpoint()).sasToken(sasToken).buildClient();
+    return new BlobClientBuilder().endpoint(sasUrl).buildClient();
   }
 
   private BlobContainerClient createBlobContainerClientUsingSharedKeyCredentials() {

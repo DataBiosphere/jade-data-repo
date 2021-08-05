@@ -63,6 +63,7 @@ public class BlobContainerClientFactory {
     blobContainerClient = blobServiceClient.getBlobContainerClient(containerName);
 
     // The delegated key expiration is set to a constant.
+    // There is little benefit for the caller to adjust this value.
     // A long duration minimizes the number of calls to get it and noise in audits logs.
     blobSasUrlFactory =
         new UserDelegatedKeySasUrlFactory(

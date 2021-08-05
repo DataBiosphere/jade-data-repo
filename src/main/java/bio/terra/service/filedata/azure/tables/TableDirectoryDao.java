@@ -88,14 +88,18 @@ public class TableDirectoryDao {
       }
 
       FireStoreDirectoryEntry dirToCreate = fileMetadataUtils.makeDirectoryEntry(testPath);
-      TableEntity entity = FireStoreDirectoryEntry.toTableEntity(PARTITION_KEY, dirToCreate);
+      String rowKey = fileMetadataUtils.encodePathAsFirestoreDocumentName(testPath);
+      TableEntity entity =
+          FireStoreDirectoryEntry.toTableEntity(PARTITION_KEY, rowKey, dirToCreate);
       TableTransactionAction t =
           new TableTransactionAction(TableTransactionActionType.CREATE, entity);
       createList.add(t);
     }
 
+    String lookupPath = fileMetadataUtils.makeLookupPath(createEntry.getPath());
+    String rowKey = fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath);
     TableEntity createEntryEntity =
-        FireStoreDirectoryEntry.toTableEntity(PARTITION_KEY, createEntry);
+        FireStoreDirectoryEntry.toTableEntity(PARTITION_KEY, rowKey, createEntry);
     TableTransactionAction createEntryTransaction =
         new TableTransactionAction(TableTransactionActionType.CREATE, createEntryEntity);
     createList.add(createEntryTransaction);

@@ -171,8 +171,9 @@ public class FireStoreDirectoryEntry {
         .size((Long) entity.getProperty("size"));
   }
 
-  public static TableEntity toTableEntity(String partitionKey, FireStoreDirectoryEntry f) {
-    return new TableEntity(partitionKey, "")
+  public static TableEntity toTableEntity(
+      String partitionKey, String rowKey, FireStoreDirectoryEntry f) {
+    return new TableEntity(partitionKey, rowKey)
         .addProperty("fileId", f.getFileId())
         .addProperty("isFileRef", f.getIsFileRef())
         .addProperty("path", f.getPath())

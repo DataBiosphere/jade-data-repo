@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 /** Creates SAS URLs for blobs from a Container URl with a SAS token. */
 public class ContainerSasTokenSasUrlFactory implements BlobSasUrlFactory {
   private final BlobUrlParts blobContainerUrlParts;
-  private static final Logger LOGGER =
+  private static final Logger logger =
       LoggerFactory.getLogger(ContainerSasTokenSasUrlFactory.class);
 
   public ContainerSasTokenSasUrlFactory(BlobUrlParts blobContainerUrlParts) {
@@ -22,7 +22,7 @@ public class ContainerSasTokenSasUrlFactory implements BlobSasUrlFactory {
     // therefore the token options are ignored.
     // A potential future enhancement is to compare the BlobSasTokenOptions and the container SAS
     // token, confirm they match and throw an exception if not.
-    LOGGER.warn(
+    logger.warn(
         "Using the container SAS token for blob:{}. BlobSasTokenOptions options were ignored.",
         blobName);
 

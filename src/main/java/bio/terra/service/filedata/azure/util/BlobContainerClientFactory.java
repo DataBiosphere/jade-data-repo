@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.common.ValidationUtils.requiresNotBlankInList;
+import static bio.terra.common.ValidationUtils.requiresNotBlank;
 
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.core.credential.TokenCredential;
@@ -12,10 +12,8 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import java.time.Duration;
-import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 
 /**
  * A class that wraps the SDK container client and facilities the creation of SAS Urls for blobs by
@@ -36,31 +34,25 @@ public class BlobContainerClientFactory {
 
   public BlobContainerClientFactory(String accountName, String accountKey, String containerName) {
 
-    requiresNotBlankInList(
-        List.of(
-            new ImmutablePair<>(accountName, "account account"),
-            new ImmutablePair<>(accountKey, "account key"),
-            new ImmutablePair<>(containerName, "container name")));
-
     blobContainerClient =
-        createBlobServiceClientUsingSharedKey(accountName, accountKey)
-            .getBlobContainerClient(containerName);
+        createBlobServiceClientUsingSharedKey(
+                requiresNotBlank(accountName, "Account name is null or empty"),
+                requiresNotBlank(accountKey, "Account key is null or empty"))
+            .getBlobContainerClient(
+                requiresNotBlank(containerName, "Container name is null or empty"));
     blobSasUrlFactory = new SharedAccountKeySasUrlFactory(blobContainerClient);
   }
 
   public BlobContainerClientFactory(
       String accountName, TokenCredential azureCredential, String containerName) {
 
-    requiresNotBlankInList(
-        List.of(
-            new ImmutablePair<>(accountName, "account account"),
-            new ImmutablePair<>(containerName, "container name")));
-
     var blobServiceClient =
         createBlobServiceClientUsingTokenCredentials(
-            accountName,
+            requiresNotBlank(accountName, "Account name is null or empty"),
             Objects.requireNonNull(azureCredential, "Azure token credentials are null."));
-    blobContainerClient = blobServiceClient.getBlobContainerClient(containerName);
+    blobContainerClient =
+        blobServiceClient.getBlobContainerClient(
+            requiresNotBlank(containerName, "Container name is null or empty"));
 
     // The delegated key expiration is set to a constant.
     // There is little benefit for the caller to adjust this value.

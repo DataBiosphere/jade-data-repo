@@ -19,7 +19,7 @@ public class BlobContainerCopier {
 
   private static final int MIN_LIST_OPERATION_TIMEOUT_IN_SECONDS = 10;
   private static final int MIN_POLLING_INTERVAL_IN_SECONDS = 2;
-  private static final Logger LOGGER = LoggerFactory.getLogger(BlobContainerCopier.class);
+  private static final Logger logger = LoggerFactory.getLogger(BlobContainerCopier.class);
   private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
   private final BlobContainerClientFactory destinationClientFactory;
 
@@ -51,12 +51,12 @@ public class BlobContainerCopier {
   public BlobContainerCopySyncPoller beginCopyOperation() {
 
     if (sourceClientFactory != null) {
-      LOGGER.info("Starting copy operation using a container as a source");
+      logger.info("Starting copy operation using a container as a source");
       return beginCopyOperationUsingSourceBlobContainerClient();
     }
 
     if (StringUtils.isNotBlank(sourceBlobUrl)) {
-      LOGGER.info("Starting copy operation using a signed blob URL as the source");
+      logger.info("Starting copy operation using a signed blob URL as the source");
       return beginCopyOperationUsingBlobSignedUrl();
     }
 
@@ -133,7 +133,7 @@ public class BlobContainerCopier {
 
   private BlobContainerCopySyncPoller beginCopyOperationUsingSourceBlobContainerClient() {
     if (sourceDestinationPairs != null) {
-      LOGGER.info("Copy operation using source and destination pairs.");
+      logger.info("Copy operation using source and destination pairs.");
       return beginCopyOperationUsingDestinationPairs(sourceDestinationPairs);
     }
 
@@ -158,7 +158,7 @@ public class BlobContainerCopier {
       String blobPrefix) {
 
     ListBlobsOptions options = createListBlobsOptions(blobPrefix);
-    LOGGER.info("List operation from the source using the prefix: '{}'", blobSourcePrefix);
+    logger.info("List operation from the source using the prefix: '{}'", blobSourcePrefix);
 
     return this.sourceClientFactory
         .getBlobContainerClient()
@@ -187,7 +187,7 @@ public class BlobContainerCopier {
 
     // Azure blob copy does not support empty files.
     if (isSourceBlobEmpty(sourceBlobName)) {
-      LOGGER.warn("Blob {} is empty. Copy operation is not allowed", sourceBlobName);
+      logger.warn("Blob {} is empty. Copy operation is not allowed", sourceBlobName);
       return null;
     }
 
@@ -211,7 +211,7 @@ public class BlobContainerCopier {
   private SyncPoller<BlobCopyInfo, Void> beginBlobCopyFromSasUrl(
       String sourceName, String sourceSasUrl, String destinationBlobName) {
     if (StringUtils.isBlank(destinationBlobName)) {
-      LOGGER.debug(
+      logger.debug(
           "Destination blob name is blank. The source name: {}, will be used.", sourceName);
       destinationBlobName = sourceName;
     }

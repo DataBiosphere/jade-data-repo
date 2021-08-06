@@ -127,7 +127,7 @@ public class BlobCrl {
   }
 
   /**
-   * Creates a URLs with SAS tokens for a given blob.
+   * Creates a URLa with a SAS tokens for a given blob.
    *
    * @param blobName blob name.
    * @param options sas token creation options.

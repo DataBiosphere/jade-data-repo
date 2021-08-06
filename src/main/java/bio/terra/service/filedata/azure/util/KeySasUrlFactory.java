@@ -33,7 +33,7 @@ public abstract class KeySasUrlFactory implements BlobSasUrlFactory {
       BlobSasTokenOptions blobSasTokenOptions) {
 
     OffsetDateTime expiryTime =
-        OffsetDateTime.now(ZoneOffset.UTC).plus(blobSasTokenOptions.getExpiration());
+        OffsetDateTime.now(ZoneOffset.UTC).plus(blobSasTokenOptions.getDuration());
     SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
 
     // build the token

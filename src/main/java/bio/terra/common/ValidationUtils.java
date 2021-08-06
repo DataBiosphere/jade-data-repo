@@ -2,12 +2,10 @@ package bio.terra.common;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 
 public final class ValidationUtils {
 
@@ -53,13 +51,11 @@ public final class ValidationUtils {
     }
   }
 
-  public static void requiresNotBlankInList(List<Pair<String, String>> listToValidate) {
-    listToValidate.forEach(
-        (item) -> {
-          if (StringUtils.isBlank(item.getLeft())) {
-            throw new IllegalArgumentException(
-                String.format(Locale.ROOT, "The %s is either null or empty", item.getRight()));
-          }
-        });
+  public static String requiresNotBlank(String value, String errorMsg) {
+    if (StringUtils.isBlank(value)) {
+      throw new IllegalArgumentException(errorMsg);
+    }
+
+    return value;
   }
 }

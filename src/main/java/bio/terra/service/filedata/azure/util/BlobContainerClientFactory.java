@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.azure.util;
 
-import static bio.terra.common.ValidationUtils.requiresNotBlank;
-
+import bio.terra.common.ValidationUtils;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.core.credential.TokenCredential;
 import com.azure.core.http.HttpClient;
@@ -36,10 +35,10 @@ public class BlobContainerClientFactory {
 
     blobContainerClient =
         createBlobServiceClientUsingSharedKey(
-                requiresNotBlank(accountName, "Account name is null or empty"),
-                requiresNotBlank(accountKey, "Account key is null or empty"))
+                ValidationUtils.requiresNotBlank(accountName, "Account name is null or empty"),
+                ValidationUtils.requiresNotBlank(accountKey, "Account key is null or empty"))
             .getBlobContainerClient(
-                requiresNotBlank(containerName, "Container name is null or empty"));
+                ValidationUtils.requiresNotBlank(containerName, "Container name is null or empty"));
     blobSasUrlFactory = new SharedAccountKeySasUrlFactory(blobContainerClient);
   }
 
@@ -48,11 +47,11 @@ public class BlobContainerClientFactory {
 
     var blobServiceClient =
         createBlobServiceClientUsingTokenCredentials(
-            requiresNotBlank(accountName, "Account name is null or empty"),
+            ValidationUtils.requiresNotBlank(accountName, "Account name is null or empty"),
             Objects.requireNonNull(azureCredential, "Azure token credentials are null."));
     blobContainerClient =
         blobServiceClient.getBlobContainerClient(
-            requiresNotBlank(containerName, "Container name is null or empty"));
+            ValidationUtils.requiresNotBlank(containerName, "Container name is null or empty"));
 
     // The delegated key expiration is set to a constant.
     // There is little benefit for the caller to adjust this value.

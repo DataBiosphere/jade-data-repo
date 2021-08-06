@@ -36,6 +36,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AzureBlobStorePdao {
+
   private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
 
   private static final int LOG_RETENTION_DAYS = 90;
@@ -174,6 +175,24 @@ public class AzureBlobStorePdao {
         throw new PdaoException("Error deleting file", e);
       }
     }
+  }
+
+  public String signFile(
+      BillingProfileModel profileModel,
+      AzureStorageAccountResource storageAccountResource,
+      String url) {
+    BlobContainerClientFactory destinationClientFactory =
+        getTargetDataClientFactory(profileModel, storageAccountResource, true);
+
+    BlobUrlParts blobParts = BlobUrlParts.parse(url);
+    if (!blobParts.getAccountName().equals(storageAccountResource.getName())) {
+      throw new PdaoException(
+          String.format(
+              "Resource groups between metadata storage and request do not match: %s != %s",
+              blobParts.getAccountName(), storageAccountResource.getName()));
+    }
+    String blobName = blobParts.getBlobName();
+    return destinationClientFactory.createReadOnlySasUrlForBlob(blobName);
   }
 
   /**

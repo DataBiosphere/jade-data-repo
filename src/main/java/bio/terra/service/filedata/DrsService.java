@@ -15,7 +15,7 @@ import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
@@ -31,14 +31,12 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import com.azure.storage.blob.BlobUrlParts;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -85,6 +83,7 @@ public class DrsService {
   private final ProfileService profileService;
   private final AzureResourceConfiguration resourceConfiguration;
   private final AzureContainerPdao azureContainerPdao;
+  private final AzureBlobStorePdao azureBlobStorePdao;
 
   @Autowired
   public DrsService(
@@ -98,7 +97,8 @@ public class DrsService {
       PerformanceLogger performanceLogger,
       ProfileService profileService,
       AzureResourceConfiguration resourceConfiguration,
-      AzureContainerPdao azureContainerPdao) {
+      AzureContainerPdao azureContainerPdao,
+      AzureBlobStorePdao azureBlobStorePdao) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -110,6 +110,7 @@ public class DrsService {
     this.profileService = profileService;
     this.resourceConfiguration = resourceConfiguration;
     this.azureContainerPdao = azureContainerPdao;
+    this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -247,12 +248,14 @@ public class DrsService {
                               + " was found on object "
                               + objectId));
       try {
-        FSItem fsItem = fileService
-            .lookupSnapshotFSItem(snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
-                drsId.getFsObjectId(), 1);
+        FSItem fsItem =
+            fileService.lookupSnapshotFSItem(
+                snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
+                drsId.getFsObjectId(),
+                1);
         return signAzureUrl(billingProfileModel, fsItem);
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        throw new IllegalArgumentException(e);
       }
     } else {
       throw new NotImplementedException("Cloud platform not implemented");
@@ -269,35 +272,13 @@ public class DrsService {
         .findFirst();
   }
 
-  private DRSAccessURL signAzureUrl(
-      BillingProfileModel profileModel,
-      FSItem fsItem) {
+  private DRSAccessURL signAzureUrl(BillingProfileModel profileModel, FSItem fsItem) {
     AzureStorageAccountResource storageAccountResource =
         resourceService.lookupStorageAccountMetadata(((FSFile) fsItem).getBucketResourceId());
-    azureContainerPdao
-        .getDestinationContainerSignedUrl(profileModel, storageAccountResource, ContainerType.DATA,
-            true, false, false, false);
-//    FSItem fsObject = null;
-//    try {
-//      fsObject =
-//          fileService.lookupSnapshotFSItem(
-//              snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
-//              drsId.getFsObjectId(),
-//              1);
-//
-//      BlobUrlParts blobUrl = BlobUrlParts.parse(accessMethod.getAccessUrl().getUrl());
-//      BlobContainerClientFactory sourceClientFactory =
-//          new BlobContainerClientFactory(
-//              blobUrl.getAccountName(),
-//              resourceConfiguration.getAppToken(profileModel.getTenantId()),
-//              blobUrl.getBlobContainerName());
-//
-//      return new DRSAccessURL()
-//          .url(sourceClientFactory.createReadOnlySasUrlForBlob(blobUrl.getBlobName()));
-//    } catch (InterruptedException e) {
-//      throw new FileSystemExecutionException(
-//          "Unexpected interruption during file system processing", e);
-//    }
+    return new DRSAccessURL()
+        .url(
+            azureBlobStorePdao.signFile(
+                profileModel, storageAccountResource, ((FSFile) fsItem).getGspath()));
   }
 
   private DRSAccessURL signGoogleUrl(Snapshot snapshot, DRSAccessMethod accessMethod) {

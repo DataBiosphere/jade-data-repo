@@ -48,6 +48,33 @@ public class AzureContainerPdao {
   public BlobUrlParts getDestinationContainerSignedUrl(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
+      String containerName,
+      String permissionDefinition) {
+    BlobContainerSasPermission permissions = BlobContainerSasPermission.parse(permissionDefinition);
+
+    OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
+    SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
+
+    // build the token
+    BlobServiceSasSignatureValues sasSignatureValues =
+        new BlobServiceSasSignatureValues(expiryTime, permissions)
+            .setProtocol(sasProtocol)
+            // Version is set to a version of the token signing API the supports keys that permit
+            // listing files
+            .setVersion("2020-04-08");
+
+    BlobContainerClient containerClient =
+        authService.getBlobContainerClient(profileModel, storageAccountResource, containerName);
+    return BlobUrlParts.parse(
+        String.format(
+            "%s?%s",
+            containerClient.getBlobContainerUrl(),
+            containerClient.generateSas(sasSignatureValues)));
+  }
+
+  public BlobUrlParts getDestinationContainerSignedUrl(
+      BillingProfileModel profileModel,
+      AzureStorageAccountResource storageAccountResource,
       AzureStorageAccountResource.ContainerType containerType,
       boolean enableRead,
       boolean enableList,

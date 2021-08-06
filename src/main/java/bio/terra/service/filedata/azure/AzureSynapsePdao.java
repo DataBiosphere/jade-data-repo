@@ -1,12 +1,14 @@
 package bio.terra.service.filedata.azure;
 
 import bio.terra.common.Column;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
@@ -67,14 +69,8 @@ public class AzureSynapsePdao {
     this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
-  public void createExternalDataSource(
-      String dataSourceUrl,
-      UUID tenantId,
-      String scopedCredentialName,
-      String dataSourceName,
-      SynapseSasPermission permissionType)
-      throws NotImplementedException, SQLException {
-
+  public BlobUrlParts getOrSignUrlForSourceFactory(
+      String dataSourceUrl, UUID tenantId, SynapseSasPermission permissionType) {
     // parse user provided url to Azure container - can be signed or unsigned
     BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
     String blobName = ingestControlFileBlobUrl.getBlobName();
@@ -89,7 +85,34 @@ public class AzureSynapsePdao {
     // Given the sas token, rebuild a signed url
     String signedURL =
         sourceClientFactory.createSasUrlForBlob(blobName, getPermissionString(permissionType));
-    BlobUrlParts signedBlobUrl = BlobUrlParts.parse(signedURL);
+    return BlobUrlParts.parse(signedURL);
+  }
+
+  public BlobUrlParts getOrSignUrlForTargetFactory(
+      String dataSourceUrl,
+      BillingProfileModel profileModel,
+      AzureStorageAccountResource storageAccount,
+      SynapseSasPermission permissionType) {
+    BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
+    String blobName = ingestControlFileBlobUrl.getBlobName();
+    String containerName = ingestControlFileBlobUrl.getBlobContainerName();
+
+    BlobContainerClientFactory targetDataClientFactory =
+        azureBlobStorePdao.getTargetDataClientFactory(
+            profileModel,
+            storageAccount,
+            containerName,
+            getPermissionString(SynapseSasPermission.WRITE_PARQUET));
+
+    // Given the sas token, rebuild a signed url
+    String signedURL =
+        targetDataClientFactory.createSasUrlForBlob(blobName, getPermissionString(permissionType));
+    return BlobUrlParts.parse(signedURL);
+  }
+
+  public void createExternalDataSource(
+      BlobUrlParts signedBlobUrl, String scopedCredentialName, String dataSourceName)
+      throws NotImplementedException, SQLException {
     AzureSasCredential blobContainerSasTokenCreds =
         new AzureSasCredential(signedBlobUrl.getCommonSasQueryParameters().encode());
 
@@ -283,7 +306,7 @@ public class AzureSynapsePdao {
   private String getPermissionString(SynapseSasPermission permissionType) {
     switch (permissionType) {
       case WRITE_PARQUET:
-        return "racwdxltme";
+        return "rwl";
       case READ_ONLY:
       default:
         return "r";

@@ -226,6 +226,16 @@ public class AzureBlobStorePdao {
         getRetryOptions());
   }
 
+  public BlobContainerClientFactory getTargetDataClientFactory(
+      BillingProfileModel profileModel,
+      AzureStorageAccountResource storageAccountResource,
+      String containerName,
+      String permissionDefinition) {
+    return new BlobContainerClientFactory(
+        azureContainerPdao.getDestinationContainerSignedUrl(
+            profileModel, storageAccountResource, containerName, permissionDefinition));
+  }
+
   @VisibleForTesting
   BlobCrl getBlobCrl(BlobContainerClientFactory destinationClientFactory) {
     return new BlobCrl(destinationClientFactory);

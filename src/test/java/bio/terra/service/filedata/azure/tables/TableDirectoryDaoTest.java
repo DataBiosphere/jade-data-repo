@@ -36,11 +36,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Unit.class)
 public class TableDirectoryDaoTest {
   private static final String PARTITION_KEY = "partitionKey";
-  private static final String NONEXISTENT_PATH = "nonexistentPath";
   private static final String FULL_PATH = "/adir/A";
+  private static final String ROW_KEY = "\u001c_dr_\u001cadir\u001cA";
+  private static final String NONEXISTENT_PATH = "/adir/nonexistent";
+  private static final String NONEXISTENT_ROW_KEY = "\u001c_dr_\u001cadir\u001cnonexistent";
   private static final String FILE_ID = UUID.randomUUID().toString();
   private final TableEntity entity =
-      new TableEntity(PARTITION_KEY, FULL_PATH)
+      new TableEntity(PARTITION_KEY, ROW_KEY)
           .addProperty("fileId", FILE_ID)
           .addProperty("isFileRef", false)
           .addProperty("path", FULL_PATH)
@@ -67,13 +69,11 @@ public class TableDirectoryDaoTest {
 
   @Test
   public void testRetrieveByPath() {
-    String lookUp = fileMetadataUtils.makeLookupPath(FULL_PATH);
-    String rowKey = fileMetadataUtils.encodePathAsFirestoreDocumentName(lookUp);
-    when(tableClient.getEntity(PARTITION_KEY, rowKey)).thenReturn(entity);
+    when(tableClient.getEntity(PARTITION_KEY, ROW_KEY)).thenReturn(entity);
     FireStoreDirectoryEntry response = dao.retrieveByPath(tableServiceClient, FULL_PATH);
-    assertEquals("The same entry is returned", response, directoryEntry);
+    assertEquals("The same entry is returned", directoryEntry, response);
 
-    when(tableClient.getEntity(PARTITION_KEY, NONEXISTENT_PATH))
+    when(tableClient.getEntity(PARTITION_KEY, NONEXISTENT_ROW_KEY))
         .thenThrow(TableServiceException.class);
     FireStoreDirectoryEntry nonExistentEntry =
         dao.retrieveByPath(tableServiceClient, NONEXISTENT_PATH);
@@ -101,7 +101,7 @@ public class TableDirectoryDaoTest {
     when(mockPagedIterable.iterator()).thenReturn(mockIterator);
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
-    FireStoreDirectoryEntry response = dao.retrieveById(tableServiceClient, NONEXISTENT_PATH);
+    FireStoreDirectoryEntry response = dao.retrieveById(tableServiceClient, "nonexistentId");
     assertNull("The entry does not exist", response);
   }
 

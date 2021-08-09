@@ -203,7 +203,7 @@ public class BlobContainerCopier {
             new BlobSasPermission().setReadPermission(true),
             BlobContainerCopier.class.getName());
 
-    return this.sourceClientFactory
+    return sourceClientFactory
         .getBlobSasUrlFactory()
         .createSasUrlForBlob(blobName, blobSasTokenOptions);
   }

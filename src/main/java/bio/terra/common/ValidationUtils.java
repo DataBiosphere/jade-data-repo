@@ -51,7 +51,7 @@ public final class ValidationUtils {
     }
   }
 
-  public static String requiresNotBlank(String value, String errorMsg) {
+  public static String requireNotBlank(String value, String errorMsg) {
     if (StringUtils.isBlank(value)) {
       throw new IllegalArgumentException(errorMsg);
     }

@@ -62,16 +62,16 @@ public class ValidationUtilsTest {
   public void testValidationOfEmptyBlankAndNullStrings() {
 
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> ValidationUtils.requiresNotBlank("", "empty arg"));
+        .isThrownBy(() -> ValidationUtils.requireNotBlank("", "empty arg"));
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> ValidationUtils.requiresNotBlank(null, "null arg"));
+        .isThrownBy(() -> ValidationUtils.requireNotBlank(null, "null arg"));
     assertThatExceptionOfType(IllegalArgumentException.class)
-        .isThrownBy(() -> ValidationUtils.requiresNotBlank("  ", "param"));
+        .isThrownBy(() -> ValidationUtils.requireNotBlank("  ", "param"));
   }
 
   @Test
   public void testValidationOfValidInputString() {
     // no exception is thrown
-    ValidationUtils.requiresNotBlank("abc", "error msg");
+    ValidationUtils.requireNotBlank("abc", "error msg");
   }
 }

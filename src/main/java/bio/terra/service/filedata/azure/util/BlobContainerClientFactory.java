@@ -35,10 +35,10 @@ public class BlobContainerClientFactory {
 
     blobContainerClient =
         createBlobServiceClientUsingSharedKey(
-                ValidationUtils.requiresNotBlank(accountName, "Account name is null or empty"),
-                ValidationUtils.requiresNotBlank(accountKey, "Account key is null or empty"))
+                ValidationUtils.requireNotBlank(accountName, "Account name is null or empty"),
+                ValidationUtils.requireNotBlank(accountKey, "Account key is null or empty"))
             .getBlobContainerClient(
-                ValidationUtils.requiresNotBlank(containerName, "Container name is null or empty"));
+                ValidationUtils.requireNotBlank(containerName, "Container name is null or empty"));
     blobSasUrlFactory = new SharedAccountKeySasUrlFactory(blobContainerClient);
   }
 
@@ -47,11 +47,11 @@ public class BlobContainerClientFactory {
 
     var blobServiceClient =
         createBlobServiceClientUsingTokenCredentials(
-            ValidationUtils.requiresNotBlank(accountName, "Account name is null or empty"),
+            ValidationUtils.requireNotBlank(accountName, "Account name is null or empty"),
             Objects.requireNonNull(azureCredential, "Azure token credentials are null."));
     blobContainerClient =
         blobServiceClient.getBlobContainerClient(
-            ValidationUtils.requiresNotBlank(containerName, "Container name is null or empty"));
+            ValidationUtils.requireNotBlank(containerName, "Container name is null or empty"));
 
     // The delegated key expiration is set to a constant.
     // There is little benefit for the caller to adjust this value.

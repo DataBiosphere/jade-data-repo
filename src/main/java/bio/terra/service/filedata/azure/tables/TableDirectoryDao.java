@@ -88,7 +88,7 @@ public class TableDirectoryDao {
       }
 
       FireStoreDirectoryEntry dirToCreate = fileMetadataUtils.makeDirectoryEntry(testPath);
-      String rowKey = fileMetadataUtils.encodePathAsFirestoreDocumentName(testPath);
+      String rowKey = fileMetadataUtils.encodePathAsAzureRowKey(testPath);
       TableEntity entity =
           FireStoreDirectoryEntry.toTableEntity(PARTITION_KEY, rowKey, dirToCreate);
       TableTransactionAction t =
@@ -96,8 +96,9 @@ public class TableDirectoryDao {
       createList.add(t);
     }
 
-    String lookupPath = fileMetadataUtils.makeLookupPath(createEntry.getPath());
-    String rowKey = fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath);
+    String fullPath = fileMetadataUtils.getFullPath(createEntry.getPath(), createEntry.getName());
+    String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
+    String rowKey = fileMetadataUtils.encodePathAsAzureRowKey(lookupPath);
     TableEntity createEntryEntity =
         FireStoreDirectoryEntry.toTableEntity(PARTITION_KEY, rowKey, createEntry);
     TableTransactionAction createEntryTransaction =
@@ -141,7 +142,7 @@ public class TableDirectoryDao {
       }
       TableEntity entity =
           lookupByFilePath(
-              tableServiceClient, fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
+              tableServiceClient, fileMetadataUtils.encodePathAsAzureRowKey(lookupPath));
       deleteList.add(new TableTransactionAction(TableTransactionActionType.DELETE, entity));
       lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
     }
@@ -203,7 +204,7 @@ public class TableDirectoryDao {
 
   private TableEntity lookupByFilePath(TableServiceClient tableServiceClient, String lookupPath) {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    String rowKey = fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath);
+    String rowKey = fileMetadataUtils.encodePathAsAzureRowKey(lookupPath);
     try {
       return tableClient.getEntity(PARTITION_KEY, rowKey);
     } catch (TableServiceException ex) {

@@ -36,23 +36,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Unit.class)
 public class TableDirectoryDaoTest {
   private static final String PARTITION_KEY = "partitionKey";
-  private static final String FULL_PATH = "/adir/A";
-  private static final String ROW_KEY = "\u001c_dr_\u001cadir\u001cA";
-  private static final String NONEXISTENT_PATH = "/adir/nonexistent";
-  private static final String NONEXISTENT_ROW_KEY = "\u001c_dr_\u001cadir\u001cnonexistent";
+  private static final String FULL_PATH = "/directory/file.json";
+  private static final String ROW_KEY = " _dr_ directory file.json";
+  private static final String NONEXISTENT_PATH = "/directory/nonexistent.json";
+  private static final String NONEXISTENT_ROW_KEY = " _dr_ directory nonexistent.json";
   private static final String FILE_ID = UUID.randomUUID().toString();
-  private final TableEntity entity =
-      new TableEntity(PARTITION_KEY, ROW_KEY)
-          .addProperty("fileId", FILE_ID)
-          .addProperty("isFileRef", false)
-          .addProperty("path", FULL_PATH)
-          .addProperty("name", "directory")
-          .addProperty("datasetId", UUID.randomUUID().toString())
-          .addProperty("fileCreatedDate", "fileCreatedDate")
-          .addProperty("checksumCrc32c", "checksumCrc32c")
-          .addProperty("checksumMd5", "checksumMd5")
-          .addProperty("size", 1L);
-  FireStoreDirectoryEntry directoryEntry = FireStoreDirectoryEntry.fromTableEntity(entity);
+  private static TableEntity entity;
+  private static FireStoreDirectoryEntry directoryEntry;
 
   @MockBean private AzureAuthService authService;
   @MockBean private TableServiceClient tableServiceClient;
@@ -65,6 +55,18 @@ public class TableDirectoryDaoTest {
     dao = spy(dao);
     when(authService.getTableServiceClient(any(), any())).thenReturn(tableServiceClient);
     when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+    entity =
+        new TableEntity(PARTITION_KEY, ROW_KEY)
+            .addProperty("fileId", FILE_ID)
+            .addProperty("isFileRef", true)
+            .addProperty("path", fileMetadataUtils.getDirectoryPath(FULL_PATH))
+            .addProperty("name", "file.json")
+            .addProperty("datasetId", UUID.randomUUID().toString())
+            .addProperty("fileCreatedDate", "fileCreatedDate")
+            .addProperty("checksumCrc32c", "checksumCrc32c")
+            .addProperty("checksumMd5", "checksumMd5")
+            .addProperty("size", 1L);
+    directoryEntry = FireStoreDirectoryEntry.fromTableEntity(entity);
   }
 
   @Test

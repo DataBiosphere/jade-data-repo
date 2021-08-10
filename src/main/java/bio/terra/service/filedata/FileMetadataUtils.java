@@ -25,6 +25,10 @@ public class FileMetadataUtils {
     return StringUtils.replaceChars(path, '/', DOCNAME_SEPARATOR);
   }
 
+  public String encodePathAsAzureRowKey(String path) {
+    return StringUtils.replaceChars(path, '/', ' ');
+  }
+
   public String getDirectoryPath(String path) {
     String[] pathParts = StringUtils.split(path, '/');
     if (pathParts.length <= 1) {
@@ -41,6 +45,21 @@ public class FileMetadataUtils {
       return StringUtils.EMPTY;
     }
     return pathParts[pathParts.length - 1];
+  }
+
+  public String getFullPath(String dirPath, String name) {
+    // Originally, this was a method in FireStoreDirectoryEntry, but the Firestore client complained
+    // about it,
+    // because it was not a set/get for an actual class member. Very picky, that!
+    // There are three cases here:
+    // - the path and name are empty: that is the root. Full path is "/"
+    // - the path is "/" and the name is not empty: dir in the root. Full path is "/name"
+    // - the path is "/name" and the name is not empty: Full path is path + "/" + name
+    String path = StringUtils.EMPTY;
+    if (StringUtils.isNotEmpty(dirPath) && !StringUtils.equals(dirPath, "/")) {
+      path = dirPath;
+    }
+    return path + '/' + name;
   }
 
   public FireStoreDirectoryEntry makeDirectoryEntry(String lookupDirPath) {

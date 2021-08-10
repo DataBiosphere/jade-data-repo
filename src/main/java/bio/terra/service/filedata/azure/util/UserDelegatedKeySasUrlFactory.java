@@ -11,13 +11,13 @@ import java.time.ZoneOffset;
 /** Generates a SAS token using a User delegated key. */
 public class UserDelegatedKeySasUrlFactory extends KeySasUrlFactory {
   private final BlobServiceClient blobServiceClient;
-  private final Duration delegatedKeyExpiration;
+  private final Duration delegatedKeyDuration;
   private UserDelegationKey delegationKey;
 
   UserDelegatedKeySasUrlFactory(
-      BlobServiceClient blobServiceClient, String containerName, Duration delegatedKeyExpiration) {
+      BlobServiceClient blobServiceClient, String containerName, Duration delegatedKeyDuration) {
     super(blobServiceClient.getBlobContainerClient(containerName));
-    this.delegatedKeyExpiration = delegatedKeyExpiration;
+    this.delegatedKeyDuration = delegatedKeyDuration;
     this.blobServiceClient = blobServiceClient;
   }
 
@@ -31,7 +31,7 @@ public class UserDelegatedKeySasUrlFactory extends KeySasUrlFactory {
   private synchronized UserDelegationKey getUserDelegationKey() {
     if (delegationKey == null
         || delegationKey.getSignedExpiry().isBefore(OffsetDateTime.now(ZoneOffset.UTC))) {
-      OffsetDateTime keyExpiry = OffsetDateTime.now(ZoneOffset.UTC).plus(delegatedKeyExpiration);
+      OffsetDateTime keyExpiry = OffsetDateTime.now(ZoneOffset.UTC).plus(delegatedKeyDuration);
       delegationKey = blobServiceClient.getUserDelegationKey(null, keyExpiry);
     }
     return delegationKey;

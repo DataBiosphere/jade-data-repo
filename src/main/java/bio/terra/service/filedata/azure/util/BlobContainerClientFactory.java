@@ -20,7 +20,7 @@ import java.util.Objects;
  */
 public class BlobContainerClientFactory {
 
-  public static final Duration DELEGATED_KEY_EXPIRATION = Duration.ofHours(24);
+  public static final Duration DELEGATED_KEY_DURATION = Duration.ofHours(24);
   private final HttpClient httpClient = HttpClient.createDefault();
 
   private final BlobContainerClient blobContainerClient;
@@ -57,8 +57,7 @@ public class BlobContainerClientFactory {
     // There is little benefit for the caller to adjust this value.
     // A long duration minimizes the number of calls to get it and noise in audits logs.
     blobSasUrlFactory =
-        new UserDelegatedKeySasUrlFactory(
-            blobServiceClient, containerName, DELEGATED_KEY_EXPIRATION);
+        new UserDelegatedKeySasUrlFactory(blobServiceClient, containerName, DELEGATED_KEY_DURATION);
   }
 
   public BlobContainerClientFactory(String containerURLWithSasToken) {

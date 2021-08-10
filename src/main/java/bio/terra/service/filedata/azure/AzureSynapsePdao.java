@@ -37,12 +37,18 @@ public class AzureSynapsePdao {
           + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
           + "SECRET = '<secret>';";
 
+  private static final String dropScopedCredentialTemplate =
+      "DROP DATABASE SCOPED CREDENTIAL [<resourceName>];";
+
   private static final String dataSourceCreateTemplate =
       "CREATE EXTERNAL DATA SOURCE [<dataSourceName>]\n"
           + "WITH (\n"
           + "    LOCATION = '<scheme>://<host>/<container>',\n"
           + "    CREDENTIAL = [<credential>]\n"
           + ");";
+
+  private static final String dropDataSourceTemplate =
+      "DROP EXTERNAL DATA SOURCE [<resourceName>];";
 
   private static final String createTableTemplate =
       "CREATE EXTERNAL TABLE [<tableName>]\n"
@@ -60,6 +66,8 @@ public class AzureSynapsePdao {
           + "    ) WITH (\n"
           + "      <withArgument>\n"
           + ") AS rows;";
+
+  private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
   @Autowired
   public AzureSynapsePdao(
@@ -185,41 +193,27 @@ public class AzureSynapsePdao {
   }
 
   public void dropTables(List<String> tableNames) {
-    tableNames.stream()
-        .forEach(
-            tableName -> {
-              try {
-                executeSynapseQuery("DROP EXTERNAL TABLE [" + tableName + "];");
-              } catch (Exception ex) {
-                logger.warn("Unable to clean up table {}, ex: {}", tableName, ex.getMessage());
-              }
-            });
+    cleanup(tableNames, dropTableTemplate);
   }
 
   public void dropDataSources(List<String> dataSourceNames) {
-    dataSourceNames.stream()
-        .forEach(
-            dataSource -> {
-              try {
-                executeSynapseQuery("DROP EXTERNAL DATA SOURCE [" + dataSource + "];");
-              } catch (Exception ex) {
-                logger.warn(
-                    "Unable to clean up the external data source {}, ex: {}",
-                    dataSource,
-                    ex.getMessage());
-              }
-            });
+    cleanup(dataSourceNames, dropDataSourceTemplate);
   }
 
   public void dropScopedCredentials(List<String> credentialNames) {
-    credentialNames.stream()
+    cleanup(credentialNames, dropScopedCredentialTemplate);
+  }
+
+  private void cleanup(List<String> resourceNames, String sql) {
+    resourceNames.stream()
         .forEach(
-            credential -> {
+            resource -> {
               try {
-                executeSynapseQuery("DROP DATABASE SCOPED CREDENTIAL [" + credential + "];");
+                ST sqlTemplate = new ST(sql);
+                sqlTemplate.add("resourceName", resource);
+                executeSynapseQuery(sqlTemplate.render());
               } catch (Exception ex) {
-                logger.warn(
-                    "Unable to clean up scoped credential {}, ex: {}", credential, ex.getMessage());
+                logger.warn("Unable to clean up synapse resource {}.", resource, ex);
               }
             });
   }

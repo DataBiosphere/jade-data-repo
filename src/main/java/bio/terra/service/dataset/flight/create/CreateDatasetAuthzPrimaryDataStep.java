@@ -15,6 +15,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import java.util.ArrayList;
@@ -46,7 +47,7 @@ public class CreateDatasetAuthzPrimaryDataStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
     Map<IamRole, String> policyEmails =
-        workingMap.get(DatasetWorkingMapKeys.POLICY_EMAILS, Map.class);
+        workingMap.get(DatasetWorkingMapKeys.POLICY_EMAILS, new TypeReference<>() {});
     Dataset dataset = datasetService.retrieve(datasetId);
     try {
       if (configService.testInsertFault(DATASET_GRANT_ACCESS_FAULT)) {

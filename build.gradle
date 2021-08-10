@@ -229,13 +229,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
 
-    // Forcing this due to vulnerability issues
-    compile ('com.fasterxml.jackson.core:jackson-databind:2.11.0.rc1') {
-        force = true
-    }
-    compile ('com.fasterxml.jackson.core:jackson-core:2.10.2') {
-        force = true
-    }
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.4'
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.2.5'

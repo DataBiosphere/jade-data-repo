@@ -17,14 +17,6 @@ public class FileMetadataUtils {
   @Autowired
   public FileMetadataUtils() {}
 
-  // As mentioned at the top of the module, we can't use forward slash in a FireStore document
-  // name, so we do this encoding.
-  private static final char DOCNAME_SEPARATOR = '\u001c';
-
-  public String encodePathAsFirestoreDocumentName(String path) {
-    return StringUtils.replaceChars(path, '/', DOCNAME_SEPARATOR);
-  }
-
   public String encodePathAsAzureRowKey(String path) {
     return StringUtils.replaceChars(path, '/', ' ');
   }

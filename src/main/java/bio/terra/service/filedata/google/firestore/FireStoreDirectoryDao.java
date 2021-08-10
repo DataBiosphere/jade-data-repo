@@ -77,19 +77,19 @@ public class FireStoreDirectoryDao {
   private static final int LOOKUP_RETRIES = 30; // up to 5 minutes
   private static final int LOOKUP_WAIT_SECONDS = 10;
 
-  private final FireStoreUtils fireStoreUtils;
   private final FileMetadataUtils fileMetadataUtils;
+  private final FireStoreUtils fireStoreUtils;
   private final PerformanceLogger performanceLogger;
   private final ConfigurationService configurationService;
 
   @Autowired
   public FireStoreDirectoryDao(
-      FireStoreUtils fireStoreUtils,
       FileMetadataUtils fileMetadataUtils,
+      FireStoreUtils fireStoreUtils,
       PerformanceLogger performanceLogger,
       ConfigurationService configurationService) {
-    this.fireStoreUtils = fireStoreUtils;
     this.fileMetadataUtils = fileMetadataUtils;
+    this.fireStoreUtils = fireStoreUtils;
     this.performanceLogger = performanceLogger;
     this.configurationService = configurationService;
   }
@@ -171,7 +171,7 @@ public class FireStoreDirectoryDao {
                 }
                 DocumentReference docRef =
                     datasetCollection.document(
-                        fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
+                        encodePathAsFirestoreDocumentName(lookupPath));
                 deleteList.add(docRef);
                 lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
               }
@@ -277,6 +277,14 @@ public class FireStoreDirectoryDao {
     return entryList;
   }
 
+  // As mentioned at the top of the module, we can't use forward slash in a FireStore document
+  // name, so we do this encoding.
+  private static final char DOCNAME_SEPARATOR = '\u001c';
+
+  public String encodePathAsFirestoreDocumentName(String path) {
+    return StringUtils.replaceChars(path, '/', DOCNAME_SEPARATOR);
+  }
+
   private DocumentReference getDocRef(
       Firestore firestore, String collectionId, FireStoreDirectoryEntry entry) {
     return getDocRef(firestore, collectionId, entry.getPath(), entry.getName());
@@ -284,11 +292,11 @@ public class FireStoreDirectoryDao {
 
   private DocumentReference getDocRef(
       Firestore firestore, String collectionId, String path, String name) {
-    String fullPath = fireStoreUtils.getFullPath(path, name);
+    String fullPath = fileMetadataUtils.getFullPath(path, name);
     String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
     return firestore
         .collection(collectionId)
-        .document(fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
+        .document(encodePathAsFirestoreDocumentName(lookupPath));
   }
 
   private DocumentSnapshot lookupByFilePath(
@@ -298,7 +306,7 @@ public class FireStoreDirectoryDao {
       DocumentReference docRef =
           firestore
               .collection(collectionId)
-              .document(fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
+              .document(encodePathAsFirestoreDocumentName(lookupPath));
       ApiFuture<DocumentSnapshot> docSnapFuture = xn.get(docRef);
       return docSnapFuture.get();
     } catch (AbortedException | ExecutionException ex) {
@@ -502,8 +510,7 @@ public class FireStoreDirectoryDao {
             paths,
             path -> {
               DocumentReference docRef =
-                  datasetCollection.document(
-                      fileMetadataUtils.encodePathAsFirestoreDocumentName((String) path));
+                  datasetCollection.document(encodePathAsFirestoreDocumentName((String) path));
               return docRef.get();
             });
 
@@ -527,10 +534,9 @@ public class FireStoreDirectoryDao {
     fireStoreUtils.batchOperation(
         entries,
         entry -> {
-          String fullPath = fireStoreUtils.getFullPath(entry.getPath(), entry.getName());
+          String fullPath = fileMetadataUtils.getFullPath(entry.getPath(), entry.getName());
           String lookupPath =
-              fileMetadataUtils.encodePathAsFirestoreDocumentName(
-                  fileMetadataUtils.makeLookupPath(fullPath));
+              encodePathAsFirestoreDocumentName(fileMetadataUtils.makeLookupPath(fullPath));
           DocumentReference newRef = snapshotCollection.document(lookupPath);
           return newRef.set(entry);
         });
@@ -582,7 +588,7 @@ public class FireStoreDirectoryDao {
     DocumentReference docRef =
         firestore
             .collection(collectionId)
-            .document(fileMetadataUtils.encodePathAsFirestoreDocumentName(lookupPath));
+            .document(encodePathAsFirestoreDocumentName(lookupPath));
 
     RuntimeException lastException = null;
     for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {

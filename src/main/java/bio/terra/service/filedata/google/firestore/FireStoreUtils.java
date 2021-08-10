@@ -110,21 +110,6 @@ public class FireStoreUtils {
         op + " - execution exception wrapping: " + throwable, throwable);
   }
 
-  String getFullPath(String dirPath, String name) {
-    // Originally, this was a method in FireStoreDirectoryEntry, but the Firestore client complained
-    // about it,
-    // because it was not a set/get for an actual class member. Very picky, that!
-    // There are three cases here:
-    // - the path and name are empty: that is the root. Full path is "/"
-    // - the path is "/" and the name is not empty: dir in the root. Full path is "/name"
-    // - the path is "/name" and the name is not empty: Full path is path + "/" + name
-    String path = StringUtils.EMPTY;
-    if (StringUtils.isNotEmpty(dirPath) && !StringUtils.equals(dirPath, "/")) {
-      path = dirPath;
-    }
-    return path + '/' + name;
-  }
-
   /**
    * This code is a bit ugly, but here is why... (from
    * https://cloud.google.com/firestore/docs/solutions/delete-collections)

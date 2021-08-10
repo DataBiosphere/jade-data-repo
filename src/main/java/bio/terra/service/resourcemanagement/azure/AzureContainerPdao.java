@@ -1,8 +1,8 @@
 package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.sas.BlobContainerSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.sas.SasProtocol;
@@ -45,37 +45,10 @@ public class AzureContainerPdao {
     return blobContainerClient;
   }
 
-  public BlobUrlParts getDestinationContainerSignedUrl(
+  public String getDestinationContainerSignedUrl(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
-      String containerName,
-      String permissionDefinition) {
-    BlobContainerSasPermission permissions = BlobContainerSasPermission.parse(permissionDefinition);
-
-    OffsetDateTime expiryTime = OffsetDateTime.now().plusDays(1);
-    SasProtocol sasProtocol = SasProtocol.HTTPS_ONLY;
-
-    // build the token
-    BlobServiceSasSignatureValues sasSignatureValues =
-        new BlobServiceSasSignatureValues(expiryTime, permissions)
-            .setProtocol(sasProtocol)
-            // Version is set to a version of the token signing API the supports keys that permit
-            // listing files
-            .setVersion("2020-04-08");
-
-    BlobContainerClient containerClient =
-        authService.getBlobContainerClient(profileModel, storageAccountResource, containerName);
-    return BlobUrlParts.parse(
-        String.format(
-            "%s?%s",
-            containerClient.getBlobContainerUrl(),
-            containerClient.generateSas(sasSignatureValues)));
-  }
-
-  public BlobUrlParts getDestinationContainerSignedUrl(
-      BillingProfileModel profileModel,
-      AzureStorageAccountResource storageAccountResource,
-      AzureStorageAccountResource.ContainerType containerType,
+      ContainerType containerType,
       boolean enableRead,
       boolean enableList,
       boolean enableWrite,
@@ -101,10 +74,8 @@ public class AzureContainerPdao {
 
     BlobContainerClient containerClient =
         getOrCreateContainer(profileModel, storageAccountResource, containerType);
-    return BlobUrlParts.parse(
-        String.format(
-            "%s?%s",
-            containerClient.getBlobContainerUrl(),
-            containerClient.generateSas(sasSignatureValues)));
+    return String.format(
+        "%s?%s",
+        containerClient.getBlobContainerUrl(), containerClient.generateSas(sasSignatureValues));
   }
 }

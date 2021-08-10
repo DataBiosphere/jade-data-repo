@@ -7,14 +7,18 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
+import com.azure.storage.blob.sas.BlobSasPermission;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,6 +36,7 @@ public class AzureSynapsePdao {
   private final AzureResourceConfiguration azureResourceConfiguration;
   private final AzureBlobStorePdao azureBlobStorePdao;
   private static final String PARSER_VERSION = "2.0";
+  private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
   private static final String scopedCredentialCreateTemplate =
       "CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]\n"
           + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
@@ -77,8 +82,7 @@ public class AzureSynapsePdao {
     this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
-  public BlobUrlParts getOrSignUrlForSourceFactory(
-      String dataSourceUrl, UUID tenantId, SynapseSasPermission permissionType) {
+  public BlobUrlParts getOrSignUrlForSourceFactory(String dataSourceUrl, UUID tenantId) {
     // parse user provided url to Azure container - can be signed or unsigned
     BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
     String blobName = ingestControlFileBlobUrl.getBlobName();
@@ -88,33 +92,41 @@ public class AzureSynapsePdao {
     // when signing, 'tdr' (the Azure app), must be granted permission on the storage account
     // associated with the provided tenant ID
     BlobContainerClientFactory sourceClientFactory =
-        azureBlobStorePdao.buildSourceClientFactory(tenantId, ingestControlFileBlobUrl);
+        azureBlobStorePdao.buildSourceClientFactory(tenantId, dataSourceUrl);
 
     // Given the sas token, rebuild a signed url
+    BlobSasTokenOptions options =
+        new BlobSasTokenOptions(
+            DEFAULT_SAS_TOKEN_EXPIRATION,
+            new BlobSasPermission().setReadPermission(true),
+            AzureSynapsePdao.class.getName());
     String signedURL =
-        sourceClientFactory.createSasUrlForBlob(blobName, getPermissionString(permissionType));
+        sourceClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
     return BlobUrlParts.parse(signedURL);
   }
 
   public BlobUrlParts getOrSignUrlForTargetFactory(
       String dataSourceUrl,
       BillingProfileModel profileModel,
-      AzureStorageAccountResource storageAccount,
-      SynapseSasPermission permissionType) {
+      AzureStorageAccountResource storageAccount) {
     BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
     String blobName = ingestControlFileBlobUrl.getBlobName();
-    String containerName = ingestControlFileBlobUrl.getBlobContainerName();
 
     BlobContainerClientFactory targetDataClientFactory =
         azureBlobStorePdao.getTargetDataClientFactory(
-            profileModel,
-            storageAccount,
-            containerName,
-            getPermissionString(SynapseSasPermission.WRITE_PARQUET));
+            profileModel, storageAccount, ContainerType.METADATA, false);
 
     // Given the sas token, rebuild a signed url
+    BlobSasTokenOptions options =
+        new BlobSasTokenOptions(
+            DEFAULT_SAS_TOKEN_EXPIRATION,
+            new BlobSasPermission()
+                .setReadPermission(true)
+                .setListPermission(true)
+                .setWritePermission(true),
+            AzureSynapsePdao.class.getName());
     String signedURL =
-        targetDataClientFactory.createSasUrlForBlob(blobName, getPermissionString(permissionType));
+        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
     return BlobUrlParts.parse(signedURL);
   }
 
@@ -289,21 +301,6 @@ public class AzureSynapsePdao {
             + translateTypeToDdl(dataType, false)
             + ") "
             + name;
-    }
-  }
-
-  enum SynapseSasPermission {
-    READ_ONLY,
-    WRITE_PARQUET
-  }
-
-  private String getPermissionString(SynapseSasPermission permissionType) {
-    switch (permissionType) {
-      case WRITE_PARQUET:
-        return "rwl";
-      case READ_ONLY:
-      default:
-        return "r";
     }
   }
 }

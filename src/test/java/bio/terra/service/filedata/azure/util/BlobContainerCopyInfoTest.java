@@ -24,7 +24,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class BlobContainerCopyInfoTest {
-  private BlobContainerCopyInfo blobContainerCopyInfo;
 
   @Mock private SyncPoller<BlobCopyInfo, Void> poller;
 
@@ -45,7 +44,8 @@ class BlobContainerCopyInfoTest {
   @MethodSource("getCopyStatusScenario")
   void getCopyStatus_ScenarioIsProvided_ExpectedStatusIsReturned(
       LongRunningOperationStatus expectedStatus, CopyStatusType... statuses) {
-    blobContainerCopyInfo = new BlobContainerCopyInfo(createPollResponses(statuses));
+    BlobContainerCopyInfo blobContainerCopyInfo =
+        new BlobContainerCopyInfo(createPollResponses(statuses));
 
     assertThat(blobContainerCopyInfo.getCopyStatus(), equalTo(expectedStatus));
   }

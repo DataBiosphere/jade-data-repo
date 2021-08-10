@@ -3,6 +3,7 @@ package bio.terra.service.filedata.azure.util;
 import static bio.terra.service.resourcemanagement.AzureDataLocationSelector.armUniqueString;
 
 import com.azure.core.credential.TokenCredential;
+import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
@@ -10,8 +11,8 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.sas.SasProtocol;
-import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
@@ -40,7 +41,7 @@ public class BlobIOTestUtility {
   }
 
   private final Optional<BlobContainerClient> destinationBlobContainerClient;
-  private String destinationContainerName;
+  private final String destinationContainerName;
   private static final String STORAGE_ENDPOINT_PATTERN = "https://%s.blob.core.windows.net/%s";
   private final TokenCredential tokenCredential;
 
@@ -147,17 +148,13 @@ public class BlobIOTestUtility {
     return sourceBlobContainerClient.getBlobContainerUrl();
   }
 
-  public String getDestinationContainerEndpoint() {
-    return getDestinationBlobContainerClient().getBlobContainerUrl();
-  }
-
   private InputStream createInputStream(long length) {
     return new InputStream() {
       private long dataProduced;
       private final Random rand = new Random();
 
       @Override
-      public int read() throws IOException {
+      public int read() {
         if (dataProduced == length) {
           return -1;
         }
@@ -177,5 +174,24 @@ public class BlobIOTestUtility {
         getDestinationBlobContainerClient().getAccountName(),
         tokenCredential,
         destinationContainerName);
+  }
+
+  public BlobSasTokenOptions createReadOnlyTokenOptions() {
+    return new BlobSasTokenOptions(
+        Duration.ofHours(1),
+        new BlobSasPermission().setReadPermission(true),
+        BlobIOTestUtility.class.getName());
+  }
+
+  public String getSourceStorageAccountPrimarySharedKey(
+      AzureResourceManager client, String resourceGroup, String accountName) {
+
+    return client
+        .storageAccounts()
+        .getByResourceGroup(resourceGroup, accountName)
+        .getKeys()
+        .iterator()
+        .next()
+        .value();
   }
 }

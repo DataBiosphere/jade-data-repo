@@ -6,6 +6,7 @@ import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobCopyInfo;
 import com.azure.storage.blob.models.BlobListDetails;
 import com.azure.storage.blob.models.ListBlobsOptions;
+import com.azure.storage.blob.sas.BlobSasPermission;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -19,6 +20,7 @@ public class BlobContainerCopier {
   private static final int MIN_LIST_OPERATION_TIMEOUT_IN_SECONDS = 10;
   private static final int MIN_POLLING_INTERVAL_IN_SECONDS = 2;
   private static final Logger logger = LoggerFactory.getLogger(BlobContainerCopier.class);
+  private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
   private final BlobContainerClientFactory destinationClientFactory;
 
   private String blobSourcePrefix = "";
@@ -189,8 +191,21 @@ public class BlobContainerCopier {
       return null;
     }
 
-    String sourceSASUrl = this.sourceClientFactory.createReadOnlySasUrlForBlob(sourceBlobName);
+    String sourceSASUrl = createSourceBlobReadOnlySasUrl(sourceBlobName);
     return beginBlobCopyFromSasUrl(sourceBlobName, sourceSASUrl, destinationBlobName);
+  }
+
+  private String createSourceBlobReadOnlySasUrl(String blobName) {
+
+    BlobSasTokenOptions blobSasTokenOptions =
+        new BlobSasTokenOptions(
+            DEFAULT_SAS_TOKEN_EXPIRATION,
+            new BlobSasPermission().setReadPermission(true),
+            BlobContainerCopier.class.getName());
+
+    return sourceClientFactory
+        .getBlobSasUrlFactory()
+        .createSasUrlForBlob(blobName, blobSasTokenOptions);
   }
 
   private SyncPoller<BlobCopyInfo, Void> beginBlobCopyFromSasUrl(

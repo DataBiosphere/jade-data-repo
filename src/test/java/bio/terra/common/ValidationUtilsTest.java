@@ -1,6 +1,7 @@
 package bio.terra.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import bio.terra.common.category.Unit;
 import java.util.Arrays;
@@ -55,5 +56,22 @@ public class ValidationUtilsTest {
     assertThat(ValidationUtils.convertToUuid("2c297e7c-b303-4243-af6a-76cd9d3b0ca8")).isPresent();
     assertThat(ValidationUtils.isValidUuid("not a uuid")).isFalse();
     assertThat(ValidationUtils.convertToUuid("not a uuid")).isEmpty();
+  }
+
+  @Test
+  public void testValidationOfEmptyBlankAndNullStrings() {
+
+    assertThatExceptionOfType(IllegalArgumentException.class)
+        .isThrownBy(() -> ValidationUtils.requireNotBlank("", "empty arg"));
+    assertThatExceptionOfType(IllegalArgumentException.class)
+        .isThrownBy(() -> ValidationUtils.requireNotBlank(null, "null arg"));
+    assertThatExceptionOfType(IllegalArgumentException.class)
+        .isThrownBy(() -> ValidationUtils.requireNotBlank("  ", "param"));
+  }
+
+  @Test
+  public void testValidationOfValidInputString() {
+    // no exception is thrown
+    ValidationUtils.requireNotBlank("abc", "error msg");
   }
 }

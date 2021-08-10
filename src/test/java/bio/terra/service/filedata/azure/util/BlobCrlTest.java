@@ -8,7 +8,12 @@ import static org.hamcrest.Matchers.is;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobClientBuilder;
+import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import java.time.Duration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,5 +84,27 @@ public class BlobCrlTest {
     BlobProperties properties = blobCrl.getBlobProperties(blobName);
 
     assertThat(properties.getBlobSize(), equalTo(MIB / 10));
+  }
+
+  @Test
+  public void
+      testCreateSASUrlWithContentDisposition_SizeCanBeReadAndContentDispositionInSasToken() {
+    String blobName = "myBlob";
+    String contentDisposition = "myuser@foo.org";
+    blobIOTestUtility.uploadDestinationFile(blobName, MIB / 10);
+
+    BlobSasTokenOptions options =
+        new BlobSasTokenOptions(
+            Duration.ofMinutes(15),
+            new BlobSasPermission().setReadPermission(true),
+            contentDisposition);
+    String sasUrl = blobCrl.createSasTokenUrlForBlob(blobName, options);
+
+    BlobClient blobClient = new BlobClientBuilder().endpoint(sasUrl).buildClient();
+
+    assertThat(blobClient.getProperties().getBlobSize(), equalTo(MIB / 10));
+    assertThat(
+        BlobUrlParts.parse(sasUrl).getCommonSasQueryParameters().getContentDisposition(),
+        equalTo(contentDisposition));
   }
 }

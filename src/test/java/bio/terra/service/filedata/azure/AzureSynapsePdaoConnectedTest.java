@@ -1,7 +1,5 @@
 package bio.terra.service.filedata.azure;
 
-import static bio.terra.service.filedata.azure.AzureSynapsePdao.SynapseSasPermission;
-
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -109,7 +107,8 @@ public class AzureSynapsePdaoConnectedTest {
         new AzureStorageAccountResource()
             .resourceId(storageAccountId)
             .name(STORAGE_ACCOUNT_NAME)
-            .applicationResource(applicationResource);
+            .applicationResource(applicationResource)
+            .metadataContainer("metadata");
   }
 
   @After
@@ -154,8 +153,7 @@ public class AzureSynapsePdaoConnectedTest {
     String ingestFileLocation = "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata";
 
     BlobUrlParts ingestRequestSignUrlBlob =
-        azureSynapsePdao.getOrSignUrlForSourceFactory(
-            ingestFileLocation, tenantId, SynapseSasPermission.READ_ONLY);
+        azureSynapsePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId);
     azureSynapsePdao.createExternalDataSource(
         ingestRequestSignUrlBlob, controlFileScopedCredentialName, controlFileDataSourceName);
 
@@ -166,10 +164,7 @@ public class AzureSynapsePdaoConnectedTest {
 
     BlobUrlParts destinationSignUrlBlob =
         azureSynapsePdao.getOrSignUrlForTargetFactory(
-            parquetDestinationLocation,
-            billingProfile,
-            storageAccountResource,
-            SynapseSasPermission.READ_ONLY);
+            parquetDestinationLocation, billingProfile, storageAccountResource);
     azureSynapsePdao.createExternalDataSource(
         destinationSignUrlBlob, destinationScopedCredentialName, destinationDataSourceName);
 

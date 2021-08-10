@@ -7,7 +7,6 @@ import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
-import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
@@ -69,11 +68,10 @@ public class BlobIOTestUtility {
         .buildClient();
   }
 
-  public BlobUrlParts generateSourceContainerUrlWithSasReadAndListPermissions(String accountKey) {
+  public String generateSourceContainerUrlWithSasReadAndListPermissions(String accountKey) {
     String sasToken = generateContainerSasTokenWithReadAndListPermissions(accountKey);
 
-    return BlobUrlParts.parse(
-        String.format("%s?%s", getSourceBlobContainerClient().getBlobContainerUrl(), sasToken));
+    return String.format("%s?%s", getSourceBlobContainerClient().getBlobContainerUrl(), sasToken);
   }
 
   public String generateContainerSasTokenWithReadAndListPermissions(String accountKey) {

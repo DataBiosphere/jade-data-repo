@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import org.apache.commons.lang3.StringUtils;
 
 public final class ValidationUtils {
 
@@ -48,5 +49,13 @@ public final class ValidationUtils {
     } catch (IllegalArgumentException e) {
       return Optional.empty();
     }
+  }
+
+  public static String requireNotBlank(String value, String errorMsg) {
+    if (StringUtils.isBlank(value)) {
+      throw new IllegalArgumentException(errorMsg);
+    }
+
+    return value;
   }
 }

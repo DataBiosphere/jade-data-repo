@@ -1,6 +1,9 @@
 package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.model.BillingProfileModel;
+import com.azure.core.credential.AzureNamedKeyCredential;
+import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
@@ -61,6 +64,25 @@ public class AzureAuthService {
         .credential(new StorageSharedKeyCredential(storageAccountResource.getName(), key))
         .endpoint("https://" + storageAccountResource.getName() + ".blob.core.windows.net")
         .containerName(containerName)
+        .buildClient();
+  }
+
+  /**
+   * Return an authenticated {@link TableServiceClient} client using key-based authentication
+   *
+   * @param profileModel The object containing user tenant information
+   * @param storageAccountResource The sa that BlobContainerClient client should be built from
+   * @return an authenticated {@link TableServiceClient}
+   */
+  public TableServiceClient getTableServiceClient(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    // Obtain a secret key for the associated storage account
+    String key = getStorageAccountKey(profileModel, storageAccountResource);
+
+    // Create a data lake client by authenticating using the found key
+    return new TableServiceClientBuilder()
+        .credential(new AzureNamedKeyCredential(storageAccountResource.getName(), key))
+        .endpoint("https://" + storageAccountResource.getName() + ".table.core.windows.net")
         .buildClient();
   }
 

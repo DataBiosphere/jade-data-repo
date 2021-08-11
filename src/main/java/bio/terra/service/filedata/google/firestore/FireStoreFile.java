@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
+import com.azure.data.tables.models.TableEntity;
+import java.util.Objects;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
@@ -129,5 +131,69 @@ public class FireStoreFile {
         .append("checksumMd5", checksumMd5)
         .append("size", size)
         .toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    FireStoreFile that = (FireStoreFile) o;
+    return Objects.equals(fileId, that.fileId)
+        && Objects.equals(mimeType, that.mimeType)
+        && Objects.equals(description, that.description)
+        && Objects.equals(bucketResourceId, that.bucketResourceId)
+        && Objects.equals(loadTag, that.loadTag)
+        && Objects.equals(fileCreatedDate, that.fileCreatedDate)
+        && Objects.equals(gspath, that.gspath)
+        && Objects.equals(checksumCrc32c, that.checksumCrc32c)
+        && Objects.equals(checksumMd5, that.checksumMd5)
+        && Objects.equals(size, that.size);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        fileId,
+        mimeType,
+        description,
+        bucketResourceId,
+        loadTag,
+        fileCreatedDate,
+        gspath,
+        checksumCrc32c,
+        checksumMd5,
+        size);
+  }
+
+  public static FireStoreFile fromTableEntity(TableEntity entity) {
+    return new FireStoreFile()
+        .fileId(entity.getProperty("fileId").toString())
+        .mimeType(entity.getProperty("mimeType").toString())
+        .description(entity.getProperty("description").toString())
+        .bucketResourceId(entity.getProperty("bucketResourceId").toString())
+        .loadTag(entity.getProperty("loadTag").toString())
+        .fileCreatedDate(entity.getProperty("fileCreatedDate").toString())
+        .gspath(entity.getProperty("gspath").toString())
+        .checksumCrc32c(entity.getProperty("checksumCrc32c").toString())
+        .checksumMd5(entity.getProperty("checksumMd5").toString())
+        .size((Long) entity.getProperty("size"));
+  }
+
+  public static TableEntity toTableEntity(String partitionKey, FireStoreFile f) {
+    return new TableEntity(partitionKey, f.getFileId())
+        .addProperty("fileId", f.getFileId())
+        .addProperty("mimeType", f.getMimeType())
+        .addProperty("description", f.getDescription())
+        .addProperty("bucketResourceId", f.getBucketResourceId())
+        .addProperty("loadTag", f.getLoadTag())
+        .addProperty("fileCreatedDate", f.getFileCreatedDate())
+        .addProperty("gspath", f.getGspath())
+        .addProperty("checksumCrc32c", f.getChecksumCrc32c())
+        .addProperty("checksumMd5", f.getChecksumMd5())
+        .addProperty("size", f.getSize());
   }
 }

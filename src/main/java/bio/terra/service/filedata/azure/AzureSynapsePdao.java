@@ -14,6 +14,7 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.Co
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.sas.BlobSasPermission;
+import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -42,18 +43,12 @@ public class AzureSynapsePdao {
           + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
           + "SECRET = '<secret>';";
 
-  private static final String dropScopedCredentialTemplate =
-      "DROP DATABASE SCOPED CREDENTIAL [<resourceName>];";
-
   private static final String dataSourceCreateTemplate =
       "CREATE EXTERNAL DATA SOURCE [<dataSourceName>]\n"
           + "WITH (\n"
           + "    LOCATION = '<scheme>://<host>/<container>',\n"
           + "    CREDENTIAL = [<credential>]\n"
           + ");";
-
-  private static final String dropDataSourceTemplate =
-      "DROP EXTERNAL DATA SOURCE [<resourceName>];";
 
   private static final String createTableTemplate =
       "CREATE EXTERNAL TABLE [<tableName>]\n"
@@ -93,6 +88,12 @@ public class AzureSynapsePdao {
           + ") AS rows;";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
+
+  private static final String dropDataSourceTemplate =
+      "DROP EXTERNAL DATA SOURCE [<resourceName>];";
+
+  private static final String dropScopedCredentialTemplate =
+      "DROP DATABASE SCOPED CREDENTIAL [<resourceName>];";
 
   @Autowired
   public AzureSynapsePdao(
@@ -190,11 +191,13 @@ public class AzureSynapsePdao {
     sqlCreateTableTemplate.add("parserVersion", PARSER_VERSION);
     sqlCreateTableTemplate.add("firstRow", csvSkipLeadingRows);
 
+    // TODO - sanitize ingestTableName, as this will be provided via user input
     sqlCreateTableTemplate.add("tableName", ingestTableName);
     sqlCreateTableTemplate.add("destinationParquetFile", destinationParquetFile);
     sqlCreateTableTemplate.add("destinationDataSourceName", destinationDataSourceName);
     sqlCreateTableTemplate.add(
         "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
+    // TODO - sanitize ingestFileName, as this will be provided via user input
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
     sqlCreateTableTemplate.add("columns", columns);
@@ -236,7 +239,8 @@ public class AzureSynapsePdao {
     }
   }
 
-  private SQLServerDataSource getDatasource() {
+  @VisibleForTesting
+  public SQLServerDataSource getDatasource() {
     SQLServerDataSource ds = new SQLServerDataSource();
     ds.setServerName(azureResourceConfiguration.getSynapse().getWorkspaceName());
     ds.setUser(azureResourceConfiguration.getSynapse().getSqlAdminUser());

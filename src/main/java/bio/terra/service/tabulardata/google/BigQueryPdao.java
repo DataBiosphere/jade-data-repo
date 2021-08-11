@@ -18,6 +18,7 @@ import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
@@ -33,6 +34,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotMapColumn;
@@ -60,6 +62,7 @@ import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
@@ -77,6 +80,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -290,6 +294,57 @@ public class BigQueryPdao {
     sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
 
     bigQueryProject.query(sqlTemplate.render());
+  }
+
+  private static final String getLoadHistoryTemplate =
+      "SELECT * "
+          + "FROM `<project>.<dataset>.<loadTable>` L"
+          + "WHERE L.load_tag = @loadTag "
+          + "LIMIT <limit> "
+          + "OFFSET <offset>";
+
+  public List<BulkLoadHistoryModel> getLoadHistory(
+      Dataset dataset, String loadTag, int offset, int limit) {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    String datasetName = prefixName(dataset.getName());
+    var sqlTemplate = new ST(getLoadHistoryTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", datasetName);
+    sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
+    sqlTemplate.add("limit", limit);
+    sqlTemplate.add("offset", offset);
+
+    var query = sqlTemplate.render();
+    QueryJobConfiguration queryConfig =
+        QueryJobConfiguration.newBuilder(query)
+            .addNamedParameter("loadTag", QueryParameterValue.string(loadTag))
+            .build();
+
+    try {
+      var results = bigQueryProject.getBigQuery().query(queryConfig);
+      return StreamSupport.stream(results.iterateAll().spliterator(), true)
+          .map(BigQueryPdao::bigQueryResultToBulkLoadHistoryModel)
+          .collect(Collectors.toList());
+    } catch (InterruptedException ex) {
+      throw new GoogleResourceException("Could not query BigQuery for load history", ex);
+    }
+  }
+
+  private static BulkLoadHistoryModel bigQueryResultToBulkLoadHistoryModel(
+      FieldValueList fieldValue) {
+    var model =
+        new BulkLoadHistoryModel()
+            .sourcePath(fieldValue.get("source_name").toString())
+            .targetPath(fieldValue.get("target_path").toString())
+            .state(BulkLoadFileState.valueOf(fieldValue.get("state").toString()))
+            .fileId(fieldValue.get("file_id").toString());
+
+    Optional.ofNullable(fieldValue.get("checksum_crc32c"))
+        .ifPresent(o -> model.checksumCRC(o.toString()));
+    Optional.ofNullable(fieldValue.get("checksum_md5"))
+        .ifPresent(o -> model.checksumMD5(o.toString()));
+    Optional.ofNullable(fieldValue.get("error")).ifPresent(o -> model.error(o.toString()));
+    return model;
   }
 
   public boolean deleteDataset(Dataset dataset) throws InterruptedException {

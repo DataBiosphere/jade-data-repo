@@ -2,8 +2,6 @@ package bio.terra.service.tabulardata.azure;
 
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
-import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
@@ -12,7 +10,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,15 +19,6 @@ public class StorageTableDao {
   private static final int AZURE_STORAGE_TABLE_NAME_MAX_LENGTH = 63;
   private static final int TABLE_NAME_MAX_LENGTH_BEFORE_PREFIX =
       AZURE_STORAGE_TABLE_NAME_MAX_LENGTH - LOAD_HISTORY_TABLE_NAME_SUFFIX.length();
-
-  private final ResourceService resourceService;
-  private final AzureAuthService azureAuthService;
-
-  @Autowired
-  public StorageTableDao(ResourceService resourceService, AzureAuthService azureAuthService) {
-    this.resourceService = resourceService;
-    this.azureAuthService = azureAuthService;
-  }
 
   /**
    * Store the results of a bulk file load in an Azure Storage Table

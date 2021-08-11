@@ -33,6 +33,7 @@ import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -50,6 +51,7 @@ public class DatasetService {
   private final LoadService loadService;
   private final ProfileDao profileDao;
   private final StorageTableService storageTableService;
+  private final BigQueryPdao bigQueryPdao;
 
   @Autowired
   public DatasetService(
@@ -58,13 +60,15 @@ public class DatasetService {
       ResourceService resourceService,
       LoadService loadService,
       ProfileDao profileDao,
-      StorageTableService storageTableService) {
+      StorageTableService storageTableService,
+      BigQueryPdao bigQueryPdao) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.resourceService = resourceService;
     this.loadService = loadService;
     this.profileDao = profileDao;
     this.storageTableService = storageTableService;
+    this.bigQueryPdao = bigQueryPdao;
   }
 
   public String createDataset(
@@ -245,6 +249,8 @@ public class DatasetService {
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
     if (platformWrapper.isAzure()) {
       return storageTableService.getLoadHistory(dataset, loadTag, offset, limit);
+    } else if (platformWrapper.isGcp()) {
+      return bigQueryPdao.getLoadHistory(dataset, loadTag, offset, limit);
     } else {
       throw new NotImplementedException(
           "Not yet implemented for GCP. Check out BigQuery to find load history");

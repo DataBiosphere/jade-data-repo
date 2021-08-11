@@ -170,8 +170,7 @@ public class FireStoreDirectoryDao {
                   break;
                 }
                 DocumentReference docRef =
-                    datasetCollection.document(
-                        encodePathAsFirestoreDocumentName(lookupPath));
+                    datasetCollection.document(encodePathAsFirestoreDocumentName(lookupPath));
                 deleteList.add(docRef);
                 lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
               }
@@ -586,9 +585,7 @@ public class FireStoreDirectoryDao {
   private DocumentSnapshot lookupByPathNoXn(
       Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {
     DocumentReference docRef =
-        firestore
-            .collection(collectionId)
-            .document(encodePathAsFirestoreDocumentName(lookupPath));
+        firestore.collection(collectionId).document(encodePathAsFirestoreDocumentName(lookupPath));
 
     RuntimeException lastException = null;
     for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {

@@ -10,9 +10,9 @@ import bio.terra.stairway.exception.DatabaseOperationException;
 import java.time.Instant;
 import java.util.UUID;
 
-public abstract class IngestCopyLoadHistoryStep {
+public abstract class IngestCopyLoadHistoryStep implements Step {
 
-  public IngestCopyLoadHistoryResources getResources(
+  protected IngestCopyLoadHistoryResources getResources(
       FlightContext context,
       LoadService loadService,
       DatasetService datasetService,
@@ -29,19 +29,22 @@ public abstract class IngestCopyLoadHistoryStep {
       LoadHistoryIterator loadHistoryIterator =
           loadService.loadHistoryIterator(loadId, loadHistoryChunkSize);
 
-      IngestCopyLoadHistoryResources resources = new IngestCopyLoadHistoryResources();
-      resources.dataset = dataset;
-      resources.loadTime = loadTime;
-      resources.loadHistoryIterator = loadHistoryIterator;
-      return resources;
+      return new IngestCopyLoadHistoryResources(dataset, loadTime, loadHistoryIterator);
     } catch (DatabaseOperationException ex) {
       throw new RuntimeException("Failed to get stairway flight state", ex);
     }
   }
 
-  static class IngestCopyLoadHistoryResources {
-    Dataset dataset;
-    Instant loadTime;
-    LoadHistoryIterator loadHistoryIterator;
+  protected static class IngestCopyLoadHistoryResources {
+    final Dataset dataset;
+    final Instant loadTime;
+    final LoadHistoryIterator loadHistoryIterator;
+
+    public IngestCopyLoadHistoryResources(
+        Dataset dataset, Instant loadTime, LoadHistoryIterator loadHistoryIterator) {
+      this.dataset = dataset;
+      this.loadTime = loadTime;
+      this.loadHistoryIterator = loadHistoryIterator;
+    }
   }
 }

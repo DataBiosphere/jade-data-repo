@@ -5,7 +5,6 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.List;
@@ -17,8 +16,7 @@ import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHistoryStep
-    implements Step {
+public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHistoryStep {
 
   private static final Logger logger =
       LoggerFactory.getLogger(IngestCopyLoadHistoryToStorageTableStep.class);

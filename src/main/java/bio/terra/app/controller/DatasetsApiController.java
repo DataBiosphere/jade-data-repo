@@ -259,9 +259,7 @@ public class DatasetsApiController implements DatasetsApi {
     iamService.verifyAuthorization(
         getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
     List<BulkLoadHistoryModel> history = datasetService.getLoadHistory(id, loadTag, offset, limit);
-
-    var responseModel = new BulkLoadHistoryModelList().total(history.size()).items(history);
-    return new ResponseEntity<>(responseModel, HttpStatus.OK);
+    return ResponseEntity.ok(new BulkLoadHistoryModelList().total(history.size()).items(history));
   }
 
   @Override

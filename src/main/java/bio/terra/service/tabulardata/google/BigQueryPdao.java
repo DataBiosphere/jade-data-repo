@@ -43,6 +43,7 @@ import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
+import bio.terra.service.tabulardata.LoadHistoryUtil;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
 import com.google.cloud.bigquery.Acl;
@@ -340,16 +341,19 @@ public class BigQueryPdao {
         };
     var model =
         new BulkLoadHistoryModel()
-            .sourcePath(fieldValue.get("source_name").getStringValue())
-            .targetPath(fieldValue.get("target_path").getStringValue())
-            .state(BulkLoadFileState.fromValue(fieldValue.get("state").getStringValue()))
-            .fileId(fieldValue.get("file_id").getStringValue());
+            .sourcePath(fieldValue.get(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME).getStringValue())
+            .targetPath(fieldValue.get(LoadHistoryUtil.TARGET_PATH_FIELD_NAME).getStringValue())
+            .state(
+                BulkLoadFileState.fromValue(
+                    fieldValue.get(LoadHistoryUtil.STATE_FIELD_NAME).getStringValue()))
+            .fileId(fieldValue.get(LoadHistoryUtil.FILE_ID_FIELD_NAME).getStringValue());
 
-    Optional.ofNullable(fieldValue.get("checksum_crc32c"))
+    Optional.ofNullable(fieldValue.get(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
         .ifPresent(o -> model.checksumCRC(emptyToNull.apply(o)));
-    Optional.ofNullable(fieldValue.get("checksum_md5"))
+    Optional.ofNullable(fieldValue.get(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
         .ifPresent(o -> model.checksumMD5(emptyToNull.apply(o)));
-    Optional.ofNullable(fieldValue.get("error")).ifPresent(o -> model.error(emptyToNull.apply(o)));
+    Optional.ofNullable(fieldValue.get(LoadHistoryUtil.ERROR_FIELD_NAME))
+        .ifPresent(o -> model.error(emptyToNull.apply(o)));
     return model;
   }
 

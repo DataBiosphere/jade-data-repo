@@ -2,6 +2,7 @@ package bio.terra.service.tabulardata.azure;
 
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.service.tabulardata.LoadHistoryUtil;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
@@ -24,8 +25,8 @@ public class StorageTableDao {
    * Store the results of a bulk file load in an Azure Storage Table
    *
    * <p>The table name will be the result of the dataset name passed through {@link
-   * StorageTableDao#azurfyTableName} Entities will be partitioned on the {@param loadTag} and their
-   * row keys will be the value of{@link BulkLoadHistoryModel#getFileId()}
+   * StorageTableDao#toStorageTableName} Entities will be partitioned on the loadTag and their row
+   * keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
    *
    * @param serviceClient A service client for the dataset
    * @param datasetName the name of the dataset
@@ -39,7 +40,7 @@ public class StorageTableDao {
       String loadTag,
       Instant loadTime,
       List<BulkLoadHistoryModel> loadHistoryArray) {
-    var tableName = azurfyTableName(datasetName);
+    var tableName = toStorageTableName(datasetName);
     TableClient client = serviceClient.createTableIfNotExists(tableName);
     loadHistoryArray.stream()
         .map(model -> bulkFileLoadModelToStorageTableEntity(model, loadTag, loadTime))
@@ -62,7 +63,7 @@ public class StorageTableDao {
       String loadTag,
       int offset,
       int limit) {
-    var tableClient = tableServiceClient.getTableClient(azurfyTableName(datasetName));
+    var tableClient = tableServiceClient.getTableClient(toStorageTableName(datasetName));
     ListEntitiesOptions options =
         new ListEntitiesOptions().setFilter(String.format("PartitionKey eq '%s'", loadTag));
     var pagedEntities = tableClient.listEntities(options, null, null);
@@ -77,30 +78,33 @@ public class StorageTableDao {
   private static TableEntity bulkFileLoadModelToStorageTableEntity(
       BulkLoadHistoryModel model, String loadTag, Instant loadTime) {
     return new TableEntity(loadTag, model.getFileId())
-        .addProperty("load_tag", loadTag)
-        .addProperty("load_time", loadTime)
-        .addProperty("source_name", model.getSourcePath())
-        .addProperty("target_path", model.getTargetPath())
-        .addProperty("state", model.getState().name())
-        .addProperty("file_id", model.getFileId())
-        .addProperty("checksum_crc32c", model.getChecksumCRC())
-        .addProperty("checksum_md5", model.getChecksumMD5())
-        .addProperty("error", model.getError());
+        .addProperty(LoadHistoryUtil.LOAD_TAG_FIELD_NAME, loadTag)
+        .addProperty(LoadHistoryUtil.LOAD_TIME_FIELD_NAME, loadTime)
+        .addProperty(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME, model.getSourcePath())
+        .addProperty(LoadHistoryUtil.TARGET_PATH_FIELD_NAME, model.getTargetPath())
+        .addProperty(LoadHistoryUtil.STATE_FIELD_NAME, model.getState().name())
+        .addProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME, model.getFileId())
+        .addProperty(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME, model.getChecksumCRC())
+        .addProperty(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME, model.getChecksumMD5())
+        .addProperty(LoadHistoryUtil.ERROR_FIELD_NAME, model.getError());
   }
 
   private static BulkLoadHistoryModel storageTableEntityBulkFileLoadModel(TableEntity tableEntity) {
     var model =
         new BulkLoadHistoryModel()
-            .sourcePath(tableEntity.getProperty("source_name").toString())
-            .targetPath(tableEntity.getProperty("target_path").toString())
-            .state(BulkLoadFileState.valueOf(tableEntity.getProperty("state").toString()))
-            .fileId(tableEntity.getProperty("file_id").toString());
+            .sourcePath(tableEntity.getProperty(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME).toString())
+            .targetPath(tableEntity.getProperty(LoadHistoryUtil.TARGET_PATH_FIELD_NAME).toString())
+            .state(
+                BulkLoadFileState.valueOf(
+                    tableEntity.getProperty(LoadHistoryUtil.STATE_FIELD_NAME).toString()))
+            .fileId(tableEntity.getProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME).toString());
 
-    Optional.ofNullable(tableEntity.getProperty("checksum_crc32c"))
+    Optional.ofNullable(tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
         .ifPresent(o -> model.checksumCRC(o.toString()));
-    Optional.ofNullable(tableEntity.getProperty("checksum_md5"))
+    Optional.ofNullable(tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
         .ifPresent(o -> model.checksumMD5(o.toString()));
-    Optional.ofNullable(tableEntity.getProperty("error")).ifPresent(o -> model.error(o.toString()));
+    Optional.ofNullable(tableEntity.getProperty(LoadHistoryUtil.ERROR_FIELD_NAME))
+        .ifPresent(o -> model.error(o.toString()));
     return model;
   }
 
@@ -112,16 +116,12 @@ public class StorageTableDao {
    * @param tableName The root of the table name
    * @return A valid azure storage table name with load history suffix.
    */
-  private static String azurfyTableName(String tableName) {
+  private static String toStorageTableName(String tableName) {
     var alphaNumeric = tableName.replaceAll("[^A-Za-z0-9]", "");
-    final String rightLength;
-    if (alphaNumeric.length() <= TABLE_NAME_MAX_LENGTH_BEFORE_PREFIX) {
-      rightLength = alphaNumeric + LOAD_HISTORY_TABLE_NAME_SUFFIX;
-    } else {
-      rightLength =
-          alphaNumeric.substring(0, TABLE_NAME_MAX_LENGTH_BEFORE_PREFIX)
-              + LOAD_HISTORY_TABLE_NAME_SUFFIX;
-    }
+    var rightLength =
+        alphaNumeric.substring(
+                0, Math.min(alphaNumeric.length(), TABLE_NAME_MAX_LENGTH_BEFORE_PREFIX))
+            + LOAD_HISTORY_TABLE_NAME_SUFFIX;
     if (rightLength.substring(0, 1).matches("[0-9]")) {
       return "a" + rightLength.substring(1);
     } else {

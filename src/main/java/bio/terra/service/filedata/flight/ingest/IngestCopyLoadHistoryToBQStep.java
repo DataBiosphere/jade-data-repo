@@ -5,7 +5,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
@@ -13,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep implements Step {
+public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
 
   private static final Logger logger = LoggerFactory.getLogger(IngestCopyLoadHistoryToBQStep.class);
 

@@ -78,6 +78,7 @@ public class StorageTableDao {
     ListEntitiesOptions options =
         new ListEntitiesOptions().setFilter(String.format("PartitionKey eq '%s'", loadTag));
     var pagedEntities = tableClient.listEntities(options, null, null);
+    // This could be more efficient, but would need to implement some sort of index to query on.
     return pagedEntities.stream()
         .skip(offset)
         .limit(limit)

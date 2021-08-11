@@ -35,8 +35,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class TableDirectoryDaoTest {
-  private static final String PARTITION_KEY = "partitionKey";
   private static final String FULL_PATH = "/directory/file.json";
+  private static final String DATASET_ID = UUID.randomUUID().toString();
+  private static final String PARTITION_KEY = DATASET_ID + " _dr_ directory";
   private static final String ROW_KEY = " _dr_ directory file.json";
   private static final String NONEXISTENT_PATH = "/directory/nonexistent.json";
   private static final String NONEXISTENT_ROW_KEY = " _dr_ directory nonexistent.json";
@@ -61,7 +62,7 @@ public class TableDirectoryDaoTest {
             .addProperty("isFileRef", true)
             .addProperty("path", fileMetadataUtils.getDirectoryPath(FULL_PATH))
             .addProperty("name", "file.json")
-            .addProperty("datasetId", UUID.randomUUID().toString())
+            .addProperty("datasetId", DATASET_ID)
             .addProperty("fileCreatedDate", "fileCreatedDate")
             .addProperty("checksumCrc32c", "checksumCrc32c")
             .addProperty("checksumMd5", "checksumMd5")
@@ -72,13 +73,14 @@ public class TableDirectoryDaoTest {
   @Test
   public void testRetrieveByPath() {
     when(tableClient.getEntity(PARTITION_KEY, ROW_KEY)).thenReturn(entity);
-    FireStoreDirectoryEntry response = dao.retrieveByPath(tableServiceClient, FULL_PATH);
+    FireStoreDirectoryEntry response =
+        dao.retrieveByPath(tableServiceClient, DATASET_ID, FULL_PATH);
     assertEquals("The same entry is returned", directoryEntry, response);
 
     when(tableClient.getEntity(PARTITION_KEY, NONEXISTENT_ROW_KEY))
         .thenThrow(TableServiceException.class);
     FireStoreDirectoryEntry nonExistentEntry =
-        dao.retrieveByPath(tableServiceClient, NONEXISTENT_PATH);
+        dao.retrieveByPath(tableServiceClient, DATASET_ID, NONEXISTENT_PATH);
     assertNull("The entry does not exist", nonExistentEntry);
   }
 

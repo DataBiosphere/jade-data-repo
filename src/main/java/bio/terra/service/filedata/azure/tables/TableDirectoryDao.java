@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,12 +57,20 @@ import org.springframework.stereotype.Component;
 public class TableDirectoryDao {
   private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
   private static final String TABLE_NAME = "dataset";
-  private static final String PARTITION_KEY = "partitionKey";
   private final FileMetadataUtils fileMetadataUtils;
 
   @Autowired
   public TableDirectoryDao(FileMetadataUtils fileMetadataUtils) {
     this.fileMetadataUtils = fileMetadataUtils;
+  }
+
+  public String encodePathAsAzureRowKey(String path) {
+    return StringUtils.replaceChars(path, '/', ' ');
+  }
+
+  public String getPartitionKey(String prefix, String path) {
+    String parentDir = fileMetadataUtils.getDirectoryPath(path);
+    return prefix + encodePathAsAzureRowKey(parentDir);
   }
 
   // Note that this does not test for duplicates. If invoked on an existing path it will overwrite
@@ -71,8 +80,7 @@ public class TableDirectoryDao {
 
     tableServiceClient.createTableIfNotExists(TABLE_NAME);
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-
-    List<TableTransactionAction> createList = new ArrayList<>();
+    String datasetId = createEntry.getDatasetId();
 
     // Walk up the lookup directory path, finding missing directories we get to an
     // existing one
@@ -83,30 +91,26 @@ public class TableDirectoryDao {
         testPath = fileMetadataUtils.getDirectoryPath(testPath)) {
 
       // !!! In this case we are using a lookup path
-      if (lookupByFilePath(tableServiceClient, testPath) != null) {
+      if (lookupByFilePath(tableServiceClient, datasetId, testPath) != null) {
         break;
       }
 
       FireStoreDirectoryEntry dirToCreate = fileMetadataUtils.makeDirectoryEntry(testPath);
-      String rowKey = fileMetadataUtils.encodePathAsAzureRowKey(testPath);
-      TableEntity entity =
-          FireStoreDirectoryEntry.toTableEntity(PARTITION_KEY, rowKey, dirToCreate);
-      TableTransactionAction t =
-          new TableTransactionAction(TableTransactionActionType.CREATE, entity);
-      createList.add(t);
+      String partitionKey = getPartitionKey(datasetId, testPath);
+      String rowKey = encodePathAsAzureRowKey(testPath);
+      TableEntity entity = FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, dirToCreate);
+      logger.info("Creating directory entry for {} in table {}", testPath, TABLE_NAME);
+      tableClient.createEntity(entity);
     }
 
     String fullPath = fileMetadataUtils.getFullPath(createEntry.getPath(), createEntry.getName());
     String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
-    String rowKey = fileMetadataUtils.encodePathAsAzureRowKey(lookupPath);
+    String partitionKey = getPartitionKey(datasetId, lookupPath);
+    String rowKey = encodePathAsAzureRowKey(lookupPath);
     TableEntity createEntryEntity =
-        FireStoreDirectoryEntry.toTableEntity(PARTITION_KEY, rowKey, createEntry);
-    TableTransactionAction createEntryTransaction =
-        new TableTransactionAction(TableTransactionActionType.CREATE, createEntryEntity);
-    createList.add(createEntryTransaction);
-
-    logger.info("Creating file directory for table {}", TABLE_NAME);
-    tableClient.submitTransaction(createList);
+        FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, createEntry);
+    logger.info("Creating directory entry for {} in table {}", fullPath, TABLE_NAME);
+    tableClient.createEntity(createEntryEntity);
   }
 
   // true - directory entry existed and was deleted; false - directory entry did not exist
@@ -125,6 +129,7 @@ public class TableDirectoryDao {
     deleteList.add(t);
 
     FireStoreDirectoryEntry leafEntry = FireStoreDirectoryEntry.fromTableEntity(leafEntity);
+    String datasetId = leafEntry.getDatasetId();
     String lookupPath = fileMetadataUtils.makeLookupPath(leafEntry.getPath());
     while (!lookupPath.isEmpty()) {
       // Count the number of entries with this path as their directory path
@@ -141,8 +146,7 @@ public class TableDirectoryDao {
         break;
       }
       TableEntity entity =
-          lookupByFilePath(
-              tableServiceClient, fileMetadataUtils.encodePathAsAzureRowKey(lookupPath));
+          lookupByFilePath(tableServiceClient, datasetId, encodePathAsAzureRowKey(lookupPath));
       deleteList.add(new TableTransactionAction(TableTransactionActionType.DELETE, entity));
       lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
     }
@@ -167,9 +171,9 @@ public class TableDirectoryDao {
 
   // Returns null if not found - upper layers do any throwing
   public FireStoreDirectoryEntry retrieveByPath(
-      TableServiceClient tableServiceClient, String fullPath) {
+      TableServiceClient tableServiceClient, String datasetId, String fullPath) {
     String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
-    TableEntity entity = lookupByFilePath(tableServiceClient, lookupPath);
+    TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
     return Optional.ofNullable(entity)
         .map(d -> FireStoreDirectoryEntry.fromTableEntity(entity))
         .orElse(null);
@@ -202,11 +206,13 @@ public class TableDirectoryDao {
         .collect(Collectors.toList());
   }
 
-  private TableEntity lookupByFilePath(TableServiceClient tableServiceClient, String lookupPath) {
+  private TableEntity lookupByFilePath(
+      TableServiceClient tableServiceClient, String datasetId, String lookupPath) {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    String rowKey = fileMetadataUtils.encodePathAsAzureRowKey(lookupPath);
+    String partitionKey = getPartitionKey(datasetId, lookupPath);
+    String rowKey = encodePathAsAzureRowKey(lookupPath);
     try {
-      return tableClient.getEntity(PARTITION_KEY, rowKey);
+      return tableClient.getEntity(partitionKey, rowKey);
     } catch (TableServiceException ex) {
       return null;
     }

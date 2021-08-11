@@ -17,10 +17,6 @@ public class FileMetadataUtils {
   @Autowired
   public FileMetadataUtils() {}
 
-  public String encodePathAsAzureRowKey(String path) {
-    return StringUtils.replaceChars(path, '/', ' ');
-  }
-
   public String getDirectoryPath(String path) {
     String[] pathParts = StringUtils.split(path, '/');
     if (pathParts.length <= 1) {

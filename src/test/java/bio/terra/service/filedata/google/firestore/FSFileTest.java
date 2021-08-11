@@ -24,7 +24,9 @@ public class FSFileTest {
             .getCloudPlatform(),
         equalTo(CloudPlatform.GCP));
     assertThat(
-        new FSFile().cloudPath("https://myacct.blob.core.windows.net/fs/test.txt").getCloudPlatform(),
+        new FSFile()
+            .cloudPath("https://myacct.blob.core.windows.net/fs/test.txt")
+            .getCloudPlatform(),
         equalTo(CloudPlatform.AZURE));
     assertThrows(
         IllegalArgumentException.class,

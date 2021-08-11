@@ -330,7 +330,8 @@ public class GcsPdao {
                 k -> resourceService.lookupBucket(file.getBucketResourceId()));
       }
       final Storage storage = storageForBucket(bucketForFile);
-      final String bucketPath = extractFilePathInBucket(file.getCloudPath(), bucketForFile.getName());
+      final String bucketPath =
+          extractFilePathInBucket(file.getCloudPath(), bucketForFile.getName());
       final BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
       switch (op) {
         case ACL_OP_CREATE:

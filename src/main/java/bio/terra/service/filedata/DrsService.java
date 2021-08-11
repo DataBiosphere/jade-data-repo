@@ -52,6 +52,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,6 +85,11 @@ public class DrsService {
   private final AzureResourceConfiguration resourceConfiguration;
   private final AzureContainerPdao azureContainerPdao;
   private final AzureBlobStorePdao azureBlobStorePdao;
+
+  private Supplier<IllegalArgumentException> illegalArgumentExceptionSupplier =
+      () -> {
+        throw new IllegalArgumentException("No matching access ID was found for object");
+      };
 
   @Autowired
   public DrsService(
@@ -229,24 +235,12 @@ public class DrsService {
     if (wrapper.isGcp()) {
       DRSAccessMethod matchingAccessMethod =
           getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.GS)
-              .orElseThrow(
-                  () ->
-                      new IllegalArgumentException(
-                          "No matching access ID "
-                              + accessId
-                              + " was found on object "
-                              + objectId));
+              .orElseThrow(illegalArgumentExceptionSupplier);
       return signGoogleUrl(snapshot, matchingAccessMethod);
     } else if (wrapper.isAzure()) {
       DRSAccessMethod matchingAccessMethod =
           getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.HTTPS)
-              .orElseThrow(
-                  () ->
-                      new IllegalArgumentException(
-                          "No matching access ID "
-                              + accessId
-                              + " was found on object "
-                              + objectId));
+              .orElseThrow(illegalArgumentExceptionSupplier);
       try {
         FSItem fsItem =
             fileService.lookupSnapshotFSItem(

@@ -8,6 +8,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobCrl;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -20,8 +21,10 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.common.annotations.VisibleForTesting;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
@@ -192,7 +195,12 @@ public class AzureBlobStorePdao {
               blobParts.getAccountName(), storageAccountResource.getName()));
     }
     String blobName = blobParts.getBlobName();
-    return destinationClientFactory.createReadOnlySasUrlForBlob(blobName);
+    BlobSasPermission permission = new BlobSasPermission().setReadPermission(true);
+    BlobSasTokenOptions blobSasTokenOptions =
+        new BlobSasTokenOptions(Duration.ofMinutes(15), permission, "");
+    return destinationClientFactory
+        .getBlobSasUrlFactory()
+        .createSasUrlForBlob(blobName, blobSasTokenOptions);
   }
 
   /**

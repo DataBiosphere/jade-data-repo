@@ -10,6 +10,8 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Objects;
@@ -22,6 +24,11 @@ public class BlobContainerClientFactory {
 
   public static final Duration DELEGATED_KEY_DURATION = Duration.ofHours(24);
   private final HttpClient httpClient = HttpClient.createDefault();
+  private final int MAX_RETRIES = 3;
+  private final int RETRY_TIMEOUT_SECONDS = 3600;
+  private final RequestRetryOptions retryOptions =
+      new RequestRetryOptions(
+          RetryPolicyType.EXPONENTIAL, MAX_RETRIES, RETRY_TIMEOUT_SECONDS, null, null, null);
 
   private final BlobContainerClient blobContainerClient;
 
@@ -74,6 +81,7 @@ public class BlobContainerClientFactory {
                     blobUrl.getHost(),
                     blobUrl.getBlobContainerName()))
             .credential(new AzureSasCredential(blobUrl.getCommonSasQueryParameters().encode()))
+            .retryOptions(retryOptions)
             .buildClient();
 
     blobSasUrlFactory = new ContainerSasTokenSasUrlFactory(blobUrl);
@@ -89,6 +97,7 @@ public class BlobContainerClientFactory {
         .credential(new StorageSharedKeyCredential(accountName, accountKey))
         .httpClient(httpClient)
         .endpoint(String.format(Locale.ROOT, "https://%s.blob.core.windows.net", accountName))
+        .retryOptions(retryOptions)
         .buildClient();
   }
 
@@ -98,6 +107,7 @@ public class BlobContainerClientFactory {
         .credential(credentials)
         .httpClient(httpClient)
         .endpoint(String.format(Locale.ROOT, "https://%s.blob.core.windows.net", accountName))
+        .retryOptions(retryOptions)
         .buildClient();
   }
 }

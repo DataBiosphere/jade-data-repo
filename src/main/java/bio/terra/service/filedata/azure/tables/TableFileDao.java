@@ -1,16 +1,21 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
+import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.filedata.google.firestore.ApiFutureGenerator;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
+import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import com.google.api.core.SettableApiFuture;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -29,16 +34,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class TableFileDao {
   private final Logger logger = LoggerFactory.getLogger(TableFileDao.class);
-  private final AzureTableUtils azureTableUtils;
   private final ExecutorService executor;
   private static final String TABLE_NAME = "files";
   private static final String PARTITION_KEY = "partitionKey";
 
   @Autowired
-  TableFileDao(
-      AzureTableUtils azureTableUtils,
-      @Qualifier("performanceThreadpool") ExecutorService executor) {
-    this.azureTableUtils = azureTableUtils;
+  TableFileDao(@Qualifier("performanceThreadpool") ExecutorService executor) {
     this.executor = executor;
   }
 
@@ -91,11 +92,24 @@ public class TableFileDao {
         .collect(Collectors.toList());
   }
 
+  <V> void scanTableObjects(TableClient tableClient, ApiFutureGenerator<V, TableEntity> generator) {
+    ListEntitiesOptions options = new ListEntitiesOptions();
+    PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+    entities.stream()
+        .forEach(
+            entity -> {
+              try {
+                generator.accept(entity).get();
+              } catch (InterruptedException | ExecutionException e) {
+                throw new FileSystemExecutionException("operation failed", e);
+              }
+            });
+  }
+
   void deleteFilesFromDataset(
-      TableServiceClient tableServiceClient, InterruptibleConsumer<FireStoreFile> func)
-      throws InterruptedException {
+      TableServiceClient tableServiceClient, InterruptibleConsumer<FireStoreFile> func) {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    azureTableUtils.scanTableObjects(
+    scanTableObjects(
         tableClient,
         entity -> {
           SettableApiFuture<Boolean> future = SettableApiFuture.create();

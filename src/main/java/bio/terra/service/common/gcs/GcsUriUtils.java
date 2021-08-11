@@ -14,13 +14,25 @@ public final class GcsUriUtils {
    * @return Object representing uri pieces
    */
   public static BlobId parseBlobUri(String uri) throws IllegalArgumentException {
-    BlobId blobId = BlobId.fromGsUtilUri(uri);
+    BlobId blobId = fromGsUtilUri(uri);
     validateBlobUri(blobId, uri);
     return blobId;
   }
 
   public static void validateBlobUri(String uri) throws IllegalArgumentException {
     validateBlobUri(BlobId.fromGsUtilUri(uri), uri);
+  }
+
+  private static BlobId fromGsUtilUri(String gsUtilUri) {
+    if (!Pattern.matches("gs://.*/.*", gsUtilUri)) {
+      throw new IllegalArgumentException(
+          gsUtilUri + " is not a valid gsutil URI (i.e. \"gs://bucket/blob\")");
+    }
+    int blobNameStartIndex = gsUtilUri.indexOf('/', 5);
+    String bucketName = gsUtilUri.substring(5, blobNameStartIndex);
+    String blobName = gsUtilUri.substring(blobNameStartIndex + 1);
+
+    return BlobId.of(bucketName, blobName);
   }
 
   private static void validateBlobUri(BlobId blobId, String uri) throws IllegalArgumentException {

@@ -22,6 +22,8 @@ import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadFileResultModel;
+import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -31,6 +33,7 @@ import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -258,6 +261,18 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         "file with Sas size matches",
         dataRepoFixtures.getFileByName(steward, datasetId, "/test/targetSas.txt").getSize(),
         equalTo(fileSize));
+
+    var loadHistoryList = dataRepoFixtures.getLoadHistory(steward, datasetId, "loadTag");
+
+    assertThat("load history is the correct size", loadHistoryList.getTotal(), equalTo(2));
+
+    assertThat(
+        "getting load history has the same items as response from bulk file load",
+        loadHistoryList.getItems().stream()
+            .map(DatasetAzureIntegrationTest::toBulkLoadFileResultModel)
+            .collect(Collectors.toSet()),
+        equalTo(Set.copyOf(result.getLoadFileResults())));
+
     // Delete the file we just ingested
     String fileId = result.getLoadFileResults().get(0).getFileId();
     dataRepoFixtures.deleteFile(steward, datasetId, fileId);
@@ -270,6 +285,15 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
     clearEnvironment();
+  }
+
+  private static BulkLoadFileResultModel toBulkLoadFileResultModel(BulkLoadHistoryModel model) {
+    return new BulkLoadFileResultModel()
+        .sourcePath(model.getSourcePath())
+        .targetPath(model.getTargetPath())
+        .fileId(model.getFileId())
+        .state(model.getState())
+        .error(model.getError());
   }
 
   private void clearEnvironment() throws Exception {

@@ -17,6 +17,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
@@ -621,6 +622,25 @@ public class DataRepoFixtures {
     } else {
       ErrorModel errorModel = response.getErrorObject().orElse(null);
       logger.error("bulkLoadArray failed: " + errorModel);
+      fail();
+      return null; // Make findbugs happy
+    }
+  }
+
+  public BulkLoadHistoryModelList getLoadHistory(
+      TestConfiguration.User user, UUID datasetId, String loadTag) throws Exception {
+    var response =
+        dataRepoClient.get(
+            user,
+            "/api/repository/v1/datasets/" + datasetId + "/files/bulk/" + loadTag,
+            BulkLoadHistoryModelList.class);
+    if (response.getStatusCode().is2xxSuccessful()) {
+      assertThat("getLoadHistory is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+      assertTrue("getLoadHistory response is present", response.getResponseObject().isPresent());
+      return response.getResponseObject().get();
+    } else {
+      ErrorModel errorModel = response.getErrorObject().orElse(null);
+      logger.error("getLoadHistory failed: " + errorModel);
       fail();
       return null; // Make findbugs happy
     }

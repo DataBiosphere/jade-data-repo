@@ -8,6 +8,8 @@ import bio.terra.common.ValidationUtils;
 import bio.terra.controller.DatasetsApi;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
@@ -246,6 +248,20 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     String jobId = fileService.ingestBulkFileArray(id.toString(), bulkFileLoadArray, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
+  }
+
+  @Override
+  public ResponseEntity<BulkLoadHistoryModelList> getLoadHistoryForLoadTag(
+      @PathVariable("id") UUID id,
+      @PathVariable("loadTag") String loadTag,
+      @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+      @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+    iamService.verifyAuthorization(
+        getAuthenticatedInfo(), IamResourceType.DATASET, id.toString(), IamAction.READ_DATASET);
+    List<BulkLoadHistoryModel> history = datasetService.getLoadHistory(id, loadTag, offset, limit);
+
+    var responseModel = new BulkLoadHistoryModelList().total(history.size()).items(history);
+    return new ResponseEntity<>(responseModel, HttpStatus.OK);
   }
 
   @Override

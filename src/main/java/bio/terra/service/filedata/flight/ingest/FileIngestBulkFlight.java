@@ -27,7 +27,7 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
-import bio.terra.service.tabulardata.azure.StorageTableDao;
+import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -67,7 +67,7 @@ public class FileIngestBulkFlight extends Flight {
         appContext.getBean(DatasetStorageAccountDao.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
-    StorageTableDao storageTableDao = appContext.getBean(StorageTableDao.class);
+    StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
 
     // Common input parameters
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -203,7 +203,7 @@ public class FileIngestBulkFlight extends Flight {
     } else if (platform.isAzure()) {
       addStep(
           new IngestCopyLoadHistoryToStorageTableStep(
-              storageTableDao,
+              storageTableService,
               loadService,
               datasetService,
               datasetUuid,

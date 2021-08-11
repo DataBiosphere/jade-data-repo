@@ -30,7 +30,6 @@ public abstract class IngestCopyLoadHistoryStep {
           loadService.loadHistoryIterator(loadId, loadHistoryChunkSize);
 
       IngestCopyLoadHistoryResources resources = new IngestCopyLoadHistoryResources();
-      resources.loadId = loadId;
       resources.dataset = dataset;
       resources.loadTime = loadTime;
       resources.loadHistoryIterator = loadHistoryIterator;
@@ -40,8 +39,7 @@ public abstract class IngestCopyLoadHistoryStep {
     }
   }
 
-  class IngestCopyLoadHistoryResources {
-    UUID loadId;
+  static class IngestCopyLoadHistoryResources {
     Dataset dataset;
     Instant loadTime;
     LoadHistoryIterator loadHistoryIterator;

@@ -20,7 +20,7 @@ public final class GcsUriUtils {
   }
 
   public static void validateBlobUri(String uri) throws IllegalArgumentException {
-    validateBlobUri(BlobId.fromGsUtilUri(uri), uri);
+    validateBlobUri(fromGsUtilUri(uri), uri);
   }
 
   private static BlobId fromGsUtilUri(String gsUtilUri) {

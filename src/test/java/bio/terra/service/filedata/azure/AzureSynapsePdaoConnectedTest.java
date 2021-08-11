@@ -1,6 +1,10 @@
 package bio.terra.service.filedata.azure;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.DatasetFixtures;
@@ -69,6 +73,7 @@ public class AzureSynapsePdaoConnectedTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired DatasetService datasetService;
   @MockBean private IamProviderInterface samService;
+  @Autowired SynapseUtils synapseUtils;
 
   @Before
   public void setup() throws Exception {
@@ -166,11 +171,7 @@ public class AzureSynapsePdaoConnectedTest {
     azureSynapsePdao.createExternalDataSource(
         destinationSignUrlBlob, destinationScopedCredentialName, destinationDataSourceName);
 
-    // TODO - Add basic check to make sure the data source is created successfully
-    // Maybe a basic query?
-
     // 3 - Retrieve info about database schema so that we can populate the parquet create query
-
     List<String> columnNames =
         Arrays.asList("id", "age", "first_name", "last_name", "favorite_animals");
     TableDataType baseType = TableDataType.STRING;
@@ -188,8 +189,12 @@ public class AzureSynapsePdaoConnectedTest {
         tableName,
         ingestRequestModel.getCsvSkipLeadingRows());
 
-    // TODO - Add check that the parquet files were successfully created.
-    // How do we query the parquet files?
+    // Check that the parquet files were successfully created.
+    List<String> firstNames =
+        synapseUtils.readParquetFileStringColumn(
+            destinationParquetFile, destinationDataSourceName, "first_name");
+    assertThat(
+        "List of names should equal the input", firstNames, equalTo(Arrays.asList("Bob", "Sally")));
 
     // 4 - clean out synapse
     // we'll do this in the test cleanup method, but it will be a step in the normal flight

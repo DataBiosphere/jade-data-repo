@@ -48,6 +48,7 @@ import org.springframework.stereotype.Component;
 //
 @Component
 public class FireStoreDao {
+
   private final Logger logger = LoggerFactory.getLogger(FireStoreDao.class);
 
   private final FireStoreDirectoryDao directoryDao;
@@ -317,7 +318,7 @@ public class FireStoreDao {
               .checksumMd5(file.getChecksumMd5())
               .size(file.getSize())
               .description(file.getDescription())
-              .gspath(file.getGspath())
+              .cloudPath(file.getGspath())
               .mimeType(file.getMimeType())
               .bucketResourceId(file.getBucketResourceId())
               .loadTag(file.getLoadTag());
@@ -482,7 +483,7 @@ public class FireStoreDao {
         .checksumMd5(fireStoreFile.getChecksumMd5())
         .size(fireStoreFile.getSize())
         .description(fireStoreFile.getDescription())
-        .gspath(fireStoreFile.getGspath())
+        .cloudPath(fireStoreFile.getGspath())
         .mimeType(fireStoreFile.getMimeType())
         .bucketResourceId(fireStoreFile.getBucketResourceId())
         .loadTag(fireStoreFile.getLoadTag());
@@ -580,12 +581,12 @@ public class FireStoreDao {
     String md5Concat = StringUtils.join(md5Collection, StringUtils.EMPTY);
     String md5Checksum = fireStoreUtils.computeMd5(md5Concat);
 
-    //    Collections.sort(crc32cCollection);
-    //    String crc32cConcat = StringUtils.join(crc32cCollection, StringUtils.EMPTY);
-    //    String crc32cChecksum = fireStoreUtils.computeCrc32c(crc32cConcat);
+    Collections.sort(crc32cCollection);
+    String crc32cConcat = StringUtils.join(crc32cCollection, StringUtils.EMPTY);
+    String crc32cChecksum = fireStoreUtils.computeCrc32c(crc32cConcat);
 
     // Update the directory in place
-    dirEntry.checksumCrc32c("").checksumMd5(md5Checksum).size(totalSize);
+    dirEntry.checksumCrc32c(crc32cChecksum).checksumMd5(md5Checksum).size(totalSize);
     updateEntry(snapshotFirestore, snapshotId, dirEntry, updateBatch);
 
     return dirEntry;

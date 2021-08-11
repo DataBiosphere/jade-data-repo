@@ -278,7 +278,7 @@ public class DrsService {
     return new DRSAccessURL()
         .url(
             azureBlobStorePdao.signFile(
-                profileModel, storageAccountResource, ((FSFile) fsItem).getGspath()));
+                profileModel, storageAccountResource, ((FSFile) fsItem).getCloudPath()));
   }
 
   private DRSAccessURL signGoogleUrl(Snapshot snapshot, DRSAccessMethod accessMethod) {
@@ -325,7 +325,7 @@ public class DrsService {
 
   private List<DRSAccessMethod> getDrsAccessMethodsOnGcp(
       FSFile fsFile, AuthenticatedUserRequest authUser) {
-    DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getGspath());
+    DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getCloudPath());
 
     GoogleBucketResource bucketResource =
         resourceService.lookupBucketMetadata(fsFile.getBucketResourceId());
@@ -341,7 +341,7 @@ public class DrsService {
 
     DRSAccessURL httpsAccessURL =
         new DRSAccessURL()
-            .url(makeHttpsFromGs(fsFile.getGspath()))
+            .url(makeHttpsFromGs(fsFile.getCloudPath()))
             .headers(makeAuthHeader(authUser));
 
     DRSAccessMethod httpsAccessMethod =
@@ -354,7 +354,7 @@ public class DrsService {
   }
 
   private List<DRSAccessMethod> getDrsAccessMethodsOnAzure(FSFile fsFile) {
-    DRSAccessURL accessURL = new DRSAccessURL().url(fsFile.getGspath());
+    DRSAccessURL accessURL = new DRSAccessURL().url(fsFile.getCloudPath());
 
     AzureStorageAccountResource storageAccountResource =
         resourceService.lookupStorageAccountMetadata(fsFile.getBucketResourceId());

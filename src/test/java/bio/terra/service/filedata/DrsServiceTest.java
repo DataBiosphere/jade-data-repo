@@ -114,7 +114,7 @@ public class DrsServiceTest {
             .createdDate(Instant.now())
             .description("description")
             .path("file.txt")
-            .gspath("https://core.windows.net/blahblah")
+            .cloudPath("https://core.windows.net/blahblah")
             .size(100L)
             .fileId(fileId)
             .bucketResourceId(bucketResourceId.toString());
@@ -126,7 +126,7 @@ public class DrsServiceTest {
             .createdDate(Instant.now())
             .description("description")
             .path("file.txt")
-            .gspath("gs://path/to/file.txt")
+            .cloudPath("gs://path/to/file.txt")
             .size(100L)
             .fileId(fileId)
             .bucketResourceId(bucketResourceId.toString());

@@ -156,7 +156,7 @@ public class AzureBlobStorePdaoTest {
         new FireStoreFile()
             .fileId(fileId.toString())
             .bucketResourceId(RESOURCE_ID.toString())
-            .gspath(fsFileInfo.getGspath());
+            .gspath(fsFileInfo.getCloudPath());
     assertThat(dao.deleteFile(fileToDelete), equalTo(true));
   }
 
@@ -172,7 +172,7 @@ public class AzureBlobStorePdaoTest {
         new FireStoreFile()
             .fileId(fileId.toString())
             .bucketResourceId(RESOURCE_ID.toString())
-            .gspath(fsFileInfo.getGspath());
+            .gspath(fsFileInfo.getCloudPath());
     assertThat(dao.deleteFile(fileToDelete), equalTo(false));
   }
 
@@ -266,7 +266,7 @@ public class AzureBlobStorePdaoTest {
     return new FSFileInfo()
         .fileId(fileId.toString())
         .createdDate(BLOB_CREATION_TIME.toInstant().toString())
-        .gspath(targetContainerUrl + "/" + targetBlobName)
+        .cloudPath(targetContainerUrl + "/" + targetBlobName)
         .checksumMd5(BLOB_CONTENT_MD5_B64)
         .size(BLOB_SIZE)
         .bucketResourceId(RESOURCE_ID.toString());

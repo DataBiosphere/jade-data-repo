@@ -104,7 +104,7 @@ public class AzureBlobStorePdao {
     return new FSFileInfo()
         .fileId(fileId)
         .createdDate(createTime.toString())
-        .gspath(
+        .cloudPath(
             String.format(
                 "%s/%s",
                 destinationClientFactory.getBlobContainerClient().getBlobContainerUrl(), blobName))

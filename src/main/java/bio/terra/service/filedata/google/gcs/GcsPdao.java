@@ -131,7 +131,7 @@ public class GcsPdao {
       return new FSFileInfo()
           .fileId(fileId)
           .createdDate(createTime.toString())
-          .gspath(gspath)
+          .cloudPath(gspath)
           .checksumCrc32c(targetBlob.getCrc32cToHexString())
           .checksumMd5(checksumMd5)
           .size(targetBlob.getSize())
@@ -330,7 +330,7 @@ public class GcsPdao {
                 k -> resourceService.lookupBucket(file.getBucketResourceId()));
       }
       final Storage storage = storageForBucket(bucketForFile);
-      final String bucketPath = extractFilePathInBucket(file.getGspath(), bucketForFile.getName());
+      final String bucketPath = extractFilePathInBucket(file.getCloudPath(), bucketForFile.getName());
       final BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
       switch (op) {
         case ACL_OP_CREATE:

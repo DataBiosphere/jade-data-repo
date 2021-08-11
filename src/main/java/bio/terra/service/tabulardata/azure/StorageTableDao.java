@@ -9,7 +9,6 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
@@ -90,22 +89,16 @@ public class StorageTableDao {
   }
 
   private static BulkLoadHistoryModel storageTableEntityBulkFileLoadModel(TableEntity tableEntity) {
-    var model =
-        new BulkLoadHistoryModel()
-            .sourcePath(tableEntity.getProperty(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME).toString())
-            .targetPath(tableEntity.getProperty(LoadHistoryUtil.TARGET_PATH_FIELD_NAME).toString())
-            .state(
-                BulkLoadFileState.valueOf(
-                    tableEntity.getProperty(LoadHistoryUtil.STATE_FIELD_NAME).toString()))
-            .fileId(tableEntity.getProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME).toString());
-
-    Optional.ofNullable(tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
-        .ifPresent(o -> model.checksumCRC(o.toString()));
-    Optional.ofNullable(tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
-        .ifPresent(o -> model.checksumMD5(o.toString()));
-    Optional.ofNullable(tableEntity.getProperty(LoadHistoryUtil.ERROR_FIELD_NAME))
-        .ifPresent(o -> model.error(o.toString()));
-    return model;
+    return new BulkLoadHistoryModel()
+        .sourcePath(tableEntity.getProperty(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME).toString())
+        .targetPath(tableEntity.getProperty(LoadHistoryUtil.TARGET_PATH_FIELD_NAME).toString())
+        .state(
+            BulkLoadFileState.valueOf(
+                tableEntity.getProperty(LoadHistoryUtil.STATE_FIELD_NAME).toString()))
+        .fileId(tableEntity.getProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME).toString())
+        .checksumCRC((String) tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
+        .checksumMD5((String) tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
+        .error((String) tableEntity.getProperty(LoadHistoryUtil.ERROR_FIELD_NAME));
   }
 
   /**

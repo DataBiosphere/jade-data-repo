@@ -1,9 +1,9 @@
 package bio.terra.service.filedata.azure;
 
 import bio.terra.common.Column;
+import bio.terra.common.SynapseColumn;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
-import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
@@ -61,15 +61,35 @@ public class AzureSynapsePdao {
           + "    LOCATION = '<destinationParquetFile>',\n"
           + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
           + "    FILE_FORMAT = [<fileFormat>]\n"
-          + ") AS SELECT <selectArgument> FROM\n"
+          + ") AS SELECT "
+          + "<if(isCSV)>*"
+          + "<else>"
+          + "\n<columns:{c|"
+          + "<if(c.requiresJSONCast)>"
+          + "cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) <c.name>"
+          + "<else>JSON_VALUE(doc, '$.<c.name>') <c.name>"
+          + "<endif>"
+          + "}; separator=\",\n       \">\n"
+          + "<endif>"
+          + " FROM\n"
           + "    OPENROWSET(\n"
           + "       BULK '<ingestFileName>',\n"
           + "       DATA_SOURCE = '<controlFileDataSourceName>',\n"
           + "       FORMAT = 'CSV',\n"
-          + "       <dataSourceParameter1>,\n"
-          + "       <dataSourceParameter2>\n"
+          + "<if(isCSV)>"
+          + "       PARSER_VERSION = '<parserVersion>',\n"
+          + "       FIRSTROW = <firstRow>\n"
+          + "<else>"
+          + "       fieldterminator ='0x0b',\n"
+          + "       fieldquote = '0x0b'\n"
+          + "<endif>"
           + "    ) WITH (\n"
-          + "      <withArgument>\n"
+          + "      <if(isCSV)>"
+          + "<columns:{c|<c.name> <c.synapseDataType> "
+          + "<if(c.requiresCollate)>COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>"
+          + "}; separator=\",\n\">"
+          + "<else>doc nvarchar(max)"
+          + "<endif>\n"
           + ") AS rows;";
 
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
@@ -161,47 +181,25 @@ public class AzureSynapsePdao {
       int csvSkipLeadingRows)
       throws SQLException {
 
-    List<Column> columns = datasetTable.getColumns();
-    String tableDefinition =
-        String.join(
-            ",\n      ",
-            columns.stream()
-                .map(
-                    c -> {
-                      if (ingestType == FormatEnum.CSV) {
-                        return c.getName() + " " + translateTypeToDdl(c.getType(), c.isArrayOf());
-                      } else if (ingestType == FormatEnum.JSON) {
-                        return translateToJsonConvert(c.getName(), c.getType(), c.isArrayOf());
-                      } else {
-                        throw new EnumConstantNotPresentException(
-                            FormatEnum.class, ingestType.toString());
-                      }
-                    })
-                .collect(Collectors.toList()));
+    List<SynapseColumn> columns =
+        datasetTable.getColumns().stream()
+            .map(Column::toSynapseColumn)
+            .collect(Collectors.toList());
+    ST sqlCreateTableTemplate = new ST(createTableTemplate);
+    sqlCreateTableTemplate.add("isCSV", ingestType == FormatEnum.CSV);
+    sqlCreateTableTemplate.add("parserVersion", PARSER_VERSION);
+    sqlCreateTableTemplate.add("firstRow", csvSkipLeadingRows);
 
-    ST sqlCreateTableCSVTemplate = new ST(createTableTemplate);
-    sqlCreateTableCSVTemplate.add("tableName", ingestTableName);
-    sqlCreateTableCSVTemplate.add("destinationParquetFile", destinationParquetFile);
-    sqlCreateTableCSVTemplate.add("destinationDataSourceName", destinationDataSourceName);
-    sqlCreateTableCSVTemplate.add(
+    sqlCreateTableTemplate.add("tableName", ingestTableName);
+    sqlCreateTableTemplate.add("destinationParquetFile", destinationParquetFile);
+    sqlCreateTableTemplate.add("destinationDataSourceName", destinationDataSourceName);
+    sqlCreateTableTemplate.add(
         "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
-    sqlCreateTableCSVTemplate.add("ingestFileName", ingestFileName);
-    sqlCreateTableCSVTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
+    sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
+    sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
+    sqlCreateTableTemplate.add("columns", columns);
 
-    if (ingestType == FormatEnum.CSV) {
-      sqlCreateTableCSVTemplate.add("selectArgument", "*");
-      sqlCreateTableCSVTemplate.add("withArgument", tableDefinition);
-      sqlCreateTableCSVTemplate.add(
-          "dataSourceParameter1", "PARSER_VERSION = '" + PARSER_VERSION + "'");
-      sqlCreateTableCSVTemplate.add("dataSourceParameter2", "FIRSTROW = " + csvSkipLeadingRows);
-    } else if (ingestType == FormatEnum.JSON) {
-      sqlCreateTableCSVTemplate.add("selectArgument", tableDefinition);
-      sqlCreateTableCSVTemplate.add("withArgument", "doc nvarchar(max)");
-      sqlCreateTableCSVTemplate.add("dataSourceParameter1", "fieldterminator ='0x0b'");
-      sqlCreateTableCSVTemplate.add("dataSourceParameter2", "fieldquote = '0x0b'");
-    }
-
-    executeSynapseQuery(sqlCreateTableCSVTemplate.render());
+    executeSynapseQuery(sqlCreateTableTemplate.render());
   }
 
   public void dropTables(List<String> tableNames) {
@@ -245,62 +243,5 @@ public class AzureSynapsePdao {
     ds.setPassword(azureResourceConfiguration.getSynapse().getSqlAdminPassword());
     ds.setDatabaseName(azureResourceConfiguration.getSynapse().getDatabaseName());
     return ds;
-  }
-
-  // TODO - test all data types
-  private String translateTypeToDdl(TableDataType datatype, boolean isArrayOf) {
-    if (isArrayOf) {
-      return "varchar(8000) COLLATE Latin1_General_100_CI_AI_SC_UTF8";
-    }
-    switch (datatype) {
-      case BOOLEAN:
-        return "bit";
-      case BYTES:
-        return "varbinary";
-      case DATE:
-        return "date";
-      case DATETIME:
-      case TIMESTAMP:
-        return "datetime2";
-      case DIRREF:
-      case FILEREF:
-        return "varchar(36) COLLATE Latin1_General_100_CI_AI_SC_UTF8";
-      case FLOAT:
-      case FLOAT64:
-        return "real";
-      case INTEGER:
-        return "int";
-      case INT64:
-        return "bigint";
-      case NUMERIC:
-        return "decimal";
-      case TEXT:
-      case STRING:
-        return "varchar(8000) COLLATE Latin1_General_100_CI_AI_SC_UTF8";
-      case TIME:
-        return "time";
-      default:
-        throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
-    }
-  }
-
-  private String translateToJsonConvert(String name, TableDataType dataType, boolean isArrayOf) {
-    if (isArrayOf) {
-      return "JSON_VALUE(doc, '$." + name + "') " + name;
-    }
-    switch (dataType) {
-      case TEXT:
-      case STRING:
-      case DIRREF:
-      case FILEREF:
-        return "JSON_VALUE(doc, '$." + name + "') " + name;
-      default:
-        return "cast(JSON_VALUE(doc, '$."
-            + name
-            + "') as "
-            + translateTypeToDdl(dataType, false)
-            + ") "
-            + name;
-    }
   }
 }

@@ -79,6 +79,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
@@ -298,7 +299,7 @@ public class BigQueryPdao {
 
   private static final String getLoadHistoryTemplate =
       "SELECT * "
-          + "FROM `<project>.<dataset>.<loadTable>` L"
+          + "FROM `<project>.<dataset>.<loadTable>` L "
           + "WHERE L.load_tag = @loadTag "
           + "LIMIT <limit> "
           + "OFFSET <offset>";
@@ -332,18 +333,23 @@ public class BigQueryPdao {
 
   private static BulkLoadHistoryModel bigQueryResultToBulkLoadHistoryModel(
       FieldValueList fieldValue) {
+    Function<FieldValue, String> emptyToNull =
+        fv -> {
+          var value = fv.getStringValue();
+          return value.isEmpty() ? null : value;
+        };
     var model =
         new BulkLoadHistoryModel()
-            .sourcePath(fieldValue.get("source_name").toString())
-            .targetPath(fieldValue.get("target_path").toString())
-            .state(BulkLoadFileState.valueOf(fieldValue.get("state").toString()))
-            .fileId(fieldValue.get("file_id").toString());
+            .sourcePath(fieldValue.get("source_name").getStringValue())
+            .targetPath(fieldValue.get("target_path").getStringValue())
+            .state(BulkLoadFileState.fromValue(fieldValue.get("state").getStringValue()))
+            .fileId(fieldValue.get("file_id").getStringValue());
 
     Optional.ofNullable(fieldValue.get("checksum_crc32c"))
-        .ifPresent(o -> model.checksumCRC(o.toString()));
+        .ifPresent(o -> model.checksumCRC(emptyToNull.apply(o)));
     Optional.ofNullable(fieldValue.get("checksum_md5"))
-        .ifPresent(o -> model.checksumMD5(o.toString()));
-    Optional.ofNullable(fieldValue.get("error")).ifPresent(o -> model.error(o.toString()));
+        .ifPresent(o -> model.checksumMD5(emptyToNull.apply(o)));
+    Optional.ofNullable(fieldValue.get("error")).ifPresent(o -> model.error(emptyToNull.apply(o)));
     return model;
   }
 

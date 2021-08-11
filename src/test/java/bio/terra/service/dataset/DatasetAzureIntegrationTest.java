@@ -22,8 +22,6 @@ import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
-import bio.terra.model.BulkLoadFileResultModel;
-import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -269,7 +267,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     assertThat(
         "getting load history has the same items as response from bulk file load",
         loadHistoryList.getItems().stream()
-            .map(DatasetAzureIntegrationTest::toBulkLoadFileResultModel)
+            .map(TestUtils::toBulkLoadFileResultModel)
             .collect(Collectors.toSet()),
         equalTo(Set.copyOf(result.getLoadFileResults())));
 
@@ -285,15 +283,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();
     clearEnvironment();
-  }
-
-  private static BulkLoadFileResultModel toBulkLoadFileResultModel(BulkLoadHistoryModel model) {
-    return new BulkLoadFileResultModel()
-        .sourcePath(model.getSourcePath())
-        .targetPath(model.getTargetPath())
-        .fileId(model.getFileId())
-        .state(model.getState())
-        .error(model.getError());
   }
 
   private void clearEnvironment() throws Exception {

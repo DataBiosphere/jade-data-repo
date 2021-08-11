@@ -15,7 +15,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
-import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.BlobUrlParts;
@@ -70,7 +69,6 @@ public class AzureSynapsePdaoConnectedTest {
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired DatasetService datasetService;
   @MockBean private IamProviderInterface samService;
-  @Autowired private AzureResourceConfiguration azureResourceConfiguration;
 
   @Before
   public void setup() throws Exception {

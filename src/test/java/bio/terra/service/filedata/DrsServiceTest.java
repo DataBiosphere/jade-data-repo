@@ -72,7 +72,9 @@ public class DrsServiceTest {
 
   private String drsObjectId;
 
-  private FSFile fsFile;
+  private FSFile azureFsFile;
+
+  private FSFile googleFsFile;
 
   private UUID snapshotId;
 
@@ -107,7 +109,7 @@ public class DrsServiceTest {
     SnapshotProject snapshotProject = new SnapshotProject();
     when(snapshotService.retrieveAvailableSnapshotProject(snapshotId)).thenReturn(snapshotProject);
 
-    fsFile =
+    azureFsFile =
         new FSFile()
             .createdDate(Instant.now())
             .description("description")
@@ -117,7 +119,19 @@ public class DrsServiceTest {
             .fileId(fileId)
             .bucketResourceId(bucketResourceId.toString());
     when(fileService.lookupSnapshotFSItem(snapshotProject, drsId.getFsObjectId(), 1))
-        .thenReturn(fsFile);
+        .thenReturn(azureFsFile);
+
+    googleFsFile =
+        new FSFile()
+            .createdDate(Instant.now())
+            .description("description")
+            .path("file.txt")
+            .gspath("gs://path/to/file.txt")
+            .size(100L)
+            .fileId(fileId)
+            .bucketResourceId(bucketResourceId.toString());
+    when(fileService.lookupSnapshotFSItem(snapshotProject, drsId.getFsObjectId(), 1))
+        .thenReturn(googleFsFile);
 
     GoogleBucketResource bucketResource =
         new GoogleBucketResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION);
@@ -128,8 +142,8 @@ public class DrsServiceTest {
   public void testLookupPositive() {
     DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, drsObjectId, false);
     assertThat(drsObject.getId(), is(drsObjectId));
-    assertThat(drsObject.getSize(), is(fsFile.getSize()));
-    assertThat(drsObject.getName(), is(fsFile.getPath()));
+    assertThat(drsObject.getSize(), is(googleFsFile.getSize()));
+    assertThat(drsObject.getName(), is(googleFsFile.getPath()));
   }
 
   @Test
@@ -161,7 +175,7 @@ public class DrsServiceTest {
     when(snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()))).thenReturn(snapshot);
     AzureStorageAccountResource storageAccountResource =
         new AzureStorageAccountResource().region(AzureRegion.DEFAULT_AZURE_REGION);
-    when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(fsFile);
+    when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(azureFsFile);
     when(resourceService.lookupStorageAccountMetadata(any())).thenReturn(storageAccountResource);
     String urlString = "https://blahblah.core.windows.com/data/file.json";
     when(azureBlobStorePdao.signFile(any(), any(), any())).thenReturn(urlString);

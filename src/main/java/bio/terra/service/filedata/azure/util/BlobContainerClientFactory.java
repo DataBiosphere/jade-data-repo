@@ -24,8 +24,8 @@ public class BlobContainerClientFactory {
 
   public static final Duration DELEGATED_KEY_DURATION = Duration.ofHours(24);
   private final HttpClient httpClient = HttpClient.createDefault();
-  private final int MAX_RETRIES = 3;
-  private final int RETRY_TIMEOUT_SECONDS = 3600;
+  private static final int MAX_RETRIES = 3;
+  private static final int RETRY_TIMEOUT_SECONDS = 3600;
   private final RequestRetryOptions retryOptions =
       new RequestRetryOptions(
           RetryPolicyType.EXPONENTIAL, MAX_RETRIES, RETRY_TIMEOUT_SECONDS, null, null, null);

@@ -42,8 +42,8 @@ public class TableDirectoryDaoTest {
   private static final String NONEXISTENT_PATH = "/directory/nonexistent.json";
   private static final String NONEXISTENT_ROW_KEY = " _dr_ directory nonexistent.json";
   private static final String FILE_ID = UUID.randomUUID().toString();
-  private static TableEntity entity;
-  private static FireStoreDirectoryEntry directoryEntry;
+  private TableEntity entity;
+  private FireStoreDirectoryEntry directoryEntry;
 
   @MockBean private AzureAuthService authService;
   @MockBean private TableServiceClient tableServiceClient;

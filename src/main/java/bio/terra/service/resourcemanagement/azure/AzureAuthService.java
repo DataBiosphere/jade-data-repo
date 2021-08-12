@@ -23,8 +23,8 @@ import org.springframework.stereotype.Component;
 public class AzureAuthService {
 
   private final AzureResourceConfiguration configuration;
-  private final int MAX_RETRIES = 3;
-  private final int RETRY_TIMEOUT_SECONDS = 3600;
+  private static final int MAX_RETRIES = 3;
+  private static final int RETRY_TIMEOUT_SECONDS = 3600;
   private final RequestRetryOptions retryOptions =
       new RequestRetryOptions(
           RetryPolicyType.EXPONENTIAL, MAX_RETRIES, RETRY_TIMEOUT_SECONDS, null, null, null);

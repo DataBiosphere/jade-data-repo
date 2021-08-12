@@ -96,7 +96,7 @@ public final class IngestUtils {
       throw new InvalidBlobURLException("Blob URL parse failed due to malformed URL.", ex);
     }
     String scheme = "https";
-    if (!StringUtils.equals(blobUrlParts.getScheme(), scheme)) {
+    if (!scheme.equals(blobUrlParts.getScheme())) {
       throw new InvalidBlobURLException("Ingest source is not a valid blob url: '" + URL + "'");
     }
     // Validate host
@@ -113,7 +113,7 @@ public final class IngestUtils {
 
     String expectedHostURL = ".blob.core.windows.net";
     String actualHostURL = StringUtils.substring(host, separator, host.length());
-    if (!StringUtils.equals(expectedHostURL, actualHostURL)) {
+    if (!actualHostURL.equals(expectedHostURL)) {
       throw new InvalidBlobURLException("Ingest source is not a valid blob url: '" + URL + "'");
     }
 

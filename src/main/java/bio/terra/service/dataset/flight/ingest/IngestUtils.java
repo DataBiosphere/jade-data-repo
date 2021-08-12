@@ -5,12 +5,17 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.exception.InvalidBlobURLException;
 import bio.terra.service.dataset.exception.InvalidUriException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import com.azure.storage.blob.BlobUrlParts;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
@@ -71,6 +76,71 @@ public final class IngestUtils {
       throw new TableNotFoundException("Table not found: " + ingestRequest.getTable());
     }
     return optTable.get();
+  }
+
+  /**
+   * We want to validate and sanitize the ingest source file We are looking for a url that matches
+   * the following specification: https://{host}/{container}/{blobName}.csv or
+   * https://{host}/{container}/{blobName}.json NOTE: this definition is probably going to be too
+   * strict. There are valid blob urls that do not match this specification and we may be able to
+   * expand this definition with more testing/requirement gathering
+   *
+   * @param URL
+   * @return
+   */
+  public static BlobUrlParts validateBlobAzureBlobFileURL(String URL) {
+    BlobUrlParts blobUrlParts;
+    try {
+      blobUrlParts = BlobUrlParts.parse(URL);
+    } catch (IllegalArgumentException ex) {
+      throw new InvalidBlobURLException("Blob URL parse failed due to malformed URL.", ex);
+    }
+    String scheme = "https";
+    if (!StringUtils.equals(blobUrlParts.getScheme(), scheme)) {
+      throw new InvalidBlobURLException("Ingest source is not a valid blob url: '" + URL + "'");
+    }
+    // Validate host
+    // Expecting: {storageAccount}.blob.core.windows.net
+    // Where storage account meets the following requirements: "Storage account names must be
+    // between 3 and 24 characters in length and may contain numbers and lowercase letters only"
+
+    String host = blobUrlParts.getHost();
+    int separator = StringUtils.indexOf(host, ".");
+    String storageAccountName = StringUtils.substring(host, 0, separator);
+    if (!storageAccountName.matches("^[a-z0-9]{3,24}")) {
+      throw new InvalidBlobURLException("Ingest source is not a valid blob url: '" + URL + "'");
+    }
+
+    String expectedHostURL = ".blob.core.windows.net";
+    String actualHostURL = StringUtils.substring(host, separator, host.length());
+    if (!StringUtils.equals(expectedHostURL, actualHostURL)) {
+      throw new InvalidBlobURLException("Ingest source is not a valid blob url: '" + URL + "'");
+    }
+
+    // Validate Container and blob
+    // Must meet the following requirements:
+    // Container names must start or end with a letter or number,
+    // and can contain only letters, numbers, and the dash (-) character.
+    // Every dash (-) character must be immediately preceded and followed by a letter or number;
+    // consecutive dashes are not permitted in container names.
+    String blobName = blobUrlParts.getBlobName();
+    String containerName = blobUrlParts.getBlobContainerName();
+    if (!blobName.endsWith(".csv") && !blobName.endsWith(".json")) {
+      throw new InvalidBlobURLException("Ingest source is not a valid blob url: '" + URL + "'");
+    }
+    String blobNameNoExtension = blobName.substring(0, blobName.lastIndexOf("."));
+    List<String> blobNamesToCheck = new ArrayList<>();
+    blobNamesToCheck.addAll(Arrays.asList(blobNameNoExtension.split("/")));
+    blobNamesToCheck.add(containerName);
+    String azureContainerRegex = "^[a-z0-9](?!.*--)[a-z0-9-]{1,61}[a-z0-9]$";
+    blobNamesToCheck.forEach(
+        b -> {
+          if (!b.matches(azureContainerRegex)) {
+            throw new InvalidBlobURLException(
+                "Ingest source is not a valid blob url: '" + URL + "'");
+          }
+        });
+    return blobUrlParts;
   }
 
   public static GsUrlParts parseBlobUri(String uri) {

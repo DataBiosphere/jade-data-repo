@@ -190,14 +190,11 @@ public class AzureSynapsePdao {
     sqlCreateTableTemplate.add("isCSV", ingestType == FormatEnum.CSV);
     sqlCreateTableTemplate.add("parserVersion", PARSER_VERSION);
     sqlCreateTableTemplate.add("firstRow", csvSkipLeadingRows);
-
-    // TODO - sanitize ingestTableName, as this will be provided via user input
     sqlCreateTableTemplate.add("tableName", ingestTableName);
     sqlCreateTableTemplate.add("destinationParquetFile", destinationParquetFile);
     sqlCreateTableTemplate.add("destinationDataSourceName", destinationDataSourceName);
     sqlCreateTableTemplate.add(
         "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
-    // TODO - sanitize ingestFileName, as this will be provided via user input
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
     sqlCreateTableTemplate.add("columns", columns);

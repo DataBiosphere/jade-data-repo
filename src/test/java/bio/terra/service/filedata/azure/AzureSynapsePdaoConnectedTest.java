@@ -11,7 +11,6 @@ import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.model.TableDataType;
@@ -48,7 +47,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class AzureSynapsePdaoConnectedTest {
   private static Logger logger = LoggerFactory.getLogger(AzureSynapsePdaoConnectedTest.class);
   private String randomFlightId;
-  private DatasetSummaryModel datasetSummary;
+  private String destinationParquetFile;
 
   private static final String INGEST_REQUEST_SCOPED_CREDENTIAL_PREFIX = "irsas_";
   private static final String DESTINATION_SCOPED_CREDENTIAL_PREFIX = "dsas_";
@@ -117,13 +116,27 @@ public class AzureSynapsePdaoConnectedTest {
 
   @After
   public void cleanup() throws Exception {
+    try {
+      synapseUtils.deleteParquetFile(
+          billingProfile, storageAccountResource, destinationParquetFile);
+
+      // check to see if successful delete
+      List<String> emptyList =
+          synapseUtils.readParquetFileStringColumn(
+              destinationParquetFile, destinationDataSourceName, "first_name", false);
+      assertThat(
+          "No longer able to read parquet file because it should have been delete",
+          emptyList.size(),
+          equalTo(0));
+    } catch (Exception ex) {
+      logger.info("Unable to delete parquet files.");
+    }
+
     azureSynapsePdao.dropTables(Arrays.asList(tableName));
     azureSynapsePdao.dropDataSources(
         Arrays.asList(destinationDataSourceName, ingestRequestDataSourceName));
     azureSynapsePdao.dropScopedCredentials(
         Arrays.asList(destinationScopedCredentialName, ingestRequestScopedCredentialName));
-
-    // TODO - Clean out test parquet files
 
     connectedOperations.teardown();
   }
@@ -156,8 +169,7 @@ public class AzureSynapsePdaoConnectedTest {
     String destinationTableName = "participant";
 
     // B - Build parameters based on user input
-    String destinationParquetFile =
-        "parquet/" + destinationTableName + "/" + randomFlightId + ".parquet";
+    destinationParquetFile = "parquet/" + destinationTableName + "/" + randomFlightId + ".parquet";
 
     // 1 - Create external data source for the ingest control file
     BlobUrlParts ingestRequestSignUrlBlob =
@@ -199,7 +211,7 @@ public class AzureSynapsePdaoConnectedTest {
     // Check that the parquet files were successfully created.
     List<String> firstNames =
         synapseUtils.readParquetFileStringColumn(
-            destinationParquetFile, destinationDataSourceName, "first_name");
+            destinationParquetFile, destinationDataSourceName, "first_name", true);
     assertThat(
         "List of names should equal the input", firstNames, equalTo(Arrays.asList("Bob", "Sally")));
 

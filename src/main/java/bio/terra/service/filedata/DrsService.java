@@ -86,11 +86,6 @@ public class DrsService {
   private final AzureContainerPdao azureContainerPdao;
   private final AzureBlobStorePdao azureBlobStorePdao;
 
-  private Supplier<IllegalArgumentException> illegalArgumentExceptionSupplier =
-      () -> {
-        throw new IllegalArgumentException("No matching access ID was found for object");
-      };
-
   @Autowired
   public DrsService(
       SnapshotService snapshotService,
@@ -231,6 +226,11 @@ public class DrsService {
             .getDatasetSummary()
             .getDefaultBillingProfile();
 
+    Supplier<IllegalArgumentException> illegalArgumentExceptionSupplier =
+        () -> {
+          throw new IllegalArgumentException("No matching access ID was found for object");
+        };
+
     CloudPlatformWrapper wrapper = CloudPlatformWrapper.of(billingProfileModel.getCloudPlatform());
     if (wrapper.isGcp()) {
       DRSAccessMethod matchingAccessMethod =
@@ -238,9 +238,8 @@ public class DrsService {
               .orElseThrow(illegalArgumentExceptionSupplier);
       return signGoogleUrl(snapshot, matchingAccessMethod);
     } else if (wrapper.isAzure()) {
-      DRSAccessMethod matchingAccessMethod =
-          getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.HTTPS)
-              .orElseThrow(illegalArgumentExceptionSupplier);
+      getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.HTTPS)
+          .orElseThrow(illegalArgumentExceptionSupplier);
       try {
         FSItem fsItem =
             fileService.lookupSnapshotFSItem(

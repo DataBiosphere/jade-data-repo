@@ -7,7 +7,9 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -39,8 +41,12 @@ public class StorageTableDao {
       List<BulkLoadHistoryModel> loadHistoryArray) {
     var tableName = toStorageTableNameFromUUID(datasetId);
     TableClient client = serviceClient.createTableIfNotExists(tableName);
+
+    var base64LoadTag =
+        Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
     loadHistoryArray.stream()
-        .map(model -> bulkFileLoadModelToStorageTableEntity(model, loadTag, loadTime))
+        .map(
+            model -> bulkFileLoadModelToStorageTableEntity(model, base64LoadTag, loadTag, loadTime))
         .forEach(client::createEntity);
   }
 
@@ -61,8 +67,10 @@ public class StorageTableDao {
       int offset,
       int limit) {
     var tableClient = tableServiceClient.getTableClient(toStorageTableNameFromUUID(datasetId));
+    var base64LoadTag =
+        Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
     ListEntitiesOptions options =
-        new ListEntitiesOptions().setFilter(String.format("PartitionKey eq '%s'", loadTag));
+        new ListEntitiesOptions().setFilter(String.format("PartitionKey eq '%s'", base64LoadTag));
     var pagedEntities = tableClient.listEntities(options, null, null);
     // This could be more efficient, but would need to implement some sort of index to query on.
     return pagedEntities.stream()
@@ -73,8 +81,8 @@ public class StorageTableDao {
   }
 
   private static TableEntity bulkFileLoadModelToStorageTableEntity(
-      BulkLoadHistoryModel model, String loadTag, Instant loadTime) {
-    return new TableEntity(loadTag, model.getFileId())
+      BulkLoadHistoryModel model, String partitionKey, String loadTag, Instant loadTime) {
+    return new TableEntity(partitionKey, model.getFileId())
         .addProperty(LoadHistoryUtil.LOAD_TAG_FIELD_NAME, loadTag)
         .addProperty(LoadHistoryUtil.LOAD_TIME_FIELD_NAME, loadTime)
         .addProperty(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME, model.getSourcePath())

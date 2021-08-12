@@ -83,13 +83,13 @@ public class AzureBlobStorePdao {
     BillingProfileModel profileModel =
         profileDao.getBillingProfileById(fileLoadModel.getProfileId());
 
-    BlobContainerClientFactory destinationClientFactory =
+    BlobContainerClientFactory targetClientFactory =
         getTargetDataClientFactory(profileModel, storageAccountResource, ContainerType.DATA, false);
 
     BlobContainerClientFactory sourceClientFactory =
         buildSourceClientFactory(profileModel.getTenantId(), fileLoadModel.getSourcePath());
 
-    BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
+    BlobCrl blobCrl = getBlobCrl(targetClientFactory);
 
     // Read the leaf node of the source file to use as a way to name the file we store
     BlobUrlParts blobUrl = BlobUrlParts.parse(fileLoadModel.getSourcePath());
@@ -109,7 +109,7 @@ public class AzureBlobStorePdao {
         .gspath(
             String.format(
                 "%s/%s",
-                destinationClientFactory.getBlobContainerClient().getBlobContainerUrl(), blobName))
+                targetClientFactory.getBlobContainerClient().getBlobContainerUrl(), blobName))
         .checksumMd5(Base64.getEncoder().encodeToString((blobProperties.getContentMd5())))
         .size(blobProperties.getBlobSize())
         .bucketResourceId(storageAccountResource.getResourceId().toString());

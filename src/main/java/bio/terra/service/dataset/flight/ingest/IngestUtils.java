@@ -138,7 +138,7 @@ public final class IngestUtils {
     return workingMap.get(IngestMapKeys.INGEST_STATISTICS, PdaoLoadStatistics.class);
   }
 
-  public static Predicate<FlightContext> noFilesToIngest =
+  public static final Predicate<FlightContext> noFilesToIngest =
       flightContext -> {
         if (Optional.ofNullable(
                 flightContext.getWorkingMap().get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class))

@@ -30,9 +30,4 @@ public class IngestCleanFileStateStep extends SkippableStep {
     loadService.cleanFiles(loadId);
     return StepResult.getStepResultSuccess();
   }
-
-  @Override
-  public StepResult undoSkippableStep(FlightContext context) {
-    return StepResult.getStepResultSuccess();
-  }
 }

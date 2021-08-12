@@ -185,11 +185,10 @@ public class DatasetService {
             + ingestRequestModel.getTable()
             + " in dataset id "
             + id;
-    String computedLoadTag = loadService.computeLoadTag(ingestRequestModel.getLoadTag());
     return jobService
         .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
-        .addParameter(LoadMapKeys.LOAD_TAG, computedLoadTag)
+        .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
         .submit();
   }
 

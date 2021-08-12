@@ -55,35 +55,72 @@ public class DatasetIngestFlight extends Flight {
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     BigQueryPdao bigQueryPdao = appContext.getBean(BigQueryPdao.class);
-    GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+
+    // get data from inputs that steps need
+    UUID datasetId =
+        UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
+
+    RetryRule lockDatasetRetry =
+        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
+
+    addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+    addStep(new IngestSetupStep(datasetService, configService));
+
+    IngestRequestModel ingestRequest =
+        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
+    if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.JSON) {
+      addJsonSteps(
+          inputParameters,
+          appContext,
+          appConfig,
+          configService,
+          datasetService,
+          bigQueryPdao,
+          ingestRequest,
+          datasetId);
+    }
+
+    addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
+    addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
+    addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));
+    addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
+    addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
+    addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+  }
+
+  /**
+   * These are the steps needed for combined metadata + file ingest. This only works with JSON
+   * formatted requests, so no CSV parsing should happen here.
+   */
+  private void addJsonSteps(
+      FlightMap inputParameters,
+      ApplicationContext appContext,
+      ApplicationConfiguration appConfig,
+      ConfigurationService configService,
+      DatasetService datasetService,
+      BigQueryPdao bigQueryPdao,
+      IngestRequestModel ingestRequest,
+      UUID datasetId) {
+
+    GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     LoadService loadService = appContext.getBean(LoadService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     DatasetBucketDao datasetBucketDao = appContext.getBean(DatasetBucketDao.class);
     ConfigurationService configurationService = appContext.getBean(ConfigurationService.class);
     JobService jobService = appContext.getBean(JobService.class);
+
     GoogleProjectService projectService = appContext.getBean(GoogleProjectService.class);
-
-    // get data from inputs that steps need
-    UUID datasetId =
-        UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
-    Dataset dataset = datasetService.retrieve(datasetId);
-
-    RetryRule lockDatasetRetry =
-        getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
-
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-
-    IngestRequestModel ingestRequest =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
-
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
+
+    Dataset dataset = datasetService.retrieve(datasetId);
 
     var platform = CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 
@@ -96,83 +133,59 @@ public class DatasetIngestFlight extends Flight {
     int fileChunkSize = configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE);
 
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
+    // Begin file + metadata load
+    addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset));
+    addStep(
+        new AuthorizeBillingProfileUseStep(
+            profileService, profileId, userReq, IngestUtils.noFilesToIngest));
+    addStep(new LoadLockStep(loadService, IngestUtils.noFilesToIngest));
+    addStep(new IngestFileGetProjectStep(dataset, projectService, IngestUtils.noFilesToIngest));
+    addStep(
+        new IngestFileGetOrCreateProject(resourceService, dataset, IngestUtils.noFilesToIngest),
+        randomBackoffRetry);
+    addStep(
+        new IngestFilePrimaryDataLocationStep(
+            resourceService, dataset, IngestUtils.noFilesToIngest),
+        randomBackoffRetry);
+    addStep(
+        new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset, IngestUtils.noFilesToIngest),
+        randomBackoffRetry);
+    addStep(new IngestPopulateFileStateFromFlightMapStep(loadService, IngestUtils.noFilesToIngest));
+    addStep(
+        new IngestDriverStep(
+            loadService,
+            configurationService,
+            jobService,
+            datasetId.toString(),
+            loadTag,
+            Optional.ofNullable(ingestRequest.getMaxBadRecords()).orElse(0),
+            driverWaitSeconds,
+            profileId,
+            platform.getCloudPlatform(),
+            IngestUtils.noFilesToIngest),
+        driverRetry);
 
-    addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
-    addStep(new IngestSetupStep(datasetService, configService));
+    addStep(
+        new IngestBulkMapResponseStep(
+            loadService, ingestRequest.getLoadTag(), IngestUtils.noFilesToIngest));
+    // build the scratch file using new file ids and store in new bucket
+    addStep(new IngestBuildLoadFileStep(appConfig.objectMapper(), IngestUtils.noFilesToIngest));
+    addStep(
+        new IngestCreateBucketForScratchFileStep(
+            resourceService, dataset, IngestUtils.noFilesToIngest));
+    addStep(new IngestCreateScratchFileStep(gcsPdao, IngestUtils.noFilesToIngest));
+    addStep(
+        new IngestCopyLoadHistoryToBQStep(
+            loadService,
+            datasetService,
+            loadTag,
+            datasetId.toString(),
+            bigQueryPdao,
+            fileChunkSize,
+            loadHistoryWaitSeconds,
+            IngestUtils.noFilesToIngest));
+    addStep(new IngestCleanFileStateStep(loadService, IngestUtils.noFilesToIngest));
 
-    if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.JSON) {
-
-      // Begin file + metadata load
-      addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset));
-      addStep(
-          new AuthorizeBillingProfileUseStep(
-              profileService, profileId, userReq, IngestUtils.noFilesToIngestPredicate()));
-      addStep(new LoadLockStep(loadService, IngestUtils.noFilesToIngestPredicate()));
-      addStep(
-          new IngestFileGetProjectStep(
-              dataset, projectService, IngestUtils.noFilesToIngestPredicate()));
-      addStep(
-          new IngestFileGetOrCreateProject(
-              resourceService, dataset, IngestUtils.noFilesToIngestPredicate()),
-          randomBackoffRetry);
-      addStep(
-          new IngestFilePrimaryDataLocationStep(
-              resourceService, dataset, IngestUtils.noFilesToIngestPredicate()),
-          randomBackoffRetry);
-      addStep(
-          new IngestFileMakeBucketLinkStep(
-              datasetBucketDao, dataset, IngestUtils.noFilesToIngestPredicate()),
-          randomBackoffRetry);
-      addStep(
-          new IngestPopulateFileStateFromFlightMapStep(
-              loadService, IngestUtils.noFilesToIngestPredicate()));
-      addStep(
-          new IngestDriverStep(
-              loadService,
-              configurationService,
-              jobService,
-              datasetId.toString(),
-              loadTag,
-              Optional.ofNullable(ingestRequest.getMaxBadRecords()).orElse(0),
-              driverWaitSeconds,
-              profileId,
-              platform.getCloudPlatform(),
-              IngestUtils.noFilesToIngestPredicate()),
-          driverRetry);
-
-      addStep(
-          new IngestBulkMapResponseStep(
-              loadService, ingestRequest.getLoadTag(), IngestUtils.noFilesToIngestPredicate()));
-      // build the scratch file using new file ids and store in new bucket
-      addStep(
-          new IngestBuildLoadFileStep(
-              appConfig.objectMapper(), IngestUtils.noFilesToIngestPredicate()));
-      addStep(
-          new IngestCreateBucketForScratchFileStep(
-              resourceService, dataset, IngestUtils.noFilesToIngestPredicate()));
-      addStep(new IngestCreateScratchFileStep(gcsPdao, IngestUtils.noFilesToIngestPredicate()));
-      addStep(
-          new IngestCopyLoadHistoryToBQStep(
-              loadService,
-              datasetService,
-              loadTag,
-              datasetId.toString(),
-              bigQueryPdao,
-              fileChunkSize,
-              loadHistoryWaitSeconds,
-              IngestUtils.noFilesToIngestPredicate()));
-      addStep(new IngestCleanFileStateStep(loadService, IngestUtils.noFilesToIngestPredicate()));
-
-      addStep(new LoadUnlockStep(loadService, IngestUtils.noFilesToIngestPredicate()));
-      // End file + metadata load
-    }
-
-    // handing in the load scratch file
-    addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
-    addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
-    addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));
-    addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
-    addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
-    addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+    addStep(new LoadUnlockStep(loadService, IngestUtils.noFilesToIngest));
   }
 }

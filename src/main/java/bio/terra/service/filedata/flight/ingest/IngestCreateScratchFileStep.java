@@ -36,9 +36,4 @@ public class IngestCreateScratchFileStep extends SkippableStep {
 
     return StepResult.getStepResultSuccess();
   }
-
-  @Override
-  public StepResult undoSkippableStep(FlightContext context) {
-    return StepResult.getStepResultSuccess();
-  }
 }

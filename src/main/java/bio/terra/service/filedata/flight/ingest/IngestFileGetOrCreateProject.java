@@ -56,10 +56,4 @@ public class IngestFileGetOrCreateProject extends SkippableStep {
     }
     return StepResult.getStepResultSuccess();
   }
-
-  @Override
-  public StepResult undoSkippableStep(FlightContext context) {
-    // At this time we do not delete projects, so no undo
-    return StepResult.getStepResultSuccess();
-  }
 }

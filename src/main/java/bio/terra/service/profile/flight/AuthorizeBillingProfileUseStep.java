@@ -49,10 +49,4 @@ public class AuthorizeBillingProfileUseStep extends SkippableStep {
     workingMap.put(ProfileMapKeys.PROFILE_MODEL, profileModel);
     return StepResult.getStepResultSuccess();
   }
-
-  @Override
-  public StepResult undoSkippableStep(FlightContext context) {
-    // This step has no side effects
-    return StepResult.getStepResultSuccess();
-  }
 }

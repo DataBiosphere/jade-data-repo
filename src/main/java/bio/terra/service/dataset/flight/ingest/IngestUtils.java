@@ -138,19 +138,17 @@ public final class IngestUtils {
     return workingMap.get(IngestMapKeys.INGEST_STATISTICS, PdaoLoadStatistics.class);
   }
 
-  public static Predicate<FlightContext> noFilesToIngestPredicate() {
-    return flightContext -> {
-      if (flightContext.getFlightClassName().equals(DatasetIngestFlight.class.getName())
-          && Optional.ofNullable(
-                  flightContext.getWorkingMap().get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class))
-              .map(Set::isEmpty)
-              .orElse(true)) {
-        Logger logger = LoggerFactory.getLogger(DatasetIngestFlight.class);
-        logger.info(
-            "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
-        return true;
-      }
-      return false;
-    };
-  }
+  public static Predicate<FlightContext> noFilesToIngest =
+      flightContext -> {
+        if (Optional.ofNullable(
+                flightContext.getWorkingMap().get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class))
+            .map(Set::isEmpty)
+            .orElse(true)) {
+          Logger logger = LoggerFactory.getLogger(flightContext.getFlightClassName());
+          logger.info(
+              "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
+          return true;
+        }
+        return false;
+      };
 }

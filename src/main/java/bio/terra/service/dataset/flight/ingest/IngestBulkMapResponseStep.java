@@ -39,11 +39,6 @@ public class IngestBulkMapResponseStep extends SkippableStep {
     return StepResult.getStepResultSuccess();
   }
 
-  @Override
-  public StepResult undoSkippableStep(FlightContext context) {
-    return StepResult.getStepResultSuccess();
-  }
-
   private BulkLoadArrayResultModel makeLoadResult(UUID loadId, FlightContext context) {
     // Get the summary stats and fill in our specific information
     BulkLoadResultModel summary = loadService.makeBulkLoadResult(loadId);

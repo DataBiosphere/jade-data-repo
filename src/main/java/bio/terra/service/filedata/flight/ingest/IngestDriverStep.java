@@ -178,11 +178,6 @@ public class IngestDriverStep extends SkippableStep {
     return StepResult.getStepResultSuccess();
   }
 
-  @Override
-  public StepResult undoSkippableStep(FlightContext context) {
-    return StepResult.getStepResultSuccess();
-  }
-
   private void waitForAny(
       FlightContext context, UUID loadId, int concurrentLoads, int originallyRunning)
       throws DatabaseOperationException, InterruptedException {

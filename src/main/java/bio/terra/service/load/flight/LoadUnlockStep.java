@@ -27,10 +27,4 @@ public class LoadUnlockStep extends SkippableStep {
     loadService.unlockLoad(loadTag, context.getFlightId());
     return StepResult.getStepResultSuccess();
   }
-
-  @Override
-  public StepResult undoSkippableStep(FlightContext context) {
-    // No undo for unlock
-    return StepResult.getStepResultSuccess();
-  }
 }

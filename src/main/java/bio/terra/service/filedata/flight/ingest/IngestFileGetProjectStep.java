@@ -40,9 +40,4 @@ public class IngestFileGetProjectStep extends SkippableStep {
     workingMap.put(FileMapKeys.GOOGLE_PROJECT_ID, projectId);
     return StepResult.getStepResultSuccess();
   }
-
-  @Override
-  public StepResult undoSkippableStep(FlightContext context) {
-    return StepResult.getStepResultSuccess();
-  }
 }

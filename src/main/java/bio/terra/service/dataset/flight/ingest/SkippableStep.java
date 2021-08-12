@@ -44,6 +44,8 @@ public abstract class SkippableStep implements Step {
   public abstract StepResult doSkippableStep(FlightContext flightContext)
       throws InterruptedException;
 
-  public abstract StepResult undoSkippableStep(FlightContext flightContext)
-      throws InterruptedException;
+  public StepResult undoSkippableStep(FlightContext context) {
+    // This step has no side effects
+    return StepResult.getStepResultSuccess();
+  }
 }

@@ -95,56 +95,38 @@ public final class IngestUtils {
     } catch (IllegalArgumentException ex) {
       throw new InvalidBlobURLException("Blob URL parse failed due to malformed URL.", ex);
     }
-    validateScheme(blobUrlParts.getScheme(), URL);
-    validateHost(blobUrlParts.getHost(), URL);
-    validateContainerAndBlobNames(
-        blobUrlParts.getBlobContainerName(), blobUrlParts.getBlobName(), URL);
-    return blobUrlParts;
-  }
-
-  private static void validateScheme(String scheme, String URL) {
-    String expectedScheme = "https";
-    if (!expectedScheme.equals(scheme)) {
-      throw new InvalidBlobURLException(
-          "Ingest source is not a valid blob url: '"
-              + URL
-              + "'."
-              + "The url is required to use 'https'");
+    String scheme = "https";
+    if (!StringUtils.equals(blobUrlParts.getScheme(), scheme)) {
+      throw new InvalidBlobURLException("Ingest source is not a valid blob url: '" + URL + "'");
     }
-  }
+    // Validate host
+    // Expecting: {storageAccount}.blob.core.windows.net
+    // Where storage account meets the following requirements: "Storage account names must be
+    // between 3 and 24 characters in length and may contain numbers and lowercase letters only"
 
-  private static void validateHost(String host, String URL) {
+    String host = blobUrlParts.getHost();
     int separator = StringUtils.indexOf(host, ".");
     String storageAccountName = StringUtils.substring(host, 0, separator);
     if (!storageAccountName.matches("^[a-z0-9]{3,24}")) {
-      throw new InvalidBlobURLException(
-          "Ingest source is not a valid blob url: '"
-              + URL
-              + "'. "
-              + "The host is expected to take the following format: {storageAccountName}.blob.core.windows.net, "
-              + "where the storageAccountName must be between 3 and 24 characters in length and "
-              + "should consist only of numbers and lowercase letters.");
+      throw new InvalidBlobURLException("Ingest source is not a valid blob url: '" + URL + "'");
     }
 
     String expectedHostURL = ".blob.core.windows.net";
     String actualHostURL = StringUtils.substring(host, separator, host.length());
-    if (!actualHostURL.equals(expectedHostURL)) {
-      throw new InvalidBlobURLException(
-          "Ingest source is not a valid blob url: '"
-              + URL
-              + "'. "
-              + "The host is expected to take the following format: {storageAccountName}.blob.core.windows.net");
+    if (!StringUtils.equals(expectedHostURL, actualHostURL)) {
+      throw new InvalidBlobURLException("Ingest source is not a valid blob url: '" + URL + "'");
     }
-  }
 
-  private static void validateContainerAndBlobNames(
-      String containerName, String blobName, String URL) {
+    // Validate Container and blob
+    // Must meet the following requirements:
+    // Container names must start or end with a letter or number,
+    // and can contain only letters, numbers, and the dash (-) character.
+    // Every dash (-) character must be immediately preceded and followed by a letter or number;
+    // consecutive dashes are not permitted in container names.
+    String blobName = blobUrlParts.getBlobName();
+    String containerName = blobUrlParts.getBlobContainerName();
     if (!blobName.endsWith(".csv") && !blobName.endsWith(".json")) {
-      throw new InvalidBlobURLException(
-          "Ingest source is not a valid blob url: '"
-              + URL
-              + "'. "
-              + "The url must include a file name with an extension of either csv or json.");
+      throw new InvalidBlobURLException("Ingest source is not a valid blob url: '" + URL + "'");
     }
     String blobNameNoExtension = blobName.substring(0, blobName.lastIndexOf("."));
     List<String> blobNamesToCheck = new ArrayList<>();
@@ -155,16 +137,10 @@ public final class IngestUtils {
         b -> {
           if (!b.matches(azureContainerRegex)) {
             throw new InvalidBlobURLException(
-                "Ingest source is not a valid blob url: '"
-                    + URL
-                    + "'. "
-                    + " The container and each blob name must meet the following requirements: "
-                    + "They must start and end with a letter or number. Valid characters include "
-                    + "letters, numbers, and the dash (-) character. "
-                    + "Every dash (-) character must be immediately preceded and followed by a letter or number; "
-                    + "consecutive dashes are not permitted in container names.");
+                "Ingest source is not a valid blob url: '" + URL + "'");
           }
         });
+    return blobUrlParts;
   }
 
   public static GsUrlParts parseBlobUri(String uri) {

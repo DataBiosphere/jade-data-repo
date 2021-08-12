@@ -2,6 +2,7 @@ package bio.terra.service.tabulardata.azure;
 
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.tabulardata.LoadHistoryUtil;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
@@ -9,6 +10,7 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -39,14 +41,44 @@ public class StorageTableDao {
       String loadTag,
       Instant loadTime,
       List<BulkLoadHistoryModel> loadHistoryArray) {
+    if (loadHistoryArray.isEmpty()) {
+      return;
+    }
     var tableName = toStorageTableNameFromUUID(datasetId);
     TableClient client = serviceClient.createTableIfNotExists(tableName);
 
     var base64LoadTag =
         Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
-    loadHistoryArray.stream()
-        .map(
-            model -> bulkFileLoadModelToStorageTableEntity(model, base64LoadTag, loadTag, loadTime))
+
+    ListEntitiesOptions options =
+        new ListEntitiesOptions()
+            .setFilter(String.format("PartitionKey eq '%s'", base64LoadTag))
+            .setFilter(String.format("%s eq 'true'", LoadHistoryUtil.IS_LAST_FIELD_NAME));
+
+    List<TableEntity> lastEntityList =
+        client.listEntities(options, null, null).stream().collect(Collectors.toList());
+    if (lastEntityList.size() > 1) {
+      throw new CorruptMetadataException(
+          "There should only be 0 or 1 'last' loaded entity in load history table storage");
+    }
+    int indexToStartFrom = 0;
+    if (lastEntityList.size() == 1) {
+      TableEntity lastTableEntity = lastEntityList.get(0);
+      StorageTableLoadHistoryEntity lastEntity = new StorageTableLoadHistoryEntity(lastTableEntity);
+      lastTableEntity.addProperty(LoadHistoryUtil.IS_LAST_FIELD_NAME, false);
+      client.updateEntity(lastTableEntity);
+      indexToStartFrom = lastEntity.index;
+    }
+
+    List<StorageTableLoadHistoryEntity> entities = new ArrayList<>();
+    for (int i = 0; i < loadHistoryArray.size(); i++) {
+      var isLast = i == loadHistoryArray.size() - 1;
+      entities.add(
+          new StorageTableLoadHistoryEntity(
+              loadHistoryArray.get(i), base64LoadTag, i + indexToStartFrom, isLast));
+    }
+    entities.stream()
+        .map(entity -> bulkFileLoadModelToStorageTableEntity(entity, loadTag, loadTime))
         .forEach(client::createEntity);
   }
 
@@ -70,19 +102,27 @@ public class StorageTableDao {
     var base64LoadTag =
         Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
     ListEntitiesOptions options =
-        new ListEntitiesOptions().setFilter(String.format("PartitionKey eq '%s'", base64LoadTag));
+        new ListEntitiesOptions()
+            .setFilter(String.format("PartitionKey eq '%s'", base64LoadTag))
+            .setFilter(
+                String.format(
+                    "%s ge %d and %s lt %s",
+                    LoadHistoryUtil.INDEX_FIELD_NAME,
+                    offset,
+                    LoadHistoryUtil.INDEX_FIELD_NAME,
+                    offset + limit));
     var pagedEntities = tableClient.listEntities(options, null, null);
     // This could be more efficient, but would need to implement some sort of index to query on.
     return pagedEntities.stream()
-        .skip(offset)
-        .limit(limit)
-        .map(StorageTableDao::storageTableEntityBulkFileLoadModel)
+        .map(StorageTableLoadHistoryEntity::new)
+        .map(e -> e.model)
         .collect(Collectors.toList());
   }
 
   private static TableEntity bulkFileLoadModelToStorageTableEntity(
-      BulkLoadHistoryModel model, String partitionKey, String loadTag, Instant loadTime) {
-    return new TableEntity(partitionKey, model.getFileId())
+      StorageTableLoadHistoryEntity entity, String loadTag, Instant loadTime) {
+    var model = entity.model;
+    return new TableEntity(entity.partitionKey, model.getFileId())
         .addProperty(LoadHistoryUtil.LOAD_TAG_FIELD_NAME, loadTag)
         .addProperty(LoadHistoryUtil.LOAD_TIME_FIELD_NAME, loadTime)
         .addProperty(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME, model.getSourcePath())
@@ -91,20 +131,9 @@ public class StorageTableDao {
         .addProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME, model.getFileId())
         .addProperty(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME, model.getChecksumCRC())
         .addProperty(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME, model.getChecksumMD5())
-        .addProperty(LoadHistoryUtil.ERROR_FIELD_NAME, model.getError());
-  }
-
-  private static BulkLoadHistoryModel storageTableEntityBulkFileLoadModel(TableEntity tableEntity) {
-    return new BulkLoadHistoryModel()
-        .sourcePath(tableEntity.getProperty(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME).toString())
-        .targetPath(tableEntity.getProperty(LoadHistoryUtil.TARGET_PATH_FIELD_NAME).toString())
-        .state(
-            BulkLoadFileState.valueOf(
-                tableEntity.getProperty(LoadHistoryUtil.STATE_FIELD_NAME).toString()))
-        .fileId(tableEntity.getProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME).toString())
-        .checksumCRC((String) tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
-        .checksumMD5((String) tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
-        .error((String) tableEntity.getProperty(LoadHistoryUtil.ERROR_FIELD_NAME));
+        .addProperty(LoadHistoryUtil.ERROR_FIELD_NAME, model.getError())
+        .addProperty(LoadHistoryUtil.INDEX_FIELD_NAME, entity.index)
+        .addProperty(LoadHistoryUtil.IS_LAST_FIELD_NAME, entity.isLast);
   }
 
   /**
@@ -115,5 +144,44 @@ public class StorageTableDao {
    */
   private static String toStorageTableNameFromUUID(UUID datasetId) {
     return "datarepo" + datasetId.toString().replaceAll("-", "") + LOAD_HISTORY_TABLE_NAME_SUFFIX;
+  }
+
+  private static class StorageTableLoadHistoryEntity {
+
+    final BulkLoadHistoryModel model;
+    final String partitionKey;
+    final int index;
+    final boolean isLast;
+
+    public StorageTableLoadHistoryEntity(
+        BulkLoadHistoryModel model, String partitionKey, int index, boolean isLast) {
+      this.model = model;
+      this.partitionKey = partitionKey;
+      this.index = index;
+      this.isLast = isLast;
+    }
+
+    public StorageTableLoadHistoryEntity(TableEntity tableEntity) {
+      this.model = storageTableEntityBulkFileLoadModel(tableEntity);
+      this.partitionKey = tableEntity.getPartitionKey();
+      this.index =
+          Integer.parseInt(tableEntity.getProperty(LoadHistoryUtil.INDEX_FIELD_NAME).toString());
+      this.isLast =
+          Boolean.parseBoolean(
+              tableEntity.getProperty(LoadHistoryUtil.IS_LAST_FIELD_NAME).toString());
+    }
+
+    private BulkLoadHistoryModel storageTableEntityBulkFileLoadModel(TableEntity tableEntity) {
+      return new BulkLoadHistoryModel()
+          .sourcePath(tableEntity.getProperty(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME).toString())
+          .targetPath(tableEntity.getProperty(LoadHistoryUtil.TARGET_PATH_FIELD_NAME).toString())
+          .state(
+              BulkLoadFileState.valueOf(
+                  tableEntity.getProperty(LoadHistoryUtil.STATE_FIELD_NAME).toString()))
+          .fileId(tableEntity.getProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME).toString())
+          .checksumCRC((String) tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
+          .checksumMD5((String) tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
+          .error((String) tableEntity.getProperty(LoadHistoryUtil.ERROR_FIELD_NAME));
+    }
   }
 }

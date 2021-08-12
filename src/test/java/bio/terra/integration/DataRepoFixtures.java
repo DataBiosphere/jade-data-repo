@@ -628,11 +628,19 @@ public class DataRepoFixtures {
   }
 
   public BulkLoadHistoryModelList getLoadHistory(
-      TestConfiguration.User user, UUID datasetId, String loadTag) throws Exception {
+      TestConfiguration.User user, UUID datasetId, String loadTag, int offset, int limit)
+      throws Exception {
     var response =
         dataRepoClient.get(
             user,
-            "/api/repository/v1/datasets/" + datasetId + "/files/bulk/" + loadTag,
+            "/api/repository/v1/datasets/"
+                + datasetId
+                + "/files/bulk/"
+                + loadTag
+                + "?offset="
+                + offset
+                + "&limit="
+                + limit,
             BulkLoadHistoryModelList.class);
     if (response.getStatusCode().is2xxSuccessful()) {
       assertThat("getLoadHistory is successful", response.getStatusCode(), equalTo(HttpStatus.OK));

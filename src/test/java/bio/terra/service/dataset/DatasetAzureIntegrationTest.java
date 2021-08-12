@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -260,15 +261,20 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         dataRepoFixtures.getFileByName(steward, datasetId, "/test/targetSas.txt").getSize(),
         equalTo(fileSize));
 
-    var loadHistoryList = dataRepoFixtures.getLoadHistory(steward, datasetId, "loadTag");
+    var loadHistoryList1 = dataRepoFixtures.getLoadHistory(steward, datasetId, "loadTag", 0, 1);
 
-    assertThat("load history is the correct size", loadHistoryList.getTotal(), equalTo(2));
+    assertThat("limited load history is the correct size", loadHistoryList1.getTotal(), equalTo(1));
+
+    var loadHistoryList2 = dataRepoFixtures.getLoadHistory(steward, datasetId, "loadTag", 1, 1);
+
+    assertThat("offset load history is the correct size", loadHistoryList2.getTotal(), equalTo(1));
+
+    var loadHistoryList =
+        Stream.concat(loadHistoryList1.getItems().stream(), loadHistoryList2.getItems().stream());
 
     assertThat(
         "getting load history has the same items as response from bulk file load",
-        loadHistoryList.getItems().stream()
-            .map(TestUtils::toBulkLoadFileResultModel)
-            .collect(Collectors.toSet()),
+        loadHistoryList.map(TestUtils::toBulkLoadFileResultModel).collect(Collectors.toSet()),
         equalTo(Set.copyOf(result.getLoadFileResults())));
 
     // Delete the file we just ingested

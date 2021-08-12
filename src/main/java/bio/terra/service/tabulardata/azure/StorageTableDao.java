@@ -112,7 +112,6 @@ public class StorageTableDao {
                     LoadHistoryUtil.INDEX_FIELD_NAME,
                     offset + limit));
     var pagedEntities = tableClient.listEntities(options, null, null);
-    // This could be more efficient, but would need to implement some sort of index to query on.
     return pagedEntities.stream()
         .map(StorageTableLoadHistoryEntity::new)
         .map(e -> e.model)

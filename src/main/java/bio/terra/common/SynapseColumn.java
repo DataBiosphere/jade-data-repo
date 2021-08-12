@@ -1,6 +1,7 @@
 package bio.terra.common;
 
 import bio.terra.model.TableDataType;
+import javax.ws.rs.NotSupportedException;
 
 public class SynapseColumn extends Column {
   private String synapseDataType;
@@ -60,6 +61,7 @@ public class SynapseColumn extends Column {
       case FILEREF:
         return "varchar(36)";
       case FLOAT:
+        return "float";
       case FLOAT64:
         return "real";
       case INTEGER:
@@ -67,12 +69,16 @@ public class SynapseColumn extends Column {
       case INT64:
         return "bigint";
       case NUMERIC:
-        return "decimal";
+        return "numeric";
       case TEXT:
       case STRING:
         return "varchar(8000)";
       case TIME:
         return "time";
+        // Data of type RECORD contains table-like that can be nested or repeated
+        // It's provided in JSON format, making it hard to parse from inside a CSV/JSON ingest
+      case RECORD:
+        throw new NotSupportedException("RECORD type is not yet supported for synapse");
       default:
         throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
     }

@@ -23,6 +23,7 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.ShortUUID;
 import com.azure.storage.blob.BlobUrlParts;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import org.junit.After;
@@ -190,11 +191,7 @@ public class AzureSynapsePdaoConnectedTest {
         destinationSignUrlBlob, destinationScopedCredentialName, destinationDataSourceName);
 
     // 3 - Retrieve info about database schema so that we can populate the parquet create query
-    List<String> columnNames =
-        Arrays.asList("id", "age", "first_name", "last_name", "favorite_animals");
-    TableDataType baseType = TableDataType.STRING;
-    DatasetTable destinationTable =
-        DatasetFixtures.generateDatasetTable(destinationTableName, baseType, columnNames);
+    DatasetTable destinationTable = buildExampleTableSchema(destinationTableName);
 
     // 4 - Create parquet files via external table
     // All inputs should be sanitized before passed into this method
@@ -217,7 +214,53 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 4 - clean out synapse
     // we'll do this in the test cleanup method, but it will be a step in the normal flight
-    // azureSynapsePdao.cleanSynapseEntries(randomFlightId);
 
+  }
+
+  private DatasetTable buildExampleTableSchema(String destinationTableName) {
+    List<String> columnNames =
+        Arrays.asList(
+            "boolCol",
+            "dateCol",
+            "dateTimeCol",
+            "dirRefCol",
+            "fileRefCol",
+            "floatCol",
+            "float64Col",
+            "intCol",
+            "int64Col",
+            "numericCol",
+            "first_name",
+            "textCol",
+            "timeCol",
+            "timestampCol",
+            "arrayCol");
+    TableDataType baseType = TableDataType.STRING;
+    DatasetTable destinationTable =
+        DatasetFixtures.generateDatasetTable(destinationTableName, baseType, columnNames);
+
+    // Set each column to be a different data type so we can test them all
+    List<TableDataType> tableTypesToTry =
+        Arrays.asList(
+            TableDataType.BOOLEAN,
+            TableDataType.DATE,
+            TableDataType.DATETIME,
+            TableDataType.DIRREF,
+            TableDataType.FILEREF,
+            TableDataType.FLOAT,
+            TableDataType.FLOAT64,
+            TableDataType.INTEGER,
+            TableDataType.INT64,
+            TableDataType.NUMERIC,
+            TableDataType.STRING,
+            TableDataType.TEXT,
+            TableDataType.TIME,
+            TableDataType.TIMESTAMP,
+            TableDataType.STRING);
+    Iterator<TableDataType> dataTypes = tableTypesToTry.iterator();
+    destinationTable.getColumns().forEach(c -> c.type(dataTypes.next()));
+    destinationTable.getColumns().get(tableTypesToTry.size() - 1).arrayOf(true);
+
+    return destinationTable;
   }
 }

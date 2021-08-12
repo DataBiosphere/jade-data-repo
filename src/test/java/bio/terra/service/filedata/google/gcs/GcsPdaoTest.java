@@ -134,30 +134,6 @@ public class GcsPdaoTest {
     }
   }
 
-  @Test
-  public void testWriteLinesToNewGcsFile() {
-    var uuid = UUID.randomUUID().toString();
-    var name = uuid + "/" + uuid + ".txt";
-    var path = GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), name);
-
-    Blob blob = gcsPdao.createGcsFile(path, projectId);
-    try {
-      List<String> contents = new ArrayList<>();
-      for (int i = 0; i < 3; i++) {
-        var fileContents = String.format("This is line %d", i);
-        contents.add(fileContents);
-      }
-
-      gcsPdao.writeGcsFileLines(path, String.join("\n", contents), projectId);
-      List<String> writtenContents = gcsPdao.getGcsFilesLines(path, projectId);
-
-      assertThat("Lines are correctly written to file", contents, equalTo(writtenContents));
-
-    } finally {
-      storage.delete(blob.getBlobId());
-    }
-  }
-
   @Test(expected = PdaoInvalidUriException.class)
   public void testGetBlobNonGs() {
     GcsPdao.getBlobFromGsPath(storage, "s3://my-aws-bucket/my-cool-path", projectId);

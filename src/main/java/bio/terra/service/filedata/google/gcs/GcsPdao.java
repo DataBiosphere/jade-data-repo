@@ -116,15 +116,15 @@ public class GcsPdao {
   }
 
   /**
-   * Write a list of String to a GCS file, one list element per line
+   * Write String to a GCS file
    *
    * @param path gs path to write the lines to
    * @param contentsToWrite contents to write to file
    * @param projectId project for billing
    */
-  public void writeGcsFileLines(String path, String contentsToWrite, String projectId) {
+  public void writeGcsFile(String path, String contentsToWrite, String projectId) {
     Storage storage = gcsProjectFactory.getStorage(projectId);
-    logger.info("Writing lines to {}", path);
+    logger.info("Writing contents to {}", path);
     GcsIO.writeBlobContents(storage, projectId, path, contentsToWrite);
   }
 

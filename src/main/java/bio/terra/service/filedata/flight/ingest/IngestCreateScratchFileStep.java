@@ -32,7 +32,7 @@ public class IngestCreateScratchFileStep extends SkippableStep {
     workingMap.put(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, path);
 
     gcsPdao.createGcsFile(path, bucket.projectIdForBucket());
-    gcsPdao.writeGcsFileLines(path, linesWithFileIds, bucket.projectIdForBucket());
+    gcsPdao.writeGcsFile(path, linesWithFileIds, bucket.projectIdForBucket());
 
     return StepResult.getStepResultSuccess();
   }

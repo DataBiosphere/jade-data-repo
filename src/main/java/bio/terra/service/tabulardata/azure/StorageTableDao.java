@@ -9,6 +9,7 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
@@ -16,30 +17,27 @@ import org.springframework.stereotype.Component;
 public class StorageTableDao {
 
   private static final String LOAD_HISTORY_TABLE_NAME_SUFFIX = "LoadHistory";
-  private static final int AZURE_STORAGE_TABLE_NAME_MAX_LENGTH = 63;
-  private static final int TABLE_NAME_MAX_LENGTH_BEFORE_PREFIX =
-      AZURE_STORAGE_TABLE_NAME_MAX_LENGTH - LOAD_HISTORY_TABLE_NAME_SUFFIX.length();
 
   /**
    * Store the results of a bulk file load in an Azure Storage Table
    *
-   * <p>The table name will be the result of the dataset name passed through {@link
-   * StorageTableDao#toStorageTableName} Entities will be partitioned on the loadTag and their row
-   * keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
+   * <p>The table name will be the result of the dataset id passed through {@link
+   * StorageTableDao#toStorageTableNameFromUUID} Entities will be partitioned on the loadTag and
+   * their row keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
    *
    * @param serviceClient A service client for the dataset
-   * @param datasetName the name of the dataset
+   * @param datasetId the id of the dataset
    * @param loadTag Load tag to partition on
    * @param loadTime The time the load occurred
    * @param loadHistoryArray The models to store
    */
   public void loadHistoryToAStorageTable(
       TableServiceClient serviceClient,
-      String datasetName,
+      UUID datasetId,
       String loadTag,
       Instant loadTime,
       List<BulkLoadHistoryModel> loadHistoryArray) {
-    var tableName = toStorageTableName(datasetName);
+    var tableName = toStorageTableNameFromUUID(datasetId);
     TableClient client = serviceClient.createTableIfNotExists(tableName);
     loadHistoryArray.stream()
         .map(model -> bulkFileLoadModelToStorageTableEntity(model, loadTag, loadTime))
@@ -50,7 +48,7 @@ public class StorageTableDao {
    * Get the load history results from storage tables
    *
    * @param tableServiceClient A client for the dataset
-   * @param datasetName The dataset name
+   * @param datasetId The dataset id
    * @param loadTag The load tag of the file load
    * @param offset Results will be offset by this much
    * @param limit Results will be limited to this many
@@ -58,11 +56,11 @@ public class StorageTableDao {
    */
   public List<BulkLoadHistoryModel> getLoadHistory(
       TableServiceClient tableServiceClient,
-      String datasetName,
+      UUID datasetId,
       String loadTag,
       int offset,
       int limit) {
-    var tableClient = tableServiceClient.getTableClient(toStorageTableName(datasetName));
+    var tableClient = tableServiceClient.getTableClient(toStorageTableNameFromUUID(datasetId));
     ListEntitiesOptions options =
         new ListEntitiesOptions().setFilter(String.format("PartitionKey eq '%s'", loadTag));
     var pagedEntities = tableClient.listEntities(options, null, null);
@@ -102,23 +100,12 @@ public class StorageTableDao {
   }
 
   /**
-   * Generate a valid azure storage table name for load history. The resulting name will be the
-   * input truncated to fit {@value #LOAD_HISTORY_TABLE_NAME_SUFFIX} as a suffix in less than 63
-   * characters, with all non-alphanumeric characters stripped out.
+   * Generate a Storage Table name from a UUID
    *
-   * @param tableName The root of the table name
+   * @param datasetId The datasetId root of the table name
    * @return A valid azure storage table name with load history suffix.
    */
-  private static String toStorageTableName(String tableName) {
-    var alphaNumeric = tableName.replaceAll("[^A-Za-z0-9]", "");
-    var rightLength =
-        alphaNumeric.substring(
-                0, Math.min(alphaNumeric.length(), TABLE_NAME_MAX_LENGTH_BEFORE_PREFIX))
-            + LOAD_HISTORY_TABLE_NAME_SUFFIX;
-    if (rightLength.substring(0, 1).matches("[0-9]")) {
-      return "a" + rightLength.substring(1);
-    } else {
-      return rightLength;
-    }
+  private static String toStorageTableNameFromUUID(UUID datasetId) {
+    return "datarepo" + datasetId.toString().replaceAll("-", "") + LOAD_HISTORY_TABLE_NAME_SUFFIX;
   }
 }

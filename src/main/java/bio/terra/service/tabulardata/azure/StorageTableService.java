@@ -46,7 +46,7 @@ public class StorageTableService {
         azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
 
     storageTableDao.loadHistoryToAStorageTable(
-        serviceClient, dataset.getName(), loadTag, loadTime, loadHistoryArray);
+        serviceClient, dataset.getId(), loadTag, loadTime, loadHistoryArray);
   }
 
   public List<BulkLoadHistoryModel> getLoadHistory(
@@ -63,6 +63,6 @@ public class StorageTableService {
             dataset.getDatasetSummary().getDefaultBillingProfile(), storageAccountResource);
 
     return storageTableDao.getLoadHistory(
-        tableServiceClient, dataset.getName(), loadTag, offset, limit);
+        tableServiceClient, dataset.getId(), loadTag, offset, limit);
   }
 }

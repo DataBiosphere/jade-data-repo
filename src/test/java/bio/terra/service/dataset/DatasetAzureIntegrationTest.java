@@ -17,6 +17,7 @@ import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
+import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -26,6 +27,8 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -269,6 +272,25 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         "file with Sas size matches",
         dataRepoFixtures.getFileByName(steward, datasetId, "/test/targetSas.txt").getSize(),
         equalTo(fileSize));
+
+    // Ingest Metadata
+    // TODO - move this into test config
+    String tableName = "vocabulary";
+    String ingestRequestPath =
+        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-vocab-ingest-request.json";
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table(tableName)
+            .path(ingestRequestPath)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("test"));
+    IngestResponseModel ingestResponse =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+    assertThat("1 Row was ingested", ingestResponse.getRowCount(), equalTo(1L));
+
     // Delete the file we just ingested
     String fileId = result.getLoadFileResults().get(0).getFileId();
     dataRepoFixtures.deleteFile(steward, datasetId, fileId);

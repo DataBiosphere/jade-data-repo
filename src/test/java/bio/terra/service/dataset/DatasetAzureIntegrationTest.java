@@ -3,6 +3,8 @@ package bio.terra.service.dataset;
 import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
@@ -31,7 +33,6 @@ import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -260,23 +261,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         "file with Sas size matches",
         dataRepoFixtures.getFileByName(steward, datasetId, "/test/targetSas.txt").getSize(),
         equalTo(fileSize));
-
-    var loadHistoryList1 = dataRepoFixtures.getLoadHistory(steward, datasetId, "loadTag", 0, 1);
-
-    assertThat("limited load history is the correct size", loadHistoryList1.getTotal(), equalTo(1));
-
-    var loadHistoryList2 = dataRepoFixtures.getLoadHistory(steward, datasetId, "loadTag", 1, 1);
-
-    assertThat("offset load history is the correct size", loadHistoryList2.getTotal(), equalTo(1));
-
-    var loadHistoryList =
-        Stream.concat(loadHistoryList1.getItems().stream(), loadHistoryList2.getItems().stream());
-
-    assertThat(
-        "getting load history has the same items as response from bulk file load",
-        loadHistoryList.map(TestUtils::toBulkLoadFileResultModel).collect(Collectors.toSet()),
-        equalTo(Set.copyOf(result.getLoadFileResults())));
-
     // Delete the file we just ingested
     String fileId = result.getLoadFileResults().get(0).getFileId();
     dataRepoFixtures.deleteFile(steward, datasetId, fileId);
@@ -285,6 +269,138 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         "file is gone",
         dataRepoFixtures.getFileByIdRaw(steward, datasetId, fileId).getStatusCode(),
         equalTo(HttpStatus.NOT_FOUND));
+
+    // Make sure that any failure in tearing down is presented as a test failure
+    blobIOTestUtility.deleteContainers();
+    clearEnvironment();
+  }
+
+  @Test
+  public void testDatasetFileIngestLoadHistory() throws Exception {
+    String blobName = "myBlob";
+    long fileSize = MIB / 10;
+    String sourceFile = blobIOTestUtility.uploadSourceFile(blobName, fileSize);
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
+    datasetId = summaryModel.getId();
+
+    BulkLoadFileModel fileLoadModel =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(
+                String.format("%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+            .targetPath("/test/target.txt");
+    BulkLoadFileModel fileLoadModelSas =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(
+                String.format(
+                    "%s/%s?%s",
+                    blobIOTestUtility.getSourceContainerEndpoint(),
+                    sourceFile,
+                    blobIOTestUtility.generateBlobSasTokenWithReadPermissions(
+                        getSourceStorageAccountPrimarySharedKey(), sourceFile)))
+            .targetPath("/test/targetSas.txt");
+    BulkLoadArrayResultModel bulkLoadResult1 =
+        dataRepoFixtures.bulkLoadArray(
+            steward,
+            datasetId,
+            new BulkLoadArrayRequestModel()
+                .profileId(summaryModel.getDefaultProfileId())
+                .loadTag("loadTag")
+                .addLoadArrayItem(fileLoadModel)
+                .addLoadArrayItem(fileLoadModelSas));
+
+    BulkLoadFileModel fileLoadModel2 =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(
+                String.format("%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+            .targetPath("/test/target2.txt");
+    BulkLoadFileModel fileLoadModelSas2 =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(
+                String.format(
+                    "%s/%s?%s",
+                    blobIOTestUtility.getSourceContainerEndpoint(),
+                    sourceFile,
+                    blobIOTestUtility.generateBlobSasTokenWithReadPermissions(
+                        getSourceStorageAccountPrimarySharedKey(), sourceFile)))
+            .targetPath("/test/targetSas2.txt");
+
+    BulkLoadArrayResultModel bulkLoadResult2 =
+        dataRepoFixtures.bulkLoadArray(
+            steward,
+            datasetId,
+            new BulkLoadArrayRequestModel()
+                .profileId(summaryModel.getDefaultProfileId())
+                .loadTag("loadTag")
+                .addLoadArrayItem(fileLoadModel2)
+                .addLoadArrayItem(fileLoadModelSas2));
+
+    BulkLoadFileModel fileLoadModel3 =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(
+                String.format("%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+            .targetPath("/test/target3.txt");
+    BulkLoadFileModel fileLoadModelSas3 =
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(
+                String.format(
+                    "%s/%s?%s",
+                    blobIOTestUtility.getSourceContainerEndpoint(),
+                    sourceFile,
+                    blobIOTestUtility.generateBlobSasTokenWithReadPermissions(
+                        getSourceStorageAccountPrimarySharedKey(), sourceFile)))
+            .targetPath("/test/targetSas3.txt");
+    dataRepoFixtures.bulkLoadArray(
+        steward,
+        datasetId,
+        new BulkLoadArrayRequestModel()
+            .profileId(summaryModel.getDefaultProfileId())
+            .loadTag("differentLoadTag")
+            .addLoadArrayItem(fileLoadModel3)
+            .addLoadArrayItem(fileLoadModelSas3));
+
+    var loadHistoryList1 = dataRepoFixtures.getLoadHistory(steward, datasetId, "loadTag", 0, 2);
+    var loadHistoryList2 = dataRepoFixtures.getLoadHistory(steward, datasetId, "loadTag", 2, 10);
+    var loadHistoryList1and2 =
+        dataRepoFixtures.getLoadHistory(steward, datasetId, "loadTag", 0, 10);
+    var loadHistoryList3 =
+        dataRepoFixtures.getLoadHistory(steward, datasetId, "differentLoadTag", 0, 10);
+    var loaded1and2 =
+        Stream.concat(
+                bulkLoadResult1.getLoadFileResults().stream(),
+                bulkLoadResult2.getLoadFileResults().stream())
+            .collect(Collectors.toSet());
+
+    var loadHistory1and2Models =
+        Stream.concat(loadHistoryList1.getItems().stream(), loadHistoryList2.getItems().stream());
+
+    assertThat("limited load history is the correct size", loadHistoryList1.getTotal(), equalTo(2));
+    assertThat("offset load history is the correct size", loadHistoryList2.getTotal(), equalTo(2));
+    assertThat(
+        "all load history for load tag is returned", loadHistoryList1and2.getTotal(), equalTo(4));
+    assertThat(
+        "getting load history has the same items as response from bulk file load",
+        loadHistory1and2Models
+            .map(TestUtils::toBulkLoadFileResultModel)
+            .collect(Collectors.toSet()),
+        equalTo(loaded1and2));
+    assertThat(
+        "load counts under different load tags are returned separately",
+        loadHistoryList3.getTotal(),
+        equalTo(2));
+    for (var loadHistoryModel : loadHistoryList3.getItems()) {
+      assertThat(
+          "models from different load tags are returned in different requests",
+          loadHistoryModel,
+          not(in(loadHistoryList1and2.getItems())));
+    }
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();

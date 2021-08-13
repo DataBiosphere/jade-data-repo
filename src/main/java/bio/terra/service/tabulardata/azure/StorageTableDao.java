@@ -46,14 +46,20 @@ public class StorageTableDao {
     }
     var tableName = toStorageTableNameFromUUID(datasetId);
     TableClient client = serviceClient.createTableIfNotExists(tableName);
+    // if the table already exists, the returned client is null and we have to get it explicitly
+    if (client == null) {
+      client = serviceClient.getTableClient(tableName);
+    }
 
     var base64LoadTag =
         Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
 
     ListEntitiesOptions options =
         new ListEntitiesOptions()
-            .setFilter(String.format("PartitionKey eq '%s'", base64LoadTag))
-            .setFilter(String.format("%s eq 'true'", LoadHistoryUtil.IS_LAST_FIELD_NAME));
+            .setFilter(
+                String.format(
+                    "PartitionKey eq '%s' and %s eq true",
+                    base64LoadTag, LoadHistoryUtil.IS_LAST_FIELD_NAME));
 
     List<TableEntity> lastEntityList =
         client.listEntities(options, null, null).stream().collect(Collectors.toList());
@@ -67,7 +73,7 @@ public class StorageTableDao {
       StorageTableLoadHistoryEntity lastEntity = new StorageTableLoadHistoryEntity(lastTableEntity);
       lastTableEntity.addProperty(LoadHistoryUtil.IS_LAST_FIELD_NAME, false);
       client.updateEntity(lastTableEntity);
-      indexToStartFrom = lastEntity.index;
+      indexToStartFrom = lastEntity.index + 1;
     }
 
     List<StorageTableLoadHistoryEntity> entities = new ArrayList<>();
@@ -103,10 +109,10 @@ public class StorageTableDao {
         Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
     ListEntitiesOptions options =
         new ListEntitiesOptions()
-            .setFilter(String.format("PartitionKey eq '%s'", base64LoadTag))
             .setFilter(
                 String.format(
-                    "%s ge %d and %s lt %s",
+                    "PartitionKey eq '%s' and %s ge %d and %s lt %s",
+                    base64LoadTag,
                     LoadHistoryUtil.INDEX_FIELD_NAME,
                     offset,
                     LoadHistoryUtil.INDEX_FIELD_NAME,

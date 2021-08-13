@@ -38,6 +38,17 @@ public class FireStoreDirectoryEntry {
   private String checksumMd5;
   private Long size;
 
+  // Azure table entity field names
+  public static final String FILE_ID_FIELD_NAME = "fileId";
+  public static final String IS_FILE_REF_FIELD_NAME = "isFileRef";
+  public static final String PATH_FIELD_NAME = "path";
+  public static final String NAME_FIELD_NAME = "name";
+  public static final String DATASET_ID_FIELD_NAME = "datasetId";
+  public static final String FILE_CREATED_DATE_FIELD_NAME = "fileCreatedDate";
+  public static final String CHECKSUM_CRC32C_FIELD_NAME = "checksum_crc32c";
+  public static final String CHECKSUM_MD5_FIELD_NAME = "checksum_md5";
+  public static final String SIZE_FIELD_NAME = "size";
+
   public FireStoreDirectoryEntry() {}
 
   public String getFileId() {
@@ -195,28 +206,28 @@ public class FireStoreDirectoryEntry {
 
   public static FireStoreDirectoryEntry fromTableEntity(TableEntity entity) {
     return new FireStoreDirectoryEntry()
-        .fileId(entity.getProperty("fileId").toString())
-        .isFileRef((Boolean) entity.getProperty("isFileRef"))
-        .path(entity.getProperty("path").toString())
-        .name(entity.getProperty("name").toString())
-        .datasetId(entity.getProperty("datasetId").toString())
-        .fileCreatedDate(entity.getProperty("fileCreatedDate").toString())
-        .checksumCrc32c(entity.getProperty("checksumCrc32c").toString())
-        .checksumMd5(entity.getProperty("checksumMd5").toString())
-        .size((Long) entity.getProperty("size"));
+        .fileId(entity.getProperty(FILE_ID_FIELD_NAME).toString())
+        .isFileRef((Boolean) entity.getProperty(IS_FILE_REF_FIELD_NAME))
+        .path(entity.getProperty(PATH_FIELD_NAME).toString())
+        .name(entity.getProperty(NAME_FIELD_NAME).toString())
+        .datasetId(entity.getProperty(DATASET_ID_FIELD_NAME).toString())
+        .fileCreatedDate(entity.getProperty(FILE_CREATED_DATE_FIELD_NAME).toString())
+        .checksumCrc32c(entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME).toString())
+        .checksumMd5(entity.getProperty(CHECKSUM_MD5_FIELD_NAME).toString())
+        .size((Long) entity.getProperty(SIZE_FIELD_NAME));
   }
 
   public static TableEntity toTableEntity(
       String partitionKey, String rowKey, FireStoreDirectoryEntry f) {
     return new TableEntity(partitionKey, rowKey)
-        .addProperty("fileId", f.getFileId())
-        .addProperty("isFileRef", f.getIsFileRef())
-        .addProperty("path", f.getPath())
-        .addProperty("name", f.getName())
-        .addProperty("datasetId", f.getDatasetId())
-        .addProperty("fileCreatedDate", f.getFileCreatedDate())
-        .addProperty("checksumCrc32c", f.getChecksumCrc32c())
-        .addProperty("checksumMd5", f.getChecksumMd5())
-        .addProperty("size", f.getSize());
+        .addProperty(FILE_ID_FIELD_NAME, f.getFileId())
+        .addProperty(IS_FILE_REF_FIELD_NAME, f.getIsFileRef())
+        .addProperty(PATH_FIELD_NAME, f.getPath())
+        .addProperty(NAME_FIELD_NAME, f.getName())
+        .addProperty(DATASET_ID_FIELD_NAME, f.getDatasetId())
+        .addProperty(FILE_CREATED_DATE_FIELD_NAME, f.getFileCreatedDate())
+        .addProperty(CHECKSUM_CRC32C_FIELD_NAME, f.getChecksumCrc32c())
+        .addProperty(CHECKSUM_MD5_FIELD_NAME, f.getChecksumMd5())
+        .addProperty(SIZE_FIELD_NAME, f.getSize());
   }
 }

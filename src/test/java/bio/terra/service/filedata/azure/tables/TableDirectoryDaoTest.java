@@ -58,15 +58,17 @@ public class TableDirectoryDaoTest {
     when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
     entity =
         new TableEntity(PARTITION_KEY, ROW_KEY)
-            .addProperty("fileId", FILE_ID)
-            .addProperty("isFileRef", true)
-            .addProperty("path", fileMetadataUtils.getDirectoryPath(FULL_PATH))
-            .addProperty("name", "file.json")
-            .addProperty("datasetId", DATASET_ID)
-            .addProperty("fileCreatedDate", "fileCreatedDate")
-            .addProperty("checksumCrc32c", "checksumCrc32c")
-            .addProperty("checksumMd5", "checksumMd5")
-            .addProperty("size", 1L);
+            .addProperty(FireStoreDirectoryEntry.FILE_ID_FIELD_NAME, FILE_ID)
+            .addProperty(FireStoreDirectoryEntry.IS_FILE_REF_FIELD_NAME, true)
+            .addProperty(
+                FireStoreDirectoryEntry.PATH_FIELD_NAME,
+                fileMetadataUtils.getDirectoryPath(FULL_PATH))
+            .addProperty(FireStoreDirectoryEntry.NAME_FIELD_NAME, "file.json")
+            .addProperty(FireStoreDirectoryEntry.DATASET_ID_FIELD_NAME, DATASET_ID)
+            .addProperty(FireStoreDirectoryEntry.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
+            .addProperty(FireStoreDirectoryEntry.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
+            .addProperty(FireStoreDirectoryEntry.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")
+            .addProperty(FireStoreDirectoryEntry.SIZE_FIELD_NAME, 1L);
     directoryEntry = FireStoreDirectoryEntry.fromTableEntity(entity);
   }
 

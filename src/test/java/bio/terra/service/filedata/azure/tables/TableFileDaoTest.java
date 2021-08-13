@@ -38,16 +38,16 @@ public class TableFileDaoTest {
   private static final String FILE_ID = UUID.randomUUID().toString();
   private final TableEntity entity =
       new TableEntity(PARTITION_KEY, FILE_ID)
-          .addProperty("fileId", FILE_ID)
-          .addProperty("mimeType", "application/json")
-          .addProperty("description", "A test entity")
-          .addProperty("bucketResourceId", "bucketResourceId")
-          .addProperty("loadTag", "loadTag")
-          .addProperty("fileCreatedDate", "fileCreatedDate")
-          .addProperty("gspath", "gsPath")
-          .addProperty("checksumCrc32c", "checksumCrc32c")
-          .addProperty("checksumMd5", "checksumMd5")
-          .addProperty("size", 1L);
+          .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, FILE_ID)
+          .addProperty(FireStoreFile.MIME_TYPE_FIELD_NAME, "application/json")
+          .addProperty(FireStoreFile.DESCRIPTION_FIELD_NAME, "A test entity")
+          .addProperty(FireStoreFile.BUCKET_RESOURCE_ID_FIELD_NAME, "bucketResourceId")
+          .addProperty(FireStoreFile.LOAD_TAG_FIELD_NAME, "loadTag")
+          .addProperty(FireStoreFile.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
+          .addProperty(FireStoreFile.GS_PATH_FIELD_NAME, "gsPath")
+          .addProperty(FireStoreFile.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
+          .addProperty(FireStoreFile.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")
+          .addProperty(FireStoreFile.SIZE_FIELD_NAME, 1L);
 
   @MockBean private AzureAuthService authService;
   @MockBean private TableServiceClient tableServiceClient;

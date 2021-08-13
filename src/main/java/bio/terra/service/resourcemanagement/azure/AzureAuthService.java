@@ -23,15 +23,16 @@ import org.springframework.stereotype.Component;
 public class AzureAuthService {
 
   private final AzureResourceConfiguration configuration;
-  private static final int MAX_RETRIES = 3;
-  private static final int RETRY_TIMEOUT_SECONDS = 3600;
-  private final RequestRetryOptions retryOptions =
-      new RequestRetryOptions(
-          RetryPolicyType.EXPONENTIAL, MAX_RETRIES, RETRY_TIMEOUT_SECONDS, null, null, null);
+  private final RequestRetryOptions retryOptions;
 
   @Autowired
   public AzureAuthService(AzureResourceConfiguration configuration) {
     this.configuration = configuration;
+    var maxRetries = configuration.getMaxRetries();
+    var retryTimeoutSeconds = configuration.getRetryTimeoutSeconds();
+    retryOptions =
+        new RequestRetryOptions(
+            RetryPolicyType.EXPONENTIAL, maxRetries, retryTimeoutSeconds, null, null, null);
   }
 
   /**

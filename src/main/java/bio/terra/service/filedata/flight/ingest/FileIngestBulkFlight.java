@@ -206,7 +206,10 @@ public class FileIngestBulkFlight extends Flight {
               storageTableService,
               loadService,
               datasetService,
+              profileService,
               datasetUuid,
+              profileId,
+              userReq,
               loadTag,
               loadHistoryChunkSize));
     }

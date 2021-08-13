@@ -1,7 +1,9 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.load.LoadService;
+import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.stairway.FlightContext;
@@ -24,7 +26,10 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
   private final StorageTableService storageTableService;
   private final LoadService loadService;
   private final DatasetService datasetService;
+  private final ProfileService profileService;
   private final UUID datasetId;
+  private final UUID profileId;
+  private final AuthenticatedUserRequest userReq;
   private final String loadTag;
   private final int loadHistoryChunkSize;
 
@@ -32,13 +37,19 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
       StorageTableService storageTableService,
       LoadService loadService,
       DatasetService datasetService,
+      ProfileService profileService,
       UUID datasetId,
+      UUID profileId,
+      AuthenticatedUserRequest userReq,
       String loadTag,
       int loadHistoryChunkSize) {
     this.storageTableService = storageTableService;
     this.loadService = loadService;
     this.datasetService = datasetService;
+    this.profileService = profileService;
     this.datasetId = datasetId;
+    this.profileId = profileId;
+    this.userReq = userReq;
     this.loadTag = loadTag;
     this.loadHistoryChunkSize = loadHistoryChunkSize;
   }
@@ -47,6 +58,7 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
   public StepResult doStep(FlightContext context) throws InterruptedException {
     var resources =
         getResources(context, loadService, datasetService, datasetId, loadHistoryChunkSize);
+    var billingProfileModel = profileService.getProfileById(profileId, userReq);
 
     List<InterruptedException> maybeExceptions =
         StreamSupport.stream(
@@ -56,6 +68,7 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
                   try {
                     storageTableService.loadHistoryToAStorageTable(
                         resources.dataset,
+                        billingProfileModel,
                         context.getFlightId(),
                         loadTag,
                         resources.loadTime,

@@ -1,5 +1,6 @@
 package bio.terra.service.tabulardata.azure;
 
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
@@ -34,12 +35,12 @@ public class StorageTableService {
 
   public void loadHistoryToAStorageTable(
       Dataset dataset,
+      BillingProfileModel billingProfile,
       String flightId,
       String loadTag,
       Instant loadTime,
       List<BulkLoadHistoryModel> loadHistoryArray)
       throws InterruptedException {
-    var billingProfile = dataset.getDatasetSummary().getDefaultBillingProfile();
     var storageAccountResource =
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
     TableServiceClient serviceClient =

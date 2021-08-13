@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,7 +64,7 @@ public class TableDirectoryDao {
   }
 
   public String encodePathAsAzureRowKey(String path) {
-    return StringUtils.replaceChars(path, '/', ' ');
+    return path.replaceAll("/", " ");
   }
 
   public String getPartitionKey(String prefix, String path) {

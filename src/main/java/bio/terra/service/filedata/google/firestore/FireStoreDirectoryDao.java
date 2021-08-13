@@ -484,7 +484,7 @@ public class FireStoreDirectoryDao {
       // Only probe the real directories - not leaf file reference or the root
       String lookupDirPath = fileMetadataUtils.makeLookupPath(entry.getPath());
       for (String testPath = lookupDirPath;
-          !testPath.isEmpty() && !StringUtils.equals(testPath, FileMetadataUtils.ROOT_DIR_NAME);
+          !testPath.isEmpty() && !testPath.equals(FileMetadataUtils.ROOT_DIR_NAME);
           testPath = fileMetadataUtils.getDirectoryPath(testPath)) {
 
         // check the cache

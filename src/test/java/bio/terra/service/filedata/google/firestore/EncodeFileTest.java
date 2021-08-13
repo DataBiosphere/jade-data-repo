@@ -386,7 +386,7 @@ public class EncodeFileTest {
     assertThat(
         "correctly found bad row",
         ingestError.getMessage(),
-        startsWith("Ingest control file at gs://jade-testdata/scratch/"));
+        startsWith(String.format("Ingest control file at gs://%s/scratch/", bucketName)));
 
     assertThat("All 10 lines of bad file return errors", ingestError.getErrorDetail(), hasSize(10));
 

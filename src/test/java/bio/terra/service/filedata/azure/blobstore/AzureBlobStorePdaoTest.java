@@ -27,6 +27,7 @@ import bio.terra.service.filedata.azure.util.BlobContainerCopySyncPoller;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
@@ -88,6 +89,7 @@ public class AzureBlobStorePdaoTest {
   @MockBean private AzureContainerPdao azureContainerPdao;
   @MockBean private AzureResourceConfiguration resourceConfiguration;
   @MockBean private AzureResourceDao azureResourceDao;
+  @MockBean private AzureAuthService azureAuthService;
   @Autowired private AzureBlobStorePdao dao;
 
   private FileLoadModel fileLoadModel;

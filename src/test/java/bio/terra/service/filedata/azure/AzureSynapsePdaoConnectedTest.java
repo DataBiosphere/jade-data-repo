@@ -148,7 +148,10 @@ public class AzureSynapsePdaoConnectedTest {
     IngestRequestModel ingestRequestModel =
         new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
     String ingestFileLocation =
-        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple-dataset-ingest-request.csv";
+        synapseUtils.ingestRequestURL(
+            testConfig.getSourceStorageAccountName(),
+            testConfig.getIngestRequestContainer(),
+            "azure-simple-dataset-ingest-request.csv");
     testSynapseQuery(ingestRequestModel, ingestFileLocation);
   }
 
@@ -156,7 +159,10 @@ public class AzureSynapsePdaoConnectedTest {
   public void testSynapseQueryJSON() throws Exception {
     IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
     String ingestFileLocation =
-        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple-dataset-ingest-request.json";
+        synapseUtils.ingestRequestURL(
+            testConfig.getSourceStorageAccountName(),
+            testConfig.getIngestRequestContainer(),
+            "azure-simple-dataset-ingest-request.json");
     testSynapseQuery(ingestRequestModel, ingestFileLocation);
   }
 

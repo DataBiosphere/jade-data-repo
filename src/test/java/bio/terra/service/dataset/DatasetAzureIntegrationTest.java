@@ -12,6 +12,7 @@ import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.SynapseUtils;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -71,6 +72,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private AuthService authService;
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
+  @Autowired private SynapseUtils synapseUtils;
 
   private String stewardToken;
   private User steward;
@@ -273,23 +275,45 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         dataRepoFixtures.getFileByName(steward, datasetId, "/test/targetSas.txt").getSize(),
         equalTo(fileSize));
 
-    // Ingest Metadata
-    // TODO - move this into test config
+    // Ingest Metadata - 1 row from JSON file
     String tableName = "vocabulary";
-    String ingestRequestPath =
-        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-vocab-ingest-request.json";
-    IngestRequestModel ingestRequest =
+    String ingestRequestPathJSON =
+        synapseUtils.ingestRequestURL(
+            testConfig.getSourceStorageAccountName(),
+            testConfig.getIngestRequestContainer(),
+            "azure-vocab-ingest-request.json");
+    IngestRequestModel ingestRequestJSON =
         new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
             .table(tableName)
-            .path(ingestRequestPath)
+            .path(ingestRequestPathJSON)
             .profileId(profileId)
             .loadTag(Names.randomizeName("test"));
-    IngestResponseModel ingestResponse =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-    assertThat("1 Row was ingested", ingestResponse.getRowCount(), equalTo(1L));
+    IngestResponseModel ingestResponseJSON =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequestJSON);
+    assertThat("1 Row was ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
+
+    // Ingest 2 rows from CSV
+    String ingestRequestPathCSV =
+        synapseUtils.ingestRequestURL(
+            testConfig.getSourceStorageAccountName(),
+            testConfig.getIngestRequestContainer(),
+            "azure-vocab-ingest-request.csv");
+    IngestRequestModel ingestRequestCSV =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table(tableName)
+            .path(ingestRequestPathCSV)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("test"))
+            .csvSkipLeadingRows(2);
+    IngestResponseModel ingestResponseCSV =
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequestCSV);
+    assertThat("2 row were ingested", ingestResponseCSV.getRowCount(), equalTo(2L));
 
     // Delete the file we just ingested
     String fileId = result.getLoadFileResults().get(0).getFileId();

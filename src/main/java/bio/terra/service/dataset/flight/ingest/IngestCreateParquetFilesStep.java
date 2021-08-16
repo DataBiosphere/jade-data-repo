@@ -37,16 +37,18 @@ public class IngestCreateParquetFilesStep implements Step {
     String parquetFilePath = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
     BlobUrlParts ingestRequestUrlBlob = BlobUrlParts.parse(ingestRequestModel.getPath());
 
+    long updateCount;
     try {
-      azureSynapsePdao.createParquetFiles(
-          ingestRequestModel.getFormat(),
-          targetTable,
-          ingestRequestUrlBlob.getBlobName(),
-          parquetFilePath,
-          IngestUtils.getTargetDataSourceName(context.getFlightId()),
-          IngestUtils.getIngestRequestDataSourceName(context.getFlightId()),
-          IngestUtils.getSynapseTableName(context.getFlightId()),
-          Optional.ofNullable(ingestRequestModel.getCsvSkipLeadingRows()));
+      updateCount =
+          azureSynapsePdao.createParquetFiles(
+              ingestRequestModel.getFormat(),
+              targetTable,
+              ingestRequestUrlBlob.getBlobName(),
+              parquetFilePath,
+              IngestUtils.getTargetDataSourceName(context.getFlightId()),
+              IngestUtils.getIngestRequestDataSourceName(context.getFlightId()),
+              IngestUtils.getSynapseTableName(context.getFlightId()),
+              Optional.ofNullable(ingestRequestModel.getCsvSkipLeadingRows()));
 
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
@@ -60,8 +62,8 @@ public class IngestCreateParquetFilesStep implements Step {
             .table(ingestRequest.getTable())
             .path(ingestRequest.getPath())
             .loadTag(ingestRequest.getLoadTag())
-            .badRowCount((long) 0) // TODO - determine values
-            .rowCount((long) 1); // TODO - determine values
+            .badRowCount((long) 0) // TODO - determine values w/ DR-2016
+            .rowCount(updateCount);
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 
     return StepResult.getStepResultSuccess();

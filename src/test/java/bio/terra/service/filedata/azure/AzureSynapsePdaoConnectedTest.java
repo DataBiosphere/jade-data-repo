@@ -196,15 +196,17 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 4 - Create parquet files via external table
     // All inputs should be sanitized before passed into this method
-    azureSynapsePdao.createParquetFiles(
-        ingestRequestModel.getFormat(),
-        destinationTable,
-        ingestRequestSignUrlBlob.getBlobName(),
-        destinationParquetFile,
-        destinationDataSourceName,
-        ingestRequestDataSourceName,
-        tableName,
-        Optional.ofNullable(ingestRequestModel.getCsvSkipLeadingRows()));
+    int updateCount =
+        azureSynapsePdao.createParquetFiles(
+            ingestRequestModel.getFormat(),
+            destinationTable,
+            ingestRequestSignUrlBlob.getBlobName(),
+            destinationParquetFile,
+            destinationDataSourceName,
+            ingestRequestDataSourceName,
+            tableName,
+            Optional.ofNullable(ingestRequestModel.getCsvSkipLeadingRows()));
+    assertThat("num rows updated is two", updateCount, equalTo(2));
 
     // Check that the parquet files were successfully created.
     List<String> firstNames =

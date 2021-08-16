@@ -55,9 +55,11 @@ public class DatasetIngestFlight extends Flight {
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
-    addStep(
-        new AuthorizeBillingProfileUseStep(
-            profileService, ingestRequestModel.getProfileId(), userReq));
+    if (cloudPlatform.is(CloudPlatform.AZURE)) {
+      addStep(
+          new AuthorizeBillingProfileUseStep(
+              profileService, ingestRequestModel.getProfileId(), userReq));
+    }
 
     addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));

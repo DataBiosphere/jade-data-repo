@@ -65,8 +65,6 @@ public class DatasetIngestFlight extends Flight {
 
     if (cloudPlatform.is(CloudPlatform.GCP)) {
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
-      // TODO - For Azure, we'll create a new column in the parquet file that generates the
-      // datarepo_row_id
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
       // TODO - For Azure, we'll cover this with DR-2017
       addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));

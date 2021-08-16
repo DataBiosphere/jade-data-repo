@@ -42,10 +42,10 @@ public class IngestCreateBucketForScratchFileStep extends SkippableStep {
           resourceService.getOrCreateBucketForIngestScratchFile(
               dataset, googleProjectResource, context.getFlightId());
       workingMap.put(FileMapKeys.INGEST_FILE_BUCKET_INFO, bucketForFile);
-    } catch (BucketLockException blEx) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
-    } catch (GoogleResourceNamingException ex) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+    } catch (BucketLockException e) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
+    } catch (GoogleResourceNamingException e) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, e);
     }
     return StepResult.getStepResultSuccess();
   }

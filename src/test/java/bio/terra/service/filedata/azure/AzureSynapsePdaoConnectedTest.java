@@ -25,6 +25,7 @@ import com.azure.storage.blob.BlobUrlParts;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -203,7 +204,7 @@ public class AzureSynapsePdaoConnectedTest {
         destinationDataSourceName,
         ingestRequestDataSourceName,
         tableName,
-        ingestRequestModel.getCsvSkipLeadingRows());
+        Optional.ofNullable(ingestRequestModel.getCsvSkipLeadingRows()));
 
     // Check that the parquet files were successfully created.
     List<String> firstNames =

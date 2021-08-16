@@ -90,7 +90,8 @@ public class GcsPdao {
    */
   public List<String> getGcsFilesLines(String path, String projectId) {
     Storage storage = gcsProjectFactory.getStorage(projectId);
-    String prefixPath = path.contains("*") ? path.substring(0, path.lastIndexOf("*")) : path;
+    int lastWildcard = path.lastIndexOf("*");
+    String prefixPath = lastWildcard >= 0 ? path.substring(0, lastWildcard) : path;
     return listGcsFiles(prefixPath, projectId, storage)
         .flatMap(blob -> getGcsFileLines(blob, projectId, storage).stream())
         .collect(Collectors.toList());

@@ -55,7 +55,6 @@ public class DatasetIngestFlight extends Flight {
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
-    // TODO - we'll need to implement this check for Azure
     addStep(
         new AuthorizeBillingProfileUseStep(
             profileService, ingestRequestModel.getProfileId(), userReq));

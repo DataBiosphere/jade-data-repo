@@ -46,7 +46,6 @@ public class IngestCreateTargetDataSourceStep implements Step {
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, context.getFlightId());
     String parquetDestinationLocation =
         IngestUtils.getParquetTargetLocationURL(storageAccountResource);
-    logger.info("Parquet: {}", parquetDestinationLocation);
     BlobUrlParts targetSignUrlBlob =
         azureSynapsePdao.getOrSignUrlForTargetFactory(
             parquetDestinationLocation, billingProfile, storageAccountResource);

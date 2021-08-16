@@ -16,6 +16,7 @@ import com.azure.data.tables.models.TableTransactionActionType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -178,14 +179,13 @@ public class TableDirectoryDao {
         .orElse(null);
   }
 
-  public List<String> validateRefIds(
-      TableServiceClient tableServiceClient, List<String> refIdArray) {
+  public List<UUID> validateRefIds(TableServiceClient tableServiceClient, List<UUID> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    List<String> missingIds = new ArrayList<>();
-    for (String s : refIdArray) {
+    List<UUID> missingIds = new ArrayList<>();
+    for (UUID s : refIdArray) {
       ListEntitiesOptions options =
-          new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", s));
+          new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", s.toString()));
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
       if (!entities.iterator().hasNext()) {
         missingIds.add(s);

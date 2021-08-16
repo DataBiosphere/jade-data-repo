@@ -119,9 +119,10 @@ public class TableDirectoryDaoTest {
     when(mockPagedIterable.iterator()).thenReturn(mockIterator);
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
-    List<String> refIds = List.of("missingId");
-    List<String> response = dao.validateRefIds(tableServiceClient, refIds);
-    assertEquals(response.get(0), "missingId");
+    UUID missingId = UUID.randomUUID();
+    List<UUID> refIds = List.of(missingId);
+    List<UUID> response = dao.validateRefIds(tableServiceClient, refIds);
+    assertEquals(response.get(0), missingId);
   }
 
   @Test

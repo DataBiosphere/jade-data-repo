@@ -15,6 +15,7 @@ import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentReso
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountService;
+import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNamingException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
@@ -257,6 +258,22 @@ public class ResourceService {
    */
   public GoogleBucketResource lookupBucketMetadata(String bucketResourceId) {
     return bucketService.getBucketResourceById(UUID.fromString(bucketResourceId), false);
+  }
+
+  /**
+   * Fetch an existing storage_account metadata row. Note this method does not check for the
+   * existence of the underlying cloud resource. This method is intended for places where an
+   * existence check on the associated cloud resource might be too much overhead (e.g. DRS lookups).
+   * Most storage account lookups should use the lookupStorageAccount method instead, which has
+   * additional overhead but will catch metadata corruption errors sooner.
+   *
+   * @param storageAccountId our identifier for the storage account
+   * @return a reference to the storage account as a POJO AzureStorageAccountResource
+   * @throws AzureResourceNotFoundException if the storage_account metadata row does not exist
+   */
+  public AzureStorageAccountResource lookupStorageAccountMetadata(String storageAccountId) {
+    return storageAccountService.getStorageAccountResourceById(
+        UUID.fromString(storageAccountId), false);
   }
 
   /**

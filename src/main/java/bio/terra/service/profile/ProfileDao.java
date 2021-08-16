@@ -69,10 +69,8 @@ public class ProfileDao {
             .or(() -> Optional.of(CloudPlatform.GCP))
             .map(Enum::name)
             .get();
-    UUID tenantId =
-        Optional.ofNullable(profileRequest.getTenantId()).map(UUID::fromString).orElse(null);
-    UUID subscriptionId =
-        Optional.ofNullable(profileRequest.getSubscriptionId()).map(UUID::fromString).orElse(null);
+    UUID tenantId = profileRequest.getTenantId();
+    UUID subscriptionId = profileRequest.getSubscriptionId();
     String resourceGroupName =
         Optional.ofNullable(profileRequest.getResourceGroupName()).orElse(null);
     String applicationDeploymentName =
@@ -102,9 +100,8 @@ public class ProfileDao {
         .billingAccountId(keyHolder.getString("billing_account_id"))
         .description(keyHolder.getString("description"))
         .cloudPlatform(CloudPlatform.valueOf(keyHolder.getString("cloud_platform")))
-        .tenantId(keyHolder.getField("tenant_id", UUID.class).map(UUID::toString).orElse(null))
-        .subscriptionId(
-            keyHolder.getField("subscription_id", UUID.class).map(UUID::toString).orElse(null))
+        .tenantId(keyHolder.getField("tenant_id", UUID.class).orElse(null))
+        .subscriptionId(keyHolder.getField("subscription_id", UUID.class).orElse(null))
         .resourceGroupName(keyHolder.getString("resource_group_name"))
         .applicationDeploymentName(keyHolder.getString("application_deployment_name"))
         .createdBy(keyHolder.getString("created_by"))
@@ -139,8 +136,8 @@ public class ProfileDao {
         .billingAccountId(keyHolder.getString("billing_account_id"))
         .description(keyHolder.getString("description"))
         .cloudPlatform(CloudPlatform.valueOf(keyHolder.getString("cloud_platform")))
-        .tenantId(keyHolder.getString("tenant_id"))
-        .subscriptionId(keyHolder.getString("subscription_id"))
+        .tenantId(keyHolder.getField("tenant_id", UUID.class).orElse(null))
+        .subscriptionId(keyHolder.getField("subscription_id", UUID.class).orElse(null))
         .resourceGroupName(keyHolder.getString("resource_group_name"))
         .applicationDeploymentName(keyHolder.getString("application_deployment_name"))
         .createdBy(keyHolder.getString("created_by"))
@@ -205,16 +202,15 @@ public class ProfileDao {
 
   private static class BillingProfileMapper implements RowMapper<BillingProfileModel> {
     public BillingProfileModel mapRow(ResultSet rs, int rowNum) throws SQLException {
-      UUID profileId = rs.getObject("id", UUID.class);
       return new BillingProfileModel()
-          .id(profileId)
+          .id(rs.getObject("id", UUID.class))
           .profileName(rs.getString("name"))
           .biller(rs.getString("biller"))
           .billingAccountId(rs.getString("billing_account_id"))
           .description(rs.getString("description"))
           .cloudPlatform(CloudPlatform.valueOf(rs.getString("cloud_platform")))
-          .tenantId(rs.getString("tenant_id"))
-          .subscriptionId(rs.getString("subscription_id"))
+          .tenantId(rs.getObject("tenant_id", UUID.class))
+          .subscriptionId(rs.getObject("subscription_id", UUID.class))
           .resourceGroupName(rs.getString("resource_group_name"))
           .applicationDeploymentName(rs.getString("application_deployment_name"))
           .createdDate(rs.getTimestamp("created_date").toInstant().toString())

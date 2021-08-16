@@ -5,6 +5,7 @@ import static bio.terra.common.FlightUtils.getDefaultExponentialBackoffRetryRule
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.GetResourceBufferProjectStep;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
@@ -68,11 +69,13 @@ public class SnapshotCreateFlight extends Flight {
     // TODO note that with multi-dataset snapshots this will need to change
     List<Dataset> sourceDatasets =
         snapshotService.getSourceDatasetsFromSnapshotRequest(snapshotReq);
-    UUID datasetId = sourceDatasets.get(0).getId();
+    Dataset sourceDataset = sourceDatasets.get(0);
+    UUID datasetId = sourceDataset.getId();
+    var platform =
+        CloudPlatformWrapper.of(sourceDataset.getDatasetSummary().getStorageCloudPlatform());
     GoogleRegion firestoreRegion =
         (GoogleRegion)
-            sourceDatasets
-                .get(0)
+            sourceDataset
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
     addStep(new LockDatasetStep(datasetDao, datasetId, false));
@@ -158,10 +161,12 @@ public class SnapshotCreateFlight extends Flight {
         pdaoAclRetryRule);
 
     // Apply the IAM readers to the GCS files
-    addStep(
-        new SnapshotAuthzFileAclStep(
-            dependencyDao, snapshotService, gcsPdao, datasetService, configService),
-        pdaoAclRetryRule);
+    if (platform.isGcp()) {
+      addStep(
+          new SnapshotAuthzFileAclStep(
+              dependencyDao, snapshotService, gcsPdao, datasetService, configService),
+          pdaoAclRetryRule);
+    }
 
     addStep(new SnapshotAuthzBqJobUserStep(snapshotService, resourceService, snapshotName));
 

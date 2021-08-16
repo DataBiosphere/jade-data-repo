@@ -10,6 +10,7 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
+import bio.terra.service.filedata.azure.tables.TableFileDao;
 import bio.terra.service.resourcemanagement.AzureDataLocationSelector;
 import bio.terra.stairway.ShortUUID;
 import com.azure.core.management.Region;
@@ -36,7 +37,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -80,14 +80,15 @@ public class AzureResourceConfigurationTest {
 
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
 
+  @Autowired private TableFileDao tableFileDao;
+
   @Test
   public void testAbilityToCreateAndDeleteStorageAccount() {
     BillingProfileModel profileModel = createProfileModel();
 
     AzureResourceManager client =
         azureResourceConfiguration.getClient(
-            UUID.fromString(profileModel.getTenantId()),
-            UUID.fromString(profileModel.getSubscriptionId()));
+            profileModel.getTenantId(), profileModel.getSubscriptionId());
 
     logger.info("Creating storage account...");
     // Create the storage account
@@ -138,8 +139,7 @@ public class AzureResourceConfigurationTest {
 
     AzureResourceManager client =
         azureResourceConfiguration.getClient(
-            UUID.fromString(profileModel.getTenantId()),
-            UUID.fromString(profileModel.getSubscriptionId()));
+            profileModel.getTenantId(), profileModel.getSubscriptionId());
 
     logger.info("Deploying managed application...");
     ManagedApplicationDeployment applicationDeployment =
@@ -177,7 +177,7 @@ public class AzureResourceConfigurationTest {
           AzureResourceManager clientFromHome =
               azureResourceConfiguration.getClient(
                   azureResourceConfiguration.getCredentials().getHomeTenantId(),
-                  UUID.fromString(profileModel.getSubscriptionId()));
+                  profileModel.getSubscriptionId());
 
           clientFromHome
               .storageAccounts()
@@ -241,7 +241,7 @@ public class AzureResourceConfigurationTest {
                         AzureResourceManager clientFromHome =
                             azureResourceConfiguration.getClient(
                                 azureResourceConfiguration.getCredentials().getHomeTenantId(),
-                                UUID.fromString(profileModel.getSubscriptionId()));
+                                profileModel.getSubscriptionId());
 
                         try {
                           // Get a key from the newly created storage account
@@ -312,8 +312,8 @@ public class AzureResourceConfigurationTest {
         .profileName("somename")
         .biller("direct")
         .cloudPlatform(CloudPlatform.AZURE)
-        .tenantId(connectedTestConfiguration.getTargetTenantId().toString())
-        .subscriptionId(connectedTestConfiguration.getTargetSubscriptionId().toString())
+        .tenantId(connectedTestConfiguration.getTargetTenantId())
+        .subscriptionId(connectedTestConfiguration.getTargetSubscriptionId())
         .resourceGroupName(connectedTestConfiguration.getTargetResourceGroupName());
   }
 

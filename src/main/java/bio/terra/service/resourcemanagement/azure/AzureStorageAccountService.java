@@ -280,7 +280,7 @@ public class AzureStorageAccountService {
         storageAccountResource.getApplicationResource().getAzureApplicationDeploymentName());
 
     return resourceConfiguration
-        .getClient(UUID.fromString(profileModel.getSubscriptionId()))
+        .getClient(profileModel.getSubscriptionId())
         .storageAccounts()
         .define(storageAccountResource.getName())
         .withRegion(storageAccountResource.getRegion().getValue())
@@ -309,7 +309,7 @@ public class AzureStorageAccountService {
     }
     try {
       return resourceConfiguration
-          .getClient(UUID.fromString(profileModel.getSubscriptionId()))
+          .getClient(profileModel.getSubscriptionId())
           .storageAccounts()
           .getByResourceGroup(
               storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
@@ -333,7 +333,7 @@ public class AzureStorageAccountService {
   void deleteCloudStorageAccount(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
     resourceConfiguration
-        .getClient(UUID.fromString(profileModel.getSubscriptionId()))
+        .getClient(profileModel.getSubscriptionId())
         .storageAccounts()
         .deleteByResourceGroup(
             storageAccountResource.getApplicationResource().getAzureResourceGroupName(),

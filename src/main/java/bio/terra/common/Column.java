@@ -28,6 +28,22 @@ public class Column {
         .arrayOf(datasetColumn.isArrayOf());
   }
 
+  public static SynapseColumn toSynapseColumn(Column datasetColumn) {
+    return (SynapseColumn)
+        new SynapseColumn()
+            .synapseDataType(
+                SynapseColumn.translateDataType(datasetColumn.getType(), datasetColumn.isArrayOf()))
+            .requiresCollate(
+                SynapseColumn.checkForCollateArgRequirement(
+                    datasetColumn.getType(), datasetColumn.isArrayOf()))
+            .requiresJSONCast(
+                SynapseColumn.checkForJSONCastRequirement(
+                    datasetColumn.getType(), datasetColumn.isArrayOf()))
+            .name(datasetColumn.getName())
+            .type(datasetColumn.getType())
+            .arrayOf(datasetColumn.isArrayOf());
+  }
+
   public UUID getId() {
     return id;
   }

@@ -163,7 +163,10 @@ public class BlobContainerCopierTest {
 
     BlobContainerCopier copier =
         new BlobContainerCopier(blobIOTestUtility.createDestinationClientFactory());
-    copier.setSourceBlobUrl(sourceFactory.createReadOnlySasUrlForBlob(blobName));
+    copier.setSourceBlobUrl(
+        sourceFactory
+            .getBlobSasUrlFactory()
+            .createSasUrlForBlob(blobName, blobIOTestUtility.createReadOnlyTokenOptions()));
 
     copier.beginCopyOperation().waitForCompletion();
 
@@ -180,7 +183,10 @@ public class BlobContainerCopierTest {
 
     BlobContainerCopier copier =
         new BlobContainerCopier(blobIOTestUtility.createDestinationClientFactory());
-    copier.setSourceBlobUrl(sourceFactory.createReadOnlySasUrlForBlob(blobName));
+    copier.setSourceBlobUrl(
+        sourceFactory
+            .getBlobSasUrlFactory()
+            .createSasUrlForBlob(blobName, blobIOTestUtility.createReadOnlyTokenOptions()));
     copier.setDestinationBlobName(destinationBlobName);
     copier.beginCopyOperation().waitForCompletion();
 

@@ -2575,11 +2575,6 @@ components:
       format: uuid
       description: >
         Unique identifier for a dataset, snapshot, etc.
-    UniqueIdPropertyString:
-      pattern: ^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}
-      type: string
-      description: >
-        Unique identifier for a dataset, snapshot, etc.
     ShortIdProperty:
       pattern: '[A-za-z0-9_\\-]{22}'
       type: string
@@ -2611,10 +2606,10 @@ components:
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
         tenantId:
-          $ref: '#/components/schemas/UniqueIdPropertyString'
+          $ref: '#/components/schemas/UniqueIdProperty'
           description: An optional tenant id for Azure
         subscriptionId:
-          $ref: '#/components/schemas/UniqueIdPropertyString'
+          $ref: '#/components/schemas/UniqueIdProperty'
           description: an optional subscription id for Azure
         resourceGroupName:
           type: string
@@ -2658,10 +2653,10 @@ components:
         cloudPlatform:
           $ref: '#/components/schemas/CloudPlatform'
         tenantId:
-          $ref: '#/components/schemas/UniqueIdPropertyString'
+          $ref: '#/components/schemas/UniqueIdProperty'
           description: An optional tenant id for Azure
         subscriptionId:
-          $ref: '#/components/schemas/UniqueIdPropertyString'
+          $ref: '#/components/schemas/UniqueIdProperty'
           description: an optional subscription id for Azure
         resourceGroupName:
           type: string

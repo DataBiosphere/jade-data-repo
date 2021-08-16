@@ -75,7 +75,11 @@ public class BlobContainerClientFactoryTest {
     BlobContainerClientFactory factory =
         new BlobContainerClientFactory(accountName, tokenCredential, containerName);
 
-    BlobClient blobClient = getBlobClientFromUrl(factory.createReadOnlySasUrlForBlob(blobName));
+    BlobClient blobClient =
+        getBlobClientFromUrl(
+            factory
+                .getBlobSasUrlFactory()
+                .createSasUrlForBlob(blobName, blobIOTestUtility.createReadOnlyTokenOptions()));
 
     assertThat(blobClient.exists(), is(true));
   }
@@ -88,7 +92,11 @@ public class BlobContainerClientFactoryTest {
             blobIOTestUtility.generateSourceContainerUrlWithSasReadAndListPermissions(
                 getSourceStorageAccountPrimarySharedKey()));
 
-    BlobClient blobClient = getBlobClientFromUrl(factory.createReadOnlySasUrlForBlob(blobName));
+    BlobClient blobClient =
+        getBlobClientFromUrl(
+            factory
+                .getBlobSasUrlFactory()
+                .createSasUrlForBlob(blobName, blobIOTestUtility.createReadOnlyTokenOptions()));
 
     assertThat(blobClient.exists(), is(true));
   }
@@ -100,7 +108,11 @@ public class BlobContainerClientFactoryTest {
         new BlobContainerClientFactory(
             accountName, getSourceStorageAccountPrimarySharedKey(), containerName);
 
-    BlobClient blobClient = getBlobClientFromUrl(factory.createReadOnlySasUrlForBlob(blobName));
+    BlobClient blobClient =
+        getBlobClientFromUrl(
+            factory
+                .getBlobSasUrlFactory()
+                .createSasUrlForBlob(blobName, blobIOTestUtility.createReadOnlyTokenOptions()));
 
     assertThat(blobClient.exists(), is(true));
   }

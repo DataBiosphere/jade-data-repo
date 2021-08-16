@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.sas.BlobContainerSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
@@ -47,7 +48,7 @@ public class AzureContainerPdao {
   public String getDestinationContainerSignedUrl(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
-      AzureStorageAccountResource.ContainerType containerType,
+      ContainerType containerType,
       boolean enableRead,
       boolean enableList,
       boolean enableWrite,

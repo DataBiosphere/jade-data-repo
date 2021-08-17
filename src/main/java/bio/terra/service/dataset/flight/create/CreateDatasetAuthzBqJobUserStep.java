@@ -9,6 +9,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
@@ -31,7 +32,8 @@ public class CreateDatasetAuthzBqJobUserStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-    Map<IamRole, String> policies = workingMap.get(DatasetWorkingMapKeys.POLICY_EMAILS, Map.class);
+    Map<IamRole, String> policies =
+        workingMap.get(DatasetWorkingMapKeys.POLICY_EMAILS, new TypeReference<>() {});
     Dataset dataset = datasetService.retrieve(datasetId);
     resourceService.grantPoliciesBqJobUser(
         dataset.getProjectResource().getGoogleProjectId(), policies.values());

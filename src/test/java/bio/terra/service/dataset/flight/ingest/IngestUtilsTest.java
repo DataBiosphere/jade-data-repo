@@ -4,7 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.common.category.Unit;
+import bio.terra.service.dataset.exception.InvalidBlobURLException;
 import bio.terra.service.dataset.exception.InvalidUriException;
+import com.azure.storage.blob.BlobUrlParts;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -55,5 +57,49 @@ public class IngestUtilsTest {
   @Test(expected = InvalidUriException.class)
   public void testInvalidMultiWildcard() {
     IngestUtils.parseBlobUri("gs://some-bucket/some/prefix*/some*pattern");
+  }
+
+  // ------- Azure Blob URL validation-----------
+
+  @Test
+  public void testParseValidBlobURL() {
+    BlobUrlParts blobUrlParts =
+        IngestUtils.validateBlobAzureBlobFileURL(
+            "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple-dataset-ingest-request.csv");
+    assertThat("scheme is extracted", blobUrlParts.getScheme(), equalTo("https"));
+    assertThat(
+        "host is extracted",
+        blobUrlParts.getHost(),
+        equalTo("tdrconnectedsrc1.blob.core.windows.net"));
+    assertThat(
+        "container is extracted", blobUrlParts.getBlobContainerName(), equalTo("synapsetestdata"));
+    assertThat(
+        "Blob is extracted",
+        blobUrlParts.getBlobName(),
+        equalTo("test/azure-simple-dataset-ingest-request.csv"));
+  }
+
+  @Test(expected = InvalidBlobURLException.class)
+  public void testInvalidScheme() {
+    IngestUtils.validateBlobAzureBlobFileURL(
+        "gs://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple-dataset-ingest-request.csv");
+  }
+
+  @Test(expected = InvalidBlobURLException.class)
+  public void testInvalidHost() {
+    IngestUtils.validateBlobAzureBlobFileURL(
+        "https://tdrconnectedsrc1/synapsetestdata/test/azure-simple-dataset-ingest-request.csv");
+  }
+
+  @Test(expected = InvalidBlobURLException.class)
+  public void testInvalidFileExtension() {
+    IngestUtils.validateBlobAzureBlobFileURL(
+        "https://tdrconnectedsrc1.blob.core.windows.net/test/azure-simple-dataset-ingest-request");
+  }
+
+  @Test(expected = InvalidBlobURLException.class)
+  public void testNoDoubleDash() {
+    IngestUtils.validateBlobAzureBlobFileURL(
+        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple--dataset-ingest-request.csv");
   }
 }

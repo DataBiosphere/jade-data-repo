@@ -16,6 +16,7 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
@@ -52,6 +53,7 @@ public class TableDirectoryDaoTest {
   @Autowired private TableDirectoryDao dao;
 
   @Before
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   public void setUp() {
     dao = spy(dao);
     when(authService.getTableServiceClient(any(), any())).thenReturn(tableServiceClient);

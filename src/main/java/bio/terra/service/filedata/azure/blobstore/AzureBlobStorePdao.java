@@ -191,7 +191,7 @@ public class AzureBlobStorePdao {
       Duration duration,
       String userEmail) {
     BlobContainerClientFactory destinationClientFactory =
-        getTargetDataClientFactory(profileModel, storageAccountResource, true);
+        getTargetDataClientFactory(profileModel, storageAccountResource, ContainerType.DATA, true);
 
     BlobUrlParts blobParts = BlobUrlParts.parse(url);
     if (!blobParts.getAccountName().equals(storageAccountResource.getName())) {

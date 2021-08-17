@@ -13,6 +13,8 @@ import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import java.time.Duration;
 import org.junit.After;
 import org.junit.Before;
@@ -50,12 +52,20 @@ public class BlobCrlTest {
 
   @Before
   public void setUp() throws Exception {
+    RequestRetryOptions retryOptions =
+        new RequestRetryOptions(
+            RetryPolicyType.EXPONENTIAL,
+            azureResourceConfiguration.getMaxRetries(),
+            azureResourceConfiguration.getRetryTimeoutSeconds(),
+            null,
+            null,
+            null);
     blobIOTestUtility =
         new BlobIOTestUtility(
             azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
-            connectedTestConfiguration.getDestinationStorageAccountName());
-
+            connectedTestConfiguration.getDestinationStorageAccountName(),
+            retryOptions);
     blobCrl = new BlobCrl(blobIOTestUtility.createDestinationClientFactory());
   }
 

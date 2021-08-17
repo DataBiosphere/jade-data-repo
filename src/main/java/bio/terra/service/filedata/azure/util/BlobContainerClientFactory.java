@@ -11,7 +11,6 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.policy.RequestRetryOptions;
-import com.azure.storage.common.policy.RetryPolicyType;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Objects;
@@ -24,12 +23,6 @@ public class BlobContainerClientFactory {
 
   public static final Duration DELEGATED_KEY_DURATION = Duration.ofHours(24);
   private final HttpClient httpClient = HttpClient.createDefault();
-  private static final int MAX_RETRIES = 3;
-  private static final int RETRY_TIMEOUT_SECONDS = 3600;
-  private final RequestRetryOptions retryOptions =
-      new RequestRetryOptions(
-          RetryPolicyType.EXPONENTIAL, MAX_RETRIES, RETRY_TIMEOUT_SECONDS, null, null, null);
-
   private final BlobContainerClient blobContainerClient;
 
   public BlobSasUrlFactory getBlobSasUrlFactory() {
@@ -38,24 +31,32 @@ public class BlobContainerClientFactory {
 
   private final BlobSasUrlFactory blobSasUrlFactory;
 
-  public BlobContainerClientFactory(String accountName, String accountKey, String containerName) {
-
+  public BlobContainerClientFactory(
+      String accountName,
+      String accountKey,
+      String containerName,
+      RequestRetryOptions retryOptions) {
     blobContainerClient =
         createBlobServiceClientUsingSharedKey(
                 ValidationUtils.requireNotBlank(accountName, "Account name is null or empty"),
-                ValidationUtils.requireNotBlank(accountKey, "Account key is null or empty"))
+                ValidationUtils.requireNotBlank(accountKey, "Account key is null or empty"),
+                retryOptions)
             .getBlobContainerClient(
                 ValidationUtils.requireNotBlank(containerName, "Container name is null or empty"));
     blobSasUrlFactory = new SharedAccountKeySasUrlFactory(blobContainerClient);
   }
 
   public BlobContainerClientFactory(
-      String accountName, TokenCredential azureCredential, String containerName) {
+      String accountName,
+      TokenCredential azureCredential,
+      String containerName,
+      RequestRetryOptions retryOptions) {
 
     var blobServiceClient =
         createBlobServiceClientUsingTokenCredentials(
             ValidationUtils.requireNotBlank(accountName, "Account name is null or empty"),
-            Objects.requireNonNull(azureCredential, "Azure token credentials are null."));
+            Objects.requireNonNull(azureCredential, "Azure token credentials are null."),
+            retryOptions);
     blobContainerClient =
         blobServiceClient.getBlobContainerClient(
             ValidationUtils.requireNotBlank(containerName, "Container name is null or empty"));
@@ -67,7 +68,8 @@ public class BlobContainerClientFactory {
         new UserDelegatedKeySasUrlFactory(blobServiceClient, containerName, DELEGATED_KEY_DURATION);
   }
 
-  public BlobContainerClientFactory(String containerURLWithSasToken) {
+  public BlobContainerClientFactory(
+      String containerURLWithSasToken, RequestRetryOptions retryOptions) {
 
     BlobUrlParts blobUrl = BlobUrlParts.parse(containerURLWithSasToken);
 
@@ -92,7 +94,7 @@ public class BlobContainerClientFactory {
   }
 
   private BlobServiceClient createBlobServiceClientUsingSharedKey(
-      String accountName, String accountKey) {
+      String accountName, String accountKey, RequestRetryOptions retryOptions) {
     return new BlobServiceClientBuilder()
         .credential(new StorageSharedKeyCredential(accountName, accountKey))
         .httpClient(httpClient)
@@ -102,7 +104,7 @@ public class BlobContainerClientFactory {
   }
 
   private BlobServiceClient createBlobServiceClientUsingTokenCredentials(
-      String accountName, TokenCredential credentials) {
+      String accountName, TokenCredential credentials, RequestRetryOptions retryOptions) {
     return new BlobServiceClientBuilder()
         .credential(credentials)
         .httpClient(httpClient)

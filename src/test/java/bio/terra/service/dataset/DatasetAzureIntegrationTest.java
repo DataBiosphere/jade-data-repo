@@ -30,6 +30,8 @@ import bio.terra.model.StorageResourceModel;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -82,11 +84,20 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     dataRepoFixtures.resetConfig(steward);
     profileId = dataRepoFixtures.createAzureBillingProfile(steward).getId();
     datasetId = null;
+    RequestRetryOptions retryOptions =
+        new RequestRetryOptions(
+            RetryPolicyType.EXPONENTIAL,
+            azureResourceConfiguration.getMaxRetries(),
+            azureResourceConfiguration.getRetryTimeoutSeconds(),
+            null,
+            null,
+            null);
     blobIOTestUtility =
         new BlobIOTestUtility(
             azureResourceConfiguration.getAppToken(testConfig.getTargetTenantId()),
             testConfig.getSourceStorageAccountName(),
-            null);
+            null,
+            retryOptions);
   }
 
   @After

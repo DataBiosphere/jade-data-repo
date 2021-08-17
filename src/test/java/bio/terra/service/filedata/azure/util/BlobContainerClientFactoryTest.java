@@ -12,6 +12,8 @@ import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobUrlParts;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,15 +49,24 @@ public class BlobContainerClientFactoryTest {
   private String containerName;
   private String blobName;
   private TokenCredential tokenCredential;
+  private RequestRetryOptions retryOptions;
 
   @Before
   public void setUp() {
-
+    retryOptions =
+        new RequestRetryOptions(
+            RetryPolicyType.EXPONENTIAL,
+            azureResourceConfiguration.getMaxRetries(),
+            azureResourceConfiguration.getRetryTimeoutSeconds(),
+            null,
+            null,
+            null);
     blobIOTestUtility =
         new BlobIOTestUtility(
             azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
-            connectedTestConfiguration.getDestinationStorageAccountName());
+            connectedTestConfiguration.getDestinationStorageAccountName(),
+            retryOptions);
 
     accountName = connectedTestConfiguration.getSourceStorageAccountName();
     tokenCredential =
@@ -73,7 +84,7 @@ public class BlobContainerClientFactoryTest {
   public void testCreateReadOnlySasUrlForBlobUsingTokenCreds_UrlIsGeneratedAndIsValid() {
 
     BlobContainerClientFactory factory =
-        new BlobContainerClientFactory(accountName, tokenCredential, containerName);
+        new BlobContainerClientFactory(accountName, tokenCredential, containerName, retryOptions);
 
     BlobClient blobClient =
         getBlobClientFromUrl(
@@ -90,7 +101,8 @@ public class BlobContainerClientFactoryTest {
     BlobContainerClientFactory factory =
         new BlobContainerClientFactory(
             blobIOTestUtility.generateSourceContainerUrlWithSasReadAndListPermissions(
-                getSourceStorageAccountPrimarySharedKey()));
+                getSourceStorageAccountPrimarySharedKey()),
+            retryOptions);
 
     BlobClient blobClient =
         getBlobClientFromUrl(
@@ -106,7 +118,7 @@ public class BlobContainerClientFactoryTest {
 
     BlobContainerClientFactory factory =
         new BlobContainerClientFactory(
-            accountName, getSourceStorageAccountPrimarySharedKey(), containerName);
+            accountName, getSourceStorageAccountPrimarySharedKey(), containerName, retryOptions);
 
     BlobClient blobClient =
         getBlobClientFromUrl(

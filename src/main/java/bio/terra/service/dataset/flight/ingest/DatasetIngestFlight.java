@@ -134,7 +134,7 @@ public class DatasetIngestFlight extends Flight {
 
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
     // Begin file + metadata load
-    addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset));
+    addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset, appConfig));
     addStep(
         new AuthorizeBillingProfileUseStep(
             profileService, profileId, userReq, IngestUtils.noFilesToIngest));

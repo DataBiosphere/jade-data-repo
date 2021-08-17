@@ -6,6 +6,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidBlobURLException;
+import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.InvalidUriException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -245,4 +246,14 @@ public final class IngestUtils {
         }
         return false;
       };
+
+  public static void checkForLargeIngestRequests(int numLines, int maxIngestRows) {
+    if (numLines > maxIngestRows) {
+      throw new InvalidIngestStrategyException(
+          String.format(
+              "The combined file ingest and metadata ingest workflow is limited to {} lines for ingest. This request had {} lines. For large requests, you should use the file ingest workflow and then the metadata ingest workflow.",
+              maxIngestRows,
+              numLines));
+    }
+  }
 }

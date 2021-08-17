@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.Column;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
@@ -26,11 +27,17 @@ public class IngestParseJsonFileStep implements Step {
   private final GcsPdao gcsPdao;
   private final Dataset dataset;
   private final ObjectMapper objectMapper;
+  private final ApplicationConfiguration applicationConfiguration;
 
-  public IngestParseJsonFileStep(GcsPdao gcsPdao, ObjectMapper objectMapper, Dataset dataset) {
+  public IngestParseJsonFileStep(
+      GcsPdao gcsPdao,
+      ObjectMapper objectMapper,
+      Dataset dataset,
+      ApplicationConfiguration applicationConfiguration) {
     this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
     this.dataset = dataset;
+    this.applicationConfiguration = applicationConfiguration;
   }
 
   @Override
@@ -40,6 +47,8 @@ public class IngestParseJsonFileStep implements Step {
     List<String> gcsFileLines =
         gcsPdao.getGcsFilesLines(
             ingestRequest.getPath(), dataset.getProjectResource().getGoogleProjectId());
+    IngestUtils.checkForLargeIngestRequests(
+        gcsFileLines.size(), applicationConfiguration.getMaxCombinedFileAndMetadataIngest());
     List<String> fileRefColumnNames =
         dataset.getTableByName(ingestRequest.getTable()).orElseThrow().getColumns().stream()
             .filter(c -> c.getType() == TableDataType.FILEREF)

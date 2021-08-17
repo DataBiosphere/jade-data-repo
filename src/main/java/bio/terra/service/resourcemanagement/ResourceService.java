@@ -160,11 +160,11 @@ public class ResourceService {
   }
 
   /**
-   * Write javadoc
+   * Get a storage account for a dataset/billing profile combo.
    *
-   * @param dataset
-   * @param billingProfile
-   * @return
+   * @param dataset dataset to get storage account for
+   * @param billingProfile billing profile to get storage account for.
+   * @return Optional AzureStorageAccountResource
    */
   public Optional<AzureStorageAccountResource> getStorageAccount(
       Dataset dataset, BillingProfileModel billingProfile) {

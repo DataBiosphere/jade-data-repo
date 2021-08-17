@@ -9,6 +9,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.util.Collections;
 import java.util.Map;
 
@@ -27,7 +28,8 @@ public class SnapshotAuthzBqJobUserStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    Map<IamRole, String> policyMap = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
+    Map<IamRole, String> policyMap =
+        workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
 
     Snapshot snapshot = snapshotService.retrieveByName(snapshotName);
 

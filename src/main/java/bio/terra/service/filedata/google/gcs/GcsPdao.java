@@ -21,7 +21,6 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
@@ -110,9 +109,9 @@ public class GcsPdao {
   }
 
   private List<String> getGcsFileLines(Blob blob, String projectId, Storage storage) {
-    String gsPath = GcsPdao.getGsPathFromBlob(blob);
+    String gsPath = GcsUtils.getGsPathFromBlob(blob);
     logger.info("Getting lines from {}", gsPath);
-    String blobContents = GcsIO.getBlobContents(storage, projectId, blob);
+    String blobContents = GcsUtils.getBlobContents(storage, projectId, blob);
     return Arrays.asList(blobContents.split("\n"));
   }
 
@@ -126,7 +125,7 @@ public class GcsPdao {
   public void writeGcsFile(String path, String contentsToWrite, String projectId) {
     Storage storage = gcsProjectFactory.getStorage(projectId);
     logger.info("Writing contents to {}", path);
-    GcsIO.writeBlobContents(storage, projectId, path, contentsToWrite);
+    GcsUtils.writeBlobContents(storage, projectId, path, contentsToWrite);
   }
 
   /**
@@ -284,14 +283,6 @@ public class GcsPdao {
     }
 
     return sourceBlob;
-  }
-
-  public static String getGsPathFromBlob(BlobInfo blob) {
-    return getGsPathFromComponents(blob.getBucket(), blob.getName());
-  }
-
-  public static String getGsPathFromComponents(String bucket, String name) {
-    return "gs://" + bucket + "/" + name;
   }
 
   public static GcsLocator getGcsLocatorFromGsPath(String gspath) {

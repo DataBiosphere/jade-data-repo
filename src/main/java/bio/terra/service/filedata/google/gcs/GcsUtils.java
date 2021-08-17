@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
-public class GcsIO {
+public class GcsUtils {
 
   public static String getBlobContents(Storage storage, String projectId, BlobInfo blobInfo) {
     var blob = storage.get(blobInfo.getBlobId(), Storage.BlobGetOption.userProject(projectId));
@@ -23,8 +23,7 @@ public class GcsIO {
       return writer.write(ByteBuffer.wrap(contents.getBytes(StandardCharsets.UTF_8)));
     } catch (IOException ex) {
       throw new GoogleResourceException(
-          String.format("Could not write to GCS file at %s", GcsPdao.getGsPathFromBlob(blobInfo)),
-          ex);
+          String.format("Could not write to GCS file at %s", getGsPathFromBlob(blobInfo)), ex);
     }
   }
 
@@ -32,5 +31,13 @@ public class GcsIO {
       Storage storage, String projectId, String gsPath, String contents) {
     return writeBlobContents(
         storage, projectId, GcsPdao.getBlobFromGsPath(storage, gsPath, projectId), contents);
+  }
+
+  public static String getGsPathFromBlob(BlobInfo blob) {
+    return getGsPathFromComponents(blob.getBucket(), blob.getName());
+  }
+
+  public static String getGsPathFromComponents(String bucket, String name) {
+    return "gs://" + bucket + "/" + name;
   }
 }

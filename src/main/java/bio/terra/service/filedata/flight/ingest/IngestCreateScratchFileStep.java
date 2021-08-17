@@ -4,6 +4,7 @@ import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.filedata.google.gcs.GcsUtils;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -27,7 +28,7 @@ public class IngestCreateScratchFileStep extends SkippableStep {
     String linesWithFileIds = workingMap.get(IngestMapKeys.LINES_WITH_FILE_IDS, String.class);
 
     String path =
-        GcsPdao.getGsPathFromComponents(bucket.getName(), context.getFlightId() + "-scratch.json");
+        GcsUtils.getGsPathFromComponents(bucket.getName(), context.getFlightId() + "-scratch.json");
 
     workingMap.put(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, path);
 

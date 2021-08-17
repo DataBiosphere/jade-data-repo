@@ -37,13 +37,14 @@ public class IngestCreateTargetDataSourceStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
+    String flightId = context.getFlightId();
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
 
     AzureStorageAccountResource storageAccountResource =
-        resourceService.getOrCreateStorageAccount(dataset, billingProfile, context.getFlightId());
+        resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
     String parquetDestinationLocation =
         IngestUtils.getParquetTargetLocationURL(storageAccountResource);
     BlobUrlParts targetSignUrlBlob =
@@ -52,8 +53,8 @@ public class IngestCreateTargetDataSourceStep implements Step {
     try {
       azureSynapsePdao.createExternalDataSource(
           targetSignUrlBlob,
-          IngestUtils.getTargetScopedCredentialName(context.getFlightId()),
-          IngestUtils.getTargetDataSourceName(context.getFlightId()));
+          IngestUtils.getTargetScopedCredentialName(flightId),
+          IngestUtils.getTargetDataSourceName(flightId));
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }

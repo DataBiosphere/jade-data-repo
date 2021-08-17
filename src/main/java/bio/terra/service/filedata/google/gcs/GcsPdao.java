@@ -113,7 +113,7 @@ public class GcsPdao {
     String gsPath = GcsPdao.getGsPathFromBlob(blob);
     logger.info("Getting lines from {}", gsPath);
     String blobContents = GcsIO.getBlobContents(storage, projectId, blob);
-    return Arrays.stream(blobContents.split("\n")).collect(Collectors.toList());
+    return Arrays.asList(blobContents.split("\n"));
   }
 
   /**

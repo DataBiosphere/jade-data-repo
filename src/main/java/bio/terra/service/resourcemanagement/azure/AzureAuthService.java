@@ -2,6 +2,7 @@ package bio.terra.service.resourcemanagement.azure;
 
 import bio.terra.model.BillingProfileModel;
 import com.azure.core.credential.AzureNamedKeyCredential;
+import com.azure.core.http.policy.RetryPolicy;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.resourcemanager.AzureResourceManager;
@@ -10,6 +11,8 @@ import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,10 +23,16 @@ import org.springframework.stereotype.Component;
 public class AzureAuthService {
 
   private final AzureResourceConfiguration configuration;
+  private final RequestRetryOptions retryOptions;
 
   @Autowired
   public AzureAuthService(AzureResourceConfiguration configuration) {
     this.configuration = configuration;
+    var maxRetries = configuration.getMaxRetries();
+    var retryTimeoutSeconds = configuration.getRetryTimeoutSeconds();
+    retryOptions =
+        new RequestRetryOptions(
+            RetryPolicyType.EXPONENTIAL, maxRetries, retryTimeoutSeconds, null, null, null);
   }
 
   /**
@@ -64,6 +73,7 @@ public class AzureAuthService {
         .credential(new StorageSharedKeyCredential(storageAccountResource.getName(), key))
         .endpoint("https://" + storageAccountResource.getName() + ".blob.core.windows.net")
         .containerName(containerName)
+        .retryOptions(retryOptions)
         .buildClient();
   }
 
@@ -83,6 +93,7 @@ public class AzureAuthService {
     return new TableServiceClientBuilder()
         .credential(new AzureNamedKeyCredential(storageAccountResource.getName(), key))
         .endpoint("https://" + storageAccountResource.getName() + ".table.core.windows.net")
+        .retryPolicy(new RetryPolicy())
         .buildClient();
   }
 

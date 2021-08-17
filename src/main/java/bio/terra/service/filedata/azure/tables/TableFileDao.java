@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,9 +37,6 @@ public class TableFileDao {
   private final ExecutorService executor;
   private static final String TABLE_NAME = "files";
   private static final String PARTITION_KEY = "partitionKey";
-  private static final int SLEEP_BASE_SECONDS = 1;
-  private static final int MAX_SLEEP_SECONDS = 300;
-  private static final int AZURE_STORAGE_RETRIES = 1;
 
   @Autowired
   TableFileDao(@Qualifier("performanceThreadpool") ExecutorService executor) {
@@ -103,44 +99,15 @@ public class TableFileDao {
         .forEach(
             entity -> {
               try {
-                retryOperation(entity, generator);
-              } catch (InterruptedException e) {
+                generator.accept(entity).get();
+              } catch (InterruptedException | ExecutionException e) {
                 throw new FileSystemExecutionException("operation failed", e);
               }
             });
   }
 
-  <T, V> void retryOperation(V input, ApiFutureGenerator<T, V> generator)
-      throws InterruptedException {
-    int retry = 0;
-    while (true) {
-      try {
-        generator.accept(input).get();
-        break;
-      } catch (ExecutionException ex) {
-        final long retryWait =
-            (long) Math.min(SLEEP_BASE_SECONDS * Math.pow(2.5, retry), MAX_SLEEP_SECONDS);
-        retry++;
-        if (retry > AZURE_STORAGE_RETRIES) {
-          throw new FileSystemExecutionException(
-              "Operation failed after " + AZURE_STORAGE_RETRIES + " tries.");
-        } else {
-          logger.warn(
-              "Error in Azure storage table future get - input: {} message: {}",
-              input.toString(),
-              ex.getMessage());
-          logger.info(
-              "Operation will attempt retry #{} after {} millisecond pause.", retry, retryWait);
-        }
-        // Exponential backoff
-        TimeUnit.SECONDS.sleep(retryWait);
-      }
-    }
-  }
-
   void deleteFilesFromDataset(
-      TableServiceClient tableServiceClient, InterruptibleConsumer<FireStoreFile> func)
-      throws InterruptedException {
+      TableServiceClient tableServiceClient, InterruptibleConsumer<FireStoreFile> func) {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     scanTableObjects(
         tableClient,

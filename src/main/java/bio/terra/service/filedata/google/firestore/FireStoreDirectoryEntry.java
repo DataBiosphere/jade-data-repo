@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
+import com.azure.data.tables.models.TableEntity;
+import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
@@ -35,6 +37,17 @@ public class FireStoreDirectoryEntry {
   private String checksumCrc32c;
   private String checksumMd5;
   private Long size;
+
+  // Azure table entity field names
+  public static final String FILE_ID_FIELD_NAME = "fileId";
+  public static final String IS_FILE_REF_FIELD_NAME = "isFileRef";
+  public static final String PATH_FIELD_NAME = "path";
+  public static final String NAME_FIELD_NAME = "name";
+  public static final String DATASET_ID_FIELD_NAME = "datasetId";
+  public static final String FILE_CREATED_DATE_FIELD_NAME = "fileCreatedDate";
+  public static final String CHECKSUM_CRC32C_FIELD_NAME = "checksum_crc32c";
+  public static final String CHECKSUM_MD5_FIELD_NAME = "checksum_md5";
+  public static final String SIZE_FIELD_NAME = "size";
 
   public FireStoreDirectoryEntry() {}
 
@@ -155,5 +168,66 @@ public class FireStoreDirectoryEntry {
         .append("checksumMd5", checksumMd5)
         .append("size", size)
         .toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    FireStoreDirectoryEntry that = (FireStoreDirectoryEntry) o;
+    return Objects.equals(fileId, that.fileId)
+        && Objects.equals(isFileRef, that.isFileRef)
+        && Objects.equals(path, that.path)
+        && Objects.equals(name, that.name)
+        && Objects.equals(datasetId, that.datasetId)
+        && Objects.equals(fileCreatedDate, that.fileCreatedDate)
+        && Objects.equals(checksumCrc32c, that.checksumCrc32c)
+        && Objects.equals(checksumMd5, that.checksumMd5)
+        && Objects.equals(size, that.size);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(
+        fileId,
+        isFileRef,
+        path,
+        name,
+        datasetId,
+        fileCreatedDate,
+        checksumCrc32c,
+        checksumMd5,
+        size);
+  }
+
+  public static FireStoreDirectoryEntry fromTableEntity(TableEntity entity) {
+    return new FireStoreDirectoryEntry()
+        .fileId(entity.getProperty(FILE_ID_FIELD_NAME).toString())
+        .isFileRef((Boolean) entity.getProperty(IS_FILE_REF_FIELD_NAME))
+        .path(entity.getProperty(PATH_FIELD_NAME).toString())
+        .name(entity.getProperty(NAME_FIELD_NAME).toString())
+        .datasetId(entity.getProperty(DATASET_ID_FIELD_NAME).toString())
+        .fileCreatedDate(entity.getProperty(FILE_CREATED_DATE_FIELD_NAME).toString())
+        .checksumCrc32c(entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME).toString())
+        .checksumMd5(entity.getProperty(CHECKSUM_MD5_FIELD_NAME).toString())
+        .size((Long) entity.getProperty(SIZE_FIELD_NAME));
+  }
+
+  public static TableEntity toTableEntity(
+      String partitionKey, String rowKey, FireStoreDirectoryEntry f) {
+    return new TableEntity(partitionKey, rowKey)
+        .addProperty(FILE_ID_FIELD_NAME, f.getFileId())
+        .addProperty(IS_FILE_REF_FIELD_NAME, f.getIsFileRef())
+        .addProperty(PATH_FIELD_NAME, f.getPath())
+        .addProperty(NAME_FIELD_NAME, f.getName())
+        .addProperty(DATASET_ID_FIELD_NAME, f.getDatasetId())
+        .addProperty(FILE_CREATED_DATE_FIELD_NAME, f.getFileCreatedDate())
+        .addProperty(CHECKSUM_CRC32C_FIELD_NAME, f.getChecksumCrc32c())
+        .addProperty(CHECKSUM_MD5_FIELD_NAME, f.getChecksumMd5())
+        .addProperty(SIZE_FIELD_NAME, f.getSize());
   }
 }

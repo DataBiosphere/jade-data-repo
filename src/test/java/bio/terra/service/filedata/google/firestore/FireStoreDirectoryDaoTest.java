@@ -12,7 +12,9 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.StringListCompare;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.FileMetadataUtils;
 import com.google.cloud.firestore.Firestore;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -37,7 +39,7 @@ public class FireStoreDirectoryDaoTest {
 
   @Autowired private FireStoreDirectoryDao directoryDao;
 
-  @Autowired private FireStoreUtils fireStoreUtils;
+  @Autowired private FileMetadataUtils fileMetadataUtils;
 
   @Autowired private ConfigurationService configurationService;
 
@@ -53,6 +55,7 @@ public class FireStoreDirectoryDaoTest {
   }
 
   @Test
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   // Tests createFileRef, deleteDirectoryEntry, retrieveById, retrieveByPath
   public void createDeleteTest() throws Exception {
     FireStoreDirectoryEntry fileA = makeFileObject("/adir/A");
@@ -100,6 +103,7 @@ public class FireStoreDirectoryDaoTest {
   }
 
   @Test
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   // Tests validateRefIds, enumerateDirectory, deleteDirectoryEntriesFromCollection, retrieveById,
   // retrieveByPath
   public void directoryOperationsTest() throws Exception {
@@ -177,8 +181,8 @@ public class FireStoreDirectoryDaoTest {
     return new FireStoreDirectoryEntry()
         .fileId(UUID.randomUUID().toString())
         .isFileRef(true)
-        .path(fireStoreUtils.getDirectoryPath(fullPath))
-        .name(fireStoreUtils.getName(fullPath))
+        .path(fileMetadataUtils.getDirectoryPath(fullPath))
+        .name(fileMetadataUtils.getName(fullPath))
         .datasetId(pretendDatasetId);
   }
 }

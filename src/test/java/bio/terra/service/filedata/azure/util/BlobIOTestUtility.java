@@ -10,6 +10,7 @@ import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.sas.SasProtocol;
 import java.io.InputStream;
 import java.time.Duration;
@@ -44,9 +45,13 @@ public class BlobIOTestUtility {
   private final String destinationContainerName;
   private static final String STORAGE_ENDPOINT_PATTERN = "https://%s.blob.core.windows.net/%s";
   private final TokenCredential tokenCredential;
+  private final RequestRetryOptions retryOptions;
 
   public BlobIOTestUtility(
-      TokenCredential tokenCredential, String sourceAccountName, String destinationAccountName) {
+      TokenCredential tokenCredential,
+      String sourceAccountName,
+      String destinationAccountName,
+      RequestRetryOptions retryOptions) {
     String sourceContainerName = generateNewTempContainerName();
     destinationContainerName = generateNewTempContainerName();
     sourceBlobContainerClient =
@@ -57,6 +62,7 @@ public class BlobIOTestUtility {
             .map(a -> createBlobContainerClient(tokenCredential, destinationContainerName, a));
     destinationBlobContainerClient.ifPresent(BlobContainerClient::create);
     this.tokenCredential = tokenCredential;
+    this.retryOptions = retryOptions;
   }
 
   private BlobContainerClient createBlobContainerClient(
@@ -173,7 +179,8 @@ public class BlobIOTestUtility {
     return new BlobContainerClientFactory(
         getDestinationBlobContainerClient().getAccountName(),
         tokenCredential,
-        destinationContainerName);
+        destinationContainerName,
+        retryOptions);
   }
 
   public BlobSasTokenOptions createReadOnlyTokenOptions() {

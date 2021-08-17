@@ -493,7 +493,12 @@ public class DatasetIntegrationTest extends UsersBase {
                   try {
                     return dataRepoFixtures.getFileByName(steward(), datasetId, path);
                   } catch (Exception e) {
-                    return null;
+                    throw new RuntimeException(
+                        "Unable to find file by name. TargetPath: "
+                            + path
+                            + "; DatasetId: "
+                            + datasetId,
+                        e);
                   }
                 })
             .flatMap(file -> Optional.ofNullable(file).stream())

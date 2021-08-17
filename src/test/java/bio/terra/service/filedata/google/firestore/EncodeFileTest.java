@@ -29,6 +29,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
@@ -95,7 +96,7 @@ public class EncodeFileTest {
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private GoogleProjectService googleProjectService;
   @Autowired private DrsIdService drsIdService;
-  @Autowired private FireStoreUtils fireStoreUtils;
+  @Autowired private FileMetadataUtils fileMetadataUtils;
   @Autowired private BufferService bufferService;
 
   private static final String ID_GARBAGE = "GARBAGE";
@@ -297,7 +298,7 @@ public class EncodeFileTest {
     // build string list from the contents objects
     List<String> contentsNames =
         contentsList.stream()
-            .map(fs -> fireStoreUtils.getName(fs.getPath()))
+            .map(fs -> fileMetadataUtils.getName(fs.getPath()))
             .collect(Collectors.toList());
 
     // lookup the dirmap list by path of the fsObj

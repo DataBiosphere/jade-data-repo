@@ -7,10 +7,10 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.Flight;
@@ -34,7 +34,7 @@ public class FileIngestWorkerFlight extends Flight {
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
-    FireStoreUtils fireStoreUtils = appContext.getBean(FireStoreUtils.class);
+    FileMetadataUtils fileMetadataUtils = appContext.getBean(FileMetadataUtils.class);
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
@@ -71,7 +71,7 @@ public class FileIngestWorkerFlight extends Flight {
     //   the file becomes visible for REST API lookups.
     addStep(new IngestFileIdStep(configService));
     addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-    addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
+    addStep(new IngestFileDirectoryStep(fileDao, fileMetadataUtils, dataset), fileSystemRetry);
     if (platform.isGcp()) {
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
     } else if (platform.isAzure()) {

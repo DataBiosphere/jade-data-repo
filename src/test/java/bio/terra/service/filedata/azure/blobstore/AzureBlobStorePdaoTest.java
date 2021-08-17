@@ -27,6 +27,7 @@ import bio.terra.service.filedata.azure.util.BlobContainerCopySyncPoller;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
@@ -88,6 +89,7 @@ public class AzureBlobStorePdaoTest {
   @MockBean private AzureContainerPdao azureContainerPdao;
   @MockBean private AzureResourceConfiguration resourceConfiguration;
   @MockBean private AzureResourceDao azureResourceDao;
+  @MockBean private AzureAuthService azureAuthService;
   @Autowired private AzureBlobStorePdao dao;
 
   private FileLoadModel fileLoadModel;
@@ -105,6 +107,8 @@ public class AzureBlobStorePdaoTest {
             .mimeType(MIME_TYPE);
     when(profileDao.getBillingProfileById(PROFILE_ID)).thenReturn(BILLING_PROFILE);
     when(resourceConfiguration.getAppToken(TENANT_ID)).thenReturn(targetCredential);
+    when(resourceConfiguration.getMaxRetries()).thenReturn(3);
+    when(resourceConfiguration.getRetryTimeoutSeconds()).thenReturn(60);
     when(azureResourceDao.retrieveStorageAccountById(RESOURCE_ID))
         .thenReturn(AZURE_STORAGE_ACCOUNT_RESOURCE);
     targetBlobContainerFactory = mock(BlobContainerClientFactory.class);

@@ -16,6 +16,8 @@ import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.StorageSharedKeyCredential;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
@@ -49,12 +51,20 @@ public class SasUrlFactoriesTest {
 
   @Before
   public void setUp() {
-
+    RequestRetryOptions retryOptions =
+        new RequestRetryOptions(
+            RetryPolicyType.EXPONENTIAL,
+            azureResourceConfiguration.getMaxRetries(),
+            azureResourceConfiguration.getRetryTimeoutSeconds(),
+            null,
+            null,
+            null);
     blobIOTestUtility =
         new BlobIOTestUtility(
             azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
-            connectedTestConfiguration.getDestinationStorageAccountName());
+            connectedTestConfiguration.getDestinationStorageAccountName(),
+            retryOptions);
 
     accountName = connectedTestConfiguration.getSourceStorageAccountName();
     containerName = blobIOTestUtility.getSourceBlobContainerClient().getBlobContainerName();

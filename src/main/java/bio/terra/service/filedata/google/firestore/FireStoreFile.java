@@ -25,6 +25,18 @@ public class FireStoreFile {
   private String checksumMd5;
   private Long size;
 
+  // Azure table entity field names
+  public static final String FILE_ID_FIELD_NAME = "fileId";
+  public static final String MIME_TYPE_FIELD_NAME = "mimeType";
+  public static final String DESCRIPTION_FIELD_NAME = "description";
+  public static final String BUCKET_RESOURCE_ID_FIELD_NAME = "bucketResourceId";
+  public static final String LOAD_TAG_FIELD_NAME = "loadTag";
+  public static final String FILE_CREATED_DATE_FIELD_NAME = "fileCreatedDate";
+  public static final String GS_PATH_FIELD_NAME = "gspath";
+  public static final String CHECKSUM_CRC32C_FIELD_NAME = "checksum_crc32c";
+  public static final String CHECKSUM_MD5_FIELD_NAME = "checksum_md5";
+  public static final String SIZE_FIELD_NAME = "size";
+
   public FireStoreFile() {}
 
   public String getFileId() {
@@ -171,29 +183,29 @@ public class FireStoreFile {
 
   public static FireStoreFile fromTableEntity(TableEntity entity) {
     return new FireStoreFile()
-        .fileId(entity.getProperty("fileId").toString())
-        .mimeType(entity.getProperty("mimeType").toString())
-        .description(entity.getProperty("description").toString())
-        .bucketResourceId(entity.getProperty("bucketResourceId").toString())
-        .loadTag(entity.getProperty("loadTag").toString())
-        .fileCreatedDate(entity.getProperty("fileCreatedDate").toString())
-        .gspath(entity.getProperty("gspath").toString())
-        .checksumCrc32c(entity.getProperty("checksumCrc32c").toString())
-        .checksumMd5(entity.getProperty("checksumMd5").toString())
-        .size((Long) entity.getProperty("size"));
+        .fileId(entity.getProperty(FILE_ID_FIELD_NAME).toString())
+        .mimeType(entity.getProperty(MIME_TYPE_FIELD_NAME).toString())
+        .description(entity.getProperty(DESCRIPTION_FIELD_NAME).toString())
+        .bucketResourceId(entity.getProperty(BUCKET_RESOURCE_ID_FIELD_NAME).toString())
+        .loadTag(entity.getProperty(LOAD_TAG_FIELD_NAME).toString())
+        .fileCreatedDate(entity.getProperty(FILE_CREATED_DATE_FIELD_NAME).toString())
+        .gspath(entity.getProperty(GS_PATH_FIELD_NAME).toString())
+        .checksumCrc32c(entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME).toString())
+        .checksumMd5(entity.getProperty(CHECKSUM_MD5_FIELD_NAME).toString())
+        .size((Long) entity.getProperty(SIZE_FIELD_NAME));
   }
 
   public static TableEntity toTableEntity(String partitionKey, FireStoreFile f) {
     return new TableEntity(partitionKey, f.getFileId())
-        .addProperty("fileId", f.getFileId())
-        .addProperty("mimeType", f.getMimeType())
-        .addProperty("description", f.getDescription())
-        .addProperty("bucketResourceId", f.getBucketResourceId())
-        .addProperty("loadTag", f.getLoadTag())
-        .addProperty("fileCreatedDate", f.getFileCreatedDate())
-        .addProperty("gspath", f.getGspath())
-        .addProperty("checksumCrc32c", f.getChecksumCrc32c())
-        .addProperty("checksumMd5", f.getChecksumMd5())
-        .addProperty("size", f.getSize());
+        .addProperty(FILE_ID_FIELD_NAME, f.getFileId())
+        .addProperty(MIME_TYPE_FIELD_NAME, f.getMimeType())
+        .addProperty(DESCRIPTION_FIELD_NAME, f.getDescription())
+        .addProperty(BUCKET_RESOURCE_ID_FIELD_NAME, f.getBucketResourceId())
+        .addProperty(LOAD_TAG_FIELD_NAME, f.getLoadTag())
+        .addProperty(FILE_CREATED_DATE_FIELD_NAME, f.getFileCreatedDate())
+        .addProperty(GS_PATH_FIELD_NAME, f.getGspath())
+        .addProperty(CHECKSUM_CRC32C_FIELD_NAME, f.getChecksumCrc32c())
+        .addProperty(CHECKSUM_MD5_FIELD_NAME, f.getChecksumMd5())
+        .addProperty(SIZE_FIELD_NAME, f.getSize());
   }
 }

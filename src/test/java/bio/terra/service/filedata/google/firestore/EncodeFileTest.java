@@ -390,14 +390,14 @@ public class EncodeFileTest {
 
     assertThat("All 10 lines of bad file return errors", ingestError.getErrorDetail(), hasSize(10));
 
-    String expectedError =
-        "Unexpected character (';' (code 59)): "
-            + "was expecting a colon to separate field name and value\n"
-            + " at [Source: (String)\"{\"fribbitz\";\"ABCDEFG\"}\"; line: 1, column: 13]";
+    // entire error message should be:
+    // "Unexpected character (';' (code 59)): was expecting a colon to separate field name
+    //   and value at [Source: (String)\"{\"fribbitz\";\"ABCDEFG\"}\"; line: 1, column: 13]";
+    String expectedError = "Unexpected character";
     assertThat(
         "Json parsing errors are present",
         ingestError.getErrorDetail().get(0),
-        equalTo(expectedError));
+        containsString(expectedError));
 
     assertThat("all errors are the same", Set.copyOf(ingestError.getErrorDetail()), hasSize(1));
 

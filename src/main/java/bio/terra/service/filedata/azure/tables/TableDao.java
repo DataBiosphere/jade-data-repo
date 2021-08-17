@@ -2,6 +2,7 @@ package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.*;
@@ -9,6 +10,7 @@ import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.FireStoreUtils;
+import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -108,32 +110,31 @@ public class TableDao {
     return fileDao.deleteFileMetadata(tableServiceClient, fileId);
   }
 
-  //    public void deleteFilesFromDataset(Dataset dataset, InterruptibleConsumer<FireStoreFile>
-  // func)
-  //            throws InterruptedException {
+  public void deleteFilesFromDataset(
+      AzureStorageAccountResource storageAccountResource,
+      InterruptibleConsumer<FireStoreFile> func) {
+    BillingProfileModel profileModel =
+        profileDao.getBillingProfileById(storageAccountResource.getProfileId());
+    TableServiceClient tableServiceClient =
+        azureAuthService.getTableServiceClient(profileModel, storageAccountResource);
+    if (configurationService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
+      // If we didn't load files, don't try to delete them
+      fileDao.deleteFilesFromDataset(tableServiceClient, f -> {});
+    } else {
+      fileDao.deleteFilesFromDataset(tableServiceClient, func);
+    }
+    directoryDao.deleteDirectoryEntriesFromCollection(tableServiceClient);
+  }
+
+  //      public FireStoreDirectoryEntry lookupDirectoryEntry(Dataset dataset, String fileId)
+  //              throws InterruptedException {
+  //          Firestore firestore =
   //
-  //        Firestore firestore =
-  //
-  // FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
-  //        String datasetId = dataset.getId().toString();
-  //        if (configurationService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
-  //            // If we didn't load files, don't try to delete them
-  //            fileDao.deleteFilesFromDataset(firestore, datasetId, f -> {});
-  //        } else {
-  //            fileDao.deleteFilesFromDataset(firestore, datasetId, func);
-  //        }
-  //        directoryDao.deleteDirectoryEntriesFromCollection(firestore, datasetId);
-  //    }
-  //
-  //    public FireStoreDirectoryEntry lookupDirectoryEntry(Dataset dataset, String fileId)
-  //            throws InterruptedException {
-  //        Firestore firestore =
-  //
-  // FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
-  //        String datasetId = dataset.getId().toString();
-  //        return directoryDao.retrieveById(firestore, datasetId, fileId);
-  //    }
-  //
+  //   FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
+  //          String datasetId = dataset.getId().toString();
+  //          return directoryDao.retrieveById(firestore, datasetId, fileId);
+  //      }
+
   public FireStoreDirectoryEntry lookupDirectoryEntryByPath(
       Dataset dataset, String path, AzureStorageAccountResource storageAccountResource) {
     BillingProfileModel profileModel =

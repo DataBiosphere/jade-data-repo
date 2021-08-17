@@ -74,11 +74,11 @@ public class IngestFileAzureFileStep implements Step {
     String itemId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     AzureStorageAccountResource storageAccountResource =
         workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
-        try {
-          tableDao.deleteFileMetadata(itemId, storageAccountResource);
-        } catch (TableServiceException rex) {
-          return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
-        }
+    try {
+      tableDao.deleteFileMetadata(itemId, storageAccountResource);
+    } catch (TableServiceException rex) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
+    }
     return StepResult.getStepResultSuccess();
   }
 }

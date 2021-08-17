@@ -11,12 +11,14 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -45,6 +47,8 @@ public class DatasetDeleteFlight extends Flight {
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    TableDao tableDao = appContext.getBean(TableDao.class);
+    ProfileDao profileDao = appContext.getBean(ProfileDao.class);
 
     // get data from inputs that steps need
     UUID datasetId =
@@ -68,7 +72,13 @@ public class DatasetDeleteFlight extends Flight {
     } else if (platform.isAzure()) {
       addStep(
           new DeleteDatasetAzurePrimaryDataStep(
-              azureBlobStorePdao, fileDao, datasetService, datasetId, configService),
+              azureBlobStorePdao,
+              tableDao,
+              datasetService,
+              datasetId,
+              configService,
+              resourceService,
+              profileDao),
           primaryDataDeleteRetry);
     }
     // Delete access control on objects that were explicitly added by data repo operations.  Do this

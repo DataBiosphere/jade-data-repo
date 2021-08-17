@@ -18,15 +18,19 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
-public class StorageTableDao {
+public class AzureStorageTableDao {
 
   private static final String LOAD_HISTORY_TABLE_NAME_SUFFIX = "LoadHistory";
+
+  private static String computeInternalLoadTag(String loadTag) {
+    return Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
+  }
 
   /**
    * Store the results of a bulk file load in an Azure Storage Table
    *
    * <p>The table name will be the result of the dataset id passed through {@link
-   * StorageTableDao#toStorageTableNameFromUUID} Entities will be partitioned on the loadTag and
+   * AzureStorageTableDao#toLoadHistoryTableNameFromUUID} Entities will be partitioned on the loadTag and
    * their row keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
    *
    * @param serviceClient A service client for the dataset
@@ -35,7 +39,7 @@ public class StorageTableDao {
    * @param loadTime The time the load occurred
    * @param loadHistoryArray The models to store
    */
-  public void loadHistoryToAStorageTable(
+  public void storeLoadHistory(
       TableServiceClient serviceClient,
       UUID datasetId,
       String loadTag,
@@ -44,22 +48,21 @@ public class StorageTableDao {
     if (loadHistoryArray.isEmpty()) {
       return;
     }
-    var tableName = toStorageTableNameFromUUID(datasetId);
+    var tableName = toLoadHistoryTableNameFromUUID(datasetId);
     TableClient client = serviceClient.createTableIfNotExists(tableName);
     // if the table already exists, the returned client is null and we have to get it explicitly
     if (client == null) {
       client = serviceClient.getTableClient(tableName);
     }
 
-    var base64LoadTag =
-        Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
+    var internalLoadTag = computeInternalLoadTag(loadTag);
 
     ListEntitiesOptions options =
         new ListEntitiesOptions()
             .setFilter(
                 String.format(
                     "PartitionKey eq '%s' and %s eq true",
-                    base64LoadTag, LoadHistoryUtil.IS_LAST_FIELD_NAME));
+                    internalLoadTag, LoadHistoryUtil.IS_LAST_FIELD_NAME));
 
     List<TableEntity> lastEntityList =
         client.listEntities(options, null, null).stream().collect(Collectors.toList());
@@ -79,13 +82,11 @@ public class StorageTableDao {
     List<StorageTableLoadHistoryEntity> entities = new ArrayList<>();
     for (int i = 0; i < loadHistoryArray.size(); i++) {
       var isLast = i == loadHistoryArray.size() - 1;
-      entities.add(
+      var thisIndex = i + indexToStartFrom;
+      client.createEntity(bulkFileLoadModelToStorageTableEntity(
           new StorageTableLoadHistoryEntity(
-              loadHistoryArray.get(i), base64LoadTag, i + indexToStartFrom, isLast));
+              loadHistoryArray.get(i), internalLoadTag, thisIndex, isLast), loadTag, loadTime));
     }
-    entities.stream()
-        .map(entity -> bulkFileLoadModelToStorageTableEntity(entity, loadTag, loadTime))
-        .forEach(client::createEntity);
   }
 
   /**
@@ -104,15 +105,15 @@ public class StorageTableDao {
       String loadTag,
       int offset,
       int limit) {
-    var tableClient = tableServiceClient.getTableClient(toStorageTableNameFromUUID(datasetId));
-    var base64LoadTag =
-        Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
+    var tableClient = tableServiceClient.getTableClient(toLoadHistoryTableNameFromUUID(datasetId));
+    var internalLoadTag = computeInternalLoadTag(loadTag);
     ListEntitiesOptions options =
         new ListEntitiesOptions()
+            .setTop(limit)
             .setFilter(
                 String.format(
                     "PartitionKey eq '%s' and %s ge %d and %s lt %s",
-                    base64LoadTag,
+                    internalLoadTag,
                     LoadHistoryUtil.INDEX_FIELD_NAME,
                     offset,
                     LoadHistoryUtil.INDEX_FIELD_NAME,
@@ -147,7 +148,7 @@ public class StorageTableDao {
    * @param datasetId The datasetId root of the table name
    * @return A valid azure storage table name with load history suffix.
    */
-  private static String toStorageTableNameFromUUID(UUID datasetId) {
+  private static String toLoadHistoryTableNameFromUUID(UUID datasetId) {
     return "datarepo" + datasetId.toString().replaceAll("-", "") + LOAD_HISTORY_TABLE_NAME_SUFFIX;
   }
 

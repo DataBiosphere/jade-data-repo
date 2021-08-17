@@ -16,14 +16,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class StorageTableService {
 
-  private final StorageTableDao storageTableDao;
+  private final AzureStorageTableDao storageTableDao;
   private final DatasetStorageAccountDao datasetStorageAccountDao;
   private final AzureAuthService azureAuthService;
   private final ResourceService resourceService;
 
   @Autowired
   public StorageTableService(
-      StorageTableDao storageTableDao,
+      AzureStorageTableDao storageTableDao,
       DatasetStorageAccountDao datasetStorageAccountDao,
       AzureAuthService azureAuthService,
       ResourceService resourceService) {
@@ -46,7 +46,7 @@ public class StorageTableService {
     TableServiceClient serviceClient =
         azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
 
-    storageTableDao.loadHistoryToAStorageTable(
+    storageTableDao.storeLoadHistory(
         serviceClient, dataset.getId(), loadTag, loadTime, loadHistoryArray);
   }
 

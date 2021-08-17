@@ -3301,7 +3301,7 @@ components:
       properties:
         total:
           type: integer
-          description: Total number of load history models
+          description: Total number of results
         items:
           type: array
           items:

@@ -619,12 +619,11 @@ public class DataRepoFixtures {
       assertThat("bulkLoadArray is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
       assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
       return response.getResponseObject().get();
-    } else {
-      ErrorModel errorModel = response.getErrorObject().orElse(null);
-      logger.error("bulkLoadArray failed: " + errorModel);
-      fail();
-      return null; // Make findbugs happy
     }
+    ErrorModel errorModel = response.getErrorObject().orElse(null);
+    logger.error("bulkLoadArray failed: " + errorModel);
+    fail();
+    return null; // Make findbugs happy
   }
 
   public BulkLoadHistoryModelList getLoadHistory(
@@ -646,12 +645,11 @@ public class DataRepoFixtures {
       assertThat("getLoadHistory is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
       assertTrue("getLoadHistory response is present", response.getResponseObject().isPresent());
       return response.getResponseObject().get();
-    } else {
-      ErrorModel errorModel = response.getErrorObject().orElse(null);
-      logger.error("getLoadHistory failed: " + errorModel);
-      fail();
-      return null; // Make findbugs happy
     }
+    ErrorModel errorModel = response.getErrorObject().orElse(null);
+    logger.error("getLoadHistory failed: " + errorModel);
+    fail();
+    return null; // Make findbugs happy
   }
 
   public DataRepoResponse<FileModel> getFileByIdRaw(

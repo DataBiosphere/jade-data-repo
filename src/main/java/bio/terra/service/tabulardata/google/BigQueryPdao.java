@@ -303,7 +303,8 @@ public class BigQueryPdao {
           + "FROM `<project>.<dataset>.<loadTable>` L "
           + "WHERE L.load_tag = @loadTag "
           + "LIMIT <limit> "
-          + "OFFSET <offset>";
+          + "OFFSET <offset> "
+          + String.format("ORDER BY %s ", LoadHistoryUtil.FILE_ID_FIELD_NAME);
 
   public List<BulkLoadHistoryModel> getLoadHistory(
       Dataset dataset, String loadTag, int offset, int limit) {
@@ -332,29 +333,26 @@ public class BigQueryPdao {
     }
   }
 
+  private static String bqStringValue(FieldValueList fieldValue, String fieldName) {
+    var value = fieldValue.get(fieldName);
+    if (value != null) {
+      return value.getStringValue();
+    }
+    return null;
+  }
+
   private static BulkLoadHistoryModel bigQueryResultToBulkLoadHistoryModel(
       FieldValueList fieldValue) {
-    Function<FieldValue, String> emptyToNull =
-        fv -> {
-          var value = fv.getStringValue();
-          return value.isEmpty() ? null : value;
-        };
-    var model =
-        new BulkLoadHistoryModel()
+    return new BulkLoadHistoryModel()
             .sourcePath(fieldValue.get(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME).getStringValue())
             .targetPath(fieldValue.get(LoadHistoryUtil.TARGET_PATH_FIELD_NAME).getStringValue())
             .state(
                 BulkLoadFileState.fromValue(
                     fieldValue.get(LoadHistoryUtil.STATE_FIELD_NAME).getStringValue()))
-            .fileId(fieldValue.get(LoadHistoryUtil.FILE_ID_FIELD_NAME).getStringValue());
-
-    Optional.ofNullable(fieldValue.get(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
-        .ifPresent(o -> model.checksumCRC(emptyToNull.apply(o)));
-    Optional.ofNullable(fieldValue.get(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
-        .ifPresent(o -> model.checksumMD5(emptyToNull.apply(o)));
-    Optional.ofNullable(fieldValue.get(LoadHistoryUtil.ERROR_FIELD_NAME))
-        .ifPresent(o -> model.error(emptyToNull.apply(o)));
-    return model;
+            .fileId(fieldValue.get(LoadHistoryUtil.FILE_ID_FIELD_NAME).getStringValue())
+            .checksumCRC(bqStringValue(fieldValue, LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
+            .checksumMD5(bqStringValue(fieldValue, LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
+            .error(bqStringValue(fieldValue, LoadHistoryUtil.ERROR_FIELD_NAME));
   }
 
   public boolean deleteDataset(Dataset dataset) throws InterruptedException {

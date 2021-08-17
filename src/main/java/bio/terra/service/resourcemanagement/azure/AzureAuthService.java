@@ -28,8 +28,8 @@ public class AzureAuthService {
   @Autowired
   public AzureAuthService(AzureResourceConfiguration configuration) {
     this.configuration = configuration;
-    var maxRetries = 1;
-    var retryTimeoutSeconds = 60;
+    var maxRetries = configuration.getMaxRetries();
+    var retryTimeoutSeconds = configuration.getRetryTimeoutSeconds();
     retryOptions =
         new RequestRetryOptions(
             RetryPolicyType.EXPONENTIAL, maxRetries, retryTimeoutSeconds, null, null, null);

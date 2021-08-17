@@ -14,6 +14,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import com.google.cloud.firestore.Firestore;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -54,6 +55,7 @@ public class FireStoreDirectoryDaoTest {
   }
 
   @Test
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   // Tests createFileRef, deleteDirectoryEntry, retrieveById, retrieveByPath
   public void createDeleteTest() throws Exception {
     FireStoreDirectoryEntry fileA = makeFileObject("/adir/A");
@@ -101,6 +103,7 @@ public class FireStoreDirectoryDaoTest {
   }
 
   @Test
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   // Tests validateRefIds, enumerateDirectory, deleteDirectoryEntriesFromCollection, retrieveById,
   // retrieveByPath
   public void directoryOperationsTest() throws Exception {

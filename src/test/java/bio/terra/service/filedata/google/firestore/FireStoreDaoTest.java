@@ -13,6 +13,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import com.google.cloud.firestore.Firestore;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -79,6 +80,7 @@ public class FireStoreDaoTest {
   // - do the compute and validate
   // Use binary for the sizes so each size combo will be unique
   @Test
+  @SuppressFBWarnings(value = "DMI_HARDCODED_ABSOLUTE_FILENAME")
   public void snapshotTest() throws Exception {
     String collectionId = "fsdaoDset_" + pretendDatasetId;
     String snapshotId = "fsdaoSnap_" + pretendDatasetId;

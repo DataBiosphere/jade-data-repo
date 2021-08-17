@@ -24,10 +24,10 @@ import org.stringtemplate.v4.ST;
 
 // Common code for the ingest steps
 public final class IngestUtils {
-  private static final String INGEST_REQUEST_SCOPED_CREDENTIAL_PREFIX = "irsas_";
-  private static final String TARGET_SCOPED_CREDENTIAL_PREFIX = "dsas_";
-  private static final String INGEST_REQUEST_DATA_SOURCE_PREFIX = "irds_";
-  private static final String TARGET_DATA_SOURCE_PREFIX = "dds_";
+  private static final String SOURCE_SCOPED_CREDENTIAL_PREFIX = "source_scoped_credential_";
+  private static final String TARGET_SCOPED_CREDENTIAL_PREFIX = "target_scoped_credential_";
+  private static final String SOURCE_DATA_SOURCE_PREFIX = "source_data_source_";
+  private static final String TARGET_DATA_SOURCE_PREFIX = "target_data_source_";
   private static final String TABLE_NAME_PREFIX = "ingest_";
 
   private IngestUtils() {}
@@ -251,11 +251,11 @@ public final class IngestUtils {
   }
 
   public static String getIngestRequestDataSourceName(String flightId) {
-    return INGEST_REQUEST_DATA_SOURCE_PREFIX + flightId;
+    return SOURCE_DATA_SOURCE_PREFIX + flightId;
   }
 
   public static String getIngestRequestScopedCredentialName(String flightId) {
-    return INGEST_REQUEST_SCOPED_CREDENTIAL_PREFIX + flightId;
+    return SOURCE_SCOPED_CREDENTIAL_PREFIX + flightId;
   }
 
   public static String getTargetDataSourceName(String flightId) {

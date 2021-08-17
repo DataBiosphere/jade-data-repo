@@ -501,7 +501,7 @@ public class DatasetIntegrationTest extends UsersBase {
     var fileIds =
         loadResult.getLoadFileResults().stream()
             .map(BulkLoadFileResultModel::getFileId)
-            .flatMap(id -> Optional.ofNullable(id).stream())
+            .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
     var retrievedFileIds =

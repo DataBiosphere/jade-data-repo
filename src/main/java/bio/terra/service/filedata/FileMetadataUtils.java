@@ -17,13 +17,13 @@ public class FileMetadataUtils {
   public FileMetadataUtils() {}
 
   public String getDirectoryPath(String path) {
-    Path pathParts = Paths.get(path);
-    Path parentDirectory = pathParts.getParent();
-    if (parentDirectory != null) {
-      return parentDirectory.toString();
+    String[] pathParts = StringUtils.split(path, '/');
+    if (pathParts.length <= 1) {
+      // We are at the root; no containing directory
+      return StringUtils.EMPTY;
     }
-    // We are at the root; no containing directory
-    return StringUtils.EMPTY;
+    int endIndex = pathParts.length - 1;
+    return '/' + StringUtils.join(pathParts, '/', 0, endIndex);
   }
 
   public String getName(String path) {

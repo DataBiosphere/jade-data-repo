@@ -216,17 +216,6 @@ public class AzureBlobStorePdao {
     client.setProperties(props);
   }
 
-  @VisibleForTesting
-  BlobContainerClientFactory getTargetDataClientFactory(
-      BillingProfileModel profileModel,
-      AzureStorageAccountResource storageAccountResource,
-      boolean enableDelete) {
-    return new BlobContainerClientFactory(
-        azureContainerPdao.getDestinationContainerSignedUrl(
-            profileModel, storageAccountResource, containerType, true, true, true, enableDelete),
-        getRetryOptions());
-  }
-
   public BlobContainerClientFactory getTargetDataClientFactory(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
@@ -234,7 +223,8 @@ public class AzureBlobStorePdao {
       boolean enableDelete) {
     return new BlobContainerClientFactory(
         azureContainerPdao.getDestinationContainerSignedUrl(
-            profileModel, storageAccountResource, containerType, true, true, true, enableDelete));
+            profileModel, storageAccountResource, containerType, true, true, true, enableDelete),
+        getRetryOptions());
   }
 
   @VisibleForTesting

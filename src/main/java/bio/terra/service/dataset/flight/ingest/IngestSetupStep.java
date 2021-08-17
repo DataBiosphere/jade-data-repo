@@ -70,14 +70,14 @@ public class IngestSetupStep implements Step {
     IngestUtils.putDatasetName(context, dataset.getName());
     DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
 
-    if (cloudPlatform.is(CloudPlatform.GCP)) {
+    if (cloudPlatform.isGcp()) {
       // We don't actually care about the output here since BQ takes the raw "gs://" string as
       // input.
       // As long as parsing succeeds, we're good to move forward.
       IngestUtils.parseBlobUri(ingestRequestModel.getPath());
       String sgName = DatasetUtils.generateAuxTableName(targetTable, "st");
       IngestUtils.putStagingTableName(context, sgName);
-    } else if (cloudPlatform.is(CloudPlatform.AZURE)) {
+    } else if (cloudPlatform.isAzure()) {
       IngestUtils.validateBlobAzureBlobFileURL(ingestRequestModel.getPath());
       workingMap.put(
           IngestMapKeys.PARQUET_FILE_PATH,

@@ -301,9 +301,9 @@ public class BigQueryPdao {
       "SELECT * "
           + "FROM `<project>.<dataset>.<loadTable>` L "
           + "WHERE L.load_tag = @loadTag "
+          + String.format("ORDER BY %s ASC ", LoadHistoryUtil.FILE_ID_FIELD_NAME)
           + "LIMIT <limit> "
-          + "OFFSET <offset> "
-          + String.format("ORDER BY %s ", LoadHistoryUtil.FILE_ID_FIELD_NAME);
+          + "OFFSET <offset> ";
 
   public List<BulkLoadHistoryModel> getLoadHistory(
       Dataset dataset, String loadTag, int offset, int limit) {
@@ -335,7 +335,10 @@ public class BigQueryPdao {
   private static String bqStringValue(FieldValueList fieldValue, String fieldName) {
     var value = fieldValue.get(fieldName);
     if (value != null) {
-      return value.getStringValue();
+      var stringValue = value.getStringValue();
+      if (!stringValue.isEmpty()) {
+        return stringValue;
+      }
     }
     return null;
   }

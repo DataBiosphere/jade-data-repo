@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AzureStorageTableDao {
+public class AzureStorageTablePdao {
 
   private static final String LOAD_HISTORY_TABLE_NAME_SUFFIX = "LoadHistory";
 
@@ -29,7 +29,7 @@ public class AzureStorageTableDao {
    * Store the results of a bulk file load in an Azure Storage Table
    *
    * <p>The table name will be the result of the dataset id passed through {@link
-   * AzureStorageTableDao#toLoadHistoryTableNameFromUUID} Entities will be partitioned on the
+   * AzureStorageTablePdao#toLoadHistoryTableNameFromUUID} Entities will be partitioned on the
    * loadTag and their row keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
    *
    * @param serviceClient A service client for the dataset

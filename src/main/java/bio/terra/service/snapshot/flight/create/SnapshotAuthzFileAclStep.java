@@ -18,6 +18,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.storage.StorageException;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +54,8 @@ public class SnapshotAuthzFileAclStep implements Step {
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
-    Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
+    Map<IamRole, String> policies =
+        workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
 
     // TODO: when we support multiple datasets, we can generate more than one copy of this
     //  step: one for each dataset. That is because each dataset keeps its file dependencies
@@ -111,7 +113,8 @@ public class SnapshotAuthzFileAclStep implements Step {
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
-    Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
+    Map<IamRole, String> policies =
+        workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
 
     // TODO: when we support multiple datasets, we can generate more than one copy of this
     //  step: one for each dataset. That is because each dataset keeps its file dependencies

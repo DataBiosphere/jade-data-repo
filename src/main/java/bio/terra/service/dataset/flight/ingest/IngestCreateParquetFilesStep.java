@@ -62,7 +62,7 @@ public class IngestCreateParquetFilesStep implements Step {
             .table(ingestRequest.getTable())
             .path(ingestRequest.getPath())
             .loadTag(ingestRequest.getLoadTag())
-            .badRowCount((long) 0) // TODO - determine values w/ DR-2016
+            .badRowCount(0L) // TODO - determine values w/ DR-2016
             .rowCount(updateCount);
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 

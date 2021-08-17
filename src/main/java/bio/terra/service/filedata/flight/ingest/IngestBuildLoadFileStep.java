@@ -13,7 +13,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -56,9 +55,8 @@ public class IngestBuildLoadFileStep extends SkippableStep {
                     if (fileRefNode.isObject()) {
                       // replace
                       BulkLoadFileModel fileModel =
-                          Optional.of(
-                                  objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class))
-                              .orElseThrow();
+                          Objects.requireNonNull(
+                              objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
                       int fileKey =
                           Objects.hash(fileModel.getSourcePath(), fileModel.getTargetPath());
                       String fileId = pathToFileIdMap.get(fileKey);

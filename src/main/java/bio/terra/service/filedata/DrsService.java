@@ -45,6 +45,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -227,17 +228,15 @@ public class DrsService {
             .getDefaultBillingProfile();
 
     Supplier<IllegalArgumentException> illegalArgumentExceptionSupplier =
-        () -> {
-          throw new IllegalArgumentException("No matching access ID was found for object");
-        };
+        () -> new IllegalArgumentException("No matching access ID was found for object");
 
-    CloudPlatformWrapper wrapper = CloudPlatformWrapper.of(billingProfileModel.getCloudPlatform());
-    if (wrapper.isGcp()) {
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(billingProfileModel.getCloudPlatform());
+    if (platform.isGcp()) {
       DRSAccessMethod matchingAccessMethod =
           getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.GS)
               .orElseThrow(illegalArgumentExceptionSupplier);
       return signGoogleUrl(snapshot, matchingAccessMethod);
-    } else if (wrapper.isAzure()) {
+    } else if (platform.isAzure()) {
       getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.HTTPS)
           .orElseThrow(illegalArgumentExceptionSupplier);
       try {
@@ -246,7 +245,7 @@ public class DrsService {
                 snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
                 drsId.getFsObjectId(),
                 1);
-        return signAzureUrl(billingProfileModel, fsItem);
+        return signAzureUrl(billingProfileModel, fsItem, authUser);
       } catch (InterruptedException e) {
         throw new IllegalArgumentException(e);
       }
@@ -265,13 +264,18 @@ public class DrsService {
         .findFirst();
   }
 
-  private DRSAccessURL signAzureUrl(BillingProfileModel profileModel, FSItem fsItem) {
+  private DRSAccessURL signAzureUrl(
+      BillingProfileModel profileModel, FSItem fsItem, AuthenticatedUserRequest authUser) {
     AzureStorageAccountResource storageAccountResource =
         resourceService.lookupStorageAccountMetadata(((FSFile) fsItem).getBucketResourceId());
     return new DRSAccessURL()
         .url(
             azureBlobStorePdao.signFile(
-                profileModel, storageAccountResource, ((FSFile) fsItem).getCloudPath()));
+                profileModel,
+                storageAccountResource,
+                ((FSFile) fsItem).getCloudPath(),
+                Duration.ofMinutes(URL_TTL),
+                authUser.getEmail()));
   }
 
   private DRSAccessURL signGoogleUrl(Snapshot snapshot, DRSAccessMethod accessMethod) {
@@ -299,10 +303,10 @@ public class DrsService {
     DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
     List<DRSAccessMethod> accessMethods;
-    CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(fsFile.getCloudPlatform());
-    if (platformWrapper.isGcp()) {
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(fsFile.getCloudPlatform());
+    if (platform.isGcp()) {
       accessMethods = getDrsAccessMethodsOnGcp(fsFile, authUser);
-    } else if (platformWrapper.isAzure()) {
+    } else if (platform.isAzure()) {
       accessMethods = getDrsAccessMethodsOnAzure(fsFile);
     } else {
       throw new IllegalArgumentException("Unrecognized cloud platform");

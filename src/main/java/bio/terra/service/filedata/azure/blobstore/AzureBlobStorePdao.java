@@ -183,7 +183,9 @@ public class AzureBlobStorePdao {
   public String signFile(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
-      String url) {
+      String url,
+      Duration duration,
+      String userEmail) {
     BlobContainerClientFactory destinationClientFactory =
         getTargetDataClientFactory(profileModel, storageAccountResource, true);
 
@@ -197,7 +199,7 @@ public class AzureBlobStorePdao {
     String blobName = blobParts.getBlobName();
     BlobSasPermission permission = new BlobSasPermission().setReadPermission(true);
     BlobSasTokenOptions blobSasTokenOptions =
-        new BlobSasTokenOptions(Duration.ofMinutes(15), permission, "");
+        new BlobSasTokenOptions(duration, permission, userEmail);
     return destinationClientFactory
         .getBlobSasUrlFactory()
         .createSasUrlForBlob(blobName, blobSasTokenOptions);

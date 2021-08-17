@@ -70,7 +70,9 @@ public class DrsServiceTest {
 
   private DrsService drsService;
 
-  private String drsObjectId;
+  private String googleDrsObjectId;
+
+  private String azureDrsObjectId;
 
   private FSFile azureFsFile;
 
@@ -101,25 +103,18 @@ public class DrsServiceTest {
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);
 
     snapshotId = UUID.randomUUID();
-    UUID fileId = UUID.randomUUID();
-    UUID bucketResourceId = UUID.randomUUID();
-    DrsId drsId = new DrsId("", "v1", snapshotId.toString(), fileId.toString());
-    drsObjectId = drsId.toDrsObjectId();
-
     SnapshotProject snapshotProject = new SnapshotProject();
     when(snapshotService.retrieveAvailableSnapshotProject(snapshotId)).thenReturn(snapshotProject);
 
-    azureFsFile =
-        new FSFile()
-            .createdDate(Instant.now())
-            .description("description")
-            .path("file.txt")
-            .cloudPath("https://core.windows.net/blahblah")
-            .size(100L)
-            .fileId(fileId)
-            .bucketResourceId(bucketResourceId.toString());
-    when(fileService.lookupSnapshotFSItem(snapshotProject, drsId.getFsObjectId(), 1))
-        .thenReturn(azureFsFile);
+    String bucketResourceId = UUID.randomUUID().toString();
+    String storageAccountResourceId = UUID.randomUUID().toString();
+    UUID googleFileId = UUID.randomUUID();
+    DrsId googleDrsId = new DrsId("", "v1", snapshotId.toString(), googleFileId.toString());
+    googleDrsObjectId = googleDrsId.toDrsObjectId();
+
+    UUID azureFileId = UUID.randomUUID();
+    DrsId azureDrsId = new DrsId("", "v1", snapshotId.toString(), azureFileId.toString());
+    azureDrsObjectId = azureDrsId.toDrsObjectId();
 
     googleFsFile =
         new FSFile()
@@ -128,22 +123,40 @@ public class DrsServiceTest {
             .path("file.txt")
             .cloudPath("gs://path/to/file.txt")
             .size(100L)
-            .fileId(fileId)
-            .bucketResourceId(bucketResourceId.toString());
-    when(fileService.lookupSnapshotFSItem(snapshotProject, drsId.getFsObjectId(), 1))
+            .fileId(googleFileId)
+            .bucketResourceId(bucketResourceId);
+    when(fileService.lookupSnapshotFSItem(snapshotProject, googleDrsId.getFsObjectId(), 1))
         .thenReturn(googleFsFile);
 
-    GoogleBucketResource bucketResource =
-        new GoogleBucketResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION);
-    when(resourceService.lookupBucketMetadata(any())).thenReturn(bucketResource);
+    azureFsFile =
+        new FSFile()
+            .createdDate(Instant.now())
+            .description("description")
+            .path("file.txt")
+            .cloudPath("https://core.windows.net/blahblah")
+            .size(1000L)
+            .fileId(azureFileId)
+            .bucketResourceId(storageAccountResourceId);
+    when(fileService.lookupSnapshotFSItem(snapshotProject, azureDrsId.getFsObjectId(), 1))
+        .thenReturn(azureFsFile);
+
+    when(resourceService.lookupBucketMetadata(bucketResourceId))
+        .thenReturn(new GoogleBucketResource().region(GoogleRegion.DEFAULT_GOOGLE_REGION));
+    when(resourceService.lookupStorageAccountMetadata(storageAccountResourceId))
+        .thenReturn(new AzureStorageAccountResource().region(AzureRegion.DEFAULT_AZURE_REGION));
   }
 
   @Test
   public void testLookupPositive() {
-    DRSObject drsObject = drsService.lookupObjectByDrsId(authUser, drsObjectId, false);
-    assertThat(drsObject.getId(), is(drsObjectId));
-    assertThat(drsObject.getSize(), is(googleFsFile.getSize()));
-    assertThat(drsObject.getName(), is(googleFsFile.getPath()));
+    DRSObject googleDrsObject = drsService.lookupObjectByDrsId(authUser, googleDrsObjectId, false);
+    assertThat(googleDrsObject.getId(), is(googleDrsObjectId));
+    assertThat(googleDrsObject.getSize(), is(googleFsFile.getSize()));
+    assertThat(googleDrsObject.getName(), is(googleFsFile.getPath()));
+
+    DRSObject azureDrsObject = drsService.lookupObjectByDrsId(authUser, azureDrsObjectId, false);
+    assertThat(azureDrsObject.getId(), is(azureDrsObjectId));
+    assertThat(azureDrsObject.getSize(), is(azureFsFile.getSize()));
+    assertThat(azureDrsObject.getName(), is(azureFsFile.getPath()));
   }
 
   @Test
@@ -154,7 +167,11 @@ public class DrsServiceTest {
             authUser, IamResourceType.DATASNAPSHOT, snapshotId.toString(), IamAction.READ_DATA);
     assertThrows(
         IamForbiddenException.class,
-        () -> drsService.lookupObjectByDrsId(authUser, drsObjectId, false));
+        () -> drsService.lookupObjectByDrsId(authUser, googleDrsObjectId, false));
+
+    assertThrows(
+        IamForbiddenException.class,
+        () -> drsService.lookupObjectByDrsId(authUser, azureDrsObjectId, false));
   }
 
   @Test
@@ -171,16 +188,17 @@ public class DrsServiceTest {
                 .defaultProfileId(defaultProfileModelId));
     Snapshot snapshot =
         new Snapshot().snapshotSources(List.of(new SnapshotSource().dataset(dataset)));
-    DrsId drsId = drsIdService.fromObjectId(drsObjectId);
+    DrsId drsId = drsIdService.fromObjectId(azureDrsObjectId);
     when(snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()))).thenReturn(snapshot);
     AzureStorageAccountResource storageAccountResource =
         new AzureStorageAccountResource().region(AzureRegion.DEFAULT_AZURE_REGION);
     when(fileService.lookupSnapshotFSItem(any(), any(), eq(1))).thenReturn(azureFsFile);
     when(resourceService.lookupStorageAccountMetadata(any())).thenReturn(storageAccountResource);
     String urlString = "https://blahblah.core.windows.com/data/file.json";
-    when(azureBlobStorePdao.signFile(any(), any(), any())).thenReturn(urlString);
+    when(azureBlobStorePdao.signFile(any(), any(), any(), any(), any())).thenReturn(urlString);
 
-    DRSAccessURL result = drsService.getAccessUrlForObjectId(authUser, drsObjectId, "az-centralus");
+    DRSAccessURL result =
+        drsService.getAccessUrlForObjectId(authUser, azureDrsObjectId, "az-centralus");
     assertEquals(urlString, result.getUrl());
   }
 }

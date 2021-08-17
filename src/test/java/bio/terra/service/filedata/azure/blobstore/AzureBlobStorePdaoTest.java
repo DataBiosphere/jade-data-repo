@@ -107,6 +107,8 @@ public class AzureBlobStorePdaoTest {
             .mimeType(MIME_TYPE);
     when(profileDao.getBillingProfileById(PROFILE_ID)).thenReturn(BILLING_PROFILE);
     when(resourceConfiguration.getAppToken(TENANT_ID)).thenReturn(targetCredential);
+    when(resourceConfiguration.getMaxRetries()).thenReturn(3);
+    when(resourceConfiguration.getRetryTimeoutSeconds()).thenReturn(60);
     when(azureResourceDao.retrieveStorageAccountById(RESOURCE_ID))
         .thenReturn(AZURE_STORAGE_ACCOUNT_RESOURCE);
     targetBlobContainerFactory = mock(BlobContainerClientFactory.class);

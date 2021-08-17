@@ -50,7 +50,6 @@ public class AzureBlobStorePdao {
   private final AzureResourceConfiguration resourceConfiguration;
   private final AzureResourceDao azureResourceDao;
   private final AzureAuthService azureAuthService;
-  private final RequestRetryOptions retryOptions;
 
   @Autowired
   public AzureBlobStorePdao(
@@ -64,14 +63,16 @@ public class AzureBlobStorePdao {
     this.resourceConfiguration = resourceConfiguration;
     this.azureResourceDao = azureResourceDao;
     this.azureAuthService = azureAuthService;
-    this.retryOptions =
-        new RequestRetryOptions(
-            RetryPolicyType.EXPONENTIAL,
-            resourceConfiguration.getMaxRetries(),
-            resourceConfiguration.getRetryTimeoutSeconds(),
-            null,
-            null,
-            null);
+  }
+
+  private RequestRetryOptions getRetryOptions() {
+    return new RequestRetryOptions(
+        RetryPolicyType.EXPONENTIAL,
+        this.resourceConfiguration.getMaxRetries(),
+        this.resourceConfiguration.getRetryTimeoutSeconds(),
+        null,
+        null,
+        null);
   }
 
   public FSFileInfo copyFile(
@@ -223,7 +224,7 @@ public class AzureBlobStorePdao {
     return new BlobContainerClientFactory(
         azureContainerPdao.getDestinationContainerSignedUrl(
             profileModel, storageAccountResource, containerType, true, true, true, enableDelete),
-        retryOptions);
+        getRetryOptions());
   }
 
   @VisibleForTesting
@@ -233,14 +234,14 @@ public class AzureBlobStorePdao {
 
   @VisibleForTesting
   BlobContainerClientFactory getSourceClientFactory(String url) {
-    return new BlobContainerClientFactory(url, retryOptions);
+    return new BlobContainerClientFactory(url, getRetryOptions());
   }
 
   @VisibleForTesting
   BlobContainerClientFactory getSourceClientFactory(
       String accountName, TokenCredential azureCredential, String containerName) {
     return new BlobContainerClientFactory(
-        accountName, azureCredential, containerName, retryOptions);
+        accountName, azureCredential, containerName, getRetryOptions());
   }
 
   /** Detects if a URL is a signed URL */

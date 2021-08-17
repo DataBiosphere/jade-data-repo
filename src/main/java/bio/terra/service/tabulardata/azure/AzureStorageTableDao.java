@@ -10,7 +10,6 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -30,8 +29,8 @@ public class AzureStorageTableDao {
    * Store the results of a bulk file load in an Azure Storage Table
    *
    * <p>The table name will be the result of the dataset id passed through {@link
-   * AzureStorageTableDao#toLoadHistoryTableNameFromUUID} Entities will be partitioned on the loadTag and
-   * their row keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
+   * AzureStorageTableDao#toLoadHistoryTableNameFromUUID} Entities will be partitioned on the
+   * loadTag and their row keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
    *
    * @param serviceClient A service client for the dataset
    * @param datasetId the id of the dataset
@@ -79,13 +78,15 @@ public class AzureStorageTableDao {
       indexToStartFrom = lastEntity.index + 1;
     }
 
-    List<StorageTableLoadHistoryEntity> entities = new ArrayList<>();
     for (int i = 0; i < loadHistoryArray.size(); i++) {
       var isLast = i == loadHistoryArray.size() - 1;
       var thisIndex = i + indexToStartFrom;
-      client.createEntity(bulkFileLoadModelToStorageTableEntity(
-          new StorageTableLoadHistoryEntity(
-              loadHistoryArray.get(i), internalLoadTag, thisIndex, isLast), loadTag, loadTime));
+      client.createEntity(
+          bulkFileLoadModelToStorageTableEntity(
+              new StorageTableLoadHistoryEntity(
+                  loadHistoryArray.get(i), internalLoadTag, thisIndex, isLast),
+              loadTag,
+              loadTime));
     }
   }
 

@@ -509,8 +509,7 @@ public class FireStoreDirectoryDao {
             paths,
             path -> {
               DocumentReference docRef =
-                  datasetCollection.document(
-                          encodePathAsFirestoreDocumentName((String) path));
+                  datasetCollection.document(encodePathAsFirestoreDocumentName((String) path));
               return docRef.get();
             });
 

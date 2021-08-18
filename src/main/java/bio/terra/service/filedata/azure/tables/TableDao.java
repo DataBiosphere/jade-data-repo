@@ -426,7 +426,7 @@ public class TableDao {
         .checksumMd5(fireStoreFile.getChecksumMd5())
         .size(fireStoreFile.getSize())
         .description(fireStoreFile.getDescription())
-        .gspath(fireStoreFile.getGspath())
+        .cloudPath(fireStoreFile.getGspath())
         .mimeType(fireStoreFile.getMimeType())
         .bucketResourceId(fireStoreFile.getBucketResourceId())
         .loadTag(fireStoreFile.getLoadTag());

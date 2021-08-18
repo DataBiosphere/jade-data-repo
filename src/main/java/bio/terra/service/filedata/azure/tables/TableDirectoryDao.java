@@ -211,9 +211,9 @@ public class TableDirectoryDao {
     String partitionKey = getPartitionKey(datasetId, lookupPath);
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     try {
-        return tableClient.getEntity(partitionKey, rowKey);
+      return tableClient.getEntity(partitionKey, rowKey);
     } catch (TableServiceException ex) {
-        return null;
+      return null;
     }
   }
 

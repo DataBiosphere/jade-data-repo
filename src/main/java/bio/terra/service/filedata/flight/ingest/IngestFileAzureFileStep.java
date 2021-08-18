@@ -49,7 +49,7 @@ public class IngestFileAzureFileStep implements Step {
               .description(fileLoadModel.getDescription())
               .bucketResourceId(fsFileInfo.getBucketResourceId())
               .fileCreatedDate(fsFileInfo.getCreatedDate())
-              .gspath(fsFileInfo.getGspath())
+              .gspath(fsFileInfo.getCloudPath())
               .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
               .checksumMd5(fsFileInfo.getChecksumMd5())
               .size(fsFileInfo.getSize())

@@ -148,7 +148,10 @@ public class AzureSynapsePdaoConnectedTest {
     IngestRequestModel ingestRequestModel =
         new IngestRequestModel().format(FormatEnum.CSV).csvSkipLeadingRows(2);
     String ingestFileLocation =
-        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple-dataset-ingest-request.csv";
+        synapseUtils.ingestRequestURL(
+            testConfig.getSourceStorageAccountName(),
+            testConfig.getIngestRequestContainer(),
+            "azure-simple-dataset-ingest-request.csv");
     testSynapseQuery(ingestRequestModel, ingestFileLocation);
   }
 
@@ -156,7 +159,10 @@ public class AzureSynapsePdaoConnectedTest {
   public void testSynapseQueryJSON() throws Exception {
     IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
     String ingestFileLocation =
-        "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple-dataset-ingest-request.json";
+        synapseUtils.ingestRequestURL(
+            testConfig.getSourceStorageAccountName(),
+            testConfig.getIngestRequestContainer(),
+            "azure-simple-dataset-ingest-request.json");
     testSynapseQuery(ingestRequestModel, ingestFileLocation);
   }
 
@@ -196,15 +202,17 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 4 - Create parquet files via external table
     // All inputs should be sanitized before passed into this method
-    azureSynapsePdao.createParquetFiles(
-        ingestRequestModel.getFormat(),
-        destinationTable,
-        ingestRequestSignUrlBlob.getBlobName(),
-        destinationParquetFile,
-        destinationDataSourceName,
-        ingestRequestDataSourceName,
-        tableName,
-        Optional.ofNullable(ingestRequestModel.getCsvSkipLeadingRows()));
+    int updateCount =
+        azureSynapsePdao.createParquetFiles(
+            ingestRequestModel.getFormat(),
+            destinationTable,
+            ingestRequestSignUrlBlob.getBlobName(),
+            destinationParquetFile,
+            destinationDataSourceName,
+            ingestRequestDataSourceName,
+            tableName,
+            Optional.ofNullable(ingestRequestModel.getCsvSkipLeadingRows()));
+    assertThat("num rows updated is two", updateCount, equalTo(2));
 
     // Check that the parquet files were successfully created.
     List<String> firstNames =

@@ -11,6 +11,7 @@ import bio.terra.service.dataset.exception.InvalidUriException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import com.azure.storage.blob.BlobUrlParts;
@@ -24,9 +25,16 @@ import java.util.function.Predicate;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.stringtemplate.v4.ST;
 
 // Common code for the ingest steps
 public final class IngestUtils {
+  private static final String SOURCE_SCOPED_CREDENTIAL_PREFIX = "source_scoped_credential_";
+  private static final String TARGET_SCOPED_CREDENTIAL_PREFIX = "target_scoped_credential_";
+  private static final String SOURCE_DATA_SOURCE_PREFIX = "source_data_source_";
+  private static final String TARGET_DATA_SOURCE_PREFIX = "target_data_source_";
+  private static final String TABLE_NAME_PREFIX = "ingest_";
+
   private IngestUtils() {}
 
   public static class GsUrlParts {
@@ -255,5 +263,39 @@ public final class IngestUtils {
               maxIngestRows,
               numLines));
     }
+  }
+
+  public static String getParquetTargetLocationURL(
+      AzureStorageAccountResource storageAccountResource) {
+    String storageAccount = storageAccountResource.getName();
+    String storageAccountURLTemplate = "https://<storageAccount>.blob.core.windows.net";
+
+    ST storageAccountURL = new ST(storageAccountURLTemplate);
+    storageAccountURL.add("storageAccount", storageAccount);
+    return storageAccountURL.render();
+  }
+
+  public static String getParquetFilePath(String targetTableName, String flightId) {
+    return "parquet/" + targetTableName + "/" + flightId + ".parquet";
+  }
+
+  public static String getIngestRequestDataSourceName(String flightId) {
+    return SOURCE_DATA_SOURCE_PREFIX + flightId;
+  }
+
+  public static String getIngestRequestScopedCredentialName(String flightId) {
+    return SOURCE_SCOPED_CREDENTIAL_PREFIX + flightId;
+  }
+
+  public static String getTargetDataSourceName(String flightId) {
+    return TARGET_DATA_SOURCE_PREFIX + flightId;
+  }
+
+  public static String getTargetScopedCredentialName(String flightId) {
+    return TARGET_SCOPED_CREDENTIAL_PREFIX + flightId;
+  }
+
+  public static String getSynapseTableName(String flightId) {
+    return TABLE_NAME_PREFIX + flightId;
   }
 }

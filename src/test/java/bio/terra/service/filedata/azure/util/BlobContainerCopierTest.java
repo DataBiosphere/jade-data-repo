@@ -8,6 +8,8 @@ import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
@@ -46,15 +48,24 @@ public class BlobContainerCopierTest {
   private static final int POLL_INTERVAL_IN_SECONDS = 2;
   private BlobIOTestUtility blobIOTestUtility;
   private Stream<BlobContainerCopier> copiersStream;
+  private RequestRetryOptions retryOptions;
 
   @Before
   public void setUp() {
-
+    retryOptions =
+        new RequestRetryOptions(
+            RetryPolicyType.EXPONENTIAL,
+            azureResourceConfiguration.getMaxRetries(),
+            azureResourceConfiguration.getRetryTimeoutSeconds(),
+            null,
+            null,
+            null);
     blobIOTestUtility =
         new BlobIOTestUtility(
             azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
             connectedTestConfiguration.getSourceStorageAccountName(),
-            connectedTestConfiguration.getDestinationStorageAccountName());
+            connectedTestConfiguration.getDestinationStorageAccountName(),
+            retryOptions);
 
     Duration pollDuration = Duration.ofSeconds(POLL_INTERVAL_IN_SECONDS);
     BlobContainerCopier copierWithSharedKeyCredentials =
@@ -232,7 +243,8 @@ public class BlobContainerCopierTest {
     return new BlobContainerClientFactory(
         connectedTestConfiguration.getSourceStorageAccountName(),
         getSourceStorageAccountPrimarySharedKey(),
-        sourceContainer);
+        sourceContainer,
+        retryOptions);
   }
 
   private BlobContainerCopier createBlobCopierWithTokenCredsInSource(Duration pollingInterval) {
@@ -246,7 +258,8 @@ public class BlobContainerCopierTest {
         new BlobContainerClientFactory(
             connectedTestConfiguration.getSourceStorageAccountName(),
             azureResourceConfiguration.getAppToken(connectedTestConfiguration.getTargetTenantId()),
-            sourceContainer));
+            sourceContainer,
+            retryOptions));
 
     return copier;
   }
@@ -264,6 +277,7 @@ public class BlobContainerCopierTest {
   private BlobContainerClientFactory createSourceClientFactoryWithSasCreds() {
     return new BlobContainerClientFactory(
         blobIOTestUtility.generateSourceContainerUrlWithSasReadAndListPermissions(
-            getSourceStorageAccountPrimarySharedKey()));
+            getSourceStorageAccountPrimarySharedKey()),
+        retryOptions);
   }
 }

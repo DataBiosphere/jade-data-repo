@@ -17,6 +17,8 @@ import org.springframework.context.annotation.Configuration;
 public class AzureResourceConfiguration {
   private Credentials credentials;
   private Synapse synapse;
+  private int maxRetries;
+  private int retryTimeoutSeconds;
 
   public Credentials getCredentials() {
     return credentials;
@@ -32,6 +34,22 @@ public class AzureResourceConfiguration {
 
   public void setSynapse(Synapse synapse) {
     this.synapse = synapse;
+  }
+
+  public int getMaxRetries() {
+    return maxRetries;
+  }
+
+  public void setMaxRetries(int maxRetries) {
+    this.maxRetries = maxRetries;
+  }
+
+  public int getRetryTimeoutSeconds() {
+    return retryTimeoutSeconds;
+  }
+
+  public void setRetryTimeoutSeconds(int retryTimeoutSeconds) {
+    this.retryTimeoutSeconds = retryTimeoutSeconds;
   }
 
   /**

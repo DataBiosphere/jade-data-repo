@@ -22,6 +22,8 @@ import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import com.google.common.annotations.VisibleForTesting;
 import java.nio.file.Paths;
 import java.time.Duration;
@@ -65,6 +67,16 @@ public class AzureBlobStorePdao {
     this.resourceConfiguration = resourceConfiguration;
     this.azureResourceDao = azureResourceDao;
     this.azureAuthService = azureAuthService;
+  }
+
+  private RequestRetryOptions getRetryOptions() {
+    return new RequestRetryOptions(
+        RetryPolicyType.EXPONENTIAL,
+        this.resourceConfiguration.getMaxRetries(),
+        this.resourceConfiguration.getRetryTimeoutSeconds(),
+        null,
+        null,
+        null);
   }
 
   public FSFileInfo copyFile(
@@ -240,7 +252,8 @@ public class AzureBlobStorePdao {
       boolean enableDelete) {
     return new BlobContainerClientFactory(
         azureContainerPdao.getDestinationContainerSignedUrl(
-            profileModel, storageAccountResource, containerType, true, true, true, enableDelete));
+            profileModel, storageAccountResource, containerType, true, true, true, enableDelete),
+        getRetryOptions());
   }
 
   @VisibleForTesting
@@ -250,13 +263,14 @@ public class AzureBlobStorePdao {
 
   @VisibleForTesting
   BlobContainerClientFactory getSourceClientFactory(String url) {
-    return new BlobContainerClientFactory(url);
+    return new BlobContainerClientFactory(url, getRetryOptions());
   }
 
   @VisibleForTesting
   BlobContainerClientFactory getSourceClientFactory(
       String accountName, TokenCredential azureCredential, String containerName) {
-    return new BlobContainerClientFactory(accountName, azureCredential, containerName);
+    return new BlobContainerClientFactory(
+        accountName, azureCredential, containerName, getRetryOptions());
   }
 
   /** Detects if a URL is a signed URL */

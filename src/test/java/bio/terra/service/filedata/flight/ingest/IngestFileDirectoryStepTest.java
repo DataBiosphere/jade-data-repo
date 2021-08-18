@@ -7,9 +7,9 @@ import static org.mockito.Mockito.verify;
 
 import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
@@ -29,7 +29,7 @@ public class IngestFileDirectoryStepTest extends TestCase {
 
   @MockBean private FireStoreDao fireStoreDaoService;
 
-  @MockBean private FireStoreUtils fireStoreUtils;
+  @MockBean private FileMetadataUtils fileMetadataUtils;
 
   @MockBean private Dataset dataset;
 
@@ -39,7 +39,7 @@ public class IngestFileDirectoryStepTest extends TestCase {
     given(fireStoreDaoService.deleteDirectoryEntry(dataset, fileUuid.toString())).willReturn(true);
 
     IngestFileDirectoryStep step =
-        new IngestFileDirectoryStep(fireStoreDaoService, fireStoreUtils, dataset);
+        new IngestFileDirectoryStep(fireStoreDaoService, fileMetadataUtils, dataset);
 
     FlightContext flightContext = new FlightContext(new FlightMap(), "", Collections.emptyList());
     flightContext.getWorkingMap().put(FileMapKeys.FILE_ID, fileUuid.toString());

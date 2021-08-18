@@ -13,14 +13,13 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class IngestParseJsonFileStep implements Step {
 
@@ -44,11 +43,6 @@ public class IngestParseJsonFileStep implements Step {
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(flightContext);
-    List<String> gcsFileLines =
-        gcsPdao.getGcsFilesLines(
-            ingestRequest.getPath(), dataset.getProjectResource().getGoogleProjectId());
-    IngestUtils.checkForLargeIngestRequests(
-        gcsFileLines.size(), applicationConfiguration.getMaxCombinedFileAndMetadataIngest());
     List<String> fileRefColumnNames =
         dataset.getTableByName(ingestRequest.getTable()).orElseThrow().getColumns().stream()
             .filter(c -> c.getType() == TableDataType.FILEREF)
@@ -58,18 +52,24 @@ public class IngestParseJsonFileStep implements Step {
     workingMap.put(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, fileRefColumnNames);
 
     List<String> errors = new ArrayList<>();
-    List<JsonNode> fileLineJson =
-        gcsFileLines.stream()
-            .map(
-                content -> {
-                  try {
-                    return objectMapper.readTree(content);
-                  } catch (JsonProcessingException ex) {
-                    errors.add(ex.getMessage());
-                    return null;
-                  }
-                })
-            .collect(Collectors.toList());
+    Set<BulkLoadFileModel> fileModels =
+        IngestUtils.getJsonNodesStreamFromFile(gcsPdao, objectMapper, ingestRequest, dataset)
+            .flatMap(pair -> IngestUtils.resolveJsonNodeCollectError(pair, errors))
+            .flatMap(
+                node ->
+                    fileRefColumnNames.stream()
+                        .flatMap(
+                            columnName -> {
+                              JsonNode fileRefNode = node.get(columnName);
+                              if (fileRefNode.isObject()) {
+                                return Stream.of(
+                                    objectMapper.convertValue(
+                                        fileRefNode, BulkLoadFileModel.class));
+                              } else {
+                                return Stream.empty();
+                              }
+                            }))
+            .collect(Collectors.toSet());
 
     if (!errors.isEmpty()) {
       IngestFailureException ex =
@@ -79,26 +79,10 @@ public class IngestParseJsonFileStep implements Step {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
 
-    workingMap.put(IngestMapKeys.BULK_LOAD_JSON_LINES, fileLineJson);
-    Set<BulkLoadFileModel> bulkLoadFileModels =
-        fileLineJson.stream()
-            .flatMap(
-                node ->
-                    fileRefColumnNames.stream()
-                        .map(
-                            columnName -> {
-                              JsonNode fileRefNode = node.get(columnName);
-                              if (fileRefNode.isObject()) {
-                                return objectMapper.convertValue(
-                                    fileRefNode, BulkLoadFileModel.class);
-                              } else {
-                                return null;
-                              }
-                            })
-                        .filter(Objects::nonNull))
-            .collect(Collectors.toSet());
+    workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, fileModels);
 
-    workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, bulkLoadFileModels);
+    IngestUtils.checkForLargeIngestRequests(
+        fileModels.size(), applicationConfiguration.getMaxCombinedFileAndMetadataIngest());
 
     return StepResult.getStepResultSuccess();
   }

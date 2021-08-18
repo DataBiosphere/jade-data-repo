@@ -10,19 +10,26 @@ import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.InvalidUriException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import com.azure.storage.blob.BlobUrlParts;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
@@ -254,6 +261,34 @@ public final class IngestUtils {
         }
         return false;
       };
+
+  public static Stream<Pair<String, JsonNode>> getJsonNodesStreamFromFile(
+      GcsPdao gcsPdao,
+      ObjectMapper objectMapper,
+      IngestRequestModel ingestRequest,
+      Dataset dataset) {
+    return gcsPdao
+        .getGcsFilesLinesStream(
+            ingestRequest.getPath(), dataset.getProjectResource().getGoogleProjectId())
+        .map(
+            content -> {
+              try {
+                return Pair.of(null, objectMapper.readTree(content));
+              } catch (JsonProcessingException ex) {
+                return Pair.of(ex.getMessage(), null);
+              }
+            });
+  }
+
+  public static Stream<JsonNode> resolveJsonNodeCollectError(
+      Pair<String, JsonNode> pair, List<String> errorCollector) {
+    if (Objects.nonNull(pair.getLeft())) {
+      errorCollector.add(pair.getLeft());
+      return Stream.empty();
+    } else {
+      return Stream.of(pair.getRight());
+    }
+  }
 
   public static void checkForLargeIngestRequests(int numLines, int maxIngestRows) {
     if (numLines > maxIngestRows) {

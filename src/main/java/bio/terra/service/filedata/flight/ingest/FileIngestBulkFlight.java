@@ -27,6 +27,7 @@ import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
+import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -66,6 +67,7 @@ public class FileIngestBulkFlight extends Flight {
         appContext.getBean(DatasetStorageAccountDao.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
+    StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
 
     // Common input parameters
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -78,7 +80,7 @@ public class FileIngestBulkFlight extends Flight {
     int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
     int loadHistoryWaitSeconds =
         inputParameters.get(LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS, Integer.class);
-    int fileChunkSize =
+    int loadHistoryChunkSize =
         inputParameters.get(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE, Integer.class);
     boolean isArray = inputParameters.get(LoadMapKeys.IS_ARRAY, Boolean.class);
     AuthenticatedUserRequest userReq =
@@ -188,15 +190,29 @@ public class FileIngestBulkFlight extends Flight {
       addStep(new IngestBulkFileResponseStep(loadService, loadTag));
     }
 
-    addStep(
-        new IngestCopyLoadHistoryToBQStep(
-            loadService,
-            datasetService,
-            loadTag,
-            datasetId,
-            bigQueryPdao,
-            fileChunkSize,
-            loadHistoryWaitSeconds));
+    if (platform.isGcp()) {
+      addStep(
+          new IngestCopyLoadHistoryToBQStep(
+              bigQueryPdao,
+              loadService,
+              datasetService,
+              datasetUuid,
+              loadTag,
+              loadHistoryWaitSeconds,
+              loadHistoryChunkSize));
+    } else if (platform.isAzure()) {
+      addStep(
+          new IngestCopyLoadHistoryToStorageTableStep(
+              storageTableService,
+              loadService,
+              datasetService,
+              profileService,
+              datasetUuid,
+              profileId,
+              userReq,
+              loadTag,
+              loadHistoryChunkSize));
+    }
     addStep(new IngestCleanFileStateStep(loadService));
 
     addStep(new LoadUnlockStep(loadService));

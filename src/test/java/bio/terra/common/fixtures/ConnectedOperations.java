@@ -24,6 +24,7 @@ import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BillingProfileUpdateModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.DRSChecksum;
@@ -700,6 +701,21 @@ public class ConnectedOperations {
     String url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk";
     return mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(jsonRequest))
         .andReturn();
+  }
+
+  public BulkLoadHistoryModelList getLoadHistory(
+      UUID datasetId, String loadTag, int offset, int limit) throws Exception {
+    var url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk/" + loadTag;
+    var result =
+        mvc.perform(
+                get(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .param("offset", Integer.toString(offset))
+                    .param("limit", Integer.toString(limit)))
+            .andReturn();
+
+    return TestUtils.mapFromJson(
+        result.getResponse().getContentAsString(), BulkLoadHistoryModelList.class);
   }
 
   public ErrorModel ingestFileFailure(UUID datasetId, FileLoadModel fileLoadModel)

@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -145,33 +146,45 @@ public class ResourceService {
     final AzureApplicationDeploymentResource applicationResource =
         applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
 
-    List<UUID> storageAccountsForDataset =
-        datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
-
-    String storageAccountName =
+    String computedStorageAccountName =
         azureDataLocationSelector.storageAccountNameForDataset(
             applicationResource.getStorageAccountPrefix(), dataset.getName(), billingProfile);
 
-    List<AzureStorageAccountResource> storageAccountsForBillingProfile =
-        storageAccountsForDataset.stream()
-            .map(this::lookupStorageAccount)
-            .filter(a -> storageAccountIsForBillingProfile(a, billingProfile))
-            .collect(Collectors.toList());
-
-    // there should never be more than one storage account per dataset / billing profile,
-    // so we just take the first one
-    if (storageAccountsForBillingProfile.size() > 0) {
-      AzureStorageAccountResource storageAccount = storageAccountsForBillingProfile.get(0);
-      storageAccountName = storageAccount.getName();
-
-      if (storageAccountsForBillingProfile.size() > 1) {
-        logger.warn(
-            "Found more than one storage account associated with this dataset and billing profile");
-      }
-    }
+    var storageAccountName =
+        getStorageAccount(dataset, billingProfile)
+            .map(AzureStorageAccountResource::getName)
+            .orElse(computedStorageAccountName);
 
     return storageAccountService.getOrCreateStorageAccount(
         storageAccountName, applicationResource, region, flightId);
+  }
+
+  /**
+   * Get a storage account for a dataset/billing profile combo.
+   *
+   * @param dataset dataset to get storage account for
+   * @param billingProfile billing profile to get storage account for.
+   * @return Optional AzureStorageAccountResource
+   */
+  public Optional<AzureStorageAccountResource> getStorageAccount(
+      Dataset dataset, BillingProfileModel billingProfile) {
+    var storageAccountResourceIds =
+        datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
+    var storageAccountResources =
+        storageAccountResourceIds.stream()
+            .map(this::lookupStorageAccount)
+            .filter(sa -> storageAccountIsForBillingProfile(sa, billingProfile))
+            .collect(Collectors.toList());
+
+    switch (storageAccountResources.size()) {
+      case 0:
+        return Optional.empty();
+      case 1:
+        return Optional.of(storageAccountResources.get(0));
+      default:
+        throw new CorruptMetadataException(
+            "Dataset/Billing Profile combination has more than 1 associated storage account");
+    }
   }
 
   /**

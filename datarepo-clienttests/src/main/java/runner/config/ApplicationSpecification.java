@@ -22,7 +22,8 @@ public class ApplicationSpecification implements SpecificationInterface {
     } else if (maxBulkFileLoadArray <= 0) {
       throw new IllegalArgumentException("Application property maxBulkFileLoadArray must be >= 0");
     } else if (maxCombinedFileAndMetadataIngest <= 0) {
-      throw new IllegalArgumentException("Application property maxCombinedFileAndMetadataIngest must be >= 0");
+      throw new IllegalArgumentException(
+          "Application property maxCombinedFileAndMetadataIngest must be >= 0");
     } else if (loadConcurrentFiles <= 0) {
       throw new IllegalArgumentException("Application property loadConcurrentFiles must be >= 0");
     } else if (loadConcurrentIngests <= 0) {

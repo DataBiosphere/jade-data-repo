@@ -133,7 +133,8 @@ public class DatasetIngestFlight extends Flight {
     int driverWaitSeconds = configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
     int loadHistoryWaitSeconds =
         configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS);
-    int fileChunkSize = configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE);
+    int loadHistoryChunkSize =
+        inputParameters.get(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE, Integer.class);
 
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
     // Begin file + metadata load
@@ -178,14 +179,13 @@ public class DatasetIngestFlight extends Flight {
     addStep(new IngestCreateScratchFileStep(gcsPdao, ingestSkipCondition));
     addStep(
         new IngestCopyLoadHistoryToBQStep(
+            bigQueryPdao,
             loadService,
             datasetService,
+            datasetId,
             loadTag,
-            datasetId.toString(),
-            bigQueryPdao,
-            fileChunkSize,
             loadHistoryWaitSeconds,
-            ingestSkipCondition));
+            loadHistoryChunkSize));
     addStep(new IngestCleanFileStateStep(loadService, ingestSkipCondition));
 
     addStep(new LoadUnlockStep(loadService, ingestSkipCondition));

@@ -97,4 +97,9 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
     logger.info("No load history staging table for Azure");
     return StepResult.getStepResultSuccess();
   }
+
+  @Override
+  public StepResult doSkippableStep(FlightContext flightContext) throws InterruptedException {
+    return null;
+  }
 }

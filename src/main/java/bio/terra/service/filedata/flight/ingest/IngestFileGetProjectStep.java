@@ -26,8 +26,7 @@ public class IngestFileGetProjectStep extends SkippableStep {
   }
 
   public IngestFileGetProjectStep(Dataset dataset, GoogleProjectService googleProjectService) {
-    this.dataset = dataset;
-    this.googleProjectService = googleProjectService;
+    this(dataset, googleProjectService, SkippableStep::neverSkip);
   }
 
   @Override

@@ -38,11 +38,13 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
+import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.springframework.context.ApplicationContext;
 
 public class DatasetIngestFlight extends Flight {
@@ -119,6 +121,7 @@ public class DatasetIngestFlight extends Flight {
     RetryRule randomBackoffRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
+    Predicate<FlightContext> ingestSkipCondition = IngestUtils.noFilesToIngest;
 
     Dataset dataset = datasetService.retrieve(datasetId);
 
@@ -137,20 +140,20 @@ public class DatasetIngestFlight extends Flight {
     addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset, appConfig));
     addStep(
         new AuthorizeBillingProfileUseStep(
-            profileService, profileId, userReq, IngestUtils.noFilesToIngest));
-    addStep(new LoadLockStep(loadService, IngestUtils.noFilesToIngest));
-    addStep(new IngestFileGetProjectStep(dataset, projectService, IngestUtils.noFilesToIngest));
+            profileService, profileId, userReq, ingestSkipCondition));
+    addStep(new LoadLockStep(loadService, ingestSkipCondition));
+
+    addStep(new IngestFileGetProjectStep(dataset, projectService, ingestSkipCondition));
     addStep(
-        new IngestFileGetOrCreateProject(resourceService, dataset, IngestUtils.noFilesToIngest),
+        new IngestFileGetOrCreateProject(resourceService, dataset, ingestSkipCondition),
         randomBackoffRetry);
     addStep(
-        new IngestFilePrimaryDataLocationStep(
-            resourceService, dataset, IngestUtils.noFilesToIngest),
+        new IngestFilePrimaryDataLocationStep(resourceService, dataset, ingestSkipCondition),
         randomBackoffRetry);
     addStep(
-        new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset, IngestUtils.noFilesToIngest),
+        new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset, ingestSkipCondition),
         randomBackoffRetry);
-    addStep(new IngestPopulateFileStateFromFlightMapStep(loadService, IngestUtils.noFilesToIngest));
+    addStep(new IngestPopulateFileStateFromFlightMapStep(loadService, ingestSkipCondition));
     addStep(
         new IngestDriverStep(
             loadService,
@@ -162,18 +165,17 @@ public class DatasetIngestFlight extends Flight {
             driverWaitSeconds,
             profileId,
             platform.getCloudPlatform(),
-            IngestUtils.noFilesToIngest),
+            ingestSkipCondition),
         driverRetry);
 
     addStep(
         new IngestBulkMapResponseStep(
-            loadService, ingestRequest.getLoadTag(), IngestUtils.noFilesToIngest));
+            loadService, ingestRequest.getLoadTag(), ingestSkipCondition));
     // build the scratch file using new file ids and store in new bucket
-    addStep(new IngestBuildLoadFileStep(appConfig.objectMapper(), IngestUtils.noFilesToIngest));
+    addStep(new IngestBuildLoadFileStep(appConfig.objectMapper(), ingestSkipCondition));
     addStep(
-        new IngestCreateBucketForScratchFileStep(
-            resourceService, dataset, IngestUtils.noFilesToIngest));
-    addStep(new IngestCreateScratchFileStep(gcsPdao, IngestUtils.noFilesToIngest));
+        new IngestCreateBucketForScratchFileStep(resourceService, dataset, ingestSkipCondition));
+    addStep(new IngestCreateScratchFileStep(gcsPdao, ingestSkipCondition));
     addStep(
         new IngestCopyLoadHistoryToBQStep(
             loadService,
@@ -183,9 +185,9 @@ public class DatasetIngestFlight extends Flight {
             bigQueryPdao,
             fileChunkSize,
             loadHistoryWaitSeconds,
-            IngestUtils.noFilesToIngest));
-    addStep(new IngestCleanFileStateStep(loadService, IngestUtils.noFilesToIngest));
+            ingestSkipCondition));
+    addStep(new IngestCleanFileStateStep(loadService, ingestSkipCondition));
 
-    addStep(new LoadUnlockStep(loadService, IngestUtils.noFilesToIngest));
+    addStep(new LoadUnlockStep(loadService, ingestSkipCondition));
   }
 }

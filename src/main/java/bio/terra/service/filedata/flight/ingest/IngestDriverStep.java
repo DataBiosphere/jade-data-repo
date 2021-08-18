@@ -95,15 +95,17 @@ public class IngestDriverStep extends SkippableStep {
       int driverWaitSeconds,
       UUID profileId,
       CloudPlatform platform) {
-    this.loadService = loadService;
-    this.configurationService = configurationService;
-    this.jobService = jobService;
-    this.datasetId = datasetId;
-    this.loadTag = loadTag;
-    this.maxFailedFileLoads = maxFailedFileLoads;
-    this.driverWaitSeconds = driverWaitSeconds;
-    this.profileId = profileId;
-    this.platform = platform;
+    this(
+        loadService,
+        configurationService,
+        jobService,
+        datasetId,
+        loadTag,
+        maxFailedFileLoads,
+        driverWaitSeconds,
+        profileId,
+        platform,
+        SkippableStep::neverSkip);
   }
 
   @Override

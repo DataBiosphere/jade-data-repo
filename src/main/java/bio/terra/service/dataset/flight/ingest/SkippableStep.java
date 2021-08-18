@@ -48,4 +48,8 @@ public abstract class SkippableStep implements Step {
     // This step has no side effects
     return StepResult.getStepResultSuccess();
   }
+
+  protected static boolean neverSkip(FlightContext flightContext) {
+    return false;
+  }
 }

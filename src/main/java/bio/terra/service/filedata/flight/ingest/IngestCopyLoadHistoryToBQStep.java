@@ -54,13 +54,15 @@ public class IngestCopyLoadHistoryToBQStep extends SkippableStep {
       BigQueryPdao bigQueryPdao,
       int fileChunkSize,
       int waitSeconds) {
-    this.loadService = loadService;
-    this.loadTag = loadTag;
-    this.datasetIdString = datasetId;
-    this.bigQueryPdao = bigQueryPdao;
-    this.datasetService = datasetService;
-    this.fileChunkSize = fileChunkSize;
-    this.waitSeconds = waitSeconds;
+    this(
+        loadService,
+        datasetService,
+        loadTag,
+        datasetId,
+        bigQueryPdao,
+        fileChunkSize,
+        waitSeconds,
+        SkippableStep::neverSkip);
   }
 
   @Override

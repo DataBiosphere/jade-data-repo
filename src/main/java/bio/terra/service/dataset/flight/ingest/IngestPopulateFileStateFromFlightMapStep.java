@@ -22,10 +22,6 @@ public class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
     this.loadService = loadService;
   }
 
-  public IngestPopulateFileStateFromFlightMapStep(LoadService loadService) {
-    this.loadService = loadService;
-  }
-
   @Override
   public StepResult doSkippableStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();

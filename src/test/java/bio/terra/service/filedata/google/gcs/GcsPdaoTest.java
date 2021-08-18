@@ -96,7 +96,7 @@ public class GcsPdaoTest {
             BlobInfo.newBuilder(blobId).build(), fileContents.getBytes(StandardCharsets.UTF_8));
         contents.add(fileContents);
       }
-      var listPath = GcsUtils.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/");
+      var listPath = GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/");
       var listLines = gcsPdao.getGcsFilesLines(listPath, projectId);
       assertThat(
           "The listed file contents match concatenated contents of individual files",
@@ -104,7 +104,7 @@ public class GcsPdaoTest {
           equalTo(contents));
 
       var wildcardMiddlePath =
-          GcsUtils.getGsPathFromComponents(
+          GcsPdao.getGsPathFromComponents(
               testConfig.getIngestbucket(), uuid + "/" + uuid + "-*.txt");
       var wildcardMiddleLines = gcsPdao.getGcsFilesLines(wildcardMiddlePath, projectId);
       assertThat(
@@ -113,7 +113,7 @@ public class GcsPdaoTest {
           equalTo(contents));
 
       var wildcardEndPath =
-          GcsUtils.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/" + uuid + "-*");
+          GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/" + uuid + "-*");
       var wildcardEndLines = gcsPdao.getGcsFilesLines(wildcardEndPath, projectId);
       assertThat(
           "The end-wildcard-matched file contents match concatenated contents of individual files",
@@ -121,7 +121,7 @@ public class GcsPdaoTest {
           equalTo(contents));
 
       var wildcardMultiplePath =
-          GcsUtils.getGsPathFromComponents(
+          GcsPdao.getGsPathFromComponents(
               testConfig.getIngestbucket(), uuid + "/*" + uuid + "-*.txt");
       var wildcardMutlipleLines = gcsPdao.getGcsFilesLines(wildcardMultiplePath, projectId);
       assertThat(

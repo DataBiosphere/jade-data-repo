@@ -32,8 +32,7 @@ public class IngestFilePrimaryDataLocationStep extends SkippableStep {
   }
 
   public IngestFilePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {
-    this.resourceService = resourceService;
-    this.dataset = dataset;
+    this(resourceService, dataset, SkippableStep::neverSkip);
   }
 
   @Override

@@ -74,4 +74,15 @@ public class SynapseUtils {
     logger.info("Attempting to delete the parquet directory {}", parquetFileName);
     targetDataClientFactory.getBlobContainerClient().getBlobClient(parquetFileName).delete();
   }
+
+  public String ingestRequestURL(
+      String storageAccountName, String ingestRequestContainer, String fileName) {
+    String sqlTemplate =
+        "https://<storageAccountName>.blob.core.windows.net/<ingestRequestContainer>/<requestFileName>";
+    ST urlTemplate = new ST(sqlTemplate);
+    urlTemplate.add("storageAccountName", storageAccountName);
+    urlTemplate.add("ingestRequestContainer", ingestRequestContainer);
+    urlTemplate.add("requestFileName", fileName);
+    return urlTemplate.render();
+  }
 }

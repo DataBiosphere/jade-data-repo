@@ -59,9 +59,11 @@ public class AzureSynapsePdao {
           + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
           + "    FILE_FORMAT = [<fileFormat>]\n"
           + ") AS SELECT "
-          + "<if(isCSV)>*"
+          + "<if(isCSV)>newid() as datarepo_row_id,\n       "
+          + "<columns:{c|<c.name>}; separator=\",\n       \">"
           + "<else>"
-          + "\n<columns:{c|"
+          + "newid() as datarepo_row_id,\n       "
+          + "<columns:{c|"
           + "<if(c.requiresJSONCast)>"
           + "cast(JSON_VALUE(doc, '$.<c.name>') as <c.synapseDataType>) <c.name>"
           + "<else>JSON_VALUE(doc, '$.<c.name>') <c.name>"
@@ -173,7 +175,7 @@ public class AzureSynapsePdao {
     executeSynapseQuery(sqlDataSourceCreateTemplate.render());
   }
 
-  public void createParquetFiles(
+  public int createParquetFiles(
       FormatEnum ingestType,
       DatasetTable datasetTable,
       String ingestFileName,
@@ -209,7 +211,7 @@ public class AzureSynapsePdao {
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
     sqlCreateTableTemplate.add("columns", columns);
 
-    executeSynapseQuery(sqlCreateTableTemplate.render());
+    return executeSynapseQuery(sqlCreateTableTemplate.render());
   }
 
   public void dropTables(List<String> tableNames) {
@@ -238,11 +240,12 @@ public class AzureSynapsePdao {
             });
   }
 
-  public boolean executeSynapseQuery(String query) throws SQLException {
+  public int executeSynapseQuery(String query) throws SQLException {
     SQLServerDataSource ds = getDatasource();
     try (Connection connection = ds.getConnection();
         Statement statement = connection.createStatement()) {
-      return statement.execute(query);
+      statement.execute(query);
+      return statement.getUpdateCount();
     }
   }
 

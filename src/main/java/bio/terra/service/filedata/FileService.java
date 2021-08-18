@@ -244,7 +244,7 @@ public class FileService {
       fileModel.fileDetail(
           new FileDetailModel()
               .datasetId(fsFile.getDatasetId().toString())
-              .accessUrl(fsFile.getGspath())
+              .accessUrl(fsFile.getCloudPath())
               .mimeType(fsFile.getMimeType())
               .loadTag(fsFile.getLoadTag()));
     } else if (fsItem instanceof FSDir) {

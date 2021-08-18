@@ -5,6 +5,8 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.common.exception.NotImplementedException;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessMethod.TypeEnum;
 import bio.terra.model.DRSAccessURL;
@@ -13,6 +15,7 @@ import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
@@ -23,7 +26,10 @@ import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
+import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -39,6 +45,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -46,6 +53,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +82,10 @@ public class DrsService {
   private final ConfigurationService configurationService;
   private final JobService jobService;
   private final PerformanceLogger performanceLogger;
+  private final ProfileService profileService;
+  private final AzureResourceConfiguration resourceConfiguration;
+  private final AzureContainerPdao azureContainerPdao;
+  private final AzureBlobStorePdao azureBlobStorePdao;
 
   @Autowired
   public DrsService(
@@ -84,7 +96,11 @@ public class DrsService {
       ResourceService resourceService,
       ConfigurationService configurationService,
       JobService jobService,
-      PerformanceLogger performanceLogger) {
+      PerformanceLogger performanceLogger,
+      ProfileService profileService,
+      AzureResourceConfiguration resourceConfiguration,
+      AzureContainerPdao azureContainerPdao,
+      AzureBlobStorePdao azureBlobStorePdao) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
     this.drsIdService = drsIdService;
@@ -93,6 +109,10 @@ public class DrsService {
     this.configurationService = configurationService;
     this.jobService = jobService;
     this.performanceLogger = performanceLogger;
+    this.profileService = profileService;
+    this.resourceConfiguration = resourceConfiguration;
+    this.azureContainerPdao = azureContainerPdao;
+    this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
   private class DrsRequestResource implements AutoCloseable {
@@ -199,21 +219,73 @@ public class DrsService {
 
     DrsId drsId = drsIdService.fromObjectId(objectId);
     Snapshot snapshot = snapshotService.retrieve(UUID.fromString(drsId.getSnapshotId()));
+
+    BillingProfileModel billingProfileModel =
+        snapshot
+            .getFirstSnapshotSource()
+            .getDataset()
+            .getDatasetSummary()
+            .getDefaultBillingProfile();
+
+    Supplier<IllegalArgumentException> illegalArgumentExceptionSupplier =
+        () -> new IllegalArgumentException("No matching access ID was found for object");
+
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(billingProfileModel.getCloudPlatform());
+    if (platform.isGcp()) {
+      DRSAccessMethod matchingAccessMethod =
+          getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.GS)
+              .orElseThrow(illegalArgumentExceptionSupplier);
+      return signGoogleUrl(snapshot, matchingAccessMethod);
+    } else if (platform.isAzure()) {
+      getAccessMethodMatchingAccessId(accessId, drsObject, TypeEnum.HTTPS)
+          .orElseThrow(illegalArgumentExceptionSupplier);
+      try {
+        FSItem fsItem =
+            fileService.lookupSnapshotFSItem(
+                snapshotService.retrieveAvailableSnapshotProject(snapshot.getId()),
+                drsId.getFsObjectId(),
+                1);
+        return signAzureUrl(billingProfileModel, fsItem, authUser);
+      } catch (InterruptedException e) {
+        throw new IllegalArgumentException(e);
+      }
+    } else {
+      throw new NotImplementedException("Cloud platform not implemented");
+    }
+  }
+
+  private Optional<DRSAccessMethod> getAccessMethodMatchingAccessId(
+      String accessId, DRSObject object, TypeEnum methodType) {
+    return object.getAccessMethods().stream()
+        .filter(
+            drsAccessMethod ->
+                drsAccessMethod.getType().equals(methodType)
+                    && drsAccessMethod.getAccessId().equals(accessId))
+        .findFirst();
+  }
+
+  private DRSAccessURL signAzureUrl(
+      BillingProfileModel profileModel, FSItem fsItem, AuthenticatedUserRequest authUser) {
+    AzureStorageAccountResource storageAccountResource =
+        resourceService.lookupStorageAccountMetadata(((FSFile) fsItem).getBucketResourceId());
+    return new DRSAccessURL()
+        .url(
+            azureBlobStorePdao.signFile(
+                profileModel,
+                storageAccountResource,
+                ((FSFile) fsItem).getCloudPath(),
+                Duration.ofMinutes(URL_TTL),
+                authUser.getEmail()));
+  }
+
+  private DRSAccessURL signGoogleUrl(Snapshot snapshot, DRSAccessMethod accessMethod) {
     GoogleProjectResource projectResource = snapshot.getProjectResource();
-
-    DRSAccessMethod matchingAccessMethod =
-        getAccessMethodMatchingAccessId(accessId, drsObject)
-            .orElseThrow(
-                () ->
-                    new IllegalArgumentException(
-                        "No matching access ID " + accessId + " was found on object " + objectId));
-
     Storage storage =
         StorageOptions.newBuilder()
             .setProjectId(projectResource.getGoogleProjectId())
             .build()
             .getService();
-    String gsPath = matchingAccessMethod.getAccessUrl().getUrl();
+    String gsPath = accessMethod.getAccessUrl().getUrl();
     GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(gsPath);
 
     BlobInfo blobInfo =
@@ -226,25 +298,15 @@ public class DrsService {
     return new DRSAccessURL().url(url.toString());
   }
 
-  private Optional<DRSAccessMethod> getAccessMethodMatchingAccessId(
-      String accessId, DRSObject object) {
-    return object.getAccessMethods().stream()
-        .filter(
-            drsAccessMethod ->
-                drsAccessMethod.getType().equals(TypeEnum.GS)
-                    && drsAccessMethod.getAccessId().equals(accessId))
-        .findFirst();
-  }
-
   private DRSObject drsObjectFromFSFile(
       FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
     DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
     List<DRSAccessMethod> accessMethods;
-    CloudPlatformWrapper platformWrapper = CloudPlatformWrapper.of(fsFile.getCloudPlatform());
-    if (platformWrapper.isGcp()) {
+    CloudPlatformWrapper platform = CloudPlatformWrapper.of(fsFile.getCloudPlatform());
+    if (platform.isGcp()) {
       accessMethods = getDrsAccessMethodsOnGcp(fsFile, authUser);
-    } else if (platformWrapper.isAzure()) {
+    } else if (platform.isAzure()) {
       accessMethods = getDrsAccessMethodsOnAzure(fsFile);
     } else {
       throw new IllegalArgumentException("Unrecognized cloud platform");
@@ -260,7 +322,7 @@ public class DrsService {
 
   private List<DRSAccessMethod> getDrsAccessMethodsOnGcp(
       FSFile fsFile, AuthenticatedUserRequest authUser) {
-    DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getGspath());
+    DRSAccessURL gsAccessURL = new DRSAccessURL().url(fsFile.getCloudPath());
 
     GoogleBucketResource bucketResource =
         resourceService.lookupBucketMetadata(fsFile.getBucketResourceId());
@@ -276,7 +338,7 @@ public class DrsService {
 
     DRSAccessURL httpsAccessURL =
         new DRSAccessURL()
-            .url(makeHttpsFromGs(fsFile.getGspath()))
+            .url(makeHttpsFromGs(fsFile.getCloudPath()))
             .headers(makeAuthHeader(authUser));
 
     DRSAccessMethod httpsAccessMethod =
@@ -289,7 +351,7 @@ public class DrsService {
   }
 
   private List<DRSAccessMethod> getDrsAccessMethodsOnAzure(FSFile fsFile) {
-    DRSAccessURL accessURL = new DRSAccessURL().url(fsFile.getGspath());
+    DRSAccessURL accessURL = new DRSAccessURL().url(fsFile.getCloudPath());
 
     AzureStorageAccountResource storageAccountResource =
         resourceService.lookupStorageAccountMetadata(fsFile.getBucketResourceId());

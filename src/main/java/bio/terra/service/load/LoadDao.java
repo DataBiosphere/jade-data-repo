@@ -307,14 +307,19 @@ public class LoadDao {
     return jdbcTemplate.query(
         sql,
         new MapSqlParameterSource().addValue("load_id", loadId),
-        (rs, rowNum) -> {
-          return new BulkLoadFileResultModel()
-              .sourcePath(rs.getString("source_path"))
-              .targetPath(rs.getString("target_path"))
-              .state(BulkLoadFileState.fromValue(rs.getString("state")))
-              .fileId(rs.getString("file_id"))
-              .error(rs.getString("error"));
-        });
+        (rs, rowNum) ->
+            new BulkLoadFileResultModel()
+                .sourcePath(rs.getString("source_path"))
+                .targetPath(rs.getString("target_path"))
+                .state(BulkLoadFileState.fromValue(rs.getString("state")))
+                .fileId(rs.getString("file_id"))
+                .error(rs.getString("error")));
+  }
+
+  public Integer bulkLoadFileArraySize(UUID loadId) {
+    final String sql = "SELECT count(*) FROM load_file WHERE load_id = :load_id";
+    return jdbcTemplate.queryForObject(
+        sql, new MapSqlParameterSource().addValue("load_id", loadId), Integer.class);
   }
 
   public List<BulkLoadHistoryModel> makeLoadHistoryArray(UUID loadId, int chunkSize, int chunkNum) {
@@ -322,11 +327,11 @@ public class LoadDao {
         "SELECT source_path, target_path, state, file_id, checksum_crc32c, checksum_md5, error"
             + " FROM load_file WHERE load_id = :load_id"
             + " ORDER BY file_id"
-            + " LIMIT :chunk_size OFFSET :chunk_num";
+            + " LIMIT :chunk_size OFFSET :chunk_offset";
     MapSqlParameterSource params = new MapSqlParameterSource();
     params.addValue("load_id", loadId);
     params.addValue("chunk_size", chunkSize);
-    params.addValue("chunk_num", chunkNum);
+    params.addValue("chunk_offset", chunkNum * chunkSize);
     return jdbcTemplate.query(
         sql,
         params,

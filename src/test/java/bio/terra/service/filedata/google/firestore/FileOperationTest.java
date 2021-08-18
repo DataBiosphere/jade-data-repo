@@ -57,7 +57,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -373,6 +376,22 @@ public class FileOperationTest {
     BulkLoadArrayResultModel result =
         connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
     checkLoadSummary(result.getLoadSummary(), arrayLoad.getLoadTag(), fileCount, fileCount, 0, 0);
+
+    var loadHistoryList =
+        connectedOperations.getLoadHistory(
+            datasetSummary.getId(), result.getLoadSummary().getLoadTag(), 0, 20);
+
+    assertThat(
+        "The correct number of load history entries are returned",
+        loadHistoryList.getTotal(),
+        equalTo(fileCount));
+
+    assertThat(
+        "getting load history has the same items as response from bulk file load",
+        loadHistoryList.getItems().stream()
+            .map(TestUtils::toBulkLoadFileResultModel)
+            .collect(Collectors.toSet()),
+        Matchers.equalTo(Set.copyOf(result.getLoadFileResults())));
 
     Map<String, String> fileIdMap = new HashMap<>();
     for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {

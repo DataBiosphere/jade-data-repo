@@ -5,6 +5,7 @@ import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
@@ -30,6 +31,8 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
+import bio.terra.service.tabulardata.azure.StorageTableService;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -45,17 +48,23 @@ public class DatasetService {
   private final JobService jobService; // for handling flight response
   private final LoadService loadService;
   private final ProfileDao profileDao;
+  private final StorageTableService storageTableService;
+  private final BigQueryPdao bigQueryPdao;
 
   @Autowired
   public DatasetService(
       DatasetDao datasetDao,
       JobService jobService,
       LoadService loadService,
-      ProfileDao profileDao) {
+      ProfileDao profileDao,
+      StorageTableService storageTableService,
+      BigQueryPdao bigQueryPdao) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
     this.profileDao = profileDao;
+    this.storageTableService = storageTableService;
+    this.bigQueryPdao = bigQueryPdao;
   }
 
   public String createDataset(
@@ -228,6 +237,20 @@ public class DatasetService {
         .newJob(description, DatasetDataDeleteFlight.class, dataDeletionRequest, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
         .submit();
+  }
+
+  public List<BulkLoadHistoryModel> getLoadHistory(
+      UUID datasetId, String loadTag, int offset, int limit) {
+    var dataset = retrieve(datasetId);
+    var platformWrapper =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    if (platformWrapper.isAzure()) {
+      return storageTableService.getLoadHistory(dataset, loadTag, offset, limit);
+    } else if (platformWrapper.isGcp()) {
+      return bigQueryPdao.getLoadHistory(dataset, loadTag, offset, limit);
+    } else {
+      throw new IllegalArgumentException("Unrecognized cloud platform");
+    }
   }
 
   private static List<DatasetRequestAccessIncludeModel> getDefaultIncludes() {

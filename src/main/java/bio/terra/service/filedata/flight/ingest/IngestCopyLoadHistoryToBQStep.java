@@ -9,6 +9,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +33,25 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
       UUID datasetId,
       String loadTag,
       int waitSeconds,
+      int loadHistoryChunkSize,
+      Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
+    this.bigQueryPdao = bigQueryPdao;
+    this.loadService = loadService;
+    this.datasetService = datasetService;
+    this.datasetId = datasetId;
+    this.loadTag = loadTag;
+    this.waitSeconds = waitSeconds;
+    this.loadHistoryChunkSize = loadHistoryChunkSize;
+  }
+
+  public IngestCopyLoadHistoryToBQStep(
+      BigQueryPdao bigQueryPdao,
+      LoadService loadService,
+      DatasetService datasetService,
+      UUID datasetId,
+      String loadTag,
+      int waitSeconds,
       int loadHistoryChunkSize) {
     this.bigQueryPdao = bigQueryPdao;
     this.loadService = loadService;
@@ -43,7 +63,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
   }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
+  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     IngestCopyLoadHistoryResources resources =
         getResources(context, loadService, datasetService, datasetId, loadHistoryChunkSize);
     String tableNameFlightId = context.getFlightId().replaceAll("[^a-zA-Z0-9]", "_");
@@ -72,7 +92,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
+  public StepResult undoSkippableStep(FlightContext context) {
     String flightId = context.getFlightId();
     try {
       Dataset dataset = datasetService.retrieve(datasetId);

@@ -49,6 +49,7 @@ import org.springframework.stereotype.Component;
 //
 @Component
 public class FireStoreDao {
+
   private final Logger logger = LoggerFactory.getLogger(FireStoreDao.class);
 
   private final FireStoreDirectoryDao directoryDao;
@@ -321,7 +322,7 @@ public class FireStoreDao {
               .checksumMd5(file.getChecksumMd5())
               .size(file.getSize())
               .description(file.getDescription())
-              .gspath(file.getGspath())
+              .cloudPath(file.getGspath())
               .mimeType(file.getMimeType())
               .bucketResourceId(file.getBucketResourceId())
               .loadTag(file.getLoadTag());
@@ -486,7 +487,7 @@ public class FireStoreDao {
         .checksumMd5(fireStoreFile.getChecksumMd5())
         .size(fireStoreFile.getSize())
         .description(fireStoreFile.getDescription())
-        .gspath(fireStoreFile.getGspath())
+        .cloudPath(fireStoreFile.getGspath())
         .mimeType(fireStoreFile.getMimeType())
         .bucketResourceId(fireStoreFile.getBucketResourceId())
         .loadTag(fireStoreFile.getLoadTag());

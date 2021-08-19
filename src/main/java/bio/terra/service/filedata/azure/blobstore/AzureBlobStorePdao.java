@@ -8,6 +8,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobCrl;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -20,10 +21,12 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.google.common.annotations.VisibleForTesting;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
@@ -38,6 +41,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AzureBlobStorePdao {
+
   private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
 
   private static final int LOG_RETENTION_DAYS = 90;
@@ -106,7 +110,7 @@ public class AzureBlobStorePdao {
     return new FSFileInfo()
         .fileId(fileId)
         .createdDate(createTime.toString())
-        .gspath(
+        .cloudPath(
             String.format(
                 "%s/%s",
                 targetClientFactory.getBlobContainerClient().getBlobContainerUrl(), blobName))
@@ -190,6 +194,31 @@ public class AzureBlobStorePdao {
         throw new PdaoException("Error deleting file", e);
       }
     }
+  }
+
+  public String signFile(
+      BillingProfileModel profileModel,
+      AzureStorageAccountResource storageAccountResource,
+      String url,
+      Duration duration,
+      String userEmail) {
+    BlobContainerClientFactory destinationClientFactory =
+        getTargetDataClientFactory(profileModel, storageAccountResource, ContainerType.DATA, true);
+
+    BlobUrlParts blobParts = BlobUrlParts.parse(url);
+    if (!blobParts.getAccountName().equals(storageAccountResource.getName())) {
+      throw new PdaoException(
+          String.format(
+              "Resource groups between metadata storage and request do not match: %s != %s",
+              blobParts.getAccountName(), storageAccountResource.getName()));
+    }
+    String blobName = blobParts.getBlobName();
+    BlobSasPermission permission = new BlobSasPermission().setReadPermission(true);
+    BlobSasTokenOptions blobSasTokenOptions =
+        new BlobSasTokenOptions(duration, permission, userEmail);
+    return destinationClientFactory
+        .getBlobSasUrlFactory()
+        .createSasUrlForBlob(blobName, blobSasTokenOptions);
   }
 
   /**

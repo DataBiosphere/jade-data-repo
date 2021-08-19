@@ -13,6 +13,7 @@ import bio.terra.stairway.FlightMap;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
@@ -105,7 +106,37 @@ public class LoadService {
     return loadDao.makeBulkLoadFileArray(loadId);
   }
 
-  public List<BulkLoadHistoryModel> makeLoadHistoryArray(UUID loadId, int chunkSize, int chunkNum) {
-    return loadDao.makeLoadHistoryArray(loadId, chunkSize, chunkNum);
+  public LoadHistoryIterator loadHistoryIterator(UUID loadId, int chunkSize) {
+    return new LoadHistoryIterator(loadId, chunkSize);
+  }
+
+  /**
+   * A convenience class wrapping the getting of load history table rows in an Iterator. The
+   * Iterator's elements are a list of BulkLoadHistoryModel chunk of the full results retrieved from
+   * the database.
+   */
+  public class LoadHistoryIterator implements Iterator<List<BulkLoadHistoryModel>> {
+
+    private final UUID loadId;
+    private final int chunkSize;
+    private final int loadHistorySize;
+    private int currentChunk;
+
+    public LoadHistoryIterator(UUID loadId, int chunkSize) {
+      this.loadId = loadId;
+      this.chunkSize = chunkSize;
+      this.loadHistorySize = loadDao.bulkLoadFileArraySize(loadId);
+      this.currentChunk = 0;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return currentChunk * chunkSize < loadHistorySize;
+    }
+
+    @Override
+    public List<BulkLoadHistoryModel> next() {
+      return loadDao.makeLoadHistoryArray(loadId, chunkSize, currentChunk++);
+    }
   }
 }

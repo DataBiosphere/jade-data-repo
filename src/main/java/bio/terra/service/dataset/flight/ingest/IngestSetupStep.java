@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -8,6 +9,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.concurrent.TimeUnit;
@@ -37,14 +39,21 @@ public class IngestSetupStep implements Step {
 
   private DatasetService datasetService;
   private ConfigurationService configService;
+  private CloudPlatformWrapper cloudPlatform;
 
-  public IngestSetupStep(DatasetService datasetService, ConfigurationService configService) {
+  public IngestSetupStep(
+      DatasetService datasetService,
+      ConfigurationService configService,
+      CloudPlatformWrapper cloudPlatform) {
     this.datasetService = datasetService;
     this.configService = configService;
+    this.cloudPlatform = cloudPlatform;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
+    FlightMap workingMap = context.getWorkingMap();
+
     if (configService.testInsertFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT)) {
       logger.info("TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT");
       while (!configService.testInsertFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT)) {
@@ -55,16 +64,24 @@ public class IngestSetupStep implements Step {
     }
 
     IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
-    // We don't actually care about the output here since BQ takes the raw "gs://" string as input.
-    // As long as parsing succeeds, we're good to move forward.
-    IngestUtils.parseBlobUri(ingestRequestModel.getPath());
 
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     IngestUtils.putDatasetName(context, dataset.getName());
-
     DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
-    String sgName = DatasetUtils.generateAuxTableName(targetTable, "st");
-    IngestUtils.putStagingTableName(context, sgName);
+
+    if (cloudPlatform.isGcp()) {
+      // We don't actually care about the output here since BQ takes the raw "gs://" string as
+      // input.
+      // As long as parsing succeeds, we're good to move forward.
+      IngestUtils.parseBlobUri(ingestRequestModel.getPath());
+      String sgName = DatasetUtils.generateAuxTableName(targetTable, "st");
+      IngestUtils.putStagingTableName(context, sgName);
+    } else if (cloudPlatform.isAzure()) {
+      IngestUtils.validateBlobAzureBlobFileURL(ingestRequestModel.getPath());
+      workingMap.put(
+          IngestMapKeys.PARQUET_FILE_PATH,
+          IngestUtils.getParquetFilePath(targetTable.getName(), context.getFlightId()));
+    }
 
     return StepResult.getStepResultSuccess();
   }

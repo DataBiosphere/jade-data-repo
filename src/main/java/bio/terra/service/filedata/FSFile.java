@@ -11,7 +11,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class FSFile extends FSItem {
   private UUID datasetId;
-  private String gspath;
+  private String cloudPath;
   private String mimeType;
   private String bucketResourceId;
   private String loadTag;
@@ -25,12 +25,12 @@ public class FSFile extends FSItem {
     return this;
   }
 
-  public String getGspath() {
-    return gspath;
+  public String getCloudPath() {
+    return cloudPath;
   }
 
-  public FSFile gspath(String gspath) {
-    this.gspath = gspath;
+  public FSFile cloudPath(String cloudPath) {
+    this.cloudPath = cloudPath;
     return this;
   }
 
@@ -106,14 +106,14 @@ public class FSFile extends FSItem {
   // explicitly
   public CloudPlatform getCloudPlatform() {
     try {
-      URI url = new URI(getGspath().replaceAll("[^A-Za-z0-9/\\-.:]", ""));
+      URI url = new URI(getCloudPath().replaceAll("[^A-Za-z0-9/\\-.:]", ""));
       if (url.getScheme().equalsIgnoreCase("gs")) {
         return CloudPlatform.GCP;
       } else if (url.getScheme().equalsIgnoreCase("https")
           && url.getHost().endsWith("core.windows.net")) {
         return CloudPlatform.AZURE;
       } else {
-        throw new IllegalArgumentException("Unrecognized url format: " + getGspath());
+        throw new IllegalArgumentException("Unrecognized url format: " + getCloudPath());
       }
     } catch (URISyntaxException e) {
       throw new IllegalArgumentException("Invalid URL", e);
@@ -131,7 +131,7 @@ public class FSFile extends FSItem {
     return new EqualsBuilder()
         .appendSuper(super.equals(o))
         .append(datasetId, fsFile.datasetId)
-        .append(gspath, fsFile.gspath)
+        .append(cloudPath, fsFile.cloudPath)
         .append(mimeType, fsFile.mimeType)
         .append(bucketResourceId, fsFile.bucketResourceId)
         .append(loadTag, fsFile.loadTag)
@@ -143,7 +143,7 @@ public class FSFile extends FSItem {
     return new HashCodeBuilder(17, 37)
         .appendSuper(super.hashCode())
         .append(datasetId)
-        .append(gspath)
+        .append(cloudPath)
         .append(mimeType)
         .append(bucketResourceId)
         .append(loadTag)
@@ -154,7 +154,7 @@ public class FSFile extends FSItem {
   public String toString() {
     return new ToStringBuilder(this)
         .append("datasetId", datasetId)
-        .append("gspath", gspath)
+        .append("cloudPath", cloudPath)
         .append("mimeType", mimeType)
         .append("bucketResourceId", bucketResourceId)
         .append("loadTag", loadTag)

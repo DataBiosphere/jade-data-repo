@@ -7,6 +7,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import bio.terra.model.BulkLoadFileResultModel;
+import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
@@ -247,5 +249,14 @@ public final class TestUtils {
             .parameter(new ConfigParameterModel().value(newValue));
     configurationService.setConfig(
         new ConfigGroupModel().label(label).addGroupItem(retryConfigModel));
+  }
+
+  public static BulkLoadFileResultModel toBulkLoadFileResultModel(BulkLoadHistoryModel model) {
+    return new BulkLoadFileResultModel()
+        .sourcePath(model.getSourcePath())
+        .targetPath(model.getTargetPath())
+        .fileId(model.getFileId())
+        .state(model.getState())
+        .error(model.getError());
   }
 }

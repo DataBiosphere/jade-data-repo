@@ -16,21 +16,23 @@ public class FSFileTest {
   @Test
   public void testCloudPlatformDetection() {
     assertThat(
-        new FSFile().gspath("gs://mybucket/test.txt").getCloudPlatform(),
+        new FSFile().cloudPath("gs://mybucket/test.txt").getCloudPlatform(),
         equalTo(CloudPlatform.GCP));
     assertThat(
         new FSFile()
-            .gspath("gs://mybucket/dsid/fid/file with space and #hash%percent+plus.txt")
+            .cloudPath("gs://mybucket/dsid/fid/file with space and #hash%percent+plus.txt")
             .getCloudPlatform(),
         equalTo(CloudPlatform.GCP));
     assertThat(
-        new FSFile().gspath("https://myacct.blob.core.windows.net/fs/test.txt").getCloudPlatform(),
+        new FSFile()
+            .cloudPath("https://myacct.blob.core.windows.net/fs/test.txt")
+            .getCloudPlatform(),
         equalTo(CloudPlatform.AZURE));
     assertThrows(
         IllegalArgumentException.class,
-        () -> new FSFile().gspath("ftp://notsupported.txt").getCloudPlatform());
+        () -> new FSFile().cloudPath("ftp://notsupported.txt").getCloudPlatform());
     assertThrows(
         IllegalArgumentException.class,
-        () -> new FSFile().gspath("https://myhost.com/notsupported.txt").getCloudPlatform());
+        () -> new FSFile().cloudPath("https://myhost.com/notsupported.txt").getCloudPlatform());
   }
 }

@@ -21,6 +21,7 @@ public class ConnectedTestConfiguration {
   private String targetApplicationName;
   private String sourceStorageAccountName;
   private String destinationStorageAccountName;
+  private String ingestRequestContainer;
 
   public String getSourceStorageAccountName() {
     return sourceStorageAccountName;
@@ -28,6 +29,14 @@ public class ConnectedTestConfiguration {
 
   public void setSourceStorageAccountName(String sourceStorageAccountName) {
     this.sourceStorageAccountName = sourceStorageAccountName;
+  }
+
+  public String getIngestRequestContainer() {
+    return ingestRequestContainer;
+  }
+
+  public void setIngestRequestContainer(String ingestRequestContainer) {
+    this.ingestRequestContainer = ingestRequestContainer;
   }
 
   public String getDestinationStorageAccountName() {

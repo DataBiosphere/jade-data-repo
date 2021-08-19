@@ -14,11 +14,8 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.function.Predicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class IngestFileGetOrCreateProject extends SkippableStep {
-  private static final Logger logger = LoggerFactory.getLogger(IngestFileGetOrCreateProject.class);
   private final ResourceService resourceService;
   private final Dataset dataset;
 
@@ -30,8 +27,7 @@ public class IngestFileGetOrCreateProject extends SkippableStep {
   }
 
   public IngestFileGetOrCreateProject(ResourceService resourceService, Dataset dataset) {
-    this.resourceService = resourceService;
-    this.dataset = dataset;
+    this(resourceService, dataset, SkippableStep::neverSkip);
   }
 
   @Override

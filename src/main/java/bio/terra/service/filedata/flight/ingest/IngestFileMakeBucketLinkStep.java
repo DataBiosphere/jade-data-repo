@@ -24,8 +24,7 @@ public class IngestFileMakeBucketLinkStep extends SkippableStep {
   }
 
   public IngestFileMakeBucketLinkStep(DatasetBucketDao datasetBucketDao, Dataset dataset) {
-    this.datasetBucketDao = datasetBucketDao;
-    this.dataset = dataset;
+    this(datasetBucketDao, dataset, SkippableStep::neverSkip);
   }
 
   @Override

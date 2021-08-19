@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
@@ -53,13 +54,15 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
       String loadTag,
       int waitSeconds,
       int loadHistoryChunkSize) {
-    this.bigQueryPdao = bigQueryPdao;
-    this.loadService = loadService;
-    this.datasetService = datasetService;
-    this.datasetId = datasetId;
-    this.loadTag = loadTag;
-    this.waitSeconds = waitSeconds;
-    this.loadHistoryChunkSize = loadHistoryChunkSize;
+    this(
+        bigQueryPdao,
+        loadService,
+        datasetService,
+        datasetId,
+        loadTag,
+        waitSeconds,
+        loadHistoryChunkSize,
+        SkippableStep::neverSkip);
   }
 
   @Override

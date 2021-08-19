@@ -18,7 +18,7 @@ public class LoadUnlockStep extends SkippableStep {
   }
 
   public LoadUnlockStep(LoadService loadService) {
-    this.loadService = loadService;
+    this(loadService, SkippableStep::neverSkip);
   }
 
   @Override

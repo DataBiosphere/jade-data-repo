@@ -37,9 +37,7 @@ public class AuthorizeBillingProfileUseStep extends SkippableStep {
 
   public AuthorizeBillingProfileUseStep(
       ProfileService profileService, UUID profileId, AuthenticatedUserRequest user) {
-    this.profileService = profileService;
-    this.profileId = profileId;
-    this.user = user;
+    this(profileService, profileId, user, SkippableStep::neverSkip);
   }
 
   @Override

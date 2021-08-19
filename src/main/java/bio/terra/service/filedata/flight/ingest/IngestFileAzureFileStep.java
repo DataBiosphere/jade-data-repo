@@ -59,6 +59,7 @@ public class IngestFileAzureFileStep implements Step {
         tableDao.createFileMetadata(newFile, storageAccountResource);
         // Retrieve to build the complete FSItem
         FSItem fsItem = tableDao.retrieveById(dataset.getId(), fileId, 1, storageAccountResource);
+        // TODO - no longer read from fileService?
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);

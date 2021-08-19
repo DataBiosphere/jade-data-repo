@@ -411,9 +411,6 @@ public class TableDao {
     // snapshot directory
     // pointing to the files in one or more datasets.
     FireStoreFile fireStoreFile = fileDao.retrieveFileMetadata(datasetTableServiceClient, fileId);
-    if (fireStoreFile == null) {
-      return null;
-    }
 
     FSFile fsFile = new FSFile();
     fsFile

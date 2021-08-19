@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -12,6 +13,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -24,9 +26,13 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.profile.ProfileService;
+import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -45,6 +51,9 @@ public class FileService {
   private final SnapshotService snapshotService;
   private final LoadService loadService;
   private final ConfigurationService configService;
+  private final TableDao tableDao;
+  private final ResourceService resourceService;
+  private final ProfileService profileService;
 
   @Autowired
   public FileService(
@@ -53,13 +62,19 @@ public class FileService {
       DatasetService datasetService,
       SnapshotService snapshotService,
       LoadService loadService,
-      ConfigurationService configService) {
+      ConfigurationService configService,
+      TableDao tableDao,
+      ResourceService resourceService,
+      ProfileService profileService) {
     this.fileDao = fileDao;
     this.datasetService = datasetService;
     this.jobService = jobService;
     this.snapshotService = snapshotService;
     this.loadService = loadService;
     this.configService = configService;
+    this.tableDao = tableDao;
+    this.resourceService = resourceService;
+    this.profileService = profileService;
   }
 
   public String deleteFile(String datasetId, String fileId, AuthenticatedUserRequest userReq) {
@@ -179,18 +194,37 @@ public class FileService {
     Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
     return fileDao.retrieveById(dataset, fileId, depth);
   }
+  // TODO - Have to que on which lookup based on the dataset cloud platform
+  FSItem lookupFSItemAzure(String datasetId, UUID billingProfileId, String fileId, int depth)
+      throws InterruptedException {
+    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
+    BillingProfileModel billingProfile = profileService.getProfileByIdNoCheck(billingProfileId);
+    // TODO - I think we want to check all storage accounts for this case
+    AzureStorageAccountResource storageAccountResource =
+        resourceService
+            .getStorageAccount(dataset, billingProfile)
+            .orElseThrow(
+                () ->
+                    new CorruptMetadataException(
+                        String.format(
+                            "Expected storage account for Dataset/Billing Profile %s/%s",
+                            dataset.getId(), billingProfile.getId())));
+    return tableDao.retrieveById(UUID.fromString(datasetId), fileId, depth, storageAccountResource);
+  }
 
   /**
    * Note that this method will only return a file if the encompassing dataset is NOT exclusively
    * locked. It is intended for user-facing calls (e.g. from RepositoryApiController), not internal
    * calls that may require an exclusively locked dataset to be returned (e.g. file deletion).
    */
+  // TODO - handle case that file lives in azure
   FSItem lookupFSItemByPath(String datasetId, String path, int depth) throws InterruptedException {
     Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
     return fileDao.retrieveByPath(dataset, path, depth);
   }
 
   // -- snapshot lookups --
+  // TODO - Q4 - Handle snapshot in Azure
   public FileModel lookupSnapshotFile(String snapshotId, String fileId, int depth) {
     try {
       // note: this method only returns snapshots that are NOT exclusively locked

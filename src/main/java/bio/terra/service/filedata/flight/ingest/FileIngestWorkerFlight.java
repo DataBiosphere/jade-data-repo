@@ -10,6 +10,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
@@ -41,6 +42,7 @@ public class FileIngestWorkerFlight extends Flight {
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    TableDao azureTableDao = appContext.getBean(TableDao.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -70,13 +72,19 @@ public class FileIngestWorkerFlight extends Flight {
     //   When the file entry is (atomically) created in the file firestore collection,
     //   the file becomes visible for REST API lookups.
     addStep(new IngestFileIdStep(configService));
-    addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-    addStep(new IngestFileDirectoryStep(fileDao, fileMetadataUtils, dataset), fileSystemRetry);
+
     if (platform.isGcp()) {
+      addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
+      addStep(new IngestFileDirectoryStep(fileDao, fileMetadataUtils, dataset), fileSystemRetry);
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
+      addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
+      addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset));
+      addStep(
+          new IngestFileAzureDirectoryStep(azureTableDao, fileMetadataUtils, dataset),
+          fileSystemRetry);
       addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
+      addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), fileSystemRetry);
     }
-    addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
   }
 }

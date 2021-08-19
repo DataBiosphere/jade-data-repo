@@ -4,6 +4,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.CloudPlatform;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -13,6 +14,7 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.flight.ingest.IngestBuildLoadFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
@@ -58,20 +60,34 @@ public class DatasetIngestFlight extends Flight {
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
+    ProfileService profileService = appContext.getBean(ProfileService.class);
+    AzureSynapsePdao azureSynapsePdao = appContext.getBean(AzureSynapsePdao.class);
+    ResourceService resourceService = appContext.getBean(ResourceService.class);
 
-    // get data from inputs that steps need
+    IngestRequestModel ingestRequestModel =
+        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
+    CloudPlatformWrapper cloudPlatform =
+        CloudPlatformWrapper.of(
+            datasetService.retrieve(datasetId).getDatasetSummary().getStorageCloudPlatform());
+    AuthenticatedUserRequest userReq =
+        inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
-    addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
-    addStep(new IngestSetupStep(datasetService, configService));
+    if (cloudPlatform.is(CloudPlatform.AZURE)) {
+      addStep(
+          new AuthorizeBillingProfileUseStep(
+              profileService, ingestRequestModel.getProfileId(), userReq));
+    }
 
-    IngestRequestModel ingestRequest =
-        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
-    if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.JSON) {
+    addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+    addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
+
+    if (ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON
+        && cloudPlatform.is(CloudPlatform.GCP)) {
       addJsonSteps(
           inputParameters,
           appContext,
@@ -79,15 +95,24 @@ public class DatasetIngestFlight extends Flight {
           configService,
           datasetService,
           bigQueryPdao,
-          ingestRequest,
+          ingestRequestModel,
           datasetId);
     }
 
-    addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
-    addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
-    addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));
-    addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
-    addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
+    if (cloudPlatform.is(CloudPlatform.GCP)) {
+      addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
+      addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
+      // TODO - For Azure, we'll cover this with DR-2017
+      addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));
+      addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
+      addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
+    } else if (cloudPlatform.is(CloudPlatform.AZURE)) {
+      addStep(new IngestCreateIngestRequestDataSourceStep(azureSynapsePdao));
+      addStep(
+          new IngestCreateTargetDataSourceStep(azureSynapsePdao, datasetService, resourceService));
+      addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
+      addStep(new IngestCleanSynapseStep(azureSynapsePdao));
+    }
     addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
   }
 
@@ -130,7 +155,8 @@ public class DatasetIngestFlight extends Flight {
     int driverWaitSeconds = configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
     int loadHistoryWaitSeconds =
         configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS);
-    int fileChunkSize = configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE);
+    int loadHistoryChunkSize =
+        configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE);
 
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
     // Begin file + metadata load
@@ -174,16 +200,17 @@ public class DatasetIngestFlight extends Flight {
         new IngestCreateBucketForScratchFileStep(
             resourceService, dataset, IngestUtils.noFilesToIngest));
     addStep(new IngestCreateScratchFileStep(gcsPdao, IngestUtils.noFilesToIngest));
-    addStep(
-        new IngestCopyLoadHistoryToBQStep(
-            loadService,
-            datasetService,
-            loadTag,
-            datasetId.toString(),
-            bigQueryPdao,
-            fileChunkSize,
-            loadHistoryWaitSeconds,
-            IngestUtils.noFilesToIngest));
+    if (!IngestUtils.noFilesToIngest.test(context())) {
+      addStep(
+          new IngestCopyLoadHistoryToBQStep(
+              bigQueryPdao,
+              loadService,
+              datasetService,
+              datasetId,
+              loadTag,
+              loadHistoryWaitSeconds,
+              loadHistoryChunkSize));
+    }
     addStep(new IngestCleanFileStateStep(loadService, IngestUtils.noFilesToIngest));
 
     addStep(new LoadUnlockStep(loadService, IngestUtils.noFilesToIngest));

@@ -20,7 +20,7 @@ public class LoadLockStep extends SkippableStep {
   }
 
   public LoadLockStep(LoadService loadService) {
-    this.loadService = loadService;
+    this(loadService, SkippableStep::neverSkip);
   }
 
   @Override

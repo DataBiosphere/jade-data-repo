@@ -20,7 +20,7 @@ public class IngestCleanFileStateStep extends SkippableStep {
   }
 
   public IngestCleanFileStateStep(LoadService loadService) {
-    this.loadService = loadService;
+    this(loadService, SkippableStep::neverSkip);
   }
 
   @Override

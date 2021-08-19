@@ -73,6 +73,6 @@ public class GcsPdaoUnitTest {
     final String name = "foo/bar/baz.json";
     final String gsPath = String.format("gs://%s/%s", bucket, name);
     BlobInfo blobInfo = Blob.newBuilder(bucket, name).build();
-    assertThat(gsPath).isEqualTo(GcsUtils.getGsPathFromBlob(blobInfo));
+    assertThat(gsPath).isEqualTo(GcsPdao.getGsPathFromBlob(blobInfo));
   }
 }

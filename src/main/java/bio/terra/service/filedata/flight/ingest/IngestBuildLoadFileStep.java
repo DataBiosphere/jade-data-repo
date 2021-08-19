@@ -25,10 +25,6 @@ public class IngestBuildLoadFileStep extends SkippableStep {
     this.objectMapper = objectMapper;
   }
 
-  public IngestBuildLoadFileStep(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
-  }
-
   @Override
   public StepResult doSkippableStep(FlightContext context) {
     var workingMap = context.getWorkingMap();

@@ -26,11 +26,6 @@ public class IngestCreateBucketForScratchFileStep extends SkippableStep {
     this.dataset = dataset;
   }
 
-  public IngestCreateBucketForScratchFileStep(ResourceService resourceService, Dataset dataset) {
-    this.resourceService = resourceService;
-    this.dataset = dataset;
-  }
-
   @Override
   public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();

@@ -87,7 +87,8 @@ public class DatasetIngestFlight extends Flight {
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 
-    if (ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON && cloudPlatform.isGcp()) {
+    if (ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON
+        && cloudPlatform.isGcp()) {
       addJsonSteps(
           inputParameters,
           appContext,
@@ -201,17 +202,16 @@ public class DatasetIngestFlight extends Flight {
         new IngestCreateBucketForScratchFileStep(
             resourceService, dataset, IngestUtils.noFilesToIngest));
     addStep(new IngestCreateScratchFileStep(gcsPdao, IngestUtils.noFilesToIngest));
-    if (!IngestUtils.noFilesToIngest.test(context())) {
-      addStep(
-          new IngestCopyLoadHistoryToBQStep(
-              bigQueryPdao,
-              loadService,
-              datasetService,
-              datasetId,
-              loadTag,
-              loadHistoryWaitSeconds,
-              loadHistoryChunkSize));
-    }
+    addStep(
+        new IngestCopyLoadHistoryToBQStep(
+            bigQueryPdao,
+            loadService,
+            datasetService,
+            datasetId,
+            loadTag,
+            loadHistoryWaitSeconds,
+            loadHistoryChunkSize,
+            IngestUtils.noFilesToIngest));
     addStep(new IngestCleanFileStateStep(loadService, IngestUtils.noFilesToIngest));
 
     addStep(new LoadUnlockStep(loadService, IngestUtils.noFilesToIngest));

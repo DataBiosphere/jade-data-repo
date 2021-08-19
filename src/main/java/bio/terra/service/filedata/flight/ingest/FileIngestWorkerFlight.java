@@ -55,26 +55,20 @@ public class FileIngestWorkerFlight extends Flight {
 
     // The flight plan:
     // 1. Generate the new file id and store it in the working map. We need to allocate the file id
-    // before any
-    //    other operation so that it is persisted in the working map. In particular,
-    // IngestFileDirectoryStep undo
-    //    needs to know the file id in order to clean up.
+    //   before any other operation so that it is persisted in the working map. In particular,
+    //   IngestFileDirectoryStep undo needs to know the file id in order to clean up.
     // 2. Create the directory entry for the file. The state where there is a directory entry for a
-    // file, but
-    //    no entry in the file collection, indicates that the file is being ingested (or deleted)
-    // and so REST API
-    //    lookups will not reveal that it exists. We make the directory entry first, because that
-    // atomic operation
-    //    prevents a second ingest with the same path from getting created.
+    //   file, but no entry in the file collection, indicates that the file is being ingested
+    //   (or deleted) and so REST API lookups will not reveal that it exists. We make the directory
+    //   entry first, because that atomic operation prevents a second ingest with the same path from
+    //   getting created.
     // 3. Copy the file into the bucket. Return the gspath, checksum, size, and create time in the
-    // working map.
+    //   working map.
     // 4. Create the file entry in the filesystem. The file object takes the gspath, checksum, size,
-    // and create
-    //    time of the actual file in GCS. That ensures that the file info we return on REST API (and
-    // DRS) lookups
-    //    matches what users will see when they examine the GCS object. When the file entry is
-    // (atomically)
-    //    created in the file firestore collection, the file becomes visible for REST API lookups.
+    //   and create time of the actual file in GCS. That ensures that the file info we return on
+    //   REST API (and DRS) lookups matches what users will see when they examine the GCS object.
+    //   When the file entry is (atomically) created in the file firestore collection,
+    //   the file becomes visible for REST API lookups.
     addStep(new IngestFileIdStep(configService));
     addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
     addStep(new IngestFileDirectoryStep(fileDao, fileMetadataUtils, dataset), fileSystemRetry);

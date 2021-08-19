@@ -3030,6 +3030,8 @@ components:
           type: integer
           description: number of bad rows skipped
           format: int64
+        load_result:
+          $ref: '#/components/schemas/BulkLoadArrayResultModel'
       description: >
         Response from performing an ingest.
     FileLoadModel:

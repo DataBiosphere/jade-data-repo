@@ -4,6 +4,7 @@ import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -20,7 +21,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.DatabaseOperationException;
@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +49,7 @@ import org.slf4j.LoggerFactory;
 // - BUCKET_INFO is a GoogleBucketResource
 // - STORAGE_ACCOUNT_INFO is a AzureStorageAccountResource
 //
-public class IngestDriverStep implements Step {
+public class IngestDriverStep extends SkippableStep {
   private static final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
   private final LoadService loadService;
@@ -70,7 +71,9 @@ public class IngestDriverStep implements Step {
       int maxFailedFileLoads,
       int driverWaitSeconds,
       UUID profileId,
-      CloudPlatform platform) {
+      CloudPlatform platform,
+      Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
     this.loadService = loadService;
     this.configurationService = configurationService;
     this.jobService = jobService;
@@ -82,8 +85,31 @@ public class IngestDriverStep implements Step {
     this.platform = platform;
   }
 
+  public IngestDriverStep(
+      LoadService loadService,
+      ConfigurationService configurationService,
+      JobService jobService,
+      String datasetId,
+      String loadTag,
+      int maxFailedFileLoads,
+      int driverWaitSeconds,
+      UUID profileId,
+      CloudPlatform platform) {
+    this(
+        loadService,
+        configurationService,
+        jobService,
+        datasetId,
+        loadTag,
+        maxFailedFileLoads,
+        driverWaitSeconds,
+        profileId,
+        platform,
+        SkippableStep::neverSkip);
+  }
+
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
+  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     // Gather inputs
     FlightMap workingMap = context.getWorkingMap();
     String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
@@ -151,11 +177,6 @@ public class IngestDriverStep implements Step {
         | DuplicateFlightIdSubmittedException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
     }
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 

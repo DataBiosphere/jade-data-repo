@@ -6,6 +6,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidBlobURLException;
+import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.InvalidUriException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -18,8 +19,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
 // Common code for the ingest steps
@@ -234,6 +239,30 @@ public final class IngestUtils {
   public static PdaoLoadStatistics getIngestStatistics(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     return workingMap.get(IngestMapKeys.INGEST_STATISTICS, PdaoLoadStatistics.class);
+  }
+
+  public static final Predicate<FlightContext> noFilesToIngest =
+      flightContext -> {
+        if (Optional.ofNullable(
+                flightContext.getWorkingMap().get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class))
+            .map(Set::isEmpty)
+            .orElse(true)) {
+          Logger logger = LoggerFactory.getLogger(flightContext.getFlightClassName());
+          logger.info(
+              "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
+          return true;
+        }
+        return false;
+      };
+
+  public static void checkForLargeIngestRequests(int numLines, int maxIngestRows) {
+    if (numLines > maxIngestRows) {
+      throw new InvalidIngestStrategyException(
+          String.format(
+              "The combined file ingest and metadata ingest workflow is limited to {} lines for ingest. This request had {} lines. For large requests, you should use the file ingest workflow and then the metadata ingest workflow.",
+              maxIngestRows,
+              numLines));
+    }
   }
 
   public static String getParquetTargetLocationURL(

@@ -17,14 +17,20 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.IamRole;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +40,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -74,8 +81,68 @@ public class GcsPdao {
     this.performanceLogger = performanceLogger;
   }
 
-  public Storage storageForBucket(GoogleBucketResource bucketResource) {
-    return gcsProjectFactory.getStorage(bucketResource.projectIdForBucket());
+  /**
+   * Get all of the lines from any files matching the path, including wildcarded paths
+   *
+   * @param path path to files, or path including wildcard referring to many files
+   * @param projectId Project ID to use for storage service in case of requester pays bucket
+   * @return All of the lines from all of the files matching the path
+   */
+  public List<String> getGcsFilesLines(String path, String projectId) {
+    Storage storage = gcsProjectFactory.getStorage(projectId);
+    int lastWildcard = path.lastIndexOf("*");
+    String prefixPath = lastWildcard >= 0 ? path.substring(0, lastWildcard) : path;
+    return listGcsFiles(prefixPath, projectId, storage)
+        .flatMap(blob -> getGcsFileLines(blob, projectId, storage).stream())
+        .collect(Collectors.toList());
+  }
+
+  private Stream<Blob> listGcsFiles(String path, String projectId, Storage storage) {
+    GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(path);
+    Iterable<Blob> blobs =
+        storage
+            .list(
+                locator.getBucket(),
+                Storage.BlobListOption.prefix(locator.getPath()),
+                Storage.BlobListOption.userProject(projectId))
+            .iterateAll();
+    return StreamSupport.stream(blobs.spliterator(), false);
+  }
+
+  private List<String> getGcsFileLines(Blob blob, String projectId, Storage storage) {
+    String gsPath = getGsPathFromBlob(blob);
+    logger.info("Getting lines from {}", gsPath);
+    String blobContents = getBlobContents(storage, projectId, blob);
+    return Arrays.asList(blobContents.split("\n"));
+  }
+
+  /**
+   * Write String to a GCS file
+   *
+   * @param path gs path to write the lines to
+   * @param contentsToWrite contents to write to file
+   * @param projectId project for billing
+   */
+  public void writeGcsFile(String path, String contentsToWrite, String projectId) {
+    Storage storage = gcsProjectFactory.getStorage(projectId);
+    logger.info("Writing contents to {}", path);
+    writeBlobContents(storage, projectId, path, contentsToWrite);
+  }
+
+  /**
+   * Create a file in GCS
+   *
+   * @param path path for the new file to be created at
+   * @param projectId project id for billing
+   * @return the Blob of the created file
+   */
+  public Blob createGcsFile(String path, String projectId) {
+    Storage storage = gcsProjectFactory.getStorage(projectId);
+    logger.info("Creating GCS file at {}", path);
+    GcsLocator locator = getGcsLocatorFromGsPath(path);
+    return storage.create(
+        Blob.newBuilder(locator.getBucket(), locator.getPath()).build(),
+        Storage.BlobTargetOption.userProject(projectId));
   }
 
   public FSFileInfo copyFile(
@@ -251,6 +318,41 @@ public class GcsPdao {
     }
 
     return new GcsLocator(sourceBucket, sourcePath);
+  }
+
+  public static String getBlobContents(Storage storage, String projectId, BlobInfo blobInfo) {
+    var blob = storage.get(blobInfo.getBlobId(), Storage.BlobGetOption.userProject(projectId));
+    var contents = blob.getContent(Blob.BlobSourceOption.userProject(projectId));
+    return new String(contents, StandardCharsets.UTF_8);
+  }
+
+  public static int writeBlobContents(
+      Storage storage, String projectId, BlobInfo blobInfo, String contents) {
+    var blob = storage.get(blobInfo.getBlobId(), Storage.BlobGetOption.userProject(projectId));
+    try (var writer = blob.writer(Storage.BlobWriteOption.userProject(projectId))) {
+      return writer.write(ByteBuffer.wrap(contents.getBytes(StandardCharsets.UTF_8)));
+    } catch (IOException ex) {
+      throw new GoogleResourceException(
+          String.format("Could not write to GCS file at %s", getGsPathFromBlob(blobInfo)), ex);
+    }
+  }
+
+  public static int writeBlobContents(
+      Storage storage, String projectId, String gsPath, String contents) {
+    return writeBlobContents(
+        storage, projectId, getBlobFromGsPath(storage, gsPath, projectId), contents);
+  }
+
+  public static String getGsPathFromBlob(BlobInfo blob) {
+    return getGsPathFromComponents(blob.getBucket(), blob.getName());
+  }
+
+  public static String getGsPathFromComponents(String bucket, String name) {
+    return "gs://" + bucket + "/" + name;
+  }
+
+  public Storage storageForBucket(GoogleBucketResource bucketResource) {
+    return gcsProjectFactory.getStorage(bucketResource.projectIdForBucket());
   }
 
   private void fileAclOp(

@@ -118,6 +118,29 @@ public class ResourceService {
   }
 
   /**
+   * Get or create a bucket for the ingest scratch files
+   *
+   * @param flightId used to lock the bucket metadata during possible creation
+   * @return a reference to the bucket as a POJO GoogleBucketResource
+   * @throws CorruptMetadataException in two cases.
+   *     <ul>
+   *       <li>if the bucket already exists, but the metadata does not AND the application property
+   *           allowReuseExistingBuckets=false.
+   *       <li>if the metadata exists, but the bucket does not
+   *     </ul>
+   */
+  public GoogleBucketResource getOrCreateBucketForIngestScratchFile(
+      Dataset dataset, GoogleProjectResource projectResource, String flightId)
+      throws InterruptedException, GoogleResourceNamingException {
+    return bucketService.getOrCreateBucket(
+        projectService.bucketForIngestScratchFile(projectResource.getGoogleProjectId()),
+        projectResource,
+        (GoogleRegion)
+            dataset.getDatasetSummary().getStorageResourceRegion(GoogleCloudResource.BUCKET),
+        flightId);
+  }
+
+  /**
    * Given an application deployment, get or create a storage account.
    *
    * @param dataset dataset to create storage account for

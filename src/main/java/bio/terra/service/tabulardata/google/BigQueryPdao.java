@@ -815,7 +815,8 @@ public class BigQueryPdao {
       Dataset dataset,
       DatasetTable targetTable,
       String stagingTableName,
-      IngestRequestModel ingestRequest)
+      IngestRequestModel ingestRequest,
+      String path)
       throws InterruptedException {
 
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
@@ -823,7 +824,7 @@ public class BigQueryPdao {
     TableId tableId = TableId.of(prefixName(dataset.getName()), stagingTableName);
     Schema schema = buildSchema(targetTable, true); // Source does not have row_id
     LoadJobConfiguration.Builder loadBuilder =
-        LoadJobConfiguration.builder(tableId, ingestRequest.getPath())
+        LoadJobConfiguration.builder(tableId, path)
             .setFormatOptions(buildFormatOptions(ingestRequest))
             .setMaxBadRecords(
                 (ingestRequest.getMaxBadRecords() == null)
@@ -867,8 +868,7 @@ public class BigQueryPdao {
       logger.info(
           "Staging table load job " + loadJob.getJobId().getJob() + " failed: " + loadJobError);
       if ("notFound".equals(loadJobError.getReason())) {
-        throw new IngestFileNotFoundException(
-            "Ingest source file not found: " + ingestRequest.getPath());
+        throw new IngestFileNotFoundException("Ingest source file not found: " + path);
       }
 
       List<String> loadErrors = new ArrayList<>();

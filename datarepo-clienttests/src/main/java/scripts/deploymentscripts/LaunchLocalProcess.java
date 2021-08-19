@@ -204,6 +204,9 @@ public class LaunchLocalProcess extends DeploymentScript {
         "DATAREPO_MAXBULKFILELOADARRAY",
         String.valueOf(applicationSpecification.maxBulkFileLoadArray));
     envVars.put(
+        "DATAREPO_MAXCOMBINEDFILEANDMETADATAINGEST",
+        String.valueOf(applicationSpecification.maxCombinedFileAndMetadataIngest));
+    envVars.put(
         "DATAREPO_LOADCONCURRENTFILES",
         String.valueOf(applicationSpecification.loadConcurrentFiles));
     envVars.put(

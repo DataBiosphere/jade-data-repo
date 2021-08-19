@@ -116,18 +116,13 @@ public class FileIngestBulkFlight extends Flight {
     //    billing information remains valid.
     // 1. Lock the load tag - only one flight operating on a load tag at a time
     // 2. TODO: reserve a bulk load slot to make sure we have the threads to do the flight; abort
-    // otherwise (DR-754)
+    //    otherwise (DR-754)
     // 3. Locate the bucket where this file should go and store it in the working map. We need to
-    // make the
-    //    decision about where we will put the file and remember it persistently in the working map
-    // before
-    //    we copy the file in. That allows the copy undo to know the location to look at to delete
-    // the file.
-    //    We do this once here and pass the information into the worker flight. We also need to know
-    // the
-    //    project that contains the bucket. It will be charged for the copying if the source file
-    // listing
-    //    the files to load is in a requester pay bucket.
+    //    make the decision about where we will put the file and remember it persistently in the
+    //    working map before we copy the file in. That allows the copy undo to know the location to
+    //    look at to delete the file. We do this once here and pass the information into the worker
+    //    flight. We also need to know the project that contains the bucket. It will be charged for
+    //    the copying if the source file listing the files to load is in a requester pay bucket.
     // 4. Depends on the request type:
     //    a. isArray - put the array into the load_file table for processing
     //    b. !isArray - read the file into the load_file table for processing
@@ -138,7 +133,7 @@ public class FileIngestBulkFlight extends Flight {
     // 7. TODO: Copy results into the database BigQuery (DR-694)
     // 8. Clean load_file table
     // 9. TODO: release the bulk load slot (DR-754) - may not need a step if we use the count of
-    // locked tags
+    //    locked tags
     // 10. Unlock the load tag
     addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
     addStep(new LockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);

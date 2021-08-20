@@ -211,6 +211,20 @@ public class ResourceService {
   }
 
   /**
+   * Get all storage accounts for a dataset, regardless of billing profile
+   *
+   * @param dataset dataset to get storage account for
+   * @return Optional AzureStorageAccountResource
+   */
+  public List<AzureStorageAccountResource> getStorageAccountsForDataset(Dataset dataset) {
+    var storageAccountResourceIds =
+        datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
+    return storageAccountResourceIds.stream()
+        .map(this::lookupStorageAccount)
+        .collect(Collectors.toList());
+  }
+
+  /**
    * Delete the metadata and cloud storage account. Note: this will not check references and delete
    * the storage even if it contains data
    *

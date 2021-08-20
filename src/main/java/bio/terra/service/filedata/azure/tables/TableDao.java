@@ -156,35 +156,37 @@ public class TableDao {
     return fileDao.retrieveFileMetadata(tableServiceClient, fileId);
   }
 
-  //    /**
-  //     * Retrieve an FSItem by path
-  //     *
-  //     * @param container - dataset or snapshot containing file's directory entry
-  //     * @param fullPath - path of the file in the directory
-  //     * @param enumerateDepth - how far to enumerate the directory structure; 0 means not at all;
-  // 1
-  //     *     means contents of this directory; 2 means this and its directories, etc. -1 means the
-  //     *     entire tree.
-  //     * @return FSFile or FSDir of retrieved file; can return null on not found
-  //  //     */
-  //      public FSItem retrieveByPath(FSContainerInterface container, String fullPath, int
-  // enumerateDepth)
-  //              throws InterruptedException {
-  //          Firestore fsItemFirestore =
-  // FireStoreProject.get(container.getProjectResource().getGoogleProjectId()).getFirestore();
-  //          Firestore metadataFirestore = container.firestoreConnection().getFirestore();
-  //          String containerId = container.getId().toString();
-  //
-  //          FireStoreDirectoryEntry fireStoreDirectoryEntry =
-  //                  directoryDao.retrieveByPath(fsItemFirestore, containerId, fullPath);
-  //          return retrieveWorker(
-  //                  fsItemFirestore,
-  //                  metadataFirestore,
-  //                  containerId,
-  //                  enumerateDepth,
-  //                  fireStoreDirectoryEntry,
-  //                  fullPath);
-  //      }
+  /**
+   * Retrieve an FSItem by path
+   *
+   * @param datasetId - dataset containing file's directory entry
+   * @param fullPath - path of the file in the directory
+   * @param enumerateDepth - how far to enumerate the directory structure; 0 means not at all; 1
+   *     means contents of this directory; 2 means this and its directories, etc. -1 means the
+   *     entire tree.
+   * @return FSFile or FSDir of retrieved file; can return null on not found //
+   */
+  // TODO - Azure snapshot: Support passing in snapshotID
+  public FSItem retrieveByPath(
+      UUID datasetId,
+      String fullPath,
+      int enumerateDepth,
+      AzureStorageAccountResource storageAccountResource) {
+    BillingProfileModel profileModel =
+        profileDao.getBillingProfileById(storageAccountResource.getProfileId());
+    TableServiceClient tableServiceClient =
+        azureAuthService.getTableServiceClient(profileModel, storageAccountResource);
+
+    FireStoreDirectoryEntry fireStoreDirectoryEntry =
+        directoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), fullPath);
+    return retrieveWorker(
+        tableServiceClient,
+        tableServiceClient,
+        datasetId.toString(),
+        enumerateDepth,
+        fireStoreDirectoryEntry,
+        fullPath);
+  }
 
   /**
    * Retrieve an FSItem by id
@@ -196,6 +198,7 @@ public class TableDao {
    *     entire tree.
    * @return FSFile or FSDir of retrieved file; can return null on not found
    */
+  // TODO - Azure snapshot: Support passing in snapshotID
   public FSItem retrieveById(
       UUID datasetId,
       String fileId,

@@ -1,6 +1,6 @@
 package bio.terra.service.filedata;
 
-import bio.terra.model.BillingProfileModel;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -15,6 +15,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
+import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
@@ -28,7 +29,6 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -36,6 +36,7 @@ import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -192,24 +193,36 @@ public class FileService {
    */
   FSItem lookupFSItem(String datasetId, String fileId, int depth) throws InterruptedException {
     Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
-    return fileDao.retrieveById(dataset, fileId, depth);
-  }
-  // TODO - Have to que on which lookup based on the dataset cloud platform
-  FSItem lookupFSItemAzure(String datasetId, UUID billingProfileId, String fileId, int depth)
-      throws InterruptedException {
-    Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
-    BillingProfileModel billingProfile = profileService.getProfileByIdNoCheck(billingProfileId);
-    // TODO - I think we want to check all storage accounts for this case
-    AzureStorageAccountResource storageAccountResource =
-        resourceService
-            .getStorageAccount(dataset, billingProfile)
-            .orElseThrow(
-                () ->
-                    new CorruptMetadataException(
-                        String.format(
-                            "Expected storage account for Dataset/Billing Profile %s/%s",
-                            dataset.getId(), billingProfile.getId())));
-    return tableDao.retrieveById(UUID.fromString(datasetId), fileId, depth, storageAccountResource);
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      return fileDao.retrieveById(dataset, fileId, depth);
+    } else {
+      List<FSItem> fsItems =
+          resourceService.getStorageAccountsForDataset(dataset).stream()
+              .map(
+                  storageAccountResource -> {
+                    try {
+                      return tableDao.retrieveById(
+                          UUID.fromString(datasetId), fileId, depth, storageAccountResource);
+                    } catch (FileNotFoundException ex) {
+                      logger.debug("File not found in storage account: {}", storageAccountResource);
+                    }
+                    return null;
+                  })
+              .collect(Collectors.toList());
+      switch (fsItems.size()) {
+        case 0:
+          throw new FileNotFoundException(
+              "Unable to find FSItem in Azure Storage tables by file id");
+        case 1:
+          return fsItems.get(0);
+        default:
+          throw new CorruptMetadataException(
+              String.format(
+                  "More than one FSItem for file Id {}, and dataset Id {}", fileId, datasetId));
+      }
+    }
   }
 
   /**
@@ -217,10 +230,38 @@ public class FileService {
    * locked. It is intended for user-facing calls (e.g. from RepositoryApiController), not internal
    * calls that may require an exclusively locked dataset to be returned (e.g. file deletion).
    */
-  // TODO - handle case that file lives in azure
   FSItem lookupFSItemByPath(String datasetId, String path, int depth) throws InterruptedException {
     Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
-    return fileDao.retrieveByPath(dataset, path, depth);
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      return fileDao.retrieveByPath(dataset, path, depth);
+    } else {
+      List<FSItem> fsItems =
+          resourceService.getStorageAccountsForDataset(dataset).stream()
+              .map(
+                  storageAccountResource -> {
+                    try {
+                      return tableDao.retrieveByPath(
+                          UUID.fromString(datasetId), path, depth, storageAccountResource);
+                    } catch (FileNotFoundException ex) {
+                      logger.debug("File not found in storage account: {}", storageAccountResource);
+                    }
+                    return null;
+                  })
+              .collect(Collectors.toList());
+      switch (fsItems.size()) {
+        case 0:
+          throw new FileNotFoundException(
+              "Unable to find FSItem in Azure Storage tables by searching on path");
+        case 1:
+          return fsItems.get(0);
+        default:
+          throw new CorruptMetadataException(
+              String.format(
+                  "More than one FSItem for path {}, and dataset Id {}", path, datasetId));
+      }
+    }
   }
 
   // -- snapshot lookups --

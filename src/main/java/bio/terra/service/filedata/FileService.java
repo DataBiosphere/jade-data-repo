@@ -1,6 +1,7 @@
 package bio.terra.service.filedata;
 
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -203,8 +204,15 @@ public class FileService {
               .map(
                   storageAccountResource -> {
                     try {
+                      BillingProfileModel billingProfile =
+                          profileService.getProfileByIdNoCheck(
+                              storageAccountResource.getProfileId());
                       return tableDao.retrieveById(
-                          UUID.fromString(datasetId), fileId, depth, storageAccountResource);
+                          UUID.fromString(datasetId),
+                          fileId,
+                          depth,
+                          billingProfile,
+                          storageAccountResource);
                     } catch (FileNotFoundException ex) {
                       logger.debug("File not found in storage account: {}", storageAccountResource);
                     }

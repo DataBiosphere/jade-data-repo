@@ -3,7 +3,6 @@ package bio.terra.service.filedata.azure.tables;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.filedata.google.firestore.FireStoreDirectoryDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
@@ -55,7 +54,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class TableDirectoryDao {
-  private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
+  private final Logger logger = LoggerFactory.getLogger(TableDirectoryDao.class);
   private static final String TABLE_NAME = "dataset";
   private final FileMetadataUtils fileMetadataUtils;
 

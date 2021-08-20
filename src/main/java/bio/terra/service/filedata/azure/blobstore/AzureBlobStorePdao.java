@@ -80,12 +80,10 @@ public class AzureBlobStorePdao {
   }
 
   public FSFileInfo copyFile(
+      BillingProfileModel profileModel,
       FileLoadModel fileLoadModel,
       String fileId,
       AzureStorageAccountResource storageAccountResource) {
-
-    BillingProfileModel profileModel =
-        profileDao.getBillingProfileById(fileLoadModel.getProfileId());
 
     BlobContainerClientFactory targetClientFactory =
         getTargetDataClientFactory(profileModel, storageAccountResource, ContainerType.DATA, false);

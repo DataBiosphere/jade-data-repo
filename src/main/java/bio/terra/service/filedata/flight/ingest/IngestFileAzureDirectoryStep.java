@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
@@ -9,6 +10,7 @@ import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -50,6 +52,8 @@ public class IngestFileAzureDirectoryStep implements Step {
     String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
     AzureStorageAccountResource storageAccountResource =
         workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+    BillingProfileModel billingProfileModel =
+        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     try {
       // The state logic goes like this:
       //  1. the directory entry doesn't exist. We need to create the directory entry for it.
@@ -72,7 +76,8 @@ public class IngestFileAzureDirectoryStep implements Step {
       // Lookup the file - on a recovery, we may have already created it, but not
       // finished. Or it might already exist, created by someone else.
       FireStoreDirectoryEntry existingEntry =
-          tableDao.lookupDirectoryEntryByPath(dataset, targetPath, storageAccountResource);
+          tableDao.lookupDirectoryEntryByPath(
+              dataset, targetPath, billingProfileModel, storageAccountResource);
       if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
         // (1) Not there - create it
         FireStoreDirectoryEntry newEntry =
@@ -83,13 +88,14 @@ public class IngestFileAzureDirectoryStep implements Step {
                 .name(fileMetadataUtils.getName(loadModel.getTargetPath()))
                 .datasetId(datasetId)
                 .loadTag(loadModel.getLoadTag());
-        tableDao.createDirectoryEntry(newEntry, storageAccountResource);
+        tableDao.createDirectoryEntry(newEntry, billingProfileModel, storageAccountResource);
       } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION)
           && !StringUtils.equals(existingEntry.getFileId(), fileId)) {
         // (b) We are in a re-run of a load job. Try to get the file entry.
         fileId = existingEntry.getFileId();
         workingMap.put(FileMapKeys.FILE_ID, fileId);
-        FireStoreFile fileEntry = tableDao.lookupFile(fileId, storageAccountResource);
+        FireStoreFile fileEntry =
+            tableDao.lookupFile(fileId, billingProfileModel, storageAccountResource);
         if (fileEntry != null) {
           // (b)(i) We successfully loaded this file already
           workingMap.put(FileMapKeys.LOAD_COMPLETED, true);
@@ -109,12 +115,14 @@ public class IngestFileAzureDirectoryStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
+    BillingProfileModel billingProfileModel =
+        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccountResource =
         workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
 
     if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
       try {
-        tableDao.deleteDirectoryEntry(fileId, storageAccountResource);
+        tableDao.deleteDirectoryEntry(fileId, billingProfileModel, storageAccountResource);
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
       }

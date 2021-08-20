@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 
 import bio.terra.common.FlightUtils;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
@@ -10,6 +11,7 @@ import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -37,6 +39,8 @@ public class IngestFileAzurePrimaryDataStep implements Step {
         context.getInputParameters().get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
 
     FlightMap workingMap = context.getWorkingMap();
+    BillingProfileModel billingProfileModel =
+        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
@@ -49,7 +53,9 @@ public class IngestFileAzurePrimaryDataStep implements Step {
         fsFileInfo =
             FSFileInfo.getTestInstance(fileId, storageAccountResource.getResourceId().toString());
       } else {
-        fsFileInfo = azureBlobStorePdao.copyFile(fileLoadModel, fileId, storageAccountResource);
+        fsFileInfo =
+            azureBlobStorePdao.copyFile(
+                billingProfileModel, fileLoadModel, fileId, storageAccountResource);
       }
       workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
     }

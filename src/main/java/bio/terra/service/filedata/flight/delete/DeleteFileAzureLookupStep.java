@@ -9,6 +9,7 @@ import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.*;
@@ -56,6 +57,7 @@ public class DeleteFileAzureLookupStep implements Step {
       // If we are restarting, we may have already retrieved and saved the file,
       // so we check the working map before doing the lookup.
       FlightMap workingMap = context.getWorkingMap();
+      workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
       FireStoreFile fireStoreFile = workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreFile.class);
       BillingProfileModel billingProfile =
           profileDao.getBillingProfileById(dataset.getDefaultProfileId());
@@ -64,7 +66,7 @@ public class DeleteFileAzureLookupStep implements Step {
       workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
 
       if (fireStoreFile == null) {
-        fireStoreFile = tableDao.lookupFile(fileId, storageAccountResource);
+        fireStoreFile = tableDao.lookupFile(fileId, billingProfile, storageAccountResource);
         if (fireStoreFile != null) {
           workingMap.put(FileMapKeys.FIRESTORE_FILE, fireStoreFile);
         }

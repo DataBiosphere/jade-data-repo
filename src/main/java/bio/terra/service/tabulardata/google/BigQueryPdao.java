@@ -18,6 +18,7 @@ import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
@@ -33,6 +34,7 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.filedata.google.bq.BigQueryConfiguration;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotMapColumn;
@@ -41,6 +43,7 @@ import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
+import bio.terra.service.tabulardata.LoadHistoryUtil;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
 import com.google.cloud.bigquery.Acl;
@@ -60,6 +63,7 @@ import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.QueryParameterValue;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
@@ -77,6 +81,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -290,6 +295,66 @@ public class BigQueryPdao {
     sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
 
     bigQueryProject.query(sqlTemplate.render());
+  }
+
+  private static final String getLoadHistoryTemplate =
+      "SELECT * "
+          + "FROM `<project>.<dataset>.<loadTable>` L "
+          + "WHERE L.load_tag = @loadTag "
+          + String.format("ORDER BY %s ASC ", LoadHistoryUtil.FILE_ID_FIELD_NAME)
+          + "LIMIT <limit> "
+          + "OFFSET <offset> ";
+
+  public List<BulkLoadHistoryModel> getLoadHistory(
+      Dataset dataset, String loadTag, int offset, int limit) {
+    BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
+    String datasetName = prefixName(dataset.getName());
+    var sqlTemplate = new ST(getLoadHistoryTemplate);
+    sqlTemplate.add("project", bigQueryProject.getProjectId());
+    sqlTemplate.add("dataset", datasetName);
+    sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
+    sqlTemplate.add("limit", limit);
+    sqlTemplate.add("offset", offset);
+
+    var query = sqlTemplate.render();
+    QueryJobConfiguration queryConfig =
+        QueryJobConfiguration.newBuilder(query)
+            .addNamedParameter("loadTag", QueryParameterValue.string(loadTag))
+            .build();
+
+    try {
+      var results = bigQueryProject.getBigQuery().query(queryConfig);
+      return StreamSupport.stream(results.iterateAll().spliterator(), true)
+          .map(BigQueryPdao::bigQueryResultToBulkLoadHistoryModel)
+          .collect(Collectors.toList());
+    } catch (InterruptedException ex) {
+      throw new GoogleResourceException("Could not query BigQuery for load history", ex);
+    }
+  }
+
+  private static String bqStringValue(FieldValueList fieldValue, String fieldName) {
+    var value = fieldValue.get(fieldName);
+    if (value != null) {
+      var stringValue = value.getStringValue();
+      if (!stringValue.isEmpty()) {
+        return stringValue;
+      }
+    }
+    return null;
+  }
+
+  private static BulkLoadHistoryModel bigQueryResultToBulkLoadHistoryModel(
+      FieldValueList fieldValue) {
+    return new BulkLoadHistoryModel()
+        .sourcePath(fieldValue.get(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME).getStringValue())
+        .targetPath(fieldValue.get(LoadHistoryUtil.TARGET_PATH_FIELD_NAME).getStringValue())
+        .state(
+            BulkLoadFileState.fromValue(
+                fieldValue.get(LoadHistoryUtil.STATE_FIELD_NAME).getStringValue()))
+        .fileId(fieldValue.get(LoadHistoryUtil.FILE_ID_FIELD_NAME).getStringValue())
+        .checksumCRC(bqStringValue(fieldValue, LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
+        .checksumMD5(bqStringValue(fieldValue, LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
+        .error(bqStringValue(fieldValue, LoadHistoryUtil.ERROR_FIELD_NAME));
   }
 
   public boolean deleteDataset(Dataset dataset) throws InterruptedException {
@@ -750,7 +815,8 @@ public class BigQueryPdao {
       Dataset dataset,
       DatasetTable targetTable,
       String stagingTableName,
-      IngestRequestModel ingestRequest)
+      IngestRequestModel ingestRequest,
+      String path)
       throws InterruptedException {
 
     BigQueryProject bigQueryProject = BigQueryProject.from(dataset);
@@ -758,7 +824,7 @@ public class BigQueryPdao {
     TableId tableId = TableId.of(prefixName(dataset.getName()), stagingTableName);
     Schema schema = buildSchema(targetTable, true); // Source does not have row_id
     LoadJobConfiguration.Builder loadBuilder =
-        LoadJobConfiguration.builder(tableId, ingestRequest.getPath())
+        LoadJobConfiguration.builder(tableId, path)
             .setFormatOptions(buildFormatOptions(ingestRequest))
             .setMaxBadRecords(
                 (ingestRequest.getMaxBadRecords() == null)
@@ -802,8 +868,7 @@ public class BigQueryPdao {
       logger.info(
           "Staging table load job " + loadJob.getJobId().getJob() + " failed: " + loadJobError);
       if ("notFound".equals(loadJobError.getReason())) {
-        throw new IngestFileNotFoundException(
-            "Ingest source file not found: " + ingestRequest.getPath());
+        throw new IngestFileNotFoundException("Ingest source file not found: " + path);
       }
 
       List<String> loadErrors = new ArrayList<>();

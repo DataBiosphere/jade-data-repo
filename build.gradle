@@ -42,7 +42,7 @@ plugins {
 
 allprojects {
     group 'bio.terra'
-    version '1.153.0-SNAPSHOT'
+    version '1.161.0-SNAPSHOT'
 
     ext {
         resourceDir = "${rootDir}/src/main/resources/api"
@@ -203,6 +203,8 @@ dependencies {
     implementation 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.10.0'
     implementation 'org.elasticsearch:elasticsearch:7.10.0'
 
+    implementation group: 'com.microsoft.sqlserver', name: 'mssql-jdbc', version: '9.2.1.jre11'
+
     // This allows you to build with a local Stairway JAR file, instead of the one from the repository
     // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
     // Or define the environment variable ORG_GRADLE_PROJECT_stairwayjar
@@ -211,7 +213,7 @@ dependencies {
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
         implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
     } else {
-        implementation 'bio.terra:stairway:0.0.52-SNAPSHOT'
+        implementation 'bio.terra:stairway:0.0.62-SNAPSHOT'
     }
 
     // Similar development mode for pointing to terra common library
@@ -229,13 +231,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'io.micrometer:micrometer-registry-prometheus:latest.release'
 
-    // Forcing this due to vulnerability issues
-    compile ('com.fasterxml.jackson.core:jackson-databind:2.11.0.rc1') {
-        force = true
-    }
-    compile ('com.fasterxml.jackson.core:jackson-core:2.10.2') {
-        force = true
-    }
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.11.4'
 
     // Azure related dependencies
     implementation 'com.azure:azure-identity:1.2.5'

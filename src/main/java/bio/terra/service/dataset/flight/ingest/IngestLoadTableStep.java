@@ -7,6 +7,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
@@ -26,8 +27,18 @@ public class IngestLoadTableStep implements Step {
     String stagingTableName = IngestUtils.getStagingTableName(context);
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
 
+    FlightMap workingMap = context.getWorkingMap();
+
+    final String pathToIngestFile;
+    if (IngestUtils.noFilesToIngest.test(context)) {
+      pathToIngestFile = ingestRequest.getPath();
+    } else {
+      pathToIngestFile = workingMap.get(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, String.class);
+    }
+
     PdaoLoadStatistics ingestStatistics =
-        bigQueryPdao.loadToStagingTable(dataset, targetTable, stagingTableName, ingestRequest);
+        bigQueryPdao.loadToStagingTable(
+            dataset, targetTable, stagingTableName, ingestRequest, pathToIngestFile);
 
     // Save away the stats in the working map. We will use some of them later
     // when we make the annotations. Others are returned on the ingest response.

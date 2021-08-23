@@ -16,6 +16,9 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "azure")
 public class AzureResourceConfiguration {
   private Credentials credentials;
+  private Synapse synapse;
+  private int maxRetries;
+  private int retryTimeoutSeconds;
 
   public Credentials getCredentials() {
     return credentials;
@@ -23,6 +26,30 @@ public class AzureResourceConfiguration {
 
   public void setCredentials(Credentials credentials) {
     this.credentials = credentials;
+  }
+
+  public Synapse getSynapse() {
+    return synapse;
+  }
+
+  public void setSynapse(Synapse synapse) {
+    this.synapse = synapse;
+  }
+
+  public int getMaxRetries() {
+    return maxRetries;
+  }
+
+  public void setMaxRetries(int maxRetries) {
+    this.maxRetries = maxRetries;
+  }
+
+  public int getRetryTimeoutSeconds() {
+    return retryTimeoutSeconds;
+  }
+
+  public void setRetryTimeoutSeconds(int retryTimeoutSeconds) {
+    this.retryTimeoutSeconds = retryTimeoutSeconds;
   }
 
   /**
@@ -107,6 +134,55 @@ public class AzureResourceConfiguration {
 
     public void setHomeTenantId(UUID homeTenantId) {
       this.homeTenantId = homeTenantId;
+    }
+  }
+
+  public static class Synapse {
+
+    private String workspaceName;
+    private String sqlAdminUser;
+    private String sqlAdminPassword;
+    private String databaseName;
+    private String parquetFileFormatName;
+
+    public String getWorkspaceName() {
+      return workspaceName;
+    }
+
+    public void setWorkspaceName(String workspaceName) {
+      this.workspaceName = workspaceName;
+    }
+
+    public String getSqlAdminUser() {
+      return sqlAdminUser;
+    }
+
+    public void setSqlAdminUser(String sqlAdminUser) {
+      this.sqlAdminUser = sqlAdminUser;
+    }
+
+    public String getSqlAdminPassword() {
+      return sqlAdminPassword;
+    }
+
+    public void setSqlAdminPassword(String sqlAdminPassword) {
+      this.sqlAdminPassword = sqlAdminPassword;
+    }
+
+    public String getDatabaseName() {
+      return databaseName;
+    }
+
+    public void setDatabaseName(String databaseName) {
+      this.databaseName = databaseName;
+    }
+
+    public String getParquetFileFormatName() {
+      return parquetFileFormatName;
+    }
+
+    public void setParquetFileFormatName(String parquetFileFormatName) {
+      this.parquetFileFormatName = parquetFileFormatName;
     }
   }
 }

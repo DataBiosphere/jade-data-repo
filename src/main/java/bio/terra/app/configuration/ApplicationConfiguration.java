@@ -35,6 +35,8 @@ public class ApplicationConfiguration {
   private int maxBulkFileLoadArray;
   /** Maximum number of file loads allowed in the input file for a bulk file load */
   private int maxBulkFileLoad;
+  /** Maximum number of lines in ingest request */
+  private int maxDatasetIngest;
   /** Number of file loads to run concurrently in a bulk file load */
   private int loadConcurrentFiles;
   /**
@@ -174,6 +176,14 @@ public class ApplicationConfiguration {
 
   public void setMaxBulkFileLoad(int maxBulkFileLoad) {
     this.maxBulkFileLoad = maxBulkFileLoad;
+  }
+
+  public int getMaxDatasetIngest() {
+    return maxDatasetIngest;
+  }
+
+  public void setMaxDatasetIngest(int maxDatasetIngest) {
+    this.maxDatasetIngest = maxDatasetIngest;
   }
 
   public int getLoadConcurrentFiles() {

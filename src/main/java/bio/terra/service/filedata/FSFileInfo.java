@@ -9,7 +9,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 public class FSFileInfo {
   private String fileId;
   private String createdDate;
-  private String gspath;
+  private String cloudPath;
   private String checksumCrc32c;
   private String checksumMd5;
   private Long size;
@@ -33,12 +33,12 @@ public class FSFileInfo {
     return this;
   }
 
-  public String getGspath() {
-    return gspath;
+  public String getCloudPath() {
+    return cloudPath;
   }
 
-  public FSFileInfo gspath(String gspath) {
-    this.gspath = gspath;
+  public FSFileInfo cloudPath(String cloudPath) {
+    this.cloudPath = cloudPath;
     return this;
   }
 
@@ -82,7 +82,7 @@ public class FSFileInfo {
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
         .append("fileId", fileId)
-        .append("gspath", gspath)
+        .append("cloudPath", cloudPath)
         .append("checksumCrc32c", checksumCrc32c)
         .append("checksumMd5", checksumMd5)
         .append("size", size)
@@ -97,7 +97,7 @@ public class FSFileInfo {
         .checksumCrc32c(null)
         .checksumMd5("baaaaaad")
         .createdDate(Instant.now().toString())
-        .gspath("https://path")
+        .cloudPath("https://path")
         .size(100L);
   }
 }

@@ -1,5 +1,9 @@
 package bio.terra.service.filedata.google.gcs;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.emptyCollectionOf;
+import static org.hamcrest.Matchers.equalTo;
+
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.common.exception.PdaoInvalidUriException;
@@ -9,6 +13,9 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.junit.Assert;
 import org.junit.Test;
@@ -27,6 +34,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Connected.class)
 public class GcsPdaoTest {
   @Autowired private ConnectedTestConfiguration testConfig;
+  @Autowired private GcsPdao gcsPdao;
 
   private Storage storage = StorageOptions.getDefaultInstance().getService();
   private String projectId = StorageOptions.getDefaultProjectId();
@@ -67,6 +75,62 @@ public class GcsPdaoTest {
       Assert.assertEquals(testBlob.getName(), actualId.getName());
     } finally {
       storage.delete(testBlob);
+    }
+  }
+
+  @Test
+  public void testGetBlobContentsMatchingPath() {
+    UUID uuid = UUID.randomUUID();
+    List<BlobId> blobIds =
+        List.of(
+            BlobId.of(testConfig.getIngestbucket(), uuid + "/" + uuid + "-1.txt"),
+            BlobId.of(testConfig.getIngestbucket(), uuid + "/" + uuid + "-2.txt"),
+            BlobId.of(testConfig.getIngestbucket(), uuid + "/" + uuid + "-3.txt"));
+
+    try {
+      List<String> contents = new ArrayList<>();
+      for (int i = 0; i < blobIds.size(); i++) {
+        var fileContents = String.format("This is line %d", i);
+        var blobId = blobIds.get(i);
+        storage.create(
+            BlobInfo.newBuilder(blobId).build(), fileContents.getBytes(StandardCharsets.UTF_8));
+        contents.add(fileContents);
+      }
+      var listPath = GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/");
+      var listLines = gcsPdao.getGcsFilesLines(listPath, projectId);
+      assertThat(
+          "The listed file contents match concatenated contents of individual files",
+          listLines,
+          equalTo(contents));
+
+      var wildcardMiddlePath =
+          GcsPdao.getGsPathFromComponents(
+              testConfig.getIngestbucket(), uuid + "/" + uuid + "-*.txt");
+      var wildcardMiddleLines = gcsPdao.getGcsFilesLines(wildcardMiddlePath, projectId);
+      assertThat(
+          "The middle-wildcard-matched file contents match concatenated contents of individual files",
+          wildcardMiddleLines,
+          equalTo(contents));
+
+      var wildcardEndPath =
+          GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/" + uuid + "-*");
+      var wildcardEndLines = gcsPdao.getGcsFilesLines(wildcardEndPath, projectId);
+      assertThat(
+          "The end-wildcard-matched file contents match concatenated contents of individual files",
+          wildcardEndLines,
+          equalTo(contents));
+
+      var wildcardMultiplePath =
+          GcsPdao.getGsPathFromComponents(
+              testConfig.getIngestbucket(), uuid + "/*" + uuid + "-*.txt");
+      var wildcardMutlipleLines = gcsPdao.getGcsFilesLines(wildcardMultiplePath, projectId);
+      assertThat(
+          "Multiple-wildcard paths don't return anything",
+          wildcardMutlipleLines,
+          emptyCollectionOf(String.class));
+
+    } finally {
+      storage.delete(blobIds);
     }
   }
 

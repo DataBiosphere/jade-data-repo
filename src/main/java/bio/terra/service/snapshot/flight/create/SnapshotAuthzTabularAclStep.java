@@ -15,6 +15,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import java.util.ArrayList;
@@ -45,7 +46,8 @@ public class SnapshotAuthzTabularAclStep implements Step {
     UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
     Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
-    Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
+    Map<IamRole, String> policies =
+        workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
     // Build the list of the policy emails that should have read access to the big query dataset
     List<String> emails = new ArrayList<>();
     emails.add(policies.get(IamRole.STEWARD));

@@ -27,12 +27,14 @@ import bio.terra.service.filedata.azure.util.BlobContainerCopySyncPoller;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
 import java.nio.charset.StandardCharsets;
@@ -87,12 +89,13 @@ public class AzureBlobStorePdaoTest {
   @MockBean private AzureContainerPdao azureContainerPdao;
   @MockBean private AzureResourceConfiguration resourceConfiguration;
   @MockBean private AzureResourceDao azureResourceDao;
+  @MockBean private AzureAuthService azureAuthService;
   @Autowired private AzureBlobStorePdao dao;
 
   private FileLoadModel fileLoadModel;
 
   @Before
-  public void setUp() throws Exception {
+  public void setUp() {
     dao = spy(dao);
 
     TokenCredential targetCredential = mock(TokenCredential.class);
@@ -104,6 +107,8 @@ public class AzureBlobStorePdaoTest {
             .mimeType(MIME_TYPE);
     when(profileDao.getBillingProfileById(PROFILE_ID)).thenReturn(BILLING_PROFILE);
     when(resourceConfiguration.getAppToken(TENANT_ID)).thenReturn(targetCredential);
+    when(resourceConfiguration.getMaxRetries()).thenReturn(3);
+    when(resourceConfiguration.getRetryTimeoutSeconds()).thenReturn(60);
     when(azureResourceDao.retrieveStorageAccountById(RESOURCE_ID))
         .thenReturn(AZURE_STORAGE_ACCOUNT_RESOURCE);
     targetBlobContainerFactory = mock(BlobContainerClientFactory.class);
@@ -111,11 +116,11 @@ public class AzureBlobStorePdaoTest {
     blobCrl = mock(BlobCrl.class);
     doReturn(targetBlobContainerFactory)
         .when(dao)
-        .getTargetDataClientFactory(any(), any(), anyBoolean());
+        .getTargetDataClientFactory(any(), any(), any(), anyBoolean());
     doReturn(sourceBlobContainerFactory)
         .when(dao)
         .getSourceClientFactory(anyString(), any(), anyString());
-    doReturn(sourceBlobContainerFactory).when(dao).getSourceClientFactory(anyString());
+    doReturn(sourceBlobContainerFactory).when(dao).getSourceClientFactory(any());
     doReturn(blobCrl).when(dao).getBlobCrl(any());
   }
 
@@ -156,7 +161,7 @@ public class AzureBlobStorePdaoTest {
         new FireStoreFile()
             .fileId(fileId.toString())
             .bucketResourceId(RESOURCE_ID.toString())
-            .gspath(fsFileInfo.getGspath());
+            .gspath(fsFileInfo.getCloudPath());
     assertThat(dao.deleteFile(fileToDelete), equalTo(true));
   }
 
@@ -172,7 +177,7 @@ public class AzureBlobStorePdaoTest {
         new FireStoreFile()
             .fileId(fileId.toString())
             .bucketResourceId(RESOURCE_ID.toString())
-            .gspath(fsFileInfo.getGspath());
+            .gspath(fsFileInfo.getCloudPath());
     assertThat(dao.deleteFile(fileToDelete), equalTo(false));
   }
 
@@ -222,29 +227,34 @@ public class AzureBlobStorePdaoTest {
     assertTrue(
         "is valid",
         AzureBlobStorePdao.isSignedUrl(
-            "https://src.blob.core.windows.net/srcdata/src.txt"
-                + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
-                + "sr=b&sig=mysig"));
+            BlobUrlParts.parse(
+                "https://src.blob.core.windows.net/srcdata/src.txt"
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
+                    + "sr=b&sig=mysig")));
     assertFalse(
         "no sas token",
-        AzureBlobStorePdao.isSignedUrl("https://src.blob.core.windows.net/srcdata/src.txt"));
+        AzureBlobStorePdao.isSignedUrl(
+            BlobUrlParts.parse("https://src.blob.core.windows.net/srcdata/src.txt")));
     assertFalse(
         "tld is wrong",
         AzureBlobStorePdao.isSignedUrl(
-            "https://src.foo.core.windows.net/srcdata/src.txt"
-                + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"
-                + "&sr=b&sig=mysig"));
+            BlobUrlParts.parse(
+                "https://src.foo.core.windows.net/srcdata/src.txt"
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"
+                    + "&sr=b&sig=mysig")));
     assertFalse(
         "missing fields (sr and sig are removed)",
         AzureBlobStorePdao.isSignedUrl(
-            "https://src.foo.core.windows.net/srcdata/src.txt"
-                + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04"));
+            BlobUrlParts.parse(
+                "https://src.foo.core.windows.net/srcdata/src.txt"
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04")));
     assertTrue(
         "extra fields don't hurt",
         AzureBlobStorePdao.isSignedUrl(
-            "https://src.blob.core.windows.net/srcdata/src.txt"
-                + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
-                + "sr=b&sig=mysig"));
+            BlobUrlParts.parse(
+                "https://src.blob.core.windows.net/srcdata/src.txt"
+                    + "?sp=r&st=2021-07-14T19:31:16Z&se=2021-07-15T03:31:16Z&spr=https&sv=2020-08-04&"
+                    + "sr=b&sig=mysig")));
   }
 
   private FSFileInfo mockFileCopy(UUID fileId) {
@@ -266,7 +276,7 @@ public class AzureBlobStorePdaoTest {
     return new FSFileInfo()
         .fileId(fileId.toString())
         .createdDate(BLOB_CREATION_TIME.toInstant().toString())
-        .gspath(targetContainerUrl + "/" + targetBlobName)
+        .cloudPath(targetContainerUrl + "/" + targetBlobName)
         .checksumMd5(BLOB_CONTENT_MD5_B64)
         .size(BLOB_SIZE)
         .bucketResourceId(RESOURCE_ID.toString());

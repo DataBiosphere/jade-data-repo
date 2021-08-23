@@ -100,6 +100,10 @@ public class GoogleProjectService {
     this.environment = environment;
   }
 
+  public String bucketForIngestScratchFile(String googleProjectId) {
+    return googleProjectId + "-ingest-scratch-bucket";
+  }
+
   /**
    * @param dataset Dataset the file belongs to
    * @param billingProfile

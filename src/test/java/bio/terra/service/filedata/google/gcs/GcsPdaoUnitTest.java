@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import bio.terra.common.category.Unit;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -63,5 +65,14 @@ public class GcsPdaoUnitTest {
         .hasMessage(
             String.format(
                 "Component name '%s' too long in gs path: '%s'", bucketComponent, pathName));
+  }
+
+  @Test
+  public void testCreatesGsPathFromBlob() {
+    final String bucket = "my-bucket";
+    final String name = "foo/bar/baz.json";
+    final String gsPath = String.format("gs://%s/%s", bucket, name);
+    BlobInfo blobInfo = Blob.newBuilder(bucket, name).build();
+    assertThat(gsPath).isEqualTo(GcsPdao.getGsPathFromBlob(blobInfo));
   }
 }

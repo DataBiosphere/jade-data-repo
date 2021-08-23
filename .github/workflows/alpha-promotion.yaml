@@ -7,7 +7,7 @@ on:
     - cron: '0 18 * * 5' # Fridays at 1:00 pm EST; 6PM UTC
     - cron: '0 3 * * 1-5' # Sun - Thurs 10:00 pm EST; 3AM UTC
 env:
-  chartVersion: 0.1.221
+  chartVersion: 0.1.224
 jobs:
   alpha_promotion:
     strategy:
@@ -31,18 +31,18 @@ jobs:
           token: ${{ secrets.BROADBOT_TOKEN}}
           path: terra-helmfile
           persist-credentials: false
-      - name: "Find and replace Datarepo version in versions.yaml"
+      - name: "Find and replace Datarepo version in versions/app/dev.yaml"
         uses: docker://mikefarah/yq:3.3.4
         with:
-          args: yq w -i terra-helmfile/versions.yaml releases.datarepo.appVersion ${{ steps.apiprevioustag.outputs.tag }}
-      - name: "Find and replace Datarepo chartVersion version in versions.yaml"
+          args: yq w -i terra-helmfile/versions/app/dev.yaml releases.datarepo.appVersion ${{ steps.apiprevioustag.outputs.tag }}
+      - name: "Find and replace Datarepo chartVersion version in versions/app/dev.yaml"
         uses: docker://mikefarah/yq:3.3.4
         with:
-          args: yq w -i terra-helmfile/versions.yaml releases.datarepo.chartVersion ${{ env.chartVersion }}
-      - name: "Read terra-helmfile daterepo fields in versions.yaml"
+          args: yq w -i terra-helmfile/versions/app/dev.yaml releases.datarepo.chartVersion ${{ env.chartVersion }}
+      - name: "Read terra-helmfile daterepo fields in versions/app/dev.yaml"
         uses: docker://mikefarah/yq:3.3.4
         with:
-          args: yq r terra-helmfile/versions.yaml releases.datarepo
+          args: yq r terra-helmfile/versions/app/dev.yaml releases.datarepo
       - name: Create pull request
         uses: broadinstitute/create-pull-request@v3.5.0 # forked from peter-evans/create-pull-request
         id: create-pr

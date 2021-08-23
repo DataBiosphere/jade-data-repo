@@ -8,6 +8,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobCrl;
+import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -20,8 +21,12 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.common.policy.RequestRetryOptions;
+import com.azure.storage.common.policy.RetryPolicyType;
 import com.google.common.annotations.VisibleForTesting;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Optional;
@@ -36,6 +41,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class AzureBlobStorePdao {
+
   private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
 
   private static final int LOG_RETENTION_DAYS = 90;
@@ -63,6 +69,16 @@ public class AzureBlobStorePdao {
     this.azureAuthService = azureAuthService;
   }
 
+  private RequestRetryOptions getRetryOptions() {
+    return new RequestRetryOptions(
+        RetryPolicyType.EXPONENTIAL,
+        this.resourceConfiguration.getMaxRetries(),
+        this.resourceConfiguration.getRetryTimeoutSeconds(),
+        null,
+        null,
+        null);
+  }
+
   public FSFileInfo copyFile(
       FileLoadModel fileLoadModel,
       String fileId,
@@ -71,25 +87,16 @@ public class AzureBlobStorePdao {
     BillingProfileModel profileModel =
         profileDao.getBillingProfileById(fileLoadModel.getProfileId());
 
-    BlobContainerClientFactory destinationClientFactory =
-        getTargetDataClientFactory(profileModel, storageAccountResource, false);
+    BlobContainerClientFactory targetClientFactory =
+        getTargetDataClientFactory(profileModel, storageAccountResource, ContainerType.DATA, false);
 
-    BlobUrlParts blobUrl = BlobUrlParts.parse(fileLoadModel.getSourcePath());
-    BlobContainerClientFactory sourceClientFactory;
-    if (isSignedUrl(fileLoadModel.getSourcePath())) {
-      sourceClientFactory = getSourceClientFactory(fileLoadModel.getSourcePath());
-    } else {
-      // Use application level authentication
-      sourceClientFactory =
-          getSourceClientFactory(
-              blobUrl.getAccountName(),
-              resourceConfiguration.getAppToken(profileModel.getTenantId()),
-              blobUrl.getBlobContainerName());
-    }
+    BlobContainerClientFactory sourceClientFactory =
+        buildSourceClientFactory(profileModel.getTenantId(), fileLoadModel.getSourcePath());
 
-    BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
+    BlobCrl blobCrl = getBlobCrl(targetClientFactory);
 
     // Read the leaf node of the source file to use as a way to name the file we store
+    BlobUrlParts blobUrl = BlobUrlParts.parse(fileLoadModel.getSourcePath());
     String fileName = getLastNameFromPath(blobUrl.getBlobName());
 
     String blobName = getBlobName(fileId, fileName);
@@ -103,13 +110,26 @@ public class AzureBlobStorePdao {
     return new FSFileInfo()
         .fileId(fileId)
         .createdDate(createTime.toString())
-        .gspath(
+        .cloudPath(
             String.format(
                 "%s/%s",
-                destinationClientFactory.getBlobContainerClient().getBlobContainerUrl(), blobName))
+                targetClientFactory.getBlobContainerClient().getBlobContainerUrl(), blobName))
         .checksumMd5(Base64.getEncoder().encodeToString((blobProperties.getContentMd5())))
         .size(blobProperties.getBlobSize())
         .bucketResourceId(storageAccountResource.getResourceId().toString());
+  }
+
+  public BlobContainerClientFactory buildSourceClientFactory(UUID tenantId, String blobUrl) {
+    BlobUrlParts blobUrlParts = BlobUrlParts.parse(blobUrl);
+    if (isSignedUrl(blobUrlParts)) {
+      return getSourceClientFactory(blobUrl);
+    } else {
+      // Use application level authentication
+      return getSourceClientFactory(
+          blobUrlParts.getAccountName(),
+          resourceConfiguration.getAppToken(tenantId),
+          blobUrlParts.getBlobContainerName());
+    }
   }
 
   public boolean deleteDataFileById(
@@ -118,7 +138,7 @@ public class AzureBlobStorePdao {
         profileDao.getBillingProfileById(storageAccountResource.getProfileId());
 
     BlobContainerClientFactory destinationClientFactory =
-        getTargetDataClientFactory(profileModel, storageAccountResource, true);
+        getTargetDataClientFactory(profileModel, storageAccountResource, ContainerType.DATA, true);
     String blobName = getBlobName(fileId, fileName);
     BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
     try {
@@ -141,7 +161,7 @@ public class AzureBlobStorePdao {
     BillingProfileModel profileModel =
         profileDao.getBillingProfileById(storageAccountResource.getProfileId());
     BlobContainerClientFactory destinationClientFactory =
-        getTargetDataClientFactory(profileModel, storageAccountResource, true);
+        getTargetDataClientFactory(profileModel, storageAccountResource, ContainerType.DATA, true);
 
     BlobUrlParts blobParts = BlobUrlParts.parse(fireStoreFile.getGspath());
     if (!blobParts.getAccountName().equals(storageAccountResource.getName())) {
@@ -176,6 +196,31 @@ public class AzureBlobStorePdao {
     }
   }
 
+  public String signFile(
+      BillingProfileModel profileModel,
+      AzureStorageAccountResource storageAccountResource,
+      String url,
+      Duration duration,
+      String userEmail) {
+    BlobContainerClientFactory destinationClientFactory =
+        getTargetDataClientFactory(profileModel, storageAccountResource, ContainerType.DATA, true);
+
+    BlobUrlParts blobParts = BlobUrlParts.parse(url);
+    if (!blobParts.getAccountName().equals(storageAccountResource.getName())) {
+      throw new PdaoException(
+          String.format(
+              "Resource groups between metadata storage and request do not match: %s != %s",
+              blobParts.getAccountName(), storageAccountResource.getName()));
+    }
+    String blobName = blobParts.getBlobName();
+    BlobSasPermission permission = new BlobSasPermission().setReadPermission(true);
+    BlobSasTokenOptions blobSasTokenOptions =
+        new BlobSasTokenOptions(duration, permission, userEmail);
+    return destinationClientFactory
+        .getBlobSasUrlFactory()
+        .createSasUrlForBlob(blobName, blobSasTokenOptions);
+  }
+
   /**
    * Enable logging for file access. This creates a container named $logs to which access logs for
    * our files are loaded
@@ -200,20 +245,15 @@ public class AzureBlobStorePdao {
     client.setProperties(props);
   }
 
-  @VisibleForTesting
   public BlobContainerClientFactory getTargetDataClientFactory(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
+      ContainerType containerType,
       boolean enableDelete) {
     return new BlobContainerClientFactory(
         azureContainerPdao.getDestinationContainerSignedUrl(
-            profileModel,
-            storageAccountResource,
-            ContainerType.DATA,
-            true,
-            true,
-            true,
-            enableDelete));
+            profileModel, storageAccountResource, containerType, true, true, true, enableDelete),
+        getRetryOptions());
   }
 
   @VisibleForTesting
@@ -222,21 +262,20 @@ public class AzureBlobStorePdao {
   }
 
   @VisibleForTesting
-  BlobContainerClientFactory getSourceClientFactory(String sourceUrl) {
-    return new BlobContainerClientFactory(sourceUrl);
+  BlobContainerClientFactory getSourceClientFactory(String url) {
+    return new BlobContainerClientFactory(url, getRetryOptions());
   }
 
   @VisibleForTesting
   BlobContainerClientFactory getSourceClientFactory(
       String accountName, TokenCredential azureCredential, String containerName) {
-    return new BlobContainerClientFactory(accountName, azureCredential, containerName);
+    return new BlobContainerClientFactory(
+        accountName, azureCredential, containerName, getRetryOptions());
   }
 
   /** Detects if a URL is a signed URL */
   @VisibleForTesting
-  static boolean isSignedUrl(String url) {
-    BlobUrlParts blobUrlParts = BlobUrlParts.parse(url);
-
+  static boolean isSignedUrl(BlobUrlParts blobUrlParts) {
     if (VALID_TLDS.stream().noneMatch(h -> blobUrlParts.getHost().toLowerCase().endsWith(h))) {
       return false;
     }

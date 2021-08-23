@@ -10,6 +10,7 @@ import bio.terra.service.filedata.FSContainerInterface;
 import bio.terra.service.filedata.FSDir;
 import bio.terra.service.filedata.FSFile;
 import bio.terra.service.filedata.FSItem;
+import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.DirectoryMetadataComputeException;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -48,10 +49,12 @@ import org.springframework.stereotype.Component;
 //
 @Component
 public class FireStoreDao {
+
   private final Logger logger = LoggerFactory.getLogger(FireStoreDao.class);
 
   private final FireStoreDirectoryDao directoryDao;
   private final FireStoreFileDao fileDao;
+  private final FileMetadataUtils fileMetadataUtils;
   private final FireStoreUtils fireStoreUtils;
   private final ConfigurationService configurationService;
   private final PerformanceLogger performanceLogger;
@@ -60,11 +63,13 @@ public class FireStoreDao {
   public FireStoreDao(
       FireStoreDirectoryDao directoryDao,
       FireStoreFileDao fileDao,
+      FileMetadataUtils fileMetadataUtils,
       FireStoreUtils fireStoreUtils,
       ConfigurationService configurationService,
       PerformanceLogger performanceLogger) {
     this.directoryDao = directoryDao;
     this.fileDao = fileDao;
+    this.fileMetadataUtils = fileMetadataUtils;
     this.fireStoreUtils = fireStoreUtils;
     this.configurationService = configurationService;
     this.performanceLogger = performanceLogger;
@@ -312,12 +317,12 @@ public class FireStoreDao {
               .collectionId(UUID.fromString(entry.getDatasetId()))
               .datasetId(UUID.fromString(entry.getDatasetId()))
               .createdDate(Instant.parse(file.getFileCreatedDate()))
-              .path(fireStoreUtils.getFullPath(entry.getPath(), entry.getName()))
+              .path(fileMetadataUtils.getFullPath(entry.getPath(), entry.getName()))
               .checksumCrc32c(file.getChecksumCrc32c())
               .checksumMd5(file.getChecksumMd5())
               .size(file.getSize())
               .description(file.getDescription())
-              .gspath(file.getGspath())
+              .cloudPath(file.getGspath())
               .mimeType(file.getMimeType())
               .bucketResourceId(file.getBucketResourceId())
               .loadTag(file.getLoadTag());
@@ -408,7 +413,7 @@ public class FireStoreDao {
     }
 
     String fullPath =
-        fireStoreUtils.getFullPath(
+        fileMetadataUtils.getFullPath(
             fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
 
     FSDir fsDir = new FSDir();
@@ -457,7 +462,7 @@ public class FireStoreDao {
     }
 
     String fullPath =
-        fireStoreUtils.getFullPath(
+        fileMetadataUtils.getFullPath(
             fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
     String fileId = fireStoreDirectoryEntry.getFileId();
 
@@ -482,7 +487,7 @@ public class FireStoreDao {
         .checksumMd5(fireStoreFile.getChecksumMd5())
         .size(fireStoreFile.getSize())
         .description(fireStoreFile.getDescription())
-        .gspath(fireStoreFile.getGspath())
+        .cloudPath(fireStoreFile.getGspath())
         .mimeType(fireStoreFile.getMimeType())
         .bucketResourceId(fireStoreFile.getBucketResourceId())
         .loadTag(fireStoreFile.getLoadTag());
@@ -499,7 +504,7 @@ public class FireStoreDao {
       List<FireStoreDirectoryEntry> updateBatch)
       throws InterruptedException {
 
-    String fullPath = fireStoreUtils.getFullPath(dirEntry.getPath(), dirEntry.getName());
+    String fullPath = fileMetadataUtils.getFullPath(dirEntry.getPath(), dirEntry.getName());
     List<FireStoreDirectoryEntry> enumDir =
         directoryDao.enumerateDirectory(snapshotFirestore, snapshotId, fullPath);
 

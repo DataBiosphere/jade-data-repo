@@ -1611,7 +1611,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
       x-codegen-request-body-name: bulkFileLoad
-  /api/repository/v1/datasets/{id}/files/bulk/{loadtag}:
+  /api/repository/v1/datasets/{id}/files/bulk/{loadTag}:
     get:
       tags:
         - datasets
@@ -1620,18 +1620,13 @@ paths:
         Retrieve the results of a bulk file load. The results of each bulk load are stored
         in the dataset. They can be queried directly or retrieved with this paginated
         interface.
-      operationId: bulkFileResultsGet
+      operationId: getLoadHistoryForLoadTag
       parameters:
         - $ref: '#/components/parameters/Id'
-        - name: loadtag
+        - name: loadTag
           in: path
           description: a load tag
           required: true
-          schema:
-            type: string
-        - name: jobId
-          in: query
-          description: The job id associated with the load
           schema:
             type: string
         - name: offset
@@ -1658,7 +1653,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/JobModel'
+                $ref: '#/components/schemas/BulkLoadHistoryModelList'
         202:
           description: Job status of bulk load result retrieval
           headers:
@@ -2980,6 +2975,8 @@ components:
             - json
         load_tag:
           $ref: '#/components/schemas/LoadTagModel'
+        profile_id:
+          $ref: '#/components/schemas/UniqueIdProperty'
         max_bad_records:
           type: integer
           description: max number of bad records to skip; applies to JSON and CSV
@@ -3033,6 +3030,8 @@ components:
           type: integer
           description: number of bad rows skipped
           format: int64
+        load_result:
+          $ref: '#/components/schemas/BulkLoadArrayResultModel'
       description: >
         Response from performing an ingest.
     FileLoadModel:
@@ -3301,6 +3300,16 @@ components:
           type: string
           description: The error message if state is FAILED
       description: Describes metadata about a file during a bulk load
+    BulkLoadHistoryModelList:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of results
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkLoadHistoryModel'
     BulkLoadFileState:
       type: string
       enum:

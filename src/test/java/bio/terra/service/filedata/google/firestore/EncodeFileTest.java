@@ -3,7 +3,9 @@ package bio.terra.service.filedata.google.firestore;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -27,6 +29,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.BufferService;
@@ -54,6 +57,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.junit.After;
@@ -92,7 +96,7 @@ public class EncodeFileTest {
   @Autowired private ConnectedOperations connectedOperations;
   @Autowired private GoogleProjectService googleProjectService;
   @Autowired private DrsIdService drsIdService;
-  @Autowired private FireStoreUtils fireStoreUtils;
+  @Autowired private FileMetadataUtils fileMetadataUtils;
   @Autowired private BufferService bufferService;
 
   private static final String ID_GARBAGE = "GARBAGE";
@@ -294,7 +298,7 @@ public class EncodeFileTest {
     // build string list from the contents objects
     List<String> contentsNames =
         contentsList.stream()
-            .map(fs -> fireStoreUtils.getName(fs.getPath()))
+            .map(fs -> fileMetadataUtils.getName(fs.getPath()))
             .collect(Collectors.toList());
 
     // lookup the dirmap list by path of the fsObj
@@ -383,30 +387,20 @@ public class EncodeFileTest {
     assertThat(
         "correctly found bad row",
         ingestError.getMessage(),
-        equalTo("Ingest failed with 3 errors - see error details"));
+        startsWith(String.format("Ingest control file at gs://%s/scratch/", bucketName)));
 
-    List<String> errorDetails = ingestError.getErrorDetail();
-    assertNotNull("Error details were returned", errorDetails);
+    assertThat("All 10 lines of bad file return errors", ingestError.getErrorDetail(), hasSize(10));
+
+    // entire error message should be:
+    // "Unexpected character (';' (code 59)): was expecting a colon to separate field name
+    //   and value at [Source: (String)\"{\"fribbitz\";\"ABCDEFG\"}\"; line: 1, column: 13]";
+    String expectedError = "Unexpected character";
     assertThat(
-        "Big query returned in details 0",
-        errorDetails.get(0),
-        equalTo(
-            "BigQueryError: reason=invalid message=Error while reading data, error message: "
-                + "JSON table encountered too many errors, giving up. Rows: 1; errors: 1. Please look into the "
-                + "errors[] collection for more details."));
-    assertThat(
-        "Big query returned in details 1",
-        errorDetails.get(1),
-        equalTo(
-            "BigQueryError: reason=invalid message=Error while reading data, error message: "
-                + "JSON processing encountered too many errors, giving up. "
-                + "Rows: 1; errors: 1; max bad: 0; error percent: 0"));
-    assertThat(
-        "Big query returned in details 2",
-        errorDetails.get(2),
-        equalTo(
-            "BigQueryError: reason=invalid message=Error while reading data, error message: "
-                + "JSON parsing error in row starting at position 0: Parser terminated before end of string"));
+        "Json parsing errors are present",
+        ingestError.getErrorDetail().get(0),
+        containsString(expectedError));
+
+    assertThat("all errors are the same", Set.copyOf(ingestError.getErrorDetail()), hasSize(1));
 
     // Delete the scratch blob
     Blob scratchBlob = storage.get(BlobId.of(bucketName, targetPath));

@@ -136,6 +136,7 @@ public class FileIngestBulkFlight extends Flight {
     //    locked tags
     // 10. Unlock the load tag
     addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
+    addStep(new IngestFileValidateCloudPlatformStep(dataset));
     addStep(new LockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
     if (platform.isGcp()) {

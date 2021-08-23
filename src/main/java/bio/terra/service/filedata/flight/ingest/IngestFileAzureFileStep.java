@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.dataset.Dataset;
@@ -34,9 +35,12 @@ public class IngestFileAzureFileStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     BillingProfileModel billingProfileModel =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+        FlightUtils.getContextValue(
+            context, ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccountResource =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+        FlightUtils.getContextValue(
+            context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
       FlightMap inputParameters = context.getInputParameters();
@@ -80,9 +84,12 @@ public class IngestFileAzureFileStep implements Step {
     FlightMap workingMap = context.getWorkingMap();
     String itemId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     BillingProfileModel billingProfileModel =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+        FlightUtils.getContextValue(
+            context, ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccountResource =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+        FlightUtils.getContextValue(
+            context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+
     try {
       tableDao.deleteFileMetadata(itemId, billingProfileModel, storageAccountResource);
     } catch (TableServiceException rex) {

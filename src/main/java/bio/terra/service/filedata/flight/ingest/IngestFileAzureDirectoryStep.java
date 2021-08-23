@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.dataset.Dataset;
@@ -50,10 +51,13 @@ public class IngestFileAzureDirectoryStep implements Step {
     String targetPath = loadModel.getTargetPath();
 
     String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
-    AzureStorageAccountResource storageAccountResource =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
     BillingProfileModel billingProfileModel =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+        FlightUtils.getContextValue(
+            context, ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+    AzureStorageAccountResource storageAccountResource =
+        FlightUtils.getContextValue(
+            context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+
     try {
       // The state logic goes like this:
       //  1. the directory entry doesn't exist. We need to create the directory entry for it.
@@ -116,9 +120,11 @@ public class IngestFileAzureDirectoryStep implements Step {
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
     BillingProfileModel billingProfileModel =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+        FlightUtils.getContextValue(
+            context, ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccountResource =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+        FlightUtils.getContextValue(
+            context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
 
     if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
       try {

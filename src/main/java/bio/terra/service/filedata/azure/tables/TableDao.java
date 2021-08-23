@@ -78,7 +78,6 @@ public class TableDao {
       AzureStorageAccountResource storageAccountResource) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
-    azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
     directoryDao.createDirectoryEntry(tableServiceClient, newEntry);
   }
 
@@ -88,7 +87,6 @@ public class TableDao {
       AzureStorageAccountResource storageAccountResource) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
-    azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
     return directoryDao.deleteDirectoryEntry(tableServiceClient, fileId);
   }
 
@@ -141,7 +139,6 @@ public class TableDao {
       AzureStorageAccountResource storageAccountResource) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
-    azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
     String datasetId = dataset.getId().toString();
     return directoryDao.retrieveByPath(tableServiceClient, datasetId, path);
   }
@@ -152,7 +149,6 @@ public class TableDao {
       AzureStorageAccountResource storageAccountResource) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
-    azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
     return fileDao.retrieveFileMetadata(tableServiceClient, fileId);
   }
 

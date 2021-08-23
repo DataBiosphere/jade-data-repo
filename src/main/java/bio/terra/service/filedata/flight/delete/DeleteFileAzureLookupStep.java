@@ -57,10 +57,10 @@ public class DeleteFileAzureLookupStep implements Step {
       // If we are restarting, we may have already retrieved and saved the file,
       // so we check the working map before doing the lookup.
       FlightMap workingMap = context.getWorkingMap();
-      workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
       FireStoreFile fireStoreFile = workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreFile.class);
       BillingProfileModel billingProfile =
           profileDao.getBillingProfileById(dataset.getDefaultProfileId());
+      workingMap.put(ProfileMapKeys.PROFILE_MODEL, billingProfile);
       AzureStorageAccountResource storageAccountResource =
           resourceService.getOrCreateStorageAccount(dataset, billingProfile, context.getFlightId());
       workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);

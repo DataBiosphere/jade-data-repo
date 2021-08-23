@@ -39,11 +39,13 @@ public class IngestFileAzurePrimaryDataStep implements Step {
         context.getInputParameters().get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
 
     FlightMap workingMap = context.getWorkingMap();
-    BillingProfileModel billingProfileModel =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+
     String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
+      BillingProfileModel billingProfileModel =
+          FlightUtils.getContextValue(
+              context, ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
       AzureStorageAccountResource storageAccountResource =
           FlightUtils.getContextValue(
               context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);

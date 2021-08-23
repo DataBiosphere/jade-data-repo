@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
@@ -34,7 +33,6 @@ public class TableFileConnectedTest {
 
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
-  @Autowired private AzureAuthService azureAuthService;
   @Autowired private TableFileDao tableFileDao;
   private TableServiceClient tableServiceClient;
 

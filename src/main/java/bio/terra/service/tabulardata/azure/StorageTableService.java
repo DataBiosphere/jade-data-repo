@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class StorageTableService {
-
   private final AzureStorageTablePdao storageTableDao;
   private final AzureAuthService azureAuthService;
   private final ResourceService resourceService;

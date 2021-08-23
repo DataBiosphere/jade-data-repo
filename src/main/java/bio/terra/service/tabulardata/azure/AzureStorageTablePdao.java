@@ -14,11 +14,13 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AzureStorageTablePdao {
-
+  private static final Logger logger = LoggerFactory.getLogger(AzureStorageTablePdao.class);
   private static final String LOAD_HISTORY_TABLE_NAME_SUFFIX = "LoadHistory";
 
   private static String computeInternalLoadTag(String loadTag) {
@@ -81,10 +83,10 @@ public class AzureStorageTablePdao {
     for (int i = 0; i < loadHistoryArray.size(); i++) {
       var isLast = i == loadHistoryArray.size() - 1;
       var thisIndex = i + indexToStartFrom;
+      BulkLoadHistoryModel historyEntry = loadHistoryArray.get(i);
       client.createEntity(
           bulkFileLoadModelToStorageTableEntity(
-              new StorageTableLoadHistoryEntity(
-                  loadHistoryArray.get(i), internalLoadTag, thisIndex, isLast),
+              new StorageTableLoadHistoryEntity(historyEntry, internalLoadTag, thisIndex, isLast),
               loadTag,
               loadTime));
     }
@@ -129,7 +131,7 @@ public class AzureStorageTablePdao {
   private static TableEntity bulkFileLoadModelToStorageTableEntity(
       StorageTableLoadHistoryEntity entity, String loadTag, Instant loadTime) {
     var model = entity.model;
-    return new TableEntity(entity.partitionKey, model.getFileId())
+    return new TableEntity(entity.partitionKey, UUID.randomUUID().toString())
         .addProperty(LoadHistoryUtil.LOAD_TAG_FIELD_NAME, loadTag)
         .addProperty(LoadHistoryUtil.LOAD_TIME_FIELD_NAME, loadTime)
         .addProperty(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME, model.getSourcePath())

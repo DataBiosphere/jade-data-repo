@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.dataset.Dataset;
@@ -44,9 +45,11 @@ public class ValidateIngestFileAzureDirectoryStep implements Step {
       //      (a) If the loadTags do not match, then we throw FileAlreadyExistsException.
       //      (b) Otherwise, update INGEST_FILE_ACTION to checkEntry
       BillingProfileModel billingProfileModel =
-          workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+          FlightUtils.getContextValue(
+              context, ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
       AzureStorageAccountResource storageAccountResource =
-          workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+          FlightUtils.getContextValue(
+              context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
       FireStoreDirectoryEntry existingEntry =
           tableDao.lookupDirectoryEntryByPath(
               dataset, targetPath, billingProfileModel, storageAccountResource);

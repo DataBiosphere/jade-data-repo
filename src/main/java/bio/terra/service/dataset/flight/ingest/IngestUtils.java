@@ -259,7 +259,7 @@ public final class IngestUtils {
     if (numLines > maxIngestRows) {
       throw new InvalidIngestStrategyException(
           String.format(
-              "Ingests are limited to %d lines. This request had %d lines.",
+              "The combined file ingest and metadata ingest workflow is limited to {} lines for ingest. This request had {} lines. For large requests, you should use the file ingest workflow and then the metadata ingest workflow.",
               maxIngestRows,
               numLines));
     }

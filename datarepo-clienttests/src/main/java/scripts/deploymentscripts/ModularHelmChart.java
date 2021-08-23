@@ -266,8 +266,7 @@ public class ModularHelmChart extends DeploymentScript {
         "DATAREPO_MAXBULKFILELOADARRAY",
         String.valueOf(applicationSpecification.maxBulkFileLoadArray));
     envSubTree.put(
-        "DATAREPO_MAXDATASETINGEST",
-        String.valueOf(applicationSpecification.maxDatasetIngest));
+        "DATAREPO_MAXDATASETINGEST", String.valueOf(applicationSpecification.maxDatasetIngest));
     envSubTree.put(
         "DATAREPO_LOADCONCURRENTFILES",
         String.valueOf(applicationSpecification.loadConcurrentFiles));

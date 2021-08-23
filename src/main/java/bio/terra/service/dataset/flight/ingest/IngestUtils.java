@@ -260,8 +260,7 @@ public final class IngestUtils {
       throw new InvalidIngestStrategyException(
           String.format(
               "The dataset ingest workflow is limited to %d lines for ingest. This request had %d lines.",
-              maxIngestRows,
-              numLines));
+              maxIngestRows, numLines));
     }
   }
 

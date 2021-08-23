@@ -201,7 +201,7 @@ public class AzureBlobStorePdao {
   }
 
   @VisibleForTesting
-  BlobContainerClientFactory getTargetDataClientFactory(
+  public BlobContainerClientFactory getTargetDataClientFactory(
       BillingProfileModel profileModel,
       AzureStorageAccountResource storageAccountResource,
       boolean enableDelete) {

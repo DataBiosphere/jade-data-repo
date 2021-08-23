@@ -73,7 +73,7 @@ public class ResourceService {
    *
    * @param dataset
    * @param billingProfile authorized profile for billing account information case we need to create
-   *     a project
+   *                       a project
    * @return a reference to the project as a POJO GoogleProjectResource
    */
   public GoogleProjectResource initializeProjectForBucket(
@@ -99,11 +99,11 @@ public class ResourceService {
    * @param flightId used to lock the bucket metadata during possible creation
    * @return a reference to the bucket as a POJO GoogleBucketResource
    * @throws CorruptMetadataException in two cases.
-   *     <ul>
-   *       <li>if the bucket already exists, but the metadata does not AND the application property
-   *           allowReuseExistingBuckets=false.
-   *       <li>if the metadata exists, but the bucket does not
-   *     </ul>
+   *                                  <ul>
+   *                                    <li>if the bucket already exists, but the metadata does not AND the application property
+   *                                        allowReuseExistingBuckets=false.
+   *                                    <li>if the metadata exists, but the bucket does not
+   *                                  </ul>
    */
   public GoogleBucketResource getOrCreateBucketForFile(
       Dataset dataset, GoogleProjectResource projectResource, String flightId)
@@ -119,17 +119,17 @@ public class ResourceService {
   /**
    * Given an application deployment, get or create a storage account.
    *
-   * @param dataset dataset to create storage account for
+   * @param dataset        dataset to create storage account for
    * @param billingProfile authorized profile for billing account information case we need to create
-   *     an application deployment or storage account
-   * @param flightId used to lock the bucket metadata during possible creation
+   *                       an application deployment or storage account
+   * @param flightId       used to lock the bucket metadata during possible creation
    * @return a reference to the bucket as a POJO AzureStorageAccountResource
    * @throws CorruptMetadataException in two cases.
-   *     <ul>
-   *       <li>if the storage account already exists, but the metadata does not AND the application
-   *           property allowReuseExistingBuckets=false.
-   *       <li>if the metadata exists, but the storage account does not
-   *     </ul>
+   *                                  <ul>
+   *                                    <li>if the storage account already exists, but the metadata does not AND the application
+   *                                        property allowReuseExistingBuckets=false.
+   *                                    <li>if the metadata exists, but the storage account does not
+   *                                  </ul>
    */
   public AzureStorageAccountResource getOrCreateStorageAccount(
       Dataset dataset, BillingProfileModel billingProfile, String flightId)
@@ -144,7 +144,25 @@ public class ResourceService {
     // the application deployment is registered first
     final AzureApplicationDeploymentResource applicationResource =
         applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
+    String possibleStorageAccountName = getStorageAccountName(dataset, billingProfile,
+        applicationResource);
 
+    return storageAccountService.getOrCreateStorageAccount(
+        possibleStorageAccountName, applicationResource, region, flightId);
+  }
+
+  public AzureStorageAccountResource getStorageAccount(Dataset dataset,
+      BillingProfileModel billingProfile) {
+    final AzureApplicationDeploymentResource applicationResource =
+        applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
+    String storageAccountName = getStorageAccountName(dataset, billingProfile, applicationResource);
+
+    return storageAccountService.getStorageAccount(
+        storageAccountName, applicationResource);
+  }
+
+  private String getStorageAccountName(Dataset dataset,
+      BillingProfileModel billingProfile, AzureApplicationDeploymentResource applicationResource) {
     List<UUID> storageAccountsForDataset =
         datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
 
@@ -170,15 +188,14 @@ public class ResourceService {
       }
     }
 
-    return storageAccountService.getOrCreateStorageAccount(
-        storageAccountName, applicationResource, region, flightId);
+    return storageAccountName;
   }
 
   /**
    * Delete the metadata and cloud storage account. Note: this will not check references and delete
    * the storage even if it contains data
    *
-   * @param dataset The dataset whose storage account to delete
+   * @param dataset  The dataset whose storage account to delete
    * @param flightId The flight that might potentially have the storage account locked
    */
   public void deleteStorageAccount(Dataset dataset, String flightId) {
@@ -207,8 +224,8 @@ public class ResourceService {
    * @param bucketResourceId our identifier for the bucket
    * @return a reference to the bucket as a POJO GoogleBucketResource
    * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
-   * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud
-   *     resource does not
+   * @throws CorruptMetadataException        if the bucket_resource metadata row exists but the
+   *                                         cloud resource does not
    */
   public GoogleBucketResource lookupBucket(String bucketResourceId) {
     return lookupBucket(UUID.fromString(bucketResourceId));
@@ -259,9 +276,9 @@ public class ResourceService {
    * not exist, then the metadata row should not exist. If the metadata row is locked, then only the
    * locking flight can unlock or delete the row.
    *
-   * @param projectId retrieve bucket based on google project id
+   * @param projectId      retrieve bucket based on google project id
    * @param billingProfile an authorized billing profile
-   * @param flightId flight doing the updating
+   * @param flightId       flight doing the updating
    */
   public void updateBucketMetadata(
       String projectId, BillingProfileModel billingProfile, String flightId)
@@ -274,7 +291,7 @@ public class ResourceService {
    * Create a new project for a snapshot, if none exists already.
    *
    * @param billingProfile authorized billing profile to pay for the project
-   * @param region the region to create the Firestore in
+   * @param region         the region to create the Firestore in
    * @return project resource id
    */
   public UUID initializeSnapshotProject(
@@ -313,7 +330,7 @@ public class ResourceService {
    * Create a new project for a dataset, if none exists already.
    *
    * @param billingProfile authorized billing profile to pay for the project
-   * @param region the region to create the project in
+   * @param region         the region to create the project in
    * @return project resource id
    */
   public UUID getOrCreateDatasetProject(

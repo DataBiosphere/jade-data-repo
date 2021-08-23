@@ -222,7 +222,7 @@ public class ConfigurationService {
     addParameter(LOAD_BULK_ARRAY_FILES_MAX, appConfiguration.getMaxBulkFileLoadArray());
     addParameter(
         COMBINED_FILE_AND_METADATA_INGEST_MAX,
-        appConfiguration.getMaxCombinedFileAndMetadataIngest());
+        appConfiguration.getMaxDatasetIngest());
     addParameter(LOAD_BULK_FILES_MAX, appConfiguration.getMaxBulkFileLoad());
     addParameter(LOAD_CONCURRENT_FILES, appConfiguration.getLoadConcurrentFiles());
     addParameter(LOAD_CONCURRENT_INGESTS, appConfiguration.getLoadConcurrentIngests());

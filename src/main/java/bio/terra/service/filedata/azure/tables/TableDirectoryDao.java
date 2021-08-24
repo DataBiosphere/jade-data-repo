@@ -98,8 +98,11 @@ public class TableDirectoryDao {
       String partitionKey = getPartitionKey(datasetId, testPath);
       String rowKey = encodePathAsAzureRowKey(testPath);
       TableEntity entity = FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, dirToCreate);
-      logger.info("Creating directory entry for {} in table {}", testPath, TABLE_NAME);
-      tableClient.createEntity(entity);
+      logger.info("Upserting directory entry for {} in table {}", testPath, TABLE_NAME);
+      // It's possible that another thread is trying to write the same directory entity at the same
+      // time
+      // upsert rather than create so that it does not fail if it already exists
+      tableClient.upsertEntity(entity);
     }
 
     String fullPath = fileMetadataUtils.getFullPath(createEntry.getPath(), createEntry.getName());

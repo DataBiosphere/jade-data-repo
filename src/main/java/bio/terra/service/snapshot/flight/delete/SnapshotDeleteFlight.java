@@ -54,17 +54,15 @@ public class SnapshotDeleteFlight extends Flight {
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-    // Lock the source dataset while deleting ACLs to avoid a race condition
+    // Lock the source datasets while deleting ACLs to avoid a race condition
     // Skip this step if the snapshot was already deleted
-    // TODO note that with multi-dataset snapshots this will need to change
-    UUID datasetId;
+    List<UUID> sourceDatasetIds;
     try {
-      List<UUID> sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotId(snapshotId);
-      datasetId = sourceDatasetIds.get(0);
+      sourceDatasetIds = snapshotService.getSourceDatasetIdsFromSnapshotId(snapshotId);
     } catch (SnapshotNotFoundException notFoundEx) {
-      datasetId = null;
+      sourceDatasetIds = List.of();
     }
-    if (datasetId != null) {
+    for (UUID datasetId : sourceDatasetIds) {
       addStep(new LockDatasetStep(datasetDao, datasetId, false));
     }
 
@@ -96,8 +94,8 @@ public class SnapshotDeleteFlight extends Flight {
     addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
     addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
 
-    // Unlock dataset
-    if (datasetId != null) {
+    // Unlock datasets
+    for (UUID datasetId : sourceDatasetIds) {
       addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
     }
   }

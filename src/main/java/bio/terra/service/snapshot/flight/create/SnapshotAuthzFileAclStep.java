@@ -1,11 +1,9 @@
 package bio.terra.service.snapshot.flight.create;
 
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT;
-
 import bio.terra.app.controller.exception.ApiException;
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.IamRole;
@@ -31,21 +29,22 @@ public class SnapshotAuthzFileAclStep implements Step {
   private final FireStoreDependencyDao fireStoreDao;
   private final SnapshotService snapshotService;
   private final GcsPdao gcsPdao;
-  private final DatasetService datasetService;
   private final ConfigurationService configService;
+  private final int sourceIndex;
+
   private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzFileAclStep.class);
 
   public SnapshotAuthzFileAclStep(
       FireStoreDependencyDao fireStoreDao,
       SnapshotService snapshotService,
       GcsPdao gcsPdao,
-      DatasetService datasetService,
-      ConfigurationService configService) {
+      ConfigurationService configService,
+      int sourceIndex) {
     this.fireStoreDao = fireStoreDao;
     this.snapshotService = snapshotService;
     this.gcsPdao = gcsPdao;
-    this.datasetService = datasetService;
     this.configService = configService;
+    this.sourceIndex = sourceIndex;
   }
 
   @Override
@@ -57,17 +56,12 @@ public class SnapshotAuthzFileAclStep implements Step {
     Map<IamRole, String> policies =
         workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
 
-    // TODO: when we support multiple datasets, we can generate more than one copy of this
-    //  step: one for each dataset. That is because each dataset keeps its file dependencies
-    //  in its own scope. For now, we know there is exactly one dataset and we take shortcuts.
-
-    SnapshotSource snapshotSource = snapshot.getFirstSnapshotSource();
-    String datasetId = snapshotSource.getDataset().getId().toString();
-    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(sourceIndex);
+    Dataset dataset = snapshotSource.getDataset();
 
     List<String> fileIds = fireStoreDao.getDatasetSnapshotFileIds(dataset, snapshotId.toString());
     try {
-      if (configService.testInsertFault(SNAPSHOT_GRANT_FILE_ACCESS_FAULT)) {
+      if (configService.testInsertFault(ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT)) {
         throw new StorageException(400, "Fake IAM failure", "badRequest", null);
       }
 
@@ -116,13 +110,8 @@ public class SnapshotAuthzFileAclStep implements Step {
     Map<IamRole, String> policies =
         workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, new TypeReference<>() {});
 
-    // TODO: when we support multiple datasets, we can generate more than one copy of this
-    //  step: one for each dataset. That is because each dataset keeps its file dependencies
-    //  in its own scope. For now, we know there is exactly one dataset and we take shortcuts.
-
-    SnapshotSource snapshotSource = snapshot.getFirstSnapshotSource();
-    String datasetId = snapshotSource.getDataset().getId().toString();
-    Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+    SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(sourceIndex);
+    Dataset dataset = snapshotSource.getDataset();
 
     List<String> fileIds = fireStoreDao.getDatasetSnapshotFileIds(dataset, snapshotId.toString());
     try {

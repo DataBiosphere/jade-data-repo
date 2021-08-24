@@ -4,7 +4,6 @@ import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.snapshot.Snapshot;
@@ -30,7 +29,6 @@ public class CreateSnapshotFireStoreDataStep implements Step {
   private final BigQueryPdao bigQueryPdao;
   private final SnapshotService snapshotService;
   private final FireStoreDependencyDao dependencyDao;
-  private final DatasetService datasetService;
   private final SnapshotRequestModel snapshotReq;
   private final FireStoreDao fileDao;
   private final PerformanceLogger performanceLogger;
@@ -39,14 +37,12 @@ public class CreateSnapshotFireStoreDataStep implements Step {
       BigQueryPdao bigQueryPdao,
       SnapshotService snapshotService,
       FireStoreDependencyDao dependencyDao,
-      DatasetService datasetService,
       SnapshotRequestModel snapshotReq,
       FireStoreDao fileDao,
       PerformanceLogger performanceLogger) {
     this.bigQueryPdao = bigQueryPdao;
     this.snapshotService = snapshotService;
     this.dependencyDao = dependencyDao;
-    this.datasetService = datasetService;
     this.snapshotReq = snapshotReq;
     this.fileDao = fileDao;
     this.performanceLogger = performanceLogger;
@@ -63,9 +59,8 @@ public class CreateSnapshotFireStoreDataStep implements Step {
     // column that are in the snapshot; do the filestore processing
     //
     // NOTE: This is brute force doing a column at a time. We extract all fileIds that need to be
-    // processed to
-    // ensure that we don't reprocess the same file repeatedly since this can have sever performance
-    // impacts
+    // processed to ensure that we don't reprocess the same file repeatedly since this can have
+    // sever performance impacts.
     // TODO: We may want to find a more memory efficient way to track this
     for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
       Set<String> uniqueRefIds = new HashSet<>();
@@ -103,7 +98,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
       }
 
       List<String> uniqueRefIdsAsList = new ArrayList<>(uniqueRefIds);
-      Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
+      Dataset dataset = snapshotSource.getDataset();
 
       String addFilesTimer = performanceLogger.timerStart();
       fileDao.addFilesToSnapshot(dataset, snapshot, uniqueRefIdsAsList);
@@ -134,7 +129,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
     Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
     fileDao.deleteFilesFromSnapshot(snapshot);
     for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
-      Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
+      Dataset dataset = snapshotSource.getDataset();
       dependencyDao.deleteSnapshotFileDependencies(dataset, snapshot.getId().toString());
     }
 

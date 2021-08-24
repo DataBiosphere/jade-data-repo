@@ -2,8 +2,8 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
@@ -18,17 +18,15 @@ import org.springframework.http.HttpStatus;
 
 public class CreateSnapshotValidateAssetStep implements Step {
 
-  private DatasetService datasetService;
-  private SnapshotService snapshotService;
-  private SnapshotRequestModel snapshotReq;
+  private final SnapshotService snapshotService;
+  private final SnapshotRequestModel snapshotReq;
+  private final int sourceIndex;
 
   public CreateSnapshotValidateAssetStep(
-      DatasetService datasetService,
-      SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq) {
-    this.datasetService = datasetService;
+      SnapshotService snapshotService, SnapshotRequestModel snapshotReq, int sourceIndex) {
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
+    this.sourceIndex = sourceIndex;
   }
 
   @Override
@@ -40,26 +38,25 @@ public class CreateSnapshotValidateAssetStep implements Step {
      * check that snapshot asset exists
      */
     Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
+    SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(sourceIndex);
 
-    for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
-      Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
-      List<String> datasetAssetNamesList =
-          dataset.getAssetSpecifications().stream()
-              .map(assetSpec -> assetSpec.getName())
-              .collect(Collectors.toList());
-      String snapshotSourceAssetName = snapshotSource.getAssetSpecification().getName();
-      if (!datasetAssetNamesList.contains(snapshotSourceAssetName)) {
-        String datasetAssetNames = String.join("', '", datasetAssetNamesList);
-        String message =
-            String.format(
-                "Mismatched asset name: '%s' is not an asset in the asset list for dataset '%s'."
-                    + "Asset list is '%s'",
-                snapshotSourceAssetName, dataset.getName(), datasetAssetNames);
-        FlightUtils.setErrorResponse(context, message, HttpStatus.BAD_REQUEST);
-        return new StepResult(
-            StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
-      }
+    Dataset dataset = snapshotSource.getDataset();
+    List<String> datasetAssetNames =
+        dataset.getAssetSpecifications().stream()
+            .map(AssetSpecification::getName)
+            .collect(Collectors.toList());
+    String assetName = snapshotSource.getAssetSpecification().getName();
+    if (!datasetAssetNames.contains(assetName)) {
+      String message =
+          String.format(
+              "Mismatched asset name: '%s' is not an asset in the asset list for dataset '%s'."
+                  + "Asset list is '%s'",
+              assetName, dataset.getName(), String.join("', '", datasetAssetNames));
+      FlightUtils.setErrorResponse(context, message, HttpStatus.BAD_REQUEST);
+      return new StepResult(
+          StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
     }
+
     return StepResult.getStepResultSuccess();
   }
 

@@ -19,20 +19,23 @@ import org.springframework.http.HttpStatus;
 
 public class CreateSnapshotPrimaryDataAssetStep implements Step {
 
-  private BigQueryPdao bigQueryPdao;
-  private SnapshotDao snapshotDao;
-  private SnapshotService snapshotService;
-  private SnapshotRequestModel snapshotReq;
+  private final BigQueryPdao bigQueryPdao;
+  private final SnapshotDao snapshotDao;
+  private final SnapshotService snapshotService;
+  private final SnapshotRequestModel snapshotReq;
+  private final int sourceIndex;
 
   public CreateSnapshotPrimaryDataAssetStep(
       BigQueryPdao bigQueryPdao,
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq) {
+      SnapshotRequestModel snapshotReq,
+      int sourceIndex) {
     this.bigQueryPdao = bigQueryPdao;
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
+    this.sourceIndex = sourceIndex;
   }
 
   @Override
@@ -41,12 +44,12 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
      * map field ids into row ids and validate
      * then pass the row id array into create snapshot
      */
-    SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
+    SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(sourceIndex);
     SnapshotRequestAssetModel assetSpec = contentsModel.getAssetSpec();
 
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    SnapshotSource source = snapshot.getFirstSnapshotSource();
-    RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(source, assetSpec.getRootValues());
+    SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(sourceIndex);
+    RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(snapshotSource, assetSpec.getRootValues());
     if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
       String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
       String message = String.format("Mismatched input values: '%s'", unmatchedValues);
@@ -55,7 +58,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
           StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
     }
 
-    bigQueryPdao.createSnapshot(snapshot, rowIdMatch.getMatchingRowIds());
+    bigQueryPdao.createSnapshot(snapshotSource, rowIdMatch.getMatchingRowIds());
 
     // REVIEWERS: There used to be a block of code here for updating FireStore with dependency info.
     // I *think*
@@ -67,7 +70,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    snapshotService.undoCreateSnapshot(snapshotReq.getName());
+    snapshotService.undoCreateSnapshotSource(snapshotReq.getName(), sourceIndex);
     return StepResult.getStepResultSuccess();
   }
 }

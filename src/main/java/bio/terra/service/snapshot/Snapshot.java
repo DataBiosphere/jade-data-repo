@@ -8,7 +8,6 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.time.Instant;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,6 +27,7 @@ public class Snapshot implements FSContainerInterface {
   private GoogleProjectResource projectResource;
   private List<Relationship> relationships = Collections.emptyList();
 
+  @Override
   public UUID getId() {
     return id;
   }
@@ -118,6 +118,7 @@ public class Snapshot implements FSContainerInterface {
     return this;
   }
 
+  @Override
   public GoogleProjectResource getProjectResource() {
     return projectResource;
   }
@@ -142,15 +143,13 @@ public class Snapshot implements FSContainerInterface {
   }
 
   public Map<UUID, Column> getAllColumnsById() {
-    Map<UUID, Column> result = new HashMap<>();
-    getTables().forEach(t -> t.getColumns().forEach(c -> result.put(c.getId(), c)));
-    return result;
+    return getTables().stream()
+        .flatMap(t -> t.getColumns().stream())
+        .collect(Collectors.toMap(Column::getId, Function.identity()));
   }
 
   @Override
   public FireStoreProject firestoreConnection() {
-    String datasetProjectId =
-        getFirstSnapshotSource().getDataset().getProjectResource().getGoogleProjectId();
-    return FireStoreProject.get(datasetProjectId);
+    return FireStoreProject.get(getProjectResource().getGoogleProjectId());
   }
 }

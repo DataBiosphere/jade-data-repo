@@ -24,28 +24,30 @@ import java.util.Optional;
 
 public class CreateSnapshotPrimaryDataQueryStep implements Step {
 
-  private BigQueryPdao bigQueryPdao;
-  private DatasetService datasetService;
-  private SnapshotService snapshotService;
-  private SnapshotDao snapshotDao;
-  private SnapshotRequestModel snapshotReq;
+  private final BigQueryPdao bigQueryPdao;
+  private final DatasetService datasetService;
+  private final SnapshotService snapshotService;
+  private final SnapshotDao snapshotDao;
+  private final SnapshotRequestModel snapshotReq;
+  private final int sourceIndex;
 
   public CreateSnapshotPrimaryDataQueryStep(
       BigQueryPdao bigQueryPdao,
       DatasetService datasetService,
       SnapshotService snapshotService,
       SnapshotDao snapshotDao,
-      SnapshotRequestModel snapshotReq) {
+      SnapshotRequestModel snapshotReq,
+      int sourceIndex) {
     this.bigQueryPdao = bigQueryPdao;
     this.datasetService = datasetService;
     this.snapshotService = snapshotService;
     this.snapshotDao = snapshotDao;
     this.snapshotReq = snapshotReq;
+    this.sourceIndex = sourceIndex;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
     // (based on the validation flight step that already occurred.)
     /*
      * get dataset and assetName
@@ -54,10 +56,11 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
      * to use in conjunction with the filtered row ids to create this snapshot
      */
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
+    var requestContents = snapshotReq.getContents().get(sourceIndex);
+    SnapshotRequestQueryModel snapshotQuerySpec = requestContents.getQuerySpec();
     String snapshotAssetName = snapshotQuerySpec.getAssetName();
 
-    String snapshotQuery = snapshotReq.getContents().get(0).getQuerySpec().getQuery();
+    String snapshotQuery = requestContents.getQuerySpec().getQuery();
     Query query = Query.parse(snapshotQuery);
     List<String> datasetNames = query.getDatasetNames();
     // TODO this makes the assumption that there is only one dataset
@@ -79,9 +82,9 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
 
     String sqlQuery = query.translateSql(bqVisitor);
 
-    // validate that the root table is actually a table being queried in the query -->
-    // and the grammar only picks up tables names in the from clause (though there may be more than
-    // one)
+    // Validate that the root table is actually a table being queried in the query -->
+    // and the grammar only picks up tables names in the FROM clause (though there may be more than
+    // one).
     List<String> tableNames = query.getTableNames();
     String rootTablename = assetSpec.getRootTable().getTable().getName();
     if (!tableNames.contains(rootTablename)) {
@@ -89,16 +92,17 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
           "The root table of the selected asset is not present in this query");
     }
 
-    // now using the query, get the rowIds
-    // insert the rowIds into the snapshot row ids table and then kick off the rest of the
-    // relationship walking
-    bigQueryPdao.queryForRowIds(assetSpec, snapshot, sqlQuery);
+    // Now using the query, get the rowIds.
+    // Insert the rowIds into the snapshot row ids table and then kick off the rest of the
+    // relationship walking.
+    bigQueryPdao.queryForRowIds(
+        assetSpec, snapshot.getSnapshotSources().get(sourceIndex), sqlQuery);
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    snapshotService.undoCreateSnapshot(snapshotReq.getName());
+    snapshotService.undoCreateSnapshotSource(snapshotReq.getName(), sourceIndex);
     return StepResult.getStepResultSuccess();
   }
 }

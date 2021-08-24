@@ -22,34 +22,38 @@ import org.springframework.http.HttpStatus;
 
 public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
-  private BigQueryPdao bigQueryPdao;
-  private SnapshotDao snapshotDao;
-  private SnapshotService snapshotService;
-  private SnapshotRequestModel snapshotReq;
+  private final BigQueryPdao bigQueryPdao;
+  private final SnapshotDao snapshotDao;
+  private final SnapshotService snapshotService;
+  private final SnapshotRequestModel snapshotReq;
+  private final int sourceIndex;
 
   public CreateSnapshotPrimaryDataRowIdsStep(
       BigQueryPdao bigQueryPdao,
       SnapshotDao snapshotDao,
       SnapshotService snapshotService,
-      SnapshotRequestModel snapshotReq) {
+      SnapshotRequestModel snapshotReq,
+      int sourceIndex) {
     this.bigQueryPdao = bigQueryPdao;
     this.snapshotDao = snapshotDao;
     this.snapshotService = snapshotService;
     this.snapshotReq = snapshotReq;
+    this.sourceIndex = sourceIndex;
   }
 
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
-    SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
+    SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(sourceIndex);
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-    SnapshotSource source = snapshot.getFirstSnapshotSource();
+    SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(sourceIndex);
     SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
 
     // for each table, make sure all of the row ids match
     for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
       List<UUID> rowIds = table.getRowIds();
       if (!rowIds.isEmpty()) {
-        RowIdMatch rowIdMatch = bigQueryPdao.matchRowIds(source, table.getTableName(), rowIds);
+        RowIdMatch rowIdMatch =
+            bigQueryPdao.matchRowIds(snapshotSource, table.getTableName(), rowIds);
         if (!rowIdMatch.getUnmatchedInputValues().isEmpty()) {
           String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
           String message = String.format("Mismatched row ids: '%s'", unmatchedValues);
@@ -59,14 +63,14 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
         }
       }
     }
-    bigQueryPdao.createSnapshotWithProvidedIds(snapshot, contentsModel);
+    bigQueryPdao.createSnapshotWithProvidedIds(snapshotSource, contentsModel);
 
     return StepResult.getStepResultSuccess();
   }
 
   @Override
   public StepResult undoStep(FlightContext context) throws InterruptedException {
-    snapshotService.undoCreateSnapshot(snapshotReq.getName());
+    snapshotService.undoCreateSnapshotSource(snapshotReq.getName(), sourceIndex);
     return StepResult.getStepResultSuccess();
   }
 }

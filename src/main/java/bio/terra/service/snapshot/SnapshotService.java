@@ -97,15 +97,15 @@ public class SnapshotService {
         .submit();
   }
 
-  public void undoCreateSnapshot(String snapshotName) throws InterruptedException {
+  public void undoCreateSnapshotSource(String snapshotName, int sourceIndex)
+      throws InterruptedException {
     // Remove any file dependencies created
     Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotName);
-    for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
-      Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
-      dependencyDao.deleteSnapshotFileDependencies(dataset, snapshot.getId().toString());
-    }
+    SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(sourceIndex);
+    dependencyDao.deleteSnapshotFileDependencies(
+        snapshotSource.getDataset(), snapshot.getId().toString());
 
-    bigQueryPdao.deleteSnapshot(snapshot);
+    bigQueryPdao.deleteSnapshotSource(snapshotSource);
   }
 
   /**
@@ -260,10 +260,11 @@ public class SnapshotService {
       throw new ValidationException("Only a single snapshot contents entry is currently allowed.");
     }
 
+    // FIXME: UPDATE
     SnapshotRequestContentsModel requestContents = requestContentsList.get(0);
     Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
     SnapshotSource snapshotSource = new SnapshotSource().snapshot(snapshot).dataset(dataset);
-    switch (snapshotRequestModel.getContents().get(0).getMode()) {
+    switch (requestContents.getMode()) {
       case BYASSET:
         // TODO: When we implement explicit definition of snapshot tables, we will handle that here.
         // For now, we generate the snapshot tables directly from the asset tables of the one source

@@ -68,11 +68,11 @@ public class DeleteSnapshotPrimaryDataStep implements Step {
       }
 
       Snapshot snapshot = snapshotService.retrieve(snapshotId);
-      bigQueryPdao.deleteSnapshot(snapshot);
 
       // Remove snapshot file references from the underlying datasets
       for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
-        Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
+        bigQueryPdao.deleteSnapshotSource(snapshotSource);
+        Dataset dataset = snapshotSource.getDataset();
         dependencyDao.deleteSnapshotFileDependencies(dataset, snapshotId.toString());
       }
       fileDao.deleteFilesFromSnapshot(snapshot);

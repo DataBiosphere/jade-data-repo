@@ -173,13 +173,7 @@ public class FireStoreDao {
     Firestore snapshotFirestore =
         FireStoreProject.get(snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
     Firestore datasetFirestore =
-        FireStoreProject.get(
-                snapshot
-                    .getFirstSnapshotSource()
-                    .getDataset()
-                    .getProjectResource()
-                    .getGoogleProjectId())
-            .getFirestore();
+        FireStoreProject.get(snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
     String snapshotId = snapshot.getId().toString();
     FireStoreDirectoryEntry topDir =
         directoryDao.retrieveByPath(snapshotFirestore, snapshotId, "/");

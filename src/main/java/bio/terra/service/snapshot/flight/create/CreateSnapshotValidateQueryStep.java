@@ -15,13 +15,15 @@ import java.util.Optional;
 
 public class CreateSnapshotValidateQueryStep implements Step {
 
-  private DatasetService datasetService;
-  private SnapshotRequestModel snapshotReq;
+  private final DatasetService datasetService;
+  private final SnapshotRequestModel snapshotReq;
+  private final int sourceIndex;
 
   public CreateSnapshotValidateQueryStep(
-      DatasetService datasetService, SnapshotRequestModel snapshotReq) {
+      DatasetService datasetService, SnapshotRequestModel snapshotReq, int sourceIndex) {
     this.datasetService = datasetService;
     this.snapshotReq = snapshotReq;
+    this.sourceIndex = sourceIndex;
   }
 
   @Override
@@ -35,53 +37,42 @@ public class CreateSnapshotValidateQueryStep implements Step {
      * make sure the user has custodian data access (currently this is done in the controller,
      * but this should be moved
      */
-    String snapshotQuery = snapshotReq.getContents().get(0).getQuerySpec().getQuery();
+    String snapshotQuery = snapshotReq.getContents().get(sourceIndex).getQuerySpec().getQuery();
     Query query = Query.parse(snapshotQuery);
     List<String> datasetNames = query.getDatasetNames();
     if (datasetNames.isEmpty()) {
-      String message = String.format("Snapshots much be associated with at least one dataset");
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
+      return createFailResult("Snapshots much be associated with at least one dataset");
     }
     if (datasetNames.size() > 1) {
-      String message = String.format("Snapshots can currently only be associated with one dataset");
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
-    }
-
-    if (datasetNames.size() > 1) {
-      String message = String.format("Snapshots can currently only be associated with one dataset");
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
+      return createFailResult("Snapshot queries can currently only use one dataset");
     }
     // Get the dataset by name to ensure the dataset exists
     String datasetName = datasetNames.get(0);
-    datasetService.retrieveByName(
-        datasetName); // if not found, will throw a DatasetNotFoundException
+    // if not found, will throw a DatasetNotFoundException
+    datasetService.retrieveByName(datasetName);
 
     List<String> tableNames = query.getTableNames();
     if (tableNames.isEmpty()) {
-      String message = String.format("Snapshots much be associated with at least one table");
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
+      return createFailResult("Snapshots must be associated with at least one table");
     }
 
     // TODO validate the select list. It should have one column that is the row id.
     List<String> columnNames = query.getColumnNames();
     if (columnNames.isEmpty()) {
-      String message = String.format("Snapshots much be associated with at least one column");
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
+      return createFailResult("Snapshots must be associated with at least one column");
     }
     Optional<String> rowId = columnNames.stream().filter(PDAO_ROW_ID_COLUMN::equals).findFirst();
-    if (!rowId.isPresent()) {
-      String message = String.format("Query must include a row_id column");
-      return new StepResult(
-          StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
+    if (rowId.isEmpty()) {
+      return createFailResult("Query must include a row_id column");
     }
 
     // TODO test this in an integration test
     return StepResult.getStepResultSuccess();
+  }
+
+  private static StepResult createFailResult(String message) {
+    return new StepResult(
+        StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
   }
 
   @Override

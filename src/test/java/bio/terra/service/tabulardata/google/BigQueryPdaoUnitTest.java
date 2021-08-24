@@ -896,7 +896,7 @@ public class BigQueryPdaoUnitTest {
                             .addColumnsItem(TABLE_2_COL1_NAME)
                             .addColumnsItem(TABLE_2_COL2_NAME)
                             .tableName(TABLE_2_NAME)));
-    dao.createSnapshotWithProvidedIds(snapshot, requestModel);
+    dao.createSnapshotWithProvidedIds(snapshot, requestModel, source);
 
     // Verify that the rowIds are properly copied
     verify(bigQueryProjectSnapshot, times(1))
@@ -961,7 +961,7 @@ public class BigQueryPdaoUnitTest {
                             .tableName(TABLE_2_NAME)));
     assertThrows(
         PdaoException.class,
-        () -> dao.createSnapshotWithProvidedIds(snapshot, requestModel),
+        () -> dao.createSnapshotWithProvidedIds(snapshot, requestModel, source),
         "Invalid row ids supplied");
 
     // Verify that the rowIds are properly copied (make sure that it still actually happens)

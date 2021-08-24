@@ -336,11 +336,17 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Delete the file we just ingested
     String fileId = result.getLoadFileResults().get(0).getFileId();
+    String filePath = result.getLoadFileResults().get(0).getTargetPath();
     dataRepoFixtures.deleteFile(steward, datasetId, fileId);
 
     assertThat(
         "file is gone",
         dataRepoFixtures.getFileByIdRaw(steward, datasetId, fileId).getStatusCode(),
+        equalTo(HttpStatus.NOT_FOUND));
+
+    assertThat(
+        "file is gone",
+        dataRepoFixtures.getFileByNameRaw(steward, datasetId, filePath).getStatusCode(),
         equalTo(HttpStatus.NOT_FOUND));
 
     // Make sure that any failure in tearing down is presented as a test failure

@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -201,34 +202,35 @@ public class FileService {
     } else {
       List<FSItem> fsItems =
           resourceService.getStorageAccountsForDataset(dataset).stream()
-              .map(
+              .flatMap(
                   storageAccountResource -> {
                     try {
                       BillingProfileModel billingProfile =
                           profileService.getProfileByIdNoCheck(
                               storageAccountResource.getProfileId());
-                      return tableDao.retrieveById(
-                          UUID.fromString(datasetId),
-                          fileId,
-                          depth,
-                          billingProfile,
-                          storageAccountResource);
+                      return Stream.of(
+                          tableDao.retrieveById(
+                              UUID.fromString(datasetId),
+                              fileId,
+                              depth,
+                              billingProfile,
+                              storageAccountResource));
                     } catch (FileNotFoundException ex) {
                       logger.debug("File not found in storage account: {}", storageAccountResource);
                     }
-                    return null;
+                    return Stream.empty();
                   })
               .collect(Collectors.toList());
       switch (fsItems.size()) {
         case 0:
           throw new FileNotFoundException(
-              "Unable to find FSItem in Azure Storage tables by file id");
+              String.format("Unable to find FSItem in Azure Storage tables by file id %s", fileId));
         case 1:
           return fsItems.get(0);
         default:
           throw new CorruptMetadataException(
               String.format(
-                  "More than one FSItem for file Id {}, and dataset Id {}", fileId, datasetId));
+                  "More than one FSItem for file Id %s, and dataset Id %s", fileId, datasetId));
       }
     }
   }
@@ -247,27 +249,29 @@ public class FileService {
     } else {
       List<FSItem> fsItems =
           resourceService.getStorageAccountsForDataset(dataset).stream()
-              .map(
+              .flatMap(
                   storageAccountResource -> {
                     try {
-                      return tableDao.retrieveByPath(
-                          UUID.fromString(datasetId), path, depth, storageAccountResource);
+                      return Stream.of(
+                          tableDao.retrieveByPath(
+                              UUID.fromString(datasetId), path, depth, storageAccountResource));
                     } catch (FileNotFoundException ex) {
                       logger.debug("File not found in storage account: {}", storageAccountResource);
                     }
-                    return null;
+                    return Stream.empty();
                   })
               .collect(Collectors.toList());
       switch (fsItems.size()) {
         case 0:
           throw new FileNotFoundException(
-              "Unable to find FSItem in Azure Storage tables by searching on path");
+              String.format(
+                  "Unable to find FSItem in Azure Storage tables by searching on path %s", path));
         case 1:
           return fsItems.get(0);
         default:
           throw new CorruptMetadataException(
               String.format(
-                  "More than one FSItem for path {}, and dataset Id {}", path, datasetId));
+                  "More than one FSItem for path %s, and dataset Id %s", path, datasetId));
       }
     }
   }

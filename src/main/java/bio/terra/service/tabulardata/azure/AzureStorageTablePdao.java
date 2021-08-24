@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class AzureStorageTablePdao {
   private static final Logger logger = LoggerFactory.getLogger(AzureStorageTablePdao.class);
-  private static final String LOAD_HISTORY_TABLE_NAME_SUFFIX = "LoadHistory";
+  private static final String LOAD_HISTORY_TABLE_NAME = "loadHistory";
 
   private static String computeInternalLoadTag(String loadTag) {
     return Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
@@ -31,8 +31,8 @@ public class AzureStorageTablePdao {
    * Store the results of a bulk file load in an Azure Storage Table
    *
    * <p>The table name will be the result of the dataset id passed through {@link
-   * AzureStorageTablePdao#toLoadHistoryTableNameFromUUID} Entities will be partitioned on the
-   * loadTag and their row keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
+   * AzureStorageTablePdao#LOAD_HISTORY_TABLE_NAME} Entities will be partitioned on the loadTag and
+   * their row keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
    *
    * @param serviceClient A service client for the dataset
    * @param datasetId the id of the dataset
@@ -49,11 +49,10 @@ public class AzureStorageTablePdao {
     if (loadHistoryArray.isEmpty()) {
       return;
     }
-    var tableName = toLoadHistoryTableNameFromUUID(datasetId);
-    TableClient client = serviceClient.createTableIfNotExists(tableName);
+    TableClient client = serviceClient.createTableIfNotExists(LOAD_HISTORY_TABLE_NAME);
     // if the table already exists, the returned client is null and we have to get it explicitly
     if (client == null) {
-      client = serviceClient.getTableClient(tableName);
+      client = serviceClient.getTableClient(LOAD_HISTORY_TABLE_NAME);
     }
 
     var internalLoadTag = computeInternalLoadTag(loadTag);
@@ -108,7 +107,7 @@ public class AzureStorageTablePdao {
       String loadTag,
       int offset,
       int limit) {
-    var tableClient = tableServiceClient.getTableClient(toLoadHistoryTableNameFromUUID(datasetId));
+    var tableClient = tableServiceClient.getTableClient(LOAD_HISTORY_TABLE_NAME);
     var internalLoadTag = computeInternalLoadTag(loadTag);
     ListEntitiesOptions options =
         new ListEntitiesOptions()
@@ -143,16 +142,6 @@ public class AzureStorageTablePdao {
         .addProperty(LoadHistoryUtil.ERROR_FIELD_NAME, model.getError())
         .addProperty(LoadHistoryUtil.INDEX_FIELD_NAME, entity.index)
         .addProperty(LoadHistoryUtil.IS_LAST_FIELD_NAME, entity.isLast);
-  }
-
-  /**
-   * Generate a Storage Table name from a UUID
-   *
-   * @param datasetId The datasetId root of the table name
-   * @return A valid azure storage table name with load history suffix.
-   */
-  private static String toLoadHistoryTableNameFromUUID(UUID datasetId) {
-    return "datarepo" + datasetId.toString().replaceAll("-", "") + LOAD_HISTORY_TABLE_NAME_SUFFIX;
   }
 
   private static class StorageTableLoadHistoryEntity {

@@ -122,10 +122,9 @@ public class TableDirectoryDao {
       return false;
     }
 
-    List<TableTransactionAction> deleteList = new ArrayList<>();
     TableTransactionAction t =
         new TableTransactionAction(TableTransactionActionType.DELETE, leafEntity);
-    deleteList.add(t);
+    tableClient.submitTransaction(List.of(t));
 
     FireStoreDirectoryEntry leafEntry = FireStoreDirectoryEntry.fromTableEntity(leafEntity);
     String datasetId = leafEntry.getDatasetId();
@@ -134,22 +133,19 @@ public class TableDirectoryDao {
       // Count the number of entries with this path as their directory path
       // A value of 1 means that the directory will be empty after its child is
       // deleted, so we should delete it also.
+      String filterPath = fileMetadataUtils.makePathFromLookupPath(lookupPath);
       ListEntitiesOptions options =
-          new ListEntitiesOptions()
-              .setFilter(
-                  String.format(
-                      "path eq '%s'", fileMetadataUtils.makePathFromLookupPath(lookupPath)));
+          new ListEntitiesOptions().setFilter(String.format("path eq '%s'", filterPath));
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      int size = List.of(entities).size();
-      if (size > 1) {
+      int size = (int) entities.stream().count();
+      if (size > 0) {
         break;
       }
-      TableEntity entity =
-          lookupByFilePath(tableServiceClient, datasetId, encodePathAsAzureRowKey(lookupPath));
-      deleteList.add(new TableTransactionAction(TableTransactionActionType.DELETE, entity));
+      TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
+      tableClient.submitTransaction(
+          List.of(new TableTransactionAction(TableTransactionActionType.DELETE, entity)));
       lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
     }
-    tableClient.submitTransaction(deleteList);
     return true;
   }
 

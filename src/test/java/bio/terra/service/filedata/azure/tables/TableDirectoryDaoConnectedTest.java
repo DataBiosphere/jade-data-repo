@@ -40,6 +40,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class TableDirectoryDaoConnectedTest {
+  // TODO - move these into test config
   private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
   private static final String STORAGE_ACCOUNT_NAME = "tdrshiqauwlpzxavohmxxhfv";
 
@@ -72,6 +73,7 @@ public class TableDirectoryDaoConnectedTest {
     storageAccountId = UUID.randomUUID();
     datasetId = UUID.randomUUID();
 
+    // TODO - move to connectedOperations
     billingProfile =
         new BillingProfileModel()
             .id(UUID.randomUUID())
@@ -107,8 +109,11 @@ public class TableDirectoryDaoConnectedTest {
   public void cleanup() throws Exception {
 
     connectedOperations.teardown();
+    // TODO - clean out added entries from storage table
   }
 
+  // TODO - test other directory options:
+  // https://github.com/DataBiosphere/jade-data-repo/pull/1033/files#diff-65a4bf8d889dc4806c26c0a005ac19e9b8bbc24377583debc3689ff2679f55a8R62
   @Test
   public void testStorageTableMetadataDuringFileIngest() {
     // Test re-using same directory path, but for different files
@@ -126,6 +131,53 @@ public class TableDirectoryDaoConnectedTest {
         "FireStoreDirectoryEntry should now exist",
         fileEntry2.getPath(),
         equalTo(fileMetadataUtils.getDirectoryPath(sharedTargetPath + fileName2)));
+
+    // TODO - figure out  how to test that the two entries are sharing the top level path entries
+    // but not the differently name file entries
+
+    // Delete File 1's directory entry
+    boolean deleteEntry =
+        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileEntry1.getFileId());
+    assertThat("Delete Entry 1", deleteEntry, equalTo(true));
+    FireStoreDirectoryEntry shouldbeNull =
+        tableDirectoryDao.retrieveByPath(
+            tableServiceClient, datasetId.toString(), sharedTargetPath + fileName1);
+    assertThat("File1 reference no longer exists", shouldbeNull, equalTo(null));
+    FireStoreDirectoryEntry file2StillPresent =
+        tableDirectoryDao.retrieveByPath(
+            tableServiceClient, datasetId.toString(), sharedTargetPath + fileName2);
+    // walk through sub directories make sure they still exist
+    assertThat(
+        "File2's directory still exists",
+        file2StillPresent.getFileId(),
+        equalTo(fileEntry2.getFileId()));
+    FireStoreDirectoryEntry testEntryStillPresent =
+        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), "/test/path");
+    assertThat(
+        "Shared subdirectory '/test' should still exist after single file delete",
+        testEntryStillPresent.getPath(),
+        equalTo("/test"));
+    FireStoreDirectoryEntry entryStillPresent =
+        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), "/test");
+    assertThat(
+        "Shared subdirectory '/' should still exist after single file delete",
+        entryStillPresent.getPath(),
+        equalTo("/"));
+    FireStoreDirectoryEntry blankEntryStillPresent =
+        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), "/");
+    assertThat(
+        "Empty Shared subdirectory should still exist after single file delete",
+        blankEntryStillPresent.getPath(),
+        equalTo(""));
+
+    // Delete the second file
+    boolean deleteEntry2 =
+        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileEntry2.getFileId());
+    assertThat("Delete Entry 2", deleteEntry2, equalTo(true));
+    FireStoreDirectoryEntry file2ShouldbeNull =
+        tableDirectoryDao.retrieveByPath(
+            tableServiceClient, datasetId.toString(), sharedTargetPath + fileName2);
+    assertThat("File1 reference no longer exists", file2ShouldbeNull, equalTo(null));
   }
 
   private FireStoreDirectoryEntry createStorageTableEntrySharedBasePath(

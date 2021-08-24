@@ -69,7 +69,6 @@ public class IngestFileAzureFileStep implements Step {
         FSItem fsItem =
             tableDao.retrieveById(
                 dataset.getId(), fileId, 1, billingProfileModel, storageAccountResource);
-        // TODO - no longer read from fileService?
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);

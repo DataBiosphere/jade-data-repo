@@ -20,6 +20,7 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import java.util.UUID;
 import org.junit.After;
@@ -27,6 +28,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,6 +46,8 @@ public class TableDirectoryDaoConnectedTest {
   // TODO - move these into test config
   private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
   private static final String STORAGE_ACCOUNT_NAME = "tdrshiqauwlpzxavohmxxhfv";
+  private static final Logger logger =
+      LoggerFactory.getLogger(TableDirectoryDaoConnectedTest.class);
 
   private UUID applicationId;
   private UUID storageAccountId;
@@ -198,5 +203,27 @@ public class TableDirectoryDaoConnectedTest {
     // test that directory entry now exists
     return tableDirectoryDao.retrieveByPath(
         tableServiceClient, datasetId.toString(), sharedTargetPath + fileName);
+  }
+
+  @Test
+  public void testDirectoryTableCreateDelete() {
+    String tableName = Names.randomizeName("testTable123").replaceAll("_", "");
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
+
+    // Should throw TableServiceException
+    boolean tableExists = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
+    assertThat("table should not exist", tableExists, equalTo(false));
+
+    tableServiceClient.createTableIfNotExists(tableName);
+    boolean tableExistsNow = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
+    assertThat("table should exist", tableExistsNow, equalTo(true));
+
+    boolean tableNoEntries = TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName);
+    assertThat("table should have no entries", tableNoEntries, equalTo(false));
+
+    tableClient.deleteTable();
+    boolean tableExistsAfterDelete =
+        TableServiceClientUtils.tableExists(tableServiceClient, tableName);
+    assertThat("table should not exist after delete", tableExistsAfterDelete, equalTo(false));
   }
 }

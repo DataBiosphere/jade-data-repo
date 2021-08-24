@@ -139,9 +139,7 @@ public class TableDirectoryDao {
       String filterPath = fileMetadataUtils.makePathFromLookupPath(lookupPath);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("path eq '%s'", filterPath));
-      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      int size = (int) entities.stream().count();
-      if (size > 0) {
+      if (TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
         break;
       }
       TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
@@ -154,8 +152,14 @@ public class TableDirectoryDao {
 
   // Each dataset/snapshot has its own set of tables, so we delete the entire directory entry table
   public void deleteDirectoryEntriesFromCollection(TableServiceClient tableServiceClient) {
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    tableClient.deleteTable();
+    if (TableServiceClientUtils.tableExists(tableServiceClient, TABLE_NAME)) {
+      TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+      tableClient.deleteTable();
+    } else {
+      logger.warn(
+          "No storage table {} found to be removed.  This should only happen when deleting a file-less dataset.",
+          TABLE_NAME);
+    }
   }
 
   // Returns null if not found - upper layers do any throwing
@@ -179,13 +183,11 @@ public class TableDirectoryDao {
 
   public List<UUID> validateRefIds(TableServiceClient tableServiceClient, List<UUID> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     List<UUID> missingIds = new ArrayList<>();
     for (UUID s : refIdArray) {
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", s.toString()));
-      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      if (!entities.iterator().hasNext()) {
+      if (!TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
         missingIds.add(s);
       }
     }
@@ -197,6 +199,7 @@ public class TableDirectoryDao {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     ListEntitiesOptions options =
         new ListEntitiesOptions().setFilter(String.format("path eq '%s'", dirPath));
+    // TODO - add check that there are entries
     PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
     return entities.stream()
         .map(FireStoreDirectoryEntry::fromTableEntity)
@@ -221,6 +224,7 @@ public class TableDirectoryDao {
       TableClient client = tableServiceClient.getTableClient(TABLE_NAME);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", fileId));
+      // TODO - rework and add to new utils method
       PagedIterable<TableEntity> entities = client.listEntities(options, null, null);
       if (!entities.iterator().hasNext()) {
         return null;

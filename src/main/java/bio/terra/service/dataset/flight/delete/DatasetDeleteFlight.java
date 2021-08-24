@@ -55,15 +55,20 @@ public class DatasetDeleteFlight extends Flight {
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-    var platform =
-        CloudPlatformWrapper.of(
-            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
+    //    // TODO - all we provide in the request is the dataset id. How would this cloud platform
+    // be set?
+    //    var platform =
+    //        CloudPlatformWrapper.of(
+    //            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule primaryDataDeleteRetry = getDefaultExponentialBackoffRetryRule();
 
     addStep(new LockDatasetStep(datasetDao, datasetId, false, true), lockDatasetRetry);
     addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
+    var platform =
+        CloudPlatformWrapper.of(
+            datasetService.retrieve(datasetId).getDatasetSummary().getStorageCloudPlatform());
     if (platform.isGcp()) {
       addStep(
           new DeleteDatasetPrimaryDataStep(

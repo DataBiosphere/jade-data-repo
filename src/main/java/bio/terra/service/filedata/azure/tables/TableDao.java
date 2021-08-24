@@ -118,8 +118,10 @@ public class TableDao {
       // If we didn't load files, don't try to delete them
       fileDao.deleteFilesFromDataset(tableServiceClient, f -> {});
     } else {
+      logger.info("deleting files from dataset");
       fileDao.deleteFilesFromDataset(tableServiceClient, func);
     }
+    logger.info("deleting direcotry entries");
     directoryDao.deleteDirectoryEntriesFromCollection(tableServiceClient);
   }
 

@@ -214,7 +214,8 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Create and delete a dataset and make sure that the profile still can't be deleted
     DatasetSummaryModel summaryModel2 =
-        dataRepoFixtures.createDataset(steward, profileId, "it-dataset-omop.json");
+        dataRepoFixtures.createDataset(
+            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
     dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     assertThat(
         "Original dataset is still there",

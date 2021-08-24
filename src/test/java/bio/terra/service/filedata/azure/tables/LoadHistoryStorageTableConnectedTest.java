@@ -104,7 +104,7 @@ public class LoadHistoryStorageTableConnectedTest {
 
   @After
   public void cleanup() throws Exception {
-
+    // TODO - clean up the load history table
     connectedOperations.teardown();
   }
 
@@ -128,8 +128,12 @@ public class LoadHistoryStorageTableConnectedTest {
             .sourcePath("/source/path.json")
             .targetPath("/target/path.json"));
 
+    // TODO Test the other two states
+
     storageTableDao.storeLoadHistory(
         serviceClient, datasetId, loadTag, Instant.now(), loadHistoryArray);
+
+    // TODO - confirm the results
 
     //    List<BulkLoadHistoryModel> resultingLoadHistory =
     // storageTableDao.getLoadHistory(serviceClient, datasetId, loadTag, 0, 2);

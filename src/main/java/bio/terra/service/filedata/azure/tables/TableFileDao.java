@@ -95,6 +95,10 @@ public class TableFileDao {
   <V> void scanTableObjects(TableClient tableClient, ApiFutureGenerator<V, TableEntity> generator) {
     ListEntitiesOptions options = new ListEntitiesOptions();
     PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+    if (!entities.iterator().hasNext()) {
+      logger.warn("No files found in Storage Table Directory to be removed");
+      return;
+    }
     entities.stream()
         .forEach(
             entity -> {
@@ -108,22 +112,26 @@ public class TableFileDao {
 
   void deleteFilesFromDataset(
       TableServiceClient tableServiceClient, InterruptibleConsumer<FireStoreFile> func) {
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    scanTableObjects(
-        tableClient,
-        entity -> {
-          SettableApiFuture<Boolean> future = SettableApiFuture.create();
-          executor.execute(
-              () -> {
-                try {
-                  FireStoreFile fireStoreFile = FireStoreFile.fromTableEntity(entity);
-                  func.accept(fireStoreFile);
-                  future.set(deleteFileMetadata(tableServiceClient, fireStoreFile.getFileId()));
-                } catch (final Exception e) {
-                  future.setException(e);
-                }
-              });
-          return future;
-        });
+    if (TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME)) {
+      TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+      scanTableObjects(
+          tableClient,
+          entity -> {
+            SettableApiFuture<Boolean> future = SettableApiFuture.create();
+            executor.execute(
+                () -> {
+                  try {
+                    FireStoreFile fireStoreFile = FireStoreFile.fromTableEntity(entity);
+                    func.accept(fireStoreFile);
+                    future.set(deleteFileMetadata(tableServiceClient, fireStoreFile.getFileId()));
+                  } catch (final Exception e) {
+                    future.setException(e);
+                  }
+                });
+            return future;
+          });
+    } else {
+      logger.warn("No files found to be deleted from dataset.");
+    }
   }
 }

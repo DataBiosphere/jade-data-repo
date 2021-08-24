@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.jmx.export.metadata.InvalidMetadataException;
 
 public class DeleteDatasetAzurePrimaryDataStep implements Step {
 
@@ -57,7 +58,14 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
     BillingProfileModel profileModel =
         profileDao.getBillingProfileById(dataset.getDefaultProfileId());
     AzureStorageAccountResource storageAccountResource =
-        resourceService.getOrCreateStorageAccount(dataset, profileModel, context.getFlightId());
+        resourceService
+            .getStorageAccount(dataset, profileModel)
+            .orElseThrow(
+                () ->
+                    new InvalidMetadataException(
+                        String.format(
+                            "Storage account does not exist for billing profile %s and dataset %s",
+                            profileModel.getId(), dataset.getId())));
     tableDao.deleteFilesFromDataset(
         profileModel, storageAccountResource, azureBlobStorePdao::deleteFile);
 

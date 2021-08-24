@@ -205,6 +205,7 @@ public class FileService {
               .flatMap(
                   storageAccountResource -> {
                     try {
+                      // TODO - should there be an auth check?
                       BillingProfileModel billingProfile =
                           profileService.getProfileByIdNoCheck(
                               storageAccountResource.getProfileId());

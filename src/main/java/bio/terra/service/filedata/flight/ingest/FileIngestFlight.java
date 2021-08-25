@@ -119,6 +119,9 @@ public class FileIngestFlight extends Flight {
     // 9. Unlock the load tag
     // 10. Unlock the dataset
     addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
+    if (platform.isAzure()) {
+      addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));
+    }
     addStep(new IngestFileValidateCloudPlatformStep(dataset));
     addStep(new LockDatasetStep(datasetDao, datasetId, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));

@@ -58,11 +58,9 @@ public class DeleteFileAzureLookupStep implements Step {
       // so we check the working map before doing the lookup.
       FlightMap workingMap = context.getWorkingMap();
       FireStoreFile fireStoreFile = workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreFile.class);
-      // TODO - wouldn't we need to check other associated billing profiles?
       BillingProfileModel billingProfile =
           profileDao.getBillingProfileById(dataset.getDefaultProfileId());
       workingMap.put(ProfileMapKeys.PROFILE_MODEL, billingProfile);
-      // TODO - why get or create? Why not just get?
       AzureStorageAccountResource storageAccountResource =
           resourceService.getOrCreateStorageAccount(dataset, billingProfile, context.getFlightId());
       workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);

@@ -88,7 +88,7 @@ public class IngestParseJsonFileStep implements Step {
                         .map(
                             columnName -> {
                               JsonNode fileRefNode = node.get(columnName);
-                              if (fileRefNode.isObject()) {
+                              if (fileRefNode != null && fileRefNode.isObject()) {
                                 return objectMapper.convertValue(
                                     fileRefNode, BulkLoadFileModel.class);
                               } else {

@@ -103,6 +103,7 @@ public class TableDirectoryDaoTest {
 
   @Test
   public void testRetrieveByFileIdNotFound() {
+    when(TableServiceClientUtils.tableExists(any(), any())).thenReturn(true);
     PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
     Iterator<TableEntity> mockIterator = mock(Iterator.class);
     when(mockIterator.hasNext()).thenReturn(false);

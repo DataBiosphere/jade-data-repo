@@ -210,7 +210,6 @@ public class TableDirectoryDaoConnectedTest {
     String tableName = Names.randomizeName("testTable123").replaceAll("_", "");
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
 
-    // Should throw TableServiceException
     boolean tableExists = TableServiceClientUtils.tableExists(tableServiceClient, tableName);
     assertThat("table should not exist", tableExists, equalTo(false));
 

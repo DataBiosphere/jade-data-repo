@@ -139,6 +139,8 @@ public class TableDirectoryDao {
       String filterPath = fileMetadataUtils.makePathFromLookupPath(lookupPath);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("path eq '%s'", filterPath));
+      // TODO - switch this back to checking for 1
+      // B/c we need to check if we can delete subdirectories too
       if (TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
         break;
       }

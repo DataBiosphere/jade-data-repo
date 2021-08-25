@@ -31,8 +31,8 @@ public class AzureStorageTablePdao {
    * Store the results of a bulk file load in an Azure Storage Table
    *
    * <p>The table name will be the result of the dataset id passed through {@link
-   * AzureStorageTablePdao#toLoadHistoryTableNameFromUUID} Entities will be partitioned on the loadTag and
-   * their row keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
+   * AzureStorageTablePdao#toLoadHistoryTableNameFromUUID} Entities will be partitioned on the
+   * loadTag and their row keys will be the value of {@link BulkLoadHistoryModel#getFileId()}
    *
    * @param serviceClient A service client for the dataset
    * @param datasetId the id of the dataset

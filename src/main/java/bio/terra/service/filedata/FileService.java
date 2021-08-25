@@ -16,7 +16,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
-import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
@@ -30,6 +29,7 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -37,8 +37,6 @@ import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -200,39 +198,19 @@ public class FileService {
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveById(dataset, fileId, depth);
     } else {
-      List<FSItem> fsItems =
-          resourceService.getStorageAccountsForDataset(dataset).stream()
-              .flatMap(
-                  storageAccountResource -> {
-                    try {
-                      // TODO - should there be an auth check?
-                      BillingProfileModel billingProfile =
-                          profileService.getProfileByIdNoCheck(
-                              storageAccountResource.getProfileId());
-                      return Stream.of(
-                          tableDao.retrieveById(
-                              UUID.fromString(datasetId),
-                              fileId,
-                              depth,
-                              billingProfile,
-                              storageAccountResource));
-                    } catch (FileNotFoundException ex) {
-                      logger.debug("File not found in storage account: {}", storageAccountResource);
-                    }
-                    return Stream.empty();
-                  })
-              .collect(Collectors.toList());
-      switch (fsItems.size()) {
-        case 0:
-          throw new FileNotFoundException(
-              String.format("Unable to find FSItem in Azure Storage tables by file id %s", fileId));
-        case 1:
-          return fsItems.get(0);
-        default:
-          throw new CorruptMetadataException(
-              String.format(
-                  "More than one FSItem for file Id %s, and dataset Id %s", fileId, datasetId));
-      }
+      BillingProfileModel billingProfileModel =
+          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
+      AzureStorageAccountResource storageAccountResource =
+          resourceService
+              .getStorageAccount(dataset, billingProfileModel)
+              .orElseThrow(
+                  () ->
+                      new CorruptMetadataException(
+                          String.format(
+                              "No storage account resource for dataset %s and billing profile %s",
+                              datasetId, dataset.getDefaultProfileId())));
+      return tableDao.retrieveById(
+          UUID.fromString(datasetId), fileId, depth, billingProfileModel, storageAccountResource);
     }
   }
 
@@ -248,32 +226,19 @@ public class FileService {
     if (cloudPlatformWrapper.isGcp()) {
       return fileDao.retrieveByPath(dataset, path, depth);
     } else {
-      List<FSItem> fsItems =
-          resourceService.getStorageAccountsForDataset(dataset).stream()
-              .flatMap(
-                  storageAccountResource -> {
-                    try {
-                      return Stream.of(
-                          tableDao.retrieveByPath(
-                              UUID.fromString(datasetId), path, depth, storageAccountResource));
-                    } catch (FileNotFoundException ex) {
-                      logger.debug("File not found in storage account: {}", storageAccountResource);
-                    }
-                    return Stream.empty();
-                  })
-              .collect(Collectors.toList());
-      switch (fsItems.size()) {
-        case 0:
-          throw new FileNotFoundException(
-              String.format(
-                  "Unable to find FSItem in Azure Storage tables by searching on path %s", path));
-        case 1:
-          return fsItems.get(0);
-        default:
-          throw new CorruptMetadataException(
-              String.format(
-                  "More than one FSItem for path %s, and dataset Id %s", path, datasetId));
-      }
+      BillingProfileModel billingProfileModel =
+          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
+      AzureStorageAccountResource storageAccountResource =
+          resourceService
+              .getStorageAccount(dataset, billingProfileModel)
+              .orElseThrow(
+                  () ->
+                      new CorruptMetadataException(
+                          String.format(
+                              "No storage account resource for dataset %s and billing profile %s",
+                              datasetId, dataset.getDefaultProfileId())));
+      return tableDao.retrieveByPath(
+          UUID.fromString(datasetId), path, depth, storageAccountResource);
     }
   }
 

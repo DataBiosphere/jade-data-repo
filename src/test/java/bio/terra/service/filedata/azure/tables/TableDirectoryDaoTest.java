@@ -15,6 +15,7 @@ import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.TableEntity;
+import com.azure.data.tables.models.TableItem;
 import com.azure.data.tables.models.TableServiceException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Iterator;
@@ -58,6 +59,14 @@ public class TableDirectoryDaoTest {
     dao = spy(dao);
     when(authService.getTableServiceClient(any(), any())).thenReturn(tableServiceClient);
     when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
+
+    // Mock table exists check
+    PagedIterable<TableItem> mockTablesIterable = mock(PagedIterable.class);
+    TableItem table = mock(TableItem.class);
+    when(table.getName()).thenReturn("dataset");
+    when(mockTablesIterable.stream()).thenReturn(Stream.of(table));
+    when(tableServiceClient.listTables()).thenReturn(mockTablesIterable);
+
     entity =
         new TableEntity(PARTITION_KEY, ROW_KEY)
             .addProperty(FireStoreDirectoryEntry.FILE_ID_FIELD_NAME, FILE_ID)
@@ -103,7 +112,6 @@ public class TableDirectoryDaoTest {
 
   @Test
   public void testRetrieveByFileIdNotFound() {
-    when(TableServiceClientUtils.tableExists(any(), any())).thenReturn(true);
     PagedIterable<TableEntity> mockPagedIterable = mock(PagedIterable.class);
     Iterator<TableEntity> mockIterator = mock(Iterator.class);
     when(mockIterator.hasNext()).thenReturn(false);

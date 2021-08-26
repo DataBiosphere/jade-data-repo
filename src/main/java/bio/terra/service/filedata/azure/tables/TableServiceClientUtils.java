@@ -28,8 +28,6 @@ public class TableServiceClientUtils {
 
   public static boolean tableExists(TableServiceClient tableServiceClient, String tableName) {
     return tableServiceClient.listTables().stream()
-        .filter(table -> table.getName().matches(tableName))
-        .findAny()
-        .isPresent();
+        .anyMatch(table -> table.getName().matches(tableName));
   }
 }

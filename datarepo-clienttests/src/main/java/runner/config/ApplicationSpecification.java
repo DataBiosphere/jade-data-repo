@@ -4,7 +4,6 @@ public class ApplicationSpecification implements SpecificationInterface {
   public int maxStairwayThreads = 20;
   public int maxBulkFileLoad = 1000000;
   public int maxBulkFileLoadArray = 1000000;
-  public int maxCombinedFileAndMetadataIngest = 1000;
   public int maxDatasetIngest = 1000000;
   public int loadConcurrentFiles = 80;
   public int loadConcurrentIngests = 2;

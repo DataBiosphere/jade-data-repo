@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -61,7 +62,7 @@ public class IngestParseJsonFileStep implements Step {
                         .flatMap(
                             columnName -> {
                               JsonNode fileRefNode = node.get(columnName);
-                              if (fileRefNode.isObject()) {
+                              if (Objects.nonNull(fileRefNode) && fileRefNode.isObject()) {
                                 return Stream.of(
                                     objectMapper.convertValue(
                                         fileRefNode, BulkLoadFileModel.class));
@@ -82,7 +83,7 @@ public class IngestParseJsonFileStep implements Step {
     workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, fileModels);
 
     IngestUtils.checkForLargeIngestRequests(
-        fileModels.size(), applicationConfiguration.getMaxCombinedFileAndMetadataIngest());
+        fileModels.size(), applicationConfiguration.getMaxDatasetIngest());
 
     return StepResult.getStepResultSuccess();
   }

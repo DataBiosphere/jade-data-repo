@@ -25,7 +25,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
   private final UUID datasetId;
   private final String loadTag;
   private final int waitSeconds;
-  private final int fileChunkSize;
+  private final int loadHistoryChunkSize;
 
   public IngestCopyLoadHistoryToBQStep(
       BigQueryPdao bigQueryPdao,
@@ -34,7 +34,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
       UUID datasetId,
       String loadTag,
       int waitSeconds,
-      int fileChunkSize,
+      int loadHistoryChunkSize,
       Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.bigQueryPdao = bigQueryPdao;
@@ -43,7 +43,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
     this.datasetId = datasetId;
     this.loadTag = loadTag;
     this.waitSeconds = waitSeconds;
-    this.fileChunkSize = fileChunkSize;
+    this.loadHistoryChunkSize = loadHistoryChunkSize;
   }
 
   public IngestCopyLoadHistoryToBQStep(
@@ -53,7 +53,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
       UUID datasetId,
       String loadTag,
       int waitSeconds,
-      int fileChunkSize) {
+      int loadHistoryChunkSize) {
     this(
         bigQueryPdao,
         loadService,
@@ -61,14 +61,14 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
         datasetId,
         loadTag,
         waitSeconds,
-        fileChunkSize,
+        loadHistoryChunkSize,
         SkippableStep::neverSkip);
   }
 
   @Override
   public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     IngestCopyLoadHistoryResources resources =
-        getResources(context, loadService, datasetService, datasetId, fileChunkSize);
+        getResources(context, loadService, datasetService, datasetId, loadHistoryChunkSize);
     String tableNameFlightId = context.getFlightId().replaceAll("[^a-zA-Z0-9]", "_");
     try {
       bigQueryPdao.createStagingLoadHistoryTable(resources.dataset, tableNameFlightId);
@@ -95,7 +95,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
   }
 
   @Override
-  public StepResult undoSkippableStep(FlightContext context) {
+  public StepResult undoStep(FlightContext context) {
     String flightId = context.getFlightId();
     try {
       Dataset dataset = datasetService.retrieve(datasetId);

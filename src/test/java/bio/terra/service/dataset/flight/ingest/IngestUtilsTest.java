@@ -112,16 +112,16 @@ public class IngestUtilsTest {
   @Test(expected = InvalidIngestStrategyException.class)
   public void testMaxLineIngestCheck() {
     int numLines = 11;
-    when(applicationConfiguration.getMaxCombinedFileAndMetadataIngest()).thenReturn(10);
+    when(applicationConfiguration.getMaxDatasetIngest()).thenReturn(10);
     IngestUtils.checkForLargeIngestRequests(
-        numLines, applicationConfiguration.getMaxCombinedFileAndMetadataIngest());
+        numLines, applicationConfiguration.getMaxDatasetIngest());
   }
 
   @Test
   public void testSmallLineIngestCheck() {
     int numLines = 9;
-    when(applicationConfiguration.getMaxCombinedFileAndMetadataIngest()).thenReturn(10);
+    when(applicationConfiguration.getMaxDatasetIngest()).thenReturn(10);
     IngestUtils.checkForLargeIngestRequests(
-        numLines, applicationConfiguration.getMaxCombinedFileAndMetadataIngest());
+        numLines, applicationConfiguration.getMaxDatasetIngest());
   }
 }

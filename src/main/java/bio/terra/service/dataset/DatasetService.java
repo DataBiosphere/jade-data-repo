@@ -16,8 +16,6 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSortByParam;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SqlSortDirection;
-import bio.terra.service.configuration.ConfigEnum;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
@@ -52,7 +50,6 @@ public class DatasetService {
   private final ProfileDao profileDao;
   private final StorageTableService storageTableService;
   private final BigQueryPdao bigQueryPdao;
-  private final ConfigurationService configurationService;
 
   @Autowired
   public DatasetService(
@@ -61,15 +58,13 @@ public class DatasetService {
       LoadService loadService,
       ProfileDao profileDao,
       StorageTableService storageTableService,
-      BigQueryPdao bigQueryPdao,
-      ConfigurationService configurationService) {
+      BigQueryPdao bigQueryPdao) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
     this.profileDao = profileDao;
     this.storageTableService = storageTableService;
     this.bigQueryPdao = bigQueryPdao;
-    this.configurationService = configurationService;
   }
 
   public String createDataset(
@@ -203,12 +198,6 @@ public class DatasetService {
         .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
         .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
         .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
-        .addParameter(
-            LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE,
-            configurationService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE))
-        .addParameter(
-            LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS,
-            configurationService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS))
         .submit();
   }
 

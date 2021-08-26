@@ -22,6 +22,10 @@ public abstract class SkippableStep implements Step {
     this.skipCondition = skipCondition;
   }
 
+  protected static boolean neverSkip(FlightContext flightContext) {
+    return false;
+  }
+
   @Override
   public StepResult doStep(FlightContext flightContext)
       throws InterruptedException, RetryException {
@@ -47,9 +51,5 @@ public abstract class SkippableStep implements Step {
   public StepResult undoSkippableStep(FlightContext context) {
     // This step has no side effects
     return StepResult.getStepResultSuccess();
-  }
-
-  protected static boolean neverSkip(FlightContext flightContext) {
-    return false;
   }
 }

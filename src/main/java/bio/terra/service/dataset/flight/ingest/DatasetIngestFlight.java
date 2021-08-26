@@ -88,8 +88,8 @@ public class DatasetIngestFlight extends Flight {
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 
-    if (cloudPlatform.is(CloudPlatform.GCP)
-        && ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON) {
+    if (ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON
+        && cloudPlatform.isGcp()) {
       addJsonSteps(
           inputParameters,
           appContext,
@@ -159,7 +159,7 @@ public class DatasetIngestFlight extends Flight {
     int loadHistoryWaitSeconds =
         configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS);
     int loadHistoryChunkSize =
-        inputParameters.get(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE, Integer.class);
+        configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE);
 
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
     // Begin file + metadata load
@@ -168,7 +168,6 @@ public class DatasetIngestFlight extends Flight {
         new AuthorizeBillingProfileUseStep(
             profileService, profileId, userReq, ingestSkipCondition));
     addStep(new LoadLockStep(loadService, ingestSkipCondition));
-
     addStep(new IngestFileGetProjectStep(dataset, projectService, ingestSkipCondition));
     addStep(
         new IngestFileGetOrCreateProject(resourceService, dataset, ingestSkipCondition),

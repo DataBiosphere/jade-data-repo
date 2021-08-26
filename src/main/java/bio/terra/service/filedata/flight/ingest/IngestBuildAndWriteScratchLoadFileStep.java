@@ -76,7 +76,7 @@ public class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
                 node -> {
                   for (var columnName : fileColumns) {
                     JsonNode fileRefNode = node.get(columnName);
-                    if (fileRefNode.isObject()) {
+                    if (Objects.nonNull(fileRefNode) && fileRefNode.isObject()) {
                       // replace
                       BulkLoadFileModel fileModel =
                           Objects.requireNonNull(

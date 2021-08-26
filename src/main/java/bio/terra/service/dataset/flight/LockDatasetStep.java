@@ -62,8 +62,9 @@ public class LockDatasetStep implements Step {
       } else {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
       }
-    } catch (DatasetLockException ex) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+    } catch (DatasetLockException e) {
+      logger.warn("Dataset could not be locked.  Retrying", e);
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     } catch (RetryQueryException retryQueryException) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
     }

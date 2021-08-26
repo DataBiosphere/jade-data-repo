@@ -78,7 +78,9 @@ public class SnapshotCreateFlight extends Flight {
             sourceDataset
                 .getDatasetSummary()
                 .getStorageResourceRegion(GoogleCloudResource.FIRESTORE);
-    addStep(new LockDatasetStep(datasetDao, datasetId, false));
+    // Add a retry in case an ingest flight is currently in progress on the dataset
+    RetryRule lockDatasetRetryRule = getDefaultExponentialBackoffRetryRule();
+    addStep(new LockDatasetStep(datasetDao, datasetId, false), lockDatasetRetryRule);
 
     // Make sure this user is allowed to use the billing profile and that the underlying
     // billing information remains valid.

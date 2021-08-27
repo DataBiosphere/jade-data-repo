@@ -55,25 +55,28 @@ public class DatasetDeleteFlight extends Flight {
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
     AuthenticatedUserRequest userReq =
         inputParameters.get(JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-    //    // TODO - all we provide in the request is the dataset id. How would this cloud platform
-    // be set?
-    //    var platform =
-    //        CloudPlatformWrapper.of(
-    //            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
+    var platform =
+        CloudPlatformWrapper.of(
+            inputParameters.get(JobMapKeys.CLOUD_PLATFORM.getKeyName(), String.class));
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule primaryDataDeleteRetry = getDefaultExponentialBackoffRetryRule();
 
     addStep(new LockDatasetStep(datasetDao, datasetId, false, true), lockDatasetRetry);
-    addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
-    var platform =
-        CloudPlatformWrapper.of(
-            datasetService.retrieve(datasetId).getDatasetSummary().getStorageCloudPlatform());
     if (platform.isGcp()) {
+      // TODO: Do this check for Azure datasets
+      addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
       addStep(
           new DeleteDatasetPrimaryDataStep(
               bigQueryPdao, gcsPdao, fileDao, datasetService, datasetId, configService),
           primaryDataDeleteRetry);
+      // Delete access control on objects that were explicitly added by data repo operations.
+      // Do this before delete resource from SAM to ensure we can get the metadata needed to
+      // perform the operation. Also need to run before metadata is deleted since it is
+      // required by the step.
+      addStep(
+          new DeleteDatasetAuthzBqAclsStep(
+              iamClient, datasetService, resourceService, datasetId, userReq));
     } else if (platform.isAzure()) {
       addStep(
           new DeleteDatasetAzurePrimaryDataStep(
@@ -85,16 +88,6 @@ public class DatasetDeleteFlight extends Flight {
               resourceService,
               profileDao),
           primaryDataDeleteRetry);
-    }
-    // Delete access control on objects that were explicitly added by data repo operations.  Do this
-    // before delete
-    // resource from SAM to ensure we can get the metadata needed to perform the operation.  Also
-    // need to run
-    // before metadata is deleted since it is required by the step.
-    addStep(
-        new DeleteDatasetAuthzBqAclsStep(
-            iamClient, datasetService, resourceService, datasetId, userReq));
-    if (platform.isAzure()) {
       addStep(
           new DeleteDatasetDeleteStorageAccountsStep(resourceService, datasetService, datasetId));
     }

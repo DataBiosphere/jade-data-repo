@@ -158,6 +158,9 @@ public class DatasetConnectedTest {
     // enable hang in DeleteDatasetPrimaryDataStep
     configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
+    // Make sure that dataset delete fails on lock conflict
+    configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT.name(), true);
+
     // try to delete the dataset
     MvcResult result1 =
         mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
@@ -201,6 +204,8 @@ public class DatasetConnectedTest {
     // ====================================================
     // enable hang in IngestFileIdStep
     configService.setFault(ConfigEnum.FILE_INGEST_LOCK_CONFLICT_STOP_FAULT.name(), true);
+    // Make sure that dataset delete fails on lock conflict
+    configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT.name(), true);
 
     // try to ingest a file
     URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt", null, null);
@@ -298,6 +303,8 @@ public class DatasetConnectedTest {
 
   @Test
   public void testSharedLockFileDelete() throws Exception {
+    // Make sure that dataset delete fails on lock conflict
+    configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT.name(), true);
     // ingest two files
     URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt", null, null);
     String targetPath1 = "/mm/" + Names.randomizeName("testdir") + "/testfile1.txt";
@@ -412,6 +419,9 @@ public class DatasetConnectedTest {
 
   @Test
   public void testSharedLockTableIngest() throws Exception {
+    // Make sure that dataset delete fails on lock conflict
+    configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT.name(), true);
+
     // load a JSON file that contains the table rows to load into the test bucket
     String resourceFileName = "snapshot-test-dataset-data-without-rowids.json";
     String dirInCloud = "scratch/testSharedLockTableIngest/" + UUID.randomUUID().toString();

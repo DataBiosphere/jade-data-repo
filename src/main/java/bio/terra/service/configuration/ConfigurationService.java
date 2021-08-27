@@ -8,6 +8,7 @@ import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_ST
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.CRITICAL_SYSTEM_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_GRANT_ACCESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DRS_LOOKUP_MAX;
@@ -324,5 +325,7 @@ public class ConfigurationService {
     // Faults inserted into /status endpoint
     addFaultCounted(LIVENESS_FAULT, 0, 50, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
     addFaultSimple(CRITICAL_SYSTEM_FAULT);
+
+    addFaultSimple(DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT);
   }
 }

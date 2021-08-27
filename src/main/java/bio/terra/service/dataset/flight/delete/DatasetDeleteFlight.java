@@ -5,6 +5,7 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
@@ -62,7 +63,11 @@ public class DatasetDeleteFlight extends Flight {
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
     RetryRule primaryDataDeleteRetry = getDefaultExponentialBackoffRetryRule();
 
-    addStep(new LockDatasetStep(datasetDao, datasetId, false, true), lockDatasetRetry);
+    if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_SKIP_RETRY_FAULT)) {
+      addStep(new LockDatasetStep(datasetDao, datasetId, false, true));
+    } else {
+      addStep(new LockDatasetStep(datasetDao, datasetId, false, true), lockDatasetRetry);
+    }
     if (platform.isGcp()) {
       // TODO: Do this check for Azure datasets
       addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));

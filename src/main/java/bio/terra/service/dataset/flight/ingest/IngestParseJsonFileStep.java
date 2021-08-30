@@ -47,8 +47,6 @@ public class IngestParseJsonFileStep implements Step {
     List<String> gcsFileLines =
         gcsPdao.getGcsFilesLines(
             ingestRequest.getPath(), dataset.getProjectResource().getGoogleProjectId());
-    IngestUtils.checkForLargeIngestRequests(
-        gcsFileLines.size(), applicationConfiguration.getMaxDatasetIngest());
     List<String> fileRefColumnNames =
         dataset.getTableByName(ingestRequest.getTable()).orElseThrow().getColumns().stream()
             .filter(c -> c.getType() == TableDataType.FILEREF)
@@ -97,6 +95,9 @@ public class IngestParseJsonFileStep implements Step {
                             })
                         .filter(Objects::nonNull))
             .collect(Collectors.toSet());
+
+    IngestUtils.checkForLargeIngestRequests(
+        bulkLoadFileModels.size(), applicationConfiguration.getMaxDatasetIngest());
 
     workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, bulkLoadFileModels);
 

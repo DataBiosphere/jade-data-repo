@@ -136,9 +136,7 @@ continuous development of Kubernetes resources. Newer versions are incompatible
 with our development environments, so version 1.3.1 is installed instead.
 
 ```
-curl https://raw.githubusercontent.com/Homebrew/homebrew-core/5db9ede616f5d681fa9873b150416d6795e0e0e9/Formula/skaffold.rb --output skaffold.rb
-brew install skaffold.rb
-brew pin skaffold
+curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/v1.3.1/skaffold-darwin-amd64 && chmod +x skaffold && sudo mv skaffold /usr/local/bin
 ```
 
 7. [Vault](https://www.vaultproject.io/) is an encrypted database used to store

@@ -163,8 +163,7 @@ public class GcsPdao {
     logger.info("Creating GCS file at {}", path);
     BlobId locator = GcsUriUtils.parseBlobUri(path);
     return storage.create(
-        BlobInfo.newBuilder(locator).build(),
-        Storage.BlobTargetOption.userProject(projectId));
+        BlobInfo.newBuilder(locator).build(), Storage.BlobTargetOption.userProject(projectId));
   }
 
   public FSFileInfo copyFile(

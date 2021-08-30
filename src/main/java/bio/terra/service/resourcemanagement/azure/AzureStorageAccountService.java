@@ -47,8 +47,8 @@ public class AzureStorageAccountService {
    * @param checkCloudResourceExists true to do the existence check, false to skip it
    * @return a reference to the storage account as a POJO AzureStorageAccountResource
    * @throws AzureResourceNotFoundException if no storage_account_resource metadata row is found
-   * @throws CorruptMetadataException       if the storage_account_resource metadata row exists but
-   *                                        the cloud resource does not
+   * @throws CorruptMetadataException if the storage_account_resource metadata row exists but the
+   *     cloud resource does not
    */
   @Transactional(
       propagation = Propagation.REQUIRED,
@@ -80,14 +80,12 @@ public class AzureStorageAccountService {
    * Fetch/create a storage account cloud resource and the associated metadata in the
    * storage_account_resource table.
    *
-   * <p>On entry to this method, there are 9 states along 3 main dimensions: Azure storage account
-   * -
+   * <p>On entry to this method, there are 9 states along 3 main dimensions: Azure storage account -
    * exists or not DR Metadata record - exists or not DR Metadata lock state (only if record
    * exists): - not locked - locked by this flight - locked by another flight In addition, there is
    * one case where it matters if we are reusing storage accounts or not.
    *
-   * <p>Itemizing the 9 cases: CASE 1: storage account exists, record exists, record is unlocked
-   * The
+   * <p>Itemizing the 9 cases: CASE 1: storage account exists, record exists, record is unlocked The
    * predominant case. We return the storage account resource
    *
    * <p>CASE 2: storage account exists, record exists, locked by another flight We have to wait
@@ -98,8 +96,7 @@ public class AzureStorageAccountService {
    * account, but failed before we could unlock it. So, we unlock and return the storage account
    * resource.
    *
-   * <p>CASE 4: storage account exists, no record exists, we are not reusing storage account This
-   * is
+   * <p>CASE 4: storage account exists, no record exists, we are not reusing storage account This is
    * the production mode and should not happen. It means we our metadata does not reflect the actual
    * cloud resources. Throw CorruptMetadataException
    *
@@ -124,13 +121,13 @@ public class AzureStorageAccountService {
    * between any of those steps, so we may arrive in this method needing to do some or all of those
    * steps.
    *
-   * @param storageAccountName  name for a new or existing storage account
+   * @param storageAccountName name for a new or existing storage account
    * @param applicationResource application deployment in which the storage account should be
-   *                            retrieved or created
-   * @param region              location of the storage account
-   * @param flightId            flight making the request
+   *     retrieved or created
+   * @param region location of the storage account
+   * @param flightId flight making the request
    * @return a reference to the storage account as a POJO {@link AzureStorageAccountResource}
-   * @throws CorruptMetadataException    in CASE 5 and CASE 6
+   * @throws CorruptMetadataException in CASE 5 and CASE 6
    * @throws StorageAccountLockException in CASE 2 and CASE 7, and sometimes case 9
    */
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
@@ -196,9 +193,7 @@ public class AzureStorageAccountService {
     }
   }
 
-  /**
-   * Retrieve a storage account metadata object by the specified UUID ID
-   */
+  /** Retrieve a storage account metadata object by the specified UUID ID */
   public AzureStorageAccountResource retrieveStorageAccountById(UUID storageAccountId) {
     return resourceDao.retrieveStorageAccountById(storageAccountId);
   }
@@ -302,11 +297,11 @@ public class AzureStorageAccountService {
    * Fetch an existing storage account cloud resource. Note this method does not check any
    * associated metadata in the storage_account_resource table.
    *
-   * @param profileModel           the TDR billing profile associated with this storage account
+   * @param profileModel the TDR billing profile associated with this storage account
    * @param storageAccountResource storage account resource to look up storage account. If it is
-   *                               null, return null
+   *     null, return null
    * @return a reference to the storage account as an Azure storage account object, null if not
-   * found
+   *     found
    */
   StorageAccount getCloudStorageAccount(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
@@ -333,7 +328,7 @@ public class AzureStorageAccountService {
   /**
    * Delete a storage account cloud resource
    *
-   * @param profileModel           the TDR billing profile associated with this storage account
+   * @param profileModel the TDR billing profile associated with this storage account
    * @param storageAccountResource storage account resource to look up storage account.
    */
   void deleteCloudStorageAccount(
@@ -346,15 +341,16 @@ public class AzureStorageAccountService {
             storageAccountResource.getName());
   }
 
-  public AzureStorageAccountResource getStorageAccount(String storageAccountName,
-      AzureApplicationDeploymentResource applicationResource) {
-    AzureStorageAccountResource storageAccountResource = resourceDao.getStorageAccount(
+  public AzureStorageAccountResource getStorageAccount(
+      String storageAccountName, AzureApplicationDeploymentResource applicationResource) {
+    AzureStorageAccountResource storageAccountResource =
+        resourceDao.getStorageAccount(
             storageAccountName, applicationResource.getAzureApplicationDeploymentName());
 
     if (storageAccountResource == null) {
       throw new AzureResourceException("Storage account is null");
     } else {
-      return  storageAccountResource;
+      return storageAccountResource;
     }
   }
 }

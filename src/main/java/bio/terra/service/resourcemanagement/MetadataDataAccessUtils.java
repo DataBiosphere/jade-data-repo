@@ -27,9 +27,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
 
-/**
- * Utilities for building strings to access metadata
- */
+/** Utilities for building strings to access metadata */
 @Component
 public final class MetadataDataAccessUtils {
 
@@ -43,34 +41,23 @@ public final class MetadataDataAccessUtils {
   private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>` LIMIT 1000";
 
   private static final String AZURE_BLOB_TEMPLATE = "parquet/<table>";
-  private static final String scopedCredentialCreateTemplate =
-      "CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]\n"
-          + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
-          + "SECRET = '<secret>';";
-
-  private static final String dataSourceCreateTemplate =
-      "CREATE EXTERNAL DATA SOURCE [<dataSourceName>]\n"
-          + "WITH (\n"
-          + "    LOCATION = '<scheme>://<host>/<container>',\n"
-          + "    CREDENTIAL = [<credential>]\n"
-          + ");";
+  private static final String AZURE_DATASET_ID = "<storageAccount>.<dataset>";
 
   private static final String DEPLOYED_APPLICATION_RESOURCE_ID =
       "/subscriptions/<subscription>/resourceGroups"
           + "/<resource_group>/providers/Microsoft.Solutions/applications/<application_name>";
 
   private static ResourceService resourceService;
+
   private static AzureBlobStorePdao azureBlobStorePdao;
 
-  public MetadataDataAccessUtils(ResourceService resourceService,
-      AzureBlobStorePdao azureBlobStorePdao) {
+  public MetadataDataAccessUtils(
+      ResourceService resourceService, AzureBlobStorePdao azureBlobStorePdao) {
     this.resourceService = resourceService;
     this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
-  /**
-   * Nature of the page to link to in the BigQuery UI
-   */
+  /** Nature of the page to link to in the BigQuery UI */
   enum LinkPage {
     DATASET("dataset"),
     TABLE("table");
@@ -81,9 +68,7 @@ public final class MetadataDataAccessUtils {
     }
   }
 
-  /**
-   * Generate an {@link AccessInfoModel} from a Snapshot
-   */
+  /** Generate an {@link AccessInfoModel} from a Snapshot */
   public static AccessInfoModel accessInfoFromSnapshot(final Snapshot snapshot) {
     return makeAccessInfoBigQuery(
         snapshot.getName(),
@@ -91,12 +76,10 @@ public final class MetadataDataAccessUtils {
         snapshot.getTables());
   }
 
-  /**
-   * Generate an {@link AccessInfoModel} from a Dataset
-   */
+  /** Generate an {@link AccessInfoModel} from a Dataset */
   public static AccessInfoModel accessInfoFromDataset(final Dataset dataset) {
-    CloudPlatformWrapper cloudPlatformWrapper = CloudPlatformWrapper
-        .of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 
     if (cloudPlatformWrapper.isGcp()) {
       return makeAccessInfoBigQuery(
@@ -105,11 +88,11 @@ public final class MetadataDataAccessUtils {
           dataset.getTables());
     } else if (cloudPlatformWrapper.isAzure()) {
       BillingProfileModel profileModel = dataset.getDatasetSummary().getDefaultBillingProfile();
-      Optional<AzureStorageAccountResource> storageAccountResource = resourceService
-          .getStorageAccount(dataset, profileModel);
+      Optional<AzureStorageAccountResource> storageAccountResource =
+          resourceService.getStorageAccount(dataset, profileModel);
       if (storageAccountResource.isPresent()) {
-        return makeAccessInfoAzure(dataset.getName(), storageAccountResource.get(),
-            dataset.getTables(), profileModel);
+        return makeAccessInfoAzure(
+            dataset.getName(), storageAccountResource.get(), dataset.getTables(), profileModel);
       } else {
         throw new AzureResourceNotFoundException("Storage account for dataset not found");
       }
@@ -133,9 +116,7 @@ public final class MetadataDataAccessUtils {
     BlobSasTokenOptions options =
         new BlobSasTokenOptions(
             Duration.ofMinutes(15),
-            new BlobSasPermission()
-                .setReadPermission(true)
-                .setListPermission(true),
+            new BlobSasPermission().setReadPermission(true).setListPermission(true),
             AzureSynapsePdao.class.getName());
     String signedURL =
         targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob("parquet", options);
@@ -143,26 +124,28 @@ public final class MetadataDataAccessUtils {
     accessInfoModel.azure(
         new AccessInfoAzureModel()
             .datasetName(datasetName)
+            .datasetId(
+                new ST(AZURE_DATASET_ID)
+                    .add("storageAccount", storageAccountResource.getName())
+                    .add("dataset", datasetName)
+                    .render())
             .storageAccountId(storageAccountResource.getResourceId().toString())
             .signedUrl(signedURL)
             .tables(
                 tables.stream()
                     .map(
                         t -> {
-                          String tableBlob = new ST(AZURE_BLOB_TEMPLATE)
-                              .add("table", t.getName())
-                              .render();
-                          String tableUrl = targetDataClientFactory.getBlobSasUrlFactory()
-                              .createSasUrlForBlob(tableBlob, options);
+                          String tableBlob =
+                              new ST(AZURE_BLOB_TEMPLATE).add("table", t.getName()).render();
+                          String tableUrl =
+                              targetDataClientFactory
+                                  .getBlobSasUrlFactory()
+                                  .createSasUrlForBlob(tableBlob, options);
                           return new AccessInfoAzureModelTable()
                               .name(t.getName())
                               .signedUrl(tableUrl);
-                        }
-                    )
-                    .collect(Collectors.toList())
-            )
-
-    );
+                        })
+                    .collect(Collectors.toList())));
 
     return accessInfoModel;
   }
@@ -244,10 +227,8 @@ public final class MetadataDataAccessUtils {
    * Return the Azure resource ID for the application deployment associated with the specified
    * parameters
    *
-   * @param subscriptionId            The ID of the subscription into which the application is
-   *                                  deployed
-   * @param resourceGroupName         The name of the resource group into which the application is
-   *                                  deployed
+   * @param subscriptionId The ID of the subscription into which the application is deployed
+   * @param resourceGroupName The name of the resource group into which the application is deployed
    * @param applicationDeploymentName The name of the application deployment
    * @return Azure resource identifier
    */

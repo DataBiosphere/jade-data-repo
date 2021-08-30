@@ -65,9 +65,7 @@ public class IngestSetupStep implements Step {
     }
 
     IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
-
-    GcsUriUtils.validateBlobUri(ingestRequestModel.getPath());
-
+    
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     IngestUtils.putDatasetName(context, dataset.getName());
     DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);

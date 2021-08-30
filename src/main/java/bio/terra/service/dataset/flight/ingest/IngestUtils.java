@@ -22,14 +22,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
@@ -262,41 +260,35 @@ public final class IngestUtils {
         return false;
       };
 
-  public static Stream<Pair<String, JsonNode>> getJsonNodesStreamFromFile(
+  public static Stream<JsonNode> getJsonNodesStreamFromFile(
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
-      Dataset dataset) {
+      Dataset dataset,
+      List<String> errors) {
     return gcsPdao
         .getGcsFilesLinesStream(
             ingestRequest.getPath(), dataset.getProjectResource().getGoogleProjectId())
-        .map(
+        .flatMap(
             content -> {
               try {
-                return Pair.of(null, objectMapper.readTree(content));
+                return Stream.of(objectMapper.readTree(content));
               } catch (JsonProcessingException ex) {
-                return Pair.of(ex.getMessage(), null);
+                errors.add(ex.getMessage());
+                return Stream.empty();
               }
             });
-  }
-
-  public static Stream<JsonNode> resolveJsonNodeCollectError(
-      Pair<String, JsonNode> pair, List<String> errorCollector) {
-    if (Objects.nonNull(pair.getLeft())) {
-      errorCollector.add(pair.getLeft());
-      return Stream.empty();
-    } else {
-      return Stream.of(pair.getRight());
-    }
   }
 
   public static void checkForLargeIngestRequests(int numLines, int maxIngestRows) {
     if (numLines > maxIngestRows) {
       throw new InvalidIngestStrategyException(
           String.format(
-              "The combined file ingest and metadata ingest workflow is limited to {} lines for ingest. This request had {} lines. For large requests, you should use the file ingest workflow and then the metadata ingest workflow.",
-              maxIngestRows,
-              numLines));
+              "The combined file ingest and metadata ingest workflow is limited to "
+                  + "%s lines for ingest. This request had %s lines. "
+                  + "For large requests, you should use the file ingest workflow "
+                  + "and then the metadata ingest workflow.",
+              maxIngestRows, numLines));
     }
   }
 

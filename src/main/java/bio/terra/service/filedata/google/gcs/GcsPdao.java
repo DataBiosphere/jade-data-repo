@@ -26,7 +26,6 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -102,11 +101,16 @@ public class GcsPdao {
         .flatMap(blob -> getBlobLinesStream(blob, projectId, storage));
   }
 
-  @SuppressFBWarnings("OS_OPEN_STREAM")
   private static Stream<String> getBlobLinesStream(Blob blob, String projectId, Storage storage) {
     logger.info(String.format("Reading lines from %s", getGsPathFromBlob(blob)));
     var reader = storage.reader(blob.getBlobId(), Storage.BlobSourceOption.userProject(projectId));
-    return new BufferedReader(Channels.newReader(reader, StandardCharsets.UTF_8)).lines();
+    try (var bReader = new BufferedReader(Channels.newReader(reader, StandardCharsets.UTF_8))) {
+      return bReader.lines();
+    } catch (IOException e) {
+      reader.close();
+      throw new GoogleResourceException(
+          String.format("Could not read lines from blob %s.", getGsPathFromBlob(blob)));
+    }
   }
 
   /**
@@ -117,7 +121,9 @@ public class GcsPdao {
    * @return All of the lines from all of the files matching the path
    */
   public List<String> getGcsFilesLines(String path, String projectId) {
-    return getGcsFilesLinesStream(path, projectId).collect(Collectors.toList());
+    try (var stream = getGcsFilesLinesStream(path, projectId)) {
+      return stream.collect(Collectors.toList());
+    }
   }
 
   private Stream<Blob> listGcsFiles(String path, String projectId, Storage storage) {
@@ -142,14 +148,16 @@ public class GcsPdao {
   public void writeStreamToGcsFile(String path, Stream<String> contentsToWrite, String projectId) {
     logger.info("Writing contents to {}", path);
     Storage storage = gcsProjectFactory.getStorage(projectId);
-    var blobbyBoi = getBlobFromGsPath(storage, path, projectId);
-
-    try (var writer = blobbyBoi.writer(Storage.BlobWriteOption.userProject(projectId))) {
-      contentsToWrite.forEach(
+    var blob = getBlobFromGsPath(storage, path, projectId);
+    var newLineByteBuffer = ByteBuffer.wrap("\n".getBytes(StandardCharsets.UTF_8));
+    try (var writer = blob.writer(Storage.BlobWriteOption.userProject(projectId));
+        var contents = contentsToWrite) {
+      contents.forEach(
           s -> {
             try {
-              var bytes = ByteBuffer.wrap((s + "\n").getBytes(StandardCharsets.UTF_8));
+              var bytes = ByteBuffer.wrap((s).getBytes(StandardCharsets.UTF_8));
               writer.write(bytes);
+              writer.write(newLineByteBuffer);
             } catch (IOException e) {
               throw new GoogleResourceException(
                   String.format("Could not write to GCS file at %s. Line: %s", path, s), e);

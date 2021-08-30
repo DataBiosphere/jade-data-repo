@@ -48,8 +48,8 @@ public class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
 
     List<String> errors = new ArrayList<>();
     Stream<JsonNode> jsonNodes =
-        IngestUtils.getJsonNodesStreamFromFile(gcsPdao, objectMapper, ingestRequest, dataset)
-            .flatMap(pair -> IngestUtils.resolveJsonNodeCollectError(pair, errors));
+        IngestUtils.getJsonNodesStreamFromFile(
+            gcsPdao, objectMapper, ingestRequest, dataset, errors);
 
     if (!errors.isEmpty()) {
       // This shouldn't happen since this is the second time we're parsing the JSON
@@ -76,7 +76,7 @@ public class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
                 node -> {
                   for (var columnName : fileColumns) {
                     JsonNode fileRefNode = node.get(columnName);
-                    if (Objects.nonNull(fileRefNode) && fileRefNode.isObject()) {
+                    if (fileRefNode != null && fileRefNode.isObject()) {
                       // replace
                       BulkLoadFileModel fileModel =
                           Objects.requireNonNull(

@@ -33,10 +33,8 @@ public class ApplicationConfiguration {
   private int maxStairwayThreads;
   /** Maximum number of file loads allowed in the input array in a bulk file load */
   private int maxBulkFileLoadArray;
-  /** Maximum number of file loads allowed in the input file for a bulk file load */
-  private int maxBulkFileLoad;
   /** Maximum number of lines in ingest request */
-  private int maxDatasetIngest;
+  private long maxDatasetIngest;
   /** Number of file loads to run concurrently in a bulk file load */
   private int loadConcurrentFiles;
   /**
@@ -170,19 +168,11 @@ public class ApplicationConfiguration {
     this.maxBulkFileLoadArray = maxBulkFileLoadArray;
   }
 
-  public int getMaxBulkFileLoad() {
-    return maxBulkFileLoad;
-  }
-
-  public void setMaxBulkFileLoad(int maxBulkFileLoad) {
-    this.maxBulkFileLoad = maxBulkFileLoad;
-  }
-
-  public int getMaxDatasetIngest() {
+  public long getMaxDatasetIngest() {
     return maxDatasetIngest;
   }
 
-  public void setMaxDatasetIngest(int maxDatasetIngest) {
+  public void setMaxDatasetIngest(long maxDatasetIngest) {
     this.maxDatasetIngest = maxDatasetIngest;
   }
 

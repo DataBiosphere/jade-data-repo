@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.PdaoLoadStatistics;
+import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -22,10 +23,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -249,8 +252,10 @@ public final class IngestUtils {
   public static final Predicate<FlightContext> noFilesToIngest =
       flightContext -> {
         if (Optional.ofNullable(
-                flightContext.getWorkingMap().get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class))
-            .map(Set::isEmpty)
+                flightContext
+                    .getWorkingMap()
+                    .get(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, Long.class))
+            .map(num -> num == 0)
             .orElse(true)) {
           Logger logger = LoggerFactory.getLogger(flightContext.getFlightClassName());
           logger.info(
@@ -269,25 +274,49 @@ public final class IngestUtils {
     return gcsPdao
         .getGcsFilesLinesStream(
             ingestRequest.getPath(), dataset.getProjectResource().getGoogleProjectId())
-        .flatMap(
+        .map(
             content -> {
               try {
-                return Stream.of(objectMapper.readTree(content));
+                return objectMapper.readTree(content);
               } catch (JsonProcessingException ex) {
                 errors.add(ex.getMessage());
-                return Stream.empty();
+                return null;
               }
-            });
+            })
+        .filter(Objects::nonNull);
   }
 
-  public static void checkForLargeIngestRequests(int numLines, int maxIngestRows) {
+  public static Set<BulkLoadFileModel> getBulkFileLoadModelsFromPath(
+      GcsPdao gcsPdao,
+      ObjectMapper objectMapper,
+      IngestRequestModel ingestRequest,
+      Dataset dataset,
+      List<String> fileRefColumnNames,
+      List<String> errors) {
+    return IngestUtils.getJsonNodesStreamFromFile(
+            gcsPdao, objectMapper, ingestRequest, dataset, errors)
+        .flatMap(
+            node ->
+                fileRefColumnNames.stream()
+                    .map(
+                        columnName -> {
+                          JsonNode fileRefNode = node.get(columnName);
+                          if (fileRefNode != null && fileRefNode.isObject()) {
+                            return objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class);
+                          } else {
+                            return null;
+                          }
+                        })
+                    .filter(Objects::nonNull))
+        .collect(Collectors.toSet());
+  }
+
+  public static void checkForLargeIngestRequests(long numLines, long maxIngestRows) {
     if (numLines > maxIngestRows) {
       throw new InvalidIngestStrategyException(
           String.format(
               "The combined file ingest and metadata ingest workflow is limited to "
-                  + "%s lines for ingest. This request had %s lines. "
-                  + "For large requests, you should use the file ingest workflow "
-                  + "and then the metadata ingest workflow.",
+                  + "%s files for ingest. This request had %s files.",
               maxIngestRows, numLines));
     }
   }

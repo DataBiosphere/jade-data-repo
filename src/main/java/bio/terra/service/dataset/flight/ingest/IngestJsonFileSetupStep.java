@@ -1,10 +1,11 @@
 package bio.terra.service.dataset.flight.ingest;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.Column;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.TableDataType;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -13,30 +14,28 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-public class IngestParseJsonFileStep implements Step {
+public class IngestJsonFileSetupStep implements Step {
 
   private final GcsPdao gcsPdao;
   private final Dataset dataset;
   private final ObjectMapper objectMapper;
-  private final ApplicationConfiguration applicationConfiguration;
+  private final ConfigurationService configurationService;
 
-  public IngestParseJsonFileStep(
+  public IngestJsonFileSetupStep(
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
       Dataset dataset,
-      ApplicationConfiguration applicationConfiguration) {
+      ConfigurationService configurationService) {
     this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
     this.dataset = dataset;
-    this.applicationConfiguration = applicationConfiguration;
+    this.configurationService = configurationService;
   }
 
   @Override
@@ -52,24 +51,11 @@ public class IngestParseJsonFileStep implements Step {
     workingMap.put(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, fileRefColumnNames);
 
     List<String> errors = new ArrayList<>();
+    // Parse the file models, but don't save them because we don't want to blow up the database.
+    // We read from the ingest control file each time we need to get the models to ingest.
     Set<BulkLoadFileModel> fileModels =
-        IngestUtils.getJsonNodesStreamFromFile(
-                gcsPdao, objectMapper, ingestRequest, dataset, errors)
-            .flatMap(
-                node ->
-                    fileRefColumnNames.stream()
-                        .flatMap(
-                            columnName -> {
-                              JsonNode fileRefNode = node.get(columnName);
-                              if (fileRefNode != null && fileRefNode.isObject()) {
-                                return Stream.of(
-                                    objectMapper.convertValue(
-                                        fileRefNode, BulkLoadFileModel.class));
-                              } else {
-                                return Stream.empty();
-                              }
-                            }))
-            .collect(Collectors.toSet());
+        IngestUtils.getBulkFileLoadModelsFromPath(
+            gcsPdao, objectMapper, ingestRequest, dataset, fileRefColumnNames, errors);
 
     if (!errors.isEmpty()) {
       IngestFailureException ex =
@@ -79,10 +65,10 @@ public class IngestParseJsonFileStep implements Step {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
 
-    workingMap.put(IngestMapKeys.BULK_LOAD_FILE_MODELS, fileModels);
+    workingMap.put(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, fileModels.size());
 
     IngestUtils.checkForLargeIngestRequests(
-        fileModels.size(), applicationConfiguration.getMaxDatasetIngest());
+        fileModels.size(), configurationService.getParameterValue(ConfigEnum.DATASET_INGEST_MAX));
 
     return StepResult.getStepResultSuccess();
   }

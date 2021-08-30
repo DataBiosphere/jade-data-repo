@@ -4,8 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
-import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.InvalidBlobURLException;
 import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.InvalidUriException;
@@ -24,7 +25,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Unit.class)
 public class IngestUtilsTest {
 
-  @Mock ApplicationConfiguration applicationConfiguration;
+  @Mock ConfigurationService configurationService;
 
   @Test
   public void testParseValidSingleFile() {
@@ -112,16 +113,16 @@ public class IngestUtilsTest {
   @Test(expected = InvalidIngestStrategyException.class)
   public void testMaxLineIngestCheck() {
     int numLines = 11;
-    when(applicationConfiguration.getMaxDatasetIngest()).thenReturn(10);
+    when(configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX)).thenReturn(10);
     IngestUtils.checkForLargeIngestRequests(
-        numLines, applicationConfiguration.getMaxDatasetIngest());
+        numLines, configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX));
   }
 
   @Test
   public void testSmallLineIngestCheck() {
     int numLines = 9;
-    when(applicationConfiguration.getMaxDatasetIngest()).thenReturn(10);
+    when(configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX)).thenReturn(10);
     IngestUtils.checkForLargeIngestRequests(
-        numLines, applicationConfiguration.getMaxDatasetIngest());
+        numLines, configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX));
   }
 }

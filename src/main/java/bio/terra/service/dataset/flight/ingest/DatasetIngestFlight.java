@@ -163,7 +163,9 @@ public class DatasetIngestFlight extends Flight {
 
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
     // Begin file + metadata load
-    addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset, appConfig));
+    addStep(
+        new IngestJsonFileSetupStep(
+            gcsPdao, appConfig.objectMapper(), dataset, configurationService));
     addStep(
         new AuthorizeBillingProfileUseStep(
             profileService, profileId, userReq, ingestSkipCondition));
@@ -178,7 +180,9 @@ public class DatasetIngestFlight extends Flight {
     addStep(
         new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset, ingestSkipCondition),
         randomBackoffRetry);
-    addStep(new IngestPopulateFileStateFromFlightMapStep(loadService, ingestSkipCondition));
+    addStep(
+        new IngestPopulateFileStateFromFlightMapStep(
+            loadService, gcsPdao, appConfig.objectMapper(), dataset, ingestSkipCondition));
     addStep(
         new IngestDriverStep(
             loadService,

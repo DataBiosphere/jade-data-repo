@@ -3,20 +3,25 @@ package bio.terra.service.resourcemanagement;
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Table;
 import bio.terra.model.AccessInfoAzureModel;
+import bio.terra.model.AccessInfoAzureModelTable;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.azure.storage.blob.sas.BlobSasPermission;
+import java.time.Duration;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
@@ -37,14 +42,28 @@ public final class MetadataDataAccessUtils {
   private static final String BIGQUERY_TABLE_ID = "<dataset_id>.<table>";
   private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>` LIMIT 1000";
 
+  private static final String AZURE_BLOB_TEMPLATE = "parquet/<table>";
+  private static final String scopedCredentialCreateTemplate =
+      "CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]\n"
+          + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
+          + "SECRET = '<secret>';";
+
+  private static final String dataSourceCreateTemplate =
+      "CREATE EXTERNAL DATA SOURCE [<dataSourceName>]\n"
+          + "WITH (\n"
+          + "    LOCATION = '<scheme>://<host>/<container>',\n"
+          + "    CREDENTIAL = [<credential>]\n"
+          + ");";
+
   private static final String DEPLOYED_APPLICATION_RESOURCE_ID =
       "/subscriptions/<subscription>/resourceGroups"
           + "/<resource_group>/providers/Microsoft.Solutions/applications/<application_name>";
 
   private static ResourceService resourceService;
-  private static final AzureBlobStorePdao azureBlobStorePdao;
+  private static AzureBlobStorePdao azureBlobStorePdao;
 
-  public MetadataDataAccessUtils(ResourceService resourceService, AzureBlobStorePdao azureBlobStorePdao) {
+  public MetadataDataAccessUtils(ResourceService resourceService,
+      AzureBlobStorePdao azureBlobStorePdao) {
     this.resourceService = resourceService;
     this.azureBlobStorePdao = azureBlobStorePdao;
   }
@@ -85,9 +104,15 @@ public final class MetadataDataAccessUtils {
           dataset.getProjectResource().getGoogleProjectId(),
           dataset.getTables());
     } else if (cloudPlatformWrapper.isAzure()) {
-      AzureStorageAccountResource storageAccountResource = resourceService
-          .getStorageAccount(dataset, dataset.getDatasetSummary().getDefaultBillingProfile());
-      return makeAccessInfoAzure(dataset.getName(), storageAccountResource, dataset.getTables());
+      BillingProfileModel profileModel = dataset.getDatasetSummary().getDefaultBillingProfile();
+      Optional<AzureStorageAccountResource> storageAccountResource = resourceService
+          .getStorageAccount(dataset, profileModel);
+      if (storageAccountResource.isPresent()) {
+        return makeAccessInfoAzure(dataset.getName(), storageAccountResource.get(),
+            dataset.getTables(), profileModel);
+      } else {
+        throw new AzureResourceNotFoundException("Storage account for dataset not found");
+      }
     } else {
       throw new IllegalArgumentException("Unrecognized cloud platform");
     }
@@ -96,28 +121,46 @@ public final class MetadataDataAccessUtils {
   private static AccessInfoModel makeAccessInfoAzure(
       final String datasetName,
       final AzureStorageAccountResource storageAccountResource,
-      final List<? extends Table> tables) {
+      final List<? extends Table> tables,
+      final BillingProfileModel profileModel) {
     AccessInfoModel accessInfoModel = new AccessInfoModel();
 
-//    BlobContainerClientFactory targetDataClientFactory =
-//        azureBlobStorePdao.getTargetDataClientFactory(
-//            profileModel, storageAccount, ContainerType.METADATA, false);
-//
-//    // Given the sas token, rebuild a signed url
-//    BlobSasTokenOptions options =
-//        new BlobSasTokenOptions(
-//            DEFAULT_SAS_TOKEN_EXPIRATION,
-//            new BlobSasPermission()
-//                .setReadPermission(true)
-//                .setListPermission(true)
-//            AzureSynapsePdao.class.getName());
-//    String signedURL =
-//        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
+    BlobContainerClientFactory targetDataClientFactory =
+        azureBlobStorePdao.getTargetDataClientFactory(
+            profileModel, storageAccountResource, ContainerType.METADATA, false);
+
+    // Given the sas token, rebuild a signed url
+    BlobSasTokenOptions options =
+        new BlobSasTokenOptions(
+            Duration.ofMinutes(15),
+            new BlobSasPermission()
+                .setReadPermission(true)
+                .setListPermission(true),
+            AzureSynapsePdao.class.getName());
+    String signedURL =
+        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob("parquet", options);
 
     accessInfoModel.azure(
         new AccessInfoAzureModel()
             .datasetName(datasetName)
             .storageAccountId(storageAccountResource.getResourceId().toString())
+            .signedUrl(signedURL)
+            .tables(
+                tables.stream()
+                    .map(
+                        t -> {
+                          String tableBlob = new ST(AZURE_BLOB_TEMPLATE)
+                              .add("table", t.getName())
+                              .render();
+                          String tableUrl = targetDataClientFactory.getBlobSasUrlFactory()
+                              .createSasUrlForBlob(tableBlob, options);
+                          return new AccessInfoAzureModelTable()
+                              .name(t.getName())
+                              .signedUrl(tableUrl);
+                        }
+                    )
+                    .collect(Collectors.toList())
+            )
 
     );
 

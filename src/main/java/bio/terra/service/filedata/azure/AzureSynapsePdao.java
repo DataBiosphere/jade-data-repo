@@ -161,9 +161,21 @@ public class AzureSynapsePdao {
     AzureSasCredential blobContainerSasTokenCreds =
         new AzureSasCredential(signedBlobUrl.getCommonSasQueryParameters().encode());
 
+
+    executeSynapseQuery(sqlDataSourceCreateTemplate.render());
+  }
+
+  public String createScopedCredentialString(BlobUrlParts signedBlobUrl,
+      String scopedCredentialName) {
     ST sqlScopedCredentialCreateTemplate = new ST(scopedCredentialCreateTemplate);
     sqlScopedCredentialCreateTemplate.add("scopedCredentialName", scopedCredentialName);
     sqlScopedCredentialCreateTemplate.add("secret", blobContainerSasTokenCreds.getSignature());
+    return sqlScopedCredentialCreateTemplate.render();
+  }
+
+  public String createExternalDataSourceTemplate(BlobUrlParts signedBlobUrl,
+      String scopedCredentialName, String dataSourceName) {
+
     executeSynapseQuery(sqlScopedCredentialCreateTemplate.render());
 
     ST sqlDataSourceCreateTemplate = new ST(dataSourceCreateTemplate);
@@ -172,7 +184,7 @@ public class AzureSynapsePdao {
     sqlDataSourceCreateTemplate.add("host", signedBlobUrl.getHost());
     sqlDataSourceCreateTemplate.add("container", signedBlobUrl.getBlobContainerName());
     sqlDataSourceCreateTemplate.add("credential", scopedCredentialName);
-    executeSynapseQuery(sqlDataSourceCreateTemplate.render());
+    return sqlDataSourceCreateTemplate.render();
   }
 
   public int createParquetFiles(

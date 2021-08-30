@@ -168,12 +168,6 @@ public class ResourceService {
     // the application deployment is registered first
     final AzureApplicationDeploymentResource applicationResource =
         applicationDeploymentService.getOrRegisterApplicationDeployment(billingProfile);
-    String possibleStorageAccountName = getStorageAccountName(dataset, billingProfile,
-        applicationResource);
-
-    return storageAccountService.getOrCreateStorageAccount(
-        possibleStorageAccountName, applicationResource, region, flightId);
-  }
 
     String computedStorageAccountName =
         azureDataLocationSelector.storageAccountNameForDataset(

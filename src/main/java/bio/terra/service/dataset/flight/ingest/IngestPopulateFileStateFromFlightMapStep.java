@@ -1,13 +1,11 @@
 package bio.terra.service.dataset.flight.ingest;
 
-import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
@@ -15,7 +13,6 @@ import bio.terra.stairway.StepStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
@@ -47,24 +44,20 @@ public class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
     List<String> fileColumns = workingMap.get(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, List.class);
 
     List<String> errors = new ArrayList<>();
-    Set<BulkLoadFileModel> models =
-        IngestUtils.getBulkFileLoadModelsFromPath(
-            gcsPdao, objectMapper, ingestRequest, dataset, fileColumns, errors);
+    try (var modelStream =
+        IngestUtils.getBulkFileLoadModelsStream(
+            gcsPdao, objectMapper, ingestRequest, dataset, fileColumns, errors)) {
 
-    if (!errors.isEmpty()) {
-      IngestFailureException ingestFailureException =
-          new IngestFailureException(
-              "Ingest control file at " + ingestRequest.getPath() + " could not be processed",
-              errors);
-      CorruptMetadataException ex =
-          new CorruptMetadataException(
-              "Ingest control file went from valid to invalid within combined ingest.",
-              ingestFailureException);
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+      if (!errors.isEmpty()) {
+        IngestFailureException ingestFailureException =
+            new IngestFailureException(
+                "Ingest control file at " + ingestRequest.getPath() + " could not be processed",
+                errors);
+        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ingestFailureException);
+      }
+
+      loadService.populateFiles(loadId, modelStream);
     }
-
-    loadService.populateFiles(loadId, List.copyOf(models));
-
     return StepResult.getStepResultSuccess();
   }
 

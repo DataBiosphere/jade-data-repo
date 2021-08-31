@@ -25,10 +25,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -286,7 +284,21 @@ public final class IngestUtils {
         .filter(Objects::nonNull);
   }
 
-  public static Set<BulkLoadFileModel> getBulkFileLoadModelsFromPath(
+  public static long countBulkFileLoadModelsFromPath(
+      GcsPdao gcsPdao,
+      ObjectMapper objectMapper,
+      IngestRequestModel ingestRequest,
+      Dataset dataset,
+      List<String> fileRefColumnNames,
+      List<String> errors) {
+    try (var nodesStream =
+        IngestUtils.getBulkFileLoadModelsStream(
+            gcsPdao, objectMapper, ingestRequest, dataset, fileRefColumnNames, errors)) {
+      return nodesStream.count();
+    }
+  }
+
+  public static Stream<BulkLoadFileModel> getBulkFileLoadModelsStream(
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
@@ -307,8 +319,7 @@ public final class IngestUtils {
                             return null;
                           }
                         })
-                    .filter(Objects::nonNull))
-        .collect(Collectors.toSet());
+                    .filter(Objects::nonNull));
   }
 
   public static void checkForLargeIngestRequests(long numLines, long maxIngestRows) {

@@ -47,60 +47,62 @@ public class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
 
     List<String> errors = new ArrayList<>();
-    Stream<JsonNode> jsonNodes =
+    try (Stream<JsonNode> jsonNodes =
         IngestUtils.getJsonNodesStreamFromFile(
-            gcsPdao, objectMapper, ingestRequest, dataset, errors);
+            gcsPdao, objectMapper, ingestRequest, dataset, errors)) {
 
-    if (!errors.isEmpty()) {
-      // This shouldn't happen since this is the second time we're parsing the JSON
-      throw new CorruptMetadataException(
-          "Encountered invalid json while combining ingested files with load request");
-    }
+      if (!errors.isEmpty()) {
+        throw new CorruptMetadataException(
+            "Encountered invalid json while combining ingested files with load request");
+      }
 
-    List<String> fileColumns = workingMap.get(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, List.class);
-    BulkLoadArrayResultModel result =
-        workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
+      List<String> fileColumns =
+          workingMap.get(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, List.class);
+      BulkLoadArrayResultModel result =
+          workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
 
-    // Part 1 -> Build the src-target hash to file id Map
-    Map<Integer, String> pathToFileIdMap =
-        result.getLoadFileResults().stream()
-            .collect(
-                Collectors.toMap(
-                    model -> Objects.hash(model.getSourcePath(), model.getTargetPath()),
-                    BulkLoadFileResultModel::getFileId));
+      // Part 1 -> Build the src-target hash to file id Map
+      Map<Integer, String> pathToFileIdMap =
+          result.getLoadFileResults().stream()
+              .collect(
+                  Collectors.toMap(
+                      model -> Objects.hash(model.getSourcePath(), model.getTargetPath()),
+                      BulkLoadFileResultModel::getFileId));
 
-    // Part 2 -> Replace BulkLoadFileModels with file id
-    Stream<String> linesWithFileIds =
-        jsonNodes
-            .peek(
-                node -> {
-                  for (var columnName : fileColumns) {
-                    JsonNode fileRefNode = node.get(columnName);
-                    if (fileRefNode != null && fileRefNode.isObject()) {
-                      // replace
-                      BulkLoadFileModel fileModel =
-                          Objects.requireNonNull(
-                              objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
-                      int fileKey =
-                          Objects.hash(fileModel.getSourcePath(), fileModel.getTargetPath());
-                      String fileId = pathToFileIdMap.get(fileKey);
-                      ((ObjectNode) node).put(columnName, fileId);
+      // Part 2 -> Replace BulkLoadFileModels with file id
+      Stream<String> linesWithFileIds =
+          jsonNodes
+              .peek(
+                  node -> {
+                    for (var columnName : fileColumns) {
+                      JsonNode fileRefNode = node.get(columnName);
+                      if (fileRefNode != null && fileRefNode.isObject()) {
+                        // replace
+                        BulkLoadFileModel fileModel =
+                            Objects.requireNonNull(
+                                objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
+                        int fileKey =
+                            Objects.hash(fileModel.getSourcePath(), fileModel.getTargetPath());
+                        String fileId = pathToFileIdMap.get(fileKey);
+                        ((ObjectNode) node).put(columnName, fileId);
+                      }
                     }
-                  }
-                })
-            .map(JsonNode::toString);
+                  })
+              .map(JsonNode::toString);
 
-    GoogleBucketResource bucket =
-        workingMap.get(FileMapKeys.INGEST_FILE_BUCKET_INFO, GoogleBucketResource.class);
+      GoogleBucketResource bucket =
+          workingMap.get(FileMapKeys.INGEST_FILE_BUCKET_INFO, GoogleBucketResource.class);
 
-    String path =
-        GcsPdao.getGsPathFromComponents(bucket.getName(), context.getFlightId() + "-scratch.json");
+      String path =
+          GcsPdao.getGsPathFromComponents(
+              bucket.getName(), context.getFlightId() + "-scratch.json");
 
-    gcsPdao.createGcsFile(path, bucket.projectIdForBucket());
-    gcsPdao.writeStreamToGcsFile(path, linesWithFileIds, bucket.projectIdForBucket());
+      gcsPdao.createGcsFile(path, bucket.projectIdForBucket());
+      gcsPdao.writeStreamToGcsFile(path, linesWithFileIds, bucket.projectIdForBucket());
 
-    workingMap.put(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, path);
+      workingMap.put(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, path);
 
-    return StepResult.getStepResultSuccess();
+      return StepResult.getStepResultSuccess();
+    }
   }
 }

@@ -1,10 +1,8 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
-import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.TableDataType;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.exception.IngestFailureException;
@@ -17,7 +15,6 @@ import bio.terra.stairway.exception.RetryException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class IngestJsonFileSetupStep implements Step {
@@ -47,14 +44,22 @@ public class IngestJsonFileSetupStep implements Step {
             .filter(c -> c.getType() == TableDataType.FILEREF)
             .map(Column::getName)
             .collect(Collectors.toList());
+
     var workingMap = flightContext.getWorkingMap();
+
+    // If there's no FILEREF columns, we never need to parse the ingest control file.
+    if (fileRefColumnNames.isEmpty()) {
+      workingMap.put(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, 0);
+      return StepResult.getStepResultSuccess();
+    }
+
     workingMap.put(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, fileRefColumnNames);
 
     List<String> errors = new ArrayList<>();
     // Parse the file models, but don't save them because we don't want to blow up the database.
     // We read from the ingest control file each time we need to get the models to ingest.
-    Set<BulkLoadFileModel> fileModels =
-        IngestUtils.getBulkFileLoadModelsFromPath(
+    long fileModelsCount =
+        IngestUtils.countBulkFileLoadModelsFromPath(
             gcsPdao, objectMapper, ingestRequest, dataset, fileRefColumnNames, errors);
 
     if (!errors.isEmpty()) {
@@ -65,10 +70,7 @@ public class IngestJsonFileSetupStep implements Step {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
     }
 
-    workingMap.put(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, fileModels.size());
-
-    IngestUtils.checkForLargeIngestRequests(
-        fileModels.size(), configurationService.getParameterValue(ConfigEnum.DATASET_INGEST_MAX));
+    workingMap.put(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, fileModelsCount);
 
     return StepResult.getStepResultSuccess();
   }

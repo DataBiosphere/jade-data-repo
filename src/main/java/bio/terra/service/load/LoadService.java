@@ -16,6 +16,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -40,6 +41,10 @@ public class LoadService {
 
   public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {
     loadDao.populateFiles(loadId, loadFileModelList);
+  }
+
+  public void populateFiles(UUID loadId, Stream<BulkLoadFileModel> loadFileModelStream) {
+    loadDao.populateFiles(loadId, loadFileModelStream);
   }
 
   public void cleanFiles(UUID loadId) {

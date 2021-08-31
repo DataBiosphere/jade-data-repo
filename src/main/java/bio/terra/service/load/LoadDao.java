@@ -12,8 +12,11 @@ import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Spliterator;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.apache.commons.codec.binary.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -194,6 +197,26 @@ public class LoadDao {
             return loadFileModelList.size();
           }
         });
+  }
+
+  /**
+   * Chunk a stream of models into groups of 1000 and populate the database
+   *
+   * @param loadId Load ID tying all these file ingests together
+   * @param loadFileModelStream The stream to be chunked and processed over
+   */
+  public void populateFiles(UUID loadId, Stream<BulkLoadFileModel> loadFileModelStream) {
+    Spliterator<BulkLoadFileModel> split = loadFileModelStream.spliterator();
+    int chunkSize = 1000;
+
+    while (true) {
+      List<BulkLoadFileModel> chunk = new ArrayList<>(chunkSize);
+      for (int i = 0; i < chunkSize; i++) {
+        split.tryAdvance(chunk::add);
+      }
+      if (chunk.isEmpty()) break;
+      populateFiles(loadId, chunk);
+    }
   }
 
   // Remove all file load instructions for a given loadId from the load_file table

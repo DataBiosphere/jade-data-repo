@@ -26,6 +26,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -42,8 +43,6 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -109,18 +108,18 @@ public class GcsPdao {
     var reader = storage.reader(blob.getBlobId(), Storage.BlobSourceOption.userProject(projectId));
     var channelReader = Channels.newReader(reader, StandardCharsets.UTF_8);
     var bufferedReader = new BufferedReader(channelReader);
-    return bufferedReader.lines();
-  }
-
-  /**
-   * Get all of the lines from any files matching the path, including wildcarded paths
-   *
-   * @param path path to files, or path including wildcard referring to many files
-   * @param projectId Project ID to use for storage service in case of requester pays bucket
-   * @return All of the lines from all of the files matching the path
-   */
-  public List<String> getGcsFilesLines(String path, String projectId) {
-    return getGcsFilesLinesStream(path, projectId).collect(Collectors.toList());
+    return bufferedReader
+        .lines()
+        .onClose(
+            () -> {
+              try {
+                bufferedReader.close();
+              } catch (IOException e) {
+                throw new GoogleResourceException(
+                    String.format("Couldn't close buffered reader for %s", getGsPathFromBlob(blob)),
+                    e);
+              }
+            });
   }
 
   private Stream<Blob> listGcsFiles(String path, String projectId, Storage storage) {

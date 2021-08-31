@@ -10,8 +10,6 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
-import com.azure.data.tables.models.TableTransactionAction;
-import com.azure.data.tables.models.TableTransactionActionType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -124,10 +122,7 @@ public class TableDirectoryDao {
     if (leafEntity == null) {
       return false;
     }
-
-    TableTransactionAction t =
-        new TableTransactionAction(TableTransactionActionType.DELETE, leafEntity);
-    tableClient.submitTransaction(List.of(t));
+    tableClient.deleteEntity(leafEntity);
 
     FireStoreDirectoryEntry leafEntry = FireStoreDirectoryEntry.fromTableEntity(leafEntity);
     String datasetId = leafEntry.getDatasetId();
@@ -145,8 +140,9 @@ public class TableDirectoryDao {
         break;
       }
       TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
-      tableClient.submitTransaction(
-          List.of(new TableTransactionAction(TableTransactionActionType.DELETE, entity)));
+      if (entity != null) {
+        tableClient.deleteEntity(entity);
+      }
       lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
     }
     return true;

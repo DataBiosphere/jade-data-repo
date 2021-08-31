@@ -51,11 +51,6 @@ public class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
         IngestUtils.getJsonNodesStreamFromFile(
             gcsPdao, objectMapper, ingestRequest, dataset, errors)) {
 
-      if (!errors.isEmpty()) {
-        throw new CorruptMetadataException(
-            "Encountered invalid json while combining ingested files with load request");
-      }
-
       List<String> fileColumns =
           workingMap.get(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, List.class);
       BulkLoadArrayResultModel result =
@@ -99,6 +94,13 @@ public class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
 
       gcsPdao.createGcsFile(path, bucket.projectIdForBucket());
       gcsPdao.writeStreamToGcsFile(path, linesWithFileIds, bucket.projectIdForBucket());
+
+      // Check for parsing errors after new file is written because that's when
+      // the stream is actually materialized.
+      if (!errors.isEmpty()) {
+        throw new CorruptMetadataException(
+            "Encountered invalid json while combining ingested files with load request");
+      }
 
       workingMap.put(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, path);
 

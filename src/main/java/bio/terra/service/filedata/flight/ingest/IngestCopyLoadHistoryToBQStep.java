@@ -95,7 +95,7 @@ public class IngestCopyLoadHistoryToBQStep extends IngestCopyLoadHistoryStep {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
+  public StepResult undoSkippableStep(FlightContext context) {
     String flightId = context.getFlightId();
     try {
       Dataset dataset = datasetService.retrieve(datasetId);

@@ -88,7 +88,11 @@ public class GcsPdao {
   }
 
   /**
-   * Get all of the lines from any files matching the path as a Stream, including wildcarded paths
+   * Get all the lines from any files matching the path as a Stream, including wildcarded paths
+   *
+   * <p>It is important that the stream returned by this method be guaranteed to closed. Since this
+   * is a stream from IO, we need to make sure that the handle is closed. This can be done by
+   * wrapping the stream in a try-block once the stream is used for a terminal operation.
    *
    * @param path path to files, or path including wildcard referring to many files
    * @param projectId Project ID to use for storage service in case of requester pays bucket
@@ -108,18 +112,7 @@ public class GcsPdao {
     var reader = storage.reader(blob.getBlobId(), Storage.BlobSourceOption.userProject(projectId));
     var channelReader = Channels.newReader(reader, StandardCharsets.UTF_8);
     var bufferedReader = new BufferedReader(channelReader);
-    return bufferedReader
-        .lines()
-        .onClose(
-            () -> {
-              try {
-                bufferedReader.close();
-              } catch (IOException e) {
-                throw new GoogleResourceException(
-                    String.format("Couldn't close buffered reader for %s", getGsPathFromBlob(blob)),
-                    e);
-              }
-            });
+    return bufferedReader.lines();
   }
 
   private Stream<Blob> listGcsFiles(String path, String projectId, Storage storage) {

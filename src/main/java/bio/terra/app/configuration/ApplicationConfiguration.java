@@ -168,14 +168,6 @@ public class ApplicationConfiguration {
     this.maxBulkFileLoadArray = maxBulkFileLoadArray;
   }
 
-  public long getMaxDatasetIngest() {
-    return maxDatasetIngest;
-  }
-
-  public void setMaxDatasetIngest(long maxDatasetIngest) {
-    this.maxDatasetIngest = maxDatasetIngest;
-  }
-
   public int getLoadConcurrentFiles() {
     return loadConcurrentFiles;
   }

@@ -33,8 +33,6 @@ public class ApplicationConfiguration {
   private int maxStairwayThreads;
   /** Maximum number of file loads allowed in the input array in a bulk file load */
   private int maxBulkFileLoadArray;
-  /** Maximum number of lines in ingest request */
-  private long maxDatasetIngest;
   /** Number of file loads to run concurrently in a bulk file load */
   private int loadConcurrentFiles;
   /**

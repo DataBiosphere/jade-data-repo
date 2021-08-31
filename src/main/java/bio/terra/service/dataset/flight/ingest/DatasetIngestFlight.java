@@ -216,7 +216,8 @@ public class DatasetIngestFlight extends Flight {
             datasetId,
             loadTag,
             loadHistoryWaitSeconds,
-            loadHistoryChunkSize));
+            loadHistoryChunkSize,
+            ingestSkipCondition));
     addStep(new IngestCleanFileStateStep(loadService, ingestSkipCondition));
 
     addStep(new LoadUnlockStep(loadService, ingestSkipCondition));

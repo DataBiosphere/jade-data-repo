@@ -112,7 +112,7 @@ public class IngestUtilsTest {
 
   @Test(expected = InvalidIngestStrategyException.class)
   public void testMaxLineIngestCheck() {
-    int numLines = 11;
+    long numLines = 11;
     when(configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX)).thenReturn(10);
     IngestUtils.checkForLargeIngestRequests(
         numLines, configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX));
@@ -120,7 +120,7 @@ public class IngestUtilsTest {
 
   @Test
   public void testSmallLineIngestCheck() {
-    int numLines = 9;
+    long numLines = 9;
     when(configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX)).thenReturn(10);
     IngestUtils.checkForLargeIngestRequests(
         numLines, configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX));

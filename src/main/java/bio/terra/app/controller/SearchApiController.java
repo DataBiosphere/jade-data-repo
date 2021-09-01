@@ -5,6 +5,8 @@ import bio.terra.app.controller.exception.ApiException;
 import bio.terra.controller.SearchApi;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
+import bio.terra.model.SearchMetadataModel;
+import bio.terra.model.SearchMetadataRequest;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -93,6 +95,19 @@ public class SearchApiController implements SearchApi {
       return new ResponseEntity<>(searchIndexModel, HttpStatus.OK);
     } catch (InterruptedException e) {
       throw new ApiException("Could not generate index for snapshot " + id, e);
+    }
+  }
+
+  @Override
+  public ResponseEntity<SearchMetadataModel> upsertSearchMetadata(
+      @PathVariable("id") String id,
+      @Valid @RequestBody SearchMetadataRequest searchMetadataRequest) {
+    try {
+      SearchMetadataModel searchMetadataModel = new SearchMetadataModel();
+      searchMetadataModel.setMetadataSummary("Upserted search metadata for snapshot " + id);
+      return new ResponseEntity<>(searchMetadataModel, HttpStatus.OK);
+    } catch (Exception e) {
+      throw new ApiException("Could not upsert metadata for snapshot " + id, e);
     }
   }
 

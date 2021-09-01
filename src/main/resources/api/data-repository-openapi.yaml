@@ -2314,6 +2314,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/repository/v1/search/{id}/metadata:
+    post:
+      tags:
+        - search
+        - snapshots
+        - repository
+      description: Insert or update search metadata for a snapshot
+      operationId: upsertSearchMetadata
+      parameters:
+        - name: id
+          in: path
+          description: A UUID to used to identify an object in the repository
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Search metadata to upsert on a snapshot
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchMetadataRequest'
+        required: true
+      responses:
+        200:
+          description: Return metadata result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchMetadataModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        403:
+          description: No permission to see snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/search/query:
     post:
       tags:
@@ -3959,6 +4006,21 @@ components:
         indexSummary:
           type: string
           description: Summary of this index for searching
+    SearchMetadataRequest:
+      required:
+        - json
+      type: object
+      properties:
+        json:
+          type: string
+          description: >
+            Json metadata to make snapshot searchable
+    SearchMetadataModel:
+      type: object
+      properties:
+        metadataSummary:
+          type: string
+          description: Summary of this metadata for searching
     SearchQueryRequest:
       required:
         - query

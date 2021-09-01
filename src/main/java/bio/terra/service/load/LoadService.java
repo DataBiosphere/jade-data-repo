@@ -43,8 +43,9 @@ public class LoadService {
     loadDao.populateFiles(loadId, loadFileModelList);
   }
 
-  public void populateFiles(UUID loadId, Stream<BulkLoadFileModel> loadFileModelStream) {
-    loadDao.populateFiles(loadId, loadFileModelStream);
+  public void populateFiles(
+      UUID loadId, Stream<BulkLoadFileModel> loadFileModelStream, int batchSize) {
+    loadDao.populateFiles(loadId, loadFileModelStream, batchSize);
   }
 
   public void cleanFiles(UUID loadId) {

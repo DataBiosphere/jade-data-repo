@@ -182,7 +182,12 @@ public class DatasetIngestFlight extends Flight {
         randomBackoffRetry);
     addStep(
         new IngestPopulateFileStateFromFlightMapStep(
-            loadService, gcsPdao, appConfig.objectMapper(), dataset, ingestSkipCondition));
+            loadService,
+            gcsPdao,
+            appConfig.objectMapper(),
+            dataset,
+            appConfig.getLoadFilePopulateBatchSize(),
+            ingestSkipCondition));
     addStep(
         new IngestDriverStep(
             loadService,

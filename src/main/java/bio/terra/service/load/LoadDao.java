@@ -205,17 +205,17 @@ public class LoadDao {
    * @param loadId Load ID tying all these file ingests together
    * @param loadFileModelStream The stream to be chunked and processed over
    */
-  public void populateFiles(UUID loadId, Stream<BulkLoadFileModel> loadFileModelStream) {
+  public void populateFiles(
+      UUID loadId, Stream<BulkLoadFileModel> loadFileModelStream, int batchSize) {
     Spliterator<BulkLoadFileModel> split = loadFileModelStream.spliterator();
-    int chunkSize = 1000;
 
     while (true) {
-      List<BulkLoadFileModel> chunk = new ArrayList<>(chunkSize);
-      for (int i = 0; i < chunkSize; i++) {
-        split.tryAdvance(chunk::add);
+      List<BulkLoadFileModel> batc = new ArrayList<>(batchSize);
+      for (int i = 0; i < batchSize; i++) {
+        split.tryAdvance(batc::add);
       }
-      if (chunk.isEmpty()) break;
-      populateFiles(loadId, chunk);
+      if (batc.isEmpty()) break;
+      populateFiles(loadId, batc);
     }
   }
 

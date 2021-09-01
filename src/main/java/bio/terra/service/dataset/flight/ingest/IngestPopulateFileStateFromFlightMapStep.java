@@ -23,18 +23,21 @@ public class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
   private final GcsPdao gcsPdao;
   private final ObjectMapper objectMapper;
   private final Dataset dataset;
+  private final int batchSize;
 
   public IngestPopulateFileStateFromFlightMapStep(
       LoadService loadService,
       GcsPdao gcsPdao,
       ObjectMapper objectMapper,
       Dataset dataset,
+      int batchSize,
       Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.loadService = loadService;
     this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
     this.dataset = dataset;
+    this.batchSize = batchSize;
   }
 
   // For some reason, Spotbugs thinks the try-with-resources results in a redundant nullcheck...
@@ -52,7 +55,7 @@ public class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
         IngestUtils.getBulkFileLoadModelsStream(
             gcsPdao, objectMapper, ingestRequest, dataset, fileColumns, errors)) {
 
-      loadService.populateFiles(loadId, bulkFileLoadModels);
+      loadService.populateFiles(loadId, bulkFileLoadModels, batchSize);
 
       // Check for parsing errors after files are populated in the load table because that's when
       // the stream is actually materialized.

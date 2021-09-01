@@ -366,7 +366,7 @@ export GOOGLE_ALLOWREUSEEXISTINGPROJECTS=true
 # Setting for credentials to test on Azure
 export AZURE_CREDENTIALS_HOMETENANTID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
 export AZURE_CREDENTIALS_APPLICATIONID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
-export AZURE_CREDENTIALS_SECRET=$(vault read -format=json secret/dsde/datarepo/dev/helm-azure | jq -r .data.applicationsecret)
+export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
 ```
 
 * If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`

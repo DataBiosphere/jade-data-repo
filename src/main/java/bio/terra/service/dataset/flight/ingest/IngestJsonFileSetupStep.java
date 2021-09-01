@@ -14,7 +14,6 @@ import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.RetryException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,15 +47,14 @@ public class IngestJsonFileSetupStep implements Step {
 
     var workingMap = flightContext.getWorkingMap();
 
+    workingMap.put(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, fileRefColumnNames);
+
     // If there's no FILEREF columns, we never need to parse the ingest control file.
     if (fileRefColumnNames.isEmpty()) {
       // Defaults so that other steps don't NPE
       workingMap.put(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, 0);
-      workingMap.put(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, Collections.emptyList());
       return StepResult.getStepResultSuccess();
     }
-
-    workingMap.put(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, fileRefColumnNames);
 
     List<String> errors = new ArrayList<>();
     // Parse the file models, but don't save them because we don't want to blow up the database.

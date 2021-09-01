@@ -2,13 +2,10 @@ package bio.terra.service.dataset.flight.ingest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.InvalidBlobURLException;
-import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.InvalidUriException;
 import com.azure.storage.blob.BlobUrlParts;
 import org.junit.Test;
@@ -108,21 +105,5 @@ public class IngestUtilsTest {
   public void testNoDoubleDash() {
     IngestUtils.validateBlobAzureBlobFileURL(
         "https://tdrconnectedsrc1.blob.core.windows.net/synapsetestdata/test/azure-simple--dataset-ingest-request.csv");
-  }
-
-  @Test(expected = InvalidIngestStrategyException.class)
-  public void testMaxLineIngestCheck() {
-    long numLines = 11L;
-    when(configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX)).thenReturn(10L);
-    IngestUtils.checkForLargeIngestRequests(
-        numLines, configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX));
-  }
-
-  @Test
-  public void testSmallLineIngestCheck() {
-    long numLines = 9L;
-    when(configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX)).thenReturn(10L);
-    IngestUtils.checkForLargeIngestRequests(
-        numLines, configurationService.getParameterValue(ConfigEnum.LOAD_BULK_FILES_MAX));
   }
 }

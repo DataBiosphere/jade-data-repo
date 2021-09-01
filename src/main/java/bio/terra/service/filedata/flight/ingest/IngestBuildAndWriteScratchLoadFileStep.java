@@ -61,7 +61,9 @@ public class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
           result.getLoadFileResults().stream()
               .collect(
                   Collectors.toMap(
-                      model -> Objects.hash(model.getSourcePath(), model.getTargetPath()),
+                      fileResultModel ->
+                          Objects.hash(
+                              fileResultModel.getSourcePath(), fileResultModel.getTargetPath()),
                       BulkLoadFileResultModel::getFileId));
 
       // Part 2 -> Replace BulkLoadFileModels with file id

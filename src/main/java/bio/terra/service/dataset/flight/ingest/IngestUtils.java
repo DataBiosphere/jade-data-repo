@@ -249,12 +249,13 @@ public final class IngestUtils {
 
   public static final Predicate<FlightContext> noFilesToIngest =
       flightContext -> {
-        if (Optional.ofNullable(
+        var numFiles =
+            Objects.requireNonNullElse(
                 flightContext
                     .getWorkingMap()
-                    .get(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, Long.class))
-            .map(num -> num == 0)
-            .orElse(true)) {
+                    .get(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, Long.class),
+                0L);
+        if (numFiles == 0) {
           Logger logger = LoggerFactory.getLogger(flightContext.getFlightClassName());
           logger.info(
               "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
@@ -310,16 +311,9 @@ public final class IngestUtils {
         .flatMap(
             node ->
                 fileRefColumnNames.stream()
-                    .map(
-                        columnName -> {
-                          JsonNode fileRefNode = node.get(columnName);
-                          if (fileRefNode != null && fileRefNode.isObject()) {
-                            return objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class);
-                          } else {
-                            return null;
-                          }
-                        })
-                    .filter(Objects::nonNull));
+                    .map(node::get)
+                    .filter(n -> n != null && n.isObject())
+                    .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class)));
   }
 
   public static void checkForLargeIngestRequests(long numLines, long maxIngestRows) {

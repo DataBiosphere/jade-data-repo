@@ -200,10 +200,11 @@ public class DatasetIngestFlight extends Flight {
     addStep(
         new IngestBulkMapResponseStep(
             loadService, ingestRequest.getLoadTag(), ingestSkipCondition));
-    // build the scratch file using new file ids and store in new bucket
+
     addStep(
         new IngestCreateBucketForScratchFileStep(resourceService, dataset, ingestSkipCondition));
 
+    // build the scratch file using new file ids and store in new bucket
     addStep(
         new IngestBuildAndWriteScratchLoadFileStep(
             appConfig.objectMapper(), gcsPdao, dataset, ingestSkipCondition));

@@ -113,7 +113,7 @@ public class TableDao {
       logger.info("deleting files from dataset");
       fileDao.deleteFilesFromDataset(tableServiceClient, func);
     }
-    logger.info("deleting direcotry entries");
+    logger.info("deleting directory entries");
     directoryDao.deleteDirectoryEntriesFromCollection(tableServiceClient);
   }
 

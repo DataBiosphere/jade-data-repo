@@ -40,10 +40,10 @@ public class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
     this.batchSize = batchSize;
   }
 
-  // For some reason, Spotbugs thinks the try-with-resources results in a redundant nullcheck...
-  // This appears to be a bug in Spotbugs. https://github.com/spotbugs/spotbugs/issues/756
   @Override
-  @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+  @SuppressFBWarnings(
+      value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+      justification = "Spotbugs doesn't understand resource try construct")
   public StepResult doSkippableStep(FlightContext context) {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));

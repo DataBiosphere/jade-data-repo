@@ -143,7 +143,7 @@ public class GcsPdao {
       contentsToWrite.forEach(
           s -> {
             try {
-              writer.write(ByteBuffer.wrap((s).getBytes(StandardCharsets.UTF_8)));
+              writer.write(ByteBuffer.wrap(s.getBytes(StandardCharsets.UTF_8)));
               writer.write(ByteBuffer.wrap(newLine));
             } catch (IOException e) {
               throw new GoogleResourceException(

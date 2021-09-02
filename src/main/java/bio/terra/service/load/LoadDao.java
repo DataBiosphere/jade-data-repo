@@ -200,7 +200,7 @@ public class LoadDao {
   }
 
   /**
-   * Chunk a stream of models into groups of 1000 and populate the database
+   * Chunk a stream of models into groups of size batchSize and populate the database
    *
    * @param loadId Load ID tying all these file ingests together
    * @param loadFileModelStream The stream to be chunked and processed over
@@ -212,9 +212,13 @@ public class LoadDao {
     while (true) {
       List<BulkLoadFileModel> batch = new ArrayList<>(batchSize);
       for (int i = 0; i < batchSize; i++) {
-        split.tryAdvance(batch::add);
+        if (!split.tryAdvance(batch::add)) {
+          break;
+        }
       }
-      if (batch.isEmpty()) break;
+      if (batch.isEmpty()) {
+        break;
+      }
       populateFiles(loadId, batch);
     }
   }

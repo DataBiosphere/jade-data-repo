@@ -173,10 +173,12 @@ public class ResourceService {
         azureDataLocationSelector.storageAccountNameForDataset(
             applicationResource.getStorageAccountPrefix(), dataset.getName(), billingProfile);
 
-    var storageAccountName =
-        getStorageAccount(dataset, billingProfile)
-            .map(AzureStorageAccountResource::getName)
-            .orElse(computedStorageAccountName);
+    String storageAccountName;
+    try {
+      storageAccountName = getStorageAccount(dataset, billingProfile).getName();
+    } catch (CorruptMetadataException e) {
+      storageAccountName = computedStorageAccountName;
+    }
 
     return storageAccountService.getOrCreateStorageAccount(
         storageAccountName, applicationResource, region, flightId);
@@ -189,7 +191,7 @@ public class ResourceService {
    * @param billingProfile billing profile to get storage account for.
    * @return Optional AzureStorageAccountResource
    */
-  public Optional<AzureStorageAccountResource> getStorageAccount(
+  public AzureStorageAccountResource getStorageAccount(
       Dataset dataset, BillingProfileModel billingProfile) {
     var storageAccountResourceIds =
         datasetStorageAccountDao.getStorageAccountResourceIdForDatasetId(dataset.getId());
@@ -199,15 +201,24 @@ public class ResourceService {
             .filter(sa -> storageAccountIsForBillingProfile(sa, billingProfile))
             .collect(Collectors.toList());
 
+    Optional<AzureStorageAccountResource> storageAccountResource;
     switch (storageAccountResources.size()) {
       case 0:
-        return Optional.empty();
+        storageAccountResource = Optional.empty();
+        break;
       case 1:
-        return Optional.of(storageAccountResources.get(0));
+        storageAccountResource = Optional.of(storageAccountResources.get(0));
+        break;
       default:
         throw new CorruptMetadataException(
             "Dataset/Billing Profile combination has more than 1 associated storage account");
     }
+    return storageAccountResource.orElseThrow(
+        () ->
+            new CorruptMetadataException(
+                String.format(
+                    "No storage account resource for dataset %s and billing profile %s",
+                    dataset.getId(), dataset.getDefaultProfileId())));
   }
 
   /**

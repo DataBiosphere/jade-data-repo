@@ -33,7 +33,6 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -201,14 +200,7 @@ public class FileService {
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
-          resourceService
-              .getStorageAccount(dataset, billingProfileModel)
-              .orElseThrow(
-                  () ->
-                      new CorruptMetadataException(
-                          String.format(
-                              "No storage account resource for dataset %s and billing profile %s",
-                              datasetId, dataset.getDefaultProfileId())));
+          resourceService.getStorageAccount(dataset, billingProfileModel);
       return tableDao.retrieveById(
           UUID.fromString(datasetId), fileId, depth, billingProfileModel, storageAccountResource);
     }
@@ -229,14 +221,7 @@ public class FileService {
       BillingProfileModel billingProfileModel =
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
-          resourceService
-              .getStorageAccount(dataset, billingProfileModel)
-              .orElseThrow(
-                  () ->
-                      new CorruptMetadataException(
-                          String.format(
-                              "No storage account resource for dataset %s and billing profile %s",
-                              datasetId, dataset.getDefaultProfileId())));
+          resourceService.getStorageAccount(dataset, billingProfileModel);
       return tableDao.retrieveByPath(
           UUID.fromString(datasetId), path, depth, storageAccountResource);
     }

@@ -4,7 +4,6 @@ import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.azure.data.tables.TableServiceClient;
 import java.time.Instant;
 import java.util.List;
@@ -47,15 +46,7 @@ public class StorageTableService {
   public List<BulkLoadHistoryModel> getLoadHistory(
       Dataset dataset, String loadTag, int offset, int limit) {
     var billingProfile = dataset.getDatasetSummary().getDefaultBillingProfile();
-    var storageAccountResource =
-        resourceService
-            .getStorageAccount(dataset, billingProfile)
-            .orElseThrow(
-                () ->
-                    new CorruptMetadataException(
-                        String.format(
-                            "Expected storage account for Dataset/Billing Profile %s/%s",
-                            dataset.getId(), billingProfile.getId())));
+    var storageAccountResource = resourceService.getStorageAccount(dataset, billingProfile);
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
 

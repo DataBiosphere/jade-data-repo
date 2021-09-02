@@ -88,8 +88,8 @@ public class IngestFileAzureDirectoryStep implements Step {
             new FireStoreDirectoryEntry()
                 .fileId(fileId)
                 .isFileRef(true)
-                .path(fileMetadataUtils.getDirectoryPath(loadModel.getTargetPath()))
-                .name(fileMetadataUtils.getName(loadModel.getTargetPath()))
+                .path(fileMetadataUtils.getDirectoryPath(targetPath))
+                .name(fileMetadataUtils.getName(targetPath))
                 .datasetId(datasetId)
                 .loadTag(loadModel.getLoadTag());
         tableDao.createDirectoryEntry(newEntry, billingProfileModel, storageAccountResource);

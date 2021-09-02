@@ -33,11 +33,11 @@ public class DeleteFileAzureDirectoryStep implements Step {
     try {
       boolean found =
           tableDao.deleteDirectoryEntry(fileId, billingProfileModel, storageAccountResource);
-      DeleteResponseModel.ObjectStateEnum stateEnum =
+      DeleteResponseModel.ObjectStateEnum state =
           (found)
               ? DeleteResponseModel.ObjectStateEnum.DELETED
               : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
-      DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
+      DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(state);
       FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
     } catch (FileSystemAbortTransactionException rex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);

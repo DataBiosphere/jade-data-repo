@@ -62,10 +62,10 @@ public class TableDirectoryDaoTest {
 
     // Mock table exists check
     PagedIterable<TableItem> mockTablesIterable = mock(PagedIterable.class);
-    TableItem table = mock(TableItem.class);
-    when(table.getName()).thenReturn("dataset");
-    when(mockTablesIterable.stream()).thenReturn(Stream.of(table));
-    when(tableServiceClient.listTables()).thenReturn(mockTablesIterable);
+    Iterator<TableItem> mockTableIterator = mock(Iterator.class);
+    when(mockTableIterator.hasNext()).thenReturn(true, false);
+    when(mockTablesIterable.iterator()).thenReturn(mockTableIterator);
+    when(tableServiceClient.listTables(any(), any(), any())).thenReturn(mockTablesIterable);
 
     entity =
         new TableEntity(PARTITION_KEY, ROW_KEY)

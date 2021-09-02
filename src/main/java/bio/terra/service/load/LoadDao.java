@@ -210,12 +210,12 @@ public class LoadDao {
     Spliterator<BulkLoadFileModel> split = loadFileModelStream.spliterator();
 
     while (true) {
-      List<BulkLoadFileModel> batc = new ArrayList<>(batchSize);
+      List<BulkLoadFileModel> batch = new ArrayList<>(batchSize);
       for (int i = 0; i < batchSize; i++) {
-        split.tryAdvance(batc::add);
+        split.tryAdvance(batch::add);
       }
-      if (batc.isEmpty()) break;
-      populateFiles(loadId, batc);
+      if (batch.isEmpty()) break;
+      populateFiles(loadId, batch);
     }
   }
 

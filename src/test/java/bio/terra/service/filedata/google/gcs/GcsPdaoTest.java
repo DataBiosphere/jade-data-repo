@@ -17,6 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -97,7 +98,7 @@ public class GcsPdaoTest {
         contents.add(fileContents);
       }
       var listPath = GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/");
-      var listLines = gcsPdao.getGcsFilesLines(listPath, projectId);
+      var listLines = getGcsFilesLines(listPath, projectId);
       assertThat(
           "The listed file contents match concatenated contents of individual files",
           listLines,
@@ -106,7 +107,7 @@ public class GcsPdaoTest {
       var wildcardMiddlePath =
           GcsPdao.getGsPathFromComponents(
               testConfig.getIngestbucket(), uuid + "/" + uuid + "-*.txt");
-      var wildcardMiddleLines = gcsPdao.getGcsFilesLines(wildcardMiddlePath, projectId);
+      var wildcardMiddleLines = getGcsFilesLines(wildcardMiddlePath, projectId);
       assertThat(
           "The middle-wildcard-matched file contents match concatenated contents of individual files",
           wildcardMiddleLines,
@@ -114,7 +115,7 @@ public class GcsPdaoTest {
 
       var wildcardEndPath =
           GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/" + uuid + "-*");
-      var wildcardEndLines = gcsPdao.getGcsFilesLines(wildcardEndPath, projectId);
+      var wildcardEndLines = getGcsFilesLines(wildcardEndPath, projectId);
       assertThat(
           "The end-wildcard-matched file contents match concatenated contents of individual files",
           wildcardEndLines,
@@ -123,7 +124,7 @@ public class GcsPdaoTest {
       var wildcardMultiplePath =
           GcsPdao.getGsPathFromComponents(
               testConfig.getIngestbucket(), uuid + "/*" + uuid + "-*.txt");
-      var wildcardMutlipleLines = gcsPdao.getGcsFilesLines(wildcardMultiplePath, projectId);
+      var wildcardMutlipleLines = getGcsFilesLines(wildcardMultiplePath, projectId);
       assertThat(
           "Multiple-wildcard paths don't return anything",
           wildcardMutlipleLines,
@@ -177,5 +178,11 @@ public class GcsPdaoTest {
   public void testGetBlobNonexistent() {
     GcsPdao.getBlobFromGsPath(
         storage, "gs://" + testConfig.getIngestbucket() + "/file-doesnt-exist", projectId);
+  }
+
+  private List<String> getGcsFilesLines(String path, String projectId) {
+    try (var stream = gcsPdao.getGcsFilesLinesStream(path, projectId)) {
+      return stream.collect(Collectors.toList());
+    }
   }
 }

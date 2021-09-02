@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.PdaoLoadStatistics;
+import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -10,18 +11,23 @@ import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.InvalidUriException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import com.azure.storage.blob.BlobUrlParts;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -243,10 +249,13 @@ public final class IngestUtils {
 
   public static final Predicate<FlightContext> noFilesToIngest =
       flightContext -> {
-        if (Optional.ofNullable(
-                flightContext.getWorkingMap().get(IngestMapKeys.BULK_LOAD_FILE_MODELS, Set.class))
-            .map(Set::isEmpty)
-            .orElse(true)) {
+        var numFiles =
+            Objects.requireNonNullElse(
+                flightContext
+                    .getWorkingMap()
+                    .get(IngestMapKeys.NUM_BULK_LOAD_FILE_MODELS, Long.class),
+                0L);
+        if (numFiles == 0) {
           Logger logger = LoggerFactory.getLogger(flightContext.getFlightClassName());
           logger.info(
               "Skipping {} because there are no files to ingest", flightContext.getStepClassName());
@@ -255,11 +264,64 @@ public final class IngestUtils {
         return false;
       };
 
-  public static void checkForLargeIngestRequests(int numLines, int maxIngestRows) {
+  public static Stream<JsonNode> getJsonNodesStreamFromFile(
+      GcsPdao gcsPdao,
+      ObjectMapper objectMapper,
+      IngestRequestModel ingestRequest,
+      Dataset dataset,
+      List<String> errors) {
+    return gcsPdao
+        .getGcsFilesLinesStream(
+            ingestRequest.getPath(), dataset.getProjectResource().getGoogleProjectId())
+        .map(
+            content -> {
+              try {
+                return objectMapper.readTree(content);
+              } catch (JsonProcessingException ex) {
+                errors.add(ex.getMessage());
+                return null;
+              }
+            })
+        .filter(Objects::nonNull);
+  }
+
+  public static long countBulkFileLoadModelsFromPath(
+      GcsPdao gcsPdao,
+      ObjectMapper objectMapper,
+      IngestRequestModel ingestRequest,
+      Dataset dataset,
+      List<String> fileRefColumnNames,
+      List<String> errors) {
+    try (var nodesStream =
+        IngestUtils.getBulkFileLoadModelsStream(
+            gcsPdao, objectMapper, ingestRequest, dataset, fileRefColumnNames, errors)) {
+      return nodesStream.count();
+    }
+  }
+
+  public static Stream<BulkLoadFileModel> getBulkFileLoadModelsStream(
+      GcsPdao gcsPdao,
+      ObjectMapper objectMapper,
+      IngestRequestModel ingestRequest,
+      Dataset dataset,
+      List<String> fileRefColumnNames,
+      List<String> errors) {
+    return IngestUtils.getJsonNodesStreamFromFile(
+            gcsPdao, objectMapper, ingestRequest, dataset, errors)
+        .flatMap(
+            node ->
+                fileRefColumnNames.stream()
+                    .map(node::get)
+                    .filter(n -> n != null && n.isObject())
+                    .map(n -> objectMapper.convertValue(n, BulkLoadFileModel.class)));
+  }
+
+  public static void checkForLargeIngestRequests(long numLines, long maxIngestRows) {
     if (numLines > maxIngestRows) {
       throw new InvalidIngestStrategyException(
           String.format(
-              "The dataset ingest workflow is limited to %d lines for ingest. This request had %d lines.",
+              "The combined file ingest and metadata ingest workflow is limited to "
+                  + "%s files for ingest. This request had %s files.",
               maxIngestRows, numLines));
     }
   }

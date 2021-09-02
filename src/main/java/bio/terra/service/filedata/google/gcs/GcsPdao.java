@@ -26,11 +26,13 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -81,20 +83,36 @@ public class GcsPdao {
     this.performanceLogger = performanceLogger;
   }
 
+  public Storage storageForBucket(GoogleBucketResource bucketResource) {
+    return gcsProjectFactory.getStorage(bucketResource.projectIdForBucket());
+  }
+
   /**
-   * Get all of the lines from any files matching the path, including wildcarded paths
+   * Get all the lines from any files matching the path as a Stream, including wildcarded paths
+   *
+   * <p>It is important that the stream returned by this method be guaranteed to closed. Since this
+   * is a stream from IO, we need to make sure that the handle is closed. This can be done by
+   * wrapping the stream in a try-block once the stream is used for a terminal operation.
    *
    * @param path path to files, or path including wildcard referring to many files
    * @param projectId Project ID to use for storage service in case of requester pays bucket
-   * @return All of the lines from all of the files matching the path
+   * @return All of the lines from all of the files matching the path, as a Stream
    */
-  public List<String> getGcsFilesLines(String path, String projectId) {
+  public Stream<String> getGcsFilesLinesStream(String path, String projectId) {
     Storage storage = gcsProjectFactory.getStorage(projectId);
     int lastWildcard = path.lastIndexOf("*");
     String prefixPath = lastWildcard >= 0 ? path.substring(0, lastWildcard) : path;
     return listGcsFiles(prefixPath, projectId, storage)
-        .flatMap(blob -> getGcsFileLines(blob, projectId, storage).stream())
-        .collect(Collectors.toList());
+        .flatMap(blob -> getBlobLinesStream(blob, projectId, storage));
+  }
+
+  @SuppressFBWarnings("OS_OPEN_STREAM")
+  private static Stream<String> getBlobLinesStream(Blob blob, String projectId, Storage storage) {
+    logger.info(String.format("Reading lines from %s", getGsPathFromBlob(blob)));
+    var reader = storage.reader(blob.getBlobId(), Storage.BlobSourceOption.userProject(projectId));
+    var channelReader = Channels.newReader(reader, StandardCharsets.UTF_8);
+    var bufferedReader = new BufferedReader(channelReader);
+    return bufferedReader.lines();
   }
 
   private Stream<Blob> listGcsFiles(String path, String projectId, Storage storage) {
@@ -109,13 +127,6 @@ public class GcsPdao {
     return StreamSupport.stream(blobs.spliterator(), false);
   }
 
-  private List<String> getGcsFileLines(Blob blob, String projectId, Storage storage) {
-    String gsPath = getGsPathFromBlob(blob);
-    logger.info("Getting lines from {}", gsPath);
-    String blobContents = getBlobContents(storage, projectId, blob);
-    return Arrays.asList(blobContents.split("\n"));
-  }
-
   /**
    * Write String to a GCS file
    *
@@ -123,10 +134,26 @@ public class GcsPdao {
    * @param contentsToWrite contents to write to file
    * @param projectId project for billing
    */
-  public void writeGcsFile(String path, String contentsToWrite, String projectId) {
-    Storage storage = gcsProjectFactory.getStorage(projectId);
+  public void writeStreamToGcsFile(String path, Stream<String> contentsToWrite, String projectId) {
     logger.info("Writing contents to {}", path);
-    writeBlobContents(storage, projectId, path, contentsToWrite);
+    Storage storage = gcsProjectFactory.getStorage(projectId);
+    var blob = getBlobFromGsPath(storage, path, projectId);
+    var newLine = "\n".getBytes(StandardCharsets.UTF_8);
+    try (var writer = blob.writer(Storage.BlobWriteOption.userProject(projectId))) {
+      contentsToWrite.forEach(
+          s -> {
+            try {
+              writer.write(ByteBuffer.wrap(s.getBytes(StandardCharsets.UTF_8)));
+              writer.write(ByteBuffer.wrap(newLine));
+            } catch (IOException e) {
+              throw new GoogleResourceException(
+                  String.format("Could not write to GCS file at %s. Line: %s", path, s), e);
+            }
+          });
+    } catch (IOException ex) {
+      throw new GoogleResourceException(
+          String.format("Could not write to GCS file at %s", path), ex);
+    }
   }
 
   /**
@@ -320,39 +347,12 @@ public class GcsPdao {
     return new GcsLocator(sourceBucket, sourcePath);
   }
 
-  public static String getBlobContents(Storage storage, String projectId, BlobInfo blobInfo) {
-    var blob = storage.get(blobInfo.getBlobId(), Storage.BlobGetOption.userProject(projectId));
-    var contents = blob.getContent(Blob.BlobSourceOption.userProject(projectId));
-    return new String(contents, StandardCharsets.UTF_8);
-  }
-
-  public static int writeBlobContents(
-      Storage storage, String projectId, BlobInfo blobInfo, String contents) {
-    var blob = storage.get(blobInfo.getBlobId(), Storage.BlobGetOption.userProject(projectId));
-    try (var writer = blob.writer(Storage.BlobWriteOption.userProject(projectId))) {
-      return writer.write(ByteBuffer.wrap(contents.getBytes(StandardCharsets.UTF_8)));
-    } catch (IOException ex) {
-      throw new GoogleResourceException(
-          String.format("Could not write to GCS file at %s", getGsPathFromBlob(blobInfo)), ex);
-    }
-  }
-
-  public static int writeBlobContents(
-      Storage storage, String projectId, String gsPath, String contents) {
-    return writeBlobContents(
-        storage, projectId, getBlobFromGsPath(storage, gsPath, projectId), contents);
-  }
-
   public static String getGsPathFromBlob(BlobInfo blob) {
     return getGsPathFromComponents(blob.getBucket(), blob.getName());
   }
 
   public static String getGsPathFromComponents(String bucket, String name) {
     return "gs://" + bucket + "/" + name;
-  }
-
-  public Storage storageForBucket(GoogleBucketResource bucketResource) {
-    return gcsProjectFactory.getStorage(bucketResource.projectIdForBucket());
   }
 
   private void fileAclOp(

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.AzureUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
@@ -12,7 +13,6 @@ import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
-import com.azure.resourcemanager.AzureResourceManager;
 import java.util.UUID;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +34,7 @@ public class TableFileConnectedTest {
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
   @Autowired private TableFileDao tableFileDao;
+  @Autowired AzureUtils azureUtils;
   private TableServiceClient tableServiceClient;
 
   private static final String PARTITION_KEY = "partitionKey";
@@ -58,7 +59,7 @@ public class TableFileConnectedTest {
             .credential(
                 new AzureNamedKeyCredential(
                     connectedTestConfiguration.getSourceStorageAccountName(),
-                    getSourceStorageAccountPrimarySharedKey()))
+                    azureUtils.getSourceStorageAccountPrimarySharedKey()))
             .endpoint(
                 "https://"
                     + connectedTestConfiguration.getSourceStorageAccountName()
@@ -80,22 +81,5 @@ public class TableFileConnectedTest {
     // Try to delete the entry again
     boolean isNotDeleted = tableFileDao.deleteFileMetadata(tableServiceClient, FILE_ID);
     assertFalse("File record was already deleted", isNotDeleted);
-  }
-
-  private String getSourceStorageAccountPrimarySharedKey() {
-    AzureResourceManager client =
-        azureResourceConfiguration.getClient(
-            connectedTestConfiguration.getTargetTenantId(),
-            connectedTestConfiguration.getTargetSubscriptionId());
-
-    return client
-        .storageAccounts()
-        .getByResourceGroup(
-            connectedTestConfiguration.getTargetResourceGroupName(),
-            connectedTestConfiguration.getSourceStorageAccountName())
-        .getKeys()
-        .iterator()
-        .next()
-        .value();
   }
 }

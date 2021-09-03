@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.AzureUtils;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -25,8 +26,11 @@ import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.TableServiceClientBuilder;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -46,19 +50,16 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class AzureIngestFileConnectedTest {
-  private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
-  private static final String STORAGE_ACCOUNT_NAME = "tdrshiqauwlpzxavohmxxhfv";
-
-  private UUID applicationId;
-  private UUID storageAccountId;
   private UUID datasetId;
   private String targetPath;
+  private UUID homeTenantId;
 
-  private AzureApplicationDeploymentResource applicationResource;
   private AzureStorageAccountResource storageAccountResource;
   private BillingProfileModel billingProfile;
   private FileLoadModel fileLoadModel;
+  private TableServiceClient tableServiceClient;
 
+  @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
@@ -71,13 +72,17 @@ public class AzureIngestFileConnectedTest {
   @Autowired TableDao tableDao;
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired FileService fileService;
+  @Autowired AzureUtils azureUtils;
 
   @Before
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
-    applicationId = UUID.randomUUID();
-    storageAccountId = UUID.randomUUID();
+    UUID applicationId = UUID.randomUUID();
+    UUID storageAccountId = UUID.randomUUID();
     datasetId = UUID.randomUUID();
+
+    homeTenantId = azureResourceConfiguration.getCredentials().getHomeTenantId();
+    azureResourceConfiguration.getCredentials().setHomeTenantId(testConfig.getTargetTenantId());
 
     billingProfile =
         new BillingProfileModel()
@@ -92,19 +97,30 @@ public class AzureIngestFileConnectedTest {
             .resourceGroupName(testConfig.getTargetResourceGroupName())
             .applicationDeploymentName(testConfig.getTargetApplicationName());
 
-    applicationResource =
+    AzureApplicationDeploymentResource applicationResource =
         new AzureApplicationDeploymentResource()
             .id(applicationId)
             .azureApplicationDeploymentName(testConfig.getTargetApplicationName())
-            .azureResourceGroupName(MANAGED_RESOURCE_GROUP_NAME)
+            .azureResourceGroupName(testConfig.getTargetResourceGroupName())
             .profileId(billingProfile.getId());
+
     storageAccountResource =
         new AzureStorageAccountResource()
             .resourceId(storageAccountId)
-            .name(STORAGE_ACCOUNT_NAME)
+            .name(testConfig.getSourceStorageAccountName())
             .applicationResource(applicationResource)
             .metadataContainer("metadata")
             .dataContainer("data");
+
+    tableServiceClient =
+        new TableServiceClientBuilder()
+            .credential(
+                new AzureNamedKeyCredential(
+                    testConfig.getSourceStorageAccountName(),
+                    azureUtils.getSourceStorageAccountPrimarySharedKey()))
+            .endpoint(
+                "https://" + testConfig.getSourceStorageAccountName() + ".table.core.windows.net")
+            .buildClient();
 
     String exampleAzureFileToIngest =
         synapseUtils.ingestRequestURL(
@@ -125,7 +141,7 @@ public class AzureIngestFileConnectedTest {
 
   @After
   public void cleanup() throws Exception {
-
+    azureResourceConfiguration.getCredentials().setHomeTenantId(homeTenantId);
     connectedOperations.teardown();
   }
 
@@ -141,8 +157,6 @@ public class AzureIngestFileConnectedTest {
     // 3 - ValidateIngestFileAzureDirectoryStep
     // Check if directory already exists - it should not yet
 
-    TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
     FireStoreDirectoryEntry de =
         tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), targetPath);
     assertThat("directory should not yet exist.", de, equalTo(null));
@@ -158,7 +172,7 @@ public class AzureIngestFileConnectedTest {
             .name(fileMetadataUtils.getName(targetPath))
             .datasetId(datasetId.toString())
             .loadTag(fileLoadModel.getLoadTag());
-    tableDao.createDirectoryEntry(newEntry, billingProfile, storageAccountResource);
+    tableDirectoryDao.createDirectoryEntry(tableServiceClient, newEntry);
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =
         tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), targetPath);

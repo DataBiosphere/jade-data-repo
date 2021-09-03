@@ -4,12 +4,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.AzureUtils;
 import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.CloudPlatform;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
@@ -17,19 +16,17 @@ import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.TableServiceClientBuilder;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,19 +40,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class TableDirectoryDaoConnectedTest {
-  // TODO - move these into test config
-  private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
-  private static final String STORAGE_ACCOUNT_NAME = "tdrshiqauwlpzxavohmxxhfv";
-  private static final Logger logger =
-      LoggerFactory.getLogger(TableDirectoryDaoConnectedTest.class);
-
-  private UUID applicationId;
-  private UUID storageAccountId;
   private UUID datasetId;
-
-  private AzureApplicationDeploymentResource applicationResource;
-  private AzureStorageAccountResource storageAccountResource;
-  private BillingProfileModel billingProfile;
   private TableServiceClient tableServiceClient;
 
   @Autowired AzureSynapsePdao azureSynapsePdao;
@@ -70,44 +55,21 @@ public class TableDirectoryDaoConnectedTest {
   @Autowired TableDao tableDao;
   @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired FileService fileService;
+  @Autowired AzureUtils azureUtils;
 
   @Before
   public void setup() throws Exception {
     connectedOperations.stubOutSamCalls(samService);
-    applicationId = UUID.randomUUID();
-    storageAccountId = UUID.randomUUID();
     datasetId = UUID.randomUUID();
-
-    // TODO - move to connectedOperations
-    billingProfile =
-        new BillingProfileModel()
-            .id(UUID.randomUUID())
-            .profileName(Names.randomizeName("somename"))
-            .biller("direct")
-            .billingAccountId(testConfig.getGoogleBillingAccountId())
-            .description("random description")
-            .cloudPlatform(CloudPlatform.AZURE)
-            .tenantId(testConfig.getTargetTenantId())
-            .subscriptionId(testConfig.getTargetSubscriptionId())
-            .resourceGroupName(testConfig.getTargetResourceGroupName())
-            .applicationDeploymentName(testConfig.getTargetApplicationName());
-
-    applicationResource =
-        new AzureApplicationDeploymentResource()
-            .id(applicationId)
-            .azureApplicationDeploymentName(testConfig.getTargetApplicationName())
-            .azureResourceGroupName(MANAGED_RESOURCE_GROUP_NAME)
-            .profileId(billingProfile.getId());
-    storageAccountResource =
-        new AzureStorageAccountResource()
-            .resourceId(storageAccountId)
-            .name(STORAGE_ACCOUNT_NAME)
-            .applicationResource(applicationResource)
-            .metadataContainer("metadata")
-            .dataContainer("data");
-
     tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        new TableServiceClientBuilder()
+            .credential(
+                new AzureNamedKeyCredential(
+                    testConfig.getSourceStorageAccountName(),
+                    azureUtils.getSourceStorageAccountPrimarySharedKey()))
+            .endpoint(
+                "https://" + testConfig.getSourceStorageAccountName() + ".table.core.windows.net")
+            .buildClient();
   }
 
   @After
@@ -198,7 +160,7 @@ public class TableDirectoryDaoConnectedTest {
             .name(fileMetadataUtils.getName(sharedTargetPath + fileName))
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
-    tableDao.createDirectoryEntry(newEntry, billingProfile, storageAccountResource);
+    tableDirectoryDao.createDirectoryEntry(tableServiceClient, newEntry);
 
     // test that directory entry now exists
     return tableDirectoryDao.retrieveByPath(

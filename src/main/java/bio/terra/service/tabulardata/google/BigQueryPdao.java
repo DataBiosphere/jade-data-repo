@@ -301,7 +301,9 @@ public class BigQueryPdao {
       "SELECT * "
           + "FROM `<project>.<dataset>.<loadTable>` L "
           + "WHERE L.load_tag = @loadTag "
-          + String.format("ORDER BY %s ASC ", LoadHistoryUtil.FILE_ID_FIELD_NAME)
+          + String.format(
+              "ORDER BY TO_BASE64(CAST('%s' as BYTES)) ASC ",
+              LoadHistoryUtil.TARGET_PATH_FIELD_NAME)
           + "LIMIT <limit> "
           + "OFFSET <offset> ";
 

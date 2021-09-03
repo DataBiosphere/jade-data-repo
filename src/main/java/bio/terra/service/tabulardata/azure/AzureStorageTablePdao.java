@@ -21,8 +21,8 @@ public class AzureStorageTablePdao {
 
   private static final String LOAD_HISTORY_TABLE_NAME_SUFFIX = "LoadHistory";
 
-  private static String computeInternalLoadTag(String loadTag) {
-    return Base64.getEncoder().encodeToString(loadTag.getBytes(StandardCharsets.UTF_8));
+  private static String computeSafeKey(String unsafeString) {
+    return Base64.getEncoder().encodeToString(unsafeString.getBytes(StandardCharsets.UTF_8));
   }
 
   /**
@@ -54,7 +54,7 @@ public class AzureStorageTablePdao {
       client = serviceClient.getTableClient(tableName);
     }
 
-    var internalLoadTag = computeInternalLoadTag(loadTag);
+    var internalLoadTag = computeSafeKey(loadTag);
 
     ListEntitiesOptions options =
         new ListEntitiesOptions()
@@ -107,7 +107,7 @@ public class AzureStorageTablePdao {
       int offset,
       int limit) {
     var tableClient = tableServiceClient.getTableClient(toLoadHistoryTableNameFromUUID(datasetId));
-    var internalLoadTag = computeInternalLoadTag(loadTag);
+    var internalLoadTag = computeSafeKey(loadTag);
     ListEntitiesOptions options =
         new ListEntitiesOptions()
             .setTop(limit)
@@ -129,7 +129,7 @@ public class AzureStorageTablePdao {
   private static TableEntity bulkFileLoadModelToStorageTableEntity(
       StorageTableLoadHistoryEntity entity, String loadTag, Instant loadTime) {
     var model = entity.model;
-    return new TableEntity(entity.partitionKey, model.getFileId())
+    return new TableEntity(entity.partitionKey, computeSafeKey(model.getTargetPath()))
         .addProperty(LoadHistoryUtil.LOAD_TAG_FIELD_NAME, loadTag)
         .addProperty(LoadHistoryUtil.LOAD_TIME_FIELD_NAME, loadTime)
         .addProperty(LoadHistoryUtil.SOURCE_NAME_FIELD_NAME, model.getSourcePath())

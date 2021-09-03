@@ -42,4 +42,5 @@
     <include file="changesets/20210517_azurebillinginformation.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20210615_azureappdeploymentinfo.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20210616_azurestorage.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20210902_snapshotmetadata.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

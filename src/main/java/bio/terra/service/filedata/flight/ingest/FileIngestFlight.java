@@ -16,6 +16,7 @@ import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -47,6 +48,7 @@ public class FileIngestFlight extends Flight {
     FileService fileService = appContext.getBean(FileService.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
+    TableDao azureTableDao = appContext.getBean(TableDao.class);
     DatasetService datasetService = appContext.getBean(DatasetService.class);
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
@@ -117,27 +119,36 @@ public class FileIngestFlight extends Flight {
     // 9. Unlock the load tag
     // 10. Unlock the dataset
     addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
+    if (platform.isAzure()) {
+      addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));
+    }
     addStep(new IngestFileValidateCloudPlatformStep(dataset));
     addStep(new LockDatasetStep(datasetDao, datasetId, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
     addStep(new IngestFileIdStep(configService));
-    addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
-    addStep(new IngestFileDirectoryStep(fileDao, fileMetadataUtils, dataset), randomBackoffRetry);
-    addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
-    addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
+
     if (platform.isGcp()) {
+      addStep(new ValidateIngestFileDirectoryStep(fileDao, dataset));
+      addStep(new IngestFileDirectoryStep(fileDao, fileMetadataUtils, dataset), randomBackoffRetry);
+      addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
+      addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
       addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
       addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
+      addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {
       addStep(
           new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
       addStep(
           new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
           randomBackoffRetry);
+      addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset));
+      addStep(
+          new IngestFileAzureDirectoryStep(azureTableDao, fileMetadataUtils, dataset),
+          randomBackoffRetry);
       addStep(new IngestFileAzurePrimaryDataStep(azureBlobStorePdao, configService));
+      addStep(new IngestFileAzureFileStep(azureTableDao, fileService, dataset), randomBackoffRetry);
     }
-    addStep(new IngestFileFileStep(fileDao, fileService, dataset), randomBackoffRetry);
     addStep(new LoadUnlockStep(loadService));
     addStep(new UnlockDatasetStep(datasetDao, datasetId, true), randomBackoffRetry);
   }

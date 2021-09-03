@@ -26,18 +26,22 @@ import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StorageResourceModel;
+import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
@@ -76,6 +80,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private SynapseUtils synapseUtils;
+  @Autowired private FileService fileService;
 
   private String stewardToken;
   private User steward;
@@ -209,7 +214,8 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Create and delete a dataset and make sure that the profile still can't be deleted
     DatasetSummaryModel summaryModel2 =
-        dataRepoFixtures.createDataset(steward, profileId, "it-dataset-omop.json");
+        dataRepoFixtures.createDataset(
+            steward, profileId, "it-dataset-omop.json", CloudPlatform.AZURE);
     dataRepoFixtures.deleteDataset(steward, summaryModel2.getId());
     assertThat(
         "Original dataset is still there",
@@ -278,6 +284,17 @@ public class DatasetAzureIntegrationTest extends UsersBase {
         dataRepoFixtures.getFileByName(steward, datasetId, "/test/targetSas.txt").getSize(),
         equalTo(fileSize));
 
+    // lookup file
+    List<BulkLoadFileResultModel> loadedFiles = result.getLoadFileResults();
+    BulkLoadFileResultModel file1 = loadedFiles.get(0);
+    FileModel file1Model = dataRepoFixtures.getFileById(steward(), datasetId, file1.getFileId());
+    assertThat("Test retrieve file by ID", file1Model.getFileId(), equalTo(file1.getFileId()));
+
+    BulkLoadFileResultModel file2 = loadedFiles.get(1);
+    FileModel file2Model =
+        dataRepoFixtures.getFileByName(steward(), datasetId, file2.getTargetPath());
+    assertThat("Test retrieve file by path", file2Model.getFileId(), equalTo(file2.getFileId()));
+
     // Ingest Metadata - 1 row from JSON file
     String tableName = "vocabulary";
     String ingestRequestPathJSON =
@@ -320,11 +337,17 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     // Delete the file we just ingested
     String fileId = result.getLoadFileResults().get(0).getFileId();
+    String filePath = result.getLoadFileResults().get(0).getTargetPath();
     dataRepoFixtures.deleteFile(steward, datasetId, fileId);
 
     assertThat(
         "file is gone",
         dataRepoFixtures.getFileByIdRaw(steward, datasetId, fileId).getStatusCode(),
+        equalTo(HttpStatus.NOT_FOUND));
+
+    assertThat(
+        "file is gone",
+        dataRepoFixtures.getFileByNameRaw(steward, datasetId, filePath).getStatusCode(),
         equalTo(HttpStatus.NOT_FOUND));
 
     // Make sure that any failure in tearing down is presented as a test failure

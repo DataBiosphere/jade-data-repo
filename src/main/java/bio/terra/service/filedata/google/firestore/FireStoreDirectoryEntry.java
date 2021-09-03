@@ -210,10 +210,10 @@ public class FireStoreDirectoryEntry {
         .isFileRef((Boolean) entity.getProperty(IS_FILE_REF_FIELD_NAME))
         .path(entity.getProperty(PATH_FIELD_NAME).toString())
         .name(entity.getProperty(NAME_FIELD_NAME).toString())
-        .datasetId(entity.getProperty(DATASET_ID_FIELD_NAME).toString())
-        .fileCreatedDate(entity.getProperty(FILE_CREATED_DATE_FIELD_NAME).toString())
-        .checksumCrc32c(entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME).toString())
-        .checksumMd5(entity.getProperty(CHECKSUM_MD5_FIELD_NAME).toString())
+        .datasetId((String) entity.getProperty(DATASET_ID_FIELD_NAME))
+        .fileCreatedDate((String) entity.getProperty(FILE_CREATED_DATE_FIELD_NAME))
+        .checksumCrc32c((String) entity.getProperty(CHECKSUM_CRC32C_FIELD_NAME))
+        .checksumMd5((String) entity.getProperty(CHECKSUM_MD5_FIELD_NAME))
         .size((Long) entity.getProperty(SIZE_FIELD_NAME));
   }
 

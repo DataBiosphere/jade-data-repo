@@ -11,10 +11,12 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -29,6 +31,7 @@ public class FileDeleteFlight extends Flight {
 
     ApplicationContext appContext = (ApplicationContext) applicationContext;
     FireStoreDao fileDao = appContext.getBean(FireStoreDao.class);
+    TableDao tableDao = appContext.getBean(TableDao.class);
     FireStoreDependencyDao dependencyDao = appContext.getBean(FireStoreDependencyDao.class);
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
@@ -37,6 +40,7 @@ public class FileDeleteFlight extends Flight {
     ResourceService resourceService = appContext.getBean(ResourceService.class);
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
+    ProfileDao profileDao = appContext.getBean(ProfileDao.class);
 
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
     String fileId = inputParameters.get(JobMapKeys.FILE_ID.getKeyName(), String.class);
@@ -69,16 +73,22 @@ public class FileDeleteFlight extends Flight {
     // This flight updates GCS and firestore in exactly the reverse order of create, so no new
     // data structure states are introduced by this flight.
     addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
-    addStep(
-        new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao, configService),
-        fileSystemRetry);
-    addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset), fileSystemRetry);
     if (platform.isGcp()) {
+      addStep(
+          new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao, configService),
+          fileSystemRetry);
+      addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset), fileSystemRetry);
       addStep(new DeleteFilePrimaryDataStep(gcsPdao, resourceService));
+      addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
+      addStep(
+          new DeleteFileAzureLookupStep(
+              tableDao, fileId, dataset, configService, resourceService, profileDao),
+          fileSystemRetry);
+      addStep(new DeleteFileAzureMetadataStep(tableDao, fileId, dataset), fileSystemRetry);
       addStep(new DeleteFileAzurePrimaryDataStep(azureBlobStorePdao));
+      addStep(new DeleteFileAzureDirectoryStep(tableDao, fileId, dataset), fileSystemRetry);
     }
-    addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset), fileSystemRetry);
     addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
   }
 }

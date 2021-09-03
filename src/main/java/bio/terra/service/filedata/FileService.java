@@ -1,5 +1,7 @@
 package bio.terra.service.filedata;
 
+import bio.terra.common.CloudPlatformWrapper;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -12,6 +14,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -24,6 +27,9 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.profile.ProfileService;
+import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -45,6 +51,9 @@ public class FileService {
   private final SnapshotService snapshotService;
   private final LoadService loadService;
   private final ConfigurationService configService;
+  private final TableDao tableDao;
+  private final ResourceService resourceService;
+  private final ProfileService profileService;
 
   @Autowired
   public FileService(
@@ -53,13 +62,19 @@ public class FileService {
       DatasetService datasetService,
       SnapshotService snapshotService,
       LoadService loadService,
-      ConfigurationService configService) {
+      ConfigurationService configService,
+      TableDao tableDao,
+      ResourceService resourceService,
+      ProfileService profileService) {
     this.fileDao = fileDao;
     this.datasetService = datasetService;
     this.jobService = jobService;
     this.snapshotService = snapshotService;
     this.loadService = loadService;
     this.configService = configService;
+    this.tableDao = tableDao;
+    this.resourceService = resourceService;
+    this.profileService = profileService;
   }
 
   public String deleteFile(String datasetId, String fileId, AuthenticatedUserRequest userReq) {
@@ -177,7 +192,18 @@ public class FileService {
    */
   FSItem lookupFSItem(String datasetId, String fileId, int depth) throws InterruptedException {
     Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
-    return fileDao.retrieveById(dataset, fileId, depth);
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      return fileDao.retrieveById(dataset, fileId, depth);
+    } else {
+      BillingProfileModel billingProfileModel =
+          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
+      AzureStorageAccountResource storageAccountResource =
+          resourceService.getStorageAccount(dataset, billingProfileModel);
+      return tableDao.retrieveById(
+          UUID.fromString(datasetId), fileId, depth, billingProfileModel, storageAccountResource);
+    }
   }
 
   /**
@@ -187,10 +213,22 @@ public class FileService {
    */
   FSItem lookupFSItemByPath(String datasetId, String path, int depth) throws InterruptedException {
     Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
-    return fileDao.retrieveByPath(dataset, path, depth);
+    CloudPlatformWrapper cloudPlatformWrapper =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+    if (cloudPlatformWrapper.isGcp()) {
+      return fileDao.retrieveByPath(dataset, path, depth);
+    } else {
+      BillingProfileModel billingProfileModel =
+          profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
+      AzureStorageAccountResource storageAccountResource =
+          resourceService.getStorageAccount(dataset, billingProfileModel);
+      return tableDao.retrieveByPath(
+          UUID.fromString(datasetId), path, depth, storageAccountResource);
+    }
   }
 
   // -- snapshot lookups --
+  // TODO - Q4 - Handle snapshot in Azure
   public FileModel lookupSnapshotFile(String snapshotId, String fileId, int depth) {
     try {
       // note: this method only returns snapshots that are NOT exclusively locked

@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.common.category.Connected;
+import bio.terra.common.category.OnDemand;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.filedata.azure.tables.TableFileDao;
@@ -71,7 +71,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles({"connectedtest", "google"})
-@Category(Connected.class)
+@Category(OnDemand.class)
 public class AzureResourceConfigurationTest {
 
   private final Logger logger = LoggerFactory.getLogger(AzureResourceConfigurationTest.class);

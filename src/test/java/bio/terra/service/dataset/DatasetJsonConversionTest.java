@@ -3,6 +3,8 @@ package bio.terra.service.dataset;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
+import bio.terra.app.model.GoogleCloudResource;
+import bio.terra.app.model.GoogleRegion;
 import bio.terra.common.Column;
 import bio.terra.common.category.Unit;
 import bio.terra.model.AccessInfoModel;
@@ -14,6 +16,7 @@ import bio.terra.model.DatasetRequestAccessIncludeModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.TableDataType;
 import bio.terra.model.TableModel;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import java.io.IOException;
 import java.time.Instant;
@@ -43,6 +46,7 @@ public class DatasetJsonConversionTest {
 
   private Dataset dataset;
   private DatasetModel datasetModel;
+  private MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Before
   public void setUp() throws Exception {
@@ -94,6 +98,13 @@ public class DatasetJsonConversionTest {
             .defaultProfileId(DATASET_PROFILE_ID)
             .projectResource(new GoogleProjectResource().googleProjectId(DATASET_DATA_PROJECT));
 
+    dataset
+        .getDatasetSummary()
+        .storage(
+            List.of(
+                new GoogleStorageResource(
+                    UUID.randomUUID(), GoogleCloudResource.BUCKET, GoogleRegion.US_CENTRAL1)));
+
     datasetModel =
         new DatasetModel()
             .name(DATASET_NAME)
@@ -125,6 +136,8 @@ public class DatasetJsonConversionTest {
                                 .rootColumn(DATASET_COLUMN_NAME)
                                 .follow(Collections.emptyList()))))
             .dataProject(DATASET_DATA_PROJECT);
+
+    metadataDataAccessUtils = new MetadataDataAccessUtils(null, null);
   }
 
   @Test
@@ -135,7 +148,8 @@ public class DatasetJsonConversionTest {
             List.of(
                 DatasetRequestAccessIncludeModel.SCHEMA,
                 DatasetRequestAccessIncludeModel.PROFILE,
-                DatasetRequestAccessIncludeModel.DATA_PROJECT)),
+                DatasetRequestAccessIncludeModel.DATA_PROJECT),
+            metadataDataAccessUtils),
         equalTo(datasetModel));
   }
 
@@ -145,7 +159,8 @@ public class DatasetJsonConversionTest {
         DatasetJsonConversion.populateDatasetModelFromDataset(
             dataset,
             List.of(
-                DatasetRequestAccessIncludeModel.NONE, DatasetRequestAccessIncludeModel.PROFILE)),
+                DatasetRequestAccessIncludeModel.NONE, DatasetRequestAccessIncludeModel.PROFILE),
+            metadataDataAccessUtils),
         equalTo(datasetModel.dataProject(null).defaultProfileId(null).schema(null)));
   }
 
@@ -154,7 +169,9 @@ public class DatasetJsonConversionTest {
     String expectedDatasetName = "datarepo_" + DATASET_NAME;
     assertThat(
         DatasetJsonConversion.populateDatasetModelFromDataset(
-            dataset, List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION)),
+            dataset,
+            List.of(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION),
+            metadataDataAccessUtils),
         equalTo(
             datasetModel
                 .dataProject(null)

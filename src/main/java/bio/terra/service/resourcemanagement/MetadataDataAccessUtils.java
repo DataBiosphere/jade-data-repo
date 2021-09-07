@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
 
@@ -47,10 +48,11 @@ public final class MetadataDataAccessUtils {
       "/subscriptions/<subscription>/resourceGroups"
           + "/<resource_group>/providers/Microsoft.Solutions/applications/<application_name>";
 
-  private static ResourceService resourceService;
+  private final ResourceService resourceService;
 
-  private static AzureBlobStorePdao azureBlobStorePdao;
+  private final AzureBlobStorePdao azureBlobStorePdao;
 
+  @Autowired
   public MetadataDataAccessUtils(
       ResourceService resourceService, AzureBlobStorePdao azureBlobStorePdao) {
     this.resourceService = resourceService;
@@ -77,7 +79,7 @@ public final class MetadataDataAccessUtils {
   }
 
   /** Generate an {@link AccessInfoModel} from a Dataset */
-  public static AccessInfoModel accessInfoFromDataset(final Dataset dataset) {
+  public AccessInfoModel accessInfoFromDataset(final Dataset dataset) {
     CloudPlatformWrapper cloudPlatformWrapper =
         CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
 
@@ -101,7 +103,7 @@ public final class MetadataDataAccessUtils {
     }
   }
 
-  private static AccessInfoModel makeAccessInfoAzure(
+  private AccessInfoModel makeAccessInfoAzure(
       final String datasetName,
       final AzureStorageAccountResource storageAccountResource,
       final List<? extends Table> tables,

@@ -136,11 +136,17 @@ public class FileIngestBulkFlight extends Flight {
     //    locked tags
     // 10. Unlock the load tag
     addStep(new AuthorizeBillingProfileUseStep(profileService, profileId, userReq));
+    // For Azure datasets, the billing profile for file ingest must match the default
+    if (platform.isAzure()) {
+      addStep(new IngestFileValidateAzureBillingProfileStep(profileId, dataset));
+    }
+    addStep(new IngestFileValidateCloudPlatformStep(dataset));
     addStep(new LockDatasetStep(datasetDao, datasetUuid, true), randomBackoffRetry);
     addStep(new LoadLockStep(loadService));
-    addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
-    addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
     if (platform.isGcp()) {
+      addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
+      addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
+
       addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
       addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
     } else if (platform.isAzure()) {

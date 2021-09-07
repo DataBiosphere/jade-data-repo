@@ -15,11 +15,10 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
-import bio.terra.service.filedata.flight.ingest.IngestBuildLoadFileStep;
+import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
 import bio.terra.service.filedata.flight.ingest.IngestCreateBucketForScratchFileStep;
-import bio.terra.service.filedata.flight.ingest.IngestCreateScratchFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileGetOrCreateProject;
 import bio.terra.service.filedata.flight.ingest.IngestFileGetProjectStep;
@@ -86,6 +85,7 @@ public class DatasetIngestFlight extends Flight {
     }
 
     addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
+
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 
     if (ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON
@@ -163,7 +163,9 @@ public class DatasetIngestFlight extends Flight {
 
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
     // Begin file + metadata load
-    addStep(new IngestParseJsonFileStep(gcsPdao, appConfig.objectMapper(), dataset, appConfig));
+    addStep(
+        new IngestJsonFileSetupStep(
+            gcsPdao, appConfig.objectMapper(), dataset, configurationService));
     addStep(
         new AuthorizeBillingProfileUseStep(
             profileService, profileId, userReq, ingestSkipCondition));
@@ -178,7 +180,14 @@ public class DatasetIngestFlight extends Flight {
     addStep(
         new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset, ingestSkipCondition),
         randomBackoffRetry);
-    addStep(new IngestPopulateFileStateFromFlightMapStep(loadService, ingestSkipCondition));
+    addStep(
+        new IngestPopulateFileStateFromFlightMapStep(
+            loadService,
+            gcsPdao,
+            appConfig.objectMapper(),
+            dataset,
+            appConfig.getLoadFilePopulateBatchSize(),
+            ingestSkipCondition));
     addStep(
         new IngestDriverStep(
             loadService,
@@ -196,11 +205,15 @@ public class DatasetIngestFlight extends Flight {
     addStep(
         new IngestBulkMapResponseStep(
             loadService, ingestRequest.getLoadTag(), ingestSkipCondition));
-    // build the scratch file using new file ids and store in new bucket
-    addStep(new IngestBuildLoadFileStep(appConfig.objectMapper(), ingestSkipCondition));
+
     addStep(
         new IngestCreateBucketForScratchFileStep(resourceService, dataset, ingestSkipCondition));
-    addStep(new IngestCreateScratchFileStep(gcsPdao, ingestSkipCondition));
+
+    // build the scratch file using new file ids and store in new bucket
+    addStep(
+        new IngestBuildAndWriteScratchLoadFileStep(
+            appConfig.objectMapper(), gcsPdao, dataset, ingestSkipCondition));
+
     addStep(
         new IngestCopyLoadHistoryToBQStep(
             bigQueryPdao,

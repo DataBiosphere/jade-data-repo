@@ -2602,10 +2602,8 @@ components:
           $ref: '#/components/schemas/CloudPlatform'
         tenantId:
           $ref: '#/components/schemas/UniqueIdProperty'
-          description: An optional tenant id for Azure
         subscriptionId:
           $ref: '#/components/schemas/UniqueIdProperty'
-          description: an optional subscription id for Azure
         resourceGroupName:
           type: string
           description: an optional resource group name for Azure
@@ -2649,10 +2647,8 @@ components:
           $ref: '#/components/schemas/CloudPlatform'
         tenantId:
           $ref: '#/components/schemas/UniqueIdProperty'
-          description: An optional tenant id for Azure
         subscriptionId:
           $ref: '#/components/schemas/UniqueIdProperty'
-          description: an optional subscription id for Azure
         resourceGroupName:
           type: string
           description: an optional resource group name for Azure

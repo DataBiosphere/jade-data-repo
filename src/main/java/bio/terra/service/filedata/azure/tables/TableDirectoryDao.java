@@ -128,14 +128,11 @@ public class TableDirectoryDao {
     String datasetId = leafEntry.getDatasetId();
     String lookupPath = fileMetadataUtils.makeLookupPath(leafEntry.getPath());
     while (!lookupPath.isEmpty()) {
-      // Count the number of entries with this path as their directory path
-      // A value of 1 means that the directory will be empty after its child is
-      // deleted, so we should delete it also.
+      // If there are no entries that share this path as their directory path,
+      // delete the directory entry
       String filterPath = fileMetadataUtils.makePathFromLookupPath(lookupPath);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("path eq '%s'", filterPath));
-      // TODO - switch this back to checking for 1
-      // B/c we need to check if we can delete subdirectories too
       if (TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
         break;
       }

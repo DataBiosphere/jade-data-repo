@@ -367,6 +367,8 @@ export GOOGLE_ALLOWREUSEEXISTINGPROJECTS=true
 export AZURE_CREDENTIALS_HOMETENANTID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
 export AZURE_CREDENTIALS_APPLICATIONID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
 export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
+export AZURE_SYNAPSE_SQLADMINUSER=$(vault read -format=json secret/dsde/datarepo/dev/helm-azure | jq -r '.data["synapse-us-east-sql-admin-user"]')
+export AZURE_SYNAPSE_SQLADMINPASSWORD=$(vault read -format=json secret/dsde/datarepo/dev/helm-azure | jq -r '.data["synapse-us-east-sql-admin-password"]')
 ```
 
 * If you're not on a **Broad-provided** computer, you may need to set the host to `localhost`

@@ -524,6 +524,13 @@ paths:
             type: array
             items:
               type: string
+        - name: search_tags
+          in: query
+          description: >-
+            include search criteria tags for faceted search
+          schema:
+            type: boolean
+            default: false
       responses:
         200:
           description: List of snapshots
@@ -3428,7 +3435,7 @@ components:
       type: string
       description: >
         Type of information to include in the response
-      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT ]
+      enum: [ NONE, SOURCES, TABLES, RELATIONSHIPS, ACCESS_INFORMATION, PROFILE, DATA_PROJECT, SEARCH_CRITERIA ]
     SnapshotSummaryModel:
       type: object
       properties:
@@ -3448,6 +3455,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/StorageResourceModel'
+        tags:
+          type: array
+          description: search criteria for faceted search
+          items:
+            type: string
       description: >
         summary of snapshot
     EnumerateSnapshotModel:
@@ -3475,6 +3487,11 @@ components:
         description:
           type: string
           description: Description of the snapshot
+        tags:
+          type: array
+          description: search criteria for faceted search
+          items:
+            type: string
         createdDate:
           type: string
           description: Date the snapshot was created

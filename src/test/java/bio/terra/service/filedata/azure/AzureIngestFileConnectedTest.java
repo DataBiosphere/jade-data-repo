@@ -53,6 +53,7 @@ public class AzureIngestFileConnectedTest {
   private UUID datasetId;
   private String targetPath;
   private UUID homeTenantId;
+  private String fileId;
 
   private AzureStorageAccountResource storageAccountResource;
   private BillingProfileModel billingProfile;
@@ -141,6 +142,8 @@ public class AzureIngestFileConnectedTest {
 
   @After
   public void cleanup() throws Exception {
+    tableDao.deleteFileMetadata(fileId, billingProfile, storageAccountResource);
+    tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileId);
     azureResourceConfiguration.getCredentials().setHomeTenantId(homeTenantId);
     connectedOperations.teardown();
   }
@@ -148,7 +151,7 @@ public class AzureIngestFileConnectedTest {
   @Test
   public void testStorageTableMetadataDuringFileIngest() {
     // 0 - IngestFileIdStep
-    String fileId = UUID.randomUUID().toString();
+    fileId = UUID.randomUUID().toString();
     // 1 - IngestFileAzurePrimaryDataLocationStep
     // define storage account (this is already defined in the test setup)
     // 2 - IngestFileAzureMakeStorageAccountLinkStep

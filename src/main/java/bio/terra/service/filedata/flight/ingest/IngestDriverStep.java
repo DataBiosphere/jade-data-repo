@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigEnum;
@@ -14,6 +15,7 @@ import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -117,7 +119,8 @@ public class IngestDriverStep extends SkippableStep {
 
     GoogleBucketResource bucketResource =
         workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-
+    BillingProfileModel billingProfileModel =
+        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     AzureStorageAccountResource storageAccountResource =
         workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
 
@@ -163,6 +166,7 @@ public class IngestDriverStep extends SkippableStep {
               profileId,
               loadId,
               bucketResource,
+              billingProfileModel,
               storageAccountResource,
               platform);
 
@@ -306,6 +310,7 @@ public class IngestDriverStep extends SkippableStep {
       UUID profileId,
       UUID loadId,
       GoogleBucketResource bucketInfo,
+      BillingProfileModel billingProfileModel,
       AzureStorageAccountResource storageAccountResource,
       CloudPlatform platform)
       throws DatabaseOperationException, StairwayExecutionException, InterruptedException,
@@ -330,6 +335,7 @@ public class IngestDriverStep extends SkippableStep {
       inputParameters.put(FileMapKeys.DATASET_ID, datasetId);
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
       inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
+      inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
       inputParameters.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
       inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
 

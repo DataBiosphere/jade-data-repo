@@ -132,7 +132,8 @@ public class AzureBlobStorePdaoTest {
     FSFileInfo expectedFileInfo = mockFileCopy(fileId);
 
     FSFileInfo fsFileInfo =
-        dao.copyFile(fileLoadModel, fileId.toString(), AZURE_STORAGE_ACCOUNT_RESOURCE);
+        dao.copyFile(
+            BILLING_PROFILE, fileLoadModel, fileId.toString(), AZURE_STORAGE_ACCOUNT_RESOURCE);
     assertThat("output is expected", fsFileInfo, samePropertyValuesAs(expectedFileInfo));
   }
 
@@ -147,7 +148,8 @@ public class AzureBlobStorePdaoTest {
     FSFileInfo expectedFileInfo = mockFileCopy(fileId);
 
     FSFileInfo fsFileInfo =
-        dao.copyFile(fileLoadModel, fileId.toString(), AZURE_STORAGE_ACCOUNT_RESOURCE);
+        dao.copyFile(
+            BILLING_PROFILE, fileLoadModel, fileId.toString(), AZURE_STORAGE_ACCOUNT_RESOURCE);
     assertThat("output is expected", fsFileInfo, samePropertyValuesAs(expectedFileInfo));
   }
 

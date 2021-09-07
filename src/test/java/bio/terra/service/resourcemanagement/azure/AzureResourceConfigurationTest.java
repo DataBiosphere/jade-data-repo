@@ -120,15 +120,10 @@ public class AzureResourceConfigurationTest {
                 client.storageAccounts().getById(storageAccount.id());
               } catch (ManagementException e) {
                 logger.info("Expected error:", e);
-                assertThat(e.getValue().getCode(), equalTo("ResourceNotFound"));
                 assertThat(
                     "Deleted storage account isn't found",
                     e.getMessage(),
-                    containsString(
-                        String.format(
-                            "The Resource 'Microsoft.Storage/storageAccounts/%s' under resource "
-                                + "group '%s' was not found.",
-                            storageAccount.name(), storageAccount.resourceGroupName())));
+                    containsString("Status code 404"));
               }
             });
   }

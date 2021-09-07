@@ -3,7 +3,6 @@ package bio.terra.service.filedata.azure.tables;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.filedata.google.firestore.FireStoreDirectoryDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
@@ -11,8 +10,6 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
-import com.azure.data.tables.models.TableTransactionAction;
-import com.azure.data.tables.models.TableTransactionActionType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -55,7 +52,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class TableDirectoryDao {
-  private final Logger logger = LoggerFactory.getLogger(FireStoreDirectoryDao.class);
+  private final Logger logger = LoggerFactory.getLogger(TableDirectoryDao.class);
   private static final String TABLE_NAME = "dataset";
   private final FileMetadataUtils fileMetadataUtils;
 
@@ -99,8 +96,11 @@ public class TableDirectoryDao {
       String partitionKey = getPartitionKey(datasetId, testPath);
       String rowKey = encodePathAsAzureRowKey(testPath);
       TableEntity entity = FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, dirToCreate);
-      logger.info("Creating directory entry for {} in table {}", testPath, TABLE_NAME);
-      tableClient.createEntity(entity);
+      logger.info("Upserting directory entry for {} in table {}", testPath, TABLE_NAME);
+      // It's possible that another thread is trying to write the same directory entity at the same
+      // time
+      // upsert rather than create so that it does not fail if it already exists
+      tableClient.upsertEntity(entity);
     }
 
     String fullPath = fileMetadataUtils.getFullPath(createEntry.getPath(), createEntry.getName());
@@ -122,11 +122,7 @@ public class TableDirectoryDao {
     if (leafEntity == null) {
       return false;
     }
-
-    List<TableTransactionAction> deleteList = new ArrayList<>();
-    TableTransactionAction t =
-        new TableTransactionAction(TableTransactionActionType.DELETE, leafEntity);
-    deleteList.add(t);
+    tableClient.deleteEntity(leafEntity);
 
     FireStoreDirectoryEntry leafEntry = FireStoreDirectoryEntry.fromTableEntity(leafEntity);
     String datasetId = leafEntry.getDatasetId();
@@ -135,29 +131,33 @@ public class TableDirectoryDao {
       // Count the number of entries with this path as their directory path
       // A value of 1 means that the directory will be empty after its child is
       // deleted, so we should delete it also.
+      String filterPath = fileMetadataUtils.makePathFromLookupPath(lookupPath);
       ListEntitiesOptions options =
-          new ListEntitiesOptions()
-              .setFilter(
-                  String.format(
-                      "path eq '%s'", fileMetadataUtils.makePathFromLookupPath(lookupPath)));
-      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      int size = List.of(entities).size();
-      if (size > 1) {
+          new ListEntitiesOptions().setFilter(String.format("path eq '%s'", filterPath));
+      // TODO - switch this back to checking for 1
+      // B/c we need to check if we can delete subdirectories too
+      if (TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
         break;
       }
-      TableEntity entity =
-          lookupByFilePath(tableServiceClient, datasetId, encodePathAsAzureRowKey(lookupPath));
-      deleteList.add(new TableTransactionAction(TableTransactionActionType.DELETE, entity));
+      TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
+      if (entity != null) {
+        tableClient.deleteEntity(entity);
+      }
       lookupPath = fileMetadataUtils.getDirectoryPath(lookupPath);
     }
-    tableClient.submitTransaction(deleteList);
     return true;
   }
 
   // Each dataset/snapshot has its own set of tables, so we delete the entire directory entry table
   public void deleteDirectoryEntriesFromCollection(TableServiceClient tableServiceClient) {
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    tableClient.deleteTable();
+    if (TableServiceClientUtils.tableExists(tableServiceClient, TABLE_NAME)) {
+      TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+      tableClient.deleteTable();
+    } else {
+      logger.warn(
+          "No storage table {} found to be removed.  This should only happen when deleting a file-less dataset.",
+          TABLE_NAME);
+    }
   }
 
   // Returns null if not found - upper layers do any throwing
@@ -181,13 +181,11 @@ public class TableDirectoryDao {
 
   public List<UUID> validateRefIds(TableServiceClient tableServiceClient, List<UUID> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     List<UUID> missingIds = new ArrayList<>();
     for (UUID s : refIdArray) {
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", s.toString()));
-      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      if (!entities.iterator().hasNext()) {
+      if (!TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
         missingIds.add(s);
       }
     }
@@ -199,6 +197,7 @@ public class TableDirectoryDao {
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     ListEntitiesOptions options =
         new ListEntitiesOptions().setFilter(String.format("path eq '%s'", dirPath));
+    // TODO - add check that there are entries
     PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
     return entities.stream()
         .map(FireStoreDirectoryEntry::fromTableEntity)
@@ -223,6 +222,7 @@ public class TableDirectoryDao {
       TableClient client = tableServiceClient.getTableClient(TABLE_NAME);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", fileId));
+      // TODO - rework and add to new utils method
       PagedIterable<TableEntity> entities = client.listEntities(options, null, null);
       if (!entities.iterator().hasNext()) {
         return null;

@@ -2315,7 +2315,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
   /api/repository/v1/search/{id}/metadata:
-    post:
+    put:
       tags:
         - search
         - snapshots
@@ -2323,12 +2323,7 @@ paths:
       description: Insert or update search metadata for a snapshot
       operationId: upsertSearchMetadata
       parameters:
-        - name: id
-          in: path
-          description: A UUID to used to identify an object in the repository
-          required: true
-          schema:
-            type: string
+        - $ref: '#/components/schemas/UniqueIdProperty'
       requestBody:
         description: Search metadata to upsert on a snapshot
         content:

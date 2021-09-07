@@ -59,6 +59,13 @@ public final class GcsUriUtils {
     if (path.isEmpty()) {
       throw new IllegalArgumentException("Missing object name in gs path: '" + uri + "'");
     }
+
+    // check for multi wildcards
+    int globIndex = path.indexOf('*');
+    boolean isWildcard = globIndex > -1;
+    if (isWildcard && path.lastIndexOf('*') != globIndex) {
+      throw new IllegalArgumentException("Multi-wildcards are not supported: URI: '" + uri + "'");
+    }
   }
 
   public static String getGsPathFromBlob(BlobInfo blob) {

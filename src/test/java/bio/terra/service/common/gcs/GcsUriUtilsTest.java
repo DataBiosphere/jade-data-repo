@@ -79,6 +79,11 @@ public class GcsUriUtilsTest {
     assertEquals("Bucket wildcards are not supported: URI: '" + uri + "'", exception.getMessage());
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void testInvalidMultiWildcard() {
+    GcsUriUtils.parseBlobUri("gs://some-bucket/some/prefix*/some*pattern");
+  }
+
   @Test
   public void testCreatesGsPathFromBlob() {
     final String bucket = "my-bucket";

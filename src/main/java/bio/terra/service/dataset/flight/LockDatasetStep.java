@@ -58,14 +58,12 @@ public class LockDatasetStep implements Step {
     } catch (DatasetNotFoundException notFoundEx) {
       if (suppressNotFoundException) {
         logger.debug("Suppressing DatasetNotFoundException");
-        return new StepResult(StepStatus.STEP_RESULT_SUCCESS);
+        return StepResult.getStepResultSuccess();
       } else {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
       }
-    } catch (DatasetLockException ex) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
-    } catch (RetryQueryException retryQueryException) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
+    } catch (RetryQueryException | DatasetLockException e) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
   }
 
@@ -83,17 +81,18 @@ public class LockDatasetStep implements Step {
       }
       logger.debug("rowUpdated on unlock = {}", rowUpdated);
       return StepResult.getStepResultSuccess();
+    } catch (DatasetLockException e) {
+      // DatasetLockException will be thrown if flight id was not set
+      return StepResult.getStepResultSuccess();
     } catch (DatasetNotFoundException notFoundEx) {
       if (suppressNotFoundException) {
         logger.debug("Suppressing DatasetNotFoundException");
-        return new StepResult(StepStatus.STEP_RESULT_SUCCESS);
+        return StepResult.getStepResultSuccess();
       } else {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
       }
-    } catch (DatasetLockException ex) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
-    } catch (RetryQueryException retryQueryException) {
-      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
+    } catch (RetryQueryException e) {
+      return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
   }
 }

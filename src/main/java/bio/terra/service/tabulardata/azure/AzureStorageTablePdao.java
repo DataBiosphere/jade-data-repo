@@ -128,6 +128,11 @@ public class AzureStorageTablePdao {
         .collect(Collectors.toList());
   }
 
+  public void deleteLoadHistory(UUID datasetId, TableServiceClient serviceClient) {
+    var tableName = toLoadHistoryTableNameFromUUID(datasetId);
+    serviceClient.deleteTable(tableName);
+  }
+
   private static TableEntity bulkFileLoadModelToStorageTableEntity(
       StorageTableLoadHistoryEntity entity, String loadTag, Instant loadTime) {
     var model = entity.model;
@@ -187,7 +192,7 @@ public class AzureStorageTablePdao {
           .state(
               BulkLoadFileState.valueOf(
                   tableEntity.getProperty(LoadHistoryUtil.STATE_FIELD_NAME).toString()))
-          .fileId(tableEntity.getProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME).toString())
+          .fileId((String) tableEntity.getProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME))
           .checksumCRC((String) tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
           .checksumMD5((String) tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
           .error((String) tableEntity.getProperty(LoadHistoryUtil.ERROR_FIELD_NAME));

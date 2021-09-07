@@ -13,7 +13,6 @@ import com.azure.data.tables.models.TableServiceException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -176,14 +175,17 @@ public class TableDirectoryDao {
         .orElse(null);
   }
 
-  public List<UUID> validateRefIds(TableServiceClient tableServiceClient, List<UUID> refIdArray) {
+  public List<String> validateRefIds(
+      TableServiceClient tableServiceClient, List<String> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
-    List<UUID> missingIds = new ArrayList<>();
-    for (UUID s : refIdArray) {
+    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+    List<String> missingIds = new ArrayList<>();
+    for (String refId : refIdArray) {
       ListEntitiesOptions options =
-          new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", s.toString()));
-      if (!TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
-        missingIds.add(s);
+          new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", refId));
+      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+      if (!entities.iterator().hasNext()) {
+        missingIds.add(refId);
       }
     }
     return missingIds;

@@ -73,8 +73,7 @@ public class MetadataDataAccessUtilsTest {
   public void testAzureAccessInfo() {
     AzureStorageAccountResource storageAccountResource =
         new AzureStorageAccountResource().resourceId(UUID.randomUUID()).name("michaelstorage");
-    when(resourceService.getStorageAccount(any(), any()))
-        .thenReturn(java.util.Optional.of(storageAccountResource));
+    when(resourceService.getStorageAccount(any(), any())).thenReturn(storageAccountResource);
 
     when(azureBlobStorePdao.getTargetDataClientFactory(any(), any(), any(), anyBoolean()))
         .thenReturn(blobContainerClientFactory);

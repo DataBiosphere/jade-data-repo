@@ -15,13 +15,11 @@ import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
-import bio.terra.service.resourcemanagement.exception.AzureResourceNotFoundException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,14 +88,10 @@ public final class MetadataDataAccessUtils {
           dataset.getTables());
     } else if (cloudPlatformWrapper.isAzure()) {
       BillingProfileModel profileModel = dataset.getDatasetSummary().getDefaultBillingProfile();
-      Optional<AzureStorageAccountResource> storageAccountResource =
+      AzureStorageAccountResource storageAccountResource =
           resourceService.getStorageAccount(dataset, profileModel);
-      if (storageAccountResource.isPresent()) {
-        return makeAccessInfoAzure(
-            dataset.getName(), storageAccountResource.get(), dataset.getTables(), profileModel);
-      } else {
-        throw new AzureResourceNotFoundException("Storage account for dataset not found");
-      }
+      return makeAccessInfoAzure(
+          dataset.getName(), storageAccountResource, dataset.getTables(), profileModel);
     } else {
       throw new IllegalArgumentException("Unrecognized cloud platform");
     }

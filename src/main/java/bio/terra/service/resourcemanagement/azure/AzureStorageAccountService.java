@@ -340,17 +340,4 @@ public class AzureStorageAccountService {
             storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
             storageAccountResource.getName());
   }
-
-  public AzureStorageAccountResource getStorageAccount(
-      String storageAccountName, AzureApplicationDeploymentResource applicationResource) {
-    AzureStorageAccountResource storageAccountResource =
-        resourceDao.getStorageAccount(
-            storageAccountName, applicationResource.getAzureApplicationDeploymentName());
-
-    if (storageAccountResource == null) {
-      throw new AzureResourceException("Storage account is null");
-    } else {
-      return storageAccountResource;
-    }
-  }
 }

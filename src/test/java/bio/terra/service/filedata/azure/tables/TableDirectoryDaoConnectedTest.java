@@ -75,13 +75,9 @@ public class TableDirectoryDaoConnectedTest {
 
   @After
   public void cleanup() throws Exception {
-
     connectedOperations.teardown();
-    // TODO - clean out added entries from storage table
   }
 
-  // TODO - test other directory options:
-  // https://github.com/DataBiosphere/jade-data-repo/pull/1033/files#diff-65a4bf8d889dc4806c26c0a005ac19e9b8bbc24377583debc3689ff2679f55a8R62
   @Test
   public void testStorageTableMetadataDuringFileIngest() {
     // Test re-using same directory path, but for different files

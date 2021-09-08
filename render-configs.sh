@@ -10,6 +10,12 @@ vault read -format=json secret/dsde/datarepo/dev/sa-key.json \
 vault read -field=applicationsecret secret/dsde/datarepo/dev/helm-azure \
     > /tmp/jade-dev-azure.key
 
+vault read -field=synapse-us-east-sql-admin-user secret/dsde/datarepo/dev/helm-azure \
+    > /tmp/jade-dev-synapse-admin-user.key
+
+vault read -field=synapse-us-east-sql-admin-password secret/dsde/datarepo/dev/helm-azure \
+    > /tmp/jade-dev-synapse-admin-password.key
+
 BUFFER_CLIENT_SERVICE_ACCOUNT_VAULT_PATH=secret/dsde/terra/kernel/integration/tools/buffer/client-sa
 BUFFER_CLIENT_SERVICE_ACCOUNT_OUTPUT_PATH=/tmp/buffer-client-sa-account.json
 

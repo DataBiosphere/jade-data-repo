@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
-  private static final int MAX_ERROR_REF_IDS = 20;
 
   private final AzureAuthService azureAuthService;
   private final ResourceService resourceService;

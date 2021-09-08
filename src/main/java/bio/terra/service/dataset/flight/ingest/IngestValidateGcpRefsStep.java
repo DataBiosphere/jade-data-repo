@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
-  private static final int MAX_ERROR_REF_IDS = 20;
 
   private final DatasetService datasetService;
   private final BigQueryPdao bigQueryPdao;

@@ -10,7 +10,7 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
-import java.util.ArrayList;
+import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -53,6 +53,7 @@ import org.springframework.stereotype.Component;
 public class TableDirectoryDao {
   private final Logger logger = LoggerFactory.getLogger(TableDirectoryDao.class);
   private static final String TABLE_NAME = "dataset";
+  private static final int MAX_FILTER_CLAUSES = 15;
   private final FileMetadataUtils fileMetadataUtils;
 
   @Autowired
@@ -179,16 +180,24 @@ public class TableDirectoryDao {
       TableServiceClient tableServiceClient, List<String> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    List<String> missingIds = new ArrayList<>();
-    for (String refId : refIdArray) {
-      ListEntitiesOptions options =
-          new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", refId));
-      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      if (!entities.iterator().hasNext()) {
-        missingIds.add(refId);
-      }
-    }
-    return missingIds;
+    var partitionedRefIds = Lists.partition(refIdArray, MAX_FILTER_CLAUSES);
+    return partitionedRefIds.stream()
+        .flatMap(
+            refIds -> {
+              var filter =
+                  refIds.stream()
+                      .map(refId -> String.format("fileId eq '%s'", refId))
+                      .collect(Collectors.joining(" or "));
+              ListEntitiesOptions options = new ListEntitiesOptions().setFilter(filter);
+              PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+              var validRefIds =
+                  entities.stream()
+                      .map(e -> e.getProperty("fileId").toString())
+                      .collect(Collectors.toList());
+              refIds.removeAll(validRefIds);
+              return refIds.stream();
+            })
+        .collect(Collectors.toList());
   }
 
   List<FireStoreDirectoryEntry> enumerateDirectory(

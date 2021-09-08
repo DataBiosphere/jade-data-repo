@@ -12,7 +12,9 @@ import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.sas.SasProtocol;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -141,6 +143,13 @@ public class BlobIOTestUtility {
   public String uploadSourceFile(String blobName, long length) {
     sourceBlobContainerClient.getBlobClient(blobName).upload(createInputStream(length), length);
     return blobName;
+  }
+
+  public String uploadFileWithContents(String blobName, String contents) {
+    var bytes = contents.getBytes(StandardCharsets.UTF_8);
+    var byteStream = new ByteArrayInputStream(bytes);
+    sourceBlobContainerClient.getBlobClient(blobName).upload(byteStream, bytes.length);
+    return String.format("%s/%s", getSourceContainerEndpoint(), blobName);
   }
 
   public String uploadDestinationFile(String blobName, long length) {

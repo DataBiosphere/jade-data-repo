@@ -3506,8 +3506,8 @@ components:
       properties:
         bigQuery:
           $ref: '#/components/schemas/AccessInfoBigQueryModel'
-        azure:
-          $ref: '#/components/schemas/AccessInfoAzureModel'
+        parquet:
+          $ref: '#/components/schemas/AccessInfoParquetModel'
     AccessInfoBigQueryModel:
       description: >
         General information on where snapshot or dataset tabular data lives in BigQuery
@@ -3571,7 +3571,7 @@ components:
           type: string
           description: >
             An example query that can be used to select data from this table
-    AccessInfoAzureModel:
+    AccessInfoParquetModel:
       description: >
         General information on where snapshot or dataset tabular data lives in Azure
       type: object
@@ -3603,8 +3603,8 @@ components:
           description: >
             Information on each table in the Azure dataset
           items:
-            $ref: '#/components/schemas/AccessInfoAzureModelTable'
-    AccessInfoAzureModelTable:
+            $ref: '#/components/schemas/AccessInfoParquetModelTable'
+    AccessInfoParquetModelTable:
       type: object
       description: >
         Information on a snapshot or dataset table in a Azure dataset

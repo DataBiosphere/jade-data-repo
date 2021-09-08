@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 import bio.terra.app.model.AzureCloudResource;
 import bio.terra.app.model.AzureRegion;
 import bio.terra.common.category.Unit;
-import bio.terra.model.AccessInfoAzureModel;
+import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.AzureStorageResource;
 import bio.terra.service.dataset.Dataset;
@@ -24,10 +24,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 @Category(Unit.class)
 public class MetadataDataAccessUtilsTest {
 
@@ -47,7 +49,6 @@ public class MetadataDataAccessUtilsTest {
 
   @Before
   public void setup() throws Exception {
-    MockitoAnnotations.openMocks(this).close();
     UUID azureDatsetId = UUID.randomUUID();
     UUID billingProfileModelId = UUID.randomUUID();
     defaultProfileModel =
@@ -84,8 +85,8 @@ public class MetadataDataAccessUtilsTest {
     when(blobSasUrlFactory.createSasUrlForBlob(eq("parquet/sample"), any()))
         .thenReturn("blob.core.windows/sample");
 
-    AccessInfoAzureModel infoModel =
-        metadataDataAccessUtils.accessInfoFromDataset(azureDataset).getAzure();
+    AccessInfoParquetModel infoModel =
+        metadataDataAccessUtils.accessInfoFromDataset(azureDataset).getParquet();
 
     Assert.assertEquals("test-dataset", infoModel.getDatasetName());
     Assert.assertEquals("michaelstorage.test-dataset", infoModel.getDatasetId());

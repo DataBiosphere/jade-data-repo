@@ -2,11 +2,11 @@ package bio.terra.service.resourcemanagement;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.Table;
-import bio.terra.model.AccessInfoAzureModel;
-import bio.terra.model.AccessInfoAzureModelTable;
 import bio.terra.model.AccessInfoBigQueryModel;
 import bio.terra.model.AccessInfoBigQueryModelTable;
 import bio.terra.model.AccessInfoModel;
+import bio.terra.model.AccessInfoParquetModel;
+import bio.terra.model.AccessInfoParquetModelTable;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
@@ -117,8 +117,8 @@ public final class MetadataDataAccessUtils {
     String signedURL =
         targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob("parquet", options);
 
-    accessInfoModel.azure(
-        new AccessInfoAzureModel()
+    accessInfoModel.parquet(
+        new AccessInfoParquetModel()
             .datasetName(datasetName)
             .datasetId(
                 new ST(AZURE_DATASET_ID)
@@ -137,7 +137,7 @@ public final class MetadataDataAccessUtils {
                               targetDataClientFactory
                                   .getBlobSasUrlFactory()
                                   .createSasUrlForBlob(tableBlob, options);
-                          return new AccessInfoAzureModelTable()
+                          return new AccessInfoParquetModelTable()
                               .name(t.getName())
                               .signedUrl(tableUrl);
                         })

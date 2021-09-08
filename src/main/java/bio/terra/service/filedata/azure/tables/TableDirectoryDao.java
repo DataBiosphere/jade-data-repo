@@ -180,8 +180,7 @@ public class TableDirectoryDao {
       TableServiceClient tableServiceClient, List<String> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    var partitionedRefIds = Lists.partition(refIdArray, MAX_FILTER_CLAUSES);
-    return partitionedRefIds.stream()
+    return Lists.partition(refIdArray, MAX_FILTER_CLAUSES).stream()
         .flatMap(
             refIds -> {
               var filter =

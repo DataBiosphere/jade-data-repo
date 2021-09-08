@@ -108,7 +108,6 @@ public class DatasetIngestFlight extends Flight {
     if (cloudPlatform.is(CloudPlatform.GCP)) {
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
-      // TODO - For Azure, we'll cover this with DR-2017
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
       addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));

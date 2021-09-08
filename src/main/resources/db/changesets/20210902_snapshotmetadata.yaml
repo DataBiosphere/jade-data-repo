@@ -12,11 +12,10 @@ databaseChangeLog:
                   constraints:
                     nullable: false
                     foreignKeyName: fk_snapshot_metadata_snapshot_id
-                    references: snapshot_column(id)
+                    references: snapshot(id)
                     deleteCascade: true
                     primaryKey: true
-                    unique: true
-                    uniqueConstraintName: unique_snapshot_metadata_id
+                    primaryKeyName: pkey_snapshot_search_metadata
               - column:
                   name: metadata
                   type: jsonb

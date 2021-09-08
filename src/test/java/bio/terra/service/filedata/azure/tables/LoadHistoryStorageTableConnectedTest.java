@@ -79,7 +79,7 @@ public class LoadHistoryStorageTableConnectedTest {
 
   @After
   public void cleanup() throws Exception {
-    storageTableDao.deleteLoadHistory(datasetId, serviceClient);
+    connectedOperations.deleteLoadHistory(datasetId, serviceClient);
     connectedOperations.teardown();
   }
 

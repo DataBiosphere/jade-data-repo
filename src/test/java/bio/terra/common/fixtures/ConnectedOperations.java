@@ -52,6 +52,8 @@ import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
+import bio.terra.service.tabulardata.azure.AzureStorageTablePdao;
+import com.azure.data.tables.TableServiceClient;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
@@ -981,5 +983,10 @@ public class ConnectedOperations {
     createdProfileIds = new ArrayList<>();
     createdBuckets = new ArrayList<>();
     createdScratchFiles = new ArrayList<>();
+  }
+
+  public void deleteLoadHistory(UUID datasetId, TableServiceClient serviceClient) {
+    var tableName = AzureStorageTablePdao.toLoadHistoryTableNameFromUUID(datasetId);
+    serviceClient.deleteTable(tableName);
   }
 }

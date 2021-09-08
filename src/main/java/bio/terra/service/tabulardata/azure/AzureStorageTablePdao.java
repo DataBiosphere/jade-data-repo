@@ -8,6 +8,7 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
@@ -128,11 +129,6 @@ public class AzureStorageTablePdao {
         .collect(Collectors.toList());
   }
 
-  public void deleteLoadHistory(UUID datasetId, TableServiceClient serviceClient) {
-    var tableName = toLoadHistoryTableNameFromUUID(datasetId);
-    serviceClient.deleteTable(tableName);
-  }
-
   private static TableEntity bulkFileLoadModelToStorageTableEntity(
       StorageTableLoadHistoryEntity entity, String loadTag, Instant loadTime) {
     var model = entity.model;
@@ -156,7 +152,8 @@ public class AzureStorageTablePdao {
    * @param datasetId The datasetId root of the table name
    * @return A valid azure storage table name with load history suffix.
    */
-  private static String toLoadHistoryTableNameFromUUID(UUID datasetId) {
+  @VisibleForTesting
+  public static String toLoadHistoryTableNameFromUUID(UUID datasetId) {
     return "datarepo" + datasetId.toString().replaceAll("-", "") + LOAD_HISTORY_TABLE_NAME_SUFFIX;
   }
 

@@ -27,31 +27,44 @@ import java.util.List;
 import java.util.UUID;
 
 // Populate the files to be loaded from the incoming array
-public abstract class IngestPopulateFileStateFromFileStep implements Step {
+public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFileStateFromFileStep {
   private final LoadService loadService;
   private final int maxBadLines;
   private final int batchSize;
   private final GcsPdao gcsPdao;
 
-  public IngestPopulateFileStateFromFileStep(
+  public IngestPopulateFileStateFromFileAzureStep(
       LoadService loadService, int maxBadLines, int batchSize, GcsPdao gcsPdao) {
+    super(loadService, maxBadLines, batchSize, gcsPdao);
     this.loadService = loadService;
     this.maxBadLines = maxBadLines;
     this.batchSize = batchSize;
     this.gcsPdao = gcsPdao;
   }
 
-  private ObjectMapper getObjectMapper() {
+  @Override
+  public StepResult doStep(FlightContext context) {
     // Ensure that file ingestion works with extra key-value pairs
-    return new ObjectMapper()
-        .registerModule(new Jdk8Module())
-        .registerModule(new JavaTimeModule())
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-  }
-  void readFile(BufferedReader reader, UUID loadId) {
-    ObjectMapper objectMapper = getObjectMapper();
+    ObjectMapper objectMapper =
+        new ObjectMapper()
+            .registerModule(new Jdk8Module())
+            .registerModule(new JavaTimeModule())
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
+    FlightMap inputParameters = context.getInputParameters();
+    BulkLoadRequestModel loadRequest =
+        inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
+
+    FlightMap workingMap = context.getWorkingMap();
+    UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
+    GoogleBucketResource bucketResource =
+        FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+    Storage storage = gcsPdao.storageForBucket(bucketResource);
+    String projectId = bucketResource.projectIdForBucket();
     List<String> errorDetails = new ArrayList<>();
-    try (reader) {
+
+    try (BufferedReader reader =
+        new GcsBufferedReader(storage, projectId, loadRequest.getLoadControlFile())) {
       long lineCount = 0;
       List<BulkLoadFileModel> fileList = new ArrayList<>();
 
@@ -89,6 +102,8 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     } catch (IOException ex) {
       throw new BulkLoadControlFileException("Failure accessing the load control file", ex);
     }
+
+    return StepResult.getStepResultSuccess();
   }
 
   @Override

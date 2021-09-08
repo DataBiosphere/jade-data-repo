@@ -162,14 +162,18 @@ public class FileIngestBulkFlight extends Flight {
     } else {
       if (platform.isGcp()) {
         addStep(
-            new IngestPopulateFileStateFromFileStep(
+            new IngestPopulateFileStateFromFileGcpStep(
                 loadService,
                 appConfig.getMaxBadLoadFileLineErrorsReported(),
                 appConfig.getLoadFilePopulateBatchSize(),
                 gcsPdao));
       } else {
-        throw new NotImplementedException(
-            String.format("Ingesting from control file not supported on platform: %s", platform));
+        addStep(
+            new IngestPopulateFileStateFromFileAzureStep(
+                loadService,
+                appConfig.getMaxBadLoadFileLineErrorsReported(),
+                appConfig.getLoadFilePopulateBatchSize(),
+                gcsPdao));
       }
     }
     addStep(

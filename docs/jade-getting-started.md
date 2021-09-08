@@ -367,7 +367,7 @@ export GOOGLE_ALLOWREUSEEXISTINGPROJECTS=true
 export AZURE_CREDENTIALS_HOMETENANTID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
 export AZURE_CREDENTIALS_APPLICATIONID=<value from the top of .github/workflows/int-and-connected-test-run.yml>
 export AZURE_CREDENTIALS_SECRET=$(cat /tmp/jade-dev-azure.key)
-export AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin.key)
+export AZURE_SYNAPSE_SQLADMINUSER=$(cat /tmp/jade-dev-synapse-admin-user.key)
 export AZURE_SYNAPSE_SQLADMINPASSWORD=$(cat /tmp/jade-dev-synapse-admin-password.key)
 ```
 

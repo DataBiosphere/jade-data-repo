@@ -11,7 +11,7 @@ vault read -field=applicationsecret secret/dsde/datarepo/dev/helm-azure \
     > /tmp/jade-dev-azure.key
 
 vault read -field=synapse-us-east-sql-admin-user secret/dsde/datarepo/dev/helm-azure \
-    > /tmp/jade-dev-synapse-admin.key
+    > /tmp/jade-dev-synapse-admin-user.key
 
 vault read -field=synapse-us-east-sql-admin-password secret/dsde/datarepo/dev/helm-azure \
     > /tmp/jade-dev-synapse-admin-password.key

@@ -22,7 +22,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
@@ -40,6 +40,9 @@ public class AzureSynapsePdao {
   private final AzureBlobStorePdao azureBlobStorePdao;
   private static final String PARSER_VERSION = "2.0";
   private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
+  private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
+  private static final String DEFAULT_CSV_QUOTE = "\"";
+
   private static final String scopedCredentialCreateTemplate =
       "CREATE DATABASE SCOPED CREDENTIAL [<scopedCredentialName>]\n"
           + "WITH IDENTITY = 'SHARED ACCESS SIGNATURE',\n"
@@ -77,10 +80,12 @@ public class AzureSynapsePdao {
           + "       FORMAT = 'CSV',\n"
           + "<if(isCSV)>"
           + "       PARSER_VERSION = '<parserVersion>',\n"
-          + "       FIRSTROW = <firstRow>\n"
+          + "       FIRSTROW = <firstRow>,\n"
+          + "       FIELDTERMINATOR = '<fieldTerminator>',\n"
+          + "       FIELDQUOTE = '<csvQuote>'\n"
           + "<else>"
-          + "       fieldterminator ='0x0b',\n"
-          + "       fieldquote = '0x0b'\n"
+          + "       FIELDTERMINATOR ='0x0b',\n"
+          + "       FIELDQUOTE = '0x0b'\n"
           + "<endif>"
           + "    ) WITH (\n"
           + "      <if(isCSV)>"
@@ -183,7 +188,9 @@ public class AzureSynapsePdao {
       String destinationDataSourceName,
       String controlFileDataSourceName,
       String ingestTableName,
-      Optional<Integer> csvSkipLeadingRows)
+      Integer csvSkipLeadingRows,
+      String csvFieldTerminator,
+      String csvStringDelimiter)
       throws SQLException {
 
     List<SynapseColumn> columns =
@@ -196,11 +203,16 @@ public class AzureSynapsePdao {
     sqlCreateTableTemplate.add("isCSV", isCSV);
     if (isCSV) {
       sqlCreateTableTemplate.add("parserVersion", PARSER_VERSION);
-      if (csvSkipLeadingRows.isEmpty()) {
+      if (csvSkipLeadingRows == null) {
         throw new InvalidJobParameterException(
             "For CSV ingests, 'csvSkipLeadingRows' must be defined.");
       }
-      sqlCreateTableTemplate.add("firstRow", csvSkipLeadingRows.get());
+      sqlCreateTableTemplate.add("firstRow", csvSkipLeadingRows);
+      sqlCreateTableTemplate.add(
+          "fieldTerminator",
+          Objects.requireNonNullElse(csvFieldTerminator, DEFAULT_CSV_FIELD_TERMINATOR));
+      sqlCreateTableTemplate.add(
+          "csvQuote", Objects.requireNonNullElse(csvStringDelimiter, DEFAULT_CSV_QUOTE));
     }
     sqlCreateTableTemplate.add("tableName", ingestTableName);
     sqlCreateTableTemplate.add("destinationParquetFile", destinationParquetFile);

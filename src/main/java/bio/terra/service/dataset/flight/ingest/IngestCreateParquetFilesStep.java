@@ -15,7 +15,6 @@ import bio.terra.stairway.StepStatus;
 import com.azure.storage.blob.BlobUrlParts;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Optional;
 
 public class IngestCreateParquetFilesStep implements Step {
 
@@ -48,7 +47,9 @@ public class IngestCreateParquetFilesStep implements Step {
               IngestUtils.getTargetDataSourceName(context.getFlightId()),
               IngestUtils.getIngestRequestDataSourceName(context.getFlightId()),
               IngestUtils.getSynapseTableName(context.getFlightId()),
-              Optional.ofNullable(ingestRequestModel.getCsvSkipLeadingRows()));
+              ingestRequestModel.getCsvSkipLeadingRows(),
+              ingestRequestModel.getCsvFieldDelimiter(),
+              ingestRequestModel.getCsvQuote());
 
     } catch (SQLException ex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

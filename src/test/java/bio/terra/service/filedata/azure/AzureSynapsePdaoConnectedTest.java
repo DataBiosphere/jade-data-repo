@@ -25,7 +25,6 @@ import com.azure.storage.blob.BlobUrlParts;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
@@ -156,6 +155,30 @@ public class AzureSynapsePdaoConnectedTest {
   }
 
   @Test
+  public void testSynapseQueryNonStandardCSV() throws Exception {
+    IngestRequestModel nonStandardIngestRequestModel =
+        new IngestRequestModel()
+            .format(FormatEnum.CSV)
+            .csvSkipLeadingRows(2)
+            .csvFieldDelimiter("!")
+            .csvQuote("*");
+    String nonStandardIngestFileLocation =
+        synapseUtils.ingestRequestURL(
+            testConfig.getSourceStorageAccountName(),
+            testConfig.getIngestRequestContainer(),
+            "azure-simple-dataset-ingest-request-non-standard.csv");
+    testSynapseQuery(nonStandardIngestRequestModel, nonStandardIngestFileLocation);
+
+    List<String> textCols =
+        synapseUtils.readParquetFileStringColumn(
+            destinationParquetFile, destinationDataSourceName, "textCol", true);
+    assertThat(
+        "The text columns should be properly quoted",
+        textCols,
+        equalTo(Arrays.asList("Dao!", "Jones!")));
+  }
+
+  @Test
   public void testSynapseQueryJSON() throws Exception {
     IngestRequestModel ingestRequestModel = new IngestRequestModel().format(FormatEnum.JSON);
     String ingestFileLocation =
@@ -211,7 +234,9 @@ public class AzureSynapsePdaoConnectedTest {
             destinationDataSourceName,
             ingestRequestDataSourceName,
             tableName,
-            Optional.ofNullable(ingestRequestModel.getCsvSkipLeadingRows()));
+            ingestRequestModel.getCsvSkipLeadingRows(),
+            ingestRequestModel.getCsvFieldDelimiter(),
+            ingestRequestModel.getCsvQuote());
     assertThat("num rows updated is two", updateCount, equalTo(2));
 
     // Check that the parquet files were successfully created.

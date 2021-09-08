@@ -10,10 +10,10 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
-import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -180,21 +180,20 @@ public class TableDirectoryDao {
       TableServiceClient tableServiceClient, List<String> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
-    return Lists.partition(refIdArray, MAX_FILTER_CLAUSES).stream()
+    return ListUtils.partition(refIdArray, MAX_FILTER_CLAUSES).stream()
         .flatMap(
             refIds -> {
-              var filter =
+              String filter =
                   refIds.stream()
                       .map(refId -> String.format("fileId eq '%s'", refId))
                       .collect(Collectors.joining(" or "));
               ListEntitiesOptions options = new ListEntitiesOptions().setFilter(filter);
               PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-              var validRefIds =
+              List<String> validRefIds =
                   entities.stream()
                       .map(e -> e.getProperty("fileId").toString())
                       .collect(Collectors.toList());
-              refIds.removeAll(validRefIds);
-              return refIds.stream();
+              return ListUtils.subtract(refIds, validRefIds).stream();
             })
         .collect(Collectors.toList());
   }

@@ -5,13 +5,9 @@ import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.is;
 
 import bio.terra.common.category.Connected;
-import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.CloudPlatform;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
@@ -41,7 +37,6 @@ public class SnapshotSearchMetadataDaoTest {
 
   @Autowired private GoogleResourceDao resourceDao;
   @Autowired private ProfileDao profileDao;
-  @Autowired private JsonLoader jsonLoader;
   @Autowired private SnapshotDao snapshotDao;
   @Autowired private SnapshotSearchMetadataDao snapshotSearchDao;
 
@@ -57,16 +52,6 @@ public class SnapshotSearchMetadataDaoTest {
 
     GoogleProjectResource projectResource = ResourceFixtures.randomProjectResource(billingProfile);
     projectId = resourceDao.createProject(projectResource);
-
-    DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject("snapshot-test-dataset.json", DatasetRequestModel.class);
-    datasetRequest
-        .name(datasetRequest.getName() + UUID.randomUUID())
-        .defaultProfileId(profileId)
-        .cloudPlatform(CloudPlatform.GCP);
-
-    var dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-    dataset.projectResourceId(projectId);
 
     String flightId = UUID.randomUUID().toString();
 
@@ -107,7 +92,6 @@ public class SnapshotSearchMetadataDaoTest {
 
   @Test
   public void testPutGetDelete() {
-
     // Test get with no data.
     assertThat(snapshotSearchDao.getMetadata(snapshotIds), is(anEmptyMap()));
 

@@ -39,6 +39,8 @@ public final class MetadataDataAccessUtils {
   private static final String BIGQUERY_TABLE_ID = "<dataset_id>.<table>";
   private static final String BIGQUERY_BASE_QUERY = "SELECT * FROM `<table_address>` LIMIT 1000";
 
+  private static final String AZURE_PARQUET_LINK =
+      "https://<storageAccount>.blob.core.windows.net/metadata/<blob>";
   private static final String AZURE_BLOB_TEMPLATE = "parquet/<table>";
   private static final String AZURE_DATASET_ID = "<storageAccount>.<dataset>";
 
@@ -114,8 +116,22 @@ public final class MetadataDataAccessUtils {
             Duration.ofMinutes(15),
             new BlobSasPermission().setReadPermission(true).setListPermission(true),
             AzureSynapsePdao.class.getName());
+    //    String signedURL =
+    //        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob("parquet",
+    // options);
+    String unsignedUrl =
+        new ST(AZURE_PARQUET_LINK)
+            .add("storageAccount", storageAccountResource.getName())
+            .add("blob", "parquet")
+            .render();
     String signedURL =
-        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob("parquet", options);
+        azureBlobStorePdao.signFile(
+            profileModel,
+            storageAccountResource,
+            unsignedUrl,
+            ContainerType.METADATA,
+            Duration.ofMinutes(15),
+            profileModel.getBiller());
 
     accessInfoModel.parquet(
         new AccessInfoParquetModel()
@@ -133,10 +149,24 @@ public final class MetadataDataAccessUtils {
                         t -> {
                           String tableBlob =
                               new ST(AZURE_BLOB_TEMPLATE).add("table", t.getName()).render();
+                          String unsignedTableUrl =
+                              new ST(AZURE_PARQUET_LINK)
+                                  .add("storageAccount", storageAccountResource.getName())
+                                  .add("blob", tableBlob)
+                                  .render();
+                          //                          String tableUrl =
+                          //                              targetDataClientFactory
+                          //                                  .getBlobSasUrlFactory()
+                          //                                  .createSasUrlForBlob(tableBlob,
+                          // options);
                           String tableUrl =
-                              targetDataClientFactory
-                                  .getBlobSasUrlFactory()
-                                  .createSasUrlForBlob(tableBlob, options);
+                              azureBlobStorePdao.signFile(
+                                  profileModel,
+                                  storageAccountResource,
+                                  unsignedTableUrl,
+                                  ContainerType.METADATA,
+                                  Duration.ofMinutes(15),
+                                  profileModel.getBiller());
                           return new AccessInfoParquetModelTable()
                               .name(t.getName())
                               .signedUrl(tableUrl);

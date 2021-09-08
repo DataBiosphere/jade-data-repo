@@ -18,6 +18,7 @@ import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobSasUrlFactory;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import com.azure.storage.blob.BlobUrlParts;
 import java.util.List;
 import java.util.UUID;
 import org.junit.Assert;
@@ -87,6 +88,12 @@ public class MetadataDataAccessUtilsTest {
 
     AccessInfoParquetModel infoModel =
         metadataDataAccessUtils.accessInfoFromDataset(azureDataset).getParquet();
+
+    BlobUrlParts blobParts =
+        BlobUrlParts.parse(
+            "https://tdrmybikmnceicpuiwhzscin.blob.core.windows.net/metadata/parquet/participant");
+
+    blobParts.getBlobName();
 
     Assert.assertEquals("test-dataset", infoModel.getDatasetName());
     Assert.assertEquals("michaelstorage.test-dataset", infoModel.getDatasetId());

@@ -53,7 +53,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class AzureIngestFileConnectedTest {
-  private final Logger logger = LoggerFactory.getLogger(AzureIngestFileConnectedTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(AzureIngestFileConnectedTest.class);
   private UUID datasetId;
   private String targetPath;
   private UUID homeTenantId;
@@ -142,6 +142,8 @@ public class AzureIngestFileConnectedTest {
             .mimeType("application/json")
             .targetPath(targetPath)
             .loadTag(Names.randomizeName("loadTag"));
+
+    fileId = UUID.randomUUID().toString();
   }
 
   @After
@@ -158,8 +160,7 @@ public class AzureIngestFileConnectedTest {
 
   @Test
   public void testStorageTableMetadataDuringFileIngest() {
-    // 0 - IngestFileIdStep
-    fileId = UUID.randomUUID().toString();
+    // 0 - IngestFileIdStep - Done in test setup
     // 1 - IngestFileAzurePrimaryDataLocationStep
     // define storage account (this is already defined in the test setup)
     // 2 - IngestFileAzureMakeStorageAccountLinkStep

@@ -89,7 +89,7 @@ public class LoadHistoryStorageTableConnectedTest {
     // ---- TEST FOUR STATES OF LOAD HISTORY TABLE ENTRIES ----
     // SUCCEEDED
     String checksum = Names.randomizeName("CRCSUM");
-    String successfulSourcePath = "/" + UUID.randomUUID().toString() + "/source/path.json";
+    String successfulSourcePath = "/" + UUID.randomUUID() + "/source/path.json";
     loadHistoryArray.add(
         new BulkLoadHistoryModel()
             .state(BulkLoadFileState.SUCCEEDED)
@@ -99,21 +99,21 @@ public class LoadHistoryStorageTableConnectedTest {
             .sourcePath(successfulSourcePath)
             .targetPath("/target/path.json"));
     // FAILED
-    String failedSourcePath = "/" + UUID.randomUUID().toString() + "/source/path.json";
+    String failedSourcePath = "/" + UUID.randomUUID() + "/source/path.json";
     loadHistoryArray.add(
         new BulkLoadHistoryModel()
             .state(BulkLoadFileState.FAILED)
             .sourcePath(failedSourcePath)
             .targetPath("/target/path.json"));
     // NOT_TRIED
-    String notTriedSourcePath = "/" + UUID.randomUUID().toString() + "/source/path.json";
+    String notTriedSourcePath = "/" + UUID.randomUUID() + "/source/path.json";
     loadHistoryArray.add(
         new BulkLoadHistoryModel()
             .state(BulkLoadFileState.NOT_TRIED)
             .sourcePath(notTriedSourcePath)
             .targetPath("/target2/path2.json"));
     // RUNNING
-    String runningSourcePath = "/" + UUID.randomUUID().toString() + "/source/path.json";
+    String runningSourcePath = "/" + UUID.randomUUID() + "/source/path.json";
     loadHistoryArray.add(
         new BulkLoadHistoryModel()
             .state(BulkLoadFileState.RUNNING)

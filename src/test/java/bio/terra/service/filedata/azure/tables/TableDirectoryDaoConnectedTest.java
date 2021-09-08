@@ -83,13 +83,13 @@ public class TableDirectoryDaoConnectedTest {
 
   @After
   public void cleanup() throws Exception {
-    try {
-      var iter = directoryEntriesToCleanup.iterator();
-      while (iter.hasNext()) {
-        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, iter.next());
+    // Should already be deleted
+    for (String entry : directoryEntriesToCleanup) {
+      try {
+        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, entry);
+      } catch (Exception ex) {
+        logger.debug("Directory entry either already deleted or unable to delete {}", entry, ex);
       }
-    } catch (Exception ex) {
-      logger.error("Unable to delete table directory entry", ex);
     }
     if (tableName != null) {
       try {
@@ -127,7 +127,6 @@ public class TableDirectoryDaoConnectedTest {
     boolean deleteEntry =
         tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileEntry1.getFileId());
     assertThat("Delete Entry 1", deleteEntry, equalTo(true));
-    directoryEntriesToCleanup.remove(fileEntry1.getFileId());
     FireStoreDirectoryEntry shouldbeNull =
         tableDirectoryDao.retrieveByPath(
             tableServiceClient, datasetId.toString(), sharedTargetPath + fileName1);
@@ -172,7 +171,6 @@ public class TableDirectoryDaoConnectedTest {
     boolean deleteEntry2 =
         tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileEntry2.getFileId());
     assertThat("Delete Entry 2", deleteEntry2, equalTo(true));
-    directoryEntriesToCleanup.remove(fileEntry2.getFileId());
     FireStoreDirectoryEntry file2ShouldbeNull =
         tableDirectoryDao.retrieveByPath(
             tableServiceClient, datasetId.toString(), sharedTargetPath + fileName2);

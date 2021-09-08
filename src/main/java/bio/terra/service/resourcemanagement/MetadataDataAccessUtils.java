@@ -9,15 +9,11 @@ import bio.terra.model.AccessInfoParquetModel;
 import bio.terra.model.AccessInfoParquetModelTable;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
-import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import com.azure.storage.blob.sas.BlobSasPermission;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -106,19 +102,6 @@ public final class MetadataDataAccessUtils {
       final BillingProfileModel profileModel) {
     AccessInfoModel accessInfoModel = new AccessInfoModel();
 
-    BlobContainerClientFactory targetDataClientFactory =
-        azureBlobStorePdao.getTargetDataClientFactory(
-            profileModel, storageAccountResource, ContainerType.METADATA, false);
-
-    // Given the sas token, rebuild a signed url
-    BlobSasTokenOptions options =
-        new BlobSasTokenOptions(
-            Duration.ofMinutes(15),
-            new BlobSasPermission().setReadPermission(true).setListPermission(true),
-            AzureSynapsePdao.class.getName());
-    //    String signedURL =
-    //        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob("parquet",
-    // options);
     String unsignedUrl =
         new ST(AZURE_PARQUET_LINK)
             .add("storageAccount", storageAccountResource.getName())

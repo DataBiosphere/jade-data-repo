@@ -13,14 +13,13 @@ import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
+import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.exception.InvalidDrsIdException;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.filedata.google.gcs.GcsPdao.GcsLocator;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
@@ -288,10 +287,9 @@ public class DrsService {
             .build()
             .getService();
     String gsPath = accessMethod.getAccessUrl().getUrl();
-    GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(gsPath);
+    BlobId locator = GcsUriUtils.parseBlobUri(gsPath);
 
-    BlobInfo blobInfo =
-        BlobInfo.newBuilder(BlobId.of(locator.getBucket(), locator.getPath())).build();
+    BlobInfo blobInfo = BlobInfo.newBuilder(locator).build();
 
     URL url =
         storage.signUrl(
@@ -431,9 +429,9 @@ public class DrsService {
 
   private String makeHttpsFromGs(String gspath) {
     try {
-      GcsPdao.GcsLocator locator = GcsPdao.getGcsLocatorFromGsPath(gspath);
+      BlobId locator = GcsUriUtils.parseBlobUri(gspath);
       String gsBucket = locator.getBucket();
-      String gsPath = locator.getPath();
+      String gsPath = locator.getName();
       String encodedPath =
           URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString())
               // Google does not recognize the + characters that are produced from spaces by the

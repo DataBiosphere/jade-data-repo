@@ -171,7 +171,7 @@ public class FileOperationTest {
     connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
     fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
     assertThat(
-        "file path relfects new bucket location",
+        "file path reflects new bucket location",
         fileModel.getFileDetail().getAccessUrl(),
         containsString(newBucketName));
     // Track the bucket so connected ops can remove it on teardown
@@ -231,43 +231,6 @@ public class FileOperationTest {
     errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
     assertThat(
         "source file does not exist", errorModel.getMessage(), containsString("file not found"));
-
-    // Error: Invalid gs path - case 1: not gs
-    fileLoadModel =
-        new FileLoadModel()
-            .profileId(profileModel.getId())
-            .sourcePath("http://jade_notabucket/foo/bar.txt")
-            .description(testDescription)
-            .mimeType(testMimeType)
-            .targetPath(makeValidUniqueFilePath());
-
-    errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
-    assertThat("Not a gs schema", errorModel.getMessage(), containsString("not a gs"));
-
-    // Error: Invalid gs path - case 2: invalid bucket name
-    fileLoadModel =
-        new FileLoadModel()
-            .profileId(profileModel.getId())
-            .sourcePath("gs://jade_notabucket:1234/foo/bar.txt")
-            .description(testDescription)
-            .mimeType(testMimeType)
-            .targetPath(makeValidUniqueFilePath());
-
-    errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
-    assertThat(
-        "Invalid bucket name", errorModel.getMessage(), containsString("Invalid bucket name"));
-
-    // Error: Invalid gs path - case 3: no bucket or path
-    fileLoadModel =
-        new FileLoadModel()
-            .profileId(profileModel.getId())
-            .sourcePath("gs:///")
-            .description(testDescription)
-            .mimeType(testMimeType)
-            .targetPath(makeValidUniqueFilePath());
-
-    errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
-    assertThat("No bucket or path", errorModel.getMessage(), containsString("gs path"));
   }
 
   // ------ Retry shared lock/unlock tests ---------------

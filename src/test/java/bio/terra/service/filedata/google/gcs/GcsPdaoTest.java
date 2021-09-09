@@ -6,8 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.category.Connected;
-import bio.terra.common.exception.PdaoInvalidUriException;
-import bio.terra.common.exception.PdaoSourceFileNotFoundException;
+import bio.terra.service.common.gcs.GcsUriUtils;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -97,7 +96,7 @@ public class GcsPdaoTest {
             BlobInfo.newBuilder(blobId).build(), fileContents.getBytes(StandardCharsets.UTF_8));
         contents.add(fileContents);
       }
-      var listPath = GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/");
+      var listPath = GcsUriUtils.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/");
       var listLines = getGcsFilesLines(listPath, projectId);
       assertThat(
           "The listed file contents match concatenated contents of individual files",
@@ -105,7 +104,7 @@ public class GcsPdaoTest {
           equalTo(contents));
 
       var wildcardMiddlePath =
-          GcsPdao.getGsPathFromComponents(
+          GcsUriUtils.getGsPathFromComponents(
               testConfig.getIngestbucket(), uuid + "/" + uuid + "-*.txt");
       var wildcardMiddleLines = getGcsFilesLines(wildcardMiddlePath, projectId);
       assertThat(
@@ -114,7 +113,8 @@ public class GcsPdaoTest {
           equalTo(contents));
 
       var wildcardEndPath =
-          GcsPdao.getGsPathFromComponents(testConfig.getIngestbucket(), uuid + "/" + uuid + "-*");
+          GcsUriUtils.getGsPathFromComponents(
+              testConfig.getIngestbucket(), uuid + "/" + uuid + "-*");
       var wildcardEndLines = getGcsFilesLines(wildcardEndPath, projectId);
       assertThat(
           "The end-wildcard-matched file contents match concatenated contents of individual files",
@@ -122,7 +122,7 @@ public class GcsPdaoTest {
           equalTo(contents));
 
       var wildcardMultiplePath =
-          GcsPdao.getGsPathFromComponents(
+          GcsUriUtils.getGsPathFromComponents(
               testConfig.getIngestbucket(), uuid + "/*" + uuid + "-*.txt");
       var wildcardMutlipleLines = getGcsFilesLines(wildcardMultiplePath, projectId);
       assertThat(
@@ -133,51 +133,6 @@ public class GcsPdaoTest {
     } finally {
       storage.delete(blobIds);
     }
-  }
-
-  @Test(expected = PdaoInvalidUriException.class)
-  public void testGetBlobNonGs() {
-    GcsPdao.getBlobFromGsPath(storage, "s3://my-aws-bucket/my-cool-path", projectId);
-  }
-
-  @Test(expected = PdaoInvalidUriException.class)
-  public void testGetBlobBucketNameTooShort() {
-    GcsPdao.getBlobFromGsPath(storage, "gs://ab/some-path", projectId);
-  }
-
-  @Test(expected = PdaoInvalidUriException.class)
-  public void testGetBlobBucketNameTooLong() {
-    StringBuilder bucket = new StringBuilder();
-    for (int i = 0; i < 222; i++) {
-      if (i != 0) bucket.append(".");
-      bucket.append("component");
-    }
-    GcsPdao.getBlobFromGsPath(storage, "gs://" + bucket.toString() + "/some-path", projectId);
-  }
-
-  @Test(expected = PdaoInvalidUriException.class)
-  public void testGetBlobBucketNameComponentTooLong() {
-    StringBuilder bucket = new StringBuilder();
-    for (int i = 0; i < 64; i++) {
-      bucket.append("a");
-    }
-    GcsPdao.getBlobFromGsPath(storage, "gs://" + bucket.toString() + "/some-path", projectId);
-  }
-
-  @Test(expected = PdaoInvalidUriException.class)
-  public void testGetBlobBucketInvalidCharacters() {
-    GcsPdao.getBlobFromGsPath(storage, "gs://AFSDAFADSFADSFASF@@@@/foo", projectId);
-  }
-
-  @Test(expected = PdaoInvalidUriException.class)
-  public void testGetBlobNoObjectName() {
-    GcsPdao.getBlobFromGsPath(storage, "gs://bucket", projectId);
-  }
-
-  @Test(expected = PdaoSourceFileNotFoundException.class)
-  public void testGetBlobNonexistent() {
-    GcsPdao.getBlobFromGsPath(
-        storage, "gs://" + testConfig.getIngestbucket() + "/file-doesnt-exist", projectId);
   }
 
   private List<String> getGcsFilesLines(String path, String projectId) {

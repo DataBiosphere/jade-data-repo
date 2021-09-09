@@ -8,7 +8,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidBlobURLException;
 import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
-import bio.terra.service.dataset.exception.InvalidUriException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -42,39 +41,6 @@ public final class IngestUtils {
   private static final String TABLE_NAME_PREFIX = "ingest_";
 
   private IngestUtils() {}
-
-  public static class GsUrlParts {
-    private String bucket;
-    private String path;
-    private boolean isWildcard;
-
-    public String getBucket() {
-      return bucket;
-    }
-
-    public GsUrlParts bucket(String bucket) {
-      this.bucket = bucket;
-      return this;
-    }
-
-    public String getPath() {
-      return path;
-    }
-
-    public GsUrlParts path(String path) {
-      this.path = path;
-      return this;
-    }
-
-    public boolean getIsWildcard() {
-      return isWildcard;
-    }
-
-    public GsUrlParts isWildcard(boolean isWildcard) {
-      this.isWildcard = isWildcard;
-      return this;
-    }
-  }
 
   public static Dataset getDataset(FlightContext context, DatasetService datasetService) {
     FlightMap inputParameters = context.getInputParameters();
@@ -184,37 +150,6 @@ public final class IngestUtils {
                     + "consecutive dashes are not permitted in container names.");
           }
         });
-  }
-
-  public static GsUrlParts parseBlobUri(String uri) {
-    String protocol = "gs://";
-    if (!StringUtils.startsWith(uri, protocol)) {
-      throw new InvalidUriException("Ingest source is not a valid gs: URI: '" + uri + "'");
-    }
-    String noGsUri = StringUtils.substring(uri, protocol.length());
-    int firstSlash = StringUtils.indexOf(uri, "/", protocol.length());
-    if (firstSlash < 2) {
-      throw new InvalidUriException(
-          "Ingest source bucket name is not valid in gs: URI: '" + uri + "'");
-    }
-    if (noGsUri.length() < 4) {
-      throw new InvalidUriException(
-          "Ingest source file path is not valid in gs: URI: '" + uri + "'");
-    }
-
-    String bucket = StringUtils.substringBefore(noGsUri, "/");
-    String path = StringUtils.substringAfter(noGsUri, "/");
-
-    if (bucket.indexOf('*') > -1) {
-      throw new InvalidUriException("Bucket wildcards are not supported: URI: '" + uri + "'");
-    }
-    int globIndex = path.indexOf('*');
-    boolean isWildcard = globIndex > -1;
-    if (isWildcard && path.lastIndexOf('*') != globIndex) {
-      throw new InvalidUriException("Multi-wildcards are not supported: URI: '" + uri + "'");
-    }
-
-    return new GsUrlParts().bucket(bucket).path(path).isWildcard(isWildcard);
   }
 
   public static void putStagingTableName(FlightContext context, String name) {

@@ -190,39 +190,6 @@ public class IngestTest extends UsersBase {
   }
 
   @Test
-  public void ingestBadBucketPatternTest() throws Exception {
-    IngestRequestModel request =
-        new IngestRequestModel()
-            .table("file")
-            .format(IngestRequestModel.FormatEnum.JSON)
-            .path("gs://bucket*pattern/some-file.json");
-    DataRepoResponse<JobModel> ingestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
-    DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, IngestResponseModel.class);
-    assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
-    assertThat(
-        "failure is explained",
-        ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
-        containsString("not supported"));
-  }
-
-  @Test
-  public void ingestBadMultiWildcardTest() throws Exception {
-    IngestRequestModel request =
-        dataRepoFixtures.buildSimpleIngest("file", "ingest-prefix/*/ingest/suffix/*.json");
-    DataRepoResponse<JobModel> ingestJobResponse =
-        dataRepoFixtures.ingestJsonDataLaunch(steward(), datasetId, request);
-    DataRepoResponse<IngestResponseModel> ingestResponse =
-        dataRepoClient.waitForResponse(steward(), ingestJobResponse, IngestResponseModel.class);
-    assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
-    assertThat(
-        "failure is explained",
-        ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
-        containsString("not supported"));
-  }
-
-  @Test
   public void ingestSingleFileMalformedTest() throws Exception {
     IngestRequestModel request =
         dataRepoFixtures.buildSimpleIngest(

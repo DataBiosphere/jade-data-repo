@@ -4,6 +4,7 @@ import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.common.gcs.GcsUriUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
@@ -91,7 +92,7 @@ public class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
           workingMap.get(FileMapKeys.INGEST_FILE_BUCKET_INFO, GoogleBucketResource.class);
 
       String path =
-          GcsPdao.getGsPathFromComponents(
+          GcsUriUtils.getGsPathFromComponents(
               bucket.getName(), context.getFlightId() + "-scratch.json");
 
       gcsPdao.createGcsFile(path, bucket.projectIdForBucket());

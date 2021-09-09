@@ -137,11 +137,6 @@ public final class MetadataDataAccessUtils {
                                   .add("storageAccount", storageAccountResource.getName())
                                   .add("blob", tableBlob)
                                   .render();
-                          //                          String tableUrl =
-                          //                              targetDataClientFactory
-                          //                                  .getBlobSasUrlFactory()
-                          //                                  .createSasUrlForBlob(tableBlob,
-                          // options);
                           String tableUrl =
                               azureBlobStorePdao.signFile(
                                   profileModel,

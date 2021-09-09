@@ -26,10 +26,7 @@ import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
-import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -82,9 +79,6 @@ public class DrsService {
   private final ConfigurationService configurationService;
   private final JobService jobService;
   private final PerformanceLogger performanceLogger;
-  private final ProfileService profileService;
-  private final AzureResourceConfiguration resourceConfiguration;
-  private final AzureContainerPdao azureContainerPdao;
   private final AzureBlobStorePdao azureBlobStorePdao;
 
   @Autowired
@@ -97,9 +91,6 @@ public class DrsService {
       ConfigurationService configurationService,
       JobService jobService,
       PerformanceLogger performanceLogger,
-      ProfileService profileService,
-      AzureResourceConfiguration resourceConfiguration,
-      AzureContainerPdao azureContainerPdao,
       AzureBlobStorePdao azureBlobStorePdao) {
     this.snapshotService = snapshotService;
     this.fileService = fileService;
@@ -109,9 +100,6 @@ public class DrsService {
     this.configurationService = configurationService;
     this.jobService = jobService;
     this.performanceLogger = performanceLogger;
-    this.profileService = profileService;
-    this.resourceConfiguration = resourceConfiguration;
-    this.azureContainerPdao = azureContainerPdao;
     this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
@@ -154,7 +142,7 @@ public class DrsService {
       AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
     try (DrsRequestResource r = new DrsRequestResource()) {
       DrsId drsId = drsIdService.fromObjectId(drsObjectId);
-      SnapshotProject snapshotProject = null;
+      SnapshotProject snapshotProject;
       try {
         UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
         // We only look up DRS ids for unlocked snapshots.
@@ -188,7 +176,7 @@ public class DrsService {
 
       int depth = (expand ? -1 : 1);
 
-      FSItem fsObject = null;
+      FSItem fsObject;
       try {
         String lookupTimer = performanceLogger.timerStart();
         fsObject = fileService.lookupSnapshotFSItem(snapshotProject, drsId.getFsObjectId(), depth);
@@ -449,8 +437,8 @@ public class DrsService {
     // TODO: I added this so that connected tests would work. Seems like we should have a better
     // solution.
     // I don't like putting test-path-only stuff into the production code.
-    if (authUser == null || !authUser.getToken().isPresent()) {
-      return Collections.EMPTY_LIST;
+    if (authUser == null || authUser.getToken().isEmpty()) {
+      return Collections.emptyList();
     }
 
     String hdr = String.format("Authorization: Bearer %s", authUser.getRequiredToken());

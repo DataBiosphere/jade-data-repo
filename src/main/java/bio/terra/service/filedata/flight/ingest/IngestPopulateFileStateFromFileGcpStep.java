@@ -23,7 +23,7 @@ public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileSt
 
   public IngestPopulateFileStateFromFileGcpStep(
       LoadService loadService, int maxBadLines, int batchSize, GcsPdao gcsPdao) {
-    super(loadService, maxBadLines, batchSize, gcsPdao);
+    super(loadService, maxBadLines, batchSize);
     this.loadService = loadService;
     this.gcsPdao = gcsPdao;
   }

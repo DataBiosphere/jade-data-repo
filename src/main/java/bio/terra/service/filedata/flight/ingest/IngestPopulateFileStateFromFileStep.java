@@ -2,7 +2,6 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -24,14 +23,12 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
   private final LoadService loadService;
   private final int maxBadLines;
   private final int batchSize;
-  private final GcsPdao gcsPdao;
 
   public IngestPopulateFileStateFromFileStep(
-      LoadService loadService, int maxBadLines, int batchSize, GcsPdao gcsPdao) {
+      LoadService loadService, int maxBadLines, int batchSize) {
     this.loadService = loadService;
     this.maxBadLines = maxBadLines;
     this.batchSize = batchSize;
-    this.gcsPdao = gcsPdao;
   }
 
   private ObjectMapper getObjectMapper() {
@@ -42,7 +39,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
   }
 
-  void readFile(BufferedReader reader, UUID loadId) {
+  public void readFile(BufferedReader reader, UUID loadId) {
     ObjectMapper objectMapper = getObjectMapper();
     List<String> errorDetails = new ArrayList<>();
     try (reader) {

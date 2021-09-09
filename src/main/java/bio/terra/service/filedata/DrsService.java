@@ -31,6 +31,7 @@ import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -274,6 +275,7 @@ public class DrsService {
                 profileModel,
                 storageAccountResource,
                 ((FSFile) fsItem).getCloudPath(),
+                ContainerType.DATA,
                 Duration.ofMinutes(URL_TTL),
                 authUser.getEmail()));
   }

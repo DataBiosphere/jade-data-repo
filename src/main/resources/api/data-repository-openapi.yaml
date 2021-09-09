@@ -3506,6 +3506,8 @@ components:
       properties:
         bigQuery:
           $ref: '#/components/schemas/AccessInfoBigQueryModel'
+        parquet:
+          $ref: '#/components/schemas/AccessInfoParquetModel'
     AccessInfoBigQueryModel:
       description: >
         General information on where snapshot or dataset tabular data lives in BigQuery
@@ -3565,6 +3567,65 @@ components:
           type: string
           description: >
             The link to access the BigQuery table UI in Google Cloud console
+        sampleQuery:
+          type: string
+          description: >
+            An example query that can be used to select data from this table
+    AccessInfoParquetModel:
+      description: >
+        General information on where snapshot or dataset tabular data lives in Azure
+      type: object
+      required:
+        - datasetName
+        - datasetId
+        - storageAccountId
+        - signedUrl
+        - tables
+      properties:
+        datasetName:
+          type: string
+          description: >
+            Name of the Azure dataset where snapshot or dataset tabular data lives
+        datasetId:
+          type: string
+          description: >
+            Unique ID of the Azure dataset where snapshot or dataset tabular data lives
+        storageAccountId:
+          type: string
+          description: >
+            Project id of the project where tabular data in Azure lives
+        signedUrl:
+          type: string
+          description: >
+            The link to access the Azure dataset UI in Google Cloud console
+        tables:
+          type: array
+          description: >
+            Information on each table in the Azure dataset
+          items:
+            $ref: '#/components/schemas/AccessInfoParquetModelTable'
+    AccessInfoParquetModelTable:
+      type: object
+      description: >
+        Information on a snapshot or dataset table in a Azure dataset
+      required:
+        - name
+        - id
+        - signedUrl
+        - sampleQuery
+      properties:
+        name:
+          type: string
+          description: >
+            The name of the dataset table
+        id:
+          type: string
+          description: >
+            The unique id of the dataset table
+        signedUrl:
+          type: string
+          description: >
+            The link to access the container that stores parquet files
         sampleQuery:
           type: string
           description: >

@@ -30,6 +30,7 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.profile.exception.ProfileNotFoundException;
+import bio.terra.service.resourcemanagement.MetadataDataAccessUtils;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -44,12 +45,14 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class DatasetService {
+
   private final DatasetDao datasetDao;
   private final JobService jobService; // for handling flight response
   private final LoadService loadService;
   private final ProfileDao profileDao;
   private final StorageTableService storageTableService;
   private final BigQueryPdao bigQueryPdao;
+  private final MetadataDataAccessUtils metadataDataAccessUtils;
 
   @Autowired
   public DatasetService(
@@ -58,13 +61,15 @@ public class DatasetService {
       LoadService loadService,
       ProfileDao profileDao,
       StorageTableService storageTableService,
-      BigQueryPdao bigQueryPdao) {
+      BigQueryPdao bigQueryPdao,
+      MetadataDataAccessUtils metadataDataAccessUtils) {
     this.datasetDao = datasetDao;
     this.jobService = jobService;
     this.loadService = loadService;
     this.profileDao = profileDao;
     this.storageTableService = storageTableService;
     this.bigQueryPdao = bigQueryPdao;
+    this.metadataDataAccessUtils = metadataDataAccessUtils;
   }
 
   public String createDataset(
@@ -136,7 +141,8 @@ public class DatasetService {
 
   public DatasetModel retrieveModel(
       Dataset dataset, List<DatasetRequestAccessIncludeModel> include) {
-    return DatasetJsonConversion.populateDatasetModelFromDataset(dataset, include);
+    return DatasetJsonConversion.populateDatasetModelFromDataset(
+        dataset, include, metadataDataAccessUtils);
   }
 
   public EnumerateDatasetModel enumerate(

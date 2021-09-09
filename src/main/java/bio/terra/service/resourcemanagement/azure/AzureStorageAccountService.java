@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class AzureStorageAccountService {
+
   private static final Logger logger = LoggerFactory.getLogger(AzureStorageAccountService.class);
 
   private final AzureResourceDao resourceDao;

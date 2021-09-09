@@ -89,7 +89,9 @@ public final class DatasetJsonConversion {
   }
 
   public static DatasetModel populateDatasetModelFromDataset(
-      Dataset dataset, List<DatasetRequestAccessIncludeModel> include) {
+      Dataset dataset,
+      List<DatasetRequestAccessIncludeModel> include,
+      MetadataDataAccessUtils metadataDataAccessUtils) {
     DatasetModel datasetModel =
         new DatasetModel()
             .id(dataset.getId())
@@ -118,7 +120,7 @@ public final class DatasetJsonConversion {
     }
 
     if (include.contains(DatasetRequestAccessIncludeModel.ACCESS_INFORMATION)) {
-      datasetModel.accessInformation(MetadataDataAccessUtils.accessInfoFromDataset(dataset));
+      datasetModel.accessInformation(metadataDataAccessUtils.accessInfoFromDataset(dataset));
     }
     return datasetModel;
   }

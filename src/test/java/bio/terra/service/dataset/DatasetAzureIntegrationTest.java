@@ -499,6 +499,31 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             steward, profileId, "dataset-ingest-azure-fileref.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
 
+    String noFilesContents =
+        "sample_name,data_type,vcf_file_ref,vcf_index_file_ref\n"
+            + String.format("NA12878_none,none,%s,%s", UUID.randomUUID(), UUID.randomUUID());
+    String noFilesControlFile =
+        blobIOTestUtility.uploadFileWithContents("dataset-files-ingest-fail.csv", noFilesContents);
+
+    IngestRequestModel noFilesIngestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(noFilesControlFile)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("test2"))
+            .csvSkipLeadingRows(2);
+
+    DataRepoResponse<IngestResponseModel> noFilesIngestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, noFilesIngestRequest);
+
+    assertThat(
+        "No files yet loaded doesn't result in an NPE",
+        noFilesIngestResponse.getErrorObject().get().getMessage(),
+        equalTo("Invalid file ids found during ingest (2 returned in details)"));
+
     String loadTag = UUID.randomUUID().toString();
     var arrayRequestModel =
         new BulkLoadArrayRequestModel()
@@ -566,14 +591,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     assertThat(
         "there are two successful ingest rows", ingestResponseJson.getRowCount(), equalTo(2L));
-
     assertThat("there were no bad ingest rows", ingestResponseJson.getBadRowCount(), equalTo(0L));
-
-    String failingContents =
-        "sample_name,data_type,vcf_file_ref,vcf_index_file_ref\n"
-            + String.format("NA12878_fail,fail,%s,%s", UUID.randomUUID(), UUID.randomUUID());
-    String failingControlFile =
-        blobIOTestUtility.uploadFileWithContents("dataset-files-ingest-fail.csv", failingContents);
 
     IngestRequestModel failingIngestRequest =
         new IngestRequestModel()
@@ -581,7 +599,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
             .table("sample_vcf")
-            .path(failingControlFile)
+            .path(noFilesControlFile)
             .profileId(profileId)
             .loadTag(Names.randomizeName("test2"))
             .csvSkipLeadingRows(2);

@@ -118,11 +118,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
       addStep(
           new IngestValidateAzureRefsStep(
-              resourceService,
-              azureAuthService,
-              datasetService,
-              azureSynapsePdao,
-              tableDirectoryDao));
+              azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
     }
     addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);

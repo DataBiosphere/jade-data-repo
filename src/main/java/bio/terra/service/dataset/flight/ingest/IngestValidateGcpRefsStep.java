@@ -48,10 +48,4 @@ public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
 
     return handleInvalidRefs(invalidRefIds);
   }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    // The update will update row ids that are null, so it can be restarted on failure.
-    return StepResult.getStepResultSuccess();
-  }
 }

@@ -188,6 +188,11 @@ public class TableDirectoryDao {
                       .map(refId -> String.format("fileId eq '%s'", refId))
                       .collect(Collectors.joining(" or "));
               ListEntitiesOptions options = new ListEntitiesOptions().setFilter(filter);
+              // Check to see if table has entities to avoid NPEs
+              if (!TableServiceClientUtils.tableHasEntries(
+                  tableServiceClient, TABLE_NAME, options)) {
+                return refIds.stream();
+              }
               PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
               List<String> validRefIds =
                   entities.stream()

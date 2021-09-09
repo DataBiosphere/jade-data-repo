@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 public final class IngestMapKeys {
+
   private IngestMapKeys() {}
 
   public static final String PREFIX = "ingest-";
@@ -12,4 +13,5 @@ public final class IngestMapKeys {
   public static final String TABLE_SCHEMA_FILE_COLUMNS = PREFIX + "tableSchemaFileColumns";
   public static final String INGEST_SCRATCH_FILE_PATH = PREFIX + "ingestScratchFilePath";
   public static final String PARQUET_FILE_PATH = PREFIX + "parquetFilePath";
+  public static final String STORAGE_ACCOUNT_RESOURCE = PREFIX + "storageAccountResource";
 }

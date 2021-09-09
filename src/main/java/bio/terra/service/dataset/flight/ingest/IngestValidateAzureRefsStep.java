@@ -8,8 +8,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
 import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import java.util.List;
@@ -18,19 +18,16 @@ import java.util.stream.Collectors;
 public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
 
   private final AzureAuthService azureAuthService;
-  private final ResourceService resourceService;
   private final DatasetService datasetService;
   private final AzureSynapsePdao azureSynapsePdao;
   private final TableDirectoryDao tableDirectoryDao;
 
   public IngestValidateAzureRefsStep(
-      ResourceService resourceService,
       AzureAuthService azureAuthService,
       DatasetService datasetService,
       AzureSynapsePdao azureSynapsePdao,
       TableDirectoryDao tableDirectoryDao) {
     this.azureAuthService = azureAuthService;
-    this.resourceService = resourceService;
     this.datasetService = datasetService;
     this.azureSynapsePdao = azureSynapsePdao;
     this.tableDirectoryDao = tableDirectoryDao;
@@ -39,12 +36,11 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     var workingMap = context.getWorkingMap();
-    var flightId = context.getFlightId();
     var dataset = IngestUtils.getDataset(context, datasetService);
 
     var billingProfile = workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
     var storageAccountResource =
-        resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
+        workingMap.get(IngestMapKeys.STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
     var tableServiceClient =
         azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
@@ -67,11 +63,5 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
             .collect(Collectors.toList());
 
     return handleInvalidRefs(invalidRefIds);
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    // The update will update row ids that are null, so it can be restarted on failure.
-    return StepResult.getStepResultSuccess();
   }
 }

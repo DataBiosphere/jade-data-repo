@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.service.dataset.exception.InvalidFileRefException;
+import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.ArrayList;
@@ -29,6 +30,12 @@ public abstract class IngestValidateRefsStep implements Step {
       throw new InvalidFileRefException(errorMessage.toString(), errorDetails);
     }
 
+    return StepResult.getStepResultSuccess();
+  }
+
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    // The update will update row ids that are null, so it can be restarted on failure.
     return StepResult.getStepResultSuccess();
   }
 }

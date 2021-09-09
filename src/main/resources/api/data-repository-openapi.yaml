@@ -2366,12 +2366,9 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Id'
       responses:
-        200:
-          description: Return metadata result
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SearchMetadataModel'
+        204:
+          description: Search metadata was successfully deleted
+          content: {}
         400:
           description: Bad request - invalid id, badly formed
           content:

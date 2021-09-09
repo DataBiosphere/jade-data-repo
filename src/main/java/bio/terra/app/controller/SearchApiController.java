@@ -104,8 +104,7 @@ public class SearchApiController implements SearchApi {
       @Valid @RequestBody SearchMetadataRequest searchMetadataRequest) {
     try {
       SearchMetadataModel searchMetadataModel = new SearchMetadataModel();
-      searchMetadataModel.setMetadataSummary(
-          "Upserted search metadata for snapshot " + id);
+      searchMetadataModel.setMetadataSummary("Upserted search metadata for snapshot " + id);
       return new ResponseEntity<>(searchMetadataModel, HttpStatus.OK);
     } catch (Exception e) {
       throw new ApiException("Could not upsert metadata for snapshot " + id, e);
@@ -113,13 +112,9 @@ public class SearchApiController implements SearchApi {
   }
 
   @Override
-  public ResponseEntity<SearchMetadataModel> deleteSearchMetadata(
-      @PathVariable("id") UUID id) {
+  public ResponseEntity<Void> deleteSearchMetadata(@PathVariable("id") UUID id) {
     try {
-      SearchMetadataModel searchMetadataModel = new SearchMetadataModel();
-      searchMetadataModel.setMetadataSummary(
-          "Deleted search metadata for snapshot " + id);
-      return new ResponseEntity<>(searchMetadataModel, HttpStatus.OK);
+      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     } catch (Exception e) {
       throw new ApiException("Could not delete metadata for snapshot " + id, e);
     }

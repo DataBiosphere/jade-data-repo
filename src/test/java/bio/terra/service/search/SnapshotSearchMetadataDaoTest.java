@@ -16,6 +16,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.After;
@@ -59,15 +60,14 @@ public class SnapshotSearchMetadataDaoTest {
         Stream.generate(UUID::randomUUID)
             .limit(3)
             .peek(
-                uuid -> {
-                  var snapshot =
-                      new Snapshot()
-                          .id(uuid)
-                          .name("snap-" + uuid)
-                          .profileId(profileId)
-                          .projectResourceId(projectId);
-                  snapshotDao.createAndLock(snapshot, flightId);
-                })
+                uuid ->
+                    snapshotDao.createAndLock(
+                        new Snapshot()
+                            .id(uuid)
+                            .name("snap-" + uuid)
+                            .profileId(profileId)
+                            .projectResourceId(projectId),
+                        flightId))
             .collect(Collectors.toList());
   }
 
@@ -81,13 +81,22 @@ public class SnapshotSearchMetadataDaoTest {
   // Test invalid foreign key constraint on snapshot ID.
   @Test(expected = DataIntegrityViolationException.class)
   public void testInvalidSnapshotId() {
-    snapshotSearchDao.putMetadata(new Snapshot().id(UUID.randomUUID()), "{}");
+    snapshotSearchDao.putMetadata(UUID.randomUUID(), "{}");
   }
 
   // Test invalid JSON data.
   @Test(expected = DataIntegrityViolationException.class)
   public void testInvalidJsonData() {
-    snapshotSearchDao.putMetadata(new Snapshot().id(snapshotIds.get(0)), "not json!");
+    snapshotSearchDao.putMetadata(snapshotIds.get(0), "not json!");
+  }
+
+  @Test
+  public void testPutMultiSnapshot() {
+    var data = "{\"test\": \"data\"}";
+    snapshotIds.forEach(uuid -> snapshotSearchDao.putMetadata(uuid, data));
+    assertThat(
+        snapshotSearchDao.getMetadata(snapshotIds),
+        is(snapshotIds.stream().collect(Collectors.toMap(Function.identity(), uuid -> data))));
   }
 
   @Test
@@ -97,19 +106,18 @@ public class SnapshotSearchMetadataDaoTest {
 
     // Test put/get with data.
     var snapshotId = snapshotIds.get(0);
-    var snapshot = new Snapshot().id(snapshotId);
     // The whitespace here is important as JSONB will reformat the JSON data.
     var data = "{\"name\": \"test\"}";
-    snapshotSearchDao.putMetadata(snapshot, data);
+    snapshotSearchDao.putMetadata(snapshotId, data);
     assertThat(snapshotSearchDao.getMetadata(snapshotIds), is(Map.of(snapshotId, data)));
 
     // Test data update.
     var data2 = "{\"another\": \"something\"}";
-    snapshotSearchDao.putMetadata(snapshot, data2);
+    snapshotSearchDao.putMetadata(snapshotId, data2);
     assertThat(snapshotSearchDao.getMetadata(snapshotIds), is(Map.of(snapshotId, data2)));
 
     // Test delete.
-    snapshotSearchDao.deleteMetadata(snapshot);
+    snapshotSearchDao.deleteMetadata(snapshotId);
     assertThat(snapshotSearchDao.getMetadata(snapshotIds), is(anEmptyMap()));
   }
 }

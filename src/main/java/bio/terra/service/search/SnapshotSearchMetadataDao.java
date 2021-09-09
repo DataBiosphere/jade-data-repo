@@ -1,6 +1,5 @@
 package bio.terra.service.search;
 
-import bio.terra.service.snapshot.Snapshot;
 import java.sql.Types;
 import java.util.HashMap;
 import java.util.List;
@@ -38,17 +37,17 @@ public class SnapshotSearchMetadataDao {
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void putMetadata(Snapshot snapshot, String jsonData) {
+  public void putMetadata(UUID snapshotId, String jsonData) {
     var params =
         new MapSqlParameterSource()
-            .addValue("snapshot_id", snapshot.getId())
+            .addValue("snapshot_id", snapshotId)
             .addValue("metadata", jsonData, Types.OTHER);
     jdbcTemplate.update(PUT_METADATA, params);
   }
 
   @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-  public void deleteMetadata(Snapshot snapshot) {
-    var params = new MapSqlParameterSource().addValue("snapshot_id", snapshot.getId());
+  public void deleteMetadata(UUID snapshotId) {
+    var params = new MapSqlParameterSource().addValue("snapshot_id", snapshotId);
     jdbcTemplate.update(DELETE_METADATA, params);
   }
 

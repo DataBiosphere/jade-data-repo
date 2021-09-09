@@ -22,12 +22,16 @@ import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,8 +45,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class TableDirectoryDaoConnectedTest {
+  private static final Logger logger =
+      LoggerFactory.getLogger(TableDirectoryDaoConnectedTest.class);
   private UUID datasetId;
   private TableServiceClient tableServiceClient;
+  private List<String> directoryEntriesToCleanup = new ArrayList<>();
+  private String tableName;
 
   @Autowired AzureSynapsePdao azureSynapsePdao;
   @Autowired ConnectedOperations connectedOperations;
@@ -75,13 +83,26 @@ public class TableDirectoryDaoConnectedTest {
 
   @After
   public void cleanup() throws Exception {
+    // Should already be deleted
+    for (String entry : directoryEntriesToCleanup) {
+      try {
+        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, entry);
+      } catch (Exception ex) {
+        logger.debug("Directory entry either already deleted or unable to delete {}", entry, ex);
+      }
+    }
+    if (tableName != null) {
+      try {
+        TableClient tableClient = tableServiceClient.getTableClient(tableName);
+        tableClient.deleteTable();
+      } catch (Exception ex) {
+        logger.error("Unable to delete table {}", tableName, ex);
+      }
+    }
 
     connectedOperations.teardown();
-    // TODO - clean out added entries from storage table
   }
 
-  // TODO - test other directory options:
-  // https://github.com/DataBiosphere/jade-data-repo/pull/1033/files#diff-65a4bf8d889dc4806c26c0a005ac19e9b8bbc24377583debc3689ff2679f55a8R62
   @Test
   public void testStorageTableMetadataDuringFileIngest() {
     // Test re-using same directory path, but for different files
@@ -189,6 +210,7 @@ public class TableDirectoryDaoConnectedTest {
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
     tableDirectoryDao.createDirectoryEntry(tableServiceClient, newEntry);
+    directoryEntriesToCleanup.add(fileId.toString());
 
     // test that directory entry now exists
     return tableDirectoryDao.retrieveByPath(
@@ -197,7 +219,7 @@ public class TableDirectoryDaoConnectedTest {
 
   @Test
   public void testDirectoryTableCreateDelete() {
-    String tableName = Names.randomizeName("testTable123").replaceAll("_", "");
+    tableName = Names.randomizeName("testTable123").replaceAll("_", "");
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
 
     boolean tableExists = TableServiceClientUtils.tableExists(tableServiceClient, tableName);

@@ -8,6 +8,7 @@ import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
+import com.google.common.annotations.VisibleForTesting;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
@@ -151,7 +152,8 @@ public class AzureStorageTablePdao {
    * @param datasetId The datasetId root of the table name
    * @return A valid azure storage table name with load history suffix.
    */
-  private static String toLoadHistoryTableNameFromUUID(UUID datasetId) {
+  @VisibleForTesting
+  public static String toLoadHistoryTableNameFromUUID(UUID datasetId) {
     return "datarepo" + datasetId.toString().replaceAll("-", "") + LOAD_HISTORY_TABLE_NAME_SUFFIX;
   }
 
@@ -187,7 +189,7 @@ public class AzureStorageTablePdao {
           .state(
               BulkLoadFileState.valueOf(
                   tableEntity.getProperty(LoadHistoryUtil.STATE_FIELD_NAME).toString()))
-          .fileId(tableEntity.getProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME).toString())
+          .fileId((String) tableEntity.getProperty(LoadHistoryUtil.FILE_ID_FIELD_NAME))
           .checksumCRC((String) tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_CRC32C_FIELD_NAME))
           .checksumMD5((String) tableEntity.getProperty(LoadHistoryUtil.CHECKSUM_MD5_FIELD_NAME))
           .error((String) tableEntity.getProperty(LoadHistoryUtil.ERROR_FIELD_NAME));

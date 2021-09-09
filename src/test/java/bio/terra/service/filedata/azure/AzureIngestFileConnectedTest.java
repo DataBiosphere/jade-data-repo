@@ -2,6 +2,7 @@ package bio.terra.service.filedata.azure;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
@@ -37,6 +38,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -50,9 +53,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class AzureIngestFileConnectedTest {
+  private static final Logger logger = LoggerFactory.getLogger(AzureIngestFileConnectedTest.class);
   private UUID datasetId;
   private String targetPath;
   private UUID homeTenantId;
+  private String fileId;
 
   private AzureStorageAccountResource storageAccountResource;
   private BillingProfileModel billingProfile;
@@ -137,18 +142,25 @@ public class AzureIngestFileConnectedTest {
             .mimeType("application/json")
             .targetPath(targetPath)
             .loadTag(Names.randomizeName("loadTag"));
+
+    fileId = UUID.randomUUID().toString();
   }
 
   @After
   public void cleanup() throws Exception {
+    try {
+      tableDao.deleteFileMetadata(fileId, billingProfile, storageAccountResource);
+      tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileId);
+    } catch (Exception ex) {
+      logger.error("Unable to clean up metadata for fileId {}", fileId, ex);
+    }
     azureResourceConfiguration.getCredentials().setHomeTenantId(homeTenantId);
     connectedOperations.teardown();
   }
 
   @Test
   public void testStorageTableMetadataDuringFileIngest() {
-    // 0 - IngestFileIdStep
-    String fileId = UUID.randomUUID().toString();
+    // 0 - IngestFileIdStep - Done in test setup
     // 1 - IngestFileAzurePrimaryDataLocationStep
     // define storage account (this is already defined in the test setup)
     // 2 - IngestFileAzureMakeStorageAccountLinkStep
@@ -161,7 +173,7 @@ public class AzureIngestFileConnectedTest {
         tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), targetPath);
     assertThat("directory should not yet exist.", de, equalTo(null));
 
-    // 4 - IngestFileAzureDirectoryStep // TODO - test other cases
+    // 4 - IngestFileAzureDirectoryStep
     // Testing case 1 - Directory entry doesn't exist and needs to be created
     // (1) Not there - create it
     FireStoreDirectoryEntry newEntry =
@@ -173,6 +185,7 @@ public class AzureIngestFileConnectedTest {
             .datasetId(datasetId.toString())
             .loadTag(fileLoadModel.getLoadTag());
     tableDirectoryDao.createDirectoryEntry(tableServiceClient, newEntry);
+
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =
         tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), targetPath);
@@ -203,5 +216,10 @@ public class AzureIngestFileConnectedTest {
     FileModel resultingFileModel = fileService.fileModelFromFSItem(fsItem);
     assertThat(
         "file model contains correct info.", resultingFileModel.getFileId(), equalTo(fileId));
+
+    // Testing other cases from IngestFileAzureDirectoryStep (step 4 above)
+    // We use this to check if we are in re-run of a load job
+    FireStoreFile fileEntry = tableDao.lookupFile(fileId, billingProfile, storageAccountResource);
+    assertThat("FileEntry should not be null", fileEntry, notNullValue());
   }
 }

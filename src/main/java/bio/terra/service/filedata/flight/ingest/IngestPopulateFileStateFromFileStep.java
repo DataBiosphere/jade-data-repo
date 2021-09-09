@@ -1,16 +1,10 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.common.FlightUtils;
 import bio.terra.model.BulkLoadFileModel;
-import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
-import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.filedata.google.gcs.GcsBufferedReader;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -19,7 +13,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.google.cloud.storage.Storage;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -48,6 +41,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
         .registerModule(new JavaTimeModule())
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
   }
+
   void readFile(BufferedReader reader, UUID loadId) {
     ObjectMapper objectMapper = getObjectMapper();
     List<String> errorDetails = new ArrayList<>();

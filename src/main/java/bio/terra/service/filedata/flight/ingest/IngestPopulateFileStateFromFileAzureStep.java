@@ -13,7 +13,6 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;

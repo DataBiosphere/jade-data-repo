@@ -4,7 +4,6 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.configuration.ConfigurationService;

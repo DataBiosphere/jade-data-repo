@@ -6,11 +6,12 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public abstract class IngestValidateRefsStep implements Step {
   private static final int MAX_ERROR_REF_IDS = 20;
 
-  public StepResult handleInvalidRefs(List<String> invalidRefIds) {
+  public StepResult handleInvalidRefs(Set<String> invalidRefIds) {
     int invalidIdCount = invalidRefIds.size();
     if (invalidIdCount != 0) {
       // Made a string buffer to appease findbugs; it saw + in the loop and said "bad!"

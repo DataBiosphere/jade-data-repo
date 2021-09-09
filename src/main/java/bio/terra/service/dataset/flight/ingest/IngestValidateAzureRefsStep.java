@@ -3,7 +3,6 @@ package bio.terra.service.dataset.flight.ingest;
 import bio.terra.common.Column;
 import bio.terra.common.Table;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
@@ -13,6 +12,7 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
@@ -51,16 +51,16 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
     // Then probe the file system to validate that the file exists and is part
     // of this dataset. We check all ids and return one complete error.
 
-    List<String> invalidRefIds =
+    Set<String> invalidRefIds =
         table.getColumns().stream()
             .map(Column::toSynapseColumn)
-            .filter(column -> column.getType() == TableDataType.FILEREF)
+            .filter(Column::isFileOrDirRef)
             .flatMap(
                 column -> {
                   List<String> refIdArray = azureSynapsePdao.getRefIds(tableName, column);
                   return tableDirectoryDao.validateRefIds(tableServiceClient, refIdArray).stream();
                 })
-            .collect(Collectors.toList());
+            .collect(Collectors.toSet());
 
     return handleInvalidRefs(invalidRefIds);
   }

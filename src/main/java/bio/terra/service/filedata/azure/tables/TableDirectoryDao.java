@@ -12,6 +12,7 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
@@ -194,11 +195,11 @@ public class TableDirectoryDao {
                 return refIds.stream();
               }
               PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-              List<String> validRefIds =
+              Set<String> validRefIds =
                   entities.stream()
                       .map(e -> e.getProperty("fileId").toString())
-                      .collect(Collectors.toList());
-              return ListUtils.subtract(refIds, validRefIds).stream();
+                      .collect(Collectors.toSet());
+              return refIds.stream().filter(id -> !validRefIds.contains(id));
             })
         .collect(Collectors.toList());
   }

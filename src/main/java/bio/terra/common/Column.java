@@ -92,4 +92,8 @@ public class Column {
   public ColumnModel toColumnModel() {
     return new ColumnModel().name(name).datatype(type).arrayOf(arrayOf);
   }
+
+  public boolean isFileOrDirRef() {
+    return type == TableDataType.FILEREF || type == TableDataType.DIRREF;
+  }
 }

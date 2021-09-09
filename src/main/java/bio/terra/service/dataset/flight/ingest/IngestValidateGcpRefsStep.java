@@ -2,15 +2,15 @@ package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Column;
 import bio.terra.common.Table;
-import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
 
@@ -35,9 +35,9 @@ public class IngestValidateGcpRefsStep extends IngestValidateRefsStep {
     // Then probe the file system to validate that the file exists and is part
     // of this dataset. We check all ids and return one complete error.
 
-    List<String> invalidRefIds = new ArrayList<>();
+    Set<String> invalidRefIds = new HashSet<>();
     for (Column column : table.getColumns()) {
-      if (column.getType() == TableDataType.FILEREF) {
+      if (column.isFileOrDirRef()) {
         List<String> refIdArray = bigQueryPdao.getRefIds(dataset, stagingTableName, column);
         List<String> badRefIds = fileDao.validateRefIds(dataset, refIdArray);
         if (badRefIds != null) {

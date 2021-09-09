@@ -100,14 +100,15 @@ public class SearchApiController implements SearchApi {
 
   @Override
   public ResponseEntity<SearchMetadataModel> upsertSearchMetadata(
-      @PathVariable("id") String id,
+      @PathVariable("id") UUID id,
       @Valid @RequestBody SearchMetadataRequest searchMetadataRequest) {
     try {
       SearchMetadataModel searchMetadataModel = new SearchMetadataModel();
-      searchMetadataModel.setMetadataSummary("Upserted search metadata for snapshot " + id);
+      searchMetadataModel.setMetadataSummary(
+          "Upserted search metadata for snapshot " + id.toString());
       return new ResponseEntity<>(searchMetadataModel, HttpStatus.OK);
     } catch (Exception e) {
-      throw new ApiException("Could not upsert metadata for snapshot " + id, e);
+      throw new ApiException("Could not upsert metadata for snapshot " + id.toString(), e);
     }
   }
 

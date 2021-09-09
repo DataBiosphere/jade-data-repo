@@ -2323,7 +2323,7 @@ paths:
       description: Insert or update search metadata for a snapshot
       operationId: upsertSearchMetadata
       parameters:
-        - $ref: '#/components/schemas/UniqueIdProperty'
+        - $ref: '#/components/parameters/Id'
       requestBody:
         description: Search metadata to upsert on a snapshot
         content:

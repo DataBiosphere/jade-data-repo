@@ -36,6 +36,7 @@ import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
+import bio.terra.service.job.exception.InvalidJobParameterException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.Collections;
@@ -178,6 +179,11 @@ public class DatasetsApiController implements DatasetsApi {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
+    List<String> ingestParameterErrors = ingestRequestValidator.validateIngestParams(ingest, id);
+    if (!ingestParameterErrors.isEmpty()) {
+      throw new InvalidJobParameterException(
+          "Invalid ingest parameters detected", ingestParameterErrors);
+    }
     String jobId = datasetService.ingestDataset(id.toString(), ingest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }

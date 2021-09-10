@@ -8,7 +8,6 @@ import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
-import bio.terra.service.job.exception.InvalidJobParameterException;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
@@ -203,10 +202,6 @@ public class AzureSynapsePdao {
     sqlCreateTableTemplate.add("isCSV", isCSV);
     if (isCSV) {
       sqlCreateTableTemplate.add("parserVersion", PARSER_VERSION);
-      if (csvSkipLeadingRows == null) {
-        throw new InvalidJobParameterException(
-            "For CSV ingests, 'csvSkipLeadingRows' must be defined.");
-      }
       sqlCreateTableTemplate.add("firstRow", csvSkipLeadingRows);
       sqlCreateTableTemplate.add(
           "fieldTerminator",

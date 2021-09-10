@@ -133,7 +133,7 @@ public class AzureSynapsePdaoConnectedTest {
       logger.info("Unable to delete parquet files.");
     }
 
-    azureSynapsePdao.dropTables(Arrays.asList(tableName));
+    azureSynapsePdao.dropTables(List.of(tableName));
     azureSynapsePdao.dropDataSources(
         Arrays.asList(destinationDataSourceName, ingestRequestDataSourceName));
     azureSynapsePdao.dropScopedCredentials(
@@ -173,9 +173,7 @@ public class AzureSynapsePdaoConnectedTest {
         synapseUtils.readParquetFileStringColumn(
             destinationParquetFile, destinationDataSourceName, "textCol", true);
     assertThat(
-        "The text columns should be properly quoted",
-        textCols,
-        equalTo(Arrays.asList("Dao!", "Jones!")));
+        "The text columns should be properly quoted", textCols, equalTo(List.of("Dao!", "Jones!")));
   }
 
   @Test
@@ -244,7 +242,7 @@ public class AzureSynapsePdaoConnectedTest {
         synapseUtils.readParquetFileStringColumn(
             destinationParquetFile, destinationDataSourceName, "first_name", true);
     assertThat(
-        "List of names should equal the input", firstNames, equalTo(Arrays.asList("Bob", "Sally")));
+        "List of names should equal the input", firstNames, equalTo(List.of("Bob", "Sally")));
 
     // 4 - clean out synapse
     // we'll do this in the test cleanup method, but it will be a step in the normal flight

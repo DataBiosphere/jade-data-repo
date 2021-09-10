@@ -11,12 +11,7 @@ import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobClientBuilder;
-import com.azure.storage.blob.BlobUrlParts;
 import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.UUID;
 
 // Populate the files to be loaded from the incoming array
@@ -47,7 +42,8 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
 
     String blobStoreUrl = loadRequest.getLoadControlFile();
     IngestUtils.validateBlobAzureBlobFileURL(blobStoreUrl);
-    BufferedReader reader = azureBlobStorePdao.buildBlobReader(blobStoreUrl, billingProfileModel.getTenantId());
+    BufferedReader reader =
+        azureBlobStorePdao.buildBlobReader(blobStoreUrl, billingProfileModel.getTenantId());
     readFile(reader, loadId);
     return StepResult.getStepResultSuccess();
   }

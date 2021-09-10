@@ -5,9 +5,7 @@ import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.FSFileInfo;
-import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobCrl;
 import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
@@ -32,6 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
@@ -280,9 +279,33 @@ public class AzureBlobStorePdao {
         new BlobSasTokenOptions(
             DEFAULT_SAS_TOKEN_EXPIRATION,
             new BlobSasPermission().setReadPermission(true),
-            AzureSynapsePdao.class.getName());
+            AzureBlobStorePdao.class.getName());
     String signedURL =
         sourceClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
+    return BlobUrlParts.parse(signedURL);
+  }
+
+  public BlobUrlParts getOrSignUrlForTargetFactory(
+      String dataSourceUrl,
+      BillingProfileModel profileModel,
+      AzureStorageAccountResource storageAccount) {
+    BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
+    String blobName = ingestControlFileBlobUrl.getBlobName();
+
+    BlobContainerClientFactory targetDataClientFactory =
+        getTargetDataClientFactory(profileModel, storageAccount, ContainerType.METADATA, false);
+
+    // Given the sas token, rebuild a signed url
+    BlobSasTokenOptions options =
+        new BlobSasTokenOptions(
+            DEFAULT_SAS_TOKEN_EXPIRATION,
+            new BlobSasPermission()
+                .setReadPermission(true)
+                .setListPermission(true)
+                .setWritePermission(true),
+            AzureBlobStorePdao.class.getName());
+    String signedURL =
+        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
     return BlobUrlParts.parse(signedURL);
   }
 
@@ -290,8 +313,9 @@ public class AzureBlobStorePdao {
     BlobUrlParts ingestRequestSignUrlBlob = getOrSignUrlForSourceFactory(blobStoreUrl, tenantId);
     BlobClient blobClient =
         new BlobClientBuilder().endpoint(ingestRequestSignUrlBlob.toUrl().toString()).buildClient();
+
     InputStream inputStream = blobClient.openInputStream();
-    return new BufferedReader(new InputStreamReader(inputStream));
+    return new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
   }
 
   @VisibleForTesting

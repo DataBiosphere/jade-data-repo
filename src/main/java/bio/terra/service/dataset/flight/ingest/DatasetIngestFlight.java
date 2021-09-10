@@ -16,6 +16,7 @@ import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
@@ -68,6 +69,7 @@ public class DatasetIngestFlight extends Flight {
     AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
     TableDirectoryDao tableDirectoryDao = appContext.getBean(TableDirectoryDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
+    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
 
     IngestRequestModel ingestRequestModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
@@ -112,9 +114,10 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
     } else if (cloudPlatform.is(CloudPlatform.AZURE)) {
-      addStep(new IngestCreateIngestRequestDataSourceStep(azureSynapsePdao));
+      addStep(new IngestCreateIngestRequestDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
       addStep(
-          new IngestCreateTargetDataSourceStep(azureSynapsePdao, datasetService, resourceService));
+          new IngestCreateTargetDataSourceStep(
+              azureSynapsePdao, azureBlobStorePdao, datasetService, resourceService));
       addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
       addStep(
           new IngestValidateAzureRefsStep(

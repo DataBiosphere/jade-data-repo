@@ -2,19 +2,13 @@ package bio.terra.service.filedata.azure;
 
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
-import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
-import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.sql.Connection;
@@ -25,7 +19,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.NotImplementedException;
 import org.slf4j.Logger;
@@ -136,54 +129,6 @@ public class AzureSynapsePdao {
       AzureBlobStorePdao azureBlobStorePdao) {
     this.azureResourceConfiguration = azureResourceConfiguration;
     this.azureBlobStorePdao = azureBlobStorePdao;
-  }
-
-  public BlobUrlParts getOrSignUrlForSourceFactory(String dataSourceUrl, UUID tenantId) {
-    // parse user provided url to Azure container - can be signed or unsigned
-    BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
-    String blobName = ingestControlFileBlobUrl.getBlobName();
-
-    // during factory build, we check if url is signed
-    // if not signed, we generate the sas token
-    // when signing, 'tdr' (the Azure app), must be granted permission on the storage account
-    // associated with the provided tenant ID
-    BlobContainerClientFactory sourceClientFactory =
-        azureBlobStorePdao.buildSourceClientFactory(tenantId, dataSourceUrl);
-
-    // Given the sas token, rebuild a signed url
-    BlobSasTokenOptions options =
-        new BlobSasTokenOptions(
-            DEFAULT_SAS_TOKEN_EXPIRATION,
-            new BlobSasPermission().setReadPermission(true),
-            AzureSynapsePdao.class.getName());
-    String signedURL =
-        sourceClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
-    return BlobUrlParts.parse(signedURL);
-  }
-
-  public BlobUrlParts getOrSignUrlForTargetFactory(
-      String dataSourceUrl,
-      BillingProfileModel profileModel,
-      AzureStorageAccountResource storageAccount) {
-    BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
-    String blobName = ingestControlFileBlobUrl.getBlobName();
-
-    BlobContainerClientFactory targetDataClientFactory =
-        azureBlobStorePdao.getTargetDataClientFactory(
-            profileModel, storageAccount, ContainerType.METADATA, false);
-
-    // Given the sas token, rebuild a signed url
-    BlobSasTokenOptions options =
-        new BlobSasTokenOptions(
-            DEFAULT_SAS_TOKEN_EXPIRATION,
-            new BlobSasPermission()
-                .setReadPermission(true)
-                .setListPermission(true)
-                .setWritePermission(true),
-            AzureSynapsePdao.class.getName());
-    String signedURL =
-        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
-    return BlobUrlParts.parse(signedURL);
   }
 
   public void createExternalDataSource(

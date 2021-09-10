@@ -5,6 +5,7 @@ import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
@@ -19,6 +20,8 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.core.credential.TokenCredential;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -26,6 +29,9 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.google.common.annotations.VisibleForTesting;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
@@ -278,6 +284,14 @@ public class AzureBlobStorePdao {
     String signedURL =
         sourceClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
     return BlobUrlParts.parse(signedURL);
+  }
+
+  public BufferedReader buildBlobReader(String blobStoreUrl, UUID tenantId) {
+    BlobUrlParts ingestRequestSignUrlBlob = getOrSignUrlForSourceFactory(blobStoreUrl, tenantId);
+    BlobClient blobClient =
+        new BlobClientBuilder().endpoint(ingestRequestSignUrlBlob.toUrl().toString()).buildClient();
+    InputStream inputStream = blobClient.openInputStream();
+    return new BufferedReader(new InputStreamReader(inputStream));
   }
 
   @VisibleForTesting

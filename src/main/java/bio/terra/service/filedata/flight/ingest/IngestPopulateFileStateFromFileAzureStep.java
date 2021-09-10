@@ -47,16 +47,8 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
 
     String blobStoreUrl = loadRequest.getLoadControlFile();
     IngestUtils.validateBlobAzureBlobFileURL(blobStoreUrl);
-    BlobUrlParts ingestRequestSignUrlBlob =
-        azureBlobStorePdao.getOrSignUrlForSourceFactory(
-            blobStoreUrl, billingProfileModel.getTenantId());
-    // This is currently only used in testing - why is that? Am I missing something?
-    BlobClient blobClient =
-        new BlobClientBuilder().endpoint(ingestRequestSignUrlBlob.toUrl().toString()).buildClient();
-    // ByteArrayOutputStream stream = new ByteArrayOutputStream();
-    // blobClient.downloadStream(stream);
-    InputStream inputStream = blobClient.openInputStream();
-    readFile(new BufferedReader(new InputStreamReader(inputStream)), loadId);
+    BufferedReader reader = azureBlobStorePdao.buildBlobReader(blobStoreUrl, billingProfileModel.getTenantId());
+    readFile(reader, loadId);
     return StepResult.getStepResultSuccess();
   }
 

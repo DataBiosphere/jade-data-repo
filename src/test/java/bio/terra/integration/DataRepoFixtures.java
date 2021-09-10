@@ -18,6 +18,8 @@ import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadHistoryModelList;
+import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
@@ -625,6 +627,32 @@ public class DataRepoFixtures {
     }
     ErrorModel errorModel = response.getErrorObject().orElse(null);
     logger.error("bulkLoadArray failed: " + errorModel);
+    fail();
+    return null; // Make findbugs happy
+  }
+
+  public BulkLoadResultModel bulkLoad(
+      TestConfiguration.User user, UUID datasetId, BulkLoadRequestModel requestModel)
+      throws Exception {
+
+    String json = TestUtils.mapToJson(requestModel);
+
+    DataRepoResponse<JobModel> launchResponse =
+        dataRepoClient.post(
+            user, "/api/repository/v1/datasets/" + datasetId + "/files/bulk", json, JobModel.class);
+    assertTrue("bulkLoad launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(
+        "bulkload launch response is present", launchResponse.getResponseObject().isPresent());
+
+    DataRepoResponse<BulkLoadResultModel> response =
+        dataRepoClient.waitForResponse(user, launchResponse, BulkLoadResultModel.class);
+    if (response.getStatusCode().is2xxSuccessful()) {
+      assertThat("bulkLoad is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+      assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
+      return response.getResponseObject().get();
+    }
+    ErrorModel errorModel = response.getErrorObject().orElse(null);
+    logger.error("bulkLoad failed: " + errorModel);
     fail();
     return null; // Make findbugs happy
   }

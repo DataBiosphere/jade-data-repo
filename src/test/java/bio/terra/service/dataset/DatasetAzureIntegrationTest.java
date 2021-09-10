@@ -30,6 +30,8 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
+import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -45,6 +47,7 @@ import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -299,6 +302,35 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     FileModel file2Model =
         dataRepoFixtures.getFileByName(steward(), datasetId, file2.getTargetPath());
     assertThat("Test retrieve file by path", file2Model.getFileId(), equalTo(file2.getFileId()));
+
+    // ingest via control file
+    // make sure file doesn't already exist
+    String flightId = UUID.randomUUID().toString();
+    String controlFileBlob = flightId + "/file-ingest-request.json";
+    List<BulkLoadFileModel> bulkLoadFileModelList = new ArrayList<>();
+    bulkLoadFileModelList.add(
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(
+                String.format("%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+            .targetPath(String.format("%s/%s", flightId, "target.txt")));
+    bulkLoadFileModelList.add(
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(
+                String.format("%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+            .targetPath(String.format("%s/%s", flightId, "target2.txt")));
+
+    String controlFileUrl =
+        blobIOTestUtility.uploadControlFile(controlFileBlob, bulkLoadFileModelList);
+
+    BulkLoadRequestModel request =
+        new BulkLoadRequestModel()
+            .loadControlFile(controlFileUrl)
+            .loadTag(Names.randomizeName("loadTag"))
+            .profileId(profileId);
+    BulkLoadResultModel bulkLoadResult = dataRepoFixtures.bulkLoad(steward, datasetId, request);
+    assertThat("result", bulkLoadResult.getSucceededFiles(), equalTo(2));
 
     // Ingest Metadata - 1 row from JSON file
     String tableName = "vocabulary";

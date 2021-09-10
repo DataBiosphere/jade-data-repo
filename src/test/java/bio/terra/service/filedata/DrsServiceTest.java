@@ -29,10 +29,7 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.job.JobService;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
-import bio.terra.service.resourcemanagement.azure.AzureContainerPdao;
-import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.Snapshot;
@@ -61,9 +58,6 @@ public class DrsServiceTest {
   @Mock private ConfigurationService configurationService;
   @Mock private JobService jobService;
   @Mock private PerformanceLogger performanceLogger;
-  @Mock private ProfileService profileService;
-  @Mock private AzureResourceConfiguration azureResourceConfiguration;
-  @Mock private AzureContainerPdao azureContainerPdao;
   @Mock private AzureBlobStorePdao azureBlobStorePdao;
 
   private final DrsIdService drsIdService = new DrsIdService(new ApplicationConfiguration());
@@ -95,9 +89,6 @@ public class DrsServiceTest {
             configurationService,
             jobService,
             performanceLogger,
-            profileService,
-            azureResourceConfiguration,
-            azureContainerPdao,
             azureBlobStorePdao);
     when(jobService.getActivePodCount()).thenReturn(1);
     when(configurationService.getParameterValue(ConfigEnum.DRS_LOOKUP_MAX)).thenReturn(1);

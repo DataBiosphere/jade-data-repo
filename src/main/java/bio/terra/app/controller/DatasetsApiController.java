@@ -4,6 +4,7 @@ import static bio.terra.app.utils.ControllerUtils.jobToResponse;
 
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
+import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.ValidationUtils;
 import bio.terra.controller.DatasetsApi;
 import bio.terra.model.AssetModel;
@@ -26,6 +27,7 @@ import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SqlSortDirection;
 import bio.terra.service.dataset.AssetModelValidator;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -39,6 +41,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.job.exception.InvalidJobParameterException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -177,13 +180,9 @@ public class DatasetsApiController implements DatasetsApi {
   public ResponseEntity<JobModel> ingestDataset(
       @PathVariable("id") UUID id, @Valid @RequestBody IngestRequestModel ingest) {
     AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+    validateIngestParams(ingest, id);
     iamService.verifyAuthorization(
         userReq, IamResourceType.DATASET, id.toString(), IamAction.INGEST_DATA);
-    List<String> ingestParameterErrors = ingestRequestValidator.validateIngestParams(ingest, id);
-    if (!ingestParameterErrors.isEmpty()) {
-      throw new InvalidJobParameterException(
-          "Invalid ingest parameters detected", ingestParameterErrors);
-    }
     String jobId = datasetService.ingestDataset(id.toString(), ingest, userReq);
     return jobToResponse(jobService.retrieveJob(jobId, userReq));
   }
@@ -333,5 +332,50 @@ public class DatasetsApiController implements DatasetsApi {
             getAuthenticatedInfo(), IamResourceType.DATASET, id, policyName, memberEmail);
     PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
     return new ResponseEntity<>(response, HttpStatus.OK);
+  }
+
+  private void validateIngestParams(IngestRequestModel ingestRequestModel, UUID datasetId) {
+    Dataset dataset = datasetService.retrieve(datasetId);
+    CloudPlatformWrapper platform =
+        CloudPlatformWrapper.of(dataset.getDatasetSummary().getStorageCloudPlatform());
+
+    if (platform.isAzure()) {
+      validateAzureIngestParams(ingestRequestModel);
+    }
+  }
+
+  private void validateAzureIngestParams(IngestRequestModel ingestRequest) {
+    List<String> errors = new ArrayList<>();
+    if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV) {
+      // validate CSV parameters
+      if (ingestRequest.getCsvSkipLeadingRows() == null) {
+        errors.add("For CSV ingests, 'csvSkipLeadingRows' must be defined.");
+      } else if (ingestRequest.getCsvSkipLeadingRows() < 0) {
+        errors.add(
+            String.format(
+                "'csvSkipLeadingRows' must be a positive integer, was '%d.",
+                ingestRequest.getCsvSkipLeadingRows()));
+      }
+
+      if (ingestRequest.getCsvFieldDelimiter() == null) {
+        errors.add("For CSV ingests, 'csvFieldDelimiter' must be defined.");
+      } else if (ingestRequest.getCsvFieldDelimiter().length() != 1) {
+        errors.add(
+            String.format(
+                "'csvFieldDelimiter' must be a single character, was '%s'.",
+                ingestRequest.getCsvFieldDelimiter()));
+      }
+
+      if (ingestRequest.getCsvQuote() == null) {
+        errors.add("For CSV ingests, 'csvQuote' must be defined.");
+      } else if (ingestRequest.getCsvQuote().length() != 1) {
+        errors.add(
+            String.format(
+                "'csvQuote' must be a single character, was '%s'.", ingestRequest.getCsvQuote()));
+      }
+    }
+    if (!errors.isEmpty()) {
+      throw new InvalidJobParameterException("Invalid ingest parameters detected", errors);
+    }
   }
 }

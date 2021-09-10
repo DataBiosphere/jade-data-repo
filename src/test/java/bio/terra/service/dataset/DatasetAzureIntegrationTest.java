@@ -307,7 +307,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     assertThat("Test retrieve file by path", file2Model.getFileId(), equalTo(file2.getFileId()));
 
     // ingest via control file
-    // make sure file doesn't already exist
     String flightId = UUID.randomUUID().toString();
     String controlFileBlob = flightId + "/file-ingest-request.json";
     List<BulkLoadFileModel> bulkLoadFileModelList = new ArrayList<>();
@@ -336,7 +335,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     BulkLoadResultModel bulkLoadResult = dataRepoFixtures.bulkLoad(steward, datasetId, request);
     assertThat("result", bulkLoadResult.getSucceededFiles(), equalTo(2));
 
-    // Look up the loaded files
+    // Control file test - Look up the loaded files
     BulkLoadHistoryModelList controlFileLoadResults =
         dataRepoFixtures.getLoadHistory(steward, datasetId, bulkLoadTag, 0, 2);
     for (BulkLoadHistoryModel bulkFileEntry : controlFileLoadResults.getItems()) {

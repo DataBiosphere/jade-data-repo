@@ -15,6 +15,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
+import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
 import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
@@ -36,6 +37,7 @@ import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
 import bio.terra.service.resourcemanagement.ResourceService;
+import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.google.GoogleProjectService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
@@ -63,6 +65,8 @@ public class DatasetIngestFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     AzureSynapsePdao azureSynapsePdao = appContext.getBean(AzureSynapsePdao.class);
+    AzureAuthService azureAuthService = appContext.getBean(AzureAuthService.class);
+    TableDirectoryDao tableDirectoryDao = appContext.getBean(TableDirectoryDao.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
 
     IngestRequestModel ingestRequestModel =
@@ -104,8 +108,7 @@ public class DatasetIngestFlight extends Flight {
     if (cloudPlatform.is(CloudPlatform.GCP)) {
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
-      // TODO - For Azure, we'll cover this with DR-2017
-      addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));
+      addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
       addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
     } else if (cloudPlatform.is(CloudPlatform.AZURE)) {
@@ -113,6 +116,9 @@ public class DatasetIngestFlight extends Flight {
       addStep(
           new IngestCreateTargetDataSourceStep(azureSynapsePdao, datasetService, resourceService));
       addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
+      addStep(
+          new IngestValidateAzureRefsStep(
+              azureAuthService, datasetService, azureSynapsePdao, tableDirectoryDao));
       addStep(new IngestCleanSynapseStep(azureSynapsePdao));
     }
     addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);

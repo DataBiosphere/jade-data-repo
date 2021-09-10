@@ -10,11 +10,11 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
+import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +54,7 @@ import org.springframework.stereotype.Component;
 public class TableDirectoryDao {
   private final Logger logger = LoggerFactory.getLogger(TableDirectoryDao.class);
   private static final String TABLE_NAME = "dataset";
+  private static final int MAX_FILTER_CLAUSES = 15;
   private final FileMetadataUtils fileMetadataUtils;
 
   @Autowired
@@ -176,17 +177,31 @@ public class TableDirectoryDao {
         .orElse(null);
   }
 
-  public List<UUID> validateRefIds(TableServiceClient tableServiceClient, List<UUID> refIdArray) {
+  public List<String> validateRefIds(
+      TableServiceClient tableServiceClient, List<String> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
-    List<UUID> missingIds = new ArrayList<>();
-    for (UUID s : refIdArray) {
-      ListEntitiesOptions options =
-          new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", s.toString()));
-      if (!TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
-        missingIds.add(s);
-      }
-    }
-    return missingIds;
+    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+    return ListUtils.partition(refIdArray, MAX_FILTER_CLAUSES).stream()
+        .flatMap(
+            refIds -> {
+              String filter =
+                  refIds.stream()
+                      .map(refId -> String.format("fileId eq '%s'", refId))
+                      .collect(Collectors.joining(" or "));
+              ListEntitiesOptions options = new ListEntitiesOptions().setFilter(filter);
+              // Check to see if table has entities to avoid NPEs
+              if (!TableServiceClientUtils.tableHasEntries(
+                  tableServiceClient, TABLE_NAME, options)) {
+                return refIds.stream();
+              }
+              PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+              Set<String> validRefIds =
+                  entities.stream()
+                      .map(e -> e.getProperty("fileId").toString())
+                      .collect(Collectors.toSet());
+              return refIds.stream().filter(id -> !validRefIds.contains(id));
+            })
+        .collect(Collectors.toList());
   }
 
   List<FireStoreDirectoryEntry> enumerateDirectory(

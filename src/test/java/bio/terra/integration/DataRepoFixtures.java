@@ -541,12 +541,7 @@ public class DataRepoFixtures {
 
   public IngestResponseModel ingestJsonData(
       TestConfiguration.User user, UUID datasetId, IngestRequestModel request) throws Exception {
-
-    DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, datasetId, request);
-    assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
-    assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
-    DataRepoResponse<IngestResponseModel> response =
-        dataRepoClient.waitForResponse(user, launchResp, IngestResponseModel.class);
+    DataRepoResponse<IngestResponseModel> response = ingestJsonDataRaw(user, datasetId, request);
 
     assertThat("ingestOne is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("ingestOne response is present", response.getResponseObject().isPresent());
@@ -554,6 +549,14 @@ public class DataRepoFixtures {
     IngestResponseModel ingestResponse = response.getResponseObject().get();
     assertThat("no bad sample rows", ingestResponse.getBadRowCount(), equalTo(0L));
     return ingestResponse;
+  }
+
+  public DataRepoResponse<IngestResponseModel> ingestJsonDataRaw(
+      TestConfiguration.User user, UUID datasetId, IngestRequestModel request) throws Exception {
+    DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, datasetId, request);
+    assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
+    assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
+    return dataRepoClient.waitForResponse(user, launchResp, IngestResponseModel.class);
   }
 
   public DataRepoResponse<JobModel> ingestFileLaunch(

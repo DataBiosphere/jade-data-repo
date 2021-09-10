@@ -3,7 +3,9 @@ package bio.terra.service.dataset;
 import static bio.terra.service.filedata.azure.util.BlobIOTestUtility.MIB;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -22,6 +24,7 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.configuration.TestConfiguration.User;
 import bio.terra.common.fixtures.Names;
 import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
@@ -41,6 +44,7 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -60,6 +64,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.util.ResourceUtils;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -312,7 +317,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .profileId(profileId)
             .loadTag(Names.randomizeName("test"));
     IngestResponseModel ingestResponseJSON =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequestJSON);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestJSON);
     assertThat("1 Row was ingested", ingestResponseJSON.getRowCount(), equalTo(1L));
 
     // Ingest 2 rows from CSV
@@ -332,7 +337,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .loadTag(Names.randomizeName("test"))
             .csvSkipLeadingRows(2);
     IngestResponseModel ingestResponseCSV =
-        dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequestCSV);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequestCSV);
     assertThat("2 row were ingested", ingestResponseCSV.getRowCount(), equalTo(2L));
 
     // Delete the file we just ingested
@@ -481,6 +486,136 @@ public class DatasetAzureIntegrationTest extends UsersBase {
           loadHistoryModel,
           not(in(loadHistoryList1and2.getItems())));
     }
+
+    // Make sure that any failure in tearing down is presented as a test failure
+    blobIOTestUtility.deleteContainers();
+    clearEnvironment();
+  }
+
+  @Test
+  public void testDatasetFileRefValidation() throws Exception {
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward, profileId, "dataset-ingest-azure-fileref.json", CloudPlatform.AZURE);
+    datasetId = summaryModel.getId();
+
+    String noFilesContents =
+        "sample_name,data_type,vcf_file_ref,vcf_index_file_ref\n"
+            + String.format("NA12878_none,none,%s,%s", UUID.randomUUID(), UUID.randomUUID());
+    String noFilesControlFile =
+        blobIOTestUtility.uploadFileWithContents("dataset-files-ingest-fail.csv", noFilesContents);
+
+    IngestRequestModel noFilesIngestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(noFilesControlFile)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("test2"))
+            .csvSkipLeadingRows(2);
+
+    DataRepoResponse<IngestResponseModel> noFilesIngestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, noFilesIngestRequest);
+
+    assertThat(
+        "No files yet loaded doesn't result in an NPE",
+        noFilesIngestResponse.getErrorObject().get().getMessage(),
+        equalTo("Invalid file ids found during ingest (2 returned in details)"));
+
+    String loadTag = UUID.randomUUID().toString();
+    var arrayRequestModel =
+        new BulkLoadArrayRequestModel()
+            .profileId(summaryModel.getDefaultProfileId())
+            .loadTag(loadTag);
+
+    long fileSize = MIB / 10;
+    Stream.of(
+            "NA12878_PLUMBING_exome.g.vcf.gz",
+            "NA12878_PLUMBING_exome.g.vcf.gz.tbi",
+            "NA12878_PLUMBING_wgs.g.vcf.gz",
+            "NA12878_PLUMBING_wgs.g.vcf.gz.tbi")
+        .map(
+            name -> {
+              String sourceFile = blobIOTestUtility.uploadSourceFile(name, fileSize);
+              return new BulkLoadFileModel()
+                  .sourcePath(
+                      String.format(
+                          "%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+                  .targetPath("/vcfs/downsampled/" + name)
+                  .description("Test file for " + name)
+                  .mimeType("text/plain");
+            })
+        .forEach(arrayRequestModel::addLoadArrayItem);
+
+    var bulkLoadArrayResultModel =
+        dataRepoFixtures.bulkLoadArray(steward, datasetId, arrayRequestModel);
+
+    var resultModels =
+        bulkLoadArrayResultModel.getLoadFileResults().stream()
+            .collect(
+                Collectors.toMap(
+                    m -> m.getTargetPath().replaceAll("/vcfs/downsampled/NA12878_PLUMBING_", ""),
+                    Function.identity()));
+    var exomeVcf = resultModels.get("exome.g.vcf.gz");
+    var exomeVcfIndex = resultModels.get("exome.g.vcf.gz.tbi");
+    var wgsVcf = resultModels.get("wgs.g.vcf.gz");
+    var wgsVcfIndex = resultModels.get("wgs.g.vcf.gz.tbi");
+
+    var datasetMetadata =
+        Files.readString(
+            ResourceUtils.getFile("classpath:dataset-ingest-combined-metadata-only.csv").toPath());
+    var metadataWithFileIds =
+        datasetMetadata
+            .replaceFirst("EXOME_VCF_FILE_REF", exomeVcf.getFileId())
+            .replaceFirst("EXOME_VCF_INDEX_FILE_REF", exomeVcfIndex.getFileId())
+            .replaceFirst("WGS_VCF_FILE_REF", wgsVcf.getFileId())
+            .replaceFirst("WGS_VCF_INDEX_FILE_REF", wgsVcfIndex.getFileId());
+
+    String controlFile =
+        blobIOTestUtility.uploadFileWithContents("dataset-files-ingest.csv", metadataWithFileIds);
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(controlFile)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("test"))
+            .csvSkipLeadingRows(2);
+
+    IngestResponseModel ingestResponseJson =
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+
+    assertThat(
+        "there are two successful ingest rows", ingestResponseJson.getRowCount(), equalTo(2L));
+    assertThat("there were no bad ingest rows", ingestResponseJson.getBadRowCount(), equalTo(0L));
+
+    IngestRequestModel failingIngestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(noFilesControlFile)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("test2"))
+            .csvSkipLeadingRows(2);
+
+    DataRepoResponse<IngestResponseModel> failingIngestResponse =
+        dataRepoFixtures.ingestJsonDataRaw(steward, datasetId, failingIngestRequest);
+
+    assertThat(
+        "Failing fileIds return an error",
+        failingIngestResponse.getErrorObject().isPresent(),
+        is(true));
+
+    assertThat(
+        "2 invalid ids were returned",
+        failingIngestResponse.getErrorObject().get().getErrorDetail(),
+        hasSize(2));
 
     // Make sure that any failure in tearing down is presented as a test failure
     blobIOTestUtility.deleteContainers();

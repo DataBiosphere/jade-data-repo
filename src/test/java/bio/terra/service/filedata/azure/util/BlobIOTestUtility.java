@@ -2,6 +2,7 @@ package bio.terra.service.filedata.azure.util;
 
 import static bio.terra.service.resourcemanagement.AzureDataLocationSelector.armUniqueString;
 
+import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobClient;
@@ -12,7 +13,10 @@ import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.sas.SasProtocol;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -141,6 +145,16 @@ public class BlobIOTestUtility {
   public String uploadSourceFile(String blobName, long length) {
     sourceBlobContainerClient.getBlobClient(blobName).upload(createInputStream(length), length);
     return blobName;
+  }
+
+  public String uploadFileWithContents(String blobName, String contents) {
+    var bytes = contents.getBytes(StandardCharsets.UTF_8);
+    try (var byteStream = new ByteArrayInputStream(bytes)) {
+      sourceBlobContainerClient.getBlobClient(blobName).upload(byteStream, bytes.length);
+      return String.format("%s/%s", getSourceContainerEndpoint(), blobName);
+    } catch (IOException ex) {
+      throw new AzureResourceException(String.format("Could not write contents to %s", blobName));
+    }
   }
 
   public String uploadDestinationFile(String blobName, long length) {

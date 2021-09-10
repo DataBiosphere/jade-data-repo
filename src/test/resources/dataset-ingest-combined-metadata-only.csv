@@ -1,0 +1,3 @@
+sample_name,data_type,vcf_file_ref,vcf_index_file_ref
+NA12878_exome,exome,EXOME_VCF_FILE_REF,EXOME_VCF_INDEX_FILE_REF
+NA12878_wgs,wgs,WGS_VCF_FILE_REF,WGS_VCF_INDEX_FILE_REF

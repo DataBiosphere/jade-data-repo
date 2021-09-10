@@ -12,15 +12,18 @@ import bio.terra.service.job.exception.InvalidJobParameterException;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
+import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -91,6 +94,9 @@ public class AzureSynapsePdao {
           + "<endif>\n"
           + ") AS rows;";
 
+  private static final String queryColumnsFromExternalTableTemplate =
+      "SELECT DISTINCT <refCol> FROM [<tableName>];";
+
   private static final String dropTableTemplate = "DROP EXTERNAL TABLE [<resourceName>];";
 
   private static final String dropDataSourceTemplate =
@@ -98,6 +104,27 @@ public class AzureSynapsePdao {
 
   private static final String dropScopedCredentialTemplate =
       "DROP DATABASE SCOPED CREDENTIAL [<resourceName>];";
+
+  public List<String> getRefIds(String tableName, SynapseColumn refColumn) {
+
+    var template = new ST(queryColumnsFromExternalTableTemplate);
+    template.add("refCol", refColumn.getName());
+    template.add("tableName", tableName);
+
+    SQLServerDataSource ds = getDatasource();
+    var query = template.render();
+    try (Connection connection = ds.getConnection();
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(query)) {
+      var refIds = new ArrayList<String>();
+      while (resultSet.next()) {
+        refIds.add(resultSet.getString(refColumn.getName()));
+      }
+      return refIds;
+    } catch (SQLException ex) {
+      throw new AzureResourceException("Could not query dataset table for fileref columns", ex);
+    }
+  }
 
   @Autowired
   public AzureSynapsePdao(

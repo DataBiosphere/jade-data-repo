@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -30,6 +31,8 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
@@ -324,13 +327,21 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     String controlFileUrl =
         blobIOTestUtility.uploadControlFile(controlFileBlob, bulkLoadFileModelList);
 
+    String bulkLoadTag = Names.randomizeName("loadTag");
     BulkLoadRequestModel request =
         new BulkLoadRequestModel()
             .loadControlFile(controlFileUrl)
-            .loadTag(Names.randomizeName("loadTag"))
+            .loadTag(bulkLoadTag)
             .profileId(profileId);
     BulkLoadResultModel bulkLoadResult = dataRepoFixtures.bulkLoad(steward, datasetId, request);
     assertThat("result", bulkLoadResult.getSucceededFiles(), equalTo(2));
+
+    // Look up the loaded files
+    BulkLoadHistoryModelList controlFileLoadResults =
+        dataRepoFixtures.getLoadHistory(steward, datasetId, bulkLoadTag, 0, 2);
+    for (BulkLoadHistoryModel bulkFileEntry : controlFileLoadResults.getItems()) {
+      assertNotNull(dataRepoFixtures.getFileById(steward(), datasetId, bulkFileEntry.getFileId()));
+    }
 
     // Ingest Metadata - 1 row from JSON file
     String tableName = "vocabulary";

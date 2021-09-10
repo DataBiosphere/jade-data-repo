@@ -2,8 +2,8 @@ package bio.terra.service.filedata.azure.util;
 
 import static bio.terra.service.resourcemanagement.AzureDataLocationSelector.armUniqueString;
 
-import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.blob.BlobClient;
@@ -14,11 +14,10 @@ import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.sas.SasProtocol;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;

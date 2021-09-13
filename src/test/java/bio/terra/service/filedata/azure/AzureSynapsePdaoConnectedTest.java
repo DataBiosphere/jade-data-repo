@@ -29,7 +29,6 @@ import com.azure.core.management.Region;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.storage.blob.BlobUrlParts;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -141,7 +140,7 @@ public class AzureSynapsePdaoConnectedTest {
     StorageAccount storageAccount =
         client
             .storageAccounts()
-            .define("ct" + Instant.now().toEpochMilli())
+            .define("ct" + UUID.randomUUID().toString())
             .withRegion(Region.US_CENTRAL)
             .withExistingResourceGroup(MANAGED_RESOURCE_GROUP_NAME)
             .create();
@@ -260,7 +259,7 @@ public class AzureSynapsePdaoConnectedTest {
     // where we'll write the resulting parquet files
     // We will build this parquetDestinationLocation according
     // to the associated storage account for the dataset
-    String parquetDestinationLocation = "https://tdrshiqauwlpzxavohmxxhfv.blob.core.windows.net";
+    String parquetDestinationLocation = IngestUtils.getParquetTargetLocationURL(storageAccountResource);
 
     BlobUrlParts destinationSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
@@ -296,8 +295,7 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 5 - Create external data source for the snapshot
     // where we'll write the resulting parquet files
-    String parquetSnapshotLocation =
-        String.format("https://%s.blob.core.windows.net", snapshotStorageAccountResource.getName());
+    String parquetSnapshotLocation = IngestUtils.getParquetTargetLocationURL(snapshotStorageAccountResource);
     BlobUrlParts snapshotSignUrlBlob =
         azureSynapsePdao.getOrSignUrlForTargetFactory(
             parquetSnapshotLocation, billingProfile, snapshotStorageAccountResource);

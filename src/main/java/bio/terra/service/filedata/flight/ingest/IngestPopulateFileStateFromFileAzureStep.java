@@ -4,6 +4,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.exception.BulkLoadControlFileException;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
@@ -11,7 +12,14 @@ import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobClientBuilder;
+import com.azure.storage.blob.BlobUrlParts;
 import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 // Populate the files to be loaded from the incoming array
@@ -42,9 +50,21 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
 
     String blobStoreUrl = loadRequest.getLoadControlFile();
     IngestUtils.validateBlobAzureBlobFileURL(blobStoreUrl);
-    BufferedReader reader =
-        azureBlobStorePdao.buildBlobReader(blobStoreUrl, billingProfileModel.getTenantId());
-    readFile(reader, loadId);
+    BlobUrlParts ingestRequestSignUrlBlob =
+        azureBlobStorePdao.getOrSignUrlForSourceFactory(
+            blobStoreUrl, billingProfileModel.getTenantId());
+    BlobClient blobClient =
+        new BlobClientBuilder().endpoint(ingestRequestSignUrlBlob.toUrl().toString()).buildClient();
+
+    InputStream inputStream = blobClient.openInputStream();
+    try (BufferedReader reader =
+        new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+      readFile(reader, loadId);
+
+    } catch (IOException ex) {
+      throw new BulkLoadControlFileException("Failure accessing the load control file", ex);
+    }
+
     return StepResult.getStepResultSuccess();
   }
 

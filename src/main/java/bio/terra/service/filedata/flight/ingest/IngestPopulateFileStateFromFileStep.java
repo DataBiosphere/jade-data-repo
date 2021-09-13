@@ -39,46 +39,41 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
         .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
   }
 
-  public void readFile(BufferedReader reader, UUID loadId) {
+  public void readFile(BufferedReader reader, UUID loadId) throws IOException {
     ObjectMapper objectMapper = getObjectMapper();
     List<String> errorDetails = new ArrayList<>();
-    try (reader) {
-      long lineCount = 0;
-      List<BulkLoadFileModel> fileList = new ArrayList<>();
+    long lineCount = 0;
+    List<BulkLoadFileModel> fileList = new ArrayList<>();
 
-      for (String line = reader.readLine(); line != null; line = reader.readLine()) {
-        lineCount++;
+    for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+      lineCount++;
 
-        try {
-          BulkLoadFileModel loadFile = objectMapper.readValue(line, BulkLoadFileModel.class);
-          fileList.add(loadFile);
-        } catch (IOException ex) {
-          errorDetails.add("Format error at line " + lineCount + ": " + ex.getMessage());
-          if (errorDetails.size() > maxBadLines) {
-            throw new BulkLoadControlFileException(
-                "More than " + maxBadLines + " bad lines in the control file", errorDetails);
-          }
-        }
-
-        // Keep this check and load out of the inner try; it should only catch objectMapper failures
-        if (fileList.size() > batchSize) {
-          loadService.populateFiles(loadId, fileList);
-          fileList.clear();
+      try {
+        BulkLoadFileModel loadFile = objectMapper.readValue(line, BulkLoadFileModel.class);
+        fileList.add(loadFile);
+      } catch (IOException ex) {
+        errorDetails.add("Format error at line " + lineCount + ": " + ex.getMessage());
+        if (errorDetails.size() > maxBadLines) {
+          throw new BulkLoadControlFileException(
+              "More than " + maxBadLines + " bad lines in the control file", errorDetails);
         }
       }
 
-      // If there are errors in the load file, don't do the load
-      if (errorDetails.size() > 0) {
-        throw new BulkLoadControlFileException(
-            "There were " + errorDetails.size() + " bad lines in the control file", errorDetails);
-      }
-
-      if (fileList.size() > 0) {
+      // Keep this check and load out of the inner try; it should only catch objectMapper failures
+      if (fileList.size() > batchSize) {
         loadService.populateFiles(loadId, fileList);
+        fileList.clear();
       }
+    }
 
-    } catch (IOException ex) {
-      throw new BulkLoadControlFileException("Failure accessing the load control file", ex);
+    // If there are errors in the load file, don't do the load
+    if (errorDetails.size() > 0) {
+      throw new BulkLoadControlFileException(
+          "There were " + errorDetails.size() + " bad lines in the control file", errorDetails);
+    }
+
+    if (fileList.size() > 0) {
+      loadService.populateFiles(loadId, fileList);
     }
   }
 

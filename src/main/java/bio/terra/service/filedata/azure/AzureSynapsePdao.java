@@ -238,26 +238,27 @@ public class AzureSynapsePdao {
     for (DatasetTable table : tables) {
       String datasetParquetFileName =
           IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
-      ST sqlTableTemplate = new ST(getLiveViewTableTemplate)
-        .add("tableId", table.getId().toString())
-        .add("dataRepoRowId", PDAO_ROW_ID_COLUMN)
-        .add("datasetParquetFileName", datasetParquetFileName)
-        .add("datasetDataSourceName", datasetDataSourceName);
+      ST sqlTableTemplate =
+          new ST(getLiveViewTableTemplate)
+              .add("tableId", table.getId().toString())
+              .add("dataRepoRowId", PDAO_ROW_ID_COLUMN)
+              .add("datasetParquetFileName", datasetParquetFileName)
+              .add("datasetDataSourceName", datasetDataSourceName);
       selectStatements.add(sqlTableTemplate.render());
     }
-    ST sqlMergeTablesTemplate = new ST(mergeLiveViewTablesTemplate);
-    sqlMergeTablesTemplate.add("selectStatements", selectStatements);
+    ST sqlMergeTablesTemplate =
+        new ST(mergeLiveViewTablesTemplate).add("selectStatements", selectStatements);
 
     // Create row id table
-    ST sqlCreateRowIdTable = new ST(createSnapshotRowIdTableTemplate);
     String rowIdTableName = IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE);
     String rowIdParquetFile = IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
-    sqlCreateRowIdTable.add("tableName", rowIdTableName);
-    sqlCreateRowIdTable.add("destinationParquetFile", rowIdParquetFile);
-    sqlCreateRowIdTable.add("destinationDataSourceName", snapshotDataSourceName);
-    sqlCreateRowIdTable.add(
-        "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
-    sqlCreateRowIdTable.add("selectStatements", sqlMergeTablesTemplate.render());
+    ST sqlCreateRowIdTable =
+        new ST(createSnapshotRowIdTableTemplate)
+            .add("tableName", rowIdTableName)
+            .add("destinationParquetFile", rowIdParquetFile)
+            .add("destinationDataSourceName", snapshotDataSourceName)
+            .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
+            .add("selectStatements", sqlMergeTablesTemplate.render());
     executeSynapseQuery(sqlCreateRowIdTable.render());
   }
 
@@ -270,7 +271,6 @@ public class AzureSynapsePdao {
       throws SQLException {
     for (DatasetTable table : tables) {
       // Create a copy of each dataset "table" (parquet file)
-      ST sqlCreateSnapshotTableTemplate = new ST(createSnapshotTableTemplate);
       List<SynapseColumn> columns =
           table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
       String datasetParquetFileName =
@@ -279,14 +279,15 @@ public class AzureSynapsePdao {
           IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
       String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
 
-      sqlCreateSnapshotTableTemplate.add("tableName", tableName);
-      sqlCreateSnapshotTableTemplate.add("destinationParquetFile", snapshotParquetFileName);
-      sqlCreateSnapshotTableTemplate.add("destinationDataSourceName", snapshotDataSourceName);
-      sqlCreateSnapshotTableTemplate.add(
-          "fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName());
-      sqlCreateSnapshotTableTemplate.add("ingestFileName", datasetParquetFileName);
-      sqlCreateSnapshotTableTemplate.add("ingestFileDataSourceName", datasetDataSourceName);
-      sqlCreateSnapshotTableTemplate.add("columns", columns);
+      ST sqlCreateSnapshotTableTemplate =
+          new ST(createSnapshotTableTemplate)
+              .add("tableName", tableName)
+              .add("destinationParquetFile", snapshotParquetFileName)
+              .add("destinationDataSourceName", snapshotDataSourceName)
+              .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
+              .add("ingestFileName", datasetParquetFileName)
+              .add("ingestFileDataSourceName", datasetDataSourceName)
+              .add("columns", columns);
       executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
     }
   }

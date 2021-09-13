@@ -8,7 +8,6 @@ import bio.terra.service.filedata.google.gcs.GcsBufferedReader;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
-import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -16,7 +15,6 @@ import bio.terra.stairway.StepResult;
 import com.google.cloud.storage.Storage;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.UUID;
 
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileStateFromFileStep {

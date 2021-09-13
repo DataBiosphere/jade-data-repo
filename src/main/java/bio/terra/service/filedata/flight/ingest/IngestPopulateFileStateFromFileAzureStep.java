@@ -8,20 +8,12 @@ import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
-import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobClientBuilder;
-import com.azure.storage.blob.BlobUrlParts;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.UUID;
 
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFileStateFromFileStep {
@@ -40,14 +32,13 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
 
   @Override
   public StepResult doStep(FlightContext context) {
-    //get variables required for building the signed url for the ingest request file
+    // get variables required for building the signed url for the ingest request file
     FlightMap inputParameters = context.getInputParameters();
     FlightMap workingMap = context.getWorkingMap();
     BulkLoadRequestModel loadRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
     BillingProfileModel billingProfileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-
 
     // Validate control file url and sign if not already signed
     String blobStoreUrl = loadRequest.getLoadControlFile();
@@ -57,8 +48,7 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
             blobStoreUrl, billingProfileModel.getTenantId());
 
     // Stream from control file and build list of files to be ingested
-    try (BufferedReader reader =
-        new AzureBlobStoreBufferedReader(ingestRequestSignedUrl)) {
+    try (BufferedReader reader = new AzureBlobStoreBufferedReader(ingestRequestSignedUrl)) {
       readFile(reader, context);
 
     } catch (IOException ex) {

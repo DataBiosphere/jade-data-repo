@@ -160,7 +160,7 @@ public class BlobIOTestUtility {
     }
   }
 
-  public String uploadControlFile(String blobName, List<BulkLoadFileModel> bulkLoadFileModelList)
+  public String readControlFile(List<BulkLoadFileModel> bulkLoadFileModelList)
       throws JsonProcessingException {
     ObjectMapper mapper = new ObjectMapper();
     StringBuilder sb = new StringBuilder();
@@ -168,7 +168,7 @@ public class BlobIOTestUtility {
       sb.append(mapper.writeValueAsString(file));
       sb.append('\n');
     }
-    return uploadFileWithContents(blobName, sb.toString());
+    return sb.toString();
   }
 
   public String uploadDestinationFile(String blobName, long length) {
@@ -181,6 +181,15 @@ public class BlobIOTestUtility {
   public String getSourceContainerEndpoint() {
     return sourceBlobContainerClient.getBlobContainerUrl();
   }
+
+  public String createSourcePath(String sourceFile) {
+    return String.format("%s/%s", getSourceContainerEndpoint(), sourceFile);
+  }
+
+  public String createSourceSignedPath(String sourceFile, String key) {
+    return String.format("%s?%s", createSourcePath(sourceFile), generateBlobSasTokenWithReadPermissions(key, sourceFile));
+  }
+
 
   private InputStream createInputStream(long length) {
     return new InputStream() {

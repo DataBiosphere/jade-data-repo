@@ -120,8 +120,7 @@ public class AzureSynapsePdao {
   }
 
   @Autowired
-  public AzureSynapsePdao(
-      AzureResourceConfiguration azureResourceConfiguration) {
+  public AzureSynapsePdao(AzureResourceConfiguration azureResourceConfiguration) {
     this.azureResourceConfiguration = azureResourceConfiguration;
   }
 

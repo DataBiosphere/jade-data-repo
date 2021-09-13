@@ -33,6 +33,7 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
@@ -69,6 +70,7 @@ public class FileIngestBulkFlight extends Flight {
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
     StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
+    ObjectMapper bulkLoadObjectMapper = appConfig.bulkLoadObjectMapper();
 
     // Common input parameters
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -167,14 +169,16 @@ public class FileIngestBulkFlight extends Flight {
                 loadService,
                 appConfig.getMaxBadLoadFileLineErrorsReported(),
                 appConfig.getLoadFilePopulateBatchSize(),
-                gcsPdao));
+                gcsPdao,
+                bulkLoadObjectMapper));
       } else {
         addStep(
             new IngestPopulateFileStateFromFileAzureStep(
                 loadService,
                 appConfig.getMaxBadLoadFileLineErrorsReported(),
                 appConfig.getLoadFilePopulateBatchSize(),
-                azureBlobStorePdao));
+                azureBlobStorePdao,
+                bulkLoadObjectMapper));
       }
     }
     addStep(

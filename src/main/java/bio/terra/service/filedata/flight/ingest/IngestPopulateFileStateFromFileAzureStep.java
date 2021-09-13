@@ -12,21 +12,21 @@ import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
 import java.io.IOException;
 
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFileStateFromFileStep {
-  private final LoadService loadService;
   private final AzureBlobStorePdao azureBlobStorePdao;
 
   public IngestPopulateFileStateFromFileAzureStep(
       LoadService loadService,
       int maxBadLines,
       int batchSize,
-      AzureBlobStorePdao azureBlobStorePdao) {
-    super(loadService, maxBadLines, batchSize);
-    this.loadService = loadService;
+      AzureBlobStorePdao azureBlobStorePdao,
+      ObjectMapper bulkLoadObjectMapper) {
+    super(loadService, maxBadLines, batchSize, bulkLoadObjectMapper);
     this.azureBlobStorePdao = azureBlobStorePdao;
   }
 

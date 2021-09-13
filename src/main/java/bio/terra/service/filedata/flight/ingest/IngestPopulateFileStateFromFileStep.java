@@ -8,10 +8,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,23 +19,20 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
   private final LoadService loadService;
   private final int maxBadLines;
   private final int batchSize;
+  private final ObjectMapper bulkLoadObjectMapper;
 
   public IngestPopulateFileStateFromFileStep(
-      LoadService loadService, int maxBadLines, int batchSize) {
+      LoadService loadService, int maxBadLines, int batchSize, ObjectMapper bulkLoadObjectMapper) {
     this.loadService = loadService;
     this.maxBadLines = maxBadLines;
     this.batchSize = batchSize;
+    this.bulkLoadObjectMapper = bulkLoadObjectMapper;
   }
 
   void readFile(BufferedReader reader, FlightContext context) throws IOException {
     FlightMap workingMap = context.getWorkingMap();
     UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 
-    ObjectMapper objectMapper =
-        new ObjectMapper()
-            .registerModule(new Jdk8Module())
-            .registerModule(new JavaTimeModule())
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     List<String> errorDetails = new ArrayList<>();
     long lineCount = 0;
     List<BulkLoadFileModel> fileList = new ArrayList<>();
@@ -48,7 +42,7 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
       lineCount++;
 
       try {
-        BulkLoadFileModel loadFile = objectMapper.readValue(line, BulkLoadFileModel.class);
+        BulkLoadFileModel loadFile = bulkLoadObjectMapper.readValue(line, BulkLoadFileModel.class);
         fileList.add(loadFile);
       } catch (IOException ex) {
         errorDetails.add("Format error at line " + lineCount + ": " + ex.getMessage());

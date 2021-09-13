@@ -12,19 +12,22 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
 import java.io.BufferedReader;
 import java.io.IOException;
 
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileStateFromFileStep {
-  private final LoadService loadService;
   private final GcsPdao gcsPdao;
 
   public IngestPopulateFileStateFromFileGcpStep(
-      LoadService loadService, int maxBadLines, int batchSize, GcsPdao gcsPdao) {
-    super(loadService, maxBadLines, batchSize);
-    this.loadService = loadService;
+      LoadService loadService,
+      int maxBadLines,
+      int batchSize,
+      GcsPdao gcsPdao,
+      ObjectMapper bulkLoadObjectMapper) {
+    super(loadService, maxBadLines, batchSize, bulkLoadObjectMapper);
     this.gcsPdao = gcsPdao;
   }
 

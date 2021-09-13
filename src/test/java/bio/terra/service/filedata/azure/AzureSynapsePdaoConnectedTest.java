@@ -34,7 +34,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -174,7 +173,9 @@ public class AzureSynapsePdaoConnectedTest {
       logger.info("Unable to delete parquet files.");
     }
 
-    azureSynapsePdao.dropTables(List.of(tableName,
+    azureSynapsePdao.dropTables(
+        List.of(
+            tableName,
             IngestUtils.formatSnapshotTableName(snapshotId, "participant"),
             IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
     azureSynapsePdao.dropDataSources(
@@ -307,29 +308,29 @@ public class AzureSynapsePdaoConnectedTest {
     List<DatasetTable> datasetTables = List.of(destinationTable);
     azureSynapsePdao.createSnapshotParquetFiles(
         datasetTables,
-                snapshotId,
-                destinationDataSourceName,
-                snapshotDataSourceName,
-                randomFlightId);
+        snapshotId,
+        destinationDataSourceName,
+        snapshotDataSourceName,
+        randomFlightId);
     String snapshotParquetFileName =
-            IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
+        IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
     List<String> snapshotFirstNames =
-            synapseUtils.readParquetFileStringColumn(
-                    snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
+        synapseUtils.readParquetFileStringColumn(
+            snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
     assertThat(
-            "List of names in snapshot should equal the dataset names",
-            snapshotFirstNames,
-            equalTo(Arrays.asList("Bob", "Sally")));
+        "List of names in snapshot should equal the dataset names",
+        snapshotFirstNames,
+        equalTo(Arrays.asList("Bob", "Sally")));
 
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
-            datasetTables,
-            snapshotId,
-            destinationDataSourceName,
-            snapshotDataSourceName,
-            randomFlightId);
+        datasetTables,
+        snapshotId,
+        destinationDataSourceName,
+        snapshotDataSourceName,
+        randomFlightId);
     String snapshotRowIdsParquetFileName =
-            IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
+        IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(
             snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);

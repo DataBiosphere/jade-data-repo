@@ -178,8 +178,7 @@ public class AzureSynapsePdaoConnectedTest {
             IngestUtils.formatSnapshotTableName(snapshotId, "participant"),
             IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
     azureSynapsePdao.dropDataSources(
-        List.of(
-            snapshotDataSourceName, destinationDataSourceName, ingestRequestDataSourceName));
+        List.of(snapshotDataSourceName, destinationDataSourceName, ingestRequestDataSourceName));
     azureSynapsePdao.dropScopedCredentials(
         List.of(
             snapshotScopedCredentialName,
@@ -259,7 +258,8 @@ public class AzureSynapsePdaoConnectedTest {
     // where we'll write the resulting parquet files
     // We will build this parquetDestinationLocation according
     // to the associated storage account for the dataset
-    String parquetDestinationLocation = IngestUtils.getParquetTargetLocationURL(storageAccountResource);
+    String parquetDestinationLocation =
+        IngestUtils.getParquetTargetLocationURL(storageAccountResource);
 
     BlobUrlParts destinationSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
@@ -295,7 +295,8 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 5 - Create external data source for the snapshot
     // where we'll write the resulting parquet files
-    String parquetSnapshotLocation = IngestUtils.getParquetTargetLocationURL(snapshotStorageAccountResource);
+    String parquetSnapshotLocation =
+        IngestUtils.getParquetTargetLocationURL(snapshotStorageAccountResource);
     BlobUrlParts snapshotSignUrlBlob =
         azureSynapsePdao.getOrSignUrlForTargetFactory(
             parquetSnapshotLocation, billingProfile, snapshotStorageAccountResource);

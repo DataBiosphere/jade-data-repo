@@ -5,6 +5,7 @@ import static bio.terra.service.filedata.DrsService.getLastNameFromPath;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
 import bio.terra.service.filedata.azure.util.BlobCrl;
@@ -18,6 +19,8 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.core.credential.TokenCredential;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
@@ -25,6 +28,10 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.google.common.annotations.VisibleForTesting;
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
@@ -32,6 +39,7 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +48,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
-public class AzureBlobStorePdao {
+public class AzureBlobStorePdao implements CloudFileReader {
 
   private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
   private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
@@ -116,6 +124,19 @@ public class AzureBlobStorePdao {
         .checksumMd5(Base64.getEncoder().encodeToString((blobProperties.getContentMd5())))
         .size(blobProperties.getBlobSize())
         .bucketResourceId(storageAccountResource.getResourceId().toString());
+  }
+
+  @Override
+  public Stream<String> getBlobsLinesStream(String blobUrl, String cloudEncapsulationId) {
+    UUID tenantUuid = UUID.fromString(cloudEncapsulationId);
+    BlobUrlParts signedUrlBlob = getOrSignUrlForSourceFactory(blobUrl, tenantUuid);
+    BlobClient blobClient =
+        new BlobClientBuilder().endpoint(signedUrlBlob.toUrl().toString()).buildClient();
+
+    BufferedReader bufferedReader =
+        new BufferedReader(
+            new InputStreamReader(blobClient.openInputStream(), StandardCharsets.UTF_8));
+    return bufferedReader.lines();
   }
 
   public BlobContainerClientFactory buildSourceClientFactory(UUID tenantId, String blobUrl) {

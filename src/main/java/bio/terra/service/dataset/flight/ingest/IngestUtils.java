@@ -10,7 +10,7 @@ import bio.terra.service.dataset.exception.InvalidBlobURLException;
 import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.service.dataset.exception.TableNotFoundException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.filedata.CloudFileReader;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
@@ -200,14 +200,13 @@ public final class IngestUtils {
       };
 
   public static Stream<JsonNode> getJsonNodesStreamFromFile(
-      GcsPdao gcsPdao,
+      CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
-      Dataset dataset,
+      String cloudEncapsulationId,
       List<String> errors) {
-    return gcsPdao
-        .getGcsFilesLinesStream(
-            ingestRequest.getPath(), dataset.getProjectResource().getGoogleProjectId())
+    return cloudFileReader
+        .getBlobsLinesStream(ingestRequest.getPath(), cloudEncapsulationId)
         .map(
             content -> {
               try {
@@ -221,28 +220,33 @@ public final class IngestUtils {
   }
 
   public static long countBulkFileLoadModelsFromPath(
-      GcsPdao gcsPdao,
+      CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
-      Dataset dataset,
+      String cloudEncapsulationId,
       List<String> fileRefColumnNames,
       List<String> errors) {
     try (var nodesStream =
         IngestUtils.getBulkFileLoadModelsStream(
-            gcsPdao, objectMapper, ingestRequest, dataset, fileRefColumnNames, errors)) {
+            cloudFileReader,
+            objectMapper,
+            ingestRequest,
+            cloudEncapsulationId,
+            fileRefColumnNames,
+            errors)) {
       return nodesStream.count();
     }
   }
 
   public static Stream<BulkLoadFileModel> getBulkFileLoadModelsStream(
-      GcsPdao gcsPdao,
+      CloudFileReader cloudFileReader,
       ObjectMapper objectMapper,
       IngestRequestModel ingestRequest,
-      Dataset dataset,
+      String cloudEncapsulationId,
       List<String> fileRefColumnNames,
       List<String> errors) {
     return IngestUtils.getJsonNodesStreamFromFile(
-            gcsPdao, objectMapper, ingestRequest, dataset, errors)
+            cloudFileReader, objectMapper, ingestRequest, cloudEncapsulationId, errors)
         .flatMap(
             node ->
                 fileRefColumnNames.stream()

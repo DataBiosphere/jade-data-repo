@@ -50,7 +50,11 @@ public class IngestBuildAndWriteScratchLoadFileStep extends SkippableStep {
     List<String> errors = new ArrayList<>();
     try (Stream<JsonNode> jsonNodes =
         IngestUtils.getJsonNodesStreamFromFile(
-            gcsPdao, objectMapper, ingestRequest, dataset, errors)) {
+            gcsPdao,
+            objectMapper,
+            ingestRequest,
+            dataset.getProjectResource().getGoogleProjectId(),
+            errors)) {
 
       List<String> fileColumns =
           workingMap.get(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, List.class);

@@ -46,6 +46,8 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
+
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Predicate;
@@ -94,17 +96,35 @@ public class DatasetIngestFlight extends Flight {
 
     addStep(new IngestSetupStep(datasetService, configService, cloudPlatform));
 
-    if (ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON
-        && cloudPlatform.isGcp()) {
-      addJsonSteps(
-          inputParameters,
-          appContext,
-          appConfig,
-          configService,
-          datasetService,
-          bigQueryPdao,
-          ingestRequestModel,
-          datasetId);
+    if (ingestRequestModel.getFormat() == IngestRequestModel.FormatEnum.JSON) {
+      int driverWaitSeconds = configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
+      int loadHistoryWaitSeconds =
+          configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS);
+      int loadHistoryChunkSize =
+          configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE);
+
+      if (cloudPlatform.isGcp()) {
+        addGcpJsonSteps(
+            inputParameters,
+            appContext,
+            appConfig,
+            datasetService,
+            bigQueryPdao,
+            ingestRequestModel,
+            datasetId,
+            driverWaitSeconds,
+            loadHistoryWaitSeconds,
+            loadHistoryChunkSize);
+      } else if (cloudPlatform.isAzure()) {
+        addAzureJsonSteps(
+            appConfig,
+            azureBlobStorePdao,
+            datasetService,
+            datasetId,
+            driverWaitSeconds,
+            loadHistoryWaitSeconds,
+            loadHistoryChunkSize);
+      }
     }
 
     if (cloudPlatform.is(CloudPlatform.GCP)) {
@@ -131,15 +151,17 @@ public class DatasetIngestFlight extends Flight {
    * These are the steps needed for combined metadata + file ingest. This only works with JSON
    * formatted requests, so no CSV parsing should happen here.
    */
-  private void addJsonSteps(
+  private void addGcpJsonSteps(
       FlightMap inputParameters,
       ApplicationContext appContext,
       ApplicationConfiguration appConfig,
-      ConfigurationService configService,
       DatasetService datasetService,
       BigQueryPdao bigQueryPdao,
       IngestRequestModel ingestRequest,
-      UUID datasetId) {
+      UUID datasetId,
+      int driverWaitSeconds,
+      int loadHistoryWaitSeconds,
+      int loadHistoryChunkSize) {
 
     GcsPdao gcsPdao = appContext.getBean(GcsPdao.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
@@ -164,17 +186,9 @@ public class DatasetIngestFlight extends Flight {
     var profileId =
         Optional.ofNullable(ingestRequest.getProfileId()).orElse(dataset.getDefaultProfileId());
 
-    int driverWaitSeconds = configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS);
-    int loadHistoryWaitSeconds =
-        configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS);
-    int loadHistoryChunkSize =
-        configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE);
-
     String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
     // Begin file + metadata load
-    addStep(
-        new IngestJsonFileSetupStep(
-            gcsPdao, appConfig.objectMapper(), dataset, configurationService));
+    addStep(new IngestJsonFileSetupGcpStep(gcsPdao, appConfig.objectMapper(), dataset));
     addStep(
         new AuthorizeBillingProfileUseStep(
             profileService, profileId, userReq, ingestSkipCondition));
@@ -204,7 +218,7 @@ public class DatasetIngestFlight extends Flight {
             jobService,
             datasetId.toString(),
             loadTag,
-            Optional.ofNullable(ingestRequest.getMaxBadRecords()).orElse(0),
+            Objects.requireNonNullElse(ingestRequest.getMaxBadRecords(), 0),
             driverWaitSeconds,
             profileId,
             platform.getCloudPlatform(),
@@ -236,5 +250,20 @@ public class DatasetIngestFlight extends Flight {
     addStep(new IngestCleanFileStateStep(loadService, ingestSkipCondition));
 
     addStep(new LoadUnlockStep(loadService, ingestSkipCondition));
+  }
+
+  private void addAzureJsonSteps(
+      ApplicationConfiguration appConfig,
+      AzureBlobStorePdao azureBlobStorePdao,
+      DatasetService datasetService,
+      UUID datasetId,
+      int driverWaitSeconds,
+      int loadHistoryWaitSeconds,
+      int loadHistoryChunkSize) {
+
+    Dataset dataset = datasetService.retrieve(datasetId);
+
+    addStep(
+        new IngestJsonFileSetupAzureStep(appConfig.objectMapper(), azureBlobStorePdao, dataset));
   }
 }

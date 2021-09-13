@@ -53,7 +53,12 @@ public class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
     List<String> errors = new ArrayList<>();
     try (var bulkFileLoadModels =
         IngestUtils.getBulkFileLoadModelsStream(
-            gcsPdao, objectMapper, ingestRequest, dataset, fileColumns, errors)) {
+            gcsPdao,
+            objectMapper,
+            ingestRequest,
+            dataset.getProjectResource().getGoogleProjectId(),
+            fileColumns,
+            errors)) {
 
       loadService.populateFiles(loadId, bulkFileLoadModels, batchSize);
 

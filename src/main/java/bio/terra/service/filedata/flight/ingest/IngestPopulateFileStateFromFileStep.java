@@ -3,11 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
 import bio.terra.service.load.LoadService;
-import bio.terra.service.load.flight.LoadMapKeys;
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
-import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -18,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-// Populate the files to be loaded from the incoming array
 public abstract class IngestPopulateFileStateFromFileStep implements Step {
   private final LoadService loadService;
   private final int maxBadLines;
@@ -31,16 +26,12 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     this.batchSize = batchSize;
   }
 
-  private ObjectMapper getObjectMapper() {
-    // Ensure that file ingestion works with extra key-value pairs
-    return new ObjectMapper()
-        .registerModule(new Jdk8Module())
-        .registerModule(new JavaTimeModule())
-        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-  }
-
-  public void readFile(BufferedReader reader, UUID loadId) throws IOException {
-    ObjectMapper objectMapper = getObjectMapper();
+  void readFile(BufferedReader reader, UUID loadId) throws IOException {
+    ObjectMapper objectMapper =
+        new ObjectMapper()
+            .registerModule(new Jdk8Module())
+            .registerModule(new JavaTimeModule())
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     List<String> errorDetails = new ArrayList<>();
     long lineCount = 0;
     List<BulkLoadFileModel> fileList = new ArrayList<>();
@@ -75,14 +66,5 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     if (fileList.size() > 0) {
       loadService.populateFiles(loadId, fileList);
     }
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
-
-    loadService.cleanFiles(loadId);
-    return StepResult.getStepResultSuccess();
   }
 }

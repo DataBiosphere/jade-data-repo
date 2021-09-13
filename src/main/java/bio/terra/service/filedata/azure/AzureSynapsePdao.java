@@ -4,7 +4,6 @@ import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.AzureSasCredential;
@@ -15,7 +14,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -32,9 +30,7 @@ public class AzureSynapsePdao {
   private static final Logger logger = LoggerFactory.getLogger(AzureSynapsePdao.class);
 
   private final AzureResourceConfiguration azureResourceConfiguration;
-  private final AzureBlobStorePdao azureBlobStorePdao;
   private static final String PARSER_VERSION = "2.0";
-  private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
   private static final String DEFAULT_CSV_QUOTE = "\"";
 
@@ -125,10 +121,8 @@ public class AzureSynapsePdao {
 
   @Autowired
   public AzureSynapsePdao(
-      AzureResourceConfiguration azureResourceConfiguration,
-      AzureBlobStorePdao azureBlobStorePdao) {
+      AzureResourceConfiguration azureResourceConfiguration) {
     this.azureResourceConfiguration = azureResourceConfiguration;
-    this.azureBlobStorePdao = azureBlobStorePdao;
   }
 
   public void createExternalDataSource(

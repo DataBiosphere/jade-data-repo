@@ -320,7 +320,7 @@ public class AzureSynapsePdaoConnectedTest {
     assertThat(
         "List of names in snapshot should equal the dataset names",
         snapshotFirstNames,
-        equalTo(Arrays.asList("Bob", "Sally")));
+        equalTo(List.of("Bob", "Sally")));
 
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(

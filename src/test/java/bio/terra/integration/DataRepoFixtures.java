@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.TestUtils;
@@ -664,7 +663,7 @@ public class DataRepoFixtures {
       return response.getResponseObject().get();
     }
     ErrorModel errorModel = response.getErrorObject().orElse(null);
-    throw new AssertionError(errMsg +"; Error: " + errorModel);
+    throw new AssertionError(errMsg + "; Error: " + errorModel);
   }
 
   public DataRepoResponse<FileModel> getFileByIdRaw(

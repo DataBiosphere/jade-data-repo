@@ -43,7 +43,6 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StorageResourceModel;
-import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
@@ -91,7 +90,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private SynapseUtils synapseUtils;
-  @Autowired private FileService fileService;
 
   private String stewardToken;
   private User steward;
@@ -318,7 +316,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
 
     String controlFileUrl =
         blobIOTestUtility.uploadFileWithContents(
-            controlFileBlob, blobIOTestUtility.readControlFile(bulkLoadFileModelList));
+            controlFileBlob, TestUtils.readControlFile(bulkLoadFileModelList));
 
     String bulkLoadTag = Names.randomizeName("loadTag");
     BulkLoadRequestModel request =

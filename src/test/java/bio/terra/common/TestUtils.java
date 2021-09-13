@@ -261,7 +261,7 @@ public final class TestUtils {
         .error(model.getError());
   }
 
-  public String readControlFile(List<BulkLoadFileModel> bulkLoadFileModelList)
+  public static String readControlFile(List<BulkLoadFileModel> bulkLoadFileModelList)
       throws JsonProcessingException {
     StringBuilder sb = new StringBuilder();
     for (BulkLoadFileModel file : bulkLoadFileModelList) {

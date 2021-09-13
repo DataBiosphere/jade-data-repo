@@ -286,6 +286,10 @@ public final class IngestUtils {
     return "parquet/" + tableName + "/**";
   }
 
+  public static String formatSnapshotTableName(UUID snapshotId, String tableName) {
+    return snapshotId.toString().replaceAll("-", "") + "_" + tableName;
+  }
+
   public static String getIngestRequestDataSourceName(String flightId) {
     return SOURCE_DATA_SOURCE_PREFIX + flightId;
   }

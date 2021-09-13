@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.azure;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -74,6 +76,7 @@ public class AzureSynapsePdaoConnectedTest {
   private String tableName;
   private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
   private static final String STORAGE_ACCOUNT_NAME = "tdrshiqauwlpzxavohmxxhfv";
+  private static final UUID snapshotId = UUID.randomUUID();
   private String snapshotStorageAccountId;
 
   private AzureResourceManager client;
@@ -171,7 +174,9 @@ public class AzureSynapsePdaoConnectedTest {
       logger.info("Unable to delete parquet files.");
     }
 
-    azureSynapsePdao.dropTables(List.of(tableName));
+    azureSynapsePdao.dropTables(List.of(tableName,
+            IngestUtils.formatSnapshotTableName(snapshotId, "participant"),
+            IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
     azureSynapsePdao.dropDataSources(
         Arrays.asList(
             snapshotDataSourceName, destinationDataSourceName, ingestRequestDataSourceName));
@@ -300,35 +305,34 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 6 - Create snapshot parquet files via external table
     List<DatasetTable> datasetTables = List.of(destinationTable);
-    UUID snapshotId = UUID.randomUUID();
     azureSynapsePdao.createSnapshotParquetFiles(
         datasetTables,
-        snapshotId,
-        destinationDataSourceName,
-        snapshotDataSourceName,
-        randomFlightId);
+                snapshotId,
+                destinationDataSourceName,
+                snapshotDataSourceName,
+                randomFlightId);
     String snapshotParquetFileName =
-        IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
+            IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
     List<String> snapshotFirstNames =
-        synapseUtils.readParquetFileStringColumn(
-            snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
+            synapseUtils.readParquetFileStringColumn(
+                    snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
     assertThat(
-        "List of names in snapshot should equal the dataset names",
-        snapshotFirstNames,
-        equalTo(Arrays.asList("Bob", "Sally")));
+            "List of names in snapshot should equal the dataset names",
+            snapshotFirstNames,
+            equalTo(Arrays.asList("Bob", "Sally")));
 
     // 7 - Create snapshot row ids parquet file via external table
     azureSynapsePdao.createSnapshotRowIdsParquetFile(
-        datasetTables,
-        snapshotId,
-        destinationDataSourceName,
-        snapshotDataSourceName,
-        randomFlightId);
+            datasetTables,
+            snapshotId,
+            destinationDataSourceName,
+            snapshotDataSourceName,
+            randomFlightId);
     String snapshotRowIdsParquetFileName =
-        IngestUtils.getSnapshotParquetFilePath(snapshotId, "datarepo_row_ids");
+            IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
     List<String> snapshotRowIds =
         synapseUtils.readParquetFileStringColumn(
-            snapshotRowIdsParquetFileName, snapshotDataSourceName, "datarepo_row_id", true);
+            snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);
     assertThat("Snapshot contains expected number or rows", snapshotRowIds.size(), equalTo(2));
 
     // 4 - clean out synapse

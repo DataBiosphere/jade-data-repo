@@ -68,9 +68,7 @@ public class AzureSynapsePdao {
           + "}; separator=\",\n\">) AS rows;";
 
   private static final String createSnapshotRowIdTableTemplate =
-      "CREATE EXTERNAL TABLE "
-          + PDAO_ROW_ID_TABLE
-          + "\n"
+      "CREATE EXTERNAL TABLE [<tableName>]\n"
           + "WITH (\n"
           + "    LOCATION = '<destinationParquetFile>',\n"
           + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
@@ -252,7 +250,9 @@ public class AzureSynapsePdao {
 
     // Create row id table
     ST sqlCreateRowIdTable = new ST(createSnapshotRowIdTableTemplate);
+    String rowIdTableName = IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE);
     String rowIdParquetFile = IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
+    sqlCreateRowIdTable.add("tableName", rowIdTableName);
     sqlCreateRowIdTable.add("destinationParquetFile", rowIdParquetFile);
     sqlCreateRowIdTable.add("destinationDataSourceName", snapshotDataSourceName);
     sqlCreateRowIdTable.add(
@@ -277,8 +277,9 @@ public class AzureSynapsePdao {
           IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
       String snapshotParquetFileName =
           IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
+      String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
 
-      sqlCreateSnapshotTableTemplate.add("tableName", table.getName());
+      sqlCreateSnapshotTableTemplate.add("tableName", tableName);
       sqlCreateSnapshotTableTemplate.add("destinationParquetFile", snapshotParquetFileName);
       sqlCreateSnapshotTableTemplate.add("destinationDataSourceName", snapshotDataSourceName);
       sqlCreateSnapshotTableTemplate.add(

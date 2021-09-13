@@ -4,6 +4,7 @@ import bio.terra.common.FlightUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.FileAlreadyExistsException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
@@ -18,20 +19,27 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 
-public class ValidateIngestFileAzureDirectoryStep implements Step {
+import java.util.function.Predicate;
+
+public class ValidateIngestFileAzureDirectoryStep extends SkippableStep {
   public static final String CREATE_ENTRY_ACTION = "createEntry";
   public static final String CHECK_ENTRY_ACTION = "checkEntry";
 
   private final TableDao tableDao;
   private final Dataset dataset;
 
-  public ValidateIngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset) {
+  public ValidateIngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset, Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
     this.tableDao = tableDao;
     this.dataset = dataset;
   }
 
+  public ValidateIngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset) {
+    this(tableDao, dataset, SkippableStep::neverSkip);
+  }
+
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
+  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     FlightMap inputParameters = context.getInputParameters();
     FileLoadModel loadModel =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
@@ -64,11 +72,6 @@ public class ValidateIngestFileAzureDirectoryStep implements Step {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, e);
     }
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
     return StepResult.getStepResultSuccess();
   }
 }

@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
@@ -11,18 +12,26 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 
-public class IngestFileAzureMakeStorageAccountLinkStep implements Step {
+import java.util.function.Predicate;
+
+public class IngestFileAzureMakeStorageAccountLinkStep extends SkippableStep {
   private final DatasetStorageAccountDao datasetStorageAccountDao;
   private final Dataset dataset;
 
   public IngestFileAzureMakeStorageAccountLinkStep(
-      DatasetStorageAccountDao datasetStorageAccountDao, Dataset dataset) {
+      DatasetStorageAccountDao datasetStorageAccountDao, Dataset dataset,
+      Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
     this.datasetStorageAccountDao = datasetStorageAccountDao;
     this.dataset = dataset;
   }
+  public IngestFileAzureMakeStorageAccountLinkStep(
+      DatasetStorageAccountDao datasetStorageAccountDao, Dataset dataset) {
+    this(datasetStorageAccountDao, dataset, SkippableStep::neverSkip);
+  }
 
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
+  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
@@ -39,7 +48,7 @@ public class IngestFileAzureMakeStorageAccountLinkStep implements Step {
   }
 
   @Override
-  public StepResult undoStep(FlightContext context) {
+  public StepResult undoSkippableStep(FlightContext context) {
     // Parallel threads can try create the storage account link. We do not error on a
     // duplicate create attempt.
     // Therefore, we do not delete the link during undo. Instead, we use a counter on the storage

@@ -2,6 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.flight.ingest.SkippableStep;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
@@ -9,25 +10,28 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class IngestFileAzurePrimaryDataLocationStep implements Step {
-  private static final Logger logger =
-      LoggerFactory.getLogger(IngestFileAzurePrimaryDataLocationStep.class);
+import java.util.function.Predicate;
+
+public class IngestFileAzurePrimaryDataLocationStep extends SkippableStep {
+
   private final ResourceService resourceService;
   private final Dataset dataset;
 
-  public IngestFileAzurePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {
+  public IngestFileAzurePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset, Predicate<FlightContext> skipCondition) {
+    super(skipCondition);
     this.resourceService = resourceService;
     this.dataset = dataset;
   }
 
+  public IngestFileAzurePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset) {
+    this(resourceService, dataset, SkippableStep::neverSkip);
+  }
+
   @Override
-  public StepResult doStep(FlightContext context) throws InterruptedException {
+  public StepResult doSkippableStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
@@ -45,14 +49,6 @@ public class IngestFileAzurePrimaryDataLocationStep implements Step {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
       }
     }
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    // There is not much to undo here. It is possible that a storage account was created in the last
-    // step. We could look to see if there are no other files in the storage account and delete it
-    // here, but I think it is likely the storage account will be used again.
     return StepResult.getStepResultSuccess();
   }
 }

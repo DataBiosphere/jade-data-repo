@@ -238,11 +238,11 @@ public class AzureSynapsePdao {
     for (DatasetTable table : tables) {
       String datasetParquetFileName =
           IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
-      ST sqlTableTemplate = new ST(getLiveViewTableTemplate);
-      sqlTableTemplate.add("tableId", table.getId().toString());
-      sqlTableTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
-      sqlTableTemplate.add("datasetParquetFileName", datasetParquetFileName);
-      sqlTableTemplate.add("datasetDataSourceName", datasetDataSourceName);
+      ST sqlTableTemplate = new ST(getLiveViewTableTemplate)
+        .add("tableId", table.getId().toString())
+        .add("dataRepoRowId", PDAO_ROW_ID_COLUMN)
+        .add("datasetParquetFileName", datasetParquetFileName)
+        .add("datasetDataSourceName", datasetDataSourceName);
       selectStatements.add(sqlTableTemplate.render());
     }
     ST sqlMergeTablesTemplate = new ST(mergeLiveViewTablesTemplate);

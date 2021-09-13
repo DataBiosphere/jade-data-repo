@@ -653,8 +653,7 @@ public class DataRepoFixtures {
     }
     ErrorModel errorModel = response.getErrorObject().orElse(null);
     logger.error("bulkLoad failed: " + errorModel);
-    fail();
-    return null; // Make findbugs happy
+    throw new AssertionError();
   }
 
   public BulkLoadHistoryModelList getLoadHistory(

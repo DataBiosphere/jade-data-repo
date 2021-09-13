@@ -259,13 +259,14 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(
-                String.format(blobIOTestUtility.createSourcePath(sourceFile)))
+            .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
             .targetPath("/test/target.txt");
     BulkLoadFileModel fileLoadModelSas =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourceSignedPath(sourceFile, getSourceStorageAccountPrimarySharedKey()))
+            .sourcePath(
+                blobIOTestUtility.createSourceSignedPath(
+                    sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas.txt");
     BulkLoadArrayResultModel result =
         dataRepoFixtures.bulkLoadArray(
@@ -316,7 +317,8 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .targetPath(String.format("%s/%s", flightId, "target2.txt")));
 
     String controlFileUrl =
-        blobIOTestUtility.uploadFileWithContents(blobName, blobIOTestUtility.readControlFile(bulkLoadFileModelList));
+        blobIOTestUtility.uploadFileWithContents(
+            controlFileBlob, blobIOTestUtility.readControlFile(bulkLoadFileModelList));
 
     String bulkLoadTag = Names.randomizeName("loadTag");
     BulkLoadRequestModel request =
@@ -412,7 +414,9 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModelSas =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourceSignedPath(sourceFile, getSourceStorageAccountPrimarySharedKey()))
+            .sourcePath(
+                blobIOTestUtility.createSourceSignedPath(
+                    sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas.txt");
     BulkLoadArrayResultModel bulkLoadResult1 =
         dataRepoFixtures.bulkLoadArray(
@@ -432,7 +436,9 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModelSas2 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourceSignedPath(sourceFile, getSourceStorageAccountPrimarySharedKey()))
+            .sourcePath(
+                blobIOTestUtility.createSourceSignedPath(
+                    sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas2.txt");
 
     BulkLoadArrayResultModel bulkLoadResult2 =
@@ -453,7 +459,9 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModelSas3 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(blobIOTestUtility.createSourceSignedPath(sourceFile, getSourceStorageAccountPrimarySharedKey()))
+            .sourcePath(
+                blobIOTestUtility.createSourceSignedPath(
+                    sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas3.txt");
     dataRepoFixtures.bulkLoadArray(
         steward,

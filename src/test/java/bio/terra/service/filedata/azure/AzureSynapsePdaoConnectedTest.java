@@ -179,7 +179,7 @@ public class AzureSynapsePdaoConnectedTest {
             IngestUtils.formatSnapshotTableName(snapshotId, "participant"),
             IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
     azureSynapsePdao.dropDataSources(
-        Arrays.asList(
+        List.of(
             snapshotDataSourceName, destinationDataSourceName, ingestRequestDataSourceName));
     azureSynapsePdao.dropScopedCredentials(
         List.of(

@@ -182,7 +182,7 @@ public class AzureSynapsePdaoConnectedTest {
         Arrays.asList(
             snapshotDataSourceName, destinationDataSourceName, ingestRequestDataSourceName));
     azureSynapsePdao.dropScopedCredentials(
-        Arrays.asList(
+        List.of(
             snapshotScopedCredentialName,
             destinationScopedCredentialName,
             ingestRequestScopedCredentialName));

@@ -5,7 +5,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
-/** Given a gs path and a storage object, return a buffered reader for the blob */
+/** Given a url to an azure blob, return a buffered reader for the blob */
 public class AzureBlobStoreBufferedReader extends BufferedReader {
   public AzureBlobStoreBufferedReader(String ingestRequestSignURL) {
     super(

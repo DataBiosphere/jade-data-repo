@@ -2,7 +2,6 @@ package bio.terra.service.filedata.azure.util;
 
 import static bio.terra.service.resourcemanagement.AzureDataLocationSelector.armUniqueString;
 
-import bio.terra.model.BulkLoadFileModel;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
 import com.azure.resourcemanager.AzureResourceManager;
@@ -14,8 +13,6 @@ import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.sas.SasProtocol;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -158,17 +155,6 @@ public class BlobIOTestUtility {
     } catch (IOException ex) {
       throw new AzureResourceException(String.format("Could not write contents to %s", blobName));
     }
-  }
-
-  public String readControlFile(List<BulkLoadFileModel> bulkLoadFileModelList)
-      throws JsonProcessingException {
-    ObjectMapper mapper = new ObjectMapper();
-    StringBuilder sb = new StringBuilder();
-    for (BulkLoadFileModel file : bulkLoadFileModelList) {
-      sb.append(mapper.writeValueAsString(file));
-      sb.append('\n');
-    }
-    return sb.toString();
   }
 
   public String uploadDestinationFile(String blobName, long length) {

@@ -3,7 +3,11 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
 import bio.terra.service.load.LoadService;
+import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
+import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -26,7 +30,10 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     this.batchSize = batchSize;
   }
 
-  void readFile(BufferedReader reader, UUID loadId) throws IOException {
+  void readFile(BufferedReader reader, FlightContext context) throws IOException {
+    FlightMap workingMap = context.getWorkingMap();
+    UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
+
     ObjectMapper objectMapper =
         new ObjectMapper()
             .registerModule(new Jdk8Module())
@@ -36,7 +43,8 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     long lineCount = 0;
     List<BulkLoadFileModel> fileList = new ArrayList<>();
 
-    for (String line = reader.readLine(); line != null; line = reader.readLine()) {
+    String line;
+    while ((line = reader.readLine()) != null) {
       lineCount++;
 
       try {
@@ -66,5 +74,14 @@ public abstract class IngestPopulateFileStateFromFileStep implements Step {
     if (fileList.size() > 0) {
       loadService.populateFiles(loadId, fileList);
     }
+  }
+
+  @Override
+  public StepResult undoStep(FlightContext context) {
+    FlightMap workingMap = context.getWorkingMap();
+    UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
+
+    loadService.cleanFiles(loadId);
+    return StepResult.getStepResultSuccess();
   }
 }

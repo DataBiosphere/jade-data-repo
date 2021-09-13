@@ -32,33 +32,23 @@ public class IngestPopulateFileStateFromFileGcpStep extends IngestPopulateFileSt
 
   @Override
   public StepResult doStep(FlightContext context) {
+    // Gather vars required to build GcsBufferedReader
     FlightMap inputParameters = context.getInputParameters();
     BulkLoadRequestModel loadRequest =
         inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
-
-    FlightMap workingMap = context.getWorkingMap();
-    UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
     GoogleBucketResource bucketResource =
         FlightUtils.getContextValue(context, FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
     Storage storage = gcsPdao.storageForBucket(bucketResource);
     String projectId = bucketResource.projectIdForBucket();
+
+    // Stream from control file and build list of files to be ingested
     try (BufferedReader reader =
         new GcsBufferedReader(storage, projectId, loadRequest.getLoadControlFile())) {
-      readFile(reader, loadId);
+      readFile(reader, context);
 
     } catch (IOException ex) {
-      throw new BulkLoadControlFileException("Failure accessing the load control file", ex);
+      throw new BulkLoadControlFileException("Failure accessing the load control file in GCS", ex);
     }
-    ;
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
-
-    loadService.cleanFiles(loadId);
     return StepResult.getStepResultSuccess();
   }
 }

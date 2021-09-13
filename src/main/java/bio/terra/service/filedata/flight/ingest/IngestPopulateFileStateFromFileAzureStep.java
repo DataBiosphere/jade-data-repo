@@ -4,6 +4,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
+import bio.terra.service.filedata.azure.util.AzureBlobStoreBufferedReader;
 import bio.terra.service.filedata.exception.BulkLoadControlFileException;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
@@ -39,6 +40,7 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
 
   @Override
   public StepResult doStep(FlightContext context) {
+    //get variables required for building the signed url for the ingest request file
     FlightMap inputParameters = context.getInputParameters();
     FlightMap workingMap = context.getWorkingMap();
     BulkLoadRequestModel loadRequest =
@@ -46,34 +48,24 @@ public class IngestPopulateFileStateFromFileAzureStep extends IngestPopulateFile
     BillingProfileModel billingProfileModel =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
-    UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
 
+    // Validate control file url and sign if not already signed
     String blobStoreUrl = loadRequest.getLoadControlFile();
     IngestUtils.validateBlobAzureBlobFileURL(blobStoreUrl);
-    BlobUrlParts ingestRequestSignUrlBlob =
-        azureBlobStorePdao.getOrSignUrlForSourceFactory(
+    String ingestRequestSignedUrl =
+        azureBlobStorePdao.getOrSignUrlStringForSourceFactory(
             blobStoreUrl, billingProfileModel.getTenantId());
-    BlobClient blobClient =
-        new BlobClientBuilder().endpoint(ingestRequestSignUrlBlob.toUrl().toString()).buildClient();
 
-    InputStream inputStream = blobClient.openInputStream();
+    // Stream from control file and build list of files to be ingested
     try (BufferedReader reader =
-        new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
-      readFile(reader, loadId);
+        new AzureBlobStoreBufferedReader(ingestRequestSignedUrl)) {
+      readFile(reader, context);
 
     } catch (IOException ex) {
-      throw new BulkLoadControlFileException("Failure accessing the load control file", ex);
+      throw new BulkLoadControlFileException(
+          "Failure accessing the load control file in Azure blob storage", ex);
     }
 
-    return StepResult.getStepResultSuccess();
-  }
-
-  @Override
-  public StepResult undoStep(FlightContext context) {
-    FlightMap workingMap = context.getWorkingMap();
-    UUID loadId = UUID.fromString(workingMap.get(LoadMapKeys.LOAD_ID, String.class));
-
-    loadService.cleanFiles(loadId);
     return StepResult.getStepResultSuccess();
   }
 }

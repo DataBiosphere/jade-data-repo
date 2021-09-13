@@ -257,6 +257,11 @@ public class AzureBlobStorePdao {
   }
 
   public BlobUrlParts getOrSignUrlForSourceFactory(String dataSourceUrl, UUID tenantId) {
+    String signedURL = getOrSignUrlStringForSourceFactory(dataSourceUrl, tenantId);
+    return BlobUrlParts.parse(signedURL);
+  }
+
+  public String getOrSignUrlStringForSourceFactory(String dataSourceUrl, UUID tenantId) {
     // parse user provided url to Azure container - can be signed or unsigned
     BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
     String blobName = ingestControlFileBlobUrl.getBlobName();
@@ -274,9 +279,7 @@ public class AzureBlobStorePdao {
             DEFAULT_SAS_TOKEN_EXPIRATION,
             new BlobSasPermission().setReadPermission(true),
             AzureBlobStorePdao.class.getName());
-    String signedURL =
-        sourceClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
-    return BlobUrlParts.parse(signedURL);
+    return sourceClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
   }
 
   public BlobUrlParts getOrSignUrlForTargetFactory(

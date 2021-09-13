@@ -84,6 +84,11 @@ public class SearchApiController implements SearchApi {
   }
 
   @Override
+  public ResponseEntity<Object> enumerateSnapshotSearch() {
+    return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+  }
+
+  @Override
   public ResponseEntity<SearchIndexModel> createSearchIndex(
       @PathVariable("id") String id, @Valid @RequestBody SearchIndexRequest searchIndexRequest) {
     AuthenticatedUserRequest user = getAuthenticatedInfo();

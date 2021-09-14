@@ -29,6 +29,7 @@ import com.azure.core.management.Region;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.storage.blob.BlobUrlParts;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -140,7 +141,7 @@ public class AzureSynapsePdaoConnectedTest {
     StorageAccount storageAccount =
         client
             .storageAccounts()
-            .define("ct" + UUID.randomUUID().toString())
+            .define("ct" + Instant.now().toEpochMilli())
             .withRegion(Region.US_CENTRAL)
             .withExistingResourceGroup(MANAGED_RESOURCE_GROUP_NAME)
             .create();

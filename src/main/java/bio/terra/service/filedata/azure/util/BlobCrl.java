@@ -8,6 +8,8 @@ import java.net.URL;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 /**
@@ -15,7 +17,7 @@ import org.springframework.http.HttpStatus;
  * storage.
  */
 public class BlobCrl {
-
+  private static final Logger logger = LoggerFactory.getLogger(BlobCrl.class);
   private final BlobContainerClientFactory blobContainerClientFactory;
 
   public BlobCrl(BlobContainerClientFactory clientFactory) {
@@ -122,6 +124,24 @@ public class BlobCrl {
       } else {
         throw new PdaoException("Error deleting file", e);
       }
+    }
+  }
+
+  /**
+   * Deletes the specified blob in the container. Logs on failure but does not throw error.
+   *
+   * @param blobName blob name to delete.
+   */
+  public boolean deleteBlobQuietFailure(String blobName) {
+    try {
+      boolean successDeleteParentBlob = deleteBlob(blobName);
+      if (!successDeleteParentBlob) {
+        logger.warn("Blob {} was not found, so could not be deleted.", blobName);
+      }
+      return successDeleteParentBlob;
+    } catch (PdaoException e) {
+      logger.warn("Could not delete the blob {}", blobName, e);
+      return false;
     }
   }
 

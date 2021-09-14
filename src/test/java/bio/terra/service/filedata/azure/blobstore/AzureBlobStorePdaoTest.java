@@ -158,7 +158,6 @@ public class AzureBlobStorePdaoTest {
     UUID fileId = UUID.randomUUID();
     FSFileInfo fsFileInfo = mockFileCopy(fileId);
     when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(true);
-    when(blobCrl.deleteBlob(fileId.toString())).thenReturn(true);
 
     FireStoreFile fileToDelete =
         new FireStoreFile()

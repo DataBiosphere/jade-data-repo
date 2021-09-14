@@ -2,11 +2,12 @@ package bio.terra.service.dataset;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import bio.terra.app.model.GoogleCloudResource;
 import bio.terra.app.model.GoogleRegion;
-import bio.terra.common.category.Unit;
+import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
@@ -40,7 +41,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Category(Unit.class)
+@Category(Connected.class)
 public class DatasetBucketDaoTest {
   private static final Logger logger = LoggerFactory.getLogger(DatasetBucketDaoTest.class);
 
@@ -60,16 +61,15 @@ public class DatasetBucketDaoTest {
 
   @Autowired private GcsConfiguration gcsConfiguration;
 
-  private BucketResourceUtils bucketResourceUtils = new BucketResourceUtils();
+  private final BucketResourceUtils bucketResourceUtils = new BucketResourceUtils();
   private BillingProfileModel billingProfile;
-  private GoogleBucketResource bucketForFile;
   private UUID projectId;
   private GoogleProjectResource projectResource;
   private Dataset dataset;
 
-  private List<UUID> billingProfileIds = new ArrayList<>();
-  private List<UUID> datasetIds = new ArrayList<>();
-  private List<UUID> bucketResourceIds = new ArrayList<>();
+  private final List<UUID> billingProfileIds = new ArrayList<>();
+  private final List<UUID> datasetIds = new ArrayList<>();
+  private final List<UUID> bucketResourceIds = new ArrayList<>();
 
   @Before
   public void setup() {
@@ -86,8 +86,8 @@ public class DatasetBucketDaoTest {
   @After
   public void teardown() {
     try {
-      for (int i = 0; i < datasetIds.size(); i++) {
-        datasetBucketDao.deleteDatasetBucketLink(datasetIds.get(i), bucketResourceIds.get(0));
+      for (UUID datasetId : datasetIds) {
+        datasetBucketDao.deleteDatasetBucketLink(datasetId, bucketResourceIds.get(0));
       }
     } catch (Exception ex) {
       logger.error("[CLEANUP] Unable to delete dataset  bucket link {}", bucketResourceIds);
@@ -113,7 +113,7 @@ public class DatasetBucketDaoTest {
 
   @Test
   public void TestGetProjectForDatasetProfileCombo() throws Exception {
-    UUID datasetId = createDataset("dataset-minimal.json");
+    UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
     UUID bucketResourceId = createBucket();
     bucketResourceIds.add(bucketResourceId);
@@ -130,23 +130,23 @@ public class DatasetBucketDaoTest {
     BillingProfileModel billingProfile2 =
         profileDao.createBillingProfile(profileRequest2, "testUser");
     billingProfileIds.add(billingProfile2.getId());
-    String newBillingIdProjectName =
-        datasetBucketDao.getProjectResourceForBucket(datasetId, billingProfile2.getId());
-    assertEquals("Should NOT retrieve existing project", null, newBillingIdProjectName);
+    assertNull(
+        "Should NOT retrieve existing project",
+        datasetBucketDao.getProjectResourceForBucket(datasetId, billingProfile2.getId()));
 
     // Get project given a new dataset
-    UUID datasetId2 = createDataset("dataset-minimal.json");
+    UUID datasetId2 = createMinimalDataset();
     datasetIds.add(datasetId2);
     UUID bucketResourceId2 = createBucket();
     bucketResourceIds.add(bucketResourceId2);
-    String newDatasetIdProjectName =
-        datasetBucketDao.getProjectResourceForBucket(datasetId2, billingProfile.getId());
-    assertEquals("Should NOT retrieve existing project", null, newDatasetIdProjectName);
+    assertNull(
+        "Should NOT retrieve existing project",
+        datasetBucketDao.getProjectResourceForBucket(datasetId2, billingProfile.getId()));
   }
 
   @Test
   public void TestDatasetBucketLink() throws Exception {
-    UUID datasetId = createDataset("dataset-minimal.json");
+    UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
     UUID bucketResourceId = createBucket();
     bucketResourceIds.add(bucketResourceId);
@@ -168,7 +168,7 @@ public class DatasetBucketDaoTest {
 
   @Test
   public void TestMultipleLinks() throws Exception {
-    UUID datasetId = createDataset("dataset-minimal.json");
+    UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
     UUID bucketResourceId = createBucket();
     bucketResourceIds.add(bucketResourceId);
@@ -200,7 +200,7 @@ public class DatasetBucketDaoTest {
 
   @Test
   public void TestDecrementLink() throws Exception {
-    UUID datasetId = createDataset("dataset-minimal.json");
+    UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
     UUID bucketResourceId = createBucket();
     bucketResourceIds.add(bucketResourceId);
@@ -228,7 +228,7 @@ public class DatasetBucketDaoTest {
   public void DatasetMustExistToLink() throws Exception {
 
     // create dataset to pass to bucket create
-    UUID datasetId = createDataset("dataset-minimal.json");
+    UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
     UUID bucketResourceId = createBucket();
     bucketResourceIds.add(bucketResourceId);
@@ -249,7 +249,7 @@ public class DatasetBucketDaoTest {
   public void BucketMustExistToLink() throws Exception {
 
     // create dataset
-    UUID datasetId = createDataset("dataset-minimal.json");
+    UUID datasetId = createMinimalDataset();
     datasetIds.add(datasetId);
 
     // fake datasetId
@@ -264,10 +264,10 @@ public class DatasetBucketDaoTest {
     datasetBucketDao.createDatasetBucketLink(datasetId, randomBucketResourceId);
   }
 
-  private UUID createDataset(String datasetFile) throws Exception {
+  private UUID createMinimalDataset() throws Exception {
     DatasetRequestModel datasetRequest =
-        jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
-    String newName = datasetRequest.getName() + UUID.randomUUID().toString();
+        jsonLoader.loadObject("dataset-minimal.json", DatasetRequestModel.class);
+    String newName = datasetRequest.getName() + UUID.randomUUID();
     datasetRequest
         .name(newName)
         .defaultProfileId(billingProfile.getId())
@@ -284,7 +284,7 @@ public class DatasetBucketDaoTest {
 
   private UUID createBucket() throws InterruptedException {
     String ingestFileFlightId = UUID.randomUUID().toString();
-    bucketForFile =
+    GoogleBucketResource bucketForFile =
         googleBucketService.getOrCreateBucket(
             gcsConfiguration.getBucket(),
             projectResource,

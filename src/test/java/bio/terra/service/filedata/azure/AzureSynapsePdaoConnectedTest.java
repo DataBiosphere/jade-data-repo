@@ -17,6 +17,7 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -70,6 +71,7 @@ public class AzureSynapsePdaoConnectedTest {
   private BillingProfileModel billingProfile;
 
   @Autowired AzureSynapsePdao azureSynapsePdao;
+  @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired DatasetService datasetService;
@@ -202,7 +204,7 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 1 - Create external data source for the ingest control file
     BlobUrlParts ingestRequestSignUrlBlob =
-        azureSynapsePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId);
+        azureBlobStorePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId);
     azureSynapsePdao.createExternalDataSource(
         ingestRequestSignUrlBlob, ingestRequestScopedCredentialName, ingestRequestDataSourceName);
 
@@ -213,7 +215,7 @@ public class AzureSynapsePdaoConnectedTest {
     String parquetDestinationLocation = "https://tdrshiqauwlpzxavohmxxhfv.blob.core.windows.net";
 
     BlobUrlParts destinationSignUrlBlob =
-        azureSynapsePdao.getOrSignUrlForTargetFactory(
+        azureBlobStorePdao.getOrSignUrlForTargetFactory(
             parquetDestinationLocation, billingProfile, storageAccountResource);
     azureSynapsePdao.createExternalDataSource(
         destinationSignUrlBlob, destinationScopedCredentialName, destinationDataSourceName);

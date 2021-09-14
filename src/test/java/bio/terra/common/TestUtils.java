@@ -7,6 +7,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.ConfigGroupModel;
@@ -258,5 +259,15 @@ public final class TestUtils {
         .fileId(model.getFileId())
         .state(model.getState())
         .error(model.getError());
+  }
+
+  public static String readControlFile(List<BulkLoadFileModel> bulkLoadFileModelList)
+      throws JsonProcessingException {
+    StringBuilder sb = new StringBuilder();
+    for (BulkLoadFileModel file : bulkLoadFileModelList) {
+      sb.append(objectMapper.writeValueAsString(file));
+      sb.append('\n');
+    }
+    return sb.toString();
   }
 }

@@ -43,6 +43,7 @@ import org.springframework.stereotype.Component;
 public class AzureBlobStorePdao {
 
   private static final Logger logger = LoggerFactory.getLogger(AzureBlobStorePdao.class);
+  private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
 
   private static final int LOG_RETENTION_DAYS = 90;
 
@@ -253,6 +254,56 @@ public class AzureBlobStorePdao {
         azureContainerPdao.getDestinationContainerSignedUrl(
             profileModel, storageAccountResource, containerType, true, true, true, enableDelete),
         getRetryOptions());
+  }
+
+  public BlobUrlParts getOrSignUrlForSourceFactory(String dataSourceUrl, UUID tenantId) {
+    String signedURL = getOrSignUrlStringForSourceFactory(dataSourceUrl, tenantId);
+    return BlobUrlParts.parse(signedURL);
+  }
+
+  public String getOrSignUrlStringForSourceFactory(String dataSourceUrl, UUID tenantId) {
+    // parse user provided url to Azure container - can be signed or unsigned
+    BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
+    String blobName = ingestControlFileBlobUrl.getBlobName();
+
+    // during factory build, we check if url is signed
+    // if not signed, we generate the sas token
+    // when signing, 'tdr' (the Azure app), must be granted permission on the storage account
+    // associated with the provided tenant ID
+    BlobContainerClientFactory sourceClientFactory =
+        buildSourceClientFactory(tenantId, dataSourceUrl);
+
+    // Given the sas token, rebuild a signed url
+    BlobSasTokenOptions options =
+        new BlobSasTokenOptions(
+            DEFAULT_SAS_TOKEN_EXPIRATION,
+            new BlobSasPermission().setReadPermission(true),
+            AzureBlobStorePdao.class.getName());
+    return sourceClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
+  }
+
+  public BlobUrlParts getOrSignUrlForTargetFactory(
+      String dataSourceUrl,
+      BillingProfileModel profileModel,
+      AzureStorageAccountResource storageAccount) {
+    BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
+    String blobName = ingestControlFileBlobUrl.getBlobName();
+
+    BlobContainerClientFactory targetDataClientFactory =
+        getTargetDataClientFactory(profileModel, storageAccount, ContainerType.METADATA, false);
+
+    // Given the sas token, rebuild a signed url
+    BlobSasTokenOptions options =
+        new BlobSasTokenOptions(
+            DEFAULT_SAS_TOKEN_EXPIRATION,
+            new BlobSasPermission()
+                .setReadPermission(true)
+                .setListPermission(true)
+                .setWritePermission(true),
+            AzureBlobStorePdao.class.getName());
+    String signedURL =
+        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
+    return BlobUrlParts.parse(signedURL);
   }
 
   @VisibleForTesting

@@ -164,8 +164,18 @@ public class BlobIOTestUtility {
     return blobName;
   }
 
-  public String getSourceContainerEndpoint() {
+  private String getSourceContainerEndpoint() {
     return sourceBlobContainerClient.getBlobContainerUrl();
+  }
+
+  public String createSourcePath(String sourceFile) {
+    return String.format("%s/%s", getSourceContainerEndpoint(), sourceFile);
+  }
+
+  public String createSourceSignedPath(String sourceFile, String key) {
+    return String.format(
+        "%s?%s",
+        createSourcePath(sourceFile), generateBlobSasTokenWithReadPermissions(key, sourceFile));
   }
 
   private InputStream createInputStream(long length) {

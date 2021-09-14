@@ -4,7 +4,6 @@ import static bio.terra.common.FlightUtils.getDefaultRandomBackoffRetryRule;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.CloudPlatformWrapper;
-import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.configuration.ConfigurationService;
@@ -15,6 +14,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetStorageAccountDao;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
@@ -33,6 +33,7 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRule;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.UUID;
 import org.springframework.context.ApplicationContext;
 
@@ -68,6 +69,8 @@ public class FileIngestBulkFlight extends Flight {
     DatasetDao datasetDao = appContext.getBean(DatasetDao.class);
     GoogleProjectService googleProjectService = appContext.getBean(GoogleProjectService.class);
     StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
+    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
+    ObjectMapper bulkLoadObjectMapper = appConfig.bulkLoadObjectMapper();
 
     // Common input parameters
     String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -162,14 +165,20 @@ public class FileIngestBulkFlight extends Flight {
     } else {
       if (platform.isGcp()) {
         addStep(
-            new IngestPopulateFileStateFromFileStep(
+            new IngestPopulateFileStateFromFileGcpStep(
                 loadService,
                 appConfig.getMaxBadLoadFileLineErrorsReported(),
                 appConfig.getLoadFilePopulateBatchSize(),
-                gcsPdao));
+                gcsPdao,
+                bulkLoadObjectMapper));
       } else {
-        throw new NotImplementedException(
-            String.format("Ingesting from control file not supported on platform: %s", platform));
+        addStep(
+            new IngestPopulateFileStateFromFileAzureStep(
+                loadService,
+                appConfig.getMaxBadLoadFileLineErrorsReported(),
+                appConfig.getLoadFilePopulateBatchSize(),
+                azureBlobStorePdao,
+                bulkLoadObjectMapper));
       }
     }
     addStep(

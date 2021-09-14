@@ -169,21 +169,6 @@ public class AzureBlobStorePdaoTest {
   }
 
   @Test
-  public void testDeleteFileFailDeleteParent() {
-    UUID fileId = UUID.randomUUID();
-    FSFileInfo fsFileInfo = mockFileCopy(fileId);
-    when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(true);
-    when(blobCrl.deleteBlob(fileId.toString())).thenReturn(false);
-
-    FireStoreFile fileToDelete =
-        new FireStoreFile()
-            .fileId(fileId.toString())
-            .bucketResourceId(RESOURCE_ID.toString())
-            .gspath(fsFileInfo.getCloudPath());
-    assertThat(dao.deleteFile(fileToDelete), equalTo(false));
-  }
-
-  @Test
   public void testDeleteFileNotFound() {
     UUID fileId = UUID.randomUUID();
     FSFileInfo fsFileInfo = mockFileCopy(fileId);

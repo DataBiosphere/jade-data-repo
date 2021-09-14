@@ -20,6 +20,7 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.Co
 import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
@@ -162,7 +163,14 @@ public class AzureBlobStorePdao {
     boolean success = blobCrl.deleteBlob(blobName);
     var parentBlob = Paths.get(blobName).getParent();
     if (parentBlob != null) {
-      return success && blobCrl.deleteBlob(parentBlob.toString());
+      try {
+        // Attempt to delete the file's folder
+        blobCrl.deleteBlob(parentBlob.toString());
+      } catch (BlobStorageException e) {
+        // Attempt to delete the parent but this should not cause the overall failure of
+        // the file
+        logger.warn("Could not delete the blob folder {}", parentBlob.toString(), e);
+      }
     }
     return success;
   }

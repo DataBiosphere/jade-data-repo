@@ -90,7 +90,8 @@ public class SwaggerDocumentationConfig {
     return new Docket(DocumentationType.SWAGGER_2)
         .select()
         .apis(RequestHandlerSelectors.basePackage("bio.terra"))
-        .paths(or(regex("/api.*"), regex("/ga4gh.*"), regex("/status"), regex("/configuration")))
+        .paths(
+            regex("/api.*").or(regex("/ga4gh.*")).or(regex("/status")).or(regex("/configuration")))
         .build()
         .directModelSubstitute(java.time.LocalDate.class, java.sql.Date.class)
         .directModelSubstitute(java.time.OffsetDateTime.class, java.util.Date.class)

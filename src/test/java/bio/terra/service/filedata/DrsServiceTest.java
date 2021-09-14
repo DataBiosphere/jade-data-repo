@@ -113,6 +113,7 @@ public class DrsServiceTest {
             .description("description")
             .path("file.txt")
             .cloudPath("gs://path/to/file.txt")
+            .cloudPlatform(CloudPlatform.GCP)
             .size(100L)
             .fileId(googleFileId)
             .bucketResourceId(bucketResourceId);
@@ -125,6 +126,7 @@ public class DrsServiceTest {
             .description("description")
             .path("file.txt")
             .cloudPath("https://core.windows.net/blahblah")
+            .cloudPlatform(CloudPlatform.AZURE)
             .size(1000L)
             .fileId(azureFileId)
             .bucketResourceId(storageAccountResourceId);

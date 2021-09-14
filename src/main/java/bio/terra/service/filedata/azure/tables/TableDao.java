@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -342,6 +343,7 @@ public class TableDao {
         .size(fireStoreFile.getSize())
         .description(fireStoreFile.getDescription())
         .cloudPath(fireStoreFile.getGspath())
+        .cloudPlatform(CloudPlatform.AZURE)
         .mimeType(fireStoreFile.getMimeType())
         .bucketResourceId(fireStoreFile.getBucketResourceId())
         .loadTag(fireStoreFile.getLoadTag());

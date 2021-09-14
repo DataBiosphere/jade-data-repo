@@ -1,11 +1,14 @@
 package bio.terra.service.filedata.azure.util;
 
+import bio.terra.common.exception.PdaoException;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.models.BlobStorageException;
 import java.net.URL;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpStatus;
 
 /**
  * High-level API that enables copy, delete, and get blob properties operations on Azure Blob
@@ -109,8 +112,17 @@ public class BlobCrl {
    *
    * @param blobName blob name to delete.
    */
-  public void deleteBlob(String blobName) {
-    blobContainerClientFactory.getBlobContainerClient().getBlobClient(blobName).delete();
+  public boolean deleteBlob(String blobName) {
+    try {
+      blobContainerClientFactory.getBlobContainerClient().getBlobClient(blobName).delete();
+      return true;
+    } catch (BlobStorageException e) {
+      if (e.getStatusCode() == HttpStatus.NOT_FOUND.value()) {
+        return false;
+      } else {
+        throw new PdaoException("Error deleting file", e);
+      }
+    }
   }
 
   /**

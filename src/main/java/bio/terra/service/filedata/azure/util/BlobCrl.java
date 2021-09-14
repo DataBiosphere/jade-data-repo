@@ -113,6 +113,7 @@ public class BlobCrl {
    * Deletes the specified blob in the container.
    *
    * @param blobName blob name to delete.
+   * @return boolean that indicates the status of the delete operation
    */
   public boolean deleteBlob(String blobName) {
     try {

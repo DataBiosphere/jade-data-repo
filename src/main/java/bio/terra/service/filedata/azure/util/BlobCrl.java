@@ -132,16 +132,14 @@ public class BlobCrl {
    *
    * @param blobName blob name to delete.
    */
-  public boolean deleteBlobQuietFailure(String blobName) {
+  public void deleteBlobQuietFailure(String blobName) {
     try {
       boolean successDeleteParentBlob = deleteBlob(blobName);
       if (!successDeleteParentBlob) {
         logger.warn("Blob {} was not found, so could not be deleted.", blobName);
       }
-      return successDeleteParentBlob;
     } catch (PdaoException e) {
       logger.warn("Could not delete the blob {}", blobName, e);
-      return false;
     }
   }
 

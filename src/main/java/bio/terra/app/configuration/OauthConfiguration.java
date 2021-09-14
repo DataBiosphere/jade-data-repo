@@ -14,6 +14,7 @@ public class OauthConfiguration {
   private String loginEndpoint;
   private String clientId;
   private String clientSecret;
+  private String tokenName;
 
   public String getSchemeName() {
     return schemeName;
@@ -53,5 +54,13 @@ public class OauthConfiguration {
 
   public void setScopes(String[] scopes) {
     this.scopes = scopes.clone();
+  }
+
+  public String getTokenName() {
+    return tokenName;
+  }
+
+  public void setTokenName(String tokenName) {
+    this.tokenName = tokenName;
   }
 }

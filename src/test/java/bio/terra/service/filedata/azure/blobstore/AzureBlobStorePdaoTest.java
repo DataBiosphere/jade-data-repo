@@ -9,7 +9,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -171,9 +170,7 @@ public class AzureBlobStorePdaoTest {
   public void testDeleteFileNotFound() {
     UUID fileId = UUID.randomUUID();
     FSFileInfo fsFileInfo = mockFileCopy(fileId);
-    BlobStorageException exception = mock(BlobStorageException.class);
-    when(exception.getStatusCode()).thenReturn(HttpStatus.NOT_FOUND.value());
-    doThrow(exception).when(blobCrl).deleteBlob(fileId + "/" + SOURCE_FILE_NAME);
+    when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(false);
 
     FireStoreFile fileToDelete =
         new FireStoreFile()
@@ -204,7 +201,7 @@ public class AzureBlobStorePdaoTest {
   public void testDeleteFileById() {
     UUID fileId = UUID.randomUUID();
     mockFileCopy(fileId);
-    doNothing().when(blobCrl).deleteBlob(fileId + "/" + SOURCE_FILE_NAME);
+    when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(true);
 
     assertThat(
         dao.deleteDataFileById(fileId.toString(), SOURCE_FILE_NAME, AZURE_STORAGE_ACCOUNT_RESOURCE),

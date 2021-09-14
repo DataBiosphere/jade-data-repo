@@ -125,7 +125,7 @@ public class SamIam implements IamProviderInterface {
       String resourceId,
       IamAction action)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     boolean authorized =
         samResourceApi.resourcePermissionV2(
             iamResourceType.toString(), resourceId, action.toString());
@@ -143,7 +143,7 @@ public class SamIam implements IamProviderInterface {
 
   private List<UUID> listAuthorizedResourcesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType) throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
 
     try (Stream<ResourceAndAccessPolicy> resultStream =
         samResourceApi.listResourcesAndPolicies(iamResourceType.toString()).stream()) {
@@ -168,7 +168,7 @@ public class SamIam implements IamProviderInterface {
   private boolean hasActionsInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     List<String> actionList =
         samResourceApi.resourceActions(iamResourceType.toString(), resourceId);
     return (actionList.size() > 0);
@@ -196,7 +196,7 @@ public class SamIam implements IamProviderInterface {
   private void deleteResourceInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     samResourceApi.deleteResource(iamResourceType.toString(), resourceId);
   }
 
@@ -222,7 +222,7 @@ public class SamIam implements IamProviderInterface {
     req.addPoliciesItem(
         IamRole.SNAPSHOT_CREATOR.toString(), createAccessPolicy(IamRole.SNAPSHOT_CREATOR, null));
 
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     logger.debug(req.toString());
 
     // create the resource in sam
@@ -275,7 +275,7 @@ public class SamIam implements IamProviderInterface {
     req.addPoliciesItem(
         IamRole.DISCOVERER.toString(), createAccessPolicy(IamRole.DISCOVERER, null));
 
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     logger.debug("SAM request: " + req.toString());
 
     // create the resource in sam
@@ -300,7 +300,7 @@ public class SamIam implements IamProviderInterface {
       AuthenticatedUserRequest userReq, IamResourceType resourceType, UUID id, IamRole role)
       throws ApiException {
     Map<String, List<Object>> results =
-        samGoogleApi(userReq.getRequiredToken())
+        samGoogleApi(userReq.getRequiredAccessToken())
             .syncPolicy(resourceType.toString(), id.toString(), role.toString());
     String policyEmail = getPolicyGroupEmailFromResponse(results);
     logger.debug(
@@ -328,7 +328,7 @@ public class SamIam implements IamProviderInterface {
         IamRole.OWNER.toString(), createAccessPolicyOne(IamRole.OWNER, userReq.getEmail()));
     req.addPoliciesItem(IamRole.USER.toString(), createAccessPolicy(IamRole.USER, null));
 
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     logger.debug("SAM request: " + req.toString());
 
     // Simply ensure that the call can complete
@@ -353,7 +353,7 @@ public class SamIam implements IamProviderInterface {
   private List<PolicyModel> retrievePoliciesInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     try (Stream<AccessPolicyResponseEntry> resultStream =
         samResourceApi
             .listResourcePolicies(iamResourceType.toString(), resourceId.toString())
@@ -380,7 +380,7 @@ public class SamIam implements IamProviderInterface {
   private Map<IamRole, String> retrievePolicyEmailsInner(
       AuthenticatedUserRequest userReq, IamResourceType iamResourceType, UUID resourceId)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     try (Stream<AccessPolicyResponseEntry> resultStream =
         samResourceApi
             .listResourcePolicies(iamResourceType.toString(), resourceId.toString())
@@ -414,7 +414,7 @@ public class SamIam implements IamProviderInterface {
       String policyName,
       String userEmail)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     logger.debug(
         "addUserPolicy resourceType {} resourceId {} policyName {} userEmail {}",
         iamResourceType.toString(),
@@ -448,7 +448,7 @@ public class SamIam implements IamProviderInterface {
       String policyName,
       String userEmail)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     samResourceApi.removeUserFromPolicy(
         iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
   }
@@ -459,7 +459,7 @@ public class SamIam implements IamProviderInterface {
       UUID resourceId,
       String policyName)
       throws ApiException {
-    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
+    ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredAccessToken());
     AccessPolicyMembership result =
         samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
     return new PolicyModel().name(policyName).members(result.getMemberEmails());
@@ -467,7 +467,7 @@ public class SamIam implements IamProviderInterface {
 
   @Override
   public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) {
-    UsersApi samUsersApi = samUsersApi(userReq.getRequiredToken());
+    UsersApi samUsersApi = samUsersApi(userReq.getRequiredAccessToken());
     try {
       org.broadinstitute.dsde.workbench.client.sam.model.UserStatusInfo samInfo =
           samUsersApi.getUserStatusInfo();

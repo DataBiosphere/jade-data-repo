@@ -71,7 +71,18 @@ public class RegisterApiController implements RegisterApi {
 
   @Override
   public ResponseEntity<UserStatusInfo> user() {
-    UserStatusInfo info = iamService.getUserInfo(getAuthenticatedInfo());
-    return new ResponseEntity<>(info, HttpStatus.OK);
+    AuthenticatedUserRequest authenticatedInfo = getAuthenticatedInfo();
+    try {
+      UserStatusInfo info = iamService.getUserInfo(authenticatedInfo);
+      return new ResponseEntity<>(info, HttpStatus.OK);
+    } catch (Exception e) {
+      logger.info("Getting user info since there was an issue talking to sam");
+      UserStatusInfo info =
+          new UserStatusInfo()
+              .userEmail(authenticatedInfo.getEmail())
+              .userSubjectId(authenticatedInfo.getSubjectId())
+              .enabled(false);
+      return new ResponseEntity<>(info, HttpStatus.NOT_FOUND);
+    }
   }
 }

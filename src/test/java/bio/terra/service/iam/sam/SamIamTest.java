@@ -61,7 +61,7 @@ public class SamIamTest {
     MockitoAnnotations.initMocks(this);
     samIam = spy(new SamIam(samConfig, configurationService));
     final String userToken = "some_token";
-    when(userReq.getRequiredToken()).thenReturn(userToken);
+    when(userReq.getRequiredAccessToken()).thenReturn(userToken);
     when(configurationService.getParameterValue(ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS))
         .thenReturn(0);
     when(configurationService.getParameterValue(ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS))

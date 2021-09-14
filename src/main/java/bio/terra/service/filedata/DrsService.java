@@ -441,7 +441,7 @@ public class DrsService {
       return Collections.emptyList();
     }
 
-    String hdr = String.format("Authorization: Bearer %s", authUser.getRequiredToken());
+    String hdr = String.format("Authorization: Bearer %s", authUser.getRequiredAccessToken());
     return Collections.singletonList(hdr);
   }
 

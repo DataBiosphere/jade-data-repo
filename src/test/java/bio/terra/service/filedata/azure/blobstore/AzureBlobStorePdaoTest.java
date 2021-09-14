@@ -210,7 +210,6 @@ public class AzureBlobStorePdaoTest {
   public void testDeleteFileByIdNotFound() {
     UUID fileId = UUID.randomUUID();
     mockFileCopy(fileId);
-    BlobStorageException exception = mock(BlobStorageException.class);
     when(blobCrl.deleteBlob(fileId + "/" + SOURCE_FILE_NAME)).thenReturn(false);
 
     assertThat(

@@ -160,8 +160,9 @@ public class AzureBlobStorePdao {
     String blobName = blobParts.getBlobName();
     BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
     boolean success = blobCrl.deleteBlob(blobName);
-    if (Paths.get(blobName).getParent() != null) {
-      return success && blobCrl.deleteBlob(Paths.get(blobName).getParent().toString());
+    var parentBlob = Paths.get(blobName).getParent();
+    if (parentBlob != null) {
+      return success && blobCrl.deleteBlob(parentBlob.toString());
     }
     return success;
   }

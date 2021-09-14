@@ -1,6 +1,5 @@
 package bio.terra.app.configuration;
 
-import static com.google.common.base.Predicates.or;
 import static springfox.documentation.builders.PathSelectors.regex;
 
 import java.util.Arrays;
@@ -21,11 +20,12 @@ import springfox.documentation.service.ImplicitGrant;
 import springfox.documentation.service.LoginEndpoint;
 import springfox.documentation.service.OAuth;
 import springfox.documentation.service.SecurityReference;
+import springfox.documentation.service.StringVendorExtension;
 import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spi.service.contexts.SecurityContext;
 import springfox.documentation.spring.web.plugins.Docket;
-import springfox.documentation.swagger.web.ApiKeyVehicle;
 import springfox.documentation.swagger.web.SecurityConfiguration;
+import springfox.documentation.swagger.web.SecurityConfigurationBuilder;
 
 @Configuration
 @Import({OauthConfiguration.class})
@@ -95,8 +95,8 @@ public class SwaggerDocumentationConfig {
         .directModelSubstitute(java.time.LocalDate.class, java.sql.Date.class)
         .directModelSubstitute(java.time.OffsetDateTime.class, java.util.Date.class)
         .apiInfo(apiInfo())
-        .securityContexts(Collections.singletonList(securityContext()))
-        .securitySchemes(Collections.singletonList(securityScheme()));
+        .securityContexts(List.of(securityContext()))
+        .securitySchemes(List.of(oauthSecurityScheme()));
   }
 
   private SecurityContext securityContext() {
@@ -120,23 +120,24 @@ public class SwaggerDocumentationConfig {
     return Collections.singletonList(securityReference);
   }
 
-  private OAuth securityScheme() {
+  private OAuth oauthSecurityScheme() {
     List<AuthorizationScope> scopes = authorizationScopes();
     GrantType grantType =
         new ImplicitGrant(new LoginEndpoint(oauthConfig.getLoginEndpoint()), "access_token");
-    return new OAuth(oauthConfig.getSchemeName(), scopes, Collections.singletonList(grantType));
+    return new OAuth(
+        oauthConfig.getSchemeName(),
+        scopes,
+        Collections.singletonList(grantType),
+        List.of(new StringVendorExtension("x-tokenName", oauthConfig.getTokenName())));
   }
 
   @Bean
   public SecurityConfiguration securityInfo() {
-    return new SecurityConfiguration(
-        oauthConfig.getClientId(),
-        oauthConfig.getClientSecret(),
-        UNUSED,
-        UNUSED,
-        UNUSED,
-        ApiKeyVehicle.HEADER,
-        UNUSED,
-        " ");
+    return SecurityConfigurationBuilder.builder()
+        .clientId(oauthConfig.getClientId())
+        .clientSecret(oauthConfig.getClientSecret())
+        .useBasicAuthenticationWithAccessCodeGrant(true)
+        .scopeSeparator(" ")
+        .build();
   }
 }

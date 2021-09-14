@@ -364,7 +364,8 @@ public class SnapshotTest extends UsersBase {
     Dataset bqDataset = bigQuery.getDataset(bqDatasetName);
 
     // fetch Acls
-    List<Acl> acls = bqDataset.getAcl();
+
+    List<Acl> acls = BigQueryFixtures.getAclWithRetry(bqDataset);
 
     acls.forEach(acl -> logger.info("Acl: {}", acl));
     return acls;

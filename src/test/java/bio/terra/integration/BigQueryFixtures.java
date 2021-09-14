@@ -13,6 +13,7 @@ import bio.terra.model.SnapshotModel;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
@@ -21,6 +22,7 @@ import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -92,6 +94,35 @@ public final class BigQueryFixtures {
       try {
         QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
         return bigQuery.query(queryConfig);
+      } catch (BigQueryException ex) {
+        logger.info(
+            "Caught BQ exception: code="
+                + ex.getCode()
+                + " reason="
+                + ex.getReason()
+                + " msg="
+                + ex.getMessage());
+        if ((sleptSeconds < RETRY_MAX_SLEEP_SECONDS)
+            && (ex.getCode() == 403)
+            && StringUtils.equals(ex.getReason(), "accessDenied")) {
+
+          TimeUnit.SECONDS.sleep(sleepSeconds);
+          sleptSeconds += sleepSeconds;
+          logger.info("Slept " + sleepSeconds + " total slept " + sleptSeconds);
+          sleepSeconds = Math.min(2 * sleepSeconds, RETRY_MAX_INTERVAL_SECONDS);
+        } else {
+          throw ex;
+        }
+      }
+    }
+  }
+
+  public static List<Acl> getAclWithRetry(Dataset dataset) throws InterruptedException {
+    int sleptSeconds = 0;
+    int sleepSeconds = RETRY_INITIAL_INTERVAL_SECONDS;
+    while (true) {
+      try {
+        return dataset.getAcl();
       } catch (BigQueryException ex) {
         logger.info(
             "Caught BQ exception: code="

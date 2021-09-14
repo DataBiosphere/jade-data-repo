@@ -8,6 +8,7 @@ import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.stairway.FlightMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
+import java.util.UUID;
 
 public class IngestJsonFileSetupAzureStep extends IngestJsonFileSetupStep {
 
@@ -24,16 +25,14 @@ public class IngestJsonFileSetupAzureStep extends IngestJsonFileSetupStep {
   @Override
   long getFileModelsCount(
       IngestRequestModel ingestRequest,
-      FlightMap workingMap,
       List<String> fileRefColumnNames,
       List<String> errors) {
-    BillingProfileModel billingProfile =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+    String tenantId = IngestUtils.getIngestBillingProfileFromDataset(dataset, ingestRequest).getTenantId().toString();
     return IngestUtils.countBulkFileLoadModelsFromPath(
         azureBlobStorePdao,
         objectMapper,
         ingestRequest,
-        billingProfile.getTenantId().toString(),
+        tenantId,
         fileRefColumnNames,
         errors);
   }

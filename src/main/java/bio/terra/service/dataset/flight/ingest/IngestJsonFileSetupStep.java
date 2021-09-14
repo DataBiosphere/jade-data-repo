@@ -48,7 +48,7 @@ public abstract class IngestJsonFileSetupStep implements Step {
     // Parse the file models, but don't save them because we don't want to blow up the database.
     // We read from the ingest control file each time we need to get the models to ingest.
     long fileModelsCount =
-        getFileModelsCount(ingestRequest, workingMap, fileRefColumnNames, errors);
+        getFileModelsCount(ingestRequest, fileRefColumnNames, errors);
 
     if (!errors.isEmpty()) {
       IngestFailureException ex =
@@ -72,15 +72,12 @@ public abstract class IngestJsonFileSetupStep implements Step {
    * Count the file models in the ingest-control file
    *
    * @param ingestRequest IngestRequestModel with path to control file
-   * @param workingMap FlightMap to get billing project with tenant ID for Azure ingests (GCP
-   *     ingests use dataset passed into constructor)
    * @param fileRefColumnNames Column names that are of type FILEREF
    * @param errors List to accumulate errors in parsing
    * @return The number of file ingests that would need to be performed for this control file
    */
   abstract long getFileModelsCount(
       IngestRequestModel ingestRequest,
-      FlightMap workingMap,
       List<String> fileRefColumnNames,
       List<String> errors);
 }

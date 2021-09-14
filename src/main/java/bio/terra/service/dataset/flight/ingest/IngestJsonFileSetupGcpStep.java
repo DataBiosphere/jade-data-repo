@@ -21,7 +21,6 @@ public class IngestJsonFileSetupGcpStep extends IngestJsonFileSetupStep {
   @Override
   long getFileModelsCount(
       IngestRequestModel ingestRequest,
-      FlightMap workingMap,
       List<String> fileRefColumnNames,
       List<String> errors) {
     return IngestUtils.countBulkFileLoadModelsFromPath(

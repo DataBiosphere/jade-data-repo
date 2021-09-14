@@ -19,6 +19,7 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceDao;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import com.azure.core.credential.TokenCredential;
+import com.azure.core.util.BinaryData;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobClientBuilder;
 import com.azure.storage.blob.BlobUrlParts;
@@ -28,7 +29,10 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.google.common.annotations.VisibleForTesting;
+
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -129,13 +133,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
   @Override
   public Stream<String> getBlobsLinesStream(String blobUrl, String cloudEncapsulationId) {
     UUID tenantUuid = UUID.fromString(cloudEncapsulationId);
-    BlobUrlParts signedUrlBlob = getOrSignUrlForSourceFactory(blobUrl, tenantUuid);
-    BlobClient blobClient =
-        new BlobClientBuilder().endpoint(signedUrlBlob.toUrl().toString()).buildClient();
-
-    BufferedReader bufferedReader =
-        new BufferedReader(
-            new InputStreamReader(blobClient.openInputStream(), StandardCharsets.UTF_8));
+    BufferedReader bufferedReader = buildBlobReader(blobUrl, tenantUuid);
     return bufferedReader.lines();
   }
 

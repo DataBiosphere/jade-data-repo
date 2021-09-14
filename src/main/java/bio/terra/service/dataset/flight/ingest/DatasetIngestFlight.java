@@ -19,7 +19,8 @@ import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
-import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileStep;
+import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileAzureStep;
+import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileGcpStep;
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
 import bio.terra.service.filedata.flight.ingest.IngestCreateBucketForScratchFileStep;
@@ -38,7 +39,6 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadLockStep;
-import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.profile.flight.AuthorizeBillingProfileUseStep;
@@ -115,8 +115,6 @@ public class DatasetIngestFlight extends Flight {
       var profileId =
           Objects.requireNonNullElse(ingestRequestModel.getProfileId(), dataset.getDefaultProfileId());
 
-      String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
-
       if (cloudPlatform.isGcp()) {
         addGcpJsonSteps(
             appContext,
@@ -128,7 +126,6 @@ public class DatasetIngestFlight extends Flight {
             userReq,
             dataset,
             profileId,
-            loadTag,
             randomBackoffRetry,
             driverRetry,
             driverWaitSeconds,
@@ -141,6 +138,7 @@ public class DatasetIngestFlight extends Flight {
             appContext,
             appConfig,
             datasetService,
+            ingestRequestModel,
             dataset,
             profileId,
             driverWaitSeconds,
@@ -183,7 +181,6 @@ public class DatasetIngestFlight extends Flight {
       AuthenticatedUserRequest userReq,
       Dataset dataset,
       UUID profileId,
-      String loadTag,
       RetryRule randomBackoffRetry,
       RetryRule driverRetry,
       int driverWaitSeconds,
@@ -232,7 +229,7 @@ public class DatasetIngestFlight extends Flight {
             configService,
             jobService,
             dataset.getId().toString(),
-            loadTag,
+            ingestRequest.getLoadTag(),
             Objects.requireNonNullElse(ingestRequest.getMaxBadRecords(), 0),
             driverWaitSeconds,
             profileId,
@@ -249,7 +246,7 @@ public class DatasetIngestFlight extends Flight {
 
     // build the scratch file using new file ids and store in new bucket
     addStep(
-        new IngestBuildAndWriteScratchLoadFileStep(
+        new IngestBuildAndWriteScratchLoadFileGcpStep(
             appConfig.objectMapper(), gcsPdao, dataset, ingestSkipCondition));
 
     addStep(
@@ -258,7 +255,7 @@ public class DatasetIngestFlight extends Flight {
             loadService,
             datasetService,
             dataset.getId(),
-            loadTag,
+            ingestRequest.getLoadTag(),
             loadHistoryWaitSeconds,
             loadHistoryChunkSize,
             ingestSkipCondition));
@@ -272,6 +269,7 @@ public class DatasetIngestFlight extends Flight {
       ApplicationContext appContext,
       ApplicationConfiguration appConfig,
       DatasetService datasetService,
+      IngestRequestModel ingestRequest,
       Dataset dataset,
       UUID profileId,
       int driverWaitSeconds,
@@ -315,5 +313,54 @@ public class DatasetIngestFlight extends Flight {
     addStep(
         new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
         randomBackoffRetry);
+
+      //TODO: Waiting for DR-1962 to merge with ingest file support for Azure
+//    addStep(
+//        new IngestPopulateFileStateFromFlightMapStep(
+//            loadService,
+//            gcsPdao,
+//            appConfig.objectMapper(),
+//            dataset,
+//            appConfig.getLoadFilePopulateBatchSize(),
+//            ingestSkipCondition));
+//    addStep(
+//        new IngestDriverStep(
+//            loadService,
+//            configService,
+//            jobService,
+//            dataset.getId().toString(),
+//            loadTag,
+//            Objects.requireNonNullElse(ingestRequest.getMaxBadRecords(), 0),
+//            driverWaitSeconds,
+//            profileId,
+//            platform,
+//            ingestSkipCondition),
+//        driverRetry);
+
+    addStep(
+        new IngestBulkMapResponseStep(
+            loadService, ingestRequest.getLoadTag(), ingestSkipCondition));
+
+    addStep(
+        new IngestCreateBucketForScratchFileStep(resourceService, dataset, ingestSkipCondition));
+
+    // build the scratch file using new file ids and store in new bucket
+    addStep(
+        new IngestBuildAndWriteScratchLoadFileAzureStep(
+            appConfig.objectMapper(), azureBlobStorePdao, dataset, ingestSkipCondition));
+
+    addStep(
+        new IngestCopyLoadHistoryToBQStep(
+            bigQueryPdao,
+            loadService,
+            datasetService,
+            dataset.getId(),
+            ingestRequest.getLoadTag(),
+            loadHistoryWaitSeconds,
+            loadHistoryChunkSize,
+            ingestSkipCondition));
+    addStep(new IngestCleanFileStateStep(loadService, ingestSkipCondition));
+
+    addStep(new LoadUnlockStep(loadService, ingestSkipCondition));
   }
 }

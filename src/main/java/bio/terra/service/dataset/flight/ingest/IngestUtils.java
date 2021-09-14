@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.PdaoLoadStatistics;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
@@ -31,6 +32,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
+
+import javax.xml.crypto.Data;
 
 // Common code for the ingest steps
 public final class IngestUtils {
@@ -297,5 +300,10 @@ public final class IngestUtils {
 
   public static String getSynapseTableName(String flightId) {
     return TABLE_NAME_PREFIX + flightId;
+  }
+
+  public static BillingProfileModel getIngestBillingProfileFromDataset(Dataset dataset, IngestRequestModel ingestRequest) {
+    dataset.getDatasetSummary().getBillingProfiles().stream().filter(bp -> bp.getId() == ingestRequest.getProfileId())
+        .findFirst().orElseThrow();
   }
 }

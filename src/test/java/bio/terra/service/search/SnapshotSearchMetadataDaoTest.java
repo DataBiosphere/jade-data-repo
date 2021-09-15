@@ -4,7 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.is;
 
-import bio.terra.common.category.Connected;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.common.fixtures.ResourceFixtures;
 import bio.terra.model.BillingProfileModel;
@@ -33,7 +33,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Category(Connected.class)
+@Category(Unit.class)
 public class SnapshotSearchMetadataDaoTest {
 
   @Autowired private GoogleResourceDao resourceDao;
@@ -107,12 +107,12 @@ public class SnapshotSearchMetadataDaoTest {
     // Test put/get with data.
     var snapshotId = snapshotIds.get(0);
     // The whitespace here is important as JSONB will reformat the JSON data.
-    var data = "{\"name\": \"test\"}";
+    var data = "{\"dct:identifier\": \"my snapshot\"}";
     snapshotSearchDao.putMetadata(snapshotId, data);
     assertThat(snapshotSearchDao.getMetadata(snapshotIds), is(Map.of(snapshotId, data)));
 
     // Test data update.
-    var data2 = "{\"another\": \"something\"}";
+    var data2 = "{\"dct:identifier\": \"another snapshot\"}";
     snapshotSearchDao.putMetadata(snapshotId, data2);
     assertThat(snapshotSearchDao.getMetadata(snapshotIds), is(Map.of(snapshotId, data2)));
 

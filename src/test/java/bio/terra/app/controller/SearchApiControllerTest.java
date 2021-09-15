@@ -41,7 +41,7 @@ public class SearchApiControllerTest {
   @Test
   public void testUpsert() throws Exception {
     var id = UUID.randomUUID();
-    var json = "{\"actual\": \"data\"}\"}";
+    var json = "{\"dct:identifier\": \"my snapshot\", \"dcat:byteSize\" : \"10000\"}";
     mvc.perform(put(ENDPOINT, id).contentType(MediaType.APPLICATION_JSON).content(json))
         .andExpect(status().isOk());
     verifyAuthApi(id);

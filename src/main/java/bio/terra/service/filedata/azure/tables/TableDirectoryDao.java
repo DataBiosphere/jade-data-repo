@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -22,9 +23,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import com.google.api.core.ApiFuture;
 import com.google.api.gax.rpc.AbortedException;
+import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.Query;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
@@ -70,10 +75,13 @@ public class TableDirectoryDao {
   private static final String TABLE_NAME = "dataset";
   private static final int MAX_FILTER_CLAUSES = 15;
   private final FileMetadataUtils fileMetadataUtils;
+  private final ConfigurationService configurationService;
 
   @Autowired
-  public TableDirectoryDao(FileMetadataUtils fileMetadataUtils) {
+  public TableDirectoryDao(FileMetadataUtils fileMetadataUtils,
+                           ConfigurationService configurationService) {
     this.fileMetadataUtils = fileMetadataUtils;
+    this.configurationService = configurationService;
   }
 
   public String encodePathAsAzureRowKey(String path) {
@@ -179,6 +187,36 @@ public class TableDirectoryDao {
     return Optional.ofNullable(entity)
         .map(d -> FireStoreDirectoryEntry.fromTableEntity(entity))
         .orElse(null);
+  }
+
+  List<FireStoreDirectoryEntry> batchRetrieveById(
+      Firestore firestore, String containerId, List<String> batch) throws InterruptedException {
+
+    CollectionReference collection = firestore.collection(containerId);
+
+    List<QuerySnapshot> querySnapshotList =
+        fireStoreUtils.batchOperation(
+            batch,
+            fileId -> {
+              Query query = collection.whereEqualTo("fileId", fileId);
+              return query.get();
+            });
+
+    List<FireStoreDirectoryEntry> entries = new ArrayList<>();
+    for (QuerySnapshot querySnapshot : querySnapshotList) {
+      List<QueryDocumentSnapshot> documents = querySnapshot.getDocuments();
+      if (documents.size() != 1) {
+        throw new FileSystemExecutionException("FileId not found:");
+      }
+      QueryDocumentSnapshot docSnap = documents.get(0);
+      FireStoreDirectoryEntry entry = docSnap.toObject(FireStoreDirectoryEntry.class);
+      if (!entry.getIsFileRef()) {
+        throw new FileSystemExecutionException("Directories are not supported as references");
+      }
+      entries.add(entry);
+    }
+
+    return entries;
   }
 
   // Returns null if not found - upper layers do any throwing
@@ -304,13 +342,7 @@ public class TableDirectoryDao {
     LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
 
     // Create the top directory structure (/_dr_/<datasetDirName>)
-    String storeTopTimer = performanceLogger.timerStart();
     storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
-    performanceLogger.timerEndAndLog(
-        storeTopTimer,
-        snapshotId,
-        this.getClass().getName(),
-        "addEntriesToSnapshot:storeTop:" + batchSize);
 
     int count = 0;
     for (List<String> batch : batches) {

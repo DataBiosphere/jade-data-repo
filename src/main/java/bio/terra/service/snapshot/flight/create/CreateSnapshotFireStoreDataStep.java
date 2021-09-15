@@ -76,7 +76,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
           if (fromDatatype == TableDataType.FILEREF || fromDatatype == TableDataType.DIRREF) {
 
             String bigQueryTimer = performanceLogger.timerStart();
-            // azure replace
+            // azure replace - Synapse
             List<String> refIds =
                 bigQueryPdao.getSnapshotRefIds(
                     snapshotSource.getDataset(),
@@ -118,7 +118,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
           uniqueRefIds.size());
 
       String addDependenciesTimer = performanceLogger.timerStart();
-      // azure replace
+      // azure replace - Saman's Ticket
       dependencyDao.storeSnapshotFileDependencies(
           dataset, snapshot.getId().toString(), uniqueRefIdsAsList);
       performanceLogger.timerEndAndLog(

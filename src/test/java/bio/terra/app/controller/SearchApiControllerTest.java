@@ -1,10 +1,12 @@
 package bio.terra.app.controller;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import bio.terra.common.category.Unit;
@@ -43,7 +45,8 @@ public class SearchApiControllerTest {
     var id = UUID.randomUUID();
     var json = "{\"dct:identifier\": \"my snapshot\", \"dcat:byteSize\" : \"10000\"}";
     mvc.perform(put(ENDPOINT, id).contentType(MediaType.APPLICATION_JSON).content(json))
-        .andExpect(status().isOk());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.metadataSummary").value(containsString(id.toString())));
     verifyAuthApi(id);
     verify(snapshotMetadataDao).putMetadata(id, json);
   }

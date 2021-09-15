@@ -34,7 +34,6 @@ import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
-import com.azure.storage.blob.models.BlobStorageException;
 import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.UUID;

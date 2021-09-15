@@ -66,6 +66,7 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
 
   @Override
   void writeCloudFile(FlightContext flightContext, String signedPath, Stream<String> lines) {
+    azureBlobStorePdao.createSignedBlob(signedPath);
     azureBlobStorePdao.writeBlobLines(BlobUrlParts.parse(signedPath), lines);
   }
 }

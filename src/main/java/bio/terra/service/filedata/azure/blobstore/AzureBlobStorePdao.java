@@ -143,6 +143,10 @@ public class AzureBlobStorePdao implements CloudFileReader {
     return azureBlobStoreBufferedReader.lines();
   }
 
+  public void createSignedBlob(String signedPath) {
+    getSourceClientFactory(signedPath).getBlobContainerClient().create();
+  }
+
   public void writeBlobLines(BlobUrlParts signedBlobUrlParts, Stream<String> lines) {
     var newLine = "\n";
     try (AzureBlobStoreBufferedWriter writer =

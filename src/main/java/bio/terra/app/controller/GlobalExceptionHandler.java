@@ -11,8 +11,10 @@ import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.iam.sam.SamIam;
 import bio.terra.service.job.exception.JobResponseException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,6 +130,14 @@ public class GlobalExceptionHandler {
       combinedCauseString.append("cause: " + cause.toString() + ", ");
     }
     logger.error("Global exception handler: " + combinedCauseString.toString(), ex);
+    if (errorDetail == null) {
+      return new ErrorModel()
+          .message(ex.getMessage())
+          .errorDetail(
+              Arrays.asList(ex.getStackTrace()).stream()
+                  .map(StackTraceElement::toString)
+                  .collect(Collectors.toList()));
+    }
     return new ErrorModel().message(ex.getMessage()).errorDetail(errorDetail);
   }
 }

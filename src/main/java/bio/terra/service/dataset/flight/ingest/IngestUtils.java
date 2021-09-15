@@ -303,7 +303,7 @@ public final class IngestUtils {
   public static BillingProfileModel getIngestBillingProfileFromDataset(
       Dataset dataset, IngestRequestModel ingestRequest) {
     return dataset.getDatasetSummary().getBillingProfiles().stream()
-        .filter(bp -> bp.getId() == ingestRequest.getProfileId())
+        .filter(bp -> bp.getId().equals(ingestRequest.getProfileId()))
         .findFirst()
         .orElseThrow();
   }

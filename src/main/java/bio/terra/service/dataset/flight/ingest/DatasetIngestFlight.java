@@ -17,13 +17,13 @@ import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
 import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileAzureStep;
 import bio.terra.service.filedata.flight.ingest.IngestBuildAndWriteScratchLoadFileGcpStep;
 import bio.terra.service.filedata.flight.ingest.IngestCleanFileStateStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToBQStep;
 import bio.terra.service.filedata.flight.ingest.IngestCopyLoadHistoryToStorageTableStep;
+import bio.terra.service.filedata.flight.ingest.IngestCreateAzureStorageAccountStep;
 import bio.terra.service.filedata.flight.ingest.IngestCreateBucketForScratchFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileAzureMakeStorageAccountLinkStep;
@@ -32,7 +32,6 @@ import bio.terra.service.filedata.flight.ingest.IngestFileGetOrCreateProject;
 import bio.terra.service.filedata.flight.ingest.IngestFileGetProjectStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileMakeBucketLinkStep;
 import bio.terra.service.filedata.flight.ingest.IngestFilePrimaryDataLocationStep;
-import bio.terra.service.filedata.flight.ingest.ValidateIngestFileAzureDirectoryStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -97,6 +96,7 @@ public class DatasetIngestFlight extends Flight {
           // TODO: This still uses GCP under the hood. Is this correct?
           new AuthorizeBillingProfileUseStep(
               profileService, ingestRequestModel.getProfileId(), userReq));
+      addStep(new IngestCreateAzureStorageAccountStep(datasetService, resourceService));
     }
 
     addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
@@ -161,9 +161,7 @@ public class DatasetIngestFlight extends Flight {
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
     } else if (cloudPlatform.is(CloudPlatform.AZURE)) {
       addStep(new IngestCreateIngestRequestDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
-      addStep(
-          new IngestCreateTargetDataSourceStep(
-              azureSynapsePdao, azureBlobStorePdao, datasetService, resourceService));
+      addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
       addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
       addStep(
           new IngestValidateAzureRefsStep(
@@ -286,7 +284,6 @@ public class DatasetIngestFlight extends Flight {
 
     AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
-    TableDao azureTableDao = appContext.getBean(TableDao.class);
     ProfileService profileService = appContext.getBean(ProfileService.class);
     LoadService loadService = appContext.getBean(LoadService.class);
     ResourceService resourceService = appContext.getBean(ResourceService.class);
@@ -311,7 +308,6 @@ public class DatasetIngestFlight extends Flight {
         new IngestFileAzureMakeStorageAccountLinkStep(
             datasetStorageAccountDao, dataset, ingestSkipCondition),
         randomBackoffRetry);
-    addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset, ingestSkipCondition));
     addStep(
         new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
     addStep(

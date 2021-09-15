@@ -639,6 +639,41 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     clearEnvironment();
   }
 
+  @Test
+  public void testDatasetCombinedIngest() throws Exception {
+    DatasetSummaryModel summaryModel =
+        dataRepoFixtures.createDataset(
+            steward, profileId, "dataset-ingest-combined-azure.json", CloudPlatform.AZURE);
+    datasetId = summaryModel.getId();
+
+    String controlFileContents =
+        new String(
+            this.getClass()
+                .getResourceAsStream("/dataset-ingest-combined-control-azure.json")
+                .readAllBytes());
+
+    String controlFile =
+        blobIOTestUtility.uploadFileWithContents(
+            "dataset-files-ingest-combined.csv", controlFileContents);
+
+    IngestRequestModel ingestRequest =
+        new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
+            .maxBadRecords(0)
+            .table("sample_vcf")
+            .path(controlFile)
+            .profileId(profileId)
+            .loadTag(Names.randomizeName("test"));
+
+    IngestResponseModel ingestResponseJson =
+        dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
+
+    System.out.println(controlFile);
+
+    clearEnvironment();
+  }
+
   private void clearEnvironment() throws Exception {
     if (datasetId != null) {
       dataRepoFixtures.deleteDataset(steward, datasetId);

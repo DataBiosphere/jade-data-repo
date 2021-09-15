@@ -1,12 +1,9 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -20,18 +17,11 @@ import java.util.Arrays;
 public class IngestCreateTargetDataSourceStep implements Step {
   private AzureSynapsePdao azureSynapsePdao;
   private AzureBlobStorePdao azureBlobStorePdao;
-  private DatasetService datasetService;
-  private ResourceService resourceService;
 
   public IngestCreateTargetDataSourceStep(
-      AzureSynapsePdao azureSynapsePdao,
-      AzureBlobStorePdao azureBlobStorePdao,
-      DatasetService datasetService,
-      ResourceService resourceService) {
+      AzureSynapsePdao azureSynapsePdao, AzureBlobStorePdao azureBlobStorePdao) {
     this.azureSynapsePdao = azureSynapsePdao;
     this.azureBlobStorePdao = azureBlobStorePdao;
-    this.datasetService = datasetService;
-    this.resourceService = resourceService;
   }
 
   @Override
@@ -41,11 +31,8 @@ public class IngestCreateTargetDataSourceStep implements Step {
     BillingProfileModel billingProfile =
         workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
 
-    Dataset dataset = IngestUtils.getDataset(context, datasetService);
-
     AzureStorageAccountResource storageAccountResource =
-        resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
-    workingMap.put(IngestMapKeys.STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
+        workingMap.get(IngestMapKeys.STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
     String parquetDestinationLocation =
         IngestUtils.getParquetTargetLocationURL(storageAccountResource);

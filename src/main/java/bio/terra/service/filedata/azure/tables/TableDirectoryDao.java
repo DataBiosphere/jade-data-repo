@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -10,15 +11,28 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import com.google.api.core.ApiFuture;
+import com.google.api.gax.rpc.AbortedException;
+import com.google.cloud.firestore.DocumentReference;
+import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.Firestore;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
 /**
  * Paths and document names Azure uses forward slash (/) for its path separator. We also use forward
@@ -255,5 +269,120 @@ public class TableDirectoryDao {
   }
 
   // TODO: Implement snapshot-specific methods
+  // -- Snapshot filesystem methods --
+
+  // To improve performance of building the snapshot file system, we use three techniques:
+  // 1. Operate over batches so that we can issue requests to fire store in parallel
+  // 2. Cache directory paths so that we do not due extra lookups or creates on shared directory
+  // structure
+  // 3. Rewrite rather than read, check existence, and then write. The logic here is that there is
+  // no contention
+  //    so the writing doesn't generate conflicts, and the typical use case is that overwrites will
+  // be rare:
+  //      a. File references are usually unique in the datasets we know about
+  //      b. Directories are cached, so will be overwritten based on the effectiveness of the cache
+
+  public void addEntriesToSnapshot(
+      Firestore datasetFirestore,
+      String datasetId,
+      String datasetDirName,
+      Firestore snapshotFirestore,
+      String snapshotId,
+      List<String> fileIdList)
+      throws InterruptedException {
+
+    int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
+    List<List<String>> batches = ListUtils.partition(fileIdList, batchSize);
+    logger.info(
+        "addEntriesToSnapshot on {} file ids, in {} batches of {}",
+        fileIdList.size(),
+        batches.size(),
+        batchSize);
+
+    int cacheSize =
+        configurationService.getParameterValue(ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE);
+    LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
+
+    // Create the top directory structure (/_dr_/<datasetDirName>)
+    String storeTopTimer = performanceLogger.timerStart();
+    storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
+    performanceLogger.timerEndAndLog(
+        storeTopTimer,
+        snapshotId,
+        this.getClass().getName(),
+        "addEntriesToSnapshot:storeTop:" + batchSize);
+
+    int count = 0;
+    for (List<String> batch : batches) {
+      logger.info("addEntriesToSnapshot batch {}", count);
+      count++;
+
+      // Find the file reference dataset entries for all file ids in this batch
+      List<FireStoreDirectoryEntry> datasetEntries =
+          batchRetrieveById(datasetFirestore, datasetId, batch);
+
+      // Find directory paths that need to be created; plus add to the cache
+      List<String> newPaths = findNewDirectoryPaths(datasetEntries, pathMap);
+      List<FireStoreDirectoryEntry> datasetDirectoryEntries =
+          batchRetrieveByPath(datasetFirestore, datasetId, newPaths);
+
+      // Create snapshot file system entries
+      List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
+      for (FireStoreDirectoryEntry datasetEntry : datasetEntries) {
+        snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+      }
+      for (FireStoreDirectoryEntry datasetEntry : datasetDirectoryEntries) {
+        snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+      }
+
+      // Store the batch of entries. This will override existing entries,
+      // but that is not the typical case and it is lower cost just overwrite
+      // rather than retrieve to avoid the write.
+      batchStoreDirectoryEntry(snapshotFirestore, snapshotId, snapshotEntries);
+    }
+  }
+
+  private void storeTopDirectory(Firestore firestore, String snapshotId, String dirName)
+      throws InterruptedException {
+    // We have to create the top directory structure for the dataset and the root folder.
+    // Those components cannot be copied from the dataset, but have to be created new
+    // in the snapshot directory. We probe to see if the dirName directory exists. If not,
+    // we use the createFileRef path to construct it and the parent, if necessary.
+    String dirPath = "/" + dirName;
+    DocumentSnapshot dirSnap = lookupByPathNoXn(firestore, snapshotId, dirPath);
+    if (dirSnap.exists()) {
+      return;
+    }
+
+    FireStoreDirectoryEntry topDir =
+        new FireStoreDirectoryEntry()
+            .fileId(UUID.randomUUID().toString())
+            .isFileRef(false)
+            .path("/")
+            .name(dirName)
+            .fileCreatedDate(Instant.now().toString());
+
+    createDirectoryEntry(firestore, snapshotId, topDir);
+  }
+
+  // Non-transactional lookup of an entry
+  private DocumentSnapshot lookupByPathNoXn(
+      Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {
+    DocumentReference docRef =
+        firestore.collection(collectionId).document(encodePathAsFirestoreDocumentName(lookupPath));
+
+    RuntimeException lastException = null;
+    for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {
+      logger.info("FirestoreDirectoryDao lookupByPathNoXn - iteration {}", retryNum);
+      try {
+        ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
+        return docSnapFuture.get();
+      } catch (AbortedException | ExecutionException ex) {
+        lastException = fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
+      }
+      TimeUnit.SECONDS.sleep(LOOKUP_WAIT_SECONDS);
+    }
+    throw lastException;
+  }
 
 }

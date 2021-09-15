@@ -568,19 +568,6 @@ public class FireStoreDirectoryDao {
     return missingIds;
   }
 
-  // Non-transactional update of a directory entry
-  void updateDirectoryEntry(Firestore firestore, String collectionId, FireStoreDirectoryEntry entry)
-      throws InterruptedException {
-
-    try {
-      DocumentReference newRef = getDocRef(firestore, collectionId, entry);
-      ApiFuture<WriteResult> writeFuture = newRef.set(entry);
-      writeFuture.get();
-    } catch (AbortedException | ExecutionException ex) {
-      throw fireStoreUtils.handleExecutionException(ex, "updateDirectoryEntry");
-    }
-  }
-
   // Non-transactional lookup of an entry
   private DocumentSnapshot lookupByPathNoXn(
       Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {

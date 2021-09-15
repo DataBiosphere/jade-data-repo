@@ -76,6 +76,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
           if (fromDatatype == TableDataType.FILEREF || fromDatatype == TableDataType.DIRREF) {
 
             String bigQueryTimer = performanceLogger.timerStart();
+            // azure replace
             List<String> refIds =
                 bigQueryPdao.getSnapshotRefIds(
                     snapshotSource.getDataset(),
@@ -83,6 +84,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
                     mapTable.getFromTable().getName(),
                     mapTable.getFromTable().getId().toString(),
                     mapColumn.getFromColumn());
+
             numFilesSeen += refIds.size();
             uniqueRefIds.addAll(refIds);
             performanceLogger.timerEndAndLog(
@@ -106,6 +108,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
       Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
 
       String addFilesTimer = performanceLogger.timerStart();
+      // azure replace
       fileDao.addFilesToSnapshot(dataset, snapshot, uniqueRefIdsAsList);
       performanceLogger.timerEndAndLog(
           addFilesTimer,
@@ -115,6 +118,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
           uniqueRefIds.size());
 
       String addDependenciesTimer = performanceLogger.timerStart();
+      // azure replace
       dependencyDao.storeSnapshotFileDependencies(
           dataset, snapshot.getId().toString(), uniqueRefIdsAsList);
       performanceLogger.timerEndAndLog(
@@ -132,9 +136,11 @@ public class CreateSnapshotFireStoreDataStep implements Step {
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     // Remove the snapshot file system and any file dependencies created
     Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
+    // azure replace
     fileDao.deleteFilesFromSnapshot(snapshot);
     for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
       Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
+      // azure replace
       dependencyDao.deleteSnapshotFileDependencies(dataset, snapshot.getId().toString());
     }
 

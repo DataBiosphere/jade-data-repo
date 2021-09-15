@@ -8,10 +8,8 @@ import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-
 import java.util.function.Predicate;
 
 public class IngestFileAzureMakeStorageAccountLinkStep extends SkippableStep {
@@ -19,12 +17,14 @@ public class IngestFileAzureMakeStorageAccountLinkStep extends SkippableStep {
   private final Dataset dataset;
 
   public IngestFileAzureMakeStorageAccountLinkStep(
-      DatasetStorageAccountDao datasetStorageAccountDao, Dataset dataset,
+      DatasetStorageAccountDao datasetStorageAccountDao,
+      Dataset dataset,
       Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.datasetStorageAccountDao = datasetStorageAccountDao;
     this.dataset = dataset;
   }
+
   public IngestFileAzureMakeStorageAccountLinkStep(
       DatasetStorageAccountDao datasetStorageAccountDao, Dataset dataset) {
     this(datasetStorageAccountDao, dataset, SkippableStep::neverSkip);

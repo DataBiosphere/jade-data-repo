@@ -15,10 +15,8 @@ import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-
 import java.util.function.Predicate;
 
 public class ValidateIngestFileAzureDirectoryStep extends SkippableStep {
@@ -28,7 +26,8 @@ public class ValidateIngestFileAzureDirectoryStep extends SkippableStep {
   private final TableDao tableDao;
   private final Dataset dataset;
 
-  public ValidateIngestFileAzureDirectoryStep(TableDao tableDao, Dataset dataset, Predicate<FlightContext> skipCondition) {
+  public ValidateIngestFileAzureDirectoryStep(
+      TableDao tableDao, Dataset dataset, Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.tableDao = tableDao;
     this.dataset = dataset;

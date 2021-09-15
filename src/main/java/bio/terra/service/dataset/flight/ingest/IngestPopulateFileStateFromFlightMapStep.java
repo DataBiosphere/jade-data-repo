@@ -1,9 +1,9 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.exception.IngestFailureException;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -16,25 +16,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
-public class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
+public abstract class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
 
   private final LoadService loadService;
-  private final GcsPdao gcsPdao;
-  private final ObjectMapper objectMapper;
-  private final Dataset dataset;
+  final ObjectMapper objectMapper;
+  final Dataset dataset;
   private final int batchSize;
 
   public IngestPopulateFileStateFromFlightMapStep(
       LoadService loadService,
-      GcsPdao gcsPdao,
       ObjectMapper objectMapper,
       Dataset dataset,
       int batchSize,
       Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.loadService = loadService;
-    this.gcsPdao = gcsPdao;
     this.objectMapper = objectMapper;
     this.dataset = dataset;
     this.batchSize = batchSize;
@@ -51,14 +49,7 @@ public class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
     List<String> fileColumns = workingMap.get(IngestMapKeys.TABLE_SCHEMA_FILE_COLUMNS, List.class);
 
     List<String> errors = new ArrayList<>();
-    try (var bulkFileLoadModels =
-        IngestUtils.getBulkFileLoadModelsStream(
-            gcsPdao,
-            objectMapper,
-            ingestRequest,
-            dataset.getProjectResource().getGoogleProjectId(),
-            fileColumns,
-            errors)) {
+    try (var bulkFileLoadModels = getModelsStream(ingestRequest, fileColumns, errors)) {
 
       loadService.populateFiles(loadId, bulkFileLoadModels, batchSize);
 
@@ -83,4 +74,7 @@ public class IngestPopulateFileStateFromFlightMapStep extends SkippableStep {
     loadService.cleanFiles(loadId);
     return StepResult.getStepResultSuccess();
   }
+
+  abstract Stream<BulkLoadFileModel> getModelsStream(
+      IngestRequestModel ingestRequest, List<String> fileRefColumns, List<String> errors);
 }

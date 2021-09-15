@@ -12,7 +12,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
-
 import java.util.function.Predicate;
 
 public class IngestFileAzurePrimaryDataLocationStep extends SkippableStep {
@@ -20,7 +19,8 @@ public class IngestFileAzurePrimaryDataLocationStep extends SkippableStep {
   private final ResourceService resourceService;
   private final Dataset dataset;
 
-  public IngestFileAzurePrimaryDataLocationStep(ResourceService resourceService, Dataset dataset, Predicate<FlightContext> skipCondition) {
+  public IngestFileAzurePrimaryDataLocationStep(
+      ResourceService resourceService, Dataset dataset, Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.resourceService = resourceService;
     this.dataset = dataset;

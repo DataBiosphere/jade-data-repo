@@ -6,7 +6,6 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -47,8 +46,7 @@ public abstract class IngestJsonFileSetupStep implements Step {
     List<String> errors = new ArrayList<>();
     // Parse the file models, but don't save them because we don't want to blow up the database.
     // We read from the ingest control file each time we need to get the models to ingest.
-    long fileModelsCount =
-        getFileModelsCount(ingestRequest, fileRefColumnNames, errors);
+    long fileModelsCount = getFileModelsCount(ingestRequest, fileRefColumnNames, errors);
 
     if (!errors.isEmpty()) {
       IngestFailureException ex =
@@ -77,7 +75,5 @@ public abstract class IngestJsonFileSetupStep implements Step {
    * @return The number of file ingests that would need to be performed for this control file
    */
   abstract long getFileModelsCount(
-      IngestRequestModel ingestRequest,
-      List<String> fileRefColumnNames,
-      List<String> errors);
+      IngestRequestModel ingestRequest, List<String> fileRefColumnNames, List<String> errors);
 }

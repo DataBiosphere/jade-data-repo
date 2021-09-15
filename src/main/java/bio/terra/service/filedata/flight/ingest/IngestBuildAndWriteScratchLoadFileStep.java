@@ -25,8 +25,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
   protected final ObjectMapper objectMapper;
 
   public IngestBuildAndWriteScratchLoadFileStep(
-      ObjectMapper objectMapper,
-      Predicate<FlightContext> skipCondition) {
+      ObjectMapper objectMapper, Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.objectMapper = objectMapper;
   }
@@ -91,10 +90,10 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
     }
   }
 
-  abstract Stream<JsonNode> getJsonNodesFromCloudFile(IngestRequestModel ingestRequest, List<String> errors);
+  abstract Stream<JsonNode> getJsonNodesFromCloudFile(
+      IngestRequestModel ingestRequest, List<String> errors);
 
   abstract String getOutputFilePath(FlightContext flightContext);
 
   abstract void writeCloudFile(FlightContext flightContext, String path, Stream<String> lines);
-
 }

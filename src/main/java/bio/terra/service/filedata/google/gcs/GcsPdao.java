@@ -132,8 +132,8 @@ public class GcsPdao implements CloudFileReader {
    * @param contentsToWrite contents to write to file
    * @param projectId project for billing
    */
-  @Override
-  public void writeStreamToCloudFile(String path, Stream<String> contentsToWrite, String projectId) {
+  public void writeStreamToCloudFile(
+      String path, Stream<String> contentsToWrite, String projectId) {
     logger.info("Writing contents to {}", path);
     Storage storage = gcsProjectFactory.getStorage(projectId);
     var blob = getBlobFromGsPath(storage, path, projectId);

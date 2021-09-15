@@ -33,8 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.stringtemplate.v4.ST;
 
-import javax.xml.crypto.Data;
-
 // Common code for the ingest steps
 public final class IngestUtils {
   private static final String SOURCE_SCOPED_CREDENTIAL_PREFIX = "source_scoped_credential_";
@@ -302,8 +300,11 @@ public final class IngestUtils {
     return TABLE_NAME_PREFIX + flightId;
   }
 
-  public static BillingProfileModel getIngestBillingProfileFromDataset(Dataset dataset, IngestRequestModel ingestRequest) {
-    dataset.getDatasetSummary().getBillingProfiles().stream().filter(bp -> bp.getId() == ingestRequest.getProfileId())
-        .findFirst().orElseThrow();
+  public static BillingProfileModel getIngestBillingProfileFromDataset(
+      Dataset dataset, IngestRequestModel ingestRequest) {
+    return dataset.getDatasetSummary().getBillingProfiles().stream()
+        .filter(bp -> bp.getId() == ingestRequest.getProfileId())
+        .findFirst()
+        .orElseThrow();
   }
 }

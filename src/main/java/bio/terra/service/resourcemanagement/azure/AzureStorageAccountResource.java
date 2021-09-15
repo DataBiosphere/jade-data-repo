@@ -163,6 +163,11 @@ public class AzureStorageAccountResource {
       String getContainer(AzureStorageAccountResource account) {
         return account.getMetadataContainer();
       }
+    },
+    SCRATCH() {
+      String getContainer(AzureStorageAccountResource accountResource) {
+        return "ingest-scratch-container";
+      }
     };
 
     abstract String getContainer(AzureStorageAccountResource account);

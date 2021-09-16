@@ -46,15 +46,20 @@ import org.springframework.stereotype.Component;
 public class SearchService {
 
   private final BigQueryPdao bigQueryPdao;
+  private final SnapshotSearchMetadataDao snapshotSearchMetadataDao;
   private final RestHighLevelClient client;
 
   @Value("${elasticsearch.numShards}")
   private int NUM_SHARDS;
 
   @Autowired
-  public SearchService(BigQueryPdao bigQueryPdao, RestHighLevelClient client) {
+  public SearchService(
+      BigQueryPdao bigQueryPdao,
+      SnapshotSearchMetadataDao snapshotSearchMetadataDao,
+      RestHighLevelClient client) {
     this.bigQueryPdao = bigQueryPdao;
     this.client = client;
+    this.snapshotSearchMetadataDao = snapshotSearchMetadataDao;
   }
 
   private void validateSnapshotDataNotEmpty(List<Map<String, Object>> values) {
@@ -147,6 +152,11 @@ public class SearchService {
     } catch (IOException e) {
       throw new SearchException("Error getting indexes", e);
     }
+  }
+
+  public Map<UUID, String> enumerateSnapshotSearch(List<UUID> snapshotIDs) {
+    Map metadata = snapshotSearchMetadataDao.getMetadata(snapshotIDs);
+    return metadata;
   }
 
   public SearchQueryResultModel querySnapshot(

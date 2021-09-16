@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -47,7 +48,7 @@ public class SearchApiController implements SearchApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final SearchService searchService;
   private final SnapshotService snapshotService;
-  private final SnapshotSearchMetadataDao snapshotMetadataDao;
+  private final SnapshotSearchMetadataDao snapshotSearchMetadataDao;
 
   @Autowired
   public SearchApiController(
@@ -58,7 +59,7 @@ public class SearchApiController implements SearchApi {
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       SearchService searchService,
       SnapshotService snapshotService,
-      SnapshotSearchMetadataDao snapshotMetadataDao) {
+      SnapshotSearchMetadataDao snapshotSearchMetadataDao) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.appConfig = appConfig;
@@ -66,7 +67,7 @@ public class SearchApiController implements SearchApi {
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.searchService = searchService;
     this.snapshotService = snapshotService;
-    this.snapshotMetadataDao = snapshotMetadataDao;
+    this.snapshotSearchMetadataDao = snapshotSearchMetadataDao;
   }
 
   @Override
@@ -85,7 +86,10 @@ public class SearchApiController implements SearchApi {
 
   @Override
   public ResponseEntity<Object> enumerateSnapshotSearch() {
-    return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+    List<UUID> authorizedResources =
+        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
+    Map<UUID, String> metadata = searchService.enumerateSnapshotSearch(authorizedResources);
+    return ResponseEntity.status(HttpStatus.OK).body(metadata);
   }
 
   @Override
@@ -112,7 +116,7 @@ public class SearchApiController implements SearchApi {
       var user = getAuthenticatedInfo();
       iamService.verifyAuthorization(
           user, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
-      snapshotMetadataDao.putMetadata(id, body);
+      snapshotSearchMetadataDao.putMetadata(id, body);
       SearchMetadataModel searchMetadataModel = new SearchMetadataModel();
       searchMetadataModel.setMetadataSummary("Upserted search metadata for snapshot " + id);
       return ResponseEntity.ok(searchMetadataModel);
@@ -127,7 +131,7 @@ public class SearchApiController implements SearchApi {
       var user = getAuthenticatedInfo();
       iamService.verifyAuthorization(
           user, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
-      snapshotMetadataDao.deleteMetadata(id);
+      snapshotSearchMetadataDao.deleteMetadata(id);
       return ResponseEntity.noContent().build();
     } catch (Exception e) {
       throw new ApiException("Could not delete metadata for snapshot " + id, e);

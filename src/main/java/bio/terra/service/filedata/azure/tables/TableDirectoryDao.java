@@ -9,6 +9,7 @@ import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
+import com.azure.data.tables.implementation.TableUtils;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
@@ -189,34 +190,17 @@ public class TableDirectoryDao {
         .orElse(null);
   }
 
-  List<FireStoreDirectoryEntry> batchRetrieveById(
-      Firestore firestore, String containerId, List<String> batch) throws InterruptedException {
-
-    CollectionReference collection = firestore.collection(containerId);
-
-    List<QuerySnapshot> querySnapshotList =
-        fireStoreUtils.batchOperation(
-            batch,
-            fileId -> {
-              Query query = collection.whereEqualTo("fileId", fileId);
-              return query.get();
-            });
-
-    List<FireStoreDirectoryEntry> entries = new ArrayList<>();
-    for (QuerySnapshot querySnapshot : querySnapshotList) {
-      List<QueryDocumentSnapshot> documents = querySnapshot.getDocuments();
-      if (documents.size() != 1) {
-        throw new FileSystemExecutionException("FileId not found:");
-      }
-      QueryDocumentSnapshot docSnap = documents.get(0);
-      FireStoreDirectoryEntry entry = docSnap.toObject(FireStoreDirectoryEntry.class);
-      if (!entry.getIsFileRef()) {
+  // TODO - add test
+  private List<FireStoreDirectoryEntry> batchRetrieveById(TableServiceClient tableServiceClient,
+                                                          List<String> fileIds) {
+    List<TableEntity> entities = batchLookupByFileId(tableServiceClient, fileIds);
+    return Optional.ofNullable(entities.stream().map(entity -> {
+      FireStoreDirectoryEntry directoryEntry = FireStoreDirectoryEntry.fromTableEntity(entity);
+      if (!directoryEntry.getIsFileRef()) {
         throw new FileSystemExecutionException("Directories are not supported as references");
       }
-      entries.add(entry);
-    }
-
-    return entries;
+      return directoryEntry;
+    }).collect(Collectors.toList())).orElseThrow(new FileSystemExecutionException("No fileIds found in batch lookup");
   }
 
   // Returns null if not found - upper layers do any throwing
@@ -306,6 +290,26 @@ public class TableDirectoryDao {
     }
   }
 
+  // Returns null if not found
+  private List<TableEntity> batchLookupByFileId(TableServiceClient tableServiceClient,
+                                          List<String> fileIds) {
+    try {
+      TableClient client = tableServiceClient.getTableClient(TABLE_NAME);
+      ListEntitiesOptions options =
+          new ListEntitiesOptions().setFilter(
+              String.join(" or ",
+                  fileIds.stream().map(fileId ->
+                      String.format("fileId eq '%s'", fileId)).collect(Collectors.toList())));
+
+      if (TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
+        return client.listEntities(options, null, null).stream().collect(Collectors.toList());
+      }
+      return null;
+    } catch (TableServiceException ex) {
+      throw new FileSystemExecutionException("batchLookupByFileId operation failed");
+    }
+  }
+
   // TODO: Implement snapshot-specific methods
   // -- Snapshot filesystem methods --
 
@@ -320,11 +324,12 @@ public class TableDirectoryDao {
   //      a. File references are usually unique in the datasets we know about
   //      b. Directories are cached, so will be overwritten based on the effectiveness of the cache
 
+ // Q - Do we need to support different table service clients for snapshots?? (like the dataset vs. snapshot firestore?)
   public void addEntriesToSnapshot(
-      Firestore datasetFirestore,
+      TableServiceClient datasetTableServiceClient,
+      TableServiceClient snapshotTableServiceClient,
       String datasetId,
       String datasetDirName,
-      Firestore snapshotFirestore,
       String snapshotId,
       List<String> fileIdList)
       throws InterruptedException {
@@ -342,6 +347,7 @@ public class TableDirectoryDao {
     LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
 
     // Create the top directory structure (/_dr_/<datasetDirName>)
+    // TODO - replace
     storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
 
     int count = 0;
@@ -351,7 +357,7 @@ public class TableDirectoryDao {
 
       // Find the file reference dataset entries for all file ids in this batch
       List<FireStoreDirectoryEntry> datasetEntries =
-          batchRetrieveById(datasetFirestore, datasetId, batch);
+          batchRetrieveById(datasetTableServiceClient, batch);
 
       // Find directory paths that need to be created; plus add to the cache
       List<String> newPaths = findNewDirectoryPaths(datasetEntries, pathMap);

@@ -33,8 +33,7 @@ public class IngestFileAzureFileStep implements Step {
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     AzureStorageAuthInfo storageAuthInfo =
-        FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+        workingMap.get(FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {

@@ -42,12 +42,12 @@ public class IngestFileAzurePrimaryDataLocationStep implements Step {
             resourceService.getOrCreateStorageAccount(
                 dataset, billingProfile, context.getFlightId());
         workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
-
         AzureStorageAuthInfo storageAuthInfo =
-            new AzureStorageAuthInfo(
-                billingProfile.getSubscriptionId(),
-                storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
-                storageAccountResource.getName());
+            new AzureStorageAuthInfo()
+                .subscriptionId(billingProfile.getSubscriptionId())
+                .resourceGroupName(
+                    storageAccountResource.getApplicationResource().getAzureResourceGroupName())
+                .storageAccountResourceName(storageAccountResource.getName());
         workingMap.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
 
       } catch (BucketLockException blEx) {

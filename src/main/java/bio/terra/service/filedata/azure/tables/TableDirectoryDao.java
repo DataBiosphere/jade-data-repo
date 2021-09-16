@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
+import bio.terra.model.BillingProfileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
@@ -77,12 +78,15 @@ public class TableDirectoryDao {
   private static final int MAX_FILTER_CLAUSES = 15;
   private final FileMetadataUtils fileMetadataUtils;
   private final ConfigurationService configurationService;
+  private final TableDao tableDao;
 
   @Autowired
   public TableDirectoryDao(FileMetadataUtils fileMetadataUtils,
-                           ConfigurationService configurationService) {
+                           ConfigurationService configurationService,
+                            TableDao tableDao) {
     this.fileMetadataUtils = fileMetadataUtils;
     this.configurationService = configurationService;
+    this.tableDao = tableDao;
   }
 
   public String encodePathAsAzureRowKey(String path) {
@@ -200,7 +204,7 @@ public class TableDirectoryDao {
         throw new FileSystemExecutionException("Directories are not supported as references");
       }
       return directoryEntry;
-    }).collect(Collectors.toList())).orElseThrow(new FileSystemExecutionException("No fileIds found in batch lookup");
+    }).collect(Collectors.toList())).orElseThrow(() -> new FileSystemExecutionException("No fileIds found in batch lookup"));
   }
 
   // Returns null if not found - upper layers do any throwing
@@ -347,8 +351,9 @@ public class TableDirectoryDao {
     LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
 
     // Create the top directory structure (/_dr_/<datasetDirName>)
-    // TODO - replace
-    storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
+    // TODO - Do we have the right info reference snapshot vs. dataset tables?
+    // Will we be looking at the right table name?
+    storeTopDirectory(snapshotTableServiceClient, snapshotId, datasetDirName);
 
     int count = 0;
     for (List<String> batch : batches) {
@@ -360,7 +365,8 @@ public class TableDirectoryDao {
           batchRetrieveById(datasetTableServiceClient, batch);
 
       // Find directory paths that need to be created; plus add to the cache
-      List<String> newPaths = findNewDirectoryPaths(datasetEntries, pathMap);
+      List<String> newPaths = fileMetadataUtils.findNewDirectoryPaths(datasetEntries, pathMap);
+      // TODO - replace
       List<FireStoreDirectoryEntry> datasetDirectoryEntries =
           batchRetrieveByPath(datasetFirestore, datasetId, newPaths);
 
@@ -376,19 +382,25 @@ public class TableDirectoryDao {
       // Store the batch of entries. This will override existing entries,
       // but that is not the typical case and it is lower cost just overwrite
       // rather than retrieve to avoid the write.
+      // TODO -replace
       batchStoreDirectoryEntry(snapshotFirestore, snapshotId, snapshotEntries);
     }
   }
 
-  private void storeTopDirectory(Firestore firestore, String snapshotId, String dirName)
-      throws InterruptedException {
+  // TODO - add test
+  private void storeTopDirectory(TableServiceClient tableServiceClient,
+                                 String snapshotId,
+                                 String dirName) {
     // We have to create the top directory structure for the dataset and the root folder.
     // Those components cannot be copied from the dataset, but have to be created new
     // in the snapshot directory. We probe to see if the dirName directory exists. If not,
     // we use the createFileRef path to construct it and the parent, if necessary.
     String dirPath = "/" + dirName;
-    DocumentSnapshot dirSnap = lookupByPathNoXn(firestore, snapshotId, dirPath);
-    if (dirSnap.exists()) {
+    // TODO - will this correctly lookup within the snapshot directory? This is usually used for datasets
+    // Also, should it matter that's it's returning a TableEntity vs. a DocumentSnapshot? I think
+    // those two are just the native entity for firestore vs. storage tables
+    TableEntity directoryEntry = lookupByFilePath(tableServiceClient, snapshotId, dirPath);
+    if (directoryEntry != null) {
       return;
     }
 
@@ -400,27 +412,6 @@ public class TableDirectoryDao {
             .name(dirName)
             .fileCreatedDate(Instant.now().toString());
 
-    createDirectoryEntry(firestore, snapshotId, topDir);
+    createDirectoryEntry(tableServiceClient, topDir);
   }
-
-  // Non-transactional lookup of an entry
-  private DocumentSnapshot lookupByPathNoXn(
-      Firestore firestore, String collectionId, String lookupPath) throws InterruptedException {
-    DocumentReference docRef =
-        firestore.collection(collectionId).document(encodePathAsFirestoreDocumentName(lookupPath));
-
-    RuntimeException lastException = null;
-    for (int retryNum = 0; retryNum < LOOKUP_RETRIES; retryNum++) {
-      logger.info("FirestoreDirectoryDao lookupByPathNoXn - iteration {}", retryNum);
-      try {
-        ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
-        return docSnapFuture.get();
-      } catch (AbortedException | ExecutionException ex) {
-        lastException = fireStoreUtils.handleExecutionException(ex, "lookupByPathNoXn");
-      }
-      TimeUnit.SECONDS.sleep(LOOKUP_WAIT_SECONDS);
-    }
-    throw lastException;
-  }
-
 }

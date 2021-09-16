@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.FlightUtils;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
@@ -11,8 +10,7 @@ import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -34,12 +32,9 @@ public class IngestFileAzureFileStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    BillingProfileModel billingProfileModel =
+    AzureStorageAuthInfo storageAuthInfo =
         FlightUtils.getContextValue(
-            context, ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-    AzureStorageAccountResource storageAccountResource =
-        FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
     if (loadComplete == null || !loadComplete) {
@@ -64,11 +59,20 @@ public class IngestFileAzureFileStep implements Step {
               .loadTag(fileLoadModel.getLoadTag());
 
       try {
-        tableDao.createFileMetadata(newFile, billingProfileModel, storageAccountResource);
+        tableDao.createFileMetadata(
+            newFile,
+            storageAuthInfo.getSubscriptionId(),
+            storageAuthInfo.getResourceGroupName(),
+            storageAuthInfo.getStorageAccountResourceName());
         // Retrieve to build the complete FSItem
         FSItem fsItem =
             tableDao.retrieveById(
-                dataset.getId(), fileId, 1, billingProfileModel, storageAccountResource);
+                dataset.getId(),
+                fileId,
+                1,
+                storageAuthInfo.getSubscriptionId(),
+                storageAuthInfo.getResourceGroupName(),
+                storageAuthInfo.getStorageAccountResourceName());
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
@@ -82,15 +86,16 @@ public class IngestFileAzureFileStep implements Step {
   public StepResult undoStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
     String itemId = workingMap.get(FileMapKeys.FILE_ID, String.class);
-    BillingProfileModel billingProfileModel =
+    AzureStorageAuthInfo storageAuthInfo =
         FlightUtils.getContextValue(
-            context, ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-    AzureStorageAccountResource storageAccountResource =
-        FlightUtils.getContextValue(
-            context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     try {
-      tableDao.deleteFileMetadata(itemId, billingProfileModel, storageAccountResource);
+      tableDao.deleteFileMetadata(
+          itemId,
+          storageAuthInfo.getSubscriptionId(),
+          storageAuthInfo.getResourceGroupName(),
+          storageAuthInfo.getStorageAccountResourceName());
     } catch (TableServiceException rex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
     }

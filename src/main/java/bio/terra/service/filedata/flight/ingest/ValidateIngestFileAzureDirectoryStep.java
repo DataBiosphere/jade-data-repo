@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.FlightUtils;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
@@ -10,8 +9,7 @@ import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -44,15 +42,16 @@ public class ValidateIngestFileAzureDirectoryStep implements Step {
       //  2. If the directory entry exists:
       //      (a) If the loadTags do not match, then we throw FileAlreadyExistsException.
       //      (b) Otherwise, update INGEST_FILE_ACTION to checkEntry
-      BillingProfileModel billingProfileModel =
+      AzureStorageAuthInfo storageAuthInfo =
           FlightUtils.getContextValue(
-              context, ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-      AzureStorageAccountResource storageAccountResource =
-          FlightUtils.getContextValue(
-              context, FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+              context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
       FireStoreDirectoryEntry existingEntry =
           tableDao.lookupDirectoryEntryByPath(
-              dataset, targetPath, billingProfileModel, storageAccountResource);
+              dataset,
+              targetPath,
+              storageAuthInfo.getSubscriptionId(),
+              storageAuthInfo.getResourceGroupName(),
+              storageAuthInfo.getStorageAccountResourceName());
       if (existingEntry == null) {
         workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CREATE_ENTRY_ACTION);
       } else if (!existingEntry.getLoadTag().equals(loadModel.getLoadTag())) {

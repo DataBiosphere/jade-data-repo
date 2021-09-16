@@ -202,7 +202,12 @@ public class FileService {
       AzureStorageAccountResource storageAccountResource =
           resourceService.getStorageAccount(dataset, billingProfileModel);
       return tableDao.retrieveById(
-          UUID.fromString(datasetId), fileId, depth, billingProfileModel, storageAccountResource);
+          UUID.fromString(datasetId),
+          fileId,
+          depth,
+          billingProfileModel.getSubscriptionId(),
+          storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+          storageAccountResource.getName());
     }
   }
 

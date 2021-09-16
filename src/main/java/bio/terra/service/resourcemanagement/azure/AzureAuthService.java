@@ -15,6 +15,7 @@ import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import com.azure.storage.file.datalake.DataLakeServiceClient;
 import com.azure.storage.file.datalake.DataLakeServiceClientBuilder;
+import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -44,7 +45,11 @@ public class AzureAuthService {
    */
   public DataLakeServiceClient getDataLakeClient(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
-    String key = getStorageAccountKey(profileModel, storageAccountResource);
+    String key =
+        getStorageAccountKey(
+            profileModel.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
 
     // Create a data lake client by authenticating using the found key
     return new DataLakeServiceClientBuilder()
@@ -66,7 +71,11 @@ public class AzureAuthService {
       AzureStorageAccountResource storageAccountResource,
       String containerName) {
     // Obtain a secret key for the associated storage account
-    String key = getStorageAccountKey(profileModel, storageAccountResource);
+    String key =
+        getStorageAccountKey(
+            profileModel.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
 
     // Create a blob client by authenticating using the found key
     return new BlobContainerClientBuilder()
@@ -80,19 +89,22 @@ public class AzureAuthService {
   /**
    * Return an authenticated {@link TableServiceClient} client using key-based authentication
    *
-   * @param profileModel The object containing user tenant information
-   * @param storageAccountResource The sa that BlobContainerClient client should be built from
+   * @param subscriptionId The Azure billing profile subscription id
+   * @param resourceGroupName The application deployment resource group name for the sa
+   * @param storageAccountResourceName The name of the sa that BlobContainerClient client should be
+   *     built from
    * @return an authenticated {@link TableServiceClient}
    */
   public TableServiceClient getTableServiceClient(
-      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+      UUID subscriptionId, String resourceGroupName, String storageAccountResourceName) {
     // Obtain a secret key for the associated storage account
-    String key = getStorageAccountKey(profileModel, storageAccountResource);
+    String key =
+        getStorageAccountKey(subscriptionId, resourceGroupName, storageAccountResourceName);
 
     // Create a data lake client by authenticating using the found key
     return new TableServiceClientBuilder()
-        .credential(new AzureNamedKeyCredential(storageAccountResource.getName(), key))
-        .endpoint("https://" + storageAccountResource.getName() + ".table.core.windows.net")
+        .credential(new AzureNamedKeyCredential(storageAccountResourceName, key))
+        .endpoint("https://" + storageAccountResourceName + ".table.core.windows.net")
         .retryPolicy(new RetryPolicy())
         .buildClient();
   }
@@ -107,7 +119,11 @@ public class AzureAuthService {
   public BlobServiceClient getBlobServiceClient(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
     // Obtain a secret key for the associated storage account
-    String key = getStorageAccountKey(profileModel, storageAccountResource);
+    String key =
+        getStorageAccountKey(
+            profileModel.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
 
     // Create a data lake client by authenticating using the found key
     return new BlobServiceClientBuilder()
@@ -118,14 +134,12 @@ public class AzureAuthService {
 
   /** Obtain a secret key for the associated storage account */
   private String getStorageAccountKey(
-      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
-    AzureResourceManager client = configuration.getClient(profileModel.getSubscriptionId());
+      UUID subscriptionId, String resourceGroupName, String storageAccountResourceName) {
+    AzureResourceManager client = configuration.getClient(subscriptionId);
 
     return client
         .storageAccounts()
-        .getByResourceGroup(
-            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
-            storageAccountResource.getName())
+        .getByResourceGroup(resourceGroupName, storageAccountResourceName)
         .getKeys()
         .get(0)
         .value();

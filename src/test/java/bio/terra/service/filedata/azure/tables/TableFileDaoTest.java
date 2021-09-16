@@ -59,7 +59,7 @@ public class TableFileDaoTest {
   @Before
   public void setUp() throws Exception {
     dao = spy(dao);
-    when(authService.getTableServiceClient(any(), any())).thenReturn(tableServiceClient);
+    when(authService.getTableServiceClient(any(), any(), any())).thenReturn(tableServiceClient);
     when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
     when(tableClient.getEntity(PARTITION_KEY, FILE_ID)).thenReturn(entity);
     when(tableClient.getEntity(PARTITION_KEY, "nonexistentFile"))

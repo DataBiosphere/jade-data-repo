@@ -9,9 +9,9 @@ import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.profile.ProfileDao;
-import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.*;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -60,13 +60,23 @@ public class DeleteFileAzureLookupStep implements Step {
       FireStoreFile fireStoreFile = workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreFile.class);
       BillingProfileModel billingProfile =
           profileDao.getBillingProfileById(dataset.getDefaultProfileId());
-      workingMap.put(ProfileMapKeys.PROFILE_MODEL, billingProfile);
       AzureStorageAccountResource storageAccountResource =
           resourceService.getOrCreateStorageAccount(dataset, billingProfile, context.getFlightId());
-      workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
+
+      AzureStorageAuthInfo storageAuthInfo =
+          new AzureStorageAuthInfo(
+              billingProfile.getSubscriptionId(),
+              storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+              storageAccountResource.getName());
+      workingMap.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
 
       if (fireStoreFile == null) {
-        fireStoreFile = tableDao.lookupFile(fileId, billingProfile, storageAccountResource);
+        fireStoreFile =
+            tableDao.lookupFile(
+                fileId,
+                billingProfile.getSubscriptionId(),
+                storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+                storageAccountResource.getName());
         if (fireStoreFile != null) {
           workingMap.put(FileMapKeys.FIRESTORE_FILE, fireStoreFile);
         }

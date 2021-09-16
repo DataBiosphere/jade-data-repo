@@ -1,14 +1,12 @@
 package bio.terra.service.filedata.flight.delete;
 
 import bio.terra.common.FlightUtils;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.*;
 import org.springframework.http.HttpStatus;
 
@@ -26,13 +24,15 @@ public class DeleteFileAzureDirectoryStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    BillingProfileModel billingProfileModel =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-    AzureStorageAccountResource storageAccountResource =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+    AzureStorageAuthInfo storageAuthInfo =
+        workingMap.get(FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     try {
       boolean found =
-          tableDao.deleteDirectoryEntry(fileId, billingProfileModel, storageAccountResource);
+          tableDao.deleteDirectoryEntry(
+              fileId,
+              storageAuthInfo.getSubscriptionId(),
+              storageAuthInfo.getResourceGroupName(),
+              storageAuthInfo.getStorageAccountResourceName());
       DeleteResponseModel.ObjectStateEnum state =
           (found)
               ? DeleteResponseModel.ObjectStateEnum.DELETED

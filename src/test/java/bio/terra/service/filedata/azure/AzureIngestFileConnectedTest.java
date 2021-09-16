@@ -149,7 +149,11 @@ public class AzureIngestFileConnectedTest {
   @After
   public void cleanup() throws Exception {
     try {
-      tableDao.deleteFileMetadata(fileId, billingProfile, storageAccountResource);
+      tableDao.deleteFileMetadata(
+          fileId,
+          billingProfile.getSubscriptionId(),
+          storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+          storageAccountResource.getName());
       tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileId);
     } catch (Exception ex) {
       logger.error("Unable to clean up metadata for fileId {}", fileId, ex);
@@ -209,17 +213,32 @@ public class AzureIngestFileConnectedTest {
             .size(fsFileInfo.getSize())
             .loadTag(fileLoadModel.getLoadTag());
 
-    tableDao.createFileMetadata(newFile, billingProfile, storageAccountResource);
+    tableDao.createFileMetadata(
+        newFile,
+        billingProfile.getSubscriptionId(),
+        storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+        storageAccountResource.getName());
     // Retrieve to build the complete FSItem
     FSItem fsItem =
-        tableDao.retrieveById(datasetId, fileId, 1, billingProfile, storageAccountResource);
+        tableDao.retrieveById(
+            datasetId,
+            fileId,
+            1,
+            billingProfile.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
     FileModel resultingFileModel = fileService.fileModelFromFSItem(fsItem);
     assertThat(
         "file model contains correct info.", resultingFileModel.getFileId(), equalTo(fileId));
 
     // Testing other cases from IngestFileAzureDirectoryStep (step 4 above)
     // We use this to check if we are in re-run of a load job
-    FireStoreFile fileEntry = tableDao.lookupFile(fileId, billingProfile, storageAccountResource);
+    FireStoreFile fileEntry =
+        tableDao.lookupFile(
+            fileId,
+            billingProfile.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
     assertThat("FileEntry should not be null", fileEntry, notNullValue());
   }
 }

@@ -67,46 +67,56 @@ public class TableDao {
 
   public void createDirectoryEntry(
       FireStoreDirectoryEntry newEntry,
-      BillingProfileModel billingProfile,
-      AzureStorageAccountResource storageAccountResource) {
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountResourceName) {
     TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            subscriptionId, resourceGroupName, storageAccountResourceName);
     directoryDao.createDirectoryEntry(tableServiceClient, newEntry);
   }
 
   public boolean deleteDirectoryEntry(
       String fileId,
-      BillingProfileModel billingProfile,
-      AzureStorageAccountResource storageAccountResource) {
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountResourceName) {
     TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            subscriptionId, resourceGroupName, storageAccountResourceName);
     return directoryDao.deleteDirectoryEntry(tableServiceClient, fileId);
   }
 
   public void createFileMetadata(
       FireStoreFile newFile,
-      BillingProfileModel billingProfile,
-      AzureStorageAccountResource storageAccountResource) {
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountResourceName) {
     TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            subscriptionId, resourceGroupName, storageAccountResourceName);
     fileDao.createFileMetadata(tableServiceClient, newFile);
   }
 
   public boolean deleteFileMetadata(
       String fileId,
-      BillingProfileModel billingProfile,
-      AzureStorageAccountResource storageAccountResource) {
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountResourceName) {
     TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            subscriptionId, resourceGroupName, storageAccountResourceName);
     return fileDao.deleteFileMetadata(tableServiceClient, fileId);
   }
 
   public void deleteFilesFromDataset(
-      BillingProfileModel billingProfile,
-      AzureStorageAccountResource storageAccountResource,
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountResourceName,
       InterruptibleConsumer<FireStoreFile> func) {
     TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            subscriptionId, resourceGroupName, storageAccountResourceName);
     if (configurationService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
       // If we didn't load files, don't try to delete them
       fileDao.deleteFilesFromDataset(tableServiceClient, f -> {});
@@ -121,20 +131,24 @@ public class TableDao {
   public FireStoreDirectoryEntry lookupDirectoryEntryByPath(
       Dataset dataset,
       String path,
-      BillingProfileModel billingProfile,
-      AzureStorageAccountResource storageAccountResource) {
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountResourceName) {
     TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            subscriptionId, resourceGroupName, storageAccountResourceName);
     String datasetId = dataset.getId().toString();
     return directoryDao.retrieveByPath(tableServiceClient, datasetId, path);
   }
 
   public FireStoreFile lookupFile(
       String fileId,
-      BillingProfileModel billingProfile,
-      AzureStorageAccountResource storageAccountResource) {
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountResourceName) {
     TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            subscriptionId, resourceGroupName, storageAccountResourceName);
     return fileDao.retrieveFileMetadata(tableServiceClient, fileId);
   }
 
@@ -157,7 +171,10 @@ public class TableDao {
     BillingProfileModel billingProfile =
         profileDao.getBillingProfileById(storageAccountResource.getProfileId());
     TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            billingProfile.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
 
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
         directoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), fullPath);
@@ -185,11 +202,12 @@ public class TableDao {
       UUID datasetId,
       String fileId,
       int enumerateDepth,
-      BillingProfileModel billingProfile,
-      AzureStorageAccountResource storageAccountResource) {
+      UUID subscriptionId,
+      String resourceGroupName,
+      String storageAccountResourceName) {
     TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
-
+        azureAuthService.getTableServiceClient(
+            subscriptionId, resourceGroupName, storageAccountResourceName);
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
         directoryDao.retrieveById(tableServiceClient, fileId);
     return retrieveWorker(

@@ -48,6 +48,7 @@ import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -646,15 +647,15 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             steward, profileId, "dataset-ingest-combined-azure.json", CloudPlatform.AZURE);
     datasetId = summaryModel.getId();
 
-    String controlFileContents =
-        new String(
-            this.getClass()
-                .getResourceAsStream("/dataset-ingest-combined-control-azure.json")
-                .readAllBytes());
+    String controlFileContents;
+    try (var resourceStream =
+        this.getClass().getResourceAsStream("/dataset-ingest-combined-control-azure.json")) {
+      controlFileContents = new String(resourceStream.readAllBytes(), StandardCharsets.UTF_8);
+    }
 
     String controlFile =
         blobIOTestUtility.uploadFileWithContents(
-            "dataset-files-ingest-combined.csv", controlFileContents);
+            "dataset-files-ingest-combined.json", controlFileContents);
 
     IngestRequestModel ingestRequest =
         new IngestRequestModel()
@@ -666,10 +667,10 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .profileId(profileId)
             .loadTag(Names.randomizeName("test"));
 
-    IngestResponseModel ingestResponseJson =
+    IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);
 
-    System.out.println(controlFile);
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward);
 
     clearEnvironment();
   }

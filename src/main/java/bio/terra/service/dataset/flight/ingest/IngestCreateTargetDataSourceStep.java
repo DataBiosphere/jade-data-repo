@@ -1,5 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import static bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.*;
+
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.filedata.azure.AzureSynapsePdao;
 import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
@@ -38,7 +40,10 @@ public class IngestCreateTargetDataSourceStep implements Step {
         IngestUtils.getParquetTargetLocationURL(storageAccountResource);
     BlobUrlParts targetSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetDestinationLocation, billingProfile, storageAccountResource);
+            parquetDestinationLocation,
+            billingProfile,
+            storageAccountResource,
+            ContainerType.METADATA);
     try {
       azureSynapsePdao.createExternalDataSource(
           targetSignUrlBlob,

@@ -143,14 +143,9 @@ public class AzureBlobStorePdao implements CloudFileReader {
     return azureBlobStoreBufferedReader.lines();
   }
 
-  public void createSignedBlob(String signedPath) {
-    getSourceClientFactory(signedPath).getBlobContainerClient().create();
-  }
-
-  public void writeBlobLines(BlobUrlParts signedBlobUrlParts, Stream<String> lines) {
+  public void writeBlobLines(String signedPath, Stream<String> lines) {
     var newLine = "\n";
-    try (AzureBlobStoreBufferedWriter writer =
-        new AzureBlobStoreBufferedWriter(signedBlobUrlParts.toUrl().toString())) {
+    try (AzureBlobStoreBufferedWriter writer = new AzureBlobStoreBufferedWriter(signedPath)) {
       lines.forEach(
           line -> {
             try {
@@ -160,13 +155,14 @@ public class AzureBlobStorePdao implements CloudFileReader {
               throw new AzureResourceException(
                   String.format(
                       "Could not write to Azure file at %s. Line: %s",
-                      signedBlobUrlParts.getBlobName(), line),
+                      BlobUrlParts.parse(signedPath).getBlobName(), line),
                   ex);
             }
           });
     } catch (IOException ex) {
       throw new AzureResourceException(
-          String.format("Could not write to Azure file at %s", signedBlobUrlParts.getBlobName()),
+          String.format(
+              "Could not write to Azure file at %s", BlobUrlParts.parse(signedPath).getBlobName()),
           ex);
     }
   }
@@ -338,20 +334,23 @@ public class AzureBlobStorePdao implements CloudFileReader {
   public BlobUrlParts getOrSignUrlForTargetFactory(
       String dataSourceUrl,
       BillingProfileModel profileModel,
-      AzureStorageAccountResource storageAccount) {
+      AzureStorageAccountResource storageAccount,
+      ContainerType containerType) {
     return BlobUrlParts.parse(
-        getOrSignUrlStringForTargetFactory(dataSourceUrl, profileModel, storageAccount));
+        getOrSignUrlStringForTargetFactory(
+            dataSourceUrl, profileModel, storageAccount, containerType));
   }
 
   public String getOrSignUrlStringForTargetFactory(
       String dataSourceUrl,
       BillingProfileModel profileModel,
-      AzureStorageAccountResource storageAccount) {
+      AzureStorageAccountResource storageAccount,
+      ContainerType containerType) {
     BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
     String blobName = ingestControlFileBlobUrl.getBlobName();
 
     BlobContainerClientFactory targetDataClientFactory =
-        getTargetDataClientFactory(profileModel, storageAccount, ContainerType.METADATA, false);
+        getTargetDataClientFactory(profileModel, storageAccount, containerType, false);
 
     // Given the sas token, rebuild a signed url
     BlobSasTokenOptions options =

@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -16,6 +17,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadHistoryModelList;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
@@ -51,6 +53,8 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListUtils;
@@ -834,5 +838,45 @@ public class DataRepoFixtures {
     assertThat("getConfigList is successfully", response.getStatusCode(), equalTo(HttpStatus.OK));
     assertTrue("getConfigList response is present", response.getResponseObject().isPresent());
     return response.getResponseObject().get();
+  }
+
+  public void assertCombinedIngestCorrect(
+      IngestResponseModel ingestResponse, TestConfiguration.User user) {
+    var loadResult = ingestResponse.getLoadResult();
+
+    assertThat("file_load_results are in the response", loadResult, notNullValue());
+
+    assertThat(
+        "all 4 files got ingested", loadResult.getLoadSummary().getSucceededFiles(), equalTo(4));
+
+    var fileModels =
+        loadResult.getLoadFileResults().stream()
+            .map(BulkLoadFileResultModel::getTargetPath)
+            .map(
+                path -> {
+                  try {
+                    return getFileByName(user, ingestResponse.getDatasetId(), path);
+                  } catch (Exception e) {
+                    throw new RuntimeException(
+                        "Unable to find file by name. TargetPath: "
+                            + path
+                            + "; DatasetId: "
+                            + ingestResponse.getDatasetId(),
+                        e);
+                  }
+                })
+            .flatMap(file -> Optional.ofNullable(file).stream())
+            .collect(Collectors.toList());
+
+    var fileIds =
+        loadResult.getLoadFileResults().stream()
+            .map(BulkLoadFileResultModel::getFileId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toList());
+
+    var retrievedFileIds =
+        fileModels.stream().map(FileModel::getFileId).collect(Collectors.toList());
+
+    assertThat("The files were ingested correctly", fileIds, equalTo(retrievedFileIds));
   }
 }

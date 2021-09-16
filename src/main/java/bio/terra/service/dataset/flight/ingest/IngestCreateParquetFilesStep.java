@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.service.dataset.Dataset;
@@ -34,7 +35,13 @@ public class IngestCreateParquetFilesStep implements Step {
     Dataset dataset = IngestUtils.getDataset(context, datasetService);
     DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
     String parquetFilePath = workingMap.get(IngestMapKeys.PARQUET_FILE_PATH, String.class);
-    BlobUrlParts ingestRequestUrlBlob = BlobUrlParts.parse(ingestRequestModel.getPath());
+    final BlobUrlParts ingestBlob;
+    if (IngestUtils.noFilesToIngest.test(context)) {
+      ingestBlob = BlobUrlParts.parse(ingestRequestModel.getPath());
+    } else {
+      ingestBlob =
+          BlobUrlParts.parse(workingMap.get(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, String.class));
+    }
 
     long updateCount;
     try {
@@ -42,7 +49,7 @@ public class IngestCreateParquetFilesStep implements Step {
           azureSynapsePdao.createParquetFiles(
               ingestRequestModel.getFormat(),
               targetTable,
-              ingestRequestUrlBlob.getBlobName(),
+              ingestBlob.getBlobName(),
               parquetFilePath,
               IngestUtils.getTargetDataSourceName(context.getFlightId()),
               IngestUtils.getIngestRequestDataSourceName(context.getFlightId()),
@@ -63,8 +70,15 @@ public class IngestCreateParquetFilesStep implements Step {
             .table(ingestRequest.getTable())
             .path(ingestRequest.getPath())
             .loadTag(ingestRequest.getLoadTag())
-            .badRowCount(0L) // TODO - determine values w/ DR-2016
+            .badRowCount(0L) // Azure can't do partial loads.
             .rowCount(updateCount);
+
+    if (!IngestUtils.noFilesToIngest.test(context)) {
+      BulkLoadArrayResultModel fileLoadResults =
+          workingMap.get(IngestMapKeys.BULK_LOAD_RESULT, BulkLoadArrayResultModel.class);
+      ingestResponse.loadResult(fileLoadResults);
+    }
+
     context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 
     return StepResult.getStepResultSuccess();

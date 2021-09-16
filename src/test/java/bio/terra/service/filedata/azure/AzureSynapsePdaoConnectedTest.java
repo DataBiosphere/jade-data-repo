@@ -216,7 +216,10 @@ public class AzureSynapsePdaoConnectedTest {
 
     BlobUrlParts destinationSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetDestinationLocation, billingProfile, storageAccountResource);
+            parquetDestinationLocation,
+            billingProfile,
+            storageAccountResource,
+            AzureStorageAccountResource.ContainerType.METADATA);
     azureSynapsePdao.createExternalDataSource(
         destinationSignUrlBlob, destinationScopedCredentialName, destinationDataSourceName);
 

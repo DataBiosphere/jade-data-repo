@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertTrue;
 
@@ -21,7 +20,6 @@ import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
-import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.DataDeletionGcsFileModel;
 import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DataDeletionTableModel;
@@ -29,7 +27,6 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
@@ -53,8 +50,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -478,42 +473,7 @@ public class DatasetIntegrationTest extends UsersBase {
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
 
-    var loadResult = ingestResponse.getLoadResult();
-
-    assertThat("file_load_results are in the response", loadResult, notNullValue());
-
-    assertThat(
-        "all 4 files got ingested", loadResult.getLoadSummary().getSucceededFiles(), equalTo(4));
-
-    var fileModels =
-        loadResult.getLoadFileResults().stream()
-            .map(BulkLoadFileResultModel::getTargetPath)
-            .map(
-                path -> {
-                  try {
-                    return dataRepoFixtures.getFileByName(steward(), datasetId, path);
-                  } catch (Exception e) {
-                    throw new RuntimeException(
-                        "Unable to find file by name. TargetPath: "
-                            + path
-                            + "; DatasetId: "
-                            + datasetId,
-                        e);
-                  }
-                })
-            .flatMap(file -> Optional.ofNullable(file).stream())
-            .collect(Collectors.toList());
-
-    var fileIds =
-        loadResult.getLoadFileResults().stream()
-            .map(BulkLoadFileResultModel::getFileId)
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
-
-    var retrievedFileIds =
-        fileModels.stream().map(FileModel::getFileId).collect(Collectors.toList());
-
-    assertThat("The files were ingested correctly", fileIds, equalTo(retrievedFileIds));
+    dataRepoFixtures.assertCombinedIngestCorrect(ingestResponse, steward());
   }
 
   private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)

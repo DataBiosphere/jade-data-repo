@@ -13,7 +13,7 @@ public class AzureBlobStoreBufferedWriter extends BufferedWriter {
             new BlobClientBuilder()
                 .endpoint(ingestRequestSignURL)
                 .buildClient()
-                .getAppendBlobClient()
+                .getBlockBlobClient()
                 .getBlobOutputStream(),
             StandardCharsets.UTF_8));
   }

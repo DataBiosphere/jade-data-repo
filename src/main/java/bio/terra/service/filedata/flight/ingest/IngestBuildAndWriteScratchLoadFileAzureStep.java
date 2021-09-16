@@ -12,9 +12,9 @@ import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobUrlParts;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -58,15 +58,26 @@ public class IngestBuildAndWriteScratchLoadFileAzureStep
     BlobContainerClient containerClient =
         azureContainerPdao.getOrCreateContainer(
             billingProfile, storageAccount, AzureStorageAccountResource.ContainerType.SCRATCH);
-    String url =
-        containerClient.getBlobClient(flightContext.getFlightId() + "-scratch.json").getBlobUrl();
-    return azureBlobStorePdao.getOrSignUrlStringForTargetFactory(
-        url, billingProfile, storageAccount);
+    return containerClient
+        .getBlobClient(flightContext.getFlightId() + "-scratch.json")
+        .getBlobUrl();
   }
 
   @Override
-  void writeCloudFile(FlightContext flightContext, String signedPath, Stream<String> lines) {
-    azureBlobStorePdao.createSignedBlob(signedPath);
-    azureBlobStorePdao.writeBlobLines(BlobUrlParts.parse(signedPath), lines);
+  void writeCloudFile(FlightContext flightContext, String path, Stream<String> lines) {
+    FlightMap workingMap = flightContext.getWorkingMap();
+    BillingProfileModel billingProfile =
+        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
+    AzureStorageAccountResource storageAccount =
+        workingMap.get(IngestMapKeys.STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
+    String signedPath =
+        azureBlobStorePdao.signFile(
+            billingProfile,
+            storageAccount,
+            path,
+            AzureStorageAccountResource.ContainerType.SCRATCH,
+            Duration.ofHours(1L),
+            billingProfile.getBiller());
+    azureBlobStorePdao.writeBlobLines(signedPath, lines);
   }
 }

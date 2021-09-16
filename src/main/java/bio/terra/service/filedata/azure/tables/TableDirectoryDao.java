@@ -217,7 +217,18 @@ public class TableDirectoryDao {
         .orElse(null);
   }
 
-  public List<String> validateRefIds(
+  // Returns null if not found - upper layers do any throwing
+  public FireStoreDirectoryEntry batchRetrieveByPath(
+      TableServiceClient tableServiceClient, String datasetId, String fullPath) {
+    String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
+    TableEntity entity = batchLookupByFilePath(tableServiceClient, datasetId, lookupPath);
+    return Optional.ofNullable(entity)
+        .map(d -> FireStoreDirectoryEntry.fromTableEntity(entity))
+        .orElse(null);
+  }
+
+
+    public List<String> validateRefIds(
       TableServiceClient tableServiceClient, List<String> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
     TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);

@@ -30,6 +30,7 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -201,13 +202,13 @@ public class FileService {
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
           resourceService.getStorageAccount(dataset, billingProfileModel);
-      return tableDao.retrieveById(
-          UUID.fromString(datasetId),
-          fileId,
-          depth,
-          billingProfileModel.getSubscriptionId(),
-          storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
-          storageAccountResource.getName());
+      AzureStorageAuthInfo storageAuthInfo =
+          new AzureStorageAuthInfo()
+              .subscriptionId(billingProfileModel.getSubscriptionId())
+              .resourceGroupName(
+                  storageAccountResource.getApplicationResource().getAzureResourceGroupName())
+              .storageAccountResourceName(storageAccountResource.getName());
+      return tableDao.retrieveById(UUID.fromString(datasetId), fileId, depth, storageAuthInfo);
     }
   }
 
@@ -227,8 +228,13 @@ public class FileService {
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
           resourceService.getStorageAccount(dataset, billingProfileModel);
-      return tableDao.retrieveByPath(
-          UUID.fromString(datasetId), path, depth, storageAccountResource);
+      AzureStorageAuthInfo storageAuthInfo =
+          new AzureStorageAuthInfo()
+              .subscriptionId(billingProfileModel.getSubscriptionId())
+              .resourceGroupName(
+                  storageAccountResource.getApplicationResource().getAzureResourceGroupName())
+              .storageAccountResourceName(storageAccountResource.getName());
+      return tableDao.retrieveByPath(UUID.fromString(datasetId), path, depth, storageAuthInfo);
     }
   }
 

@@ -58,20 +58,9 @@ public class IngestFileAzureFileStep implements Step {
               .loadTag(fileLoadModel.getLoadTag());
 
       try {
-        tableDao.createFileMetadata(
-            newFile,
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+        tableDao.createFileMetadata(newFile, storageAuthInfo);
         // Retrieve to build the complete FSItem
-        FSItem fsItem =
-            tableDao.retrieveById(
-                dataset.getId(),
-                fileId,
-                1,
-                storageAuthInfo.getSubscriptionId(),
-                storageAuthInfo.getResourceGroupName(),
-                storageAuthInfo.getStorageAccountResourceName());
+        FSItem fsItem = tableDao.retrieveById(dataset.getId(), fileId, 1, storageAuthInfo);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
@@ -90,11 +79,7 @@ public class IngestFileAzureFileStep implements Step {
             context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     try {
-      tableDao.deleteFileMetadata(
-          itemId,
-          storageAuthInfo.getSubscriptionId(),
-          storageAuthInfo.getResourceGroupName(),
-          storageAuthInfo.getStorageAccountResourceName());
+      tableDao.deleteFileMetadata(itemId, storageAuthInfo);
     } catch (TableServiceException rex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
     }

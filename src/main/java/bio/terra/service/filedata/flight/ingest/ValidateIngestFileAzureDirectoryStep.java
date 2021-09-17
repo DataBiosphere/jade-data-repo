@@ -46,12 +46,7 @@ public class ValidateIngestFileAzureDirectoryStep implements Step {
           FlightUtils.getContextValue(
               context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
       FireStoreDirectoryEntry existingEntry =
-          tableDao.lookupDirectoryEntryByPath(
-              dataset,
-              targetPath,
-              storageAuthInfo.getSubscriptionId(),
-              storageAuthInfo.getResourceGroupName(),
-              storageAuthInfo.getStorageAccountResourceName());
+          tableDao.lookupDirectoryEntryByPath(dataset, targetPath, storageAuthInfo);
       if (existingEntry == null) {
         workingMap.put(FileMapKeys.INGEST_FILE_ACTION, CREATE_ENTRY_ACTION);
       } else if (!existingEntry.getLoadTag().equals(loadModel.getLoadTag())) {

@@ -74,12 +74,7 @@ public class IngestFileAzureDirectoryStep implements Step {
       // Lookup the file - on a recovery, we may have already created it, but not
       // finished. Or it might already exist, created by someone else.
       FireStoreDirectoryEntry existingEntry =
-          tableDao.lookupDirectoryEntryByPath(
-              dataset,
-              targetPath,
-              storageAuthInfo.getSubscriptionId(),
-              storageAuthInfo.getResourceGroupName(),
-              storageAuthInfo.getStorageAccountResourceName());
+          tableDao.lookupDirectoryEntryByPath(dataset, targetPath, storageAuthInfo);
       if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
         // (1) Not there - create it
         FireStoreDirectoryEntry newEntry =
@@ -90,22 +85,13 @@ public class IngestFileAzureDirectoryStep implements Step {
                 .name(fileMetadataUtils.getName(targetPath))
                 .datasetId(datasetId)
                 .loadTag(loadModel.getLoadTag());
-        tableDao.createDirectoryEntry(
-            newEntry,
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+        tableDao.createDirectoryEntry(newEntry, storageAuthInfo);
       } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION)
           && !StringUtils.equals(existingEntry.getFileId(), fileId)) {
         // (b) We are in a re-run of a load job. Try to get the file entry.
         fileId = existingEntry.getFileId();
         workingMap.put(FileMapKeys.FILE_ID, fileId);
-        FireStoreFile fileEntry =
-            tableDao.lookupFile(
-                fileId,
-                storageAuthInfo.getSubscriptionId(),
-                storageAuthInfo.getResourceGroupName(),
-                storageAuthInfo.getStorageAccountResourceName());
+        FireStoreFile fileEntry = tableDao.lookupFile(fileId, storageAuthInfo);
         if (fileEntry != null) {
           // (b)(i) We successfully loaded this file already
           workingMap.put(FileMapKeys.LOAD_COMPLETED, true);
@@ -130,11 +116,7 @@ public class IngestFileAzureDirectoryStep implements Step {
             context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
       try {
-        tableDao.deleteDirectoryEntry(
-            fileId,
-            storageAuthInfo.getSubscriptionId(),
-            storageAuthInfo.getResourceGroupName(),
-            storageAuthInfo.getStorageAccountResourceName());
+        tableDao.deleteDirectoryEntry(fileId, storageAuthInfo);
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
       }

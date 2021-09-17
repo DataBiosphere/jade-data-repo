@@ -72,12 +72,7 @@ public class DeleteFileAzureLookupStep implements Step {
       workingMap.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
 
       if (fireStoreFile == null) {
-        fireStoreFile =
-            tableDao.lookupFile(
-                fileId,
-                billingProfile.getSubscriptionId(),
-                storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
-                storageAccountResource.getName());
+        fireStoreFile = tableDao.lookupFile(fileId, storageAuthInfo);
         if (fireStoreFile != null) {
           workingMap.put(FileMapKeys.FIRESTORE_FILE, fireStoreFile);
         }

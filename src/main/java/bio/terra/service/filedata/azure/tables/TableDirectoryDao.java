@@ -218,12 +218,14 @@ public class TableDirectoryDao {
   }
 
   // Returns null if not found - upper layers do any throwing
-  public FireStoreDirectoryEntry batchRetrieveByPath(
-      TableServiceClient tableServiceClient, String datasetId, String fullPath) {
-    String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
-    TableEntity entity = batchLookupByFilePath(tableServiceClient, datasetId, lookupPath);
-    return Optional.ofNullable(entity)
-        .map(d -> FireStoreDirectoryEntry.fromTableEntity(entity))
+  public List<FireStoreDirectoryEntry> batchRetrieveByPath(
+      TableServiceClient tableServiceClient, String datasetId, List<String> fullPaths) {
+    // I don't see a batch way to "getEntity". We could switch to listEntities w/ a query
+    // BUt, this is not efficient!
+    List<TableEntity> entities = fullPaths.stream().map(path ->
+      lookupByFilePath(tableServiceClient, datasetId, fileMetadataUtils.makeLookupPath(path))
+    ).collect(Collectors.toList());
+    return Optional.ofNullable(entities.stream().map(entity -> FireStoreDirectoryEntry.fromTableEntity(entity)).collect(Collectors.toList()))
         .orElse(null);
   }
 
@@ -377,9 +379,8 @@ public class TableDirectoryDao {
 
       // Find directory paths that need to be created; plus add to the cache
       List<String> newPaths = fileMetadataUtils.findNewDirectoryPaths(datasetEntries, pathMap);
-      // TODO - replace
       List<FireStoreDirectoryEntry> datasetDirectoryEntries =
-          batchRetrieveByPath(datasetFirestore, datasetId, newPaths);
+          batchRetrieveByPath(datasetTableServiceClient, datasetId, newPaths);
 
       // Create snapshot file system entries
       List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
@@ -394,7 +395,7 @@ public class TableDirectoryDao {
       // but that is not the typical case and it is lower cost just overwrite
       // rather than retrieve to avoid the write.
       // TODO -replace
-      batchStoreDirectoryEntry(snapshotFirestore, snapshotId, snapshotEntries);
+      batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, snapshotEntries);
     }
   }
 

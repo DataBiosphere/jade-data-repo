@@ -403,7 +403,7 @@ public class FireStoreDirectoryDao {
           batchRetrieveById(datasetFirestore, datasetId, batch);
 
       // Find directory paths that need to be created; plus add to the cache
-      List<String> newPaths = findNewDirectoryPaths(datasetEntries, pathMap);
+      List<String> newPaths = fileMetadataUtils.findNewDirectoryPaths(datasetEntries, pathMap);
       List<FireStoreDirectoryEntry> datasetDirectoryEntries =
           batchRetrieveByPath(datasetFirestore, datasetId, newPaths);
 

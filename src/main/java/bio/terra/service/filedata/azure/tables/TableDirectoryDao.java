@@ -194,18 +194,7 @@ public class TableDirectoryDao {
         .orElse(null);
   }
 
-  // TODO - add test
-  private List<FireStoreDirectoryEntry> batchRetrieveById(TableServiceClient tableServiceClient,
-                                                          List<String> fileIds) {
-    List<TableEntity> entities = batchLookupByFileId(tableServiceClient, fileIds);
-    return Optional.ofNullable(entities.stream().map(entity -> {
-      FireStoreDirectoryEntry directoryEntry = FireStoreDirectoryEntry.fromTableEntity(entity);
-      if (!directoryEntry.getIsFileRef()) {
-        throw new FileSystemExecutionException("Directories are not supported as references");
-      }
-      return directoryEntry;
-    }).collect(Collectors.toList())).orElseThrow(() -> new FileSystemExecutionException("No fileIds found in batch lookup"));
-  }
+
 
   // Returns null if not found - upper layers do any throwing
   public FireStoreDirectoryEntry retrieveByPath(
@@ -233,27 +222,20 @@ public class TableDirectoryDao {
     public List<String> validateRefIds(
       TableServiceClient tableServiceClient, List<String> refIdArray) {
     logger.info("validateRefIds for {} file ids", refIdArray.size());
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
     return ListUtils.partition(refIdArray, MAX_FILTER_CLAUSES).stream()
         .flatMap(
-            refIds -> {
-              String filter =
-                  refIds.stream()
-                      //maybe wrap or cause in parenthesis
-                      .map(refId -> String.format("fileId eq '%s'", refId))
-                      .collect(Collectors.joining(" or "));
-              ListEntitiesOptions options = new ListEntitiesOptions().setFilter(filter);
-              // Check to see if table has entities to avoid NPEs
-              if (!TableServiceClientUtils.tableHasEntries(
-                  tableServiceClient, TABLE_NAME, options)) {
-                return refIds.stream();
+            refIdChunk -> {
+              List<TableEntity> fileRefs = TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, TABLE_NAME, refIdChunk);
+              // if no files were retrieved, then every file in list is not valid
+              if (fileRefs == null) {
+                return refIdChunk.stream();
               }
-              PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+              // if any files were retrieved, then remove from invalid list
               Set<String> validRefIds =
-                  entities.stream()
+                  fileRefs.stream()
                       .map(e -> e.getProperty("fileId").toString())
                       .collect(Collectors.toSet());
-              return refIds.stream().filter(id -> !validRefIds.contains(id));
+              return refIdChunk.stream().filter(id -> !validRefIds.contains(id));
             })
         .collect(Collectors.toList());
   }
@@ -308,25 +290,7 @@ public class TableDirectoryDao {
     }
   }
 
-  // Returns null if not found
-  private List<TableEntity> batchLookupByFileId(TableServiceClient tableServiceClient,
-                                          List<String> fileIds) {
-    try {
-      TableClient client = tableServiceClient.getTableClient(TABLE_NAME);
-      ListEntitiesOptions options =
-          new ListEntitiesOptions().setFilter(
-              String.join(" or ",
-                  fileIds.stream().map(fileId ->
-                      String.format("fileId eq '%s'", fileId)).collect(Collectors.toList())));
 
-      if (TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
-        return client.listEntities(options, null, null).stream().collect(Collectors.toList());
-      }
-      return null;
-    } catch (TableServiceException ex) {
-      throw new FileSystemExecutionException("batchLookupByFileId operation failed");
-    }
-  }
 
   // TODO: Implement snapshot-specific methods
   // -- Snapshot filesystem methods --

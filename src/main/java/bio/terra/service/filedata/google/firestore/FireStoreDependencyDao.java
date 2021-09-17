@@ -8,7 +8,6 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.resourcemanagement.ResourceService;
 import com.google.api.client.util.Lists;
-import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;

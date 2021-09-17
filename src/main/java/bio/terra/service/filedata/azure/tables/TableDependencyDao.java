@@ -1,18 +1,29 @@
 package bio.terra.service.filedata.azure.tables;
 
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
+import bio.terra.service.filedata.google.firestore.FireStoreBatchQueryIterator;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
+import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
-import com.azure.data.tables.models.ListEntitiesOptions;
-import com.azure.data.tables.models.TableEntity;
+import com.azure.data.tables.models.*;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
+import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+
+import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_QUERY_BATCH_SIZE;
 
 @Component
 public class TableDependencyDao {
@@ -37,7 +48,8 @@ public class TableDependencyDao {
 
     for (String refId : refIds) {
       ListEntitiesOptions options =
-          new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", refId));
+          new ListEntitiesOptions()
+                  .setFilter(String.format("fileId eq '%s' and snapshotId eq '%s'", refId, snapshotId));
       PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
       int count = 0;
       for (TableEntity entity : entities) {
@@ -77,6 +89,25 @@ public class TableDependencyDao {
           throw new FileSystemCorruptException(
               "Found more than one document for a file dependency - fileId: " + refId);
       }
+    }
+  }
+
+  public void deleteSnapshotFileDependencies(TableServiceClient tableServiceClient, UUID datasetId, UUID snapshotId) {
+    String dependencyTableName = getDatasetDependencyTableName(datasetId);
+    if (TableServiceClientUtils.tableHasEntries(tableServiceClient, dependencyTableName)) {
+      TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
+      ListEntitiesOptions options =
+              new ListEntitiesOptions()
+                      .setFilter(String.format("snapshotId eq '%s'", snapshotId));
+      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+      var batchEntities = entities
+              .stream()
+              .map(entity -> new TableTransactionAction(TableTransactionActionType.DELETE, entity))
+              .collect(Collectors.toList());
+      logger.info("Deleting snapshot {} file dependencies from {}", snapshotId, dependencyTableName);
+      tableClient.submitTransaction(batchEntities);
+    } else {
+      logger.warn("No snapshot file dependencies found to be deleted from dataset");
     }
   }
 }

@@ -148,7 +148,7 @@ public class FileIngestBulkFlight extends Flight {
     addStep(new LoadLockStep(loadService));
     if (platform.isGcp()) {
       addStep(new IngestFileGetProjectStep(dataset, googleProjectService));
-      addStep(new IngestFileGetOrCreateProject(resourceService, dataset), randomBackoffRetry);
+      addStep(new IngestFileInitializeProjectStep(resourceService, dataset), randomBackoffRetry);
 
       addStep(new IngestFilePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
       addStep(new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset), randomBackoffRetry);
@@ -216,10 +216,7 @@ public class FileIngestBulkFlight extends Flight {
               storageTableService,
               loadService,
               datasetService,
-              profileService,
               datasetUuid,
-              profileId,
-              userReq,
               loadTag,
               loadHistoryChunkSize));
     }

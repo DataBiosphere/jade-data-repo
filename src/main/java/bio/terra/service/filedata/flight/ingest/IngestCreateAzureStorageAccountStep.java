@@ -3,8 +3,8 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
@@ -36,7 +36,7 @@ public class IngestCreateAzureStorageAccountStep implements Step {
 
     AzureStorageAccountResource storageAccountResource =
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
-    workingMap.put(IngestMapKeys.STORAGE_ACCOUNT_RESOURCE, storageAccountResource);
+    workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
     return StepResult.getStepResultSuccess();
   }
 

@@ -27,9 +27,8 @@ import bio.terra.service.filedata.flight.ingest.IngestCreateAzureStorageAccountS
 import bio.terra.service.filedata.flight.ingest.IngestCreateBucketForScratchFileStep;
 import bio.terra.service.filedata.flight.ingest.IngestDriverStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileAzureMakeStorageAccountLinkStep;
-import bio.terra.service.filedata.flight.ingest.IngestFileAzurePrimaryDataLocationStep;
-import bio.terra.service.filedata.flight.ingest.IngestFileGetOrCreateProject;
 import bio.terra.service.filedata.flight.ingest.IngestFileGetProjectStep;
+import bio.terra.service.filedata.flight.ingest.IngestFileInitializeProjectStep;
 import bio.terra.service.filedata.flight.ingest.IngestFileMakeBucketLinkStep;
 import bio.terra.service.filedata.flight.ingest.IngestFilePrimaryDataLocationStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
@@ -91,11 +90,14 @@ public class DatasetIngestFlight extends Flight {
     RetryRule lockDatasetRetry =
         getDefaultRandomBackoffRetryRule(appConfig.getMaxStairwayThreads());
 
-    if (cloudPlatform.is(CloudPlatform.AZURE)) {
+    if (cloudPlatform.isAzure()) {
+      // TODO: We can get rid of this once https://broadworkbench.atlassian.net/browse/DR-2107
+      // is complete
       addStep(
-          // TODO: This still uses GCP under the hood. Is this correct?
           new AuthorizeBillingProfileUseStep(
               profileService, ingestRequestModel.getProfileId(), userReq));
+
+      // This will need to stay even after DR-2107
       addStep(new IngestCreateAzureStorageAccountStep(datasetService, resourceService));
     }
 
@@ -140,26 +142,27 @@ public class DatasetIngestFlight extends Flight {
         addAzureJsonSteps(
             appContext,
             appConfig,
-            configService,
             datasetService,
+            azureBlobStorePdao,
+            configService,
             ingestRequestModel,
-            userReq,
             dataset,
             profileId,
             randomBackoffRetry,
             driverRetry,
             driverWaitSeconds,
-            loadHistoryChunkSize);
+            loadHistoryChunkSize,
+            ingestSkipCondition);
       }
     }
 
-    if (cloudPlatform.is(CloudPlatform.GCP)) {
+    if (cloudPlatform.isGcp()) {
       addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
       addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
       addStep(new IngestValidateGcpRefsStep(datasetService, bigQueryPdao, fileDao));
       addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
       addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
-    } else if (cloudPlatform.is(CloudPlatform.AZURE)) {
+    } else if (cloudPlatform.isAzure()) {
       addStep(new IngestCreateIngestRequestDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
       addStep(new IngestCreateTargetDataSourceStep(azureSynapsePdao, azureBlobStorePdao));
       addStep(new IngestCreateParquetFilesStep(azureSynapsePdao, datasetService));
@@ -203,22 +206,38 @@ public class DatasetIngestFlight extends Flight {
 
     var platform = CloudPlatform.GCP;
 
-    // Begin file + metadata load
+    // Parse the JSON file and see if there's actually any files to load.
+    // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`
+    // will not be run.
     addStep(new IngestJsonFileSetupGcpStep(gcsPdao, appConfig.objectMapper(), dataset));
+
+    // Authorize the billing profile for use.
     addStep(
         new AuthorizeBillingProfileUseStep(
             profileService, profileId, userReq, ingestSkipCondition));
+
+    // Lock the load.
     addStep(new LoadLockStep(loadService, ingestSkipCondition));
+
+    // Get or create a Google project for files to be ingested into.
     addStep(new IngestFileGetProjectStep(dataset, projectService, ingestSkipCondition));
+
+    // Initialize the Google project for ingest use.
     addStep(
-        new IngestFileGetOrCreateProject(resourceService, dataset, ingestSkipCondition),
+        new IngestFileInitializeProjectStep(resourceService, dataset, ingestSkipCondition),
         randomBackoffRetry);
+
+    // Create the bucket within the Google project for files to be ingested into.
     addStep(
         new IngestFilePrimaryDataLocationStep(resourceService, dataset, ingestSkipCondition),
         randomBackoffRetry);
+
+    // Make a link between the dataset and bucket in the database.
     addStep(
         new IngestFileMakeBucketLinkStep(datasetBucketDao, dataset, ingestSkipCondition),
         randomBackoffRetry);
+
+    // Populate the load table in our database with files to be loaded.
     addStep(
         new IngestPopulateFileStateFromFlightMapGcpStep(
             loadService,
@@ -227,6 +246,8 @@ public class DatasetIngestFlight extends Flight {
             dataset,
             appConfig.getLoadFilePopulateBatchSize(),
             ingestSkipCondition));
+
+    // Load the files!
     addStep(
         new IngestDriverStep(
             loadService,
@@ -241,18 +262,21 @@ public class DatasetIngestFlight extends Flight {
             ingestSkipCondition),
         driverRetry);
 
+    // Create the job result with the results of the bulk file load.
     addStep(
         new IngestBulkMapResponseStep(
             loadService, ingestRequest.getLoadTag(), ingestSkipCondition));
 
+    // Create a bucket for the scratch file to be written to.
     addStep(
         new IngestCreateBucketForScratchFileStep(resourceService, dataset, ingestSkipCondition));
 
-    // build the scratch file using new file ids and store in new bucket
+    // Build the scratch file using new file ids and store in new bucket.
     addStep(
         new IngestBuildAndWriteScratchLoadFileGcpStep(
             appConfig.objectMapper(), gcsPdao, dataset, ingestSkipCondition));
 
+    // Copy the load history into BigQuery.
     addStep(
         new IngestCopyLoadHistoryToBQStep(
             bigQueryPdao,
@@ -263,57 +287,54 @@ public class DatasetIngestFlight extends Flight {
             loadHistoryWaitSeconds,
             loadHistoryChunkSize,
             ingestSkipCondition));
+
+    // Clean up the load table.
     addStep(new IngestCleanFileStateStep(loadService, ingestSkipCondition));
 
+    // Unlock the load.
     addStep(new LoadUnlockStep(loadService, ingestSkipCondition));
   }
 
   private void addAzureJsonSteps(
       ApplicationContext appContext,
       ApplicationConfiguration appConfig,
-      ConfigurationService configService,
       DatasetService datasetService,
+      AzureBlobStorePdao azureBlobStorePdao,
+      ConfigurationService configService,
       IngestRequestModel ingestRequest,
-      AuthenticatedUserRequest userReq,
       Dataset dataset,
       UUID profileId,
       RetryRule randomBackoffRetry,
       RetryRule driverRetry,
       int driverWaitSeconds,
-      int loadHistoryChunkSize) {
+      int loadHistoryChunkSize,
+      Predicate<FlightContext> ingestSkipCondition) {
 
-    AzureBlobStorePdao azureBlobStorePdao = appContext.getBean(AzureBlobStorePdao.class);
     AzureContainerPdao azureContainerPdao = appContext.getBean(AzureContainerPdao.class);
-    ProfileService profileService = appContext.getBean(ProfileService.class);
     LoadService loadService = appContext.getBean(LoadService.class);
-    ResourceService resourceService = appContext.getBean(ResourceService.class);
     DatasetStorageAccountDao datasetStorageAccountDao =
         appContext.getBean(DatasetStorageAccountDao.class);
     JobService jobService = appContext.getBean(JobService.class);
     StorageTableService storageTableService = appContext.getBean(StorageTableService.class);
 
-    Predicate<FlightContext> ingestSkipCondition = IngestUtils.noFilesToIngest;
-
     var platform = CloudPlatform.AZURE;
 
+    // Parse the JSON file and see if there's actually any files to load.
+    // If there are no files to load, then SkippableSteps taking the `ingestSkipCondition`
+    // will not be run.
     addStep(
         new IngestJsonFileSetupAzureStep(appConfig.objectMapper(), azureBlobStorePdao, dataset));
 
+    // Lock the load.
     addStep(new LoadLockStep(loadService, ingestSkipCondition));
 
-    addStep(
-        new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset, ingestSkipCondition),
-        randomBackoffRetry);
+    // Make a link between the Storage Account and Dataset in our database.
     addStep(
         new IngestFileAzureMakeStorageAccountLinkStep(
             datasetStorageAccountDao, dataset, ingestSkipCondition),
         randomBackoffRetry);
-    addStep(
-        new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), randomBackoffRetry);
-    addStep(
-        new IngestFileAzureMakeStorageAccountLinkStep(datasetStorageAccountDao, dataset),
-        randomBackoffRetry);
 
+    // Populate the load table in our database with files to be loaded.
     addStep(
         new IngestPopulateFileStateFromFlightMapAzureStep(
             loadService,
@@ -322,6 +343,8 @@ public class DatasetIngestFlight extends Flight {
             dataset,
             appConfig.getLoadFilePopulateBatchSize(),
             ingestSkipCondition));
+
+    // Load the files!
     addStep(
         new IngestDriverStep(
             loadService,
@@ -336,11 +359,12 @@ public class DatasetIngestFlight extends Flight {
             ingestSkipCondition),
         driverRetry);
 
+    // Create the job result with the results of the bulk file load.
     addStep(
         new IngestBulkMapResponseStep(
             loadService, ingestRequest.getLoadTag(), ingestSkipCondition));
 
-    // build the scratch file using new file ids and store in new storage account container
+    // Build the scratch file using new file ids and store in new storage account container.
     addStep(
         new IngestBuildAndWriteScratchLoadFileAzureStep(
             appConfig.objectMapper(),
@@ -349,20 +373,21 @@ public class DatasetIngestFlight extends Flight {
             dataset,
             ingestSkipCondition));
 
+    // Copy the load history to Azure Storage Tables.
     addStep(
         new IngestCopyLoadHistoryToStorageTableStep(
             storageTableService,
             loadService,
             datasetService,
-            profileService,
             dataset.getId(),
-            profileId,
-            userReq,
             ingestRequest.getLoadTag(),
             loadHistoryChunkSize,
             ingestSkipCondition));
+
+    // Clean up the load table.
     addStep(new IngestCleanFileStateStep(loadService, ingestSkipCondition));
 
+    // Unlock the load.
     addStep(new LoadUnlockStep(loadService, ingestSkipCondition));
   }
 }

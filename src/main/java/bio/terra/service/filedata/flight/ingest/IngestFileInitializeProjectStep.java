@@ -15,18 +15,18 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import java.util.function.Predicate;
 
-public class IngestFileGetOrCreateProject extends SkippableStep {
+public class IngestFileInitializeProjectStep extends SkippableStep {
   private final ResourceService resourceService;
   private final Dataset dataset;
 
-  public IngestFileGetOrCreateProject(
+  public IngestFileInitializeProjectStep(
       ResourceService resourceService, Dataset dataset, Predicate<FlightContext> skipCondition) {
     super(skipCondition);
     this.resourceService = resourceService;
     this.dataset = dataset;
   }
 
-  public IngestFileGetOrCreateProject(ResourceService resourceService, Dataset dataset) {
+  public IngestFileInitializeProjectStep(ResourceService resourceService, Dataset dataset) {
     this(resourceService, dataset, SkippableStep::neverSkip);
   }
 

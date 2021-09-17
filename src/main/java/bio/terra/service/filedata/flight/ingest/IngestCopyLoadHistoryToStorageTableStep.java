@@ -2,9 +2,7 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.ingest.SkippableStep;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.load.LoadService;
-import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import bio.terra.service.tabulardata.azure.StorageTableService;
 import bio.terra.stairway.FlightContext;
@@ -28,10 +26,7 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
   private final StorageTableService storageTableService;
   private final LoadService loadService;
   private final DatasetService datasetService;
-  private final ProfileService profileService;
   private final UUID datasetId;
-  private final UUID profileId;
-  private final AuthenticatedUserRequest userReq;
   private final String loadTag;
   private final int loadHistoryChunkSize;
 
@@ -39,10 +34,7 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
       StorageTableService storageTableService,
       LoadService loadService,
       DatasetService datasetService,
-      ProfileService profileService,
       UUID datasetId,
-      UUID profileId,
-      AuthenticatedUserRequest userReq,
       String loadTag,
       int loadHistoryChunkSize,
       Predicate<FlightContext> skipCondition) {
@@ -50,10 +42,7 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
     this.storageTableService = storageTableService;
     this.loadService = loadService;
     this.datasetService = datasetService;
-    this.profileService = profileService;
     this.datasetId = datasetId;
-    this.profileId = profileId;
-    this.userReq = userReq;
     this.loadTag = loadTag;
     this.loadHistoryChunkSize = loadHistoryChunkSize;
   }
@@ -62,20 +51,14 @@ public class IngestCopyLoadHistoryToStorageTableStep extends IngestCopyLoadHisto
       StorageTableService storageTableService,
       LoadService loadService,
       DatasetService datasetService,
-      ProfileService profileService,
       UUID datasetId,
-      UUID profileId,
-      AuthenticatedUserRequest userReq,
       String loadTag,
       int loadHistoryChunkSize) {
     this(
         storageTableService,
         loadService,
         datasetService,
-        profileService,
         datasetId,
-        profileId,
-        userReq,
         loadTag,
         loadHistoryChunkSize,
         SkippableStep::neverSkip);

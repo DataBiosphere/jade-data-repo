@@ -89,7 +89,7 @@ public class SearchApiController implements SearchApi {
     List<UUID> authorizedResources =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
     Map<UUID, String> metadata = searchService.enumerateSnapshotSearch(authorizedResources);
-    return ResponseEntity.status(HttpStatus.OK).body(metadata);
+    return ResponseEntity.ok(metadata.values());
   }
 
   @Override

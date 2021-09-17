@@ -97,6 +97,16 @@ public class SearchServiceTest {
   }
 
   @Test
+  public void testEnumerateSnapshotSearch() {
+    UUID testId = UUID.randomUUID();
+    List snapshotIds = List.of(testId);
+    Map expectedResult = Map.of(testId, "value");
+    when(snapshotSearchMetadataDao.getMetadata(snapshotIds)).thenReturn(expectedResult);
+    Map result = service.enumerateSnapshotSearch(snapshotIds);
+    assertEquals(expectedResult, result);
+  }
+
+  @Test
   public void timFieldEncodingTest() {
     String expectedQuery =
         String.format("{\"query_string\": {\"query\": \"(%s:0)\"}}", timEncodedName);

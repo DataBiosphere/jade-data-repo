@@ -239,6 +239,7 @@ public class TableDirectoryDao {
             refIds -> {
               String filter =
                   refIds.stream()
+                      //maybe wrap or cause in parenthesis
                       .map(refId -> String.format("fileId eq '%s'", refId))
                       .collect(Collectors.joining(" or "));
               ListEntitiesOptions options = new ListEntitiesOptions().setFilter(filter);

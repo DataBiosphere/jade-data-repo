@@ -9,9 +9,16 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +40,10 @@ public class AuthService {
   private JacksonFactory jsonFactory = JacksonFactory.getDefaultInstance();
   private File pemfile;
   private String saEmail;
-  private Map<String, String> userTokens = new HashMap<>();
-  private Map<String, String> directAccessTokens = new HashMap<>();
+  private Map<String, String> userTokens =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(TimeUnit.MINUTES.toMillis(10)));
+  private Map<String, String> directAccessTokens =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(TimeUnit.MINUTES.toMillis(10)));
   private TestConfiguration testConfig;
 
   @Autowired

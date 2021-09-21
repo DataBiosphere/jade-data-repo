@@ -61,7 +61,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -337,7 +336,6 @@ public class DatasetIntegrationTest extends UsersBase {
         .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE);
   }
 
-  @Ignore
   @Test
   public void testSoftDeleteHappyPath() throws Exception {
     datasetId = ingestedDataset();
@@ -367,7 +365,6 @@ public class DatasetIntegrationTest extends UsersBase {
     assertTableCount(bigQuery, dataset, "sample", 5L);
   }
 
-  @Ignore
   @Test
   public void wildcardSoftDelete() throws Exception {
     datasetId = ingestedDataset();
@@ -395,7 +392,6 @@ public class DatasetIntegrationTest extends UsersBase {
     assertTableCount(bigQuery, dataset, "sample", 2L);
   }
 
-  @Ignore
   @Test
   public void testSoftDeleteNotInFullView() throws Exception {
     datasetId = ingestedDataset();

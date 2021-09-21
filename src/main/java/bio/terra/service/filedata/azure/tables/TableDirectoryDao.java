@@ -364,6 +364,30 @@ public class TableDirectoryDao {
     }
   }
 
+  // Returns null if not found
+  private List<TableEntity> batchLookupByFileId(TableServiceClient tableServiceClient,
+                                                String tableName,
+                                                List<String> fileIds) {
+    return ListUtils.partition(fileIds, MAX_FILTER_CLAUSES).stream()
+        .flatMap(fileIdsBatch -> {
+          List<TableEntity> entities = TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, tableName, fileIdsBatch);
+          return entities.stream().collect(Collectors.toList());
+        })
+        .collect(Collectors.toList());
+  }
+
+  private List<FireStoreDirectoryEntry> batchRetrieveById(TableServiceClient tableServiceClient,
+                                                          List<String> fileIds) {
+    List<TableEntity> entities = batchLookupByFileId(tableServiceClient, TABLE_NAME, fileIds);
+    return Optional.ofNullable(entities.stream().map(entity -> {
+      FireStoreDirectoryEntry directoryEntry = FireStoreDirectoryEntry.fromTableEntity(entity);
+      if (!directoryEntry.getIsFileRef()) {
+        throw new FileSystemExecutionException("Directories are not supported as references");
+      }
+      return directoryEntry;
+    }).collect(Collectors.toList())).orElseThrow(new FileSystemExecutionException("No fileIds found in batch lookup");
+  }
+
   // TODO - add test
   private void storeTopDirectory(TableServiceClient tableServiceClient,
                                  String snapshotId,

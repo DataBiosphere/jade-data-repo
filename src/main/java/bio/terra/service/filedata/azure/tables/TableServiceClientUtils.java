@@ -11,6 +11,7 @@ import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableItem;
 import com.azure.data.tables.models.TableServiceException;
 import org.apache.commons.collections4.ListUtils;
+import javax.validation.constraints.Null;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -59,20 +60,5 @@ public class TableServiceClientUtils {
     return null;
   }
 
-  // TODO - add test
-  private Optional<List<FireStoreDirectoryEntry>> batchRetrieveById(TableServiceClient tableServiceClient,
-                                                          String tableName,
-                                                          List<String> fileIds) {
-    return ListUtils.partition(fileIds, MAX_FILTER_CLAUSES).stream()
-        .flatMap(fileIdChunk -> {
-          List<TableEntity> entities = batchRetrieveFiles(tableServiceClient, tableName, fileIdChunk);
-          return Optional.of(entities.stream().map(entity -> {
-            FireStoreDirectoryEntry directoryEntry = FireStoreDirectoryEntry.fromTableEntity(entity);
-            if (!directoryEntry.getIsFileRef()) {
-              throw new FileSystemExecutionException("Directories are not supported as references");
-            }
-            return directoryEntry;
-          }).collect(Collectors.toList()));
-        }).collect(Collectors.toList());
-  }
+
 }

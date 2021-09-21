@@ -103,10 +103,10 @@ public class SearchServiceTest {
   @Test
   public void testEnumerateSnapshotSearch() {
     UUID testId = UUID.randomUUID();
-    List snapshotIds = List.of(testId);
-    Map expectedResult = Map.of(testId, "value");
+    List<UUID> snapshotIds = List.of(testId);
+    Map<UUID, String> expectedResult = Map.of(testId, "value");
     when(snapshotSearchMetadataDao.getMetadata(snapshotIds)).thenReturn(expectedResult);
-    Map result = service.enumerateSnapshotSearch(snapshotIds);
+    Map<UUID, String> result = service.enumerateSnapshotSearch(snapshotIds);
     assertEquals(expectedResult, result);
   }
 

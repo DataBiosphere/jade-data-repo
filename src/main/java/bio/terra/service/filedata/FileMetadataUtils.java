@@ -4,7 +4,10 @@ import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -82,5 +85,27 @@ public class FileMetadataUtils {
 
   public String makePathFromLookupPath(String lookupPath) {
     return StringUtils.removeStart(lookupPath, ROOT_DIR_NAME);
+  }
+
+  public List<String> findNewDirectoryPaths(
+      List<FireStoreDirectoryEntry> datasetEntries, LRUMap<String, Boolean> pathMap) {
+
+    List<String> pathsToCheck = new ArrayList<>();
+    for (FireStoreDirectoryEntry entry : datasetEntries) {
+      // Only probe the real directories - not leaf file reference or the root
+      String lookupDirPath = makeLookupPath(entry.getPath());
+      for (String testPath = lookupDirPath;
+          !testPath.isEmpty() && !testPath.equals(FileMetadataUtils.ROOT_DIR_NAME);
+          testPath = getDirectoryPath(testPath)) {
+
+        // check the cache
+        if (pathMap.get(testPath) == null) {
+          // not in the cache: add to checklist and a to cache
+          pathsToCheck.add(testPath);
+          pathMap.put(testPath, true);
+        }
+      }
+    }
+    return pathsToCheck;
   }
 }

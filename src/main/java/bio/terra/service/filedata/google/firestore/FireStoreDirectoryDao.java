@@ -403,7 +403,7 @@ public class FireStoreDirectoryDao {
           batchRetrieveById(datasetFirestore, datasetId, batch);
 
       // Find directory paths that need to be created; plus add to the cache
-      List<String> newPaths = findNewDirectoryPaths(datasetEntries, pathMap);
+      List<String> newPaths = fileMetadataUtils.findNewDirectoryPaths(datasetEntries, pathMap);
       List<FireStoreDirectoryEntry> datasetDirectoryEntries =
           batchRetrieveByPath(datasetFirestore, datasetId, newPaths);
 
@@ -474,28 +474,6 @@ public class FireStoreDirectoryDao {
     }
 
     return entries;
-  }
-
-  private List<String> findNewDirectoryPaths(
-      List<FireStoreDirectoryEntry> datasetEntries, LRUMap<String, Boolean> pathMap) {
-
-    List<String> pathsToCheck = new ArrayList<>();
-    for (FireStoreDirectoryEntry entry : datasetEntries) {
-      // Only probe the real directories - not leaf file reference or the root
-      String lookupDirPath = fileMetadataUtils.makeLookupPath(entry.getPath());
-      for (String testPath = lookupDirPath;
-          !testPath.isEmpty() && !testPath.equals(FileMetadataUtils.ROOT_DIR_NAME);
-          testPath = fileMetadataUtils.getDirectoryPath(testPath)) {
-
-        // check the cache
-        if (pathMap.get(testPath) == null) {
-          // not in the cache: add to checklist and a to cache
-          pathsToCheck.add(testPath);
-          pathMap.put(testPath, true);
-        }
-      }
-    }
-    return pathsToCheck;
   }
 
   private List<FireStoreDirectoryEntry> batchRetrieveByPath(

@@ -167,6 +167,25 @@ public class TableDirectoryDao {
         .orElse(null);
   }
 
+  public List<FireStoreDirectoryEntry> batchRetrieveById(
+      TableServiceClient tableServiceClient, String tableName, List<String> fileIds) {
+    List<TableEntity> entities = batchLookupByFileId(tableServiceClient, tableName, fileIds);
+    return Optional.ofNullable(
+            entities.stream()
+                .map(
+                    entity -> {
+                      FireStoreDirectoryEntry directoryEntry =
+                          FireStoreDirectoryEntry.fromTableEntity(entity);
+                      if (!directoryEntry.getIsFileRef()) {
+                        throw new FileSystemExecutionException(
+                            "Directories are not supported as references");
+                      }
+                      return directoryEntry;
+                    })
+                .collect(Collectors.toList()))
+        .orElseThrow(() -> new FileSystemExecutionException("No fileIds found in batch lookup"));
+  }
+
   // Returns null if not found - upper layers do any throwing
   public FireStoreDirectoryEntry retrieveByPath(
       TableServiceClient tableServiceClient, String datasetId, String fullPath) {
@@ -174,6 +193,25 @@ public class TableDirectoryDao {
     TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
     return Optional.ofNullable(entity)
         .map(d -> FireStoreDirectoryEntry.fromTableEntity(entity))
+        .orElse(null);
+  }
+
+  // Returns null if not found - upper layers do any throwing
+  public List<FireStoreDirectoryEntry> batchRetrieveByPath(
+      TableServiceClient tableServiceClient, String datasetId, List<String> fullPaths) {
+    // I don't see a batch way to "getEntity". We could switch to listEntities w/ a query
+    // BUt, this is not efficient!
+    List<TableEntity> entities =
+        fullPaths.stream()
+            .map(
+                path ->
+                    lookupByFilePath(
+                        tableServiceClient, datasetId, fileMetadataUtils.makeLookupPath(path)))
+            .collect(Collectors.toList());
+    return Optional.ofNullable(
+            entities.stream()
+                .map(entity -> FireStoreDirectoryEntry.fromTableEntity(entity))
+                .collect(Collectors.toList()))
         .orElse(null);
   }
 
@@ -248,6 +286,20 @@ public class TableDirectoryDao {
     } catch (TableServiceException ex) {
       throw new FileSystemExecutionException("lookupByFileId operation failed");
     }
+  }
+
+  // Returns null if not found
+  private List<TableEntity> batchLookupByFileId(
+      TableServiceClient tableServiceClient, String tableName, List<String> fileIds) {
+    return ListUtils.partition(fileIds, MAX_FILTER_CLAUSES).stream()
+        .flatMap(
+            fileIdsBatch -> {
+              List<TableEntity> entities =
+                  TableServiceClientUtils.batchRetrieveFiles(
+                      tableServiceClient, tableName, fileIdsBatch);
+              return entities.stream();
+            })
+        .collect(Collectors.toList());
   }
 
   // TODO: Implement snapshot-specific methods

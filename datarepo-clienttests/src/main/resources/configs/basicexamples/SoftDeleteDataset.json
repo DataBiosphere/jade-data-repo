@@ -16,5 +16,5 @@
       "expectedTimeForEachUnit": "SECONDS"
     }
   ],
-  "testUserFiles": ["dumbledore.json"]
+  "testUserFiles": ["voldemort.json"]
 }

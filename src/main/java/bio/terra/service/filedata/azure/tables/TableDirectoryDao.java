@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -56,10 +57,13 @@ public class TableDirectoryDao {
   private static final String TABLE_NAME = "dataset";
   private static final int MAX_FILTER_CLAUSES = 15;
   private final FileMetadataUtils fileMetadataUtils;
+  private final ConfigurationService configurationService;
 
   @Autowired
-  public TableDirectoryDao(FileMetadataUtils fileMetadataUtils) {
+  public TableDirectoryDao(FileMetadataUtils fileMetadataUtils,
+                           ConfigurationService configurationService) {
     this.fileMetadataUtils = fileMetadataUtils;
+    this.configurationService = configurationService;
   }
 
   public String encodePathAsAzureRowKey(String path) {
@@ -302,6 +306,75 @@ public class TableDirectoryDao {
         .collect(Collectors.toList());
   }
 
-  // TODO: Implement snapshot-specific methods
+  // -- Snapshot filesystem methods --
+
+  // To improve performance of building the snapshot file system, we use three techniques:
+  // 1. Operate over batches so that we can issue requests to fire store in parallel
+  // 2. Cache directory paths so that we do not due extra lookups or creates on shared directory
+  // structure
+  // 3. Rewrite rather than read, check existence, and then write. The logic here is that there is
+  // no contention
+  //    so the writing doesn't generate conflicts, and the typical use case is that overwrites will
+  // be rare:
+  //      a. File references are usually unique in the datasets we know about
+  //      b. Directories are cached, so will be overwritten based on the effectiveness of the cache
+
+  // Q - Do we need to support different table service clients for snapshots?? (like the dataset vs. snapshot firestore?)
+  public void addEntriesToSnapshot(
+      TableServiceClient datasetTableServiceClient,
+      TableServiceClient snapshotTableServiceClient,
+      String datasetId,
+      String datasetDirName,
+      String snapshotId,
+      List<String> fileIdList)
+      throws InterruptedException {
+
+    int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
+    List<List<String>> batches = ListUtils.partition(fileIdList, batchSize);
+    logger.info(
+        "addEntriesToSnapshot on {} file ids, in {} batches of {}",
+        fileIdList.size(),
+        batches.size(),
+        batchSize);
+
+    int cacheSize =
+        configurationService.getParameterValue(ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE);
+    LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
+
+    // Create the top directory structure (/_dr_/<datasetDirName>)
+    // TODO - Do we have the right info reference snapshot vs. dataset tables?
+    // Will we be looking at the right table name?
+    storeTopDirectory(snapshotTableServiceClient, snapshotId, datasetDirName);
+
+    int count = 0;
+    for (List<String> batch : batches) {
+      logger.info("addEntriesToSnapshot batch {}", count);
+      count++;
+
+      // Find the file reference dataset entries for all file ids in this batch
+      List<FireStoreDirectoryEntry> datasetEntries =
+          batchRetrieveById(datasetTableServiceClient, batch);
+
+      // Find directory paths that need to be created; plus add to the cache
+      List<String> newPaths = fileMetadataUtils.findNewDirectoryPaths(datasetEntries, pathMap);
+      List<FireStoreDirectoryEntry> datasetDirectoryEntries =
+          batchRetrieveByPath(datasetTableServiceClient, datasetId, newPaths);
+
+      // Create snapshot file system entries
+      List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
+      for (FireStoreDirectoryEntry datasetEntry : datasetEntries) {
+        snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+      }
+      for (FireStoreDirectoryEntry datasetEntry : datasetDirectoryEntries) {
+        snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+      }
+
+      // Store the batch of entries. This will override existing entries,
+      // but that is not the typical case and it is lower cost just overwrite
+      // rather than retrieve to avoid the write.
+      // TODO -replace
+      batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, snapshotEntries);
+    }
+  }
 
 }

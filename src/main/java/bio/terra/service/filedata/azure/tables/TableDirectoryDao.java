@@ -227,7 +227,7 @@ public class TableDirectoryDao {
             refIdChunk -> {
               List<TableEntity> fileRefs = TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, TABLE_NAME, refIdChunk);
               // if no files were retrieved, then every file in list is not valid
-              if (fileRefs == null) {
+              if (fileRefs.isEmpty()) {
                 return refIdChunk.stream();
               }
               // if any files were retrieved, then remove from invalid list
@@ -371,7 +371,7 @@ public class TableDirectoryDao {
     return ListUtils.partition(fileIds, MAX_FILTER_CLAUSES).stream()
         .flatMap(fileIdsBatch -> {
           List<TableEntity> entities = TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, tableName, fileIdsBatch);
-          return entities.stream().collect(Collectors.toList());
+          return entities.stream();
         })
         .collect(Collectors.toList());
   }

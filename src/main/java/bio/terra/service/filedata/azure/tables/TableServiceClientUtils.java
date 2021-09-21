@@ -12,6 +12,7 @@ import com.azure.data.tables.models.TableItem;
 import com.azure.data.tables.models.TableServiceException;
 import org.apache.commons.collections4.ListUtils;
 import javax.validation.constraints.Null;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -57,7 +58,7 @@ public class TableServiceClientUtils {
     if (TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName, options)) {
       return tableClient.listEntities(options, null, null).stream().collect(Collectors.toList());
     }
-    return null;
+    return Collections.emptyList();
   }
 
 

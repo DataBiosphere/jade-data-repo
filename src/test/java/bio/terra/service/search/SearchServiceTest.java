@@ -145,7 +145,7 @@ public class SearchServiceTest {
     var body = "body";
     SearchMetadataModel result = service.upsertSearchMetadata(id, body);
     verify(snapshotSearchMetadataDao, times(1)).putMetadata(id, body);
-    assertTrue()
+    assertTrue(result.getMetadataSummary().contains(id.toString()));
   }
 
   @Test

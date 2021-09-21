@@ -3,6 +3,7 @@ package bio.terra.service.search;
 import bio.terra.app.utils.TimUtils;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
+import bio.terra.model.SearchMetadataModel;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.search.exception.SearchException;
@@ -210,5 +211,12 @@ public class SearchService {
       response.add(hitsMap);
     }
     return response;
+  }
+
+  public SearchMetadataModel upsertSearchMetadata(UUID id, String body) {
+    snapshotSearchMetadataDao.putMetadata(id, body);
+    SearchMetadataModel searchMetadataModel = new SearchMetadataModel();
+    searchMetadataModel.setMetadataSummary("Upserted search metadata for snapshot " + id);
+    return searchMetadataModel;
   }
 }

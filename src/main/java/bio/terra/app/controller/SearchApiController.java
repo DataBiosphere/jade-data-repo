@@ -116,9 +116,7 @@ public class SearchApiController implements SearchApi {
       var user = getAuthenticatedInfo();
       iamService.verifyAuthorization(
           user, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
-      snapshotSearchMetadataDao.putMetadata(id, body);
-      SearchMetadataModel searchMetadataModel = new SearchMetadataModel();
-      searchMetadataModel.setMetadataSummary("Upserted search metadata for snapshot " + id);
+      SearchMetadataModel searchMetadataModel = searchService.upsertSearchMetadata(id, body);
       return ResponseEntity.ok(searchMetadataModel);
     } catch (Exception e) {
       throw new ApiException("Could not upsert metadata for snapshot " + id, e);

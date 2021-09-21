@@ -1,15 +1,19 @@
 package bio.terra.service.search;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.utils.TimUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
+import bio.terra.model.SearchMetadataModel;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -133,6 +137,15 @@ public class SearchServiceTest {
 
     SearchIndexModel searchIndexModel = service.indexSnapshot(snapshot, searchIndexRequest);
     assertEquals(indexName, searchIndexModel.getIndexSummary());
+  }
+
+  @Test
+  public void upsertSearchMetadataTest() {
+    var id = UUID.randomUUID();
+    var body = "body";
+    SearchMetadataModel result = service.upsertSearchMetadata(id, body);
+    verify(snapshotSearchMetadataDao, times(1)).putMetadata(id, body);
+    assertTrue()
   }
 
   @Test

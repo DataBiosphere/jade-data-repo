@@ -86,9 +86,9 @@ public class SearchApiController implements SearchApi {
 
   @Override
   public ResponseEntity<Object> enumerateSnapshotSearch() {
-    List<UUID> authorizedResources =
+    List<UUID> authorizedSnapshotIds =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
-    Map<UUID, String> metadata = searchService.enumerateSnapshotSearch(authorizedResources);
+    Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(authorizedSnapshotIds);
     return ResponseEntity.ok(metadata.values());
   }
 
@@ -116,7 +116,9 @@ public class SearchApiController implements SearchApi {
       var user = getAuthenticatedInfo();
       iamService.verifyAuthorization(
           user, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
-      SearchMetadataModel searchMetadataModel = searchService.upsertSearchMetadata(id, body);
+      snapshotSearchMetadataDao.putMetadata(id, body);
+      SearchMetadataModel searchMetadataModel = new SearchMetadataModel();
+      searchMetadataModel.setMetadataSummary("Upserted search metadata for snapshot " + id);
       return ResponseEntity.ok(searchMetadataModel);
     } catch (Exception e) {
       throw new ApiException("Could not upsert metadata for snapshot " + id, e);
@@ -136,6 +138,7 @@ public class SearchApiController implements SearchApi {
     }
   }
 
+  // TODO: add unit test in SearchAPIControllerTest
   @Override
   public ResponseEntity<SearchQueryResultModel> querySearchIndices(
       SearchQueryRequest searchQueryRequest, Integer offset, Integer limit) {

@@ -1,19 +1,15 @@
 package bio.terra.service.search;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import bio.terra.app.utils.TimUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
-import bio.terra.model.SearchMetadataModel;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
@@ -101,16 +97,6 @@ public class SearchServiceTest {
   }
 
   @Test
-  public void testEnumerateSnapshotSearch() {
-    UUID testId = UUID.randomUUID();
-    List<UUID> snapshotIds = List.of(testId);
-    Map<UUID, String> expectedResult = Map.of(testId, "value");
-    when(snapshotSearchMetadataDao.getMetadata(snapshotIds)).thenReturn(expectedResult);
-    Map<UUID, String> result = service.enumerateSnapshotSearch(snapshotIds);
-    assertEquals(expectedResult, result);
-  }
-
-  @Test
   public void timFieldEncodingTest() {
     String expectedQuery =
         String.format("{\"query_string\": {\"query\": \"(%s:0)\"}}", timEncodedName);
@@ -137,15 +123,6 @@ public class SearchServiceTest {
 
     SearchIndexModel searchIndexModel = service.indexSnapshot(snapshot, searchIndexRequest);
     assertEquals(indexName, searchIndexModel.getIndexSummary());
-  }
-
-  @Test
-  public void upsertSearchMetadataTest() {
-    var id = UUID.randomUUID();
-    var body = "body";
-    SearchMetadataModel result = service.upsertSearchMetadata(id, body);
-    verify(snapshotSearchMetadataDao, times(1)).putMetadata(id, body);
-    assertTrue(result.getMetadataSummary().contains(id.toString()));
   }
 
   @Test

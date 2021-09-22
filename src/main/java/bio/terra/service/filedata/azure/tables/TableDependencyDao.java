@@ -38,15 +38,22 @@ public class TableDependencyDao {
     String dependencyTableName = getDatasetDependencyTableName(datasetId);
     tableServiceClient.createTableIfNotExists(dependencyTableName);
     TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
-    ListUtils.partition(refIds, MAX_FILTER_CLAUSES)
+    // The partition size is one less than the MAX_FILTER_CLAUSES to account for the snapshotId
+    // filter
+    ListUtils.partition(refIds, MAX_FILTER_CLAUSES - 1)
         .forEach(
             refIdChunk -> {
               String filter =
                   refIdChunk.stream()
                           // maybe wrap or cause in parenthesis
-                          .map(refId -> String.format("fileId eq '%s'", refId))
+                          .map(
+                              refId ->
+                                  String.format(
+                                      "%s eq '%s'", FireStoreDependency.FILE_ID_FIELD_NAME, refId))
                           .collect(Collectors.joining(" or "))
-                      + String.format(" and snapshotId eq '%s'", snapshotId);
+                      + String.format(
+                          " and %s eq '%s'",
+                          FireStoreDependency.SNAPSHOT_ID_FIELD_NAME, snapshotId);
               List<TableEntity> entities =
                   TableServiceClientUtils.filterTable(
                       tableServiceClient, dependencyTableName, filter);

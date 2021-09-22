@@ -4,16 +4,25 @@ import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.model.SearchIndexRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.search.SearchService;
 import bio.terra.service.search.SnapshotSearchMetadataDao;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotService;
+import java.util.List;
 import java.util.UUID;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -32,39 +41,77 @@ import org.springframework.test.web.servlet.MockMvc;
 @Category(Unit.class)
 public class SearchApiControllerTest {
 
+  private static final String UPSERT_DELETE_ENDPOINT = "/api/repository/v1/search/{id}/metadata";
+
   @Autowired private MockMvc mvc;
 
   @MockBean private IamService iamService;
 
   @MockBean private SnapshotSearchMetadataDao snapshotMetadataDao;
 
-  private static final String ENDPOINT = "/api/repository/v1/search/{id}/metadata";
+  @MockBean private SearchService searchService;
+
+  @MockBean private SnapshotService snapshotService;
 
   @Test
   public void testUpsert() throws Exception {
     var id = UUID.randomUUID();
-    var json = "{\"dct:identifier\": \"my snapshot\", \"dcat:byteSize\" : \"10000\"}";
-    mvc.perform(put(ENDPOINT, id).contentType(MediaType.APPLICATION_JSON).content(json))
+    String json = "{\"dct:identifier\": \"my snapshot\", \"dcat:byteSize\" : \"10000\"}";
+    mvc.perform(
+            put(UPSERT_DELETE_ENDPOINT, id).contentType(MediaType.APPLICATION_JSON).content(json))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.metadataSummary").value(containsString(id.toString())));
-    verifyAuthApi(id);
-    verify(snapshotMetadataDao).putMetadata(id, json);
-  }
-
-  @Test
-  public void testDelete() throws Exception {
-    var id = UUID.randomUUID();
-    mvc.perform(delete(ENDPOINT, id)).andExpect(status().isNoContent());
-    verifyAuthApi(id);
-    verify(snapshotMetadataDao).deleteMetadata(id);
-  }
-
-  private void verifyAuthApi(UUID id) {
     verify(iamService)
         .verifyAuthorization(
             any(),
             eq(IamResourceType.DATASNAPSHOT),
             eq(id.toString()),
             eq(IamAction.UPDATE_SNAPSHOT));
+    verify(snapshotMetadataDao).putMetadata(id, json);
+  }
+
+  @Test
+  public void testDelete() throws Exception {
+    var id = UUID.randomUUID();
+    mvc.perform(delete(UPSERT_DELETE_ENDPOINT, id)).andExpect(status().isNoContent());
+    verify(iamService)
+        .verifyAuthorization(
+            any(),
+            eq(IamResourceType.DATASNAPSHOT),
+            eq(id.toString()),
+            eq(IamAction.UPDATE_SNAPSHOT));
+    verify(snapshotMetadataDao).deleteMetadata(id);
+  }
+
+  @Test
+  public void testEnumerateSnapshotSearch() throws Exception {
+    var endpoint = "/api/repository/v1/search/metadata";
+    List<UUID> uuids = List.of(UUID.randomUUID());
+    when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
+        .thenReturn(uuids);
+    mvc.perform(get(endpoint)).andExpect(status().isOk());
+    verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
+    verify(snapshotMetadataDao).getMetadata(eq(uuids));
+  }
+
+  @Test
+  public void testCreateSearchIndex() throws Exception {
+    var endpoint = "/api/repository/v1/search/{id}/index";
+    var query = "query";
+    var searchIndexRequest = new SearchIndexRequest().sql(query);
+    var id = UUID.randomUUID();
+    var snapshot = new Snapshot().id(id);
+    when(snapshotService.retrieve(eq(id))).thenReturn(snapshot);
+    mvc.perform(
+            post(endpoint, id.toString())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(searchIndexRequest)))
+        .andExpect(status().isOk());
+    verify(iamService)
+        .verifyAuthorization(any(), eq(IamResourceType.DATAREPO), any(), eq(IamAction.CONFIGURE));
+    verify(iamService)
+        .verifyAuthorization(
+            any(), eq(IamResourceType.DATASNAPSHOT), eq(id.toString()), eq(IamAction.READ_DATA));
+    verify(searchService).indexSnapshot(eq(snapshot), eq(searchIndexRequest));
   }
 }

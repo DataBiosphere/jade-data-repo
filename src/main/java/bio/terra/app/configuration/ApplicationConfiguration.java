@@ -1,6 +1,7 @@
 package bio.terra.app.configuration;
 
 import bio.terra.app.utils.startup.StartupInitializer;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -343,6 +344,14 @@ public class ApplicationConfiguration {
         .registerModule(new Jdk8Module())
         .registerModule(new JavaTimeModule())
         .configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_VALUES, true);
+  }
+
+  @Bean("bulkLoadObjectMapper")
+  public ObjectMapper bulkLoadObjectMapper() {
+    return new ObjectMapper()
+        .registerModule(new Jdk8Module())
+        .registerModule(new JavaTimeModule())
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
   }
 
   @Bean("performanceThreadpool")

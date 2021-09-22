@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import bio.terra.common.CloudPlatformWrapper;
 import bio.terra.common.TestUtils;
@@ -18,6 +17,8 @@ import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadHistoryModelList;
+import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.ConfigEnableModel;
 import bio.terra.model.ConfigGroupModel;
@@ -595,9 +596,7 @@ public class DataRepoFixtures {
 
     DataRepoResponse<FileModel> response =
         dataRepoClient.waitForResponse(user, resp, FileModel.class);
-    assertThat("ingestFile is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
-    assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
-    return response.getResponseObject().get();
+    return assertSuccessful(response, "ingestFile failed");
   }
 
   public BulkLoadArrayResultModel bulkLoadArray(
@@ -618,15 +617,25 @@ public class DataRepoFixtures {
 
     DataRepoResponse<BulkLoadArrayResultModel> response =
         dataRepoClient.waitForResponse(user, launchResponse, BulkLoadArrayResultModel.class);
-    if (response.getStatusCode().is2xxSuccessful()) {
-      assertThat("bulkLoadArray is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
-      assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
-      return response.getResponseObject().get();
-    }
-    ErrorModel errorModel = response.getErrorObject().orElse(null);
-    logger.error("bulkLoadArray failed: " + errorModel);
-    fail();
-    return null; // Make findbugs happy
+    return assertSuccessful(response, "bulkLoadArray failed");
+  }
+
+  public BulkLoadResultModel bulkLoad(
+      TestConfiguration.User user, UUID datasetId, BulkLoadRequestModel requestModel)
+      throws Exception {
+
+    String json = TestUtils.mapToJson(requestModel);
+
+    DataRepoResponse<JobModel> launchResponse =
+        dataRepoClient.post(
+            user, "/api/repository/v1/datasets/" + datasetId + "/files/bulk", json, JobModel.class);
+    assertTrue("bulkLoad launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
+    assertTrue(
+        "bulkload launch response is present", launchResponse.getResponseObject().isPresent());
+
+    DataRepoResponse<BulkLoadResultModel> response =
+        dataRepoClient.waitForResponse(user, launchResponse, BulkLoadResultModel.class);
+    return assertSuccessful(response, "bulkLoad failed");
   }
 
   public BulkLoadHistoryModelList getLoadHistory(
@@ -644,15 +653,17 @@ public class DataRepoFixtures {
                 + "&limit="
                 + limit,
             BulkLoadHistoryModelList.class);
+    return assertSuccessful(response, "getLoadHistory failed");
+  }
+
+  private <T> T assertSuccessful(DataRepoResponse<T> response, String errMsg) {
     if (response.getStatusCode().is2xxSuccessful()) {
       assertThat("getLoadHistory is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
       assertTrue("getLoadHistory response is present", response.getResponseObject().isPresent());
       return response.getResponseObject().get();
     }
     ErrorModel errorModel = response.getErrorObject().orElse(null);
-    logger.error("getLoadHistory failed: " + errorModel);
-    fail();
-    return null; // Make findbugs happy
+    throw new AssertionError(errMsg + "; Error: " + errorModel);
   }
 
   public DataRepoResponse<FileModel> getFileByIdRaw(

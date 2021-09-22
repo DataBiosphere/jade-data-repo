@@ -1,27 +1,24 @@
 package bio.terra.service.filedata.azure;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
+
 import bio.terra.common.Column;
 import bio.terra.common.SynapseColumn;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.IngestRequestModel.FormatEnum;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
-import bio.terra.service.filedata.azure.util.BlobContainerClientFactory;
-import bio.terra.service.filedata.azure.util.BlobSasTokenOptions;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource.ContainerType;
 import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.AzureSasCredential;
 import com.azure.storage.blob.BlobUrlParts;
-import com.azure.storage.blob.sas.BlobSasPermission;
 import com.google.common.annotations.VisibleForTesting;
 import com.microsoft.sqlserver.jdbc.SQLServerDataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -39,9 +36,7 @@ public class AzureSynapsePdao {
   private static final Logger logger = LoggerFactory.getLogger(AzureSynapsePdao.class);
 
   private final AzureResourceConfiguration azureResourceConfiguration;
-  private final AzureBlobStorePdao azureBlobStorePdao;
   private static final String PARSER_VERSION = "2.0";
-  private static final Duration DEFAULT_SAS_TOKEN_EXPIRATION = Duration.ofHours(24);
   private static final String DEFAULT_CSV_FIELD_TERMINATOR = ",";
   private static final String DEFAULT_CSV_QUOTE = "\"";
 
@@ -56,6 +51,40 @@ public class AzureSynapsePdao {
           + "    LOCATION = '<scheme>://<host>/<container>',\n"
           + "    CREDENTIAL = [<credential>]\n"
           + ");";
+
+  private static final String createSnapshotTableTemplate =
+      "CREATE EXTERNAL TABLE [<tableName>]\n"
+          + "WITH (\n"
+          + "    LOCATION = '<destinationParquetFile>',\n"
+          + "    DATA_SOURCE = [<destinationDataSourceName>],\n" // metadata container
+          + "    FILE_FORMAT = [<fileFormat>]\n"
+          + ") AS SELECT * FROM\n"
+          + "    OPENROWSET(\n"
+          + "       BULK '<ingestFileName>',\n"
+          + "       DATA_SOURCE = '<ingestFileDataSourceName>',\n"
+          + "       FORMAT = 'parquet') "
+          + "WITH (<columns:{c|<c.name> <c.synapseDataType>\n"
+          + " <if(c.requiresCollate)> COLLATE Latin1_General_100_CI_AI_SC_UTF8<endif>\n"
+          + "}; separator=\",\n\">) AS rows;";
+
+  private static final String createSnapshotRowIdTableTemplate =
+      "CREATE EXTERNAL TABLE [<tableName>]\n"
+          + "WITH (\n"
+          + "    LOCATION = '<destinationParquetFile>',\n"
+          + "    DATA_SOURCE = [<destinationDataSourceName>],\n"
+          + "    FILE_FORMAT = [<fileFormat>]) AS  <selectStatements>";
+
+  private static final String getLiveViewTableTemplate =
+      "SELECT '<tableId>' as "
+          + PDAO_TABLE_ID_COLUMN
+          + ", <dataRepoRowId> FROM\n"
+          + "    OPENROWSET(\n"
+          + "       BULK '<datasetParquetFileName>',\n"
+          + "       DATA_SOURCE = '<datasetDataSourceName>',\n"
+          + "       FORMAT = 'parquet') AS rows;";
+
+  private static final String mergeLiveViewTablesTemplate =
+      "<selectStatements; separator=\" UNION ALL \">";
 
   private static final String createTableTemplate =
       "CREATE EXTERNAL TABLE [<tableName>]\n"
@@ -131,59 +160,8 @@ public class AzureSynapsePdao {
   }
 
   @Autowired
-  public AzureSynapsePdao(
-      AzureResourceConfiguration azureResourceConfiguration,
-      AzureBlobStorePdao azureBlobStorePdao) {
+  public AzureSynapsePdao(AzureResourceConfiguration azureResourceConfiguration) {
     this.azureResourceConfiguration = azureResourceConfiguration;
-    this.azureBlobStorePdao = azureBlobStorePdao;
-  }
-
-  public BlobUrlParts getOrSignUrlForSourceFactory(String dataSourceUrl, UUID tenantId) {
-    // parse user provided url to Azure container - can be signed or unsigned
-    BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
-    String blobName = ingestControlFileBlobUrl.getBlobName();
-
-    // during factory build, we check if url is signed
-    // if not signed, we generate the sas token
-    // when signing, 'tdr' (the Azure app), must be granted permission on the storage account
-    // associated with the provided tenant ID
-    BlobContainerClientFactory sourceClientFactory =
-        azureBlobStorePdao.buildSourceClientFactory(tenantId, dataSourceUrl);
-
-    // Given the sas token, rebuild a signed url
-    BlobSasTokenOptions options =
-        new BlobSasTokenOptions(
-            DEFAULT_SAS_TOKEN_EXPIRATION,
-            new BlobSasPermission().setReadPermission(true),
-            AzureSynapsePdao.class.getName());
-    String signedURL =
-        sourceClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
-    return BlobUrlParts.parse(signedURL);
-  }
-
-  public BlobUrlParts getOrSignUrlForTargetFactory(
-      String dataSourceUrl,
-      BillingProfileModel profileModel,
-      AzureStorageAccountResource storageAccount) {
-    BlobUrlParts ingestControlFileBlobUrl = BlobUrlParts.parse(dataSourceUrl);
-    String blobName = ingestControlFileBlobUrl.getBlobName();
-
-    BlobContainerClientFactory targetDataClientFactory =
-        azureBlobStorePdao.getTargetDataClientFactory(
-            profileModel, storageAccount, ContainerType.METADATA, false);
-
-    // Given the sas token, rebuild a signed url
-    BlobSasTokenOptions options =
-        new BlobSasTokenOptions(
-            DEFAULT_SAS_TOKEN_EXPIRATION,
-            new BlobSasPermission()
-                .setReadPermission(true)
-                .setListPermission(true)
-                .setWritePermission(true),
-            AzureSynapsePdao.class.getName());
-    String signedURL =
-        targetDataClientFactory.getBlobSasUrlFactory().createSasUrlForBlob(blobName, options);
-    return BlobUrlParts.parse(signedURL);
   }
 
   public void createExternalDataSource(
@@ -244,8 +222,74 @@ public class AzureSynapsePdao {
     sqlCreateTableTemplate.add("ingestFileName", ingestFileName);
     sqlCreateTableTemplate.add("controlFileDataSourceName", controlFileDataSourceName);
     sqlCreateTableTemplate.add("columns", columns);
-
     return executeSynapseQuery(sqlCreateTableTemplate.render());
+  }
+
+  public void createSnapshotRowIdsParquetFile(
+      List<DatasetTable> tables,
+      UUID snapshotId,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String datasetFlightId)
+      throws SQLException {
+
+    // Get all row ids from the dataset
+    List<String> selectStatements = new ArrayList<>();
+    for (DatasetTable table : tables) {
+      String datasetParquetFileName =
+          IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
+      ST sqlTableTemplate =
+          new ST(getLiveViewTableTemplate)
+              .add("tableId", table.getId().toString())
+              .add("dataRepoRowId", PDAO_ROW_ID_COLUMN)
+              .add("datasetParquetFileName", datasetParquetFileName)
+              .add("datasetDataSourceName", datasetDataSourceName);
+      selectStatements.add(sqlTableTemplate.render());
+    }
+    ST sqlMergeTablesTemplate =
+        new ST(mergeLiveViewTablesTemplate).add("selectStatements", selectStatements);
+
+    // Create row id table
+    String rowIdTableName = IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE);
+    String rowIdParquetFile = IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
+    ST sqlCreateRowIdTable =
+        new ST(createSnapshotRowIdTableTemplate)
+            .add("tableName", rowIdTableName)
+            .add("destinationParquetFile", rowIdParquetFile)
+            .add("destinationDataSourceName", snapshotDataSourceName)
+            .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
+            .add("selectStatements", sqlMergeTablesTemplate.render());
+    executeSynapseQuery(sqlCreateRowIdTable.render());
+  }
+
+  public void createSnapshotParquetFiles(
+      List<DatasetTable> tables,
+      UUID snapshotId,
+      String datasetDataSourceName,
+      String snapshotDataSourceName,
+      String datasetFlightId)
+      throws SQLException {
+    for (DatasetTable table : tables) {
+      // Create a copy of each dataset "table" (parquet file)
+      List<SynapseColumn> columns =
+          table.getColumns().stream().map(Column::toSynapseColumn).collect(Collectors.toList());
+      String datasetParquetFileName =
+          IngestUtils.getSourceDatasetParquetFilePath(table.getName(), datasetFlightId);
+      String snapshotParquetFileName =
+          IngestUtils.getSnapshotParquetFilePath(snapshotId, table.getName());
+      String tableName = IngestUtils.formatSnapshotTableName(snapshotId, table.getName());
+
+      ST sqlCreateSnapshotTableTemplate =
+          new ST(createSnapshotTableTemplate)
+              .add("tableName", tableName)
+              .add("destinationParquetFile", snapshotParquetFileName)
+              .add("destinationDataSourceName", snapshotDataSourceName)
+              .add("fileFormat", azureResourceConfiguration.getSynapse().getParquetFileFormatName())
+              .add("ingestFileName", datasetParquetFileName)
+              .add("ingestFileDataSourceName", datasetDataSourceName)
+              .add("columns", columns);
+      executeSynapseQuery(sqlCreateSnapshotTableTemplate.render());
+    }
   }
 
   public void dropTables(List<String> tableNames) {

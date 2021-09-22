@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.azure;
 
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -17,11 +19,17 @@ import bio.terra.model.TableDataType;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.filedata.azure.blobstore.AzureBlobStorePdao;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
+import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.stairway.ShortUUID;
+import com.azure.core.management.Region;
+import com.azure.resourcemanager.AzureResourceManager;
+import com.azure.resourcemanager.storage.models.StorageAccount;
 import com.azure.storage.blob.BlobUrlParts;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -52,24 +60,33 @@ public class AzureSynapsePdaoConnectedTest {
 
   private static final String INGEST_REQUEST_SCOPED_CREDENTIAL_PREFIX = "irsas_";
   private static final String DESTINATION_SCOPED_CREDENTIAL_PREFIX = "dsas_";
+  private static final String SNAPSHOT_SCOPED_CREDENTIAL_PREFIX = "ssas_";
   private static final String INGEST_REQUEST_DATA_SOURCE_PREFIX = "irds_";
   private static final String DESTINATION_DATA_SOURCE_PREFIX = "dds_";
+  private static final String SNAPSHOT_DATA_SOURCE_PREFIX = "sds_";
   private static final String TABLE_NAME_PREFIX = "ingest_";
 
   private String ingestRequestScopedCredentialName;
   private String destinationScopedCredentialName;
+  private String snapshotScopedCredentialName;
   private String ingestRequestDataSourceName;
   private String destinationDataSourceName;
+  private String snapshotDataSourceName;
   private String tableName;
-  private UUID applicationId;
-  private UUID storageAccountId;
   private static final String MANAGED_RESOURCE_GROUP_NAME = "mrg-tdr-dev-preview-20210802154510";
   private static final String STORAGE_ACCOUNT_NAME = "tdrshiqauwlpzxavohmxxhfv";
+  private static final UUID snapshotId = UUID.randomUUID();
+  private String snapshotStorageAccountId;
+
+  private AzureResourceManager client;
   private AzureApplicationDeploymentResource applicationResource;
   private AzureStorageAccountResource storageAccountResource;
+  private AzureStorageAccountResource snapshotStorageAccountResource;
   private BillingProfileModel billingProfile;
 
+  @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired AzureSynapsePdao azureSynapsePdao;
+  @Autowired AzureBlobStorePdao azureBlobStorePdao;
   @Autowired ConnectedOperations connectedOperations;
   @Autowired private ConnectedTestConfiguration testConfig;
   @Autowired DatasetService datasetService;
@@ -82,11 +99,13 @@ public class AzureSynapsePdaoConnectedTest {
     randomFlightId = ShortUUID.get();
     ingestRequestScopedCredentialName = INGEST_REQUEST_SCOPED_CREDENTIAL_PREFIX + randomFlightId;
     destinationScopedCredentialName = DESTINATION_SCOPED_CREDENTIAL_PREFIX + randomFlightId;
+    snapshotScopedCredentialName = SNAPSHOT_SCOPED_CREDENTIAL_PREFIX + randomFlightId;
     ingestRequestDataSourceName = INGEST_REQUEST_DATA_SOURCE_PREFIX + randomFlightId;
     destinationDataSourceName = DESTINATION_DATA_SOURCE_PREFIX + randomFlightId;
+    snapshotDataSourceName = SNAPSHOT_DATA_SOURCE_PREFIX + randomFlightId;
     tableName = TABLE_NAME_PREFIX + randomFlightId;
-    applicationId = UUID.randomUUID();
-    storageAccountId = UUID.randomUUID();
+    UUID applicationId = UUID.randomUUID();
+    UUID storageAccountId = UUID.randomUUID();
 
     billingProfile =
         new BillingProfileModel()
@@ -113,6 +132,26 @@ public class AzureSynapsePdaoConnectedTest {
             .name(STORAGE_ACCOUNT_NAME)
             .applicationResource(applicationResource)
             .metadataContainer("metadata");
+
+    client =
+        azureResourceConfiguration.getClient(
+            azureResourceConfiguration.getCredentials().getHomeTenantId(),
+            billingProfile.getSubscriptionId());
+
+    StorageAccount storageAccount =
+        client
+            .storageAccounts()
+            .define("ct" + Instant.now().toEpochMilli())
+            .withRegion(Region.US_CENTRAL)
+            .withExistingResourceGroup(MANAGED_RESOURCE_GROUP_NAME)
+            .create();
+    snapshotStorageAccountId = storageAccount.id();
+    snapshotStorageAccountResource =
+        new AzureStorageAccountResource()
+            .resourceId(UUID.randomUUID())
+            .name(storageAccount.name())
+            .applicationResource(applicationResource)
+            .metadataContainer("metadata");
   }
 
   @After
@@ -129,16 +168,25 @@ public class AzureSynapsePdaoConnectedTest {
           "No longer able to read parquet file because it should have been delete",
           emptyList.size(),
           equalTo(0));
+
     } catch (Exception ex) {
       logger.info("Unable to delete parquet files.");
     }
 
-    azureSynapsePdao.dropTables(List.of(tableName));
+    azureSynapsePdao.dropTables(
+        List.of(
+            tableName,
+            IngestUtils.formatSnapshotTableName(snapshotId, "participant"),
+            IngestUtils.formatSnapshotTableName(snapshotId, PDAO_ROW_ID_TABLE)));
     azureSynapsePdao.dropDataSources(
-        Arrays.asList(destinationDataSourceName, ingestRequestDataSourceName));
+        List.of(snapshotDataSourceName, destinationDataSourceName, ingestRequestDataSourceName));
     azureSynapsePdao.dropScopedCredentials(
-        Arrays.asList(destinationScopedCredentialName, ingestRequestScopedCredentialName));
+        List.of(
+            snapshotScopedCredentialName,
+            destinationScopedCredentialName,
+            ingestRequestScopedCredentialName));
 
+    client.storageAccounts().deleteById(snapshotStorageAccountId);
     connectedOperations.teardown();
   }
 
@@ -189,6 +237,7 @@ public class AzureSynapsePdaoConnectedTest {
 
   private void testSynapseQuery(IngestRequestModel ingestRequestModel, String ingestFileLocation)
       throws Exception {
+
     UUID tenantId = testConfig.getTargetTenantId();
 
     // ---- ingest steps ---
@@ -202,7 +251,7 @@ public class AzureSynapsePdaoConnectedTest {
 
     // 1 - Create external data source for the ingest control file
     BlobUrlParts ingestRequestSignUrlBlob =
-        azureSynapsePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId);
+        azureBlobStorePdao.getOrSignUrlForSourceFactory(ingestFileLocation, tenantId);
     azureSynapsePdao.createExternalDataSource(
         ingestRequestSignUrlBlob, ingestRequestScopedCredentialName, ingestRequestDataSourceName);
 
@@ -210,10 +259,11 @@ public class AzureSynapsePdaoConnectedTest {
     // where we'll write the resulting parquet files
     // We will build this parquetDestinationLocation according
     // to the associated storage account for the dataset
-    String parquetDestinationLocation = "https://tdrshiqauwlpzxavohmxxhfv.blob.core.windows.net";
+    String parquetDestinationLocation =
+        IngestUtils.getParquetTargetLocationURL(storageAccountResource);
 
     BlobUrlParts destinationSignUrlBlob =
-        azureSynapsePdao.getOrSignUrlForTargetFactory(
+        azureBlobStorePdao.getOrSignUrlForTargetFactory(
             parquetDestinationLocation, billingProfile, storageAccountResource);
     azureSynapsePdao.createExternalDataSource(
         destinationSignUrlBlob, destinationScopedCredentialName, destinationDataSourceName);
@@ -243,6 +293,48 @@ public class AzureSynapsePdaoConnectedTest {
             destinationParquetFile, destinationDataSourceName, "first_name", true);
     assertThat(
         "List of names should equal the input", firstNames, equalTo(List.of("Bob", "Sally")));
+
+    // 5 - Create external data source for the snapshot
+    // where we'll write the resulting parquet files
+    String parquetSnapshotLocation =
+        IngestUtils.getParquetTargetLocationURL(snapshotStorageAccountResource);
+    BlobUrlParts snapshotSignUrlBlob =
+        azureBlobStorePdao.getOrSignUrlForTargetFactory(
+            parquetSnapshotLocation, billingProfile, snapshotStorageAccountResource);
+    azureSynapsePdao.createExternalDataSource(
+        snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
+
+    // 6 - Create snapshot parquet files via external table
+    List<DatasetTable> datasetTables = List.of(destinationTable);
+    azureSynapsePdao.createSnapshotParquetFiles(
+        datasetTables,
+        snapshotId,
+        destinationDataSourceName,
+        snapshotDataSourceName,
+        randomFlightId);
+    String snapshotParquetFileName =
+        IngestUtils.getSnapshotParquetFilePath(snapshotId, destinationTable.getName());
+    List<String> snapshotFirstNames =
+        synapseUtils.readParquetFileStringColumn(
+            snapshotParquetFileName, snapshotDataSourceName, "first_name", true);
+    assertThat(
+        "List of names in snapshot should equal the dataset names",
+        snapshotFirstNames,
+        equalTo(List.of("Bob", "Sally")));
+
+    // 7 - Create snapshot row ids parquet file via external table
+    azureSynapsePdao.createSnapshotRowIdsParquetFile(
+        datasetTables,
+        snapshotId,
+        destinationDataSourceName,
+        snapshotDataSourceName,
+        randomFlightId);
+    String snapshotRowIdsParquetFileName =
+        IngestUtils.getSnapshotParquetFilePath(snapshotId, PDAO_ROW_ID_TABLE);
+    List<String> snapshotRowIds =
+        synapseUtils.readParquetFileStringColumn(
+            snapshotRowIdsParquetFileName, snapshotDataSourceName, PDAO_ROW_ID_COLUMN, true);
+    assertThat("Snapshot contains expected number or rows", snapshotRowIds.size(), equalTo(2));
 
     // 4 - clean out synapse
     // we'll do this in the test cleanup method, but it will be a step in the normal flight

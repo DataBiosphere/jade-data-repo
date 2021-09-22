@@ -9,6 +9,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -30,6 +31,10 @@ import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.model.BulkLoadHistoryModelList;
+import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -38,13 +43,13 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StorageResourceModel;
-import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.azure.util.BlobIOTestUtility;
 import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
 import com.azure.resourcemanager.AzureResourceManager;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -85,7 +90,6 @@ public class DatasetAzureIntegrationTest extends UsersBase {
   @Autowired private TestConfiguration testConfig;
   @Autowired private AzureResourceConfiguration azureResourceConfiguration;
   @Autowired private SynapseUtils synapseUtils;
-  @Autowired private FileService fileService;
 
   private String stewardToken;
   private User steward;
@@ -253,19 +257,14 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(
-                String.format("%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+            .sourcePath(String.format(blobIOTestUtility.createSourcePath(sourceFile)))
             .targetPath("/test/target.txt");
     BulkLoadFileModel fileLoadModelSas =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                String.format(
-                    "%s/%s?%s",
-                    blobIOTestUtility.getSourceContainerEndpoint(),
-                    sourceFile,
-                    blobIOTestUtility.generateBlobSasTokenWithReadPermissions(
-                        getSourceStorageAccountPrimarySharedKey(), sourceFile)))
+                blobIOTestUtility.createSourceSignedPath(
+                    sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas.txt");
     BulkLoadArrayResultModel result =
         dataRepoFixtures.bulkLoadArray(
@@ -299,6 +298,41 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     FileModel file2Model =
         dataRepoFixtures.getFileByName(steward(), datasetId, file2.getTargetPath());
     assertThat("Test retrieve file by path", file2Model.getFileId(), equalTo(file2.getFileId()));
+
+    // ingest via control file
+    String flightId = UUID.randomUUID().toString();
+    String controlFileBlob = flightId + "/file-ingest-request.json";
+    List<BulkLoadFileModel> bulkLoadFileModelList = new ArrayList<>();
+    bulkLoadFileModelList.add(
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .targetPath(String.format("%s/%s", flightId, "target.txt")));
+    bulkLoadFileModelList.add(
+        new BulkLoadFileModel()
+            .mimeType("text/plain")
+            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
+            .targetPath(String.format("%s/%s", flightId, "target2.txt")));
+
+    String controlFileUrl =
+        blobIOTestUtility.uploadFileWithContents(
+            controlFileBlob, TestUtils.readControlFile(bulkLoadFileModelList));
+
+    String bulkLoadTag = Names.randomizeName("loadTag");
+    BulkLoadRequestModel request =
+        new BulkLoadRequestModel()
+            .loadControlFile(controlFileUrl)
+            .loadTag(bulkLoadTag)
+            .profileId(profileId);
+    BulkLoadResultModel bulkLoadResult = dataRepoFixtures.bulkLoad(steward, datasetId, request);
+    assertThat("result", bulkLoadResult.getSucceededFiles(), equalTo(2));
+
+    // Control file test - Look up the loaded files
+    BulkLoadHistoryModelList controlFileLoadResults =
+        dataRepoFixtures.getLoadHistory(steward, datasetId, bulkLoadTag, 0, 2);
+    for (BulkLoadHistoryModel bulkFileEntry : controlFileLoadResults.getItems()) {
+      assertNotNull(dataRepoFixtures.getFileById(steward(), datasetId, bulkFileEntry.getFileId()));
+    }
 
     // Ingest Metadata - 1 row from JSON file
     String tableName = "vocabulary";
@@ -373,19 +407,14 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(
-                String.format("%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
             .targetPath("/test/target.txt");
     BulkLoadFileModel fileLoadModelSas =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                String.format(
-                    "%s/%s?%s",
-                    blobIOTestUtility.getSourceContainerEndpoint(),
-                    sourceFile,
-                    blobIOTestUtility.generateBlobSasTokenWithReadPermissions(
-                        getSourceStorageAccountPrimarySharedKey(), sourceFile)))
+                blobIOTestUtility.createSourceSignedPath(
+                    sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas.txt");
     BulkLoadArrayResultModel bulkLoadResult1 =
         dataRepoFixtures.bulkLoadArray(
@@ -400,19 +429,14 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel2 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(
-                String.format("%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
             .targetPath("/test/target2.txt");
     BulkLoadFileModel fileLoadModelSas2 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                String.format(
-                    "%s/%s?%s",
-                    blobIOTestUtility.getSourceContainerEndpoint(),
-                    sourceFile,
-                    blobIOTestUtility.generateBlobSasTokenWithReadPermissions(
-                        getSourceStorageAccountPrimarySharedKey(), sourceFile)))
+                blobIOTestUtility.createSourceSignedPath(
+                    sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas2.txt");
 
     BulkLoadArrayResultModel bulkLoadResult2 =
@@ -428,19 +452,14 @@ public class DatasetAzureIntegrationTest extends UsersBase {
     BulkLoadFileModel fileLoadModel3 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
-            .sourcePath(
-                String.format("%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+            .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
             .targetPath("/test/target3.txt");
     BulkLoadFileModel fileLoadModelSas3 =
         new BulkLoadFileModel()
             .mimeType("text/plain")
             .sourcePath(
-                String.format(
-                    "%s/%s?%s",
-                    blobIOTestUtility.getSourceContainerEndpoint(),
-                    sourceFile,
-                    blobIOTestUtility.generateBlobSasTokenWithReadPermissions(
-                        getSourceStorageAccountPrimarySharedKey(), sourceFile)))
+                blobIOTestUtility.createSourceSignedPath(
+                    sourceFile, getSourceStorageAccountPrimarySharedKey()))
             .targetPath("/test/targetSas3.txt");
     dataRepoFixtures.bulkLoadArray(
         steward,
@@ -540,9 +559,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             name -> {
               String sourceFile = blobIOTestUtility.uploadSourceFile(name, fileSize);
               return new BulkLoadFileModel()
-                  .sourcePath(
-                      String.format(
-                          "%s/%s", blobIOTestUtility.getSourceContainerEndpoint(), sourceFile))
+                  .sourcePath(blobIOTestUtility.createSourcePath(sourceFile))
                   .targetPath("/vcfs/downsampled/" + name)
                   .description("Test file for " + name)
                   .mimeType("text/plain");

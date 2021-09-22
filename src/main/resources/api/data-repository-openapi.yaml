@@ -2329,7 +2329,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SearchMetadataRequest'
+              type: string
         required: true
       responses:
         200:
@@ -4094,15 +4094,6 @@ components:
         indexSummary:
           type: string
           description: Summary of this index for searching
-    SearchMetadataRequest:
-      required:
-        - json
-      type: object
-      properties:
-        json:
-          type: string
-          description: >
-            Json metadata to make snapshot searchable
     SearchMetadataModel:
       type: object
       properties:

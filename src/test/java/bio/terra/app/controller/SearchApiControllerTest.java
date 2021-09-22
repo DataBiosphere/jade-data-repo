@@ -57,7 +57,8 @@ public class SearchApiControllerTest {
   public void testUpsert() throws Exception {
     var id = UUID.randomUUID();
     String json = "{\"dct:identifier\": \"my snapshot\", \"dcat:byteSize\" : \"10000\"}";
-    mvc.perform(put(UPSERT_DELETE_ENDPOINT, id).contentType(MediaType.APPLICATION_JSON).content(json))
+    mvc.perform(
+            put(UPSERT_DELETE_ENDPOINT, id).contentType(MediaType.APPLICATION_JSON).content(json))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.metadataSummary").value(containsString(id.toString())));
     verify(iamService)

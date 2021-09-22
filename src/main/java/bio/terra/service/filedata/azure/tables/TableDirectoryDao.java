@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
@@ -11,11 +12,15 @@ import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableServiceException;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -292,7 +297,7 @@ public class TableDirectoryDao {
     }
   }
 
-  // Returns null if not found
+  // Returns empty list if not found
   private List<TableEntity> batchLookupByFileId(
       TableServiceClient tableServiceClient, String tableName, List<String> fileIds) {
     return ListUtils.partition(fileIds, MAX_FILTER_CLAUSES).stream()
@@ -323,58 +328,85 @@ public class TableDirectoryDao {
   public void addEntriesToSnapshot(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
+      String tableName,
       String datasetId,
       String datasetDirName,
       String snapshotId,
-      List<String> fileIdList)
-      throws InterruptedException {
-
-    int batchSize = configurationService.getParameterValue(FIRESTORE_SNAPSHOT_BATCH_SIZE);
-    List<List<String>> batches = ListUtils.partition(fileIdList, batchSize);
-    logger.info(
-        "addEntriesToSnapshot on {} file ids, in {} batches of {}",
-        fileIdList.size(),
-        batches.size(),
-        batchSize);
-
-    int cacheSize =
-        configurationService.getParameterValue(ConfigEnum.FIRESTORE_SNAPSHOT_CACHE_SIZE);
-    LRUMap<String, Boolean> pathMap = new LRUMap<>(cacheSize);
-
-    // Create the top directory structure (/_dr_/<datasetDirName>)
-    // TODO - Do we have the right info reference snapshot vs. dataset tables?
-    // Will we be looking at the right table name?
+      List<String> fileIds) {
+    LRUMap<String, Boolean> pathMap = new LRUMap<>(MAX_FILTER_CLAUSES);
     storeTopDirectory(snapshotTableServiceClient, snapshotId, datasetDirName);
+    ListUtils.partition(fileIds, MAX_FILTER_CLAUSES).stream()
+        .forEach(
+            fileIdsBatch -> {
+              List<TableEntity> entities =
+                  TableServiceClientUtils.batchRetrieveFiles(
+                      datasetTableServiceClient, tableName, fileIdsBatch);
 
-    int count = 0;
-    for (List<String> batch : batches) {
-      logger.info("addEntriesToSnapshot batch {}", count);
-      count++;
+              List<FireStoreDirectoryEntry> directoryEntries =
+                    entities.stream()
+                        .map(
+                            entity -> {
+                              FireStoreDirectoryEntry directoryEntry =
+                                  FireStoreDirectoryEntry.fromTableEntity(entity);
+                              if (!directoryEntry.getIsFileRef()) {
+                                throw new FileSystemExecutionException(
+                                    "Directories are not supported as references");
+                              }
+                              return directoryEntry;
+                            })
+                        .collect(Collectors.toList()));
+              if (directoryEntries.isEmpty()) {
+                throw new FileSystemExecutionException("No fileIds found in batch lookup");
+              }
 
-      // Find the file reference dataset entries for all file ids in this batch
-      List<FireStoreDirectoryEntry> datasetEntries =
-          batchRetrieveById(datasetTableServiceClient, batch);
+              // Find directory paths that need to be created; plus add to the cache
+              List<String> newPaths = fileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
+              List<FireStoreDirectoryEntry> datasetDirectoryEntries =
+                  batchRetrieveByPath(datasetTableServiceClient, datasetId, newPaths);
 
-      // Find directory paths that need to be created; plus add to the cache
-      List<String> newPaths = fileMetadataUtils.findNewDirectoryPaths(datasetEntries, pathMap);
-      List<FireStoreDirectoryEntry> datasetDirectoryEntries =
-          batchRetrieveByPath(datasetTableServiceClient, datasetId, newPaths);
+              // Create snapshot file system entries
+              List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
+              for (FireStoreDirectoryEntry datasetEntry : directoryEntries) {
+                snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+              }
+              for (FireStoreDirectoryEntry datasetEntry : datasetDirectoryEntries) {
+                snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
+              }
 
-      // Create snapshot file system entries
-      List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
-      for (FireStoreDirectoryEntry datasetEntry : datasetEntries) {
-        snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
-      }
-      for (FireStoreDirectoryEntry datasetEntry : datasetDirectoryEntries) {
-        snapshotEntries.add(datasetEntry.copyEntryUnderNewPath(datasetDirName));
-      }
+              // Store the batch of entries. This will override existing entries,
+              // but that is not the typical case and it is lower cost just overwrite
+              // rather than retrieve to avoid the write.
+              // TODO -replace
+              batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, snapshotEntries);
+            });
+  }
 
-      // Store the batch of entries. This will override existing entries,
-      // but that is not the typical case and it is lower cost just overwrite
-      // rather than retrieve to avoid the write.
-      // TODO -replace
-      batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, snapshotEntries);
+  // TODO - add test
+  private void storeTopDirectory(TableServiceClient tableServiceClient,
+                                 String snapshotId,
+                                 String dirName) {
+    // We have to create the top directory structure for the dataset and the root folder.
+    // Those components cannot be copied from the dataset, but have to be created new
+    // in the snapshot directory. We probe to see if the dirName directory exists. If not,
+    // we use the createFileRef path to construct it and the parent, if necessary.
+    String dirPath = "/" + dirName;
+    // TODO - will this correctly lookup within the snapshot directory? This is usually used for datasets
+    // Also, should it matter that's it's returning a TableEntity vs. a DocumentSnapshot? I think
+    // those two are just the native entity for firestore vs. storage tables
+    TableEntity directoryEntry = lookupByFilePath(tableServiceClient, snapshotId, dirPath);
+    if (directoryEntry != null) {
+      return;
     }
+
+    FireStoreDirectoryEntry topDir =
+        new FireStoreDirectoryEntry()
+            .fileId(UUID.randomUUID().toString())
+            .isFileRef(false)
+            .path("/")
+            .name(dirName)
+            .fileCreatedDate(Instant.now().toString());
+
+    createDirectoryEntry(tableServiceClient, topDir);
   }
 
 }

@@ -1,6 +1,5 @@
 package bio.terra.service.filedata.azure.tables;
 
-import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.google.firestore.FireStoreDependency;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
@@ -12,6 +11,7 @@ import com.azure.data.tables.models.TableTransactionActionType;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.ListUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +21,7 @@ import org.springframework.stereotype.Component;
 public class TableDependencyDao {
   private final Logger logger = LoggerFactory.getLogger(TableDependencyDao.class);
   private static final String DEPENDENCY_TABLE_NAME_SUFFIX = "dependencies";
+  private static final int MAX_FILTER_CLAUSES = 15;
 
   @Autowired
   public TableDependencyDao() {}
@@ -37,51 +38,44 @@ public class TableDependencyDao {
     String dependencyTableName = getDatasetDependencyTableName(datasetId);
     tableServiceClient.createTableIfNotExists(dependencyTableName);
     TableClient tableClient = tableServiceClient.getTableClient(dependencyTableName);
+    ListUtils.partition(refIds, MAX_FILTER_CLAUSES)
+        .forEach(
+            refIdChunk -> {
+              String filter =
+                  refIdChunk.stream()
+                          // maybe wrap or cause in parenthesis
+                          .map(refId -> String.format("fileId eq '%s'", refId))
+                          .collect(Collectors.joining(" or "))
+                      + String.format(" and snapshotId eq '%s'", snapshotId);
+              List<TableEntity> entities =
+                  TableServiceClientUtils.filterTable(
+                      tableServiceClient, dependencyTableName, filter);
+              List<String> existing =
+                  entities.stream()
+                      .map(e -> e.getProperty(FireStoreDependency.FILE_ID_FIELD_NAME).toString())
+                      .collect(Collectors.toList());
+              // Create any entities that do not already exist
+              refIdChunk.stream()
+                  .filter(id -> !existing.contains(id))
+                  .forEach(refId -> createDependencyEntity(tableClient, snapshotId, refId));
+              // Update refCount for existing entities
+              entities.forEach(entity -> updateRefCount(tableClient, entity));
+            });
+  }
 
-    for (String refId : refIds) {
-      ListEntitiesOptions options =
-          new ListEntitiesOptions()
-              .setFilter(String.format("fileId eq '%s' and snapshotId eq '%s'", refId, snapshotId));
-      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
-      int count = 0;
-      for (TableEntity entity : entities) {
-        count += 1;
-        if (count > 1) {
-          break;
-        }
-      }
+  private void createDependencyEntity(TableClient tableClient, UUID snapshotId, String refId) {
+    FireStoreDependency fireStoreDependency =
+        new FireStoreDependency().snapshotId(snapshotId.toString()).fileId(refId).refCount(1L);
+    TableEntity fireStoreDependencyEntity =
+        FireStoreDependency.toTableEntity(snapshotId.toString(), fireStoreDependency);
+    tableClient.createEntity(fireStoreDependencyEntity);
+  }
 
-      switch (count) {
-        case 0:
-          {
-            // no dependency yet. Let's make one
-            FireStoreDependency fireStoreDependency =
-                new FireStoreDependency()
-                    .snapshotId(snapshotId.toString())
-                    .fileId(refId)
-                    .refCount(1L);
-            TableEntity fireStoreDependencyEntity =
-                FireStoreDependency.toTableEntity(snapshotId.toString(), fireStoreDependency);
-            tableClient.createEntity(fireStoreDependencyEntity);
-            break;
-          }
-
-        case 1:
-          {
-            // existing dependency; increment the reference count
-            TableEntity entity = entities.iterator().next();
-            FireStoreDependency fireStoreDependency = FireStoreDependency.fromTableEntity(entity);
-            fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
-            tableClient.updateEntity(
-                FireStoreDependency.toTableEntity(entity.getPartitionKey(), fireStoreDependency));
-            break;
-          }
-
-        default:
-          throw new FileSystemCorruptException(
-              "Found more than one document for a file dependency - fileId: " + refId);
-      }
-    }
+  private void updateRefCount(TableClient tableClient, TableEntity entity) {
+    FireStoreDependency fireStoreDependency = FireStoreDependency.fromTableEntity(entity);
+    fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
+    tableClient.updateEntity(
+        FireStoreDependency.toTableEntity(entity.getPartitionKey(), fireStoreDependency));
   }
 
   public void deleteSnapshotFileDependencies(

@@ -39,18 +39,23 @@ public class TableServiceClientUtils {
     return retrievedTableItems.iterator().hasNext();
   }
 
-  public static List<TableEntity> batchRetrieveFiles(
-      TableServiceClient tableServiceClient, String tableName, List<String> fileIdArray) {
+  public static List<TableEntity> filterTable(
+      TableServiceClient tableServiceClient, String tableName, String filter) {
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
-    String filter =
-        fileIdArray.stream()
-            // maybe wrap or cause in parenthesis
-            .map(refId -> String.format("fileId eq '%s'", refId))
-            .collect(Collectors.joining(" or "));
     ListEntitiesOptions options = new ListEntitiesOptions().setFilter(filter);
     if (TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName, options)) {
       return tableClient.listEntities(options, null, null).stream().collect(Collectors.toList());
     }
     return Collections.emptyList();
+  }
+
+  public static List<TableEntity> batchRetrieveFiles(
+      TableServiceClient tableServiceClient, String tableName, List<String> fileIdArray) {
+    String filter =
+        fileIdArray.stream()
+            // maybe wrap or cause in parenthesis
+            .map(refId -> String.format("fileId eq '%s'", refId))
+            .collect(Collectors.joining(" or "));
+    return filterTable(tableServiceClient, tableName, filter);
   }
 }

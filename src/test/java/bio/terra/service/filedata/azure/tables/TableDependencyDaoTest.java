@@ -20,6 +20,7 @@ import com.azure.data.tables.models.TableItem;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -85,6 +86,7 @@ public class TableDependencyDaoTest {
     when(mockIterator.hasNext()).thenReturn(true, false);
     when(mockIterator.next()).thenReturn(fireStoreDependencyEntity);
     when(mockPagedIterable.iterator()).thenReturn(mockIterator);
+    when(mockPagedIterable.stream()).thenReturn(Stream.of(fireStoreDependencyEntity));
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
     dao.storeSnapshotFileDependencies(tableServiceClient, datasetId, snapshotId, List.of(refId));

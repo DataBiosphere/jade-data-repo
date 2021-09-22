@@ -81,8 +81,8 @@ public class FireStoreDependency {
         .refCount((Long) entity.getProperty(REF_COUNT_FIELD_NAME));
   }
 
-  public static TableEntity toTableEntity(String partitionKey, FireStoreDependency f) {
-    return new TableEntity(partitionKey, f.getFileId())
+  public static TableEntity toTableEntity(FireStoreDependency f) {
+    return new TableEntity(f.getSnapshotId(), f.getFileId())
         .addProperty(SNAPSHOT_ID_FIELD_NAME, f.getSnapshotId())
         .addProperty(FILE_ID_FIELD_NAME, f.getFileId())
         .addProperty(REF_COUNT_FIELD_NAME, f.getRefCount());

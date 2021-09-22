@@ -74,7 +74,7 @@ public class TableDependencyDao {
     FireStoreDependency fireStoreDependency =
         new FireStoreDependency().snapshotId(snapshotId.toString()).fileId(refId).refCount(1L);
     TableEntity fireStoreDependencyEntity =
-        FireStoreDependency.toTableEntity(snapshotId.toString(), fireStoreDependency);
+        FireStoreDependency.toTableEntity(fireStoreDependency);
     tableClient.createEntity(fireStoreDependencyEntity);
   }
 
@@ -82,7 +82,7 @@ public class TableDependencyDao {
     FireStoreDependency fireStoreDependency = FireStoreDependency.fromTableEntity(entity);
     fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
     tableClient.updateEntity(
-        FireStoreDependency.toTableEntity(entity.getPartitionKey(), fireStoreDependency));
+        FireStoreDependency.toTableEntity(fireStoreDependency));
   }
 
   public void deleteSnapshotFileDependencies(

@@ -73,16 +73,14 @@ public class TableDependencyDao {
   private void createDependencyEntity(TableClient tableClient, UUID snapshotId, String refId) {
     FireStoreDependency fireStoreDependency =
         new FireStoreDependency().snapshotId(snapshotId.toString()).fileId(refId).refCount(1L);
-    TableEntity fireStoreDependencyEntity =
-        FireStoreDependency.toTableEntity(fireStoreDependency);
+    TableEntity fireStoreDependencyEntity = FireStoreDependency.toTableEntity(fireStoreDependency);
     tableClient.createEntity(fireStoreDependencyEntity);
   }
 
   private void updateRefCount(TableClient tableClient, TableEntity entity) {
     FireStoreDependency fireStoreDependency = FireStoreDependency.fromTableEntity(entity);
     fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
-    tableClient.updateEntity(
-        FireStoreDependency.toTableEntity(fireStoreDependency));
+    tableClient.updateEntity(FireStoreDependency.toTableEntity(fireStoreDependency));
   }
 
   public void deleteSnapshotFileDependencies(

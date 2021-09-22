@@ -43,7 +43,7 @@ public class GoogleBillingService {
       // See https://developers.google.com/identity/protocols/application-default-credentials
       // for more information.
       List<String> scopes =
-          Collections.singletonList("https://www.googleapis.com/auth/cloud-billing");
+          Collections.singletonList("https://www.googleapis.com/auth/cloud-billing.readonly");
       if (serviceAccountCredentials.createScopedRequired()) {
         serviceAccountCredentials = serviceAccountCredentials.createScoped(scopes);
       }

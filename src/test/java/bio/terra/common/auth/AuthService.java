@@ -37,7 +37,8 @@ public class AuthService {
   // this should always match exactly what the UI requests, so our tests represent actual user
   // behavior:
   private List<String> userLoginScopes =
-      Arrays.asList("openid", "email", "profile", "https://www.googleapis.com/auth/cloud-billing");
+      Arrays.asList(
+          "openid", "email", "profile", "https://www.googleapis.com/auth/cloud-billing.readonly");
   private List<String> directAccessScopes =
       Arrays.asList(
           "https://www.googleapis.com/auth/bigquery",

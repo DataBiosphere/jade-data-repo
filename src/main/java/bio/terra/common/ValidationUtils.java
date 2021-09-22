@@ -2,9 +2,12 @@ package bio.terra.common;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 public final class ValidationUtils {
@@ -25,6 +28,16 @@ public final class ValidationUtils {
 
   public static <T> boolean hasDuplicates(List<T> list) {
     return !(list.size() == new HashSet(list).size());
+  }
+
+  public static <T> List<T> findDuplicates(List<T> list) {
+    return list.stream()
+        .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+        .entrySet()
+        .stream()
+        .filter(e -> e.getValue() > 1)
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toList());
   }
 
   public static boolean isValidDescription(String name) {

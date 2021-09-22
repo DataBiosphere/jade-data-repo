@@ -192,16 +192,28 @@ public class DatasetRequestValidator implements Validator {
       List<String> columnNames =
           columns.stream().map(ColumnModel::getName).collect(Collectors.toList());
       if (ValidationUtils.hasDuplicates(columnNames)) {
-        errors.rejectValue("schema", "DuplicateColumnNames");
+        List<String> duplicates = ValidationUtils.findDuplicates(columnNames);
+        errors.rejectValue(
+            "schema",
+            "DuplicateColumnNames",
+            String.format("Duplicate columns: %s", String.join(", ", duplicates)));
       }
       if (primaryKeyList != null) {
         if (!columnNames.containsAll(primaryKeyList)) {
-          errors.rejectValue("schema", "MissingPrimaryKeyColumn");
+          List<String> missingKeys = new ArrayList<>(primaryKeyList);
+          missingKeys.removeAll(columnNames);
+          errors.rejectValue(
+              "schema",
+              "MissingPrimaryKeyColumn",
+              String.format("Expected column(s): %s", String.join(", ", missingKeys)));
         }
 
         for (ColumnModel column : columns) {
           if (primaryKeyList.contains(column.getName()) && column.isArrayOf()) {
-            errors.rejectValue("schema", "PrimaryKeyArrayColumn");
+            errors.rejectValue(
+                "schema",
+                "PrimaryKeyArrayColumn",
+                String.format("Primary Key column: %s", column.getName()));
           }
         }
       }
@@ -394,7 +406,11 @@ public class DatasetRequestValidator implements Validator {
       List<String> assetNames =
           assets.stream().map(AssetModel::getName).collect(Collectors.toList());
       if (ValidationUtils.hasDuplicates(assetNames)) {
-        errors.rejectValue("schema", "DuplicateAssetNames");
+        List<String> duplicates = ValidationUtils.findDuplicates(assetNames);
+        errors.rejectValue(
+            "schema",
+            "DuplicateAssetNames",
+            String.format("Duplicate asset names: %s", String.join(", ", duplicates)));
       }
       assets.forEach((asset) -> validateAsset(asset, errors, context));
     }

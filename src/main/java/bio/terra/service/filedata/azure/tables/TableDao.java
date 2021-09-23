@@ -1,6 +1,8 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.model.CloudPlatform;
+import bio.terra.service.common.azure.StorageTableUtils;
+import bio.terra.service.common.azure.StorageTableUtils.StorageTableNameSuffix;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -15,6 +17,7 @@ import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.snapshot.Snapshot;
 import com.azure.data.tables.TableServiceClient;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -349,27 +352,27 @@ public class TableDao {
     return fsFile;
   }
 
-  // TODO: Implement computeDirectory to recursively compute the size and checksums of a directory
+  public void addFilesToSnapshot(
+      TableServiceClient datasetTableServiceClient,
+      TableServiceClient snapshotTableServiceClient,
+      Dataset dataset,
+      Snapshot snapshot,
+      List<String> refIds) {
+    String datasetId = dataset.getId().toString();
+    String datasetDirName = dataset.getName();
+    String snapshotId = snapshot.getId().toString();
+    String storageTableName =
+        StorageTableUtils.toTableName(snapshotId, StorageTableNameSuffix.SNAPSHOT);
 
-  //  // SNAPSHOT!
-  //  public void addFilesToSnapshot(Dataset dataset, Snapshot snapshot, List<String> refIds)
-  //      throws InterruptedException {
-  //
-  //    Firestore datasetFirestore =
-  //        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
-  //    Firestore snapshotFirestore =
-  //        FireStoreProject.get(snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
-  //    String datasetId = dataset.getId().toString();
-  //    // TODO: Do we need to make sure the dataset name does not contain characters that are
-  // invalid
-  //    // for paths?
-  //    // Added the work to figure that out to DR-325
-  //    String datasetName = dataset.getName();
-  //    String snapshotId = snapshot.getId().toString();
-  //    String storageTableName = StorageTableUtils.toTableName(snapshotId,
-  // StorageTableNameSuffix.SNAPSHOT);
-  //
-  //    directoryDao.addEntriesToSnapshot(
-  //        datasetFirestore, datasetId, datasetName, snapshotFirestore, snapshotId, refIds);
-  //  }
+    directoryDao.addEntriesToSnapshot(
+        datasetTableServiceClient,
+        snapshotTableServiceClient,
+        storageTableName,
+        datasetId,
+        datasetDirName,
+        snapshotId,
+        refIds);
+  }
+
+  // TODO: Implement computeDirectory to recursively compute the size and checksums of a directory
 }

@@ -665,7 +665,7 @@ public class DatasetAzureIntegrationTest extends UsersBase {
             .table("sample_vcf")
             .path(controlFile)
             .profileId(profileId)
-            .loadTag(Names.randomizeName("test"));
+            .loadTag(Names.randomizeName("azureCombinedIngestTest"));
 
     IngestResponseModel ingestResponse =
         dataRepoFixtures.ingestJsonData(steward, datasetId, ingestRequest);

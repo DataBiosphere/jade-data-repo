@@ -8,6 +8,7 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableTransactionAction;
 import com.azure.data.tables.models.TableTransactionActionType;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -26,7 +27,8 @@ public class TableDependencyDao {
   @Autowired
   public TableDependencyDao() {}
 
-  private String getDatasetDependencyTableName(UUID datasetId) {
+  @VisibleForTesting
+  public String getDatasetDependencyTableName(UUID datasetId) {
     return "datarepo" + datasetId.toString().replaceAll("-", "") + DEPENDENCY_TABLE_NAME_SUFFIX;
   }
 

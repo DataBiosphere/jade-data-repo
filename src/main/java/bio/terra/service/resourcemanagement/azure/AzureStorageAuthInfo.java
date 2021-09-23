@@ -1,11 +1,21 @@
 package bio.terra.service.resourcemanagement.azure;
 
+import bio.terra.model.BillingProfileModel;
 import java.util.UUID;
 
 public class AzureStorageAuthInfo {
   private UUID subscriptionId;
   private String resourceGroupName;
   private String storageAccountResourceName;
+
+  public static AzureStorageAuthInfo AzureStorageAuthInfoBuilder(
+      BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
+    return new AzureStorageAuthInfo()
+        .subscriptionId(profileModel.getSubscriptionId())
+        .resourceGroupName(
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName())
+        .storageAccountResourceName(storageAccountResource.getName());
+  }
 
   public AzureStorageAuthInfo() {}
 

@@ -203,11 +203,8 @@ public class FileService {
       AzureStorageAccountResource storageAccountResource =
           resourceService.getStorageAccount(dataset, billingProfileModel);
       AzureStorageAuthInfo storageAuthInfo =
-          new AzureStorageAuthInfo()
-              .subscriptionId(billingProfileModel.getSubscriptionId())
-              .resourceGroupName(
-                  storageAccountResource.getApplicationResource().getAzureResourceGroupName())
-              .storageAccountResourceName(storageAccountResource.getName());
+          AzureStorageAuthInfo.AzureStorageAuthInfoBuilder(
+              billingProfileModel, storageAccountResource);
       return tableDao.retrieveById(UUID.fromString(datasetId), fileId, depth, storageAuthInfo);
     }
   }
@@ -229,11 +226,8 @@ public class FileService {
       AzureStorageAccountResource storageAccountResource =
           resourceService.getStorageAccount(dataset, billingProfileModel);
       AzureStorageAuthInfo storageAuthInfo =
-          new AzureStorageAuthInfo()
-              .subscriptionId(billingProfileModel.getSubscriptionId())
-              .resourceGroupName(
-                  storageAccountResource.getApplicationResource().getAzureResourceGroupName())
-              .storageAccountResourceName(storageAccountResource.getName());
+          AzureStorageAuthInfo.AzureStorageAuthInfoBuilder(
+              billingProfileModel, storageAccountResource);
       return tableDao.retrieveByPath(UUID.fromString(datasetId), path, depth, storageAuthInfo);
     }
   }

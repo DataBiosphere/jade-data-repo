@@ -6,7 +6,6 @@ import bio.terra.controller.SearchApi;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchMetadataModel;
-import bio.terra.model.SearchMetadataRequest;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -16,12 +15,14 @@ import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.exception.IamForbiddenException;
 import bio.terra.service.search.SearchService;
+import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -47,6 +48,7 @@ public class SearchApiController implements SearchApi {
   private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
   private final SearchService searchService;
   private final SnapshotService snapshotService;
+  private final SnapshotSearchMetadataDao snapshotSearchMetadataDao;
 
   @Autowired
   public SearchApiController(
@@ -56,7 +58,8 @@ public class SearchApiController implements SearchApi {
       IamService iamService,
       AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
       SearchService searchService,
-      SnapshotService snapshotService) {
+      SnapshotService snapshotService,
+      SnapshotSearchMetadataDao snapshotSearchMetadataDao) {
     this.objectMapper = objectMapper;
     this.request = request;
     this.appConfig = appConfig;
@@ -64,6 +67,7 @@ public class SearchApiController implements SearchApi {
     this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     this.searchService = searchService;
     this.snapshotService = snapshotService;
+    this.snapshotSearchMetadataDao = snapshotSearchMetadataDao;
   }
 
   @Override
@@ -78,6 +82,14 @@ public class SearchApiController implements SearchApi {
 
   private AuthenticatedUserRequest getAuthenticatedInfo() {
     return authenticatedUserRequestFactory.from(request);
+  }
+
+  @Override
+  public ResponseEntity<Object> enumerateSnapshotSearch() {
+    List<UUID> authorizedSnapshotIds =
+        iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
+    Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(authorizedSnapshotIds);
+    return ResponseEntity.ok(metadata.values());
   }
 
   @Override
@@ -99,27 +111,34 @@ public class SearchApiController implements SearchApi {
   }
 
   @Override
-  public ResponseEntity<SearchMetadataModel> upsertSearchMetadata(
-      @PathVariable("id") UUID id,
-      @Valid @RequestBody SearchMetadataRequest searchMetadataRequest) {
+  public ResponseEntity<SearchMetadataModel> upsertSearchMetadata(UUID id, String body) {
     try {
+      var user = getAuthenticatedInfo();
+      iamService.verifyAuthorization(
+          user, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
+      snapshotSearchMetadataDao.putMetadata(id, body);
       SearchMetadataModel searchMetadataModel = new SearchMetadataModel();
       searchMetadataModel.setMetadataSummary("Upserted search metadata for snapshot " + id);
-      return new ResponseEntity<>(searchMetadataModel, HttpStatus.OK);
+      return ResponseEntity.ok(searchMetadataModel);
     } catch (Exception e) {
       throw new ApiException("Could not upsert metadata for snapshot " + id, e);
     }
   }
 
   @Override
-  public ResponseEntity<Void> deleteSearchMetadata(@PathVariable("id") UUID id) {
+  public ResponseEntity<Void> deleteSearchMetadata(UUID id) {
     try {
-      return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+      var user = getAuthenticatedInfo();
+      iamService.verifyAuthorization(
+          user, IamResourceType.DATASNAPSHOT, id.toString(), IamAction.UPDATE_SNAPSHOT);
+      snapshotSearchMetadataDao.deleteMetadata(id);
+      return ResponseEntity.noContent().build();
     } catch (Exception e) {
       throw new ApiException("Could not delete metadata for snapshot " + id, e);
     }
   }
 
+  // TODO: add unit test in SearchAPIControllerTest
   @Override
   public ResponseEntity<SearchQueryResultModel> querySearchIndices(
       SearchQueryRequest searchQueryRequest, Integer offset, Integer limit) {

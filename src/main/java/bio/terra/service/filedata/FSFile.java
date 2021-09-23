@@ -1,8 +1,6 @@
 package bio.terra.service.filedata;
 
 import bio.terra.model.CloudPlatform;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.UUID;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -12,6 +10,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 public class FSFile extends FSItem {
   private UUID datasetId;
   private String cloudPath;
+  private CloudPlatform cloudPlatform;
   private String mimeType;
   private String bucketResourceId;
   private String loadTag;
@@ -31,6 +30,15 @@ public class FSFile extends FSItem {
 
   public FSFile cloudPath(String cloudPath) {
     this.cloudPath = cloudPath;
+    return this;
+  }
+
+  public CloudPlatform getCloudPlatform() {
+    return cloudPlatform;
+  }
+
+  public FSFile cloudPlatform(CloudPlatform cloudPlatform) {
+    this.cloudPlatform = cloudPlatform;
     return this;
   }
 
@@ -100,24 +108,6 @@ public class FSFile extends FSItem {
   public FSFile loadTag(String loadTag) {
     this.loadTag = loadTag;
     return this;
-  }
-
-  // TODO: once metadata is collocated with the underlying cloud platform, this can be set
-  // explicitly
-  public CloudPlatform getCloudPlatform() {
-    try {
-      URI url = new URI(getCloudPath().replaceAll("[^A-Za-z0-9/\\-.:]", ""));
-      if (url.getScheme().equalsIgnoreCase("gs")) {
-        return CloudPlatform.GCP;
-      } else if (url.getScheme().equalsIgnoreCase("https")
-          && url.getHost().endsWith("core.windows.net")) {
-        return CloudPlatform.AZURE;
-      } else {
-        throw new IllegalArgumentException("Unrecognized url format: " + getCloudPath());
-      }
-    } catch (URISyntaxException e) {
-      throw new IllegalArgumentException("Invalid URL", e);
-    }
   }
 
   @Override

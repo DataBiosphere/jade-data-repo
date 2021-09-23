@@ -62,6 +62,8 @@ public class SearchServiceTest {
 
   @Mock private BigQueryPdao bigQueryPdao;
 
+  @Mock private SnapshotSearchMetadataDao snapshotSearchMetadataDao;
+
   @Mock private RestHighLevelClient client;
 
   @Mock private IndicesClient indicesClient;
@@ -74,7 +76,7 @@ public class SearchServiceTest {
 
   @Before
   public void setup() throws Exception {
-    service = new SearchService(bigQueryPdao, client);
+    service = new SearchService(bigQueryPdao, snapshotSearchMetadataDao, client);
 
     searchIndexRequest = getSearchIndexRequest();
     snapshot = getSnapshot();

@@ -79,11 +79,18 @@ public class BlobCrlTest {
     String blobName = "myBlob";
     blobIOTestUtility.uploadDestinationFile(blobName, MIB / 10);
 
-    blobCrl.deleteBlob(blobName);
+    boolean successfulDelete = blobCrl.deleteBlob(blobName);
+    assertThat("Successfully delete blob.", successfulDelete, is(true));
 
     assertThat(
         blobIOTestUtility.getDestinationBlobContainerClient().getBlobClient(blobName).exists(),
         is(false));
+  }
+
+  @Test
+  public void testDeleteBlob_InvalidBlob() {
+    boolean successfulDelete = blobCrl.deleteBlob("InvalidBlobName");
+    assertThat("Failed to successfully delete blob b/c not found", successfulDelete, is(false));
   }
 
   @Test

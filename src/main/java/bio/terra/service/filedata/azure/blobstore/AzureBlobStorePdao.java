@@ -24,7 +24,6 @@ import bio.terra.service.resourcemanagement.exception.AzureResourceException;
 import com.azure.core.credential.TokenCredential;
 import com.azure.storage.blob.BlobUrlParts;
 import com.azure.storage.blob.models.BlobProperties;
-import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.common.policy.RequestRetryOptions;
 import com.azure.storage.common.policy.RetryPolicyType;
@@ -35,7 +34,6 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -43,7 +41,6 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -189,16 +186,7 @@ public class AzureBlobStorePdao implements CloudFileReader {
         getTargetDataClientFactory(profileModel, storageAccountResource, ContainerType.DATA, true);
     String blobName = getBlobName(fileId, fileName);
     BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
-    try {
-      blobCrl.deleteBlob(blobName);
-      return true;
-    } catch (BlobStorageException e) {
-      if (e.getStatusCode() == HttpStatus.NOT_FOUND.value()) {
-        return false;
-      } else {
-        throw new PdaoException("Error deleting file", e);
-      }
-    }
+    return blobCrl.deleteBlob(blobName);
   }
 
   public boolean deleteFile(FireStoreFile fireStoreFile) {
@@ -220,28 +208,14 @@ public class AzureBlobStorePdao implements CloudFileReader {
     }
     String blobName = blobParts.getBlobName();
     BlobCrl blobCrl = getBlobCrl(destinationClientFactory);
-    try {
-      blobCrl.deleteBlob(blobName);
-      Optional.ofNullable(Paths.get(blobName).getParent())
-          .ifPresent(
-              p -> {
-                try {
-                  // Attempt to delete the file's folder
-                  blobCrl.deleteBlob(p.toString());
-                } catch (BlobStorageException e) {
-                  // Attempt to delete the parent but this should not cause the overall failure of
-                  // the file
-                  logger.warn("Could not delete the blob folder {}", p, e);
-                }
-              });
-      return true;
-    } catch (BlobStorageException e) {
-      if (e.getStatusCode() == HttpStatus.NOT_FOUND.value()) {
-        return false;
-      } else {
-        throw new PdaoException("Error deleting file", e);
-      }
+    boolean success = blobCrl.deleteBlob(blobName);
+    var parentBlob = Paths.get(blobName).getParent();
+    if (parentBlob != null) {
+      // Attempt to delete the parent but this should not cause the overall failure of
+      // the file
+      blobCrl.deleteBlobQuietFailure(parentBlob.toString());
     }
+    return success;
   }
 
   public String signFile(

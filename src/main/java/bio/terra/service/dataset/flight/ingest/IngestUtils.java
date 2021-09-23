@@ -280,6 +280,21 @@ public final class IngestUtils {
     return "parquet/" + targetTableName + "/" + flightId + ".parquet";
   }
 
+  public static String getSnapshotParquetFilePath(UUID snapshotId, String targetTableName) {
+    return "parquet/" + snapshotId + "/" + targetTableName + ".parquet";
+  }
+
+  public static String getSourceDatasetParquetFilePath(String tableName, String datasetFlightId) {
+    if (datasetFlightId != null) {
+      return IngestUtils.getParquetFilePath(tableName, datasetFlightId);
+    }
+    return "parquet/" + tableName + "/**";
+  }
+
+  public static String formatSnapshotTableName(UUID snapshotId, String tableName) {
+    return snapshotId.toString().replaceAll("-", "") + "_" + tableName;
+  }
+
   public static String getIngestRequestDataSourceName(String flightId) {
     return SOURCE_DATA_SOURCE_PREFIX + flightId;
   }

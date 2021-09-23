@@ -2267,6 +2267,23 @@ paths:
 ##############################################################################
 ## SEARCH API STANDARD ENDPOINTS
 ##############################################################################
+  /api/repository/v1/search/metadata:
+    get:
+      tags:
+        - search
+        - snapshots
+        - repository
+      description: >
+        Returns metadata for all snapshots a user has access to
+      operationId: enumerateSnapshotSearch
+      responses:
+        200:
+          description: List of snapshot metadata
+          content:
+            application/json:
+              schema:
+                type: object
+
   /api/repository/v1/search/{id}/index:
     post:
       tags:
@@ -2329,7 +2346,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SearchMetadataRequest'
+              type: string
         required: true
       responses:
         200:
@@ -4094,15 +4111,6 @@ components:
         indexSummary:
           type: string
           description: Summary of this index for searching
-    SearchMetadataRequest:
-      required:
-        - json
-      type: object
-      properties:
-        json:
-          type: string
-          description: >
-            Json metadata to make snapshot searchable
     SearchMetadataModel:
       type: object
       properties:

@@ -9,9 +9,17 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.commons.collections4.map.PassiveExpiringMap;
+import org.apache.commons.collections4.map.PassiveExpiringMap.ExpirationPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +28,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class AuthService {
   private static Logger logger = LoggerFactory.getLogger(AuthService.class);
+  private static ExpirationPolicy<String, GoogleCredential> TOKEN_CACHE_EXPIRATION_POLICY =
+      // Make sure this value never returns a negative since that means the entry never expires
+      (key, value) ->
+          Math.max(0, value.getExpirationTimeMilliseconds() - TimeUnit.MINUTES.toMillis(5));
+
   // the list of scopes we request from end users when they log in.
   // this should always match exactly what the UI requests, so our tests represent actual user
   // behavior:
@@ -33,8 +46,10 @@ public class AuthService {
   private JacksonFactory jsonFactory = JacksonFactory.getDefaultInstance();
   private File pemfile;
   private String saEmail;
-  private Map<String, String> userTokens = new HashMap<>();
-  private Map<String, String> directAccessTokens = new HashMap<>();
+  private Map<String, GoogleCredential> userTokens =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
+  private Map<String, GoogleCredential> directAccessTokens =
+      Collections.synchronizedMap(new PassiveExpiringMap<>(TOKEN_CACHE_EXPIRATION_POLICY));
   private TestConfiguration testConfig;
 
   @Autowired
@@ -50,14 +65,14 @@ public class AuthService {
     if (!userTokens.containsKey(userEmail)) {
       userTokens.put(userEmail, makeToken(userEmail));
     }
-    return userTokens.get(userEmail);
+    return userTokens.get(userEmail).getAccessToken();
   }
 
   public String getDirectAccessAuthToken(String userEmail) {
     if (!directAccessTokens.containsKey(userEmail)) {
       directAccessTokens.put(userEmail, makeDirectAccessToken(userEmail));
     }
-    return directAccessTokens.get(userEmail);
+    return directAccessTokens.get(userEmail).getAccessToken();
   }
 
   private GoogleCredential buildCredential(String email, List<String> scopes)
@@ -76,7 +91,7 @@ public class AuthService {
         .build();
   }
 
-  private String makeDirectAccessToken(String userEmail) {
+  private GoogleCredential makeDirectAccessToken(String userEmail) {
     List<String> allScopes =
         Stream.of(userLoginScopes, directAccessScopes)
             .flatMap(Collection::stream)
@@ -84,11 +99,11 @@ public class AuthService {
     return makeTokenForScopes(userEmail, allScopes);
   }
 
-  private String makeTokenForScopes(String userEmail, List<String> scopes) {
+  private GoogleCredential makeTokenForScopes(String userEmail, List<String> scopes) {
     try {
       GoogleCredential cred = buildCredential(userEmail, scopes);
       cred.refreshToken();
-      return cred.getAccessToken();
+      return cred;
     } catch (TokenResponseException e) {
       logger.error("Encountered " + e.getStatusCode() + " error getting access token.");
     } catch (Exception ioe) {
@@ -97,7 +112,7 @@ public class AuthService {
     throw new RuntimeException("unable to get access token");
   }
 
-  private String makeToken(String userEmail) {
+  private GoogleCredential makeToken(String userEmail) {
     return makeTokenForScopes(userEmail, userLoginScopes);
   }
 }

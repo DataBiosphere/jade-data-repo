@@ -45,6 +45,8 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.common.azure.StorageTableUtils;
+import bio.terra.service.common.azure.StorageTableUtils.StorageTableNameSuffix;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -52,7 +54,6 @@ import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
-import bio.terra.service.tabulardata.azure.AzureStorageTablePdao;
 import com.azure.data.tables.TableServiceClient;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -986,7 +987,7 @@ public class ConnectedOperations {
   }
 
   public void deleteLoadHistory(UUID datasetId, TableServiceClient serviceClient) {
-    var tableName = AzureStorageTablePdao.toLoadHistoryTableNameFromUUID(datasetId);
+    var tableName = StorageTableUtils.toTableName(datasetId, StorageTableNameSuffix.DATASET);
     serviceClient.deleteTable(tableName);
   }
 }

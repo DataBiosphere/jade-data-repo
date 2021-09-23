@@ -11,18 +11,15 @@ import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.filedata.google.firestore.FireStoreProject;
 import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
-import bio.terra.service.snapshot.Snapshot;
 import com.azure.data.tables.TableServiceClient;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import com.google.cloud.firestore.Firestore;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,13 +65,13 @@ public class TableDao {
   }
 
   public void createDirectoryEntry(
-      FireStoreDirectoryEntry newEntry, AzureStorageAuthInfo storageAuthInfo) {
+      FireStoreDirectoryEntry newEntry, AzureStorageAuthInfo storageAuthInfo, String tableName) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(
             storageAuthInfo.getSubscriptionId(),
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
-    directoryDao.createDirectoryEntry(tableServiceClient, newEntry);
+    directoryDao.createDirectoryEntry(tableServiceClient, tableName, newEntry);
   }
 
   public boolean deleteDirectoryEntry(String fileId, AzureStorageAuthInfo storageAuthInfo) {
@@ -354,23 +351,25 @@ public class TableDao {
 
   // TODO: Implement computeDirectory to recursively compute the size and checksums of a directory
 
-  // SNAPSHOT!
-  public void addFilesToSnapshot(Dataset dataset, Snapshot snapshot, List<String> refIds)
-      throws InterruptedException {
-
-    Firestore datasetFirestore =
-        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
-    Firestore snapshotFirestore =
-        FireStoreProject.get(snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
-    String datasetId = dataset.getId().toString();
-    // TODO: Do we need to make sure the dataset name does not contain characters that are invalid
-    // for paths?
-    // Added the work to figure that out to DR-325
-    String datasetName = dataset.getName();
-    String snapshotId = snapshot.getId().toString();
-
-    directoryDao.addEntriesToSnapshot(
-        datasetFirestore, datasetId, datasetName, snapshotFirestore, snapshotId, refIds);
-  }
-
+  //  // SNAPSHOT!
+  //  public void addFilesToSnapshot(Dataset dataset, Snapshot snapshot, List<String> refIds)
+  //      throws InterruptedException {
+  //
+  //    Firestore datasetFirestore =
+  //        FireStoreProject.get(dataset.getProjectResource().getGoogleProjectId()).getFirestore();
+  //    Firestore snapshotFirestore =
+  //        FireStoreProject.get(snapshot.getProjectResource().getGoogleProjectId()).getFirestore();
+  //    String datasetId = dataset.getId().toString();
+  //    // TODO: Do we need to make sure the dataset name does not contain characters that are
+  // invalid
+  //    // for paths?
+  //    // Added the work to figure that out to DR-325
+  //    String datasetName = dataset.getName();
+  //    String snapshotId = snapshot.getId().toString();
+  //    String storageTableName = StorageTableUtils.toTableName(snapshotId,
+  // StorageTableNameSuffix.SNAPSHOT);
+  //
+  //    directoryDao.addEntriesToSnapshot(
+  //        datasetFirestore, datasetId, datasetName, snapshotFirestore, snapshotId, refIds);
+  //  }
 }

@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
-import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
@@ -65,8 +65,8 @@ public class TableDirectoryDao {
   private final ConfigurationService configurationService;
 
   @Autowired
-  public TableDirectoryDao(FileMetadataUtils fileMetadataUtils,
-                           ConfigurationService configurationService) {
+  public TableDirectoryDao(
+      FileMetadataUtils fileMetadataUtils, ConfigurationService configurationService) {
     this.fileMetadataUtils = fileMetadataUtils;
     this.configurationService = configurationService;
   }
@@ -83,10 +83,12 @@ public class TableDirectoryDao {
   // Note that this does not test for duplicates. If invoked on an existing path it will overwrite
   // the entry. Existence checking is handled at upper layers.
   public void createDirectoryEntry(
-      TableServiceClient tableServiceClient, FireStoreDirectoryEntry createEntry) {
+      TableServiceClient tableServiceClient,
+      String tableName,
+      FireStoreDirectoryEntry createEntry) {
 
-    tableServiceClient.createTableIfNotExists(TABLE_NAME);
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+    tableServiceClient.createTableIfNotExists(tableName);
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
     String datasetId = createEntry.getDatasetId();
 
     // Walk up the lookup directory path, finding missing directories we get to an
@@ -108,8 +110,7 @@ public class TableDirectoryDao {
       TableEntity entity = FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, dirToCreate);
       logger.info("Upserting directory entry for {} in table {}", testPath, TABLE_NAME);
       // It's possible that another thread is trying to write the same directory entity at the same
-      // time
-      // upsert rather than create so that it does not fail if it already exists
+      // time upsert rather than create so that it does not fail if it already exists
       tableClient.upsertEntity(entity);
     }
 
@@ -176,23 +177,22 @@ public class TableDirectoryDao {
         .orElse(null);
   }
 
+  // returns empty list if no items are found
   public List<FireStoreDirectoryEntry> batchRetrieveById(
       TableServiceClient tableServiceClient, String tableName, List<String> fileIds) {
     List<TableEntity> entities = batchLookupByFileId(tableServiceClient, tableName, fileIds);
-    return Optional.ofNullable(
-            entities.stream()
-                .map(
-                    entity -> {
-                      FireStoreDirectoryEntry directoryEntry =
-                          FireStoreDirectoryEntry.fromTableEntity(entity);
-                      if (!directoryEntry.getIsFileRef()) {
-                        throw new FileSystemExecutionException(
-                            "Directories are not supported as references");
-                      }
-                      return directoryEntry;
-                    })
-                .collect(Collectors.toList()))
-        .orElseThrow(() -> new FileSystemExecutionException("No fileIds found in batch lookup"));
+    return entities.stream()
+        .map(
+            entity -> {
+              FireStoreDirectoryEntry directoryEntry =
+                  FireStoreDirectoryEntry.fromTableEntity(entity);
+              if (!directoryEntry.getIsFileRef()) {
+                throw new FileSystemExecutionException(
+                    "Directories are not supported as references");
+              }
+              return directoryEntry;
+            })
+        .collect(Collectors.toList());
   }
 
   // Returns null if not found - upper layers do any throwing
@@ -324,7 +324,8 @@ public class TableDirectoryDao {
   //      a. File references are usually unique in the datasets we know about
   //      b. Directories are cached, so will be overwritten based on the effectiveness of the cache
 
-  // Q - Do we need to support different table service clients for snapshots?? (like the dataset vs. snapshot firestore?)
+  // Q - Do we need to support different table service clients for snapshots?? (like the dataset vs.
+  // snapshot firestore?)
   public void addEntriesToSnapshot(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
@@ -343,24 +344,25 @@ public class TableDirectoryDao {
                       datasetTableServiceClient, tableName, fileIdsBatch);
 
               List<FireStoreDirectoryEntry> directoryEntries =
-                    entities.stream()
-                        .map(
-                            entity -> {
-                              FireStoreDirectoryEntry directoryEntry =
-                                  FireStoreDirectoryEntry.fromTableEntity(entity);
-                              if (!directoryEntry.getIsFileRef()) {
-                                throw new FileSystemExecutionException(
-                                    "Directories are not supported as references");
-                              }
-                              return directoryEntry;
-                            })
-                        .collect(Collectors.toList()));
+                  entities.stream()
+                      .map(
+                          entity -> {
+                            FireStoreDirectoryEntry directoryEntry =
+                                FireStoreDirectoryEntry.fromTableEntity(entity);
+                            if (!directoryEntry.getIsFileRef()) {
+                              throw new FileSystemExecutionException(
+                                  "Directories are not supported as references");
+                            }
+                            return directoryEntry;
+                          })
+                      .collect(Collectors.toList());
               if (directoryEntries.isEmpty()) {
                 throw new FileSystemExecutionException("No fileIds found in batch lookup");
               }
 
               // Find directory paths that need to be created; plus add to the cache
-              List<String> newPaths = fileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
+              List<String> newPaths =
+                  fileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
               List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                   batchRetrieveByPath(datasetTableServiceClient, datasetId, newPaths);
 
@@ -376,21 +378,20 @@ public class TableDirectoryDao {
               // Store the batch of entries. This will override existing entries,
               // but that is not the typical case and it is lower cost just overwrite
               // rather than retrieve to avoid the write.
-              // TODO -replace
               batchStoreDirectoryEntry(snapshotTableServiceClient, snapshotId, snapshotEntries);
             });
   }
 
   // TODO - add test
-  private void storeTopDirectory(TableServiceClient tableServiceClient,
-                                 String snapshotId,
-                                 String dirName) {
+  private void storeTopDirectory(
+      TableServiceClient tableServiceClient, String snapshotId, String dirName) {
     // We have to create the top directory structure for the dataset and the root folder.
     // Those components cannot be copied from the dataset, but have to be created new
     // in the snapshot directory. We probe to see if the dirName directory exists. If not,
     // we use the createFileRef path to construct it and the parent, if necessary.
     String dirPath = "/" + dirName;
-    // TODO - will this correctly lookup within the snapshot directory? This is usually used for datasets
+    // TODO - will this correctly lookup within the snapshot directory? This is usually used for
+    // datasets
     // Also, should it matter that's it's returning a TableEntity vs. a DocumentSnapshot? I think
     // those two are just the native entity for firestore vs. storage tables
     TableEntity directoryEntry = lookupByFilePath(tableServiceClient, snapshotId, dirPath);
@@ -406,7 +407,26 @@ public class TableDirectoryDao {
             .name(dirName)
             .fileCreatedDate(Instant.now().toString());
 
-    createDirectoryEntry(tableServiceClient, topDir);
+    createDirectoryEntry(
+        tableServiceClient,
+        StorageTableUtils.toTableName(
+            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT),
+        topDir);
   }
 
+  // TODO - can just call a subset of the createDirectoryEntry for the batch call
+  private void batchStoreDirectoryEntry(
+      TableServiceClient snapshotTableServiceClient,
+      String snapshotId,
+      List<FireStoreDirectoryEntry> snapshotEntries) {
+    String tableName = StorageTableUtils.toTableName(
+        snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
+    snapshotEntries.stream()
+        .forEach(
+            entry ->
+                createDirectoryEntry(
+                    snapshotTableServiceClient,
+                    tableName,
+                    entry));
+  }
 }

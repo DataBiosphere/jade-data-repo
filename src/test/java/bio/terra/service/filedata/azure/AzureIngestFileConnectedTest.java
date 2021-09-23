@@ -14,6 +14,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.CloudPlatform;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
+import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.FSItem;
@@ -185,7 +186,9 @@ public class AzureIngestFileConnectedTest {
             .name(fileMetadataUtils.getName(targetPath))
             .datasetId(datasetId.toString())
             .loadTag(fileLoadModel.getLoadTag());
-    tableDirectoryDao.createDirectoryEntry(tableServiceClient, newEntry);
+    String tableName =
+        StorageTableUtils.toTableName(datasetId, StorageTableUtils.StorageTableNameSuffix.DATASET);
+    tableDirectoryDao.createDirectoryEntry(tableServiceClient, tableName, newEntry);
 
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =

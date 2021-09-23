@@ -10,6 +10,7 @@ import bio.terra.common.SynapseUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.Names;
+import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.FileService;
@@ -209,7 +210,9 @@ public class TableDirectoryDaoConnectedTest {
             .name(fileMetadataUtils.getName(sharedTargetPath + fileName))
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
-    tableDirectoryDao.createDirectoryEntry(tableServiceClient, newEntry);
+    String tableName =
+        StorageTableUtils.toTableName(datasetId, StorageTableUtils.StorageTableNameSuffix.DATASET);
+    tableDirectoryDao.createDirectoryEntry(tableServiceClient, tableName, newEntry);
     directoryEntriesToCleanup.add(fileId.toString());
 
     // test that directory entry now exists

@@ -8,7 +8,7 @@ public class AzureStorageAuthInfo {
   private String resourceGroupName;
   private String storageAccountResourceName;
 
-  public static AzureStorageAuthInfo AzureStorageAuthInfoBuilder(
+  public static AzureStorageAuthInfo azureStorageAuthInfoBuilder(
       BillingProfileModel profileModel, AzureStorageAccountResource storageAccountResource) {
     return new AzureStorageAuthInfo()
         .subscriptionId(profileModel.getSubscriptionId())

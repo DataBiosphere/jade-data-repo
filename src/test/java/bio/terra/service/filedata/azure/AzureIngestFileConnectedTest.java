@@ -116,7 +116,7 @@ public class AzureIngestFileConnectedTest {
             .dataContainer("data");
 
     storageAuthInfo =
-        AzureStorageAuthInfo.AzureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
+        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
 
     tableServiceClient =
         new TableServiceClientBuilder()

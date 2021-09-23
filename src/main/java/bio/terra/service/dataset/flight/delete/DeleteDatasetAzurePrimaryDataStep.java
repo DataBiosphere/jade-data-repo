@@ -60,7 +60,7 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
     AzureStorageAccountResource storageAccountResource =
         resourceService.getStorageAccount(dataset, profileModel);
     AzureStorageAuthInfo storageAuthInfo =
-        AzureStorageAuthInfo.AzureStorageAuthInfoBuilder(profileModel, storageAccountResource);
+        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);
     tableDao.deleteFilesFromDataset(storageAuthInfo, azureBlobStorePdao::deleteFile);
 
     // this fault is used by the DatasetConnectedTest > testOverlappingDeletes

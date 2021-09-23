@@ -203,7 +203,7 @@ public class FileService {
       AzureStorageAccountResource storageAccountResource =
           resourceService.getStorageAccount(dataset, billingProfileModel);
       AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.AzureStorageAuthInfoBuilder(
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
       return tableDao.retrieveById(UUID.fromString(datasetId), fileId, depth, storageAuthInfo);
     }
@@ -226,7 +226,7 @@ public class FileService {
       AzureStorageAccountResource storageAccountResource =
           resourceService.getStorageAccount(dataset, billingProfileModel);
       AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.AzureStorageAuthInfoBuilder(
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
               billingProfileModel, storageAccountResource);
       return tableDao.retrieveByPath(UUID.fromString(datasetId), path, depth, storageAuthInfo);
     }

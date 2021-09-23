@@ -64,7 +64,7 @@ public class DeleteFileAzureLookupStep implements Step {
           resourceService.getOrCreateStorageAccount(dataset, billingProfile, context.getFlightId());
 
       AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.AzureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
       workingMap.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
 
       if (fireStoreFile == null) {

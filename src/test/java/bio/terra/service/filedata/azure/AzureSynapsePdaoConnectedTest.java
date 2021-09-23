@@ -303,7 +303,10 @@ public class AzureSynapsePdaoConnectedTest {
         IngestUtils.getParquetTargetLocationURL(snapshotStorageAccountResource);
     BlobUrlParts snapshotSignUrlBlob =
         azureBlobStorePdao.getOrSignUrlForTargetFactory(
-            parquetSnapshotLocation, billingProfile, snapshotStorageAccountResource);
+            parquetSnapshotLocation,
+            billingProfile,
+            snapshotStorageAccountResource,
+            AzureStorageAccountResource.ContainerType.METADATA);
     azureSynapsePdao.createExternalDataSource(
         snapshotSignUrlBlob, snapshotScopedCredentialName, snapshotDataSourceName);
 

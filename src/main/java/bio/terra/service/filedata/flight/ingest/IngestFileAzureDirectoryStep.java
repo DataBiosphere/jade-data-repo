@@ -2,6 +2,8 @@ package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.common.azure.StorageTableUtils;
+import bio.terra.service.common.azure.StorageTableUtils.StorageTableNameSuffix;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.azure.tables.TableDao;
@@ -86,7 +88,7 @@ public class IngestFileAzureDirectoryStep implements Step {
                 .name(fileMetadataUtils.getName(targetPath))
                 .datasetId(datasetId)
                 .loadTag(loadModel.getLoadTag());
-        tableDao.createDirectoryEntry(newEntry, storageAuthInfo);
+        tableDao.createDirectoryEntry(newEntry, StorageTableUtils.getDatasetTableName(), storageAuthInfo);
       } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION)
           && !StringUtils.equals(existingEntry.getFileId(), fileId)) {
         // (b) We are in a re-run of a load job. Try to get the file entry.

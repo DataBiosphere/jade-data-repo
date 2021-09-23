@@ -9,7 +9,6 @@ import bio.terra.service.filedata.exception.FileNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
-import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import com.azure.data.tables.TableServiceClient;
@@ -43,7 +42,6 @@ public class TableDao {
 
   private final TableDirectoryDao directoryDao;
   private final TableFileDao fileDao;
-  private final ProfileDao profileDao;
   private final AzureAuthService azureAuthService;
   private final FileMetadataUtils fileMetadataUtils;
   private final ConfigurationService configurationService;
@@ -52,13 +50,11 @@ public class TableDao {
   public TableDao(
       TableDirectoryDao directoryDao,
       TableFileDao fileDao,
-      ProfileDao profileDao,
       AzureAuthService azureAuthService,
       FileMetadataUtils fileMetadataUtils,
       ConfigurationService configurationService) {
     this.directoryDao = directoryDao;
     this.fileDao = fileDao;
-    this.profileDao = profileDao;
     this.azureAuthService = azureAuthService;
     this.fileMetadataUtils = fileMetadataUtils;
     this.configurationService = configurationService;

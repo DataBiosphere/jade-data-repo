@@ -3,6 +3,7 @@ package bio.terra.service.filedata.google.firestore;
 import static bio.terra.service.configuration.ConfigEnum.FIRESTORE_SNAPSHOT_BATCH_SIZE;
 
 import bio.terra.app.logging.PerformanceLogger;
+import bio.terra.model.CloudPlatform;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -323,6 +324,7 @@ public class FireStoreDao {
               .size(file.getSize())
               .description(file.getDescription())
               .cloudPath(file.getGspath())
+              .cloudPlatform(CloudPlatform.GCP)
               .mimeType(file.getMimeType())
               .bucketResourceId(file.getBucketResourceId())
               .loadTag(file.getLoadTag());
@@ -488,6 +490,7 @@ public class FireStoreDao {
         .size(fireStoreFile.getSize())
         .description(fireStoreFile.getDescription())
         .cloudPath(fireStoreFile.getGspath())
+        .cloudPlatform(CloudPlatform.GCP)
         .mimeType(fireStoreFile.getMimeType())
         .bucketResourceId(fireStoreFile.getBucketResourceId())
         .loadTag(fireStoreFile.getLoadTag());

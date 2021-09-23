@@ -419,14 +419,10 @@ public class TableDirectoryDao {
       TableServiceClient snapshotTableServiceClient,
       String snapshotId,
       List<FireStoreDirectoryEntry> snapshotEntries) {
-    String tableName = StorageTableUtils.toTableName(
-        snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
+    String tableName =
+        StorageTableUtils.toTableName(
+            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
     snapshotEntries.stream()
-        .forEach(
-            entry ->
-                createDirectoryEntry(
-                    snapshotTableServiceClient,
-                    tableName,
-                    entry));
+        .forEach(entry -> createDirectoryEntry(snapshotTableServiceClient, tableName, entry));
   }
 }

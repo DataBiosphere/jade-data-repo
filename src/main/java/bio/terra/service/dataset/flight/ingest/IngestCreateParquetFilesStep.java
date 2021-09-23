@@ -63,6 +63,12 @@ public class IngestCreateParquetFilesStep implements Step {
     }
 
     IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
+
+    Long failedRowCount = 0L;
+    if (workingMap.containsKey(IngestMapKeys.COMBINED_FAILED_ROW_COUNT)) {
+      failedRowCount = workingMap.get(IngestMapKeys.COMBINED_FAILED_ROW_COUNT, Long.class);
+    }
+
     IngestResponseModel ingestResponse =
         new IngestResponseModel()
             .dataset(dataset.getName())
@@ -70,7 +76,7 @@ public class IngestCreateParquetFilesStep implements Step {
             .table(ingestRequest.getTable())
             .path(ingestRequest.getPath())
             .loadTag(ingestRequest.getLoadTag())
-            .badRowCount(0L) // Azure can't do partial loads.
+            .badRowCount(failedRowCount) // Azure only has failed rows if combined ingest does.
             .rowCount(updateCount);
 
     if (!IngestUtils.noFilesToIngest.test(context)) {

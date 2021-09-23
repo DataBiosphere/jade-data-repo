@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
+import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.flight.ingest.IngestMapKeys;
 import bio.terra.service.dataset.flight.ingest.IngestUtils;
@@ -17,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -46,12 +48,15 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
       // Part 1 -> Build the src-target hash to file id Map
       Map<Integer, String> pathToFileIdMap =
           result.getLoadFileResults().stream()
+              .filter(fileResultModel -> fileResultModel.getState() == BulkLoadFileState.SUCCEEDED)
               .collect(
                   Collectors.toMap(
                       fileResultModel ->
                           Objects.hash(
                               fileResultModel.getSourcePath(), fileResultModel.getTargetPath()),
                       BulkLoadFileResultModel::getFileId));
+
+      AtomicLong failedRowCount = new AtomicLong();
 
       // Part 2 -> Replace BulkLoadFileModels with file id
       Stream<String> linesWithFileIds =
@@ -67,11 +72,18 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
                                 objectMapper.convertValue(fileRefNode, BulkLoadFileModel.class));
                         int fileKey =
                             Objects.hash(fileModel.getSourcePath(), fileModel.getTargetPath());
-                        String fileId = pathToFileIdMap.get(fileKey);
-                        ((ObjectNode) node).put(columnName, fileId);
+                        if (pathToFileIdMap.containsKey(fileKey)) {
+                          String fileId = pathToFileIdMap.get(fileKey);
+                          ((ObjectNode) node).put(columnName, fileId);
+                        } else {
+                          // If the file wasn't ingest, clear the node.
+                          ((ObjectNode) node).removeAll();
+                          failedRowCount.getAndIncrement();
+                        }
                       }
                     }
                   })
+              .filter(node -> !node.isEmpty()) // Filter out empty nodes.
               .map(JsonNode::toString);
 
       String path = getOutputFilePath(context);
@@ -85,6 +97,7 @@ public abstract class IngestBuildAndWriteScratchLoadFileStep extends SkippableSt
       }
 
       workingMap.put(IngestMapKeys.INGEST_SCRATCH_FILE_PATH, path);
+      workingMap.put(IngestMapKeys.COMBINED_FAILED_ROW_COUNT, failedRowCount.get());
 
       return StepResult.getStepResultSuccess();
     }

@@ -14,6 +14,7 @@ import com.azure.data.tables.models.TableServiceException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -202,7 +203,7 @@ public class TableDirectoryDao {
         .orElse(null);
   }
 
-  // Returns null if not found - upper layers do any throwing
+  // Returns empty list if not found - upper layers do any throwing
   public List<FireStoreDirectoryEntry> batchRetrieveByPath(
       TableServiceClient tableServiceClient, String datasetId, List<String> fullPaths) {
     // I don't see a batch way to "getEntity". We could switch to listEntities w/ a query
@@ -213,12 +214,11 @@ public class TableDirectoryDao {
                 path ->
                     lookupByFilePath(
                         tableServiceClient, datasetId, fileMetadataUtils.makeLookupPath(path)))
+            .filter(Objects::nonNull)
             .collect(Collectors.toList());
-    return Optional.ofNullable(
-            entities.stream()
-                .map(entity -> FireStoreDirectoryEntry.fromTableEntity(entity))
-                .collect(Collectors.toList()))
-        .orElse(null);
+    return entities.stream()
+        .map(entity -> FireStoreDirectoryEntry.fromTableEntity(entity))
+        .collect(Collectors.toList());
   }
 
   public List<String> validateRefIds(
@@ -228,8 +228,7 @@ public class TableDirectoryDao {
         .flatMap(
             refIdChunk -> {
               List<TableEntity> fileRefs =
-                  TableServiceClientUtils.batchRetrieveFiles(
-                      tableServiceClient, StorageTableUtils.getDatasetTableName(), refIdChunk);
+                  TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, refIdChunk);
               // if no files were retrieved, then every file in list is not valid
               if (fileRefs.isEmpty()) {
                 return refIdChunk.stream();
@@ -303,8 +302,7 @@ public class TableDirectoryDao {
         .flatMap(
             fileIdsBatch -> {
               List<TableEntity> entities =
-                  TableServiceClientUtils.batchRetrieveFiles(
-                      tableServiceClient, StorageTableUtils.getDatasetTableName(), fileIdsBatch);
+                  TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, fileIdsBatch);
               return entities.stream();
             })
         .collect(Collectors.toList());
@@ -328,7 +326,6 @@ public class TableDirectoryDao {
   public void addEntriesToSnapshot(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
-      String datasetTableName,
       String datasetId,
       String datasetDirName,
       String snapshotId,
@@ -340,7 +337,7 @@ public class TableDirectoryDao {
             fileIdsBatch -> {
               List<TableEntity> entities =
                   TableServiceClientUtils.batchRetrieveFiles(
-                      datasetTableServiceClient, datasetTableName, fileIdsBatch);
+                      datasetTableServiceClient, fileIdsBatch);
 
               List<FireStoreDirectoryEntry> directoryEntries =
                   entities.stream()

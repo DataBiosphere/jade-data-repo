@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
+import bio.terra.service.common.azure.StorageTableUtils;
 import com.azure.core.http.rest.PagedIterable;
 import com.azure.data.tables.TableClient;
 import com.azure.data.tables.TableServiceClient;
@@ -51,6 +52,7 @@ public class TableServiceClientUtils {
 
   public static List<TableEntity> batchRetrieveFiles(
       TableServiceClient tableServiceClient, String tableName, List<String> fileIdArray) {
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
     String filter =
         fileIdArray.stream()
             // maybe wrap or cause in parenthesis

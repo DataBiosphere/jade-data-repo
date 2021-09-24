@@ -14,6 +14,7 @@ import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleRandomBackoff;
@@ -43,6 +44,7 @@ public class FileIngestWorkerFlight extends Flight {
     ApplicationConfiguration appConfig = appContext.getBean(ApplicationConfiguration.class);
     ConfigurationService configService = appContext.getBean(ConfigurationService.class);
     TableDao azureTableDao = appContext.getBean(TableDao.class);
+    ResourceService resourceService = appContext.getBean(ResourceService.class);
 
     UUID datasetId =
         UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -79,6 +81,7 @@ public class FileIngestWorkerFlight extends Flight {
       addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
       addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     } else if (platform.isAzure()) {
+      addStep(new IngestFileAzurePrimaryDataLocationStep(resourceService, dataset), fileSystemRetry);
       addStep(new ValidateIngestFileAzureDirectoryStep(azureTableDao, dataset));
       addStep(
           new IngestFileAzureDirectoryStep(azureTableDao, fileMetadataUtils, dataset),

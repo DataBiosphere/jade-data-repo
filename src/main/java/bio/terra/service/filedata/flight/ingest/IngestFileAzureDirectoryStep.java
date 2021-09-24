@@ -50,7 +50,8 @@ public class IngestFileAzureDirectoryStep implements Step {
 
     String ingestFileAction = workingMap.get(FileMapKeys.INGEST_FILE_ACTION, String.class);
     AzureStorageAuthInfo storageAuthInfo =
-        workingMap.get(FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
+        FlightUtils.getContextValue(
+            context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
 
     try {
       // The state logic goes like this:

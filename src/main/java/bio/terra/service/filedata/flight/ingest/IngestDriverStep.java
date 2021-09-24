@@ -332,10 +332,6 @@ public class IngestDriverStep extends SkippableStep {
               .loadTag(loadTag)
               .description(loadFile.getDescription());
 
-      AzureStorageAuthInfo storageAuthInfo =
-          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
-              billingProfileModel, storageAccountResource);
-
       FlightMap inputParameters = new FlightMap();
       inputParameters.put(FileMapKeys.DATASET_ID, datasetId);
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
@@ -343,7 +339,13 @@ public class IngestDriverStep extends SkippableStep {
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
       inputParameters.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
       inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
-      inputParameters.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
+
+      if (platform == CloudPlatform.AZURE) {
+        AzureStorageAuthInfo storageAuthInfo =
+            AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+                billingProfileModel, storageAccountResource);
+        inputParameters.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
+      }
 
       logger.debug("~~set running load - flight: " + flightId);
       loadService.setLoadFileRunning(loadId, loadFile.getTargetPath(), flightId);

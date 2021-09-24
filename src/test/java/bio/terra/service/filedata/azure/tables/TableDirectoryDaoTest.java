@@ -8,6 +8,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import bio.terra.common.category.Unit;
+import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
@@ -143,7 +144,9 @@ public class TableDirectoryDaoTest {
     when(mockPagedIterable.stream()).thenReturn(mockStream);
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
-    List<FireStoreDirectoryEntry> response = dao.enumerateDirectory(tableServiceClient, FILE_ID);
+    List<FireStoreDirectoryEntry> response =
+        dao.enumerateDirectory(
+            tableServiceClient, StorageTableUtils.getDatasetTableName(), FILE_ID);
     assertEquals(response.get(0), directoryEntry);
   }
 }

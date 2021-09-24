@@ -152,7 +152,7 @@ public class AzureIngestFileConnectedTest {
   public void cleanup() throws Exception {
     try {
       tableDao.deleteFileMetadata(fileId, storageAuthInfo);
-      tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileId);
+      tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, StorageTableUtils.getDatasetTableName(), fileId);
     } catch (Exception ex) {
       logger.error("Unable to clean up metadata for fileId {}", fileId, ex);
     }
@@ -186,9 +186,8 @@ public class AzureIngestFileConnectedTest {
             .name(fileMetadataUtils.getName(targetPath))
             .datasetId(datasetId.toString())
             .loadTag(fileLoadModel.getLoadTag());
-    String tableName =
-        StorageTableUtils.toTableName(datasetId, StorageTableUtils.StorageTableNameSuffix.DATASET);
-    tableDirectoryDao.createDirectoryEntry(tableServiceClient, tableName, newEntry);
+    tableDirectoryDao.createDirectoryEntry(
+        tableServiceClient, StorageTableUtils.getDatasetTableName(), newEntry);
 
     // test that directory entry now exists
     FireStoreDirectoryEntry de_after =

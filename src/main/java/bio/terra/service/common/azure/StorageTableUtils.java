@@ -3,6 +3,7 @@ package bio.terra.service.common.azure;
 import java.util.UUID;
 
 public class StorageTableUtils {
+  private static final String DATASET_TABLE_NAME = "dataset";
 
   /**
    * Generate a Storage Table name from a UUID
@@ -19,9 +20,13 @@ public class StorageTableUtils {
     return toTableName(resourceId.toString(), suffix);
   }
 
+  // TODO - With DR-2127, remove this  method and add case for dataset in toTableName
+  public static String getDatasetTableName() {
+    return DATASET_TABLE_NAME;
+  }
+
   public enum StorageTableNameSuffix {
     SNAPSHOT("_snapshot"),
-    DATASET("_dataset"),
     LOAD_HISTORY("_loadHistory");
 
     public final String label;

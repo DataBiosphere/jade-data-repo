@@ -1,7 +1,6 @@
 package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.service.common.azure.StorageTableUtils;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
@@ -59,16 +58,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class TableDirectoryDao {
   private final Logger logger = LoggerFactory.getLogger(TableDirectoryDao.class);
-  private static final String TABLE_NAME = "dataset";
   private static final int MAX_FILTER_CLAUSES = 15;
   private final FileMetadataUtils fileMetadataUtils;
-  private final ConfigurationService configurationService;
 
   @Autowired
-  public TableDirectoryDao(
-      FileMetadataUtils fileMetadataUtils, ConfigurationService configurationService) {
+  public TableDirectoryDao(FileMetadataUtils fileMetadataUtils) {
     this.fileMetadataUtils = fileMetadataUtils;
-    this.configurationService = configurationService;
   }
 
   public String encodePathAsAzureRowKey(String path) {
@@ -108,7 +103,7 @@ public class TableDirectoryDao {
       String partitionKey = getPartitionKey(datasetId, testPath);
       String rowKey = encodePathAsAzureRowKey(testPath);
       TableEntity entity = FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, dirToCreate);
-      logger.info("Upserting directory entry for {} in table {}", testPath, TABLE_NAME);
+      logger.info("Upserting directory entry for {} in table {}", testPath, tableName);
       // It's possible that another thread is trying to write the same directory entity at the same
       // time upsert rather than create so that it does not fail if it already exists
       tableClient.upsertEntity(entity);
@@ -120,13 +115,14 @@ public class TableDirectoryDao {
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     TableEntity createEntryEntity =
         FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, createEntry);
-    logger.info("Creating directory entry for {} in table {}", fullPath, TABLE_NAME);
+    logger.info("Creating directory entry for {} in table {}", fullPath, tableName);
     tableClient.createEntity(createEntryEntity);
   }
 
   // true - directory entry existed and was deleted; false - directory entry did not exist
-  public boolean deleteDirectoryEntry(TableServiceClient tableServiceClient, String fileId) {
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+  public boolean deleteDirectoryEntry(
+      TableServiceClient tableServiceClient, String tableName, String fileId) {
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
 
     // Look up the directory entry by id. If it doesn't exist, we're done
     TableEntity leafEntity = lookupByFileId(tableServiceClient, fileId);
@@ -144,7 +140,7 @@ public class TableDirectoryDao {
       String filterPath = fileMetadataUtils.makePathFromLookupPath(lookupPath);
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("path eq '%s'", filterPath));
-      if (TableServiceClientUtils.tableHasEntries(tableServiceClient, TABLE_NAME, options)) {
+      if (TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName, options)) {
         break;
       }
       TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
@@ -157,14 +153,15 @@ public class TableDirectoryDao {
   }
 
   // Each dataset/snapshot has its own set of tables, so we delete the entire directory entry table
-  public void deleteDirectoryEntriesFromCollection(TableServiceClient tableServiceClient) {
-    if (TableServiceClientUtils.tableExists(tableServiceClient, TABLE_NAME)) {
-      TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+  public void deleteDirectoryEntriesFromCollection(
+      TableServiceClient tableServiceClient, String tableName) {
+    if (TableServiceClientUtils.tableExists(tableServiceClient, tableName)) {
+      TableClient tableClient = tableServiceClient.getTableClient(tableName);
       tableClient.deleteTable();
     } else {
       logger.warn(
           "No storage table {} found to be removed.  This should only happen when deleting a file-less dataset.",
-          TABLE_NAME);
+          tableName);
     }
   }
 
@@ -179,8 +176,8 @@ public class TableDirectoryDao {
 
   // returns empty list if no items are found
   public List<FireStoreDirectoryEntry> batchRetrieveById(
-      TableServiceClient tableServiceClient, String tableName, List<String> fileIds) {
-    List<TableEntity> entities = batchLookupByFileId(tableServiceClient, tableName, fileIds);
+      TableServiceClient tableServiceClient, List<String> fileIds) {
+    List<TableEntity> entities = batchLookupByFileId(tableServiceClient, fileIds);
     return entities.stream()
         .map(
             entity -> {
@@ -232,7 +229,7 @@ public class TableDirectoryDao {
             refIdChunk -> {
               List<TableEntity> fileRefs =
                   TableServiceClientUtils.batchRetrieveFiles(
-                      tableServiceClient, TABLE_NAME, refIdChunk);
+                      tableServiceClient, StorageTableUtils.getDatasetTableName(), refIdChunk);
               // if no files were retrieved, then every file in list is not valid
               if (fileRefs.isEmpty()) {
                 return refIdChunk.stream();
@@ -248,8 +245,8 @@ public class TableDirectoryDao {
   }
 
   List<FireStoreDirectoryEntry> enumerateDirectory(
-      TableServiceClient tableServiceClient, String dirPath) {
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+      TableServiceClient tableServiceClient, String tableName, String dirPath) {
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
     ListEntitiesOptions options =
         new ListEntitiesOptions().setFilter(String.format("path eq '%s'", dirPath));
     // TODO - add check that there are entries
@@ -259,9 +256,10 @@ public class TableDirectoryDao {
         .collect(Collectors.toList());
   }
 
-  private TableEntity lookupByFilePath(
+  TableEntity lookupByFilePath(
       TableServiceClient tableServiceClient, String datasetId, String lookupPath) {
-    TableClient tableClient = tableServiceClient.getTableClient(TABLE_NAME);
+    TableClient tableClient =
+        tableServiceClient.getTableClient(StorageTableUtils.getDatasetTableName());
     String partitionKey = getPartitionKey(datasetId, lookupPath);
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     try {
@@ -274,7 +272,8 @@ public class TableDirectoryDao {
   // Returns null if not found
   private TableEntity lookupByFileId(TableServiceClient tableServiceClient, String fileId) {
     try {
-      TableClient client = tableServiceClient.getTableClient(TABLE_NAME);
+      TableClient client =
+          tableServiceClient.getTableClient(StorageTableUtils.getDatasetTableName());
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", fileId));
       // TODO - rework and add to new utils method
@@ -299,13 +298,13 @@ public class TableDirectoryDao {
 
   // Returns empty list if not found
   private List<TableEntity> batchLookupByFileId(
-      TableServiceClient tableServiceClient, String tableName, List<String> fileIds) {
+      TableServiceClient tableServiceClient, List<String> fileIds) {
     return ListUtils.partition(fileIds, MAX_FILTER_CLAUSES).stream()
         .flatMap(
             fileIdsBatch -> {
               List<TableEntity> entities =
                   TableServiceClientUtils.batchRetrieveFiles(
-                      tableServiceClient, tableName, fileIdsBatch);
+                      tableServiceClient, StorageTableUtils.getDatasetTableName(), fileIdsBatch);
               return entities.stream();
             })
         .collect(Collectors.toList());
@@ -329,7 +328,7 @@ public class TableDirectoryDao {
   public void addEntriesToSnapshot(
       TableServiceClient datasetTableServiceClient,
       TableServiceClient snapshotTableServiceClient,
-      String tableName,
+      String datasetTableName,
       String datasetId,
       String datasetDirName,
       String snapshotId,
@@ -341,7 +340,7 @@ public class TableDirectoryDao {
             fileIdsBatch -> {
               List<TableEntity> entities =
                   TableServiceClientUtils.batchRetrieveFiles(
-                      datasetTableServiceClient, tableName, fileIdsBatch);
+                      datasetTableServiceClient, datasetTableName, fileIdsBatch);
 
               List<FireStoreDirectoryEntry> directoryEntries =
                   entities.stream()

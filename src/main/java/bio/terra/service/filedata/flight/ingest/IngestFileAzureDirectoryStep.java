@@ -3,7 +3,6 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.common.FlightUtils;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.common.azure.StorageTableUtils;
-import bio.terra.service.common.azure.StorageTableUtils.StorageTableNameSuffix;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.azure.tables.TableDao;

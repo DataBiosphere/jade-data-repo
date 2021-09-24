@@ -107,4 +107,7 @@ public class TableDaoConnectedTest {
     assertThat("One file id returned from batchRetreiveFiles", entities.size(), equalTo(1));
     // assertThat("Right file is returned", entities.get(0).getPartitionKey(), equalTo(1));
   }
+
+  // TODO - add test case that tests out the cache mechanism
+  //TODO - test multiple files in snapshot - (A) With shared file paths and (B) with different file paths
 }

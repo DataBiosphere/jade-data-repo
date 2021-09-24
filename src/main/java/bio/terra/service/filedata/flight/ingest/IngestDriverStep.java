@@ -17,6 +17,7 @@ import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.stairway.FlightContext;
@@ -331,6 +332,10 @@ public class IngestDriverStep extends SkippableStep {
               .loadTag(loadTag)
               .description(loadFile.getDescription());
 
+      AzureStorageAuthInfo storageAuthInfo =
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+              billingProfileModel, storageAccountResource);
+
       FlightMap inputParameters = new FlightMap();
       inputParameters.put(FileMapKeys.DATASET_ID, datasetId);
       inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
@@ -338,6 +343,7 @@ public class IngestDriverStep extends SkippableStep {
       inputParameters.put(ProfileMapKeys.PROFILE_MODEL, billingProfileModel);
       inputParameters.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
       inputParameters.put(JobMapKeys.CLOUD_PLATFORM.getKeyName(), platform.name());
+      inputParameters.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
 
       logger.debug("~~set running load - flight: " + flightId);
       loadService.setLoadFileRunning(loadId, loadFile.getTargetPath(), flightId);

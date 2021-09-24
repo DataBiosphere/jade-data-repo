@@ -67,11 +67,11 @@ public class TableDependencyDaoTest {
     UUID snapshotId = UUID.randomUUID();
     String refId = UUID.randomUUID().toString();
     dao.storeSnapshotFileDependencies(tableServiceClient, datasetId, snapshotId, List.of(refId));
-    verify(tableClient, times(1)).createEntity(any());
+    verify(tableClient, times(1)).upsertEntity(any());
   }
 
   @Test
-  public void testUpdateSnapshotFileDependencies() {
+  public void testAddSnapshotFileDependenciesExisting() {
     UUID datasetId = UUID.randomUUID();
     UUID snapshotId = UUID.randomUUID();
     String refId = UUID.randomUUID().toString();
@@ -90,6 +90,6 @@ public class TableDependencyDaoTest {
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
     dao.storeSnapshotFileDependencies(tableServiceClient, datasetId, snapshotId, List.of(refId));
-    verify(tableClient, times(1)).updateEntity(any());
+    verify(tableClient, times(1)).upsertEntity(any());
   }
 }

@@ -72,14 +72,6 @@ public class TableDependencyConnectedTest {
     dependencyDao.storeSnapshotFileDependencies(
         tableServiceClient, DATASET_ID, SNAPSHOT_ID2, REF_IDS);
 
-    // Only the SNAPSHOT_ID dependency changes
-    dependencyDao.storeSnapshotFileDependencies(
-        tableServiceClient, DATASET_ID, SNAPSHOT_ID, REF_IDS);
-    TableEntity updatedEntity = tableClient.getEntity(SNAPSHOT_ID.toString(), FILE_ID);
-    assertEntityCorrect(updatedEntity, SNAPSHOT_ID, FILE_ID, 2L);
-    TableEntity unchangedEntity = tableClient.getEntity(SNAPSHOT_ID2.toString(), FILE_ID);
-    assertEntityCorrect(unchangedEntity, SNAPSHOT_ID2, FILE_ID, 1L);
-
     // Deleting the SNAPSHOT_ID dependencies does not affect other snapshot records
     dependencyDao.deleteSnapshotFileDependencies(tableServiceClient, DATASET_ID, SNAPSHOT_ID);
     assertThrows(

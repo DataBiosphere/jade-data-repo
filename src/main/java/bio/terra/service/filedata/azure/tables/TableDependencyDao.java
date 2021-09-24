@@ -67,8 +67,6 @@ public class TableDependencyDao {
               refIdChunk.stream()
                   .filter(id -> !existing.contains(id))
                   .forEach(refId -> createDependencyEntity(tableClient, snapshotId, refId));
-              // Update refCount for existing entities
-              entities.forEach(entity -> updateRefCount(tableClient, entity));
             });
   }
 
@@ -76,13 +74,7 @@ public class TableDependencyDao {
     FireStoreDependency fireStoreDependency =
         new FireStoreDependency().snapshotId(snapshotId.toString()).fileId(refId).refCount(1L);
     TableEntity fireStoreDependencyEntity = FireStoreDependency.toTableEntity(fireStoreDependency);
-    tableClient.createEntity(fireStoreDependencyEntity);
-  }
-
-  private void updateRefCount(TableClient tableClient, TableEntity entity) {
-    FireStoreDependency fireStoreDependency = FireStoreDependency.fromTableEntity(entity);
-    fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
-    tableClient.updateEntity(FireStoreDependency.toTableEntity(fireStoreDependency));
+    tableClient.upsertEntity(fireStoreDependencyEntity);
   }
 
   public void deleteSnapshotFileDependencies(

@@ -2,7 +2,6 @@ package bio.terra.service.filedata.azure.tables;
 
 import bio.terra.model.CloudPlatform;
 import bio.terra.service.common.azure.StorageTableUtils;
-import bio.terra.service.common.azure.StorageTableUtils.StorageTableNameSuffix;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
@@ -363,13 +362,10 @@ public class TableDao {
     String datasetId = dataset.getId().toString();
     String datasetDirName = dataset.getName();
     String snapshotId = snapshot.getId().toString();
-    String storageTableName =
-        StorageTableUtils.toTableName(snapshotId, StorageTableNameSuffix.SNAPSHOT);
 
     directoryDao.addEntriesToSnapshot(
         datasetTableServiceClient,
         snapshotTableServiceClient,
-        storageTableName,
         datasetId,
         datasetDirName,
         snapshotId,

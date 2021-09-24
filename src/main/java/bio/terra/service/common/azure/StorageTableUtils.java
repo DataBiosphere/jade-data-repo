@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public class StorageTableUtils {
   private static final String DATASET_TABLE_NAME = "dataset";
+  private static final String FILES_TABLE_NAME = "files";
 
   /**
    * Generate a Storage Table name from a UUID
@@ -13,7 +14,7 @@ public class StorageTableUtils {
    * @return A valid azure storage table name
    */
   public static String toTableName(String resourceId, StorageTableNameSuffix suffix) {
-    return "datarepo_" + resourceId.replaceAll("-", "") + suffix.getLabel();
+    return "datarepo" + resourceId.replaceAll("-", "") + suffix.getLabel();
   }
 
   public static String toTableName(UUID resourceId, StorageTableNameSuffix suffix) {
@@ -25,9 +26,13 @@ public class StorageTableUtils {
     return DATASET_TABLE_NAME;
   }
 
+  public static String getFilesTableName() {
+    return FILES_TABLE_NAME;
+  }
+
   public enum StorageTableNameSuffix {
-    SNAPSHOT("_snapshot"),
-    LOAD_HISTORY("_loadHistory");
+    SNAPSHOT("snapshot"),
+    LOAD_HISTORY("loadHistory");
 
     public final String label;
 

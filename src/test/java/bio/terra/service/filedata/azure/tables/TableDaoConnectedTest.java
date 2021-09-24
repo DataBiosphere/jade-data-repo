@@ -1,12 +1,16 @@
 package bio.terra.service.filedata.azure.tables;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.AzureUtils;
 import bio.terra.common.category.Connected;
+import bio.terra.common.fixtures.Names;
+import bio.terra.service.common.azure.StorageTableUtils;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.filedata.FileMetadataUtils;
+import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.snapshot.Snapshot;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
@@ -35,26 +39,16 @@ public class TableDaoConnectedTest {
   @Autowired AzureUtils azureUtils;
   @Autowired TableDao tableDao;
   @Autowired TableFileDao tableFileDao;
+  @Autowired TableDirectoryDao tableDirectoryDao;
+  @Autowired FileMetadataUtils fileMetadataUtils;
   private TableServiceClient tableServiceClient;
   private UUID datasetId;
   private Dataset dataset;
   private UUID snapshotId;
   private Snapshot snapshot;
   private List<String> refIds;
-  private static final String PARTITION_KEY = "partitionKey";
   private static final String FILE_ID = UUID.randomUUID().toString();
-  private final TableEntity entity =
-      new TableEntity(PARTITION_KEY, FILE_ID)
-          .addProperty(FireStoreFile.FILE_ID_FIELD_NAME, FILE_ID)
-          .addProperty(FireStoreFile.MIME_TYPE_FIELD_NAME, "application/json")
-          .addProperty(FireStoreFile.DESCRIPTION_FIELD_NAME, "A test entity")
-          .addProperty(FireStoreFile.BUCKET_RESOURCE_ID_FIELD_NAME, "bucketResourceId")
-          .addProperty(FireStoreFile.LOAD_TAG_FIELD_NAME, "loadTag")
-          .addProperty(FireStoreFile.FILE_CREATED_DATE_FIELD_NAME, "fileCreatedDate")
-          .addProperty(FireStoreFile.GS_PATH_FIELD_NAME, "gspath")
-          .addProperty(FireStoreFile.CHECKSUM_CRC32C_FIELD_NAME, "checksumCrc32c")
-          .addProperty(FireStoreFile.CHECKSUM_MD5_FIELD_NAME, "checksumMd5")
-          .addProperty(FireStoreFile.SIZE_FIELD_NAME, 1L);
+  private String targetPath;
 
   @Before
   public void setUp() {
@@ -70,19 +64,39 @@ public class TableDaoConnectedTest {
                     + ".table.core.windows.net")
             .buildClient();
     datasetId = UUID.randomUUID();
-    dataset = new Dataset().id(datasetId);
+    dataset = new Dataset().id(datasetId).name(Names.randomizeName("dataset"));
     refIds = List.of(FILE_ID);
     snapshotId = UUID.randomUUID();
     snapshot = new Snapshot().id(snapshotId);
+    targetPath = "/test/path/file.json";
 
-    FireStoreFile fireStoreFile = FireStoreFile.fromTableEntity(entity);
-    tableFileDao.createFileMetadata(tableServiceClient, fireStoreFile);
-    FireStoreFile file = tableFileDao.retrieveFileMetadata(tableServiceClient, FILE_ID);
-    assertEquals("The same file is retrieved", file, fireStoreFile);
+    FireStoreDirectoryEntry newEntry =
+        new FireStoreDirectoryEntry()
+            .fileId(FILE_ID)
+            .isFileRef(true)
+            .path(fileMetadataUtils.getDirectoryPath(targetPath))
+            .name(fileMetadataUtils.getName(targetPath))
+            .datasetId(datasetId.toString())
+            .loadTag(Names.randomizeName("loadTag"));
+    tableDirectoryDao.createDirectoryEntry(
+        tableServiceClient, StorageTableUtils.getDatasetTableName(), newEntry);
+
+    // test that directory entry now exists
+    FireStoreDirectoryEntry de_after =
+        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), targetPath);
+    assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
   }
 
   @Test
   public void testAddFilesToSnapshot() {
     tableDao.addFilesToSnapshot(tableServiceClient, tableServiceClient, dataset, snapshot, refIds);
+  }
+
+  @Test
+  public void testBatchRetrieve() {
+    List<TableEntity> entities =
+        TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, refIds);
+    assertThat("One file id returned from batchRetreiveFiles", entities.size(), equalTo(1));
+    // assertThat("Right file is returned", entities.get(0).getPartitionKey(), equalTo(1));
   }
 }

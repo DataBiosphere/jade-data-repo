@@ -35,6 +35,7 @@ import org.springframework.stereotype.Component;
 public class TableFileDao {
   private final Logger logger = LoggerFactory.getLogger(TableFileDao.class);
   private final ExecutorService executor;
+  // TODO - move to StorageTableUtils?
   private static final String TABLE_NAME = "files";
   private static final String PARTITION_KEY = "partitionKey";
 

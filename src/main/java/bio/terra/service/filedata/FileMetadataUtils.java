@@ -9,12 +9,15 @@ import java.util.List;
 import java.util.UUID;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class FileMetadataUtils {
   public static final String ROOT_DIR_NAME = "/_dr_";
+  private final Logger logger = LoggerFactory.getLogger(FileMetadataUtils.class);
 
   @Autowired
   public FileMetadataUtils() {}
@@ -80,7 +83,12 @@ public class FileMetadataUtils {
   public String makeLookupPath(String fullPath) {
     String temp = StringUtils.prependIfMissing(fullPath, "/");
     temp = StringUtils.removeEnd(temp, "/");
-    return ROOT_DIR_NAME + temp;
+    // TODO - I think this broke things
+    if (!temp.startsWith(ROOT_DIR_NAME)) {
+      temp = ROOT_DIR_NAME + temp;
+    }
+    logger.info("Lookup Path: {} (original: {})", temp, fullPath);
+    return temp;
   }
 
   public String makePathFromLookupPath(String lookupPath) {

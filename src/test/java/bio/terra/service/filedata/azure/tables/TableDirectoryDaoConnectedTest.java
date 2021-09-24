@@ -87,7 +87,8 @@ public class TableDirectoryDaoConnectedTest {
     // Should already be deleted
     for (String entry : directoryEntriesToCleanup) {
       try {
-        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, entry);
+        tableDirectoryDao.deleteDirectoryEntry(
+            tableServiceClient, StorageTableUtils.getDatasetTableName(), entry);
       } catch (Exception ex) {
         logger.debug("Directory entry either already deleted or unable to delete {}", entry, ex);
       }
@@ -126,7 +127,8 @@ public class TableDirectoryDaoConnectedTest {
 
     // Delete File 1's directory entry
     boolean deleteEntry =
-        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileEntry1.getFileId());
+        tableDirectoryDao.deleteDirectoryEntry(
+            tableServiceClient, StorageTableUtils.getDatasetTableName(), fileEntry1.getFileId());
     assertThat("Delete Entry 1", deleteEntry, equalTo(true));
     FireStoreDirectoryEntry shouldbeNull =
         tableDirectoryDao.retrieveByPath(
@@ -170,7 +172,8 @@ public class TableDirectoryDaoConnectedTest {
 
     // Delete the second file
     boolean deleteEntry2 =
-        tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileEntry2.getFileId());
+        tableDirectoryDao.deleteDirectoryEntry(
+            tableServiceClient, StorageTableUtils.getDatasetTableName(), fileEntry2.getFileId());
     assertThat("Delete Entry 2", deleteEntry2, equalTo(true));
     FireStoreDirectoryEntry file2ShouldbeNull =
         tableDirectoryDao.retrieveByPath(
@@ -210,9 +213,8 @@ public class TableDirectoryDaoConnectedTest {
             .name(fileMetadataUtils.getName(sharedTargetPath + fileName))
             .datasetId(datasetId.toString())
             .loadTag(loadTag);
-    String tableName =
-        StorageTableUtils.toTableName(datasetId, StorageTableUtils.StorageTableNameSuffix.DATASET);
-    tableDirectoryDao.createDirectoryEntry(tableServiceClient, tableName, newEntry);
+    tableDirectoryDao.createDirectoryEntry(
+        tableServiceClient, StorageTableUtils.getDatasetTableName(), newEntry);
     directoryEntriesToCleanup.add(fileId.toString());
 
     // test that directory entry now exists

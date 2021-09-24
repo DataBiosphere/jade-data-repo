@@ -987,7 +987,7 @@ public class ConnectedOperations {
   }
 
   public void deleteLoadHistory(UUID datasetId, TableServiceClient serviceClient) {
-    var tableName = StorageTableUtils.toTableName(datasetId, StorageTableNameSuffix.DATASET);
+    var tableName = StorageTableUtils.toTableName(datasetId, StorageTableNameSuffix.LOAD_HISTORY);
     serviceClient.deleteTable(tableName);
   }
 }

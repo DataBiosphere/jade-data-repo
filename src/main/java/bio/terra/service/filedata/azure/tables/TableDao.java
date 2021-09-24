@@ -83,7 +83,7 @@ public class TableDao {
             storageAuthInfo.getSubscriptionId(),
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
-    return directoryDao.deleteDirectoryEntry(tableServiceClient, fileId);
+    return directoryDao.deleteDirectoryEntry(tableServiceClient, StorageTableUtils.getDatasetTableName(), fileId);
   }
 
   public void createFileMetadata(FireStoreFile newFile, AzureStorageAuthInfo storageAuthInfo) {
@@ -119,7 +119,8 @@ public class TableDao {
       fileDao.deleteFilesFromDataset(tableServiceClient, func);
     }
     logger.info("deleting directory entries");
-    directoryDao.deleteDirectoryEntriesFromCollection(tableServiceClient);
+    directoryDao.deleteDirectoryEntriesFromCollection(
+        tableServiceClient, StorageTableUtils.getDatasetTableName());
   }
 
   public FireStoreDirectoryEntry lookupDirectoryEntryByPath(
@@ -291,7 +292,8 @@ public class TableDao {
     if (level != 0) {
       List<FSItem> fsContents = new ArrayList<>();
       List<FireStoreDirectoryEntry> dirContents =
-          directoryDao.enumerateDirectory(tableServiceClient, fullPath);
+          directoryDao.enumerateDirectory(
+              tableServiceClient, StorageTableUtils.getDatasetTableName(), fullPath);
       for (FireStoreDirectoryEntry fso : dirContents) {
         if (fso.getIsFileRef()) {
           // Files that are in the middle of being ingested can have a directory entry, but not yet

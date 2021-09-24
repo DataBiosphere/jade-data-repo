@@ -29,7 +29,8 @@ public final class AuthenticationUtils {
   // the list of scopes we request from end users when they log in. this should always match exactly
   // what the UI requests, so our tests represent actual user behavior
   private static final List<String> userLoginScopes =
-      Arrays.asList("openid", "email", "profile", "https://www.googleapis.com/auth/cloud-platform");
+      Arrays.asList(
+          "openid", "email", "profile", "https://www.googleapis.com/auth/cloud-billing.readonly");
 
   // the list of "extra" scopes we request for the test users, so that we can access BigQuery and
   // Cloud Storage directly (e.g. to query the snapshot table, write a file to a scratch bucket)

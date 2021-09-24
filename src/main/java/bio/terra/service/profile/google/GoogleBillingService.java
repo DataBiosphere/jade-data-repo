@@ -42,9 +42,8 @@ public class GoogleBillingService {
       // running in GCE, GKE or a Managed VM, the scopes are pulled from the GCE metadata server.
       // See https://developers.google.com/identity/protocols/application-default-credentials
       // for more information.
-      List<String> scopes =
-          Collections.singletonList("https://www.googleapis.com/auth/cloud-platform");
       if (serviceAccountCredentials.createScopedRequired()) {
+        List<String> scopes = List.of("https://www.googleapis.com/auth/cloud-billing");
         serviceAccountCredentials = serviceAccountCredentials.createScoped(scopes);
       }
 
@@ -97,6 +96,9 @@ public class GoogleBillingService {
    *
    * <p>The second permission is specific to projects, so we will check for the first permission
    * here.
+   *
+   * <p>The minimum scope required to verify permissions is:
+   * https://www.googleapis.com/auth/cloud-billing.readonly
    *
    * @param user
    * @param billingAccountId

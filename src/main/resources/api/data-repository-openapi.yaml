@@ -2282,7 +2282,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/SearchMetadataResponse'
 
   /api/repository/v1/search/{id}/index:
     post:
@@ -4142,6 +4142,15 @@ components:
           description: Results that match the search criteria
       description: >
         The available search results that match the filter criteria
+
+    SearchMetadataResponse:
+      type: object
+      properties:
+        result:
+          type: array
+          items:
+            type: object
+      description: List of snapshot metadata
 
     ##############################################################################
     ## DRS STANDARD MODELS

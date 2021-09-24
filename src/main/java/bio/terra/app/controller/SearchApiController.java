@@ -6,6 +6,7 @@ import bio.terra.controller.SearchApi;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchMetadataModel;
+import bio.terra.model.SearchMetadataResponse;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -18,8 +19,12 @@ import bio.terra.service.search.SearchService;
 import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
+import com.fasterxml.jackson.annotation.JsonRawValue;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -85,11 +90,27 @@ public class SearchApiController implements SearchApi {
   }
 
   @Override
-  public ResponseEntity<Object> enumerateSnapshotSearch() {
+  public ResponseEntity<SearchMetadataResponse> enumerateSnapshotSearch() {
     List<UUID> authorizedSnapshotIds =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
     Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(authorizedSnapshotIds);
-    return ResponseEntity.ok(metadata.values());
+    var response = new SearchMetadataResponse();
+    response.setResult(new ArrayList<>());
+    // There's no easy way to tell openapi to map a field as @JsonRawValue mapping, so
+    // instead we translate the json text from Postgres back to a JsonNode, which Jackson
+    // will convert back to text in the response.
+    metadata.values().stream().map(this::toJsonNode).forEach(response.getResult()::add);
+    return ResponseEntity.ok(response);
+  }
+
+  private JsonNode toJsonNode(String json) {
+    try {
+      return objectMapper.readValue(json, JsonNode.class);
+    } catch (JsonProcessingException e) {
+      // This shouldn't occur, as the data stored in postgres must be valid JSON, because it's
+      // stored as JSONB.
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
@@ -159,7 +180,7 @@ public class SearchApiController implements SearchApi {
               + getAuthenticatedInfo().getEmail()
               + "' does not have required action: "
               + IamAction.READ_DATA
-              + " on snapshot ids"
+              + " on snapshot ids "
               + inaccessibleIds);
     }
 

@@ -203,7 +203,6 @@ public class TableDirectoryDao {
         .orElse(null);
   }
 
-  // Returns empty list if not found - upper layers do any throwing
   public List<FireStoreDirectoryEntry> batchRetrieveByPath(
       TableServiceClient tableServiceClient, String datasetId, List<String> fullPaths) {
     // I don't see a batch way to "getEntity". We could switch to listEntities w/ a query
@@ -359,6 +358,9 @@ public class TableDirectoryDao {
               // Find directory paths that need to be created; plus add to the cache
               List<String> newPaths =
                   fileMetadataUtils.findNewDirectoryPaths(directoryEntries, pathMap);
+              // TODO - Do we expect for this to return something??
+              // Should it only return successfully when the snapshot has already ingested a file at
+              // this filepath??
               List<FireStoreDirectoryEntry> datasetDirectoryEntries =
                   batchRetrieveByPath(datasetTableServiceClient, datasetId, newPaths);
 
@@ -410,7 +412,8 @@ public class TableDirectoryDao {
         topDir);
   }
 
-  // TODO - can just call a subset of the createDirectoryEntry for the batch call
+  // TODO - make sure these are actually adding the right entries
+  // TODO - Figure out why you can't see the entries in azure portal
   private void batchStoreDirectoryEntry(
       TableServiceClient snapshotTableServiceClient,
       String snapshotId,
@@ -418,7 +421,19 @@ public class TableDirectoryDao {
     String tableName =
         StorageTableUtils.toTableName(
             snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT);
+    logger.info("Num Snapshot entries: {}", snapshotEntries.size());
+    TableClient tableClient = snapshotTableServiceClient.getTableClient(tableName);
     snapshotEntries.stream()
-        .forEach(entry -> createDirectoryEntry(snapshotTableServiceClient, tableName, entry));
+        .forEach(
+            entry -> {
+              String fullPath = fileMetadataUtils.getFullPath(entry.getPath(), entry.getName());
+              String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
+              String partitionKey = getPartitionKey(snapshotId, lookupPath);
+              String rowKey = encodePathAsAzureRowKey(lookupPath);
+              TableEntity createEntryEntity =
+                  FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, entry);
+              logger.info("Creating directory entry for {} in table {}", fullPath, tableName);
+              tableClient.createEntity(createEntryEntity);
+            });
   }
 }

@@ -90,6 +90,14 @@ public class TableDaoConnectedTest {
   @Test
   public void testAddFilesToSnapshot() {
     tableDao.addFilesToSnapshot(tableServiceClient, tableServiceClient, dataset, snapshot, refIds);
+
+    // check if exist
+    List<String> directories = List.of("/_dr_/test", "/_dr_/test/path");
+    List<FireStoreDirectoryEntry> datasetDirectoryEntries =
+        tableDirectoryDao.batchRetrieveByPath(
+            tableServiceClient, datasetId.toString(), directories);
+    assertThat(
+        "Retrieved two entries for the two paths", datasetDirectoryEntries.size(), equalTo(2));
   }
 
   @Test

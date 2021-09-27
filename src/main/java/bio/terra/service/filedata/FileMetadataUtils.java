@@ -83,11 +83,9 @@ public class FileMetadataUtils {
   public String makeLookupPath(String fullPath) {
     String temp = StringUtils.prependIfMissing(fullPath, "/");
     temp = StringUtils.removeEnd(temp, "/");
-    // TODO - I think this broke things
     if (!temp.startsWith(ROOT_DIR_NAME)) {
       temp = ROOT_DIR_NAME + temp;
     }
-    logger.info("Lookup Path: {} (original: {})", temp, fullPath);
     return temp;
   }
 

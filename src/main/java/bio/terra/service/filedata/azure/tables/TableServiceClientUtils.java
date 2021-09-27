@@ -52,14 +52,13 @@ public class TableServiceClientUtils {
   }
 
   public static List<TableEntity> batchRetrieveFiles(
-      TableServiceClient tableServiceClient, String tableName, List<String> fileIdArray) {
-    TableClient tableClient = tableServiceClient.getTableClient(tableName);
+      TableServiceClient tableServiceClient, List<String> fileIdArray) {
     String filter =
         fileIdArray.stream()
             // maybe wrap or cause in parenthesis
             .map(refId -> String.format("fileId eq '%s'", refId))
             .collect(Collectors.joining(" or "));
-    return filterTable(tableServiceClient, tableName, filter);
+    return filterTable(tableServiceClient, StorageTableUtils.getDatasetTableName(), filter);
   }
 
   public static int getTableEntryCount(

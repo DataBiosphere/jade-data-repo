@@ -1,5 +1,7 @@
 package bio.terra.service.filedata.azure.tables;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.any;
@@ -27,6 +29,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -111,10 +115,16 @@ public class TableDirectoryDaoTest {
     when(mockIterator.next()).thenReturn(entity);
     when(mockPagedIterable.iterator()).thenReturn(mockIterator);
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
-
-    FireStoreDirectoryEntry response =
-        dao.retrieveById(tableServiceClient, StorageTableUtils.getDatasetTableName(), FILE_ID);
-    assertEquals(response, directoryEntry);
+    try (MockedStatic<TableServiceClientUtils> utils =
+        Mockito.mockStatic(TableServiceClientUtils.class)) {
+      utils
+          .when(() -> TableServiceClientUtils.getTableEntryCount(any(), any(), any()))
+          .thenReturn(1);
+      FireStoreDirectoryEntry response =
+          dao.retrieveById(tableServiceClient, StorageTableUtils.getDatasetTableName(), FILE_ID);
+      assertThat(
+          "retrieveById returns the correct directory entry", directoryEntry, equalTo(response));
+    }
   }
 
   @Test

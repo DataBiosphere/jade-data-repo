@@ -44,7 +44,7 @@ public class TableDependencyDaoTest {
   @Before
   public void setUp() {
     dao = spy(dao);
-    when(authService.getTableServiceClient(any(), any())).thenReturn(tableServiceClient);
+    when(authService.getTableServiceClient(any(), any(), any())).thenReturn(tableServiceClient);
     when(tableServiceClient.getTableClient(any())).thenReturn(tableClient);
 
     // Mock table exists check

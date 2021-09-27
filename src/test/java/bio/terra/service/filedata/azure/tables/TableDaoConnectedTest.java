@@ -23,8 +23,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -37,8 +35,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class TableDaoConnectedTest {
-  private final Logger logger = LoggerFactory.getLogger(TableDaoConnectedTest.class);
-
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
   @Autowired AzureUtils azureUtils;
   @Autowired TableDao tableDao;
@@ -74,11 +70,6 @@ public class TableDaoConnectedTest {
     snapshot = new Snapshot().id(snapshotId);
     loadTag = Names.randomizeName("loadTag");
     numFilesToLoad = 3;
-    logger.info(
-        "DatasetId: {}, DatasetName: {}, Snapshot: {}",
-        datasetId,
-        dataset.getName(),
-        snapshotId.toString());
 
     String baseTargetPath = "/test/path/file-%d.json";
     for (int i = 0; i < numFilesToLoad; i++) {
@@ -91,28 +82,17 @@ public class TableDaoConnectedTest {
 
   @Test
   public void testAddFilesToSnapshot() {
+    // First, make sure the directory entries exist in the dataset's storage table
+    checkThatEntriesExist(datasetId.toString(), StorageTableUtils.getDatasetTableName(), false);
+
     tableDao.addFilesToSnapshot(tableServiceClient, tableServiceClient, dataset, snapshot, refIds);
 
-    // check if exist
-    List<String> directories = new ArrayList();
-    directories.add("/");
-    directories.add("/_dr_");
-    directories.add("/_dr_/" + dataset.getName() + "/test");
-    directories.add("/_dr_/" + dataset.getName() + "/test/path");
-    String baseTargetPath = "/_dr_/" + dataset.getName() + "/test/path/file-%d.json";
-    for (int i = 0; i < numFilesToLoad; i++) {
-      directories.add(String.format(baseTargetPath, i));
-    }
-    int expectedNum = 4 + numFilesToLoad;
-    List<FireStoreDirectoryEntry> datasetDirectoryEntries =
-        tableDirectoryDao.batchRetrieveByPath(
-            tableServiceClient,
-            snapshotId.toString(),
-            StorageTableUtils.toTableName(
-                snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT),
-            directories);
-    assertThat(
-        "Retrieved entries for all paths", datasetDirectoryEntries.size(), equalTo(expectedNum));
+    // Now make sure that the same directory entries exist in the snapshot's storage table
+    checkThatEntriesExist(
+        snapshotId.toString(),
+        StorageTableUtils.toTableName(
+            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT),
+        true);
   }
 
   @Test
@@ -147,6 +127,31 @@ public class TableDaoConnectedTest {
             StorageTableUtils.getDatasetTableName(),
             targetPath);
     assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
+  }
+
+  private void checkThatEntriesExist(String collectionId, String tableName, boolean isSnapshot) {
+    // For Snapshot lookups, we include the dataset name in the file path
+    // This is excluded for datasets
+    String datasetNamePlaceholder = "";
+    if (isSnapshot) {
+      datasetNamePlaceholder = dataset.getName() + "/";
+    }
+
+    List<String> directories = new ArrayList();
+    directories.add("/");
+    directories.add("/_dr_");
+    directories.add("/_dr_/" + datasetNamePlaceholder + "test");
+    directories.add("/_dr_/" + datasetNamePlaceholder + "test/path");
+    String baseTargetPath = "/_dr_/" + datasetNamePlaceholder + "test/path/file-%d.json";
+    for (int i = 0; i < numFilesToLoad; i++) {
+      directories.add(String.format(baseTargetPath, i));
+    }
+    int expectedNum = 4 + numFilesToLoad;
+    List<FireStoreDirectoryEntry> datasetDirectoryEntries =
+        tableDirectoryDao.batchRetrieveByPath(
+            tableServiceClient, collectionId, tableName, directories);
+    assertThat(
+        "Retrieved entries for all paths", datasetDirectoryEntries.size(), equalTo(expectedNum));
   }
 
   // TODO - add test case that tests out the cache mechanism

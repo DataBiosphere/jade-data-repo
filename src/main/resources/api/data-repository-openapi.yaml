@@ -4143,15 +4143,6 @@ components:
       description: >
         The available search results that match the filter criteria
 
-    SearchMetadataResponse:
-      type: object
-      properties:
-        result:
-          type: array
-          items:
-            type: object
-      description: List of snapshot metadata
-
     ##############################################################################
     ## DRS STANDARD MODELS
     ##############################################################################

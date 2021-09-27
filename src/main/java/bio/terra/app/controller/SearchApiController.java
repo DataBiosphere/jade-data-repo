@@ -18,8 +18,6 @@ import bio.terra.service.search.SearchService;
 import bio.terra.service.search.SnapshotSearchMetadataDao;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
 import java.util.HashSet;
@@ -91,26 +89,9 @@ public class SearchApiController implements SearchApi {
     List<UUID> ids =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
     Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(ids);
-    //    var response = new SearchMetadataResponse();
-    //    response.setResult(new ArrayList<>());
-    // There's no easy way to tell openapi to map a field as @JsonRawValue mapping, so
-    // instead we translate the json text from Postgres back to a JsonNode, which Jackson
-    // will convert back to text in the response.
     // Create the JSON result "by hand" to avoid having to round trip the data to JsonNode.
-    var jsonResponseTemplate = "{ \"result\": [ %s ] }";
-    //    metadata.values().stream().map(this::toJsonNode).forEach(response.getResult()::add);
-    return ResponseEntity.ok(
-        String.format(jsonResponseTemplate, String.join(",", metadata.values())));
-  }
-
-  private JsonNode toJsonNode(String json) {
-    try {
-      return objectMapper.readValue(json, JsonNode.class);
-    } catch (JsonProcessingException e) {
-      // This shouldn't occur, as the data stored in postgres must be valid JSON, because it's
-      // stored as JSONB.
-      throw new RuntimeException(e);
-    }
+    String response = String.format("{ \"result\": [ %s ] }", String.join(",", metadata.values()));
+    return ResponseEntity.ok(response);
   }
 
   @Override

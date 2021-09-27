@@ -6,6 +6,7 @@ import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.profile.flight.ProfileMapKeys;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -41,6 +42,11 @@ public class IngestFileAzurePrimaryDataLocationStep implements Step {
             resourceService.getOrCreateStorageAccount(
                 dataset, billingProfile, context.getFlightId());
         workingMap.put(FileMapKeys.STORAGE_ACCOUNT_INFO, storageAccountResource);
+        AzureStorageAuthInfo storageAuthInfo =
+            AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+                billingProfile, storageAccountResource);
+        workingMap.put(FileMapKeys.STORAGE_AUTH_INFO, storageAuthInfo);
+
       } catch (BucketLockException blEx) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, blEx);
       }

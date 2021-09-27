@@ -37,7 +37,10 @@ public class StorageTableService {
     var storageAccountResource =
         resourceService.getOrCreateStorageAccount(dataset, billingProfile, flightId);
     TableServiceClient serviceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            billingProfile.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
 
     storageTableDao.storeLoadHistory(
         serviceClient, dataset.getId(), loadTag, loadTime, loadHistoryArray);
@@ -48,7 +51,10 @@ public class StorageTableService {
     var billingProfile = dataset.getDatasetSummary().getDefaultBillingProfile();
     var storageAccountResource = resourceService.getStorageAccount(dataset, billingProfile);
     TableServiceClient tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            billingProfile.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
 
     return storageTableDao.getLoadHistory(
         tableServiceClient, dataset.getId(), loadTag, offset, limit);

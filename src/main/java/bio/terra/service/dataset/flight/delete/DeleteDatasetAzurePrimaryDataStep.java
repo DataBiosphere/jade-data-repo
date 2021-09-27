@@ -11,6 +11,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.profile.ProfileDao;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -58,8 +59,9 @@ public class DeleteDatasetAzurePrimaryDataStep implements Step {
         profileDao.getBillingProfileById(dataset.getDefaultProfileId());
     AzureStorageAccountResource storageAccountResource =
         resourceService.getStorageAccount(dataset, profileModel);
-    tableDao.deleteFilesFromDataset(
-        profileModel, storageAccountResource, azureBlobStorePdao::deleteFile);
+    AzureStorageAuthInfo storageAuthInfo =
+        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(profileModel, storageAccountResource);
+    tableDao.deleteFilesFromDataset(storageAuthInfo, azureBlobStorePdao::deleteFile);
 
     // this fault is used by the DatasetConnectedTest > testOverlappingDeletes
     if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT)) {

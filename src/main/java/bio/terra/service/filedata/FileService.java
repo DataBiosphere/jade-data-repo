@@ -30,6 +30,7 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.profile.ProfileService;
 import bio.terra.service.resourcemanagement.ResourceService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotProject;
 import bio.terra.service.snapshot.SnapshotService;
@@ -201,8 +202,10 @@ public class FileService {
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
           resourceService.getStorageAccount(dataset, billingProfileModel);
-      return tableDao.retrieveById(
-          UUID.fromString(datasetId), fileId, depth, billingProfileModel, storageAccountResource);
+      AzureStorageAuthInfo storageAuthInfo =
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+              billingProfileModel, storageAccountResource);
+      return tableDao.retrieveById(UUID.fromString(datasetId), fileId, depth, storageAuthInfo);
     }
   }
 
@@ -222,8 +225,10 @@ public class FileService {
           profileService.getProfileByIdNoCheck(dataset.getDefaultProfileId());
       AzureStorageAccountResource storageAccountResource =
           resourceService.getStorageAccount(dataset, billingProfileModel);
-      return tableDao.retrieveByPath(
-          UUID.fromString(datasetId), path, depth, storageAccountResource);
+      AzureStorageAuthInfo storageAuthInfo =
+          AzureStorageAuthInfo.azureStorageAuthInfoBuilder(
+              billingProfileModel, storageAccountResource);
+      return tableDao.retrieveByPath(UUID.fromString(datasetId), path, depth, storageAuthInfo);
     }
   }
 

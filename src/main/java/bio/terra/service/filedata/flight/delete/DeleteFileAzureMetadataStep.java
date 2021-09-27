@@ -1,12 +1,10 @@
 package bio.terra.service.filedata.flight.delete;
 
-import bio.terra.model.BillingProfileModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.azure.tables.TableDao;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.profile.flight.ProfileMapKeys;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
 import bio.terra.stairway.*;
 
 public class DeleteFileAzureMetadataStep implements Step {
@@ -23,12 +21,10 @@ public class DeleteFileAzureMetadataStep implements Step {
   @Override
   public StepResult doStep(FlightContext context) throws InterruptedException {
     FlightMap workingMap = context.getWorkingMap();
-    BillingProfileModel billingProfileModel =
-        workingMap.get(ProfileMapKeys.PROFILE_MODEL, BillingProfileModel.class);
-    AzureStorageAccountResource storageAccountResource =
-        workingMap.get(FileMapKeys.STORAGE_ACCOUNT_INFO, AzureStorageAccountResource.class);
+    AzureStorageAuthInfo storageAuthInfo =
+        workingMap.get(FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     try {
-      tableDao.deleteFileMetadata(fileId, billingProfileModel, storageAccountResource);
+      tableDao.deleteFileMetadata(fileId, storageAuthInfo);
     } catch (FileSystemAbortTransactionException rex) {
       return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
     }

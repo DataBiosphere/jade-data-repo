@@ -25,10 +25,7 @@ import bio.terra.service.filedata.azure.tables.TableDirectoryDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.iam.IamProviderInterface;
-import bio.terra.service.resourcemanagement.azure.AzureApplicationDeploymentResource;
-import bio.terra.service.resourcemanagement.azure.AzureAuthService;
-import bio.terra.service.resourcemanagement.azure.AzureResourceConfiguration;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
+import bio.terra.service.resourcemanagement.azure.*;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
@@ -59,6 +56,7 @@ public class AzureIngestFileConnectedTest {
   private UUID homeTenantId;
   private String fileId;
 
+  private AzureStorageAuthInfo storageAuthInfo;
   private AzureStorageAccountResource storageAccountResource;
   private BillingProfileModel billingProfile;
   private FileLoadModel fileLoadModel;
@@ -117,6 +115,9 @@ public class AzureIngestFileConnectedTest {
             .metadataContainer("metadata")
             .dataContainer("data");
 
+    storageAuthInfo =
+        AzureStorageAuthInfo.azureStorageAuthInfoBuilder(billingProfile, storageAccountResource);
+
     tableServiceClient =
         new TableServiceClientBuilder()
             .credential(
@@ -149,7 +150,7 @@ public class AzureIngestFileConnectedTest {
   @After
   public void cleanup() throws Exception {
     try {
-      tableDao.deleteFileMetadata(fileId, billingProfile, storageAccountResource);
+      tableDao.deleteFileMetadata(fileId, storageAuthInfo);
       tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, fileId);
     } catch (Exception ex) {
       logger.error("Unable to clean up metadata for fileId {}", fileId, ex);
@@ -209,17 +210,16 @@ public class AzureIngestFileConnectedTest {
             .size(fsFileInfo.getSize())
             .loadTag(fileLoadModel.getLoadTag());
 
-    tableDao.createFileMetadata(newFile, billingProfile, storageAccountResource);
+    tableDao.createFileMetadata(newFile, storageAuthInfo);
     // Retrieve to build the complete FSItem
-    FSItem fsItem =
-        tableDao.retrieveById(datasetId, fileId, 1, billingProfile, storageAccountResource);
+    FSItem fsItem = tableDao.retrieveById(datasetId, fileId, 1, storageAuthInfo);
     FileModel resultingFileModel = fileService.fileModelFromFSItem(fsItem);
     assertThat(
         "file model contains correct info.", resultingFileModel.getFileId(), equalTo(fileId));
 
     // Testing other cases from IngestFileAzureDirectoryStep (step 4 above)
     // We use this to check if we are in re-run of a load job
-    FireStoreFile fileEntry = tableDao.lookupFile(fileId, billingProfile, storageAccountResource);
+    FireStoreFile fileEntry = tableDao.lookupFile(fileId, storageAuthInfo);
     assertThat("FileEntry should not be null", fileEntry, notNullValue());
   }
 }

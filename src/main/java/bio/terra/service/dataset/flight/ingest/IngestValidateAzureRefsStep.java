@@ -43,7 +43,10 @@ public class IngestValidateAzureRefsStep extends IngestValidateRefsStep {
         workingMap.get(IngestMapKeys.STORAGE_ACCOUNT_RESOURCE, AzureStorageAccountResource.class);
 
     var tableServiceClient =
-        azureAuthService.getTableServiceClient(billingProfile, storageAccountResource);
+        azureAuthService.getTableServiceClient(
+            billingProfile.getSubscriptionId(),
+            storageAccountResource.getApplicationResource().getAzureResourceGroupName(),
+            storageAccountResource.getName());
     Table table = IngestUtils.getDatasetTable(context, dataset);
     var tableName = IngestUtils.getSynapseTableName(context.getFlightId());
 

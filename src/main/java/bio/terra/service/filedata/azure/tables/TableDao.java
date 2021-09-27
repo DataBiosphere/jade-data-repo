@@ -15,7 +15,6 @@ import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.filedata.google.firestore.InterruptibleConsumer;
 import bio.terra.service.resourcemanagement.azure.AzureAuthService;
 import bio.terra.service.resourcemanagement.azure.AzureStorageAuthInfo;
-import bio.terra.service.resourcemanagement.azure.AzureStorageAccountResource;
 import bio.terra.service.snapshot.Snapshot;
 import com.azure.data.tables.TableServiceClient;
 import java.time.Instant;
@@ -67,7 +66,10 @@ public class TableDao {
   }
 
   public void createDirectoryEntry(
-      FireStoreDirectoryEntry newEntry, AzureStorageAuthInfo storageAuthInfo, String collectionId, String tableName) {
+      FireStoreDirectoryEntry newEntry,
+      AzureStorageAuthInfo storageAuthInfo,
+      String collectionId,
+      String tableName) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(
             storageAuthInfo.getSubscriptionId(),
@@ -76,7 +78,8 @@ public class TableDao {
     directoryDao.createDirectoryEntry(tableServiceClient, collectionId, tableName, newEntry);
   }
 
-  public boolean deleteDirectoryEntry(String fileId, AzureStorageAuthInfo storageAuthInfo, String collectionId, String tableName) {
+  public boolean deleteDirectoryEntry(
+      String fileId, AzureStorageAuthInfo storageAuthInfo, String collectionId, String tableName) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(
             storageAuthInfo.getSubscriptionId(),

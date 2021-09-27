@@ -6,7 +6,6 @@ import bio.terra.controller.SearchApi;
 import bio.terra.model.SearchIndexModel;
 import bio.terra.model.SearchIndexRequest;
 import bio.terra.model.SearchMetadataModel;
-import bio.terra.model.SearchMetadataResponse;
 import bio.terra.model.SearchQueryRequest;
 import bio.terra.model.SearchQueryResultModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -23,7 +22,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.Api;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -89,17 +87,20 @@ public class SearchApiController implements SearchApi {
   }
 
   @Override
-  public ResponseEntity<SearchMetadataResponse> enumerateSnapshotSearch() {
-    List<UUID> authorizedSnapshotIds =
+  public ResponseEntity<String> enumerateSnapshotSearch() {
+    List<UUID> ids =
         iamService.listAuthorizedResources(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT);
-    Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(authorizedSnapshotIds);
-    var response = new SearchMetadataResponse();
-    response.setResult(new ArrayList<>());
+    Map<UUID, String> metadata = snapshotSearchMetadataDao.getMetadata(ids);
+    //    var response = new SearchMetadataResponse();
+    //    response.setResult(new ArrayList<>());
     // There's no easy way to tell openapi to map a field as @JsonRawValue mapping, so
     // instead we translate the json text from Postgres back to a JsonNode, which Jackson
     // will convert back to text in the response.
-    metadata.values().stream().map(this::toJsonNode).forEach(response.getResult()::add);
-    return ResponseEntity.ok(response);
+    // Create the JSON result "by hand" to avoid having to round trip the data to JsonNode.
+    var jsonResponseTemplate = "{ \"result\": [ %s ] }";
+    //    metadata.values().stream().map(this::toJsonNode).forEach(response.getResult()::add);
+    return ResponseEntity.ok(
+        String.format(jsonResponseTemplate, String.join(",", metadata.values())));
   }
 
   private JsonNode toJsonNode(String json) {

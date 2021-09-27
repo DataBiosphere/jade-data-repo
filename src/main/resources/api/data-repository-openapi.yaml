@@ -2282,7 +2282,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SearchMetadataResponse'
+                type: string
 
   /api/repository/v1/search/{id}/index:
     post:

@@ -35,6 +35,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(properties = "features.search.api=enabled")
@@ -93,9 +94,10 @@ public class SearchApiControllerTest {
     when(iamService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
         .thenReturn(uuids);
     when(snapshotMetadataDao.getMetadata(uuids)).thenReturn(Map.of(uuid, json));
-    mvc.perform(get(endpoint))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.result[0].test").value("data"));
+    final ResultActions data =
+        mvc.perform(get(endpoint))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.result[0].test").value("data"));
     verify(iamService).listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT));
     verify(snapshotMetadataDao).getMetadata(uuids);
   }

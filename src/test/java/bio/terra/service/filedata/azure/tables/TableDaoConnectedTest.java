@@ -23,6 +23,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,6 +37,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class TableDaoConnectedTest {
+  private final Logger logger = LoggerFactory.getLogger(TableDaoConnectedTest.class);
 
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
   @Autowired AzureUtils azureUtils;
@@ -71,6 +74,11 @@ public class TableDaoConnectedTest {
     snapshot = new Snapshot().id(snapshotId);
     loadTag = Names.randomizeName("loadTag");
     numFilesToLoad = 3;
+    logger.info(
+        "DatasetId: {}, DatasetName: {}, Snapshot: {}",
+        datasetId,
+        dataset.getName(),
+        snapshotId.toString());
 
     String baseTargetPath = "/test/path/file-%d.json";
     for (int i = 0; i < numFilesToLoad; i++) {
@@ -89,9 +97,9 @@ public class TableDaoConnectedTest {
     List<String> directories = new ArrayList();
     directories.add("/");
     directories.add("/_dr_");
-    directories.add("/_dr_/test");
-    directories.add("/_dr_/test/path");
-    String baseTargetPath = "/_dr_/test/path/file-%d.json";
+    directories.add("/_dr_/" + dataset.getName() + "/test");
+    directories.add("/_dr_/" + dataset.getName() + "/test/path");
+    String baseTargetPath = "/_dr_/" + dataset.getName() + "/test/path/file-%d.json";
     for (int i = 0; i < numFilesToLoad; i++) {
       directories.add(String.format(baseTargetPath, i));
     }

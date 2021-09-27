@@ -28,7 +28,12 @@ public class DeleteFileAzureDirectoryStep implements Step {
     AzureStorageAuthInfo storageAuthInfo =
         workingMap.get(FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     try {
-      boolean found = tableDao.deleteDirectoryEntry(fileId, dataset.getId(), StorageTableUtils.getDatasetTableName(), storageAuthInfo);
+      boolean found =
+          tableDao.deleteDirectoryEntry(
+              fileId,
+              storageAuthInfo,
+              dataset.getId().toString(),
+              StorageTableUtils.getDatasetTableName());
       DeleteResponseModel.ObjectStateEnum state =
           (found)
               ? DeleteResponseModel.ObjectStateEnum.DELETED

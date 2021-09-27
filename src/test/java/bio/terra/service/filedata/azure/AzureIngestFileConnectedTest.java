@@ -152,7 +152,11 @@ public class AzureIngestFileConnectedTest {
   public void cleanup() throws Exception {
     try {
       tableDao.deleteFileMetadata(fileId, storageAuthInfo);
-      tableDirectoryDao.deleteDirectoryEntry(tableServiceClient, datasetId.toString(), StorageTableUtils.getDatasetTableName(), fileId);
+      tableDirectoryDao.deleteDirectoryEntry(
+          tableServiceClient,
+          datasetId.toString(),
+          StorageTableUtils.getDatasetTableName(),
+          fileId);
     } catch (Exception ex) {
       logger.error("Unable to clean up metadata for fileId {}", fileId, ex);
     }

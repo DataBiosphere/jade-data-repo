@@ -69,8 +69,12 @@ public class TableDaoConnectedTest {
     snapshotId = UUID.randomUUID();
     snapshot = new Snapshot().id(snapshotId);
     loadTag = Names.randomizeName("loadTag");
-    numFilesToLoad = 3;
 
+    // Add three files with the same base path
+    // This will generate 7 entries in the Dataset storage table
+    // These include: /, /_dr_, /_dr_/test, /_dr_/test/path
+    // And one for each of the 3 files
+    numFilesToLoad = 3;
     String baseTargetPath = "/test/path/file-%d.json";
     for (int i = 0; i < numFilesToLoad; i++) {
       String fileId = UUID.randomUUID().toString();
@@ -78,6 +82,14 @@ public class TableDaoConnectedTest {
       String targetPath = String.format(baseTargetPath, i);
       createFileDirectoryEntry(fileId, targetPath);
     }
+
+    // Add one more additional file that lives at a partially different path
+    // Only 2 new entries will be generated b/c it shares part of the base path
+    // New entries: /_dr_/test/diffpath and one for the 1 file
+    String diffFilePath = "/test/diffpath/difffile.json";
+    String diffFileId = UUID.randomUUID().toString();
+    refIds.add(diffFileId);
+    createFileDirectoryEntry(diffFileId, diffFilePath);
   }
 
   @Test
@@ -146,7 +158,9 @@ public class TableDaoConnectedTest {
     for (int i = 0; i < numFilesToLoad; i++) {
       directories.add(String.format(baseTargetPath, i));
     }
-    int expectedNum = 4 + numFilesToLoad;
+    directories.add("/_dr_/" + datasetNamePlaceholder + "test/diffpath");
+    directories.add("/_dr_/" + datasetNamePlaceholder + "test/diffpath/difffile.json");
+    int expectedNum = 6 + numFilesToLoad;
     List<FireStoreDirectoryEntry> datasetDirectoryEntries =
         tableDirectoryDao.batchRetrieveByPath(
             tableServiceClient, collectionId, tableName, directories);
@@ -155,6 +169,4 @@ public class TableDaoConnectedTest {
   }
 
   // TODO - add test case that tests out the cache mechanism
-  // TODO - test multiple files in snapshot - (A) With shared file paths and (B) with different file
-  // paths
 }

@@ -67,22 +67,22 @@ public class TableDao {
   }
 
   public void createDirectoryEntry(
-      FireStoreDirectoryEntry newEntry, AzureStorageAuthInfo storageAuthInfo, String tableName) {
+      FireStoreDirectoryEntry newEntry, AzureStorageAuthInfo storageAuthInfo, String collectionId, String tableName) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(
             storageAuthInfo.getSubscriptionId(),
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
-    directoryDao.createDirectoryEntry(tableServiceClient, tableName, newEntry);
+    directoryDao.createDirectoryEntry(tableServiceClient, collectionId, tableName, newEntry);
   }
 
-  public boolean deleteDirectoryEntry(String fileId, AzureStorageAuthInfo storageAuthInfo) {
+  public boolean deleteDirectoryEntry(String fileId, AzureStorageAuthInfo storageAuthInfo, String collectionId, String tableName) {
     TableServiceClient tableServiceClient =
         azureAuthService.getTableServiceClient(
             storageAuthInfo.getSubscriptionId(),
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
-    return directoryDao.deleteDirectoryEntry(tableServiceClient, StorageTableUtils.getDatasetTableName(), fileId);
+    return directoryDao.deleteDirectoryEntry(tableServiceClient, collectionId, tableName, fileId);
   }
 
   public void createFileMetadata(FireStoreFile newFile, AzureStorageAuthInfo storageAuthInfo) {
@@ -130,7 +130,8 @@ public class TableDao {
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
     String datasetId = dataset.getId().toString();
-    return directoryDao.retrieveByPath(tableServiceClient, datasetId, path);
+    return directoryDao.retrieveByPath(
+        tableServiceClient, datasetId, StorageTableUtils.getDatasetTableName(), path);
   }
 
   public FireStoreFile lookupFile(String fileId, AzureStorageAuthInfo storageAuthInfo) {
@@ -161,7 +162,11 @@ public class TableDao {
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), fullPath);
+        directoryDao.retrieveByPath(
+            tableServiceClient,
+            datasetId.toString(),
+            StorageTableUtils.getDatasetTableName(),
+            fullPath);
     return retrieveWorker(
         tableServiceClient,
         tableServiceClient,
@@ -192,7 +197,8 @@ public class TableDao {
             storageAuthInfo.getResourceGroupName(),
             storageAuthInfo.getStorageAccountResourceName());
     FireStoreDirectoryEntry fireStoreDirectoryEntry =
-        directoryDao.retrieveById(tableServiceClient, fileId);
+        directoryDao.retrieveById(
+            tableServiceClient, StorageTableUtils.getDatasetTableName(), fileId);
     return retrieveWorker(
         tableServiceClient,
         tableServiceClient,

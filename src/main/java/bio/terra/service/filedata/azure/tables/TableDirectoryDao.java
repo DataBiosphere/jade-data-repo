@@ -80,12 +80,12 @@ public class TableDirectoryDao {
   // the entry. Existence checking is handled at upper layers.
   public void createDirectoryEntry(
       TableServiceClient tableServiceClient,
+      String collectionId,
       String tableName,
       FireStoreDirectoryEntry createEntry) {
 
     tableServiceClient.createTableIfNotExists(tableName);
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
-    String datasetId = createEntry.getDatasetId();
 
     // Walk up the lookup directory path, finding missing directories we get to an
     // existing one
@@ -96,12 +96,12 @@ public class TableDirectoryDao {
         testPath = fileMetadataUtils.getDirectoryPath(testPath)) {
 
       // !!! In this case we are using a lookup path
-      if (lookupByFilePath(tableServiceClient, datasetId, testPath) != null) {
+      if (lookupByFilePath(tableServiceClient, collectionId, tableName, testPath) != null) {
         break;
       }
 
       FireStoreDirectoryEntry dirToCreate = fileMetadataUtils.makeDirectoryEntry(testPath);
-      String partitionKey = getPartitionKey(datasetId, testPath);
+      String partitionKey = getPartitionKey(collectionId, testPath);
       String rowKey = encodePathAsAzureRowKey(testPath);
       TableEntity entity = FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, dirToCreate);
       logger.info("Upserting directory entry for {} in table {}", testPath, tableName);
@@ -112,7 +112,7 @@ public class TableDirectoryDao {
 
     String fullPath = fileMetadataUtils.getFullPath(createEntry.getPath(), createEntry.getName());
     String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
-    String partitionKey = getPartitionKey(datasetId, lookupPath);
+    String partitionKey = getPartitionKey(collectionId, lookupPath);
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     TableEntity createEntryEntity =
         FireStoreDirectoryEntry.toTableEntity(partitionKey, rowKey, createEntry);
@@ -122,18 +122,17 @@ public class TableDirectoryDao {
 
   // true - directory entry existed and was deleted; false - directory entry did not exist
   public boolean deleteDirectoryEntry(
-      TableServiceClient tableServiceClient, String tableName, String fileId) {
+      TableServiceClient tableServiceClient, String collectionId, String tableName, String fileId) {
     TableClient tableClient = tableServiceClient.getTableClient(tableName);
 
     // Look up the directory entry by id. If it doesn't exist, we're done
-    TableEntity leafEntity = lookupByFileId(tableServiceClient, fileId);
+    TableEntity leafEntity = lookupByFileId(tableServiceClient, tableName, fileId);
     if (leafEntity == null) {
       return false;
     }
     tableClient.deleteEntity(leafEntity);
 
     FireStoreDirectoryEntry leafEntry = FireStoreDirectoryEntry.fromTableEntity(leafEntity);
-    String datasetId = leafEntry.getDatasetId();
     String lookupPath = fileMetadataUtils.makeLookupPath(leafEntry.getPath());
     while (!lookupPath.isEmpty()) {
       // If there are no entries that share this path as their directory path,
@@ -144,7 +143,8 @@ public class TableDirectoryDao {
       if (TableServiceClientUtils.tableHasEntries(tableServiceClient, tableName, options)) {
         break;
       }
-      TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
+      TableEntity entity =
+          lookupByFilePath(tableServiceClient, collectionId, tableName, lookupPath);
       if (entity != null) {
         tableClient.deleteEntity(entity);
       }
@@ -168,8 +168,8 @@ public class TableDirectoryDao {
 
   // Returns null if not found - upper layers do any throwing
   public FireStoreDirectoryEntry retrieveById(
-      TableServiceClient tableServiceClient, String fileId) {
-    TableEntity entity = lookupByFileId(tableServiceClient, fileId);
+      TableServiceClient tableServiceClient, String tableName, String fileId) {
+    TableEntity entity = lookupByFileId(tableServiceClient, tableName, fileId);
     return Optional.ofNullable(entity)
         .map(d -> FireStoreDirectoryEntry.fromTableEntity(entity))
         .orElse(null);
@@ -195,16 +195,22 @@ public class TableDirectoryDao {
 
   // Returns null if not found - upper layers do any throwing
   public FireStoreDirectoryEntry retrieveByPath(
-      TableServiceClient tableServiceClient, String datasetId, String fullPath) {
+      TableServiceClient tableServiceClient,
+      String collectionId,
+      String tableName,
+      String fullPath) {
     String lookupPath = fileMetadataUtils.makeLookupPath(fullPath);
-    TableEntity entity = lookupByFilePath(tableServiceClient, datasetId, lookupPath);
+    TableEntity entity = lookupByFilePath(tableServiceClient, collectionId, tableName, lookupPath);
     return Optional.ofNullable(entity)
         .map(d -> FireStoreDirectoryEntry.fromTableEntity(entity))
         .orElse(null);
   }
 
   public List<FireStoreDirectoryEntry> batchRetrieveByPath(
-      TableServiceClient tableServiceClient, String datasetId, List<String> fullPaths) {
+      TableServiceClient tableServiceClient,
+      String collectionId,
+      String tableName,
+      List<String> fullPaths) {
     // I don't see a batch way to "getEntity". We could switch to listEntities w/ a query
     // BUt, this is not efficient!
     List<TableEntity> entities =
@@ -212,7 +218,10 @@ public class TableDirectoryDao {
             .map(
                 path ->
                     lookupByFilePath(
-                        tableServiceClient, datasetId, fileMetadataUtils.makeLookupPath(path)))
+                        tableServiceClient,
+                        collectionId,
+                        tableName,
+                        fileMetadataUtils.makeLookupPath(path)))
             .filter(Objects::nonNull)
             .collect(Collectors.toList());
     return entities.stream()
@@ -255,10 +264,12 @@ public class TableDirectoryDao {
   }
 
   TableEntity lookupByFilePath(
-      TableServiceClient tableServiceClient, String datasetId, String lookupPath) {
-    TableClient tableClient =
-        tableServiceClient.getTableClient(StorageTableUtils.getDatasetTableName());
-    String partitionKey = getPartitionKey(datasetId, lookupPath);
+      TableServiceClient tableServiceClient,
+      String collectionId,
+      String tableName,
+      String lookupPath) {
+    TableClient tableClient = tableServiceClient.getTableClient(tableName);
+    String partitionKey = getPartitionKey(collectionId, lookupPath);
     String rowKey = encodePathAsAzureRowKey(lookupPath);
     try {
       return tableClient.getEntity(partitionKey, rowKey);
@@ -268,25 +279,21 @@ public class TableDirectoryDao {
   }
 
   // Returns null if not found
-  private TableEntity lookupByFileId(TableServiceClient tableServiceClient, String fileId) {
+  private TableEntity lookupByFileId(
+      TableServiceClient tableServiceClient, String tableName, String fileId) {
     try {
-      TableClient client =
-          tableServiceClient.getTableClient(StorageTableUtils.getDatasetTableName());
       ListEntitiesOptions options =
           new ListEntitiesOptions().setFilter(String.format("fileId eq '%s'", fileId));
-      // TODO - rework and add to new utils method
-      PagedIterable<TableEntity> entities = client.listEntities(options, null, null);
-      if (!entities.iterator().hasNext()) {
+      int count =
+          TableServiceClientUtils.getTableEntryCount(tableServiceClient, tableName, options);
+      if (count < 1) {
         return null;
+      } else if (count > 1) {
+        throw new FileSystemAbortTransactionException(
+            String.format("lookupByFileId found too many entries for fileId %s", fileId));
       }
-      int count = 0;
-      for (TableEntity entity : entities) {
-        count += 1;
-        if (count > 1) {
-          logger.warn("Found more than one entry for file {}", fileId);
-          throw new FileSystemAbortTransactionException("lookupByFileId found too many entries");
-        }
-      }
+      TableClient tableClient = tableServiceClient.getTableClient(tableName);
+      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
       return entities.iterator().next();
 
     } catch (TableServiceException ex) {
@@ -362,7 +369,11 @@ public class TableDirectoryDao {
               // Should it only return successfully when the snapshot has already ingested a file at
               // this filepath??
               List<FireStoreDirectoryEntry> datasetDirectoryEntries =
-                  batchRetrieveByPath(datasetTableServiceClient, datasetId, newPaths);
+                  batchRetrieveByPath(
+                      datasetTableServiceClient,
+                      datasetId,
+                      StorageTableUtils.getDatasetTableName(),
+                      newPaths);
 
               // Create snapshot file system entries
               List<FireStoreDirectoryEntry> snapshotEntries = new ArrayList<>();
@@ -392,7 +403,13 @@ public class TableDirectoryDao {
     // datasets
     // Also, should it matter that's it's returning a TableEntity vs. a DocumentSnapshot? I think
     // those two are just the native entity for firestore vs. storage tables
-    TableEntity directoryEntry = lookupByFilePath(tableServiceClient, snapshotId, dirPath);
+    TableEntity directoryEntry =
+        lookupByFilePath(
+            tableServiceClient,
+            snapshotId,
+            StorageTableUtils.toTableName(
+                snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT),
+            dirPath);
     if (directoryEntry != null) {
       return;
     }
@@ -407,6 +424,7 @@ public class TableDirectoryDao {
 
     createDirectoryEntry(
         tableServiceClient,
+        snapshotId,
         StorageTableUtils.toTableName(
             snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT),
         topDir);

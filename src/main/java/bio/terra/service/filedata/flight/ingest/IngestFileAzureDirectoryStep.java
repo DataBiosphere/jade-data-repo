@@ -87,7 +87,7 @@ public class IngestFileAzureDirectoryStep implements Step {
                 .name(fileMetadataUtils.getName(targetPath))
                 .datasetId(datasetId)
                 .loadTag(loadModel.getLoadTag());
-        tableDao.createDirectoryEntry(newEntry, StorageTableUtils.getDatasetTableName(), storageAuthInfo);
+        tableDao.createDirectoryEntry(newEntry, datasetId, StorageTableUtils.getDatasetTableName(), storageAuthInfo);
       } else if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CHECK_ENTRY_ACTION)
           && !StringUtils.equals(existingEntry.getFileId(), fileId)) {
         // (b) We are in a re-run of a load job. Try to get the file entry.
@@ -118,7 +118,8 @@ public class IngestFileAzureDirectoryStep implements Step {
             context, FileMapKeys.STORAGE_AUTH_INFO, AzureStorageAuthInfo.class);
     if (ingestFileAction.equals(ValidateIngestFileDirectoryStep.CREATE_ENTRY_ACTION)) {
       try {
-        tableDao.deleteDirectoryEntry(fileId, storageAuthInfo);
+        tableDao.deleteDirectoryEntry(fileId, dataset.getId().toString(),
+            StorageTableUtils.getDatasetTableName(), storageAuthInfo);
       } catch (TableServiceException rex) {
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
       }

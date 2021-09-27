@@ -8,6 +8,7 @@ import com.azure.data.tables.models.ListEntitiesOptions;
 import com.azure.data.tables.models.ListTablesOptions;
 import com.azure.data.tables.models.TableEntity;
 import com.azure.data.tables.models.TableItem;
+import com.google.common.collect.Iterables;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -59,5 +60,15 @@ public class TableServiceClientUtils {
             .map(refId -> String.format("fileId eq '%s'", refId))
             .collect(Collectors.joining(" or "));
     return filterTable(tableServiceClient, tableName, filter);
+  }
+
+  public static int getTableEntryCount(
+      TableServiceClient tableServiceClient, String tableName, ListEntitiesOptions options) {
+    if (tableHasEntries(tableServiceClient, tableName)) {
+      TableClient tableClient = tableServiceClient.getTableClient(tableName);
+      PagedIterable<TableEntity> entities = tableClient.listEntities(options, null, null);
+      return Iterables.size(entities);
+    }
+    return 0;
   }
 }

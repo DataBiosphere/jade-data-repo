@@ -88,13 +88,18 @@ public class TableDirectoryDaoTest {
   public void testRetrieveByPath() {
     when(tableClient.getEntity(PARTITION_KEY, ROW_KEY)).thenReturn(entity);
     FireStoreDirectoryEntry response =
-        dao.retrieveByPath(tableServiceClient, DATASET_ID, FULL_PATH);
+        dao.retrieveByPath(
+            tableServiceClient, DATASET_ID, StorageTableUtils.getDatasetTableName(), FULL_PATH);
     assertEquals("The same entry is returned", directoryEntry, response);
 
     when(tableClient.getEntity(PARTITION_KEY, NONEXISTENT_ROW_KEY))
         .thenThrow(TableServiceException.class);
     FireStoreDirectoryEntry nonExistentEntry =
-        dao.retrieveByPath(tableServiceClient, DATASET_ID, NONEXISTENT_PATH);
+        dao.retrieveByPath(
+            tableServiceClient,
+            DATASET_ID,
+            StorageTableUtils.getDatasetTableName(),
+            NONEXISTENT_PATH);
     assertNull("The entry does not exist", nonExistentEntry);
   }
 
@@ -107,7 +112,8 @@ public class TableDirectoryDaoTest {
     when(mockPagedIterable.iterator()).thenReturn(mockIterator);
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
-    FireStoreDirectoryEntry response = dao.retrieveById(tableServiceClient, FILE_ID);
+    FireStoreDirectoryEntry response =
+        dao.retrieveById(tableServiceClient, StorageTableUtils.getDatasetTableName(), FILE_ID);
     assertEquals(response, directoryEntry);
   }
 
@@ -119,7 +125,9 @@ public class TableDirectoryDaoTest {
     when(mockPagedIterable.iterator()).thenReturn(mockIterator);
     when(tableClient.listEntities(any(), any(), any())).thenReturn(mockPagedIterable);
 
-    FireStoreDirectoryEntry response = dao.retrieveById(tableServiceClient, "nonexistentId");
+    FireStoreDirectoryEntry response =
+        dao.retrieveById(
+            tableServiceClient, StorageTableUtils.getDatasetTableName(), "nonexistentId");
     assertNull("The entry does not exist", response);
   }
 

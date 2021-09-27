@@ -16,6 +16,7 @@ import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
 import com.azure.data.tables.models.TableEntity;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.junit.Before;
@@ -47,8 +48,8 @@ public class TableDaoConnectedTest {
   private UUID snapshotId;
   private Snapshot snapshot;
   private List<String> refIds;
-  private static final String FILE_ID = UUID.randomUUID().toString();
-  private String targetPath;
+  private String loadTag;
+  private int numFilesToLoad;
 
   @Before
   public void setUp() {
@@ -65,26 +66,19 @@ public class TableDaoConnectedTest {
             .buildClient();
     datasetId = UUID.randomUUID();
     dataset = new Dataset().id(datasetId).name(Names.randomizeName("dataset"));
-    refIds = List.of(FILE_ID);
+    refIds = new ArrayList<>();
     snapshotId = UUID.randomUUID();
     snapshot = new Snapshot().id(snapshotId);
-    targetPath = "/test/path/file.json";
+    loadTag = Names.randomizeName("loadTag");
+    numFilesToLoad = 3;
 
-    FireStoreDirectoryEntry newEntry =
-        new FireStoreDirectoryEntry()
-            .fileId(FILE_ID)
-            .isFileRef(true)
-            .path(fileMetadataUtils.getDirectoryPath(targetPath))
-            .name(fileMetadataUtils.getName(targetPath))
-            .datasetId(datasetId.toString())
-            .loadTag(Names.randomizeName("loadTag"));
-    tableDirectoryDao.createDirectoryEntry(
-        tableServiceClient, StorageTableUtils.getDatasetTableName(), newEntry);
-
-    // test that directory entry now exists
-    FireStoreDirectoryEntry de_after =
-        tableDirectoryDao.retrieveByPath(tableServiceClient, datasetId.toString(), targetPath);
-    assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
+    String baseTargetPath = "/test/path/file-%d.json";
+    for (int i = 0; i < numFilesToLoad; i++) {
+      String fileId = UUID.randomUUID().toString();
+      refIds.add(fileId);
+      String targetPath = String.format(baseTargetPath, i);
+      createFileDirectoryEntry(fileId, targetPath);
+    }
   }
 
   @Test
@@ -92,22 +86,62 @@ public class TableDaoConnectedTest {
     tableDao.addFilesToSnapshot(tableServiceClient, tableServiceClient, dataset, snapshot, refIds);
 
     // check if exist
-    List<String> directories = List.of("/_dr_/test", "/_dr_/test/path");
+    List<String> directories = new ArrayList();
+    directories.add("/");
+    directories.add("/_dr_");
+    directories.add("/_dr_/test");
+    directories.add("/_dr_/test/path");
+    String baseTargetPath = "/_dr_/test/path/file-%d.json";
+    for (int i = 0; i < numFilesToLoad; i++) {
+      directories.add(String.format(baseTargetPath, i));
+    }
+    int expectedNum = 4 + numFilesToLoad;
     List<FireStoreDirectoryEntry> datasetDirectoryEntries =
         tableDirectoryDao.batchRetrieveByPath(
-            tableServiceClient, datasetId.toString(), directories);
+            tableServiceClient,
+            snapshotId.toString(),
+            StorageTableUtils.toTableName(
+                snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT),
+            directories);
     assertThat(
-        "Retrieved two entries for the two paths", datasetDirectoryEntries.size(), equalTo(2));
+        "Retrieved entries for all paths", datasetDirectoryEntries.size(), equalTo(expectedNum));
   }
 
   @Test
   public void testBatchRetrieve() {
     List<TableEntity> entities =
         TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, refIds);
-    assertThat("One file id returned from batchRetreiveFiles", entities.size(), equalTo(1));
+    assertThat(
+        "One file id returned from batchRetreiveFiles", entities.size(), equalTo(numFilesToLoad));
     // assertThat("Right file is returned", entities.get(0).getPartitionKey(), equalTo(1));
   }
 
+  private void createFileDirectoryEntry(String fileId, String targetPath) {
+    FireStoreDirectoryEntry newEntry =
+        new FireStoreDirectoryEntry()
+            .fileId(fileId)
+            .isFileRef(true)
+            .path(fileMetadataUtils.getDirectoryPath(targetPath))
+            .name(fileMetadataUtils.getName(targetPath))
+            .datasetId(datasetId.toString())
+            .loadTag(loadTag);
+    tableDirectoryDao.createDirectoryEntry(
+        tableServiceClient,
+        datasetId.toString(),
+        StorageTableUtils.getDatasetTableName(),
+        newEntry);
+
+    // test that directory entry now exists
+    FireStoreDirectoryEntry de_after =
+        tableDirectoryDao.retrieveByPath(
+            tableServiceClient,
+            datasetId.toString(),
+            StorageTableUtils.getDatasetTableName(),
+            targetPath);
+    assertThat("FireStoreDirectoryEntry should now exist", de_after, equalTo(newEntry));
+  }
+
   // TODO - add test case that tests out the cache mechanism
-  //TODO - test multiple files in snapshot - (A) With shared file paths and (B) with different file paths
+  // TODO - test multiple files in snapshot - (A) With shared file paths and (B) with different file
+  // paths
 }

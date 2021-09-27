@@ -8,6 +8,7 @@ import bio.terra.common.AzureUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.Names;
 import bio.terra.service.common.azure.StorageTableUtils;
+import bio.terra.service.common.azure.StorageTableUtils.StorageTableNameSuffix;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FileMetadataUtils;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
@@ -15,14 +16,16 @@ import bio.terra.service.snapshot.Snapshot;
 import com.azure.core.credential.AzureNamedKeyCredential;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
-import com.azure.data.tables.models.TableEntity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,6 +38,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class TableDaoConnectedTest {
+  private final Logger logger = LoggerFactory.getLogger(TableDaoConnectedTest.class);
   @Autowired private ConnectedTestConfiguration connectedTestConfiguration;
   @Autowired AzureUtils azureUtils;
   @Autowired TableDao tableDao;
@@ -49,6 +53,7 @@ public class TableDaoConnectedTest {
   private List<String> refIds;
   private String loadTag;
   private int numFilesToLoad;
+  private String targetBasePathFormat = "/test/%s/file-%s.json";
 
   @Before
   public void setUp() {
@@ -69,27 +74,54 @@ public class TableDaoConnectedTest {
     snapshotId = UUID.randomUUID();
     snapshot = new Snapshot().id(snapshotId);
     loadTag = Names.randomizeName("loadTag");
+    logger.info(
+        "Test details: Dataset Name: {}, Dataset Id: {}, Snapshot Id: {}, Snapshot Table Name: {}, loadTag: {}",
+        dataset.getName(),
+        datasetId,
+        snapshotId,
+        StorageTableUtils.toTableName(
+            snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT),
+        loadTag);
 
     // Add three files with the same base path
     // This will generate 7 entries in the Dataset storage table
     // These include: /, /_dr_, /_dr_/test, /_dr_/test/path
     // And one for each of the 3 files
     numFilesToLoad = 3;
-    String baseTargetPath = "/test/path/file-%d.json";
     for (int i = 0; i < numFilesToLoad; i++) {
       String fileId = UUID.randomUUID().toString();
       refIds.add(fileId);
-      String targetPath = String.format(baseTargetPath, i);
+      String targetPath = String.format(targetBasePathFormat, "path", i);
       createFileDirectoryEntry(fileId, targetPath);
     }
 
     // Add one more additional file that lives at a partially different path
     // Only 2 new entries will be generated b/c it shares part of the base path
     // New entries: /_dr_/test/diffpath and one for the 1 file
-    String diffFilePath = "/test/diffpath/difffile.json";
     String diffFileId = UUID.randomUUID().toString();
     refIds.add(diffFileId);
-    createFileDirectoryEntry(diffFileId, diffFilePath);
+    createFileDirectoryEntry(diffFileId, String.format(targetBasePathFormat, "diffpath", "diff"));
+  }
+
+  @After
+  public void cleanup() {
+    // delete entries from dataset
+    refIds.stream()
+        .forEach(
+            refId -> {
+              boolean success =
+                  tableDirectoryDao.deleteDirectoryEntry(
+                      tableServiceClient,
+                      datasetId.toString(),
+                      StorageTableUtils.getDatasetTableName(),
+                      refId);
+              logger.info("Delete {}: {}", refId, success);
+            });
+
+    // delete entire snapshot table
+    tableDirectoryDao.deleteDirectoryEntriesFromCollection(
+        tableServiceClient,
+        StorageTableUtils.toTableName(snapshotId, StorageTableNameSuffix.SNAPSHOT));
   }
 
   @Test
@@ -105,15 +137,6 @@ public class TableDaoConnectedTest {
         StorageTableUtils.toTableName(
             snapshotId, StorageTableUtils.StorageTableNameSuffix.SNAPSHOT),
         true);
-  }
-
-  @Test
-  public void testBatchRetrieve() {
-    List<TableEntity> entities =
-        TableServiceClientUtils.batchRetrieveFiles(tableServiceClient, refIds);
-    assertThat(
-        "One file id returned from batchRetreiveFiles", entities.size(), equalTo(numFilesToLoad));
-    // assertThat("Right file is returned", entities.get(0).getPartitionKey(), equalTo(1));
   }
 
   private void createFileDirectoryEntry(String fileId, String targetPath) {
@@ -146,20 +169,21 @@ public class TableDaoConnectedTest {
     // This is excluded for datasets
     String datasetNamePlaceholder = "";
     if (isSnapshot) {
-      datasetNamePlaceholder = dataset.getName() + "/";
+      datasetNamePlaceholder = "/" + dataset.getName();
     }
 
     List<String> directories = new ArrayList();
     directories.add("/");
     directories.add("/_dr_");
-    directories.add("/_dr_/" + datasetNamePlaceholder + "test");
-    directories.add("/_dr_/" + datasetNamePlaceholder + "test/path");
-    String baseTargetPath = "/_dr_/" + datasetNamePlaceholder + "test/path/file-%d.json";
+    directories.add("/_dr_" + datasetNamePlaceholder + "/test");
+    directories.add("/_dr_" + datasetNamePlaceholder + "/test/path");
+    String baseTargetPath = "/_dr_" + datasetNamePlaceholder + targetBasePathFormat;
     for (int i = 0; i < numFilesToLoad; i++) {
       directories.add(String.format(baseTargetPath, i));
     }
-    directories.add("/_dr_/" + datasetNamePlaceholder + "test/diffpath");
-    directories.add("/_dr_/" + datasetNamePlaceholder + "test/diffpath/difffile.json");
+    directories.add("/_dr_" + datasetNamePlaceholder + "/test/diffpath");
+    directories.add(
+        "/_dr_" + datasetNamePlaceholder + String.format(targetBasePathFormat, "diffpath", "diff"));
     int expectedNum = 6 + numFilesToLoad;
     List<FireStoreDirectoryEntry> datasetDirectoryEntries =
         tableDirectoryDao.batchRetrieveByPath(
